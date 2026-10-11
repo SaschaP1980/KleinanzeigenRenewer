@@ -16,7 +16,7 @@ function fixture(extra='',url=base) {
  <label for="shipping-group">Versand</label><fieldset id="shipping-group" role="radiogroup"><label for="shipping">Versand möglich</label><input id="shipping" type="radio" name="shipping" value="yes" checked>
  <label for="pickup">Nur Abholung</label><input id="pickup" type="radio" name="shipping" value="no"></fieldset>
  <label for="newsletter">Newsletter</label><input id="newsletter" type="checkbox" name="newsletter" checked>
- <input type="hidden" name="adImages[0].url" value="${image('a').replace('?rule=$_2.AUTO','?full=1')}"><input type="hidden" name="adImages[1].url" value="${image('b').replace('?rule=$_2.AUTO','?full=1')}"><div id="image-upload"><input type="file"><img src="${image('a')}" srcset="${image('a').replace('AUTO','JPG')} 800w"><img src="${image('b')}"></div>
+ <input type="hidden" name="adImages[0].url" value="${image('a').replace('?rule=$_2.AUTO','?rule=$_57.JPG')}"><input type="hidden" name="adImages[1].url" value="${image('b').replace('?rule=$_2.AUTO','?rule=$_57.JPG')}"><div id="image-upload"><input type="file"><img src="${image('a')}" srcset="${image('a').replace('AUTO','JPG')} 800w"><img src="${image('b')}"></div>
  ${extra}<button type="submit">Anzeige speichern</button></form><img src="${image('external')}"></body></html>`);
  let listener;const ctx={document,URL,location:{href:url,pathname:new URL(url).pathname},chrome:{runtime:{onMessage:{addListener:f=>listener=f}}}};
  for(const f of ['image-extractor.js','form-extractor.js','content.js'])vm.runInNewContext(fs.readFileSync(path.join(__dirname,'..',f),'utf8'),ctx);
@@ -38,6 +38,17 @@ test('live values, category, description and dynamic fields',()=>{
  assert.equal(r.result.price.type,'FIXED');assert.equal(r.result.price.typeDisplay,'Festpreis');
 });
 test('edit images deduplicated in upload order, other images excluded',()=>{const r=fixture().message('EXTRACT_CURRENT_AD').result;assert.equal(r.images.length,2);assert.match(r.images[0].imageId,/\/a/);assert.match(r.images[1].imageId,/\/b/);assert.equal(r.images[0].downloadSource,'adImages-hidden');assert.equal(r.images[0].isPrimary,true)});
+test('unknown image URL parameters do not override image identity',()=>{
+ const f=fixture();
+ f.document.querySelector('input[name="adImages[0].url"]').value=image('a').replace('?rule=$_2.AUTO','?full=1');
+ const r=f.message('EXTRACT_CURRENT_AD');
+ assert.equal(r.ok,true,r.error);
+ assert.equal(r.result.images.length,2);
+ assert.equal(r.result.images[0].downloadSource,null);
+ assert.equal(r.result.images[0].downloadUrl,null);
+ assert.equal(r.result.images[1].downloadSource,'adImages-hidden');
+ assert.equal(r.result.imageDiagnostics.hiddenImageSourcesMatched,1);
+});
 test('category can expose additional fields',()=>{const r=fixture('<label for="mileage">Kilometerstand</label><input id="mileage" name="attributeMap[mileage]" value="35000">').message('EXTRACT_CURRENT_AD');assert.equal(r.result.formFields.find(f=>f.id==='mileage').value,'35000')});
 test('native radiogroup container does not create false unresolved warning',()=>{const r=fixture().message('FORM_DIAGNOSTICS');assert.equal(r.ok,true);assert.ok(!r.result.warnings.some(w=>/Versand/.test(w)));assert.ok(!r.result.form.fields.some(f=>f.id==='shipping-group'))});
 test('tokens and marketing values excluded from snapshot and diagnostics',()=>{const r=fixture().message('FORM_DIAGNOSTICS');const text=JSON.stringify(r);assert.ok(!text.includes('NEVER_COPY'));assert.ok(!r.result.form.fields.some(f=>f.name==='newsletter'))});
