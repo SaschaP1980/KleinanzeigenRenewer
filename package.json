@@ -8,6 +8,7 @@
     "coverage:check": "bash scripts/coverage-gate.sh"
   },
   "devDependencies": {
+    "acorn": "8.15.0",
     "fake-indexeddb": "6.2.5",
     "linkedom": "0.18.12"
   },
