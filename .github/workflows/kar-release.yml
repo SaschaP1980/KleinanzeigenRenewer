@@ -1,0 +1,134 @@
+name: KAR Release
+
+run-name: KAR Release ${{ inputs.mode }} from ${{ github.ref_name }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Development path used for this release
+        required: true
+        type: choice
+        options:
+          - fast
+          - work
+
+concurrency:
+  group: kar-release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: read
+  issues: read
+
+jobs:
+  release:
+    name: Verify once, package, publish
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Validate release identity and path
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MODE: ${{ inputs.mode }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="$(node -p "require('./manifest.json').version")"
+          PACKAGE_VERSION="$(node -p "require('./package.json').version")"
+          test "$VERSION" = "$PACKAGE_VERSION"
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+          if gh release view "v$VERSION" >/dev/null 2>&1; then
+            echo "Release v$VERSION already exists." >&2
+            exit 1
+          fi
+
+          git fetch --tags --force
+          PREVIOUS="$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' --sort=-version:refname | head -n1 | sed 's/^v//' || true)"
+          if [ -n "$PREVIOUS" ]; then
+            python3 - "$PREVIOUS" "$VERSION" "$MODE" <<'PY'
+          import sys
+          old=tuple(map(int,sys.argv[1].split('.')))
+          new=tuple(map(int,sys.argv[2].split('.')))
+          mode=sys.argv[3]
+          if not new > old:
+              raise SystemExit(f"version must advance: {old} -> {new}")
+          if mode == "fast":
+              if new[:2] != old[:2]:
+                  raise SystemExit("fast path is Patch/Hotfix only; major/minor must not change")
+          else:
+              if new[0] == old[0] and new[1] == old[1]:
+                  raise SystemExit("work path is for Feature/Minor/Major; expected major/minor advance")
+          PY
+          fi
+
+          if [ "$MODE" = work ]; then
+            gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls" > /tmp/prs.json
+            jq -e '[.[] | select(.merged_at != null and (.head.ref | test("^work/KAR-[0-9]+$")))] | length >= 1' /tmp/prs.json >/dev/null || {
+              echo "work release requires main HEAD to be associated with a merged work/KAR-* PR." >&2
+              exit 1
+            }
+          fi
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Full runtime / safety / coverage gate
+        run: bash scripts/coverage-gate.sh
+
+      - name: Build installable Chrome ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/kar-build"
+          python3 scripts/package.py "$RUNNER_TEMP/kar-build"
+          ZIP="$RUNNER_TEMP/kar-build/kleinanzeigen-renewal-chrome-v$VERSION.zip"
+          test -f "$ZIP"
+          unzip -t "$ZIP" >/dev/null
+          rm -f "$RUNNER_TEMP/kar-build/kleinanzeigen-renewal-source-v$VERSION.zip"
+          echo "ZIP=$ZIP" >> "$GITHUB_ENV"
+          echo "ZIP_SHA256=$(sha256sum "$ZIP" | awk '{print $1}')" >> "$GITHUB_ENV"
+          echo "ZIP_BYTES=$(stat -c '%s' "$ZIP")" >> "$GITHUB_ENV"
+
+      - name: Packaged browser E2E
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pip install --disable-pip-version-check -r tests/e2e/requirements.txt
+          E2E_ROOT="$RUNNER_TEMP/e2e-extension"
+          mkdir -p "$E2E_ROOT"
+          unzip -q "$ZIP" -d "$E2E_ROOT"
+          export KR_E2E_EXTENSION_ROOT="$E2E_ROOT"
+          python3 tests/e2e/run_browser_e2e.py
+
+      - name: Publish one lean GitHub Release asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          NOTES="$RUNNER_TEMP/release-notes.md"
+          {
+            echo "Kleinanzeigen Renewer v$VERSION"
+            echo
+            echo "- Source authority: Git commit `$GITHUB_SHA`"
+            echo "- Development path: `${{ inputs.mode }}`"
+            echo "- Chrome ZIP bytes: `$ZIP_BYTES`"
+            echo "- Chrome ZIP SHA-256: `$ZIP_SHA256`"
+            echo "- Dynamic Public Function Coverage: mandatory 100% gate passed"
+            echo "- Native real-account smoke: not performed by hosted CI"
+          } > "$NOTES"
+          gh release create "v$VERSION" "$ZIP"             --target "$GITHUB_SHA"             --title "Kleinanzeigen Renewer v$VERSION"             --notes-file "$NOTES"

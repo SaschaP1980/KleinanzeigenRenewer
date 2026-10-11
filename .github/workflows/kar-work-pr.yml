@@ -1,0 +1,88 @@
+name: KAR Work PR
+
+on:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: kar-work-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+
+jobs:
+  contract:
+    name: Issue / Rolling Comment contract
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enforce work/KAR-Issue branch and canonical Rolling Comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_REF: ${{ github.head_ref }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$HEAD_REF" =~ ^work/KAR-([0-9]+)$ ]] || {
+            echo "Feature/Minor/Major PRs must use work/KAR-<issue>." >&2
+            exit 1
+          }
+          ISSUE="${BASH_REMATCH[1]}"
+          gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE" > /tmp/issue.json
+          test "$(jq -r '.state' /tmp/issue.json)" = "open"
+          gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE/comments?per_page=100" > /tmp/comments.json
+          COUNT="$(jq '[.[] | select(.body | contains("<!-- KAR-ROLLING-COMMENT -->"))] | length' /tmp/comments.json)"
+          test "$COUNT" = "1" || {
+            echo "Issue #$ISSUE must have exactly one canonical KAR Rolling Comment; found $COUNT." >&2
+            exit 1
+          }
+          jq -r '.[] | select(.body | contains("<!-- KAR-ROLLING-COMMENT -->")) | .body' /tmp/comments.json > /tmp/rolling.md
+          for required in             "## KAR-$ISSUE — Rolling Development State"             "**Work-Chat-ID:**"             "**Base main:**"             "**Work branch / head:**"             "**Current phase:**"             "**Last safe checkpoint:**"             "**Next action:**"             "### Scope"             "### Completed"             "### Validation"             "### Failures / risks"; do
+            grep -Fq "$required" /tmp/rolling.md || {
+              echo "Rolling Comment missing: $required" >&2
+              exit 1
+            }
+          done
+          grep -Fq "$HEAD_SHA" /tmp/rolling.md || {
+            echo "Rolling Comment must contain exact PR HEAD SHA $HEAD_SHA." >&2
+            exit 1
+          }
+          grep -Eq 'Work-Chat-ID:.*[A-Za-z0-9_-]{8,}' /tmp/rolling.md || {
+            echo "Rolling Comment requires a stable Work-Chat-ID." >&2
+            exit 1
+          }
+          grep -Eq "(Closes|Fixes|Resolves)[[:space:]]+#$ISSUE\b" <<< "${PR_BODY:-}" || {
+            echo "PR body must close its KAR Issue (#$ISSUE)." >&2
+            exit 1
+          }
+
+  validation:
+    name: Runtime / safety / coverage
+    needs: contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Mandatory coverage and architecture gate
+        run: bash scripts/coverage-gate.sh
+      - name: Build installable package once
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/package.py "$RUNNER_TEMP/kar-build"
+          VERSION="$(node -p "require('./manifest.json').version")"
+          ZIP="$RUNNER_TEMP/kar-build/kleinanzeigen-renewal-chrome-v$VERSION.zip"
+          test -f "$ZIP"
+          unzip -t "$ZIP" >/dev/null
+          echo "Chrome ZIP: $(sha256sum "$ZIP")"

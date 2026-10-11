@@ -1,0 +1,48 @@
+name: KAR Feature / Minor / Major
+description: Issue-backed development path with mandatory Rolling Comment and work/KAR-* branch
+title: "[KAR] "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        New features and Minor/Major work use the Issue → Rolling Comment → work/KAR-* → PR path.
+        After this Issue is created, create exactly one canonical Rolling Comment **before** the Work branch.
+  - type: dropdown
+    id: release_class
+    attributes:
+      label: Release class
+      options:
+        - Minor
+        - Major
+        - Feature work before version assignment
+    validations:
+      required: true
+  - type: textarea
+    id: objective
+    attributes:
+      label: Objective
+      description: What user-visible or architectural outcome is required?
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Authorized scope
+      description: Explicit files/domains/behaviour that may change.
+    validations:
+      required: true
+  - type: textarea
+    id: non_goals
+    attributes:
+      label: Explicit non-goals / safety boundaries
+      description: What must not change?
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance
+      description: Observable conditions for completion.
+    validations:
+      required: true

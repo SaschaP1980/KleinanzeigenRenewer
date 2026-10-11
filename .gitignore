@@ -1,0 +1,27 @@
+# dependencies / local build state
+node_modules/
+build/
+.run/
+__pycache__/
+*.pyc
+*.zip
+*.bak
+*.tmp
+*.log
+
+# generated coverage; keep only durable baselines/contracts
+coverage/raw/
+coverage/architecture-audit.json
+coverage/branch-coverage.json
+coverage/coverage-summary.json
+coverage/coverage-summary.md
+coverage/line-coverage.json
+coverage/module-coverage.json
+coverage/public-api-coverage.json
+coverage/public-api-manifest.json
+
+# local browser / test artifacts
+playwright-report/
+test-results/
+Browser-E2E-*.json
+Browser-E2E-*.evidence.json
