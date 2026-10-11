@@ -40,8 +40,8 @@ jobs:
         run: |
           set -Eeuo pipefail
           trap 'rc=$?; echo "KAR18_DISPATCH_PRECHECK_FAILED rc=$rc line=$LINENO command=$BASH_COMMAND" >&2' ERR
-          BASE_SHA='81d01699afe1f7471c69fb23782631980f03a25b'
-          AUTH_MESSAGE='release: retry one-time owner-authorized KAR v1.23.22 fast'
+          BASE_SHA='cc2f66e5e1bd3b250b6e903c6375b7db323f5f22'
+          AUTH_MESSAGE='release: validate exact KAR CI run name before owner-approved fast dispatch'
           git init -q audit
           cd audit
           git remote add origin "https://github.com/$GITHUB_REPOSITORY.git"
@@ -65,7 +65,7 @@ jobs:
           CI="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$CI_RUN_ID")"
           jq -e --arg sha "$HEAD_SHA" '
             .head_sha == $sha and .head_branch == "main" and
-            .name == "KAR CI" and .path == ".github/workflows/kar-ci.yml" and
+            .name == ("KAR CI main @ " + $sha) and .path == ".github/workflows/kar-ci.yml" and
             .event == "push" and .status == "completed" and
             .conclusion == "success"
           ' <<< "$CI" >/dev/null
