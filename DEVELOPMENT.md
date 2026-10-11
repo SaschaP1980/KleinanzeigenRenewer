@@ -1,82 +1,18 @@
-# KAR Development & Release Contract
+# KAR Development
 
-## Paths
+The normative development/recovery/release documentation lives under `docs/`.
 
-### Fast Path — Patch / Hotfix
-Use for small corrective changes without new product functionality.
+Start a fresh ChatGPT engineering session with:
 
-- Issue optional.
-- No Work branch or PR required.
-- Change is made from the current `main` authority.
-- Release is manual through **KAR Release** with mode `fast`.
-- Mandatory runtime/safety/coverage/packaging/E2E gates still apply.
-- If an Issue is used, the Rolling Comment contract becomes mandatory.
+`Read https://github.com/SaschaP1980/KleinanzeigenRenewer/blob/main/docs/INITIAL_PROMPT.md`
 
-### Work / PR Path — Feature / Minor / Major
-Use for new functionality and Minor/Major releases.
+Normative documents:
 
-1. Create an Issue.
-2. Create exactly one canonical Rolling Comment and read it back.
-3. Only then create `work/KAR-<issue-number>` from the frozen `main` SHA.
-4. Keep the same Rolling Comment current during development.
-5. Open a PR from that branch to `main`.
-6. **KAR Work PR** must pass.
-7. Merge.
-8. Release manually through **KAR Release** with mode `work`.
+- [Initial Prompt](docs/INITIAL_PROMPT.md)
+- [Project Context / Architecture / Safety](docs/PROJECT_CONTEXT.md)
+- [GitHub How-To / Recovery](docs/GITHUB_HOWTO.md)
+- [Development Guidelines](docs/DEVELOPMENT_GUIDELINES.md)
+- [Release Process](docs/RELEASE_PROCESS.md)
+- [Work-Path Rolling Comment Template](docs/templates/WORK_PATH_ROLLING_COMMENT.md)
 
-There is no Candidate layer.
-
-## Canonical Rolling Comment
-
-Marker:
-
-`<!-- KAR-ROLLING-COMMENT -->`
-
-Required minimum structure:
-
-```markdown
-<!-- KAR-ROLLING-COMMENT -->
-## KAR-<N> — Rolling Development State
-
-**Last heartbeat:** <UTC>
-**Work-Chat-ID:** <stable chat marker>
-**Issue:** #<N>
-**Base main:** <40-char SHA>
-**Work branch / head:** work/KAR-<N> / <40-char SHA or NOT_CREATED>
-**Target version / class:** <version> / <patch|hotfix|minor|major>
-**Current phase:** <BOOTSTRAP|DEVELOPING|RED|GREEN|PR|MERGED|COMPLETED|BLOCKED>
-**Last safe checkpoint:** <exact SHA / gate>
-**Next action:** <one concrete next step>
-
-### Scope
-- Authorized:
-- Explicitly out of scope:
-
-### Completed
-- ...
-
-### Validation
-- ...
-
-### Failures / risks
-- ...
-```
-
-Rules:
-- Create and read back the comment before creating a Work branch.
-- Update this same comment; do not create a stream of replacement status comments.
-- Before PR, it must contain the exact current Work HEAD SHA.
-- On interruption, Issue + Rolling Comment + Git SHA are the recovery authority.
-
-## Release artifacts
-
-Git is the source authority. Do not publish Source ZIPs.
-
-Each GitHub release contains exactly the installable Chrome ZIP:
-`kleinanzeigen-renewal-chrome-vX.Y.Z.zip`
-
-The SHA-256 is written into the GitHub Release notes.
-
-## Native acceptance
-
-Hosted CI must not perform real Kleinanzeigen publication/deletion. Real-account native smoke and performance measurements remain separate evidence.
+GitHub Issues are the authoritative backlog and implementation history. Do not maintain a competing local/in-memory backlog.

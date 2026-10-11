@@ -1,0 +1,179 @@
+# KAR GitHub How-To & Recovery
+
+## Bootstrap
+
+The single entry point is `docs/INITIAL_PROMPT.md`. A new ChatGPT session must be able to reconstruct the project from GitHub alone.
+
+The minimum live read set is:
+
+- current `main` SHA;
+- current version;
+- normative `docs/`;
+- both KAR workflows;
+- all open Issues;
+- closed Issue index;
+- open PRs;
+- active `work/KAR-*` branches;
+- recent Actions runs;
+- tags and Releases.
+
+Do not use a local Source ZIP as a newer authority than Git.
+
+## GitHub Issues are the backlog
+
+There is no competing in-memory/local backlog after GitHub migration.
+
+Always query:
+
+- open Issues for current work/backlog;
+- closed Issues for implemented/declined historical decisions.
+
+Closed Issues must remain searchable and readable because regressions may require reopening or consulting their acceptance evidence.
+
+For a concrete task, read its Issue body and all comments in full. For an Epic step, also read the parent Epic and relevant predecessor Issue(s).
+
+## Branch naming
+
+Issue-backed Work branch:
+
+`work/KAR-<GitHub Issue number>`
+
+Do not use the LBS or RHC prefixes.
+
+A Work branch may only be created after the canonical Issue Rolling Comment exists and has been read back.
+
+## Canonical Rolling Comment
+
+Template:
+
+`docs/templates/WORK_PATH_ROLLING_COMMENT.md`
+
+Marker:
+
+`<!-- KAR-ROLLING-COMMENT -->`
+
+Exactly one marked comment belongs to an active Issue-backed development run. Update it in place.
+
+The current workflow enforces a core subset mechanically; the full template is the normative recovery contract.
+
+## Connector/write discipline
+
+For GitHub connector/API work:
+
+1. read the object/ref first;
+2. pin the expected SHA/state;
+3. perform one bounded mutation;
+4. read the result back;
+5. reconcile before retrying after any timeout/error.
+
+Examples:
+
+- branch movement: use expected SHA/lease where supported;
+- merge: require expected PR head SHA;
+- comment edit: re-fetch the comment after update;
+- Issue close: re-fetch state and closure result;
+- uncertain create/write: GET/search before retrying.
+
+Never overwrite concurrent GitHub work by assumption.
+
+## Recovery after stream/chat interruption
+
+For Fast Path:
+
+1. read current `main`;
+2. inspect latest commits/diff;
+3. read any owning Issue if one exists;
+4. inspect relevant failed/running CI;
+5. determine whether the intended atomic change already landed before retrying.
+
+For Work/PR Path:
+
+1. read current `main`;
+2. read Issue;
+3. locate the one `KAR-ROLLING-COMMENT`;
+4. read Work branch exact head;
+5. read PR exact head/base/state if present;
+6. read referenced CI run/jobs/logs;
+7. compare all SHAs to the Rolling Comment;
+8. continue from the last verified safe checkpoint;
+9. update/read back the same Rolling Comment before the next consequential write.
+
+## Issue lifecycle
+
+### New Feature / Minor / Major
+
+- create Issue;
+- write clear objective/scope/non-goals/acceptance;
+- instantiate Rolling Comment;
+- read it back;
+- create Work branch;
+- develop/PR;
+- close only after acceptance/merge and any release/native requirement that belongs to that Issue is actually complete.
+
+### Regression of completed Issue
+
+If a defect is a direct regression or incomplete implementation of a closed Issue, prefer reopening that original Issue when it remains the correct owner. Record the new root cause and corrective evidence there instead of creating disconnected history.
+
+### Independent new defect
+
+A narrow Patch/Hotfix may be Issue-less. If an Issue is created, use the Rolling Comment contract.
+
+## Pull Requests
+
+Work/PR changes target `main`.
+
+Before merge verify:
+
+- PR belongs to the matching `work/KAR-N`;
+- Issue is correct;
+- Rolling Comment contains exact current PR HEAD;
+- PR body links/closes the Issue;
+- complete diff is expected;
+- `KAR Work PR` is genuinely GREEN;
+- no unresolved review/CI blocker remains;
+- `main` has not changed in a way that invalidates the work.
+
+Use expected-head merge protection where supported.
+
+## Actions
+
+KAR intentionally minimizes workflows.
+
+- `KAR Work PR`: Issue/Rolling contract + runtime/safety/coverage + package smoke.
+- `KAR Release`: manually dispatched release verification/package/E2E/publication.
+
+Do not assume workflow success from YAML. Read the actual run, jobs and logs.
+
+Do not create a second Candidate/Stage/Postrelease system unless an observed failure mode proves it is necessary.
+
+## Permissions
+
+Use the built-in `GITHUB_TOKEN` and explicit least-privilege workflow `permissions:`.
+
+Do not introduce a long-lived PAT or broad secret merely to make the normal KAR release path work.
+
+The current design does not require GitHub Actions to create/approve PRs.
+
+## Source and releases
+
+- Git is the source authority.
+- Do not store new Source ZIPs in the repository.
+- Do not attach Source ZIPs to KAR GitHub Releases.
+- Published package is the lean Chrome ZIP only.
+- Keep its SHA-256 in release notes/evidence.
+
+## Living-document rule
+
+When engineering work establishes a new durable rule about:
+
+- development path;
+- safety boundary;
+- architecture ownership;
+- GitHub/recovery behaviour;
+- release process;
+- CI capability/limitation;
+- performance Gold line;
+
+update the appropriate file under `docs/` in the same workstream.
+
+A fresh session that reads only GitHub must be able to recover the rule. Do not leave durable project knowledge only in chat memory.
