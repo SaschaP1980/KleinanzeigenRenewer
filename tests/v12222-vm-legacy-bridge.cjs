@@ -88,6 +88,10 @@ Module._resolveFilename = function patchedResolveFilename(request, parent, isMai
 
 const originalRunInNewContext = vm.runInNewContext;
 const originalRunInContext = vm.runInContext;
+// Only VMs whose dependency registry was synthesized by this historical-test
+// bridge may receive compatibility behaviour. Explicit modern test registries
+// and runtime mocks must preserve their own safety/failure semantics.
+const legacyVmContexts = new WeakSet();
 
 function isRuntimeDepsSource(code, options) {
   const filename = typeof options === 'string' ? options : options?.filename;
@@ -99,6 +103,7 @@ function isRuntimeDepsSource(code, options) {
 function ensureTestRegistry(context) {
   if (!context || typeof context !== 'object' || context.KRDeps) return;
   const dependencies = new Map();
+  legacyVmContexts.add(context);
   context.KRDeps = {
     register(name, value) {
       const key = String(name || '');
@@ -177,15 +182,40 @@ function mirrorRegisteredDependencies(context) {
   } catch { /* historical test bridge only */ }
 }
 
+function provideLegacyContentStartupStub(code, context) {
+  // Current content.js checks persistent platform restrictions at startup.
+  // Older isolated VMs have onMessage but no background sendMessage stub.
+  // Recognize this exact content entry point, not arbitrary VM code.
+  if (!legacyVmContexts.has(context) ||
+      !String(code || '').includes('globalThis.__KR_CONTENT_V160__') ||
+      !String(code || '').includes('GET_PLATFORM_ACCESS_RESTRICTION') ||
+      !String(code || '').includes('chrome.runtime.onMessage.addListener')) return;
+  const runtime = context?.chrome?.runtime;
+  if (typeof runtime?.onMessage?.addListener !== 'function' ||
+      typeof runtime.sendMessage === 'function') return;
+  runtime.sendMessage = (message, callback) => {
+    if (message?.type !== 'GET_PLATFORM_ACCESS_RESTRICTION') {
+      throw new Error('Legacy content VM startup stub only supports GET_PLATFORM_ACCESS_RESTRICTION');
+    }
+    callback?.({ ok: true, result: { active: false } });
+  };
+}
+
 vm.runInNewContext = function patchedRunInNewContext(code, context = {}, options) {
-  if (!isRuntimeDepsSource(code, options)) ensureTestRegistry(context);
+  if (!isRuntimeDepsSource(code, options)) {
+    ensureTestRegistry(context);
+    provideLegacyContentStartupStub(code, context);
+  }
   const result = originalRunInNewContext.call(this, code, context, options);
   mirrorRegisteredDependencies(context);
   return result;
 };
 
 vm.runInContext = function patchedRunInContext(code, contextifiedObject, options) {
-  if (!isRuntimeDepsSource(code, options)) ensureTestRegistry(contextifiedObject);
+  if (!isRuntimeDepsSource(code, options)) {
+    ensureTestRegistry(contextifiedObject);
+    provideLegacyContentStartupStub(code, contextifiedObject);
+  }
   const result = originalRunInContext.call(this, code, contextifiedObject, options);
   mirrorRegisteredDependencies(contextifiedObject);
   return result;
