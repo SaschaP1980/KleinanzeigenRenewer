@@ -1,0 +1,70 @@
+name: KAR CI
+
+run-name: KAR CI ${{ github.ref_name }} @ ${{ github.sha }}
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: kar-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    name: Runtime, safety, coverage, Chrome ZIP and packaged browser E2E
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Verify CI separation and version identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tests/kar-ci-contract.cjs
+          VERSION="$(node -p "require('./manifest.json').version")"
+          test "$VERSION" = "$(node -p "require('./package.json').version")"
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Full runtime / safety / coverage gate
+        run: bash scripts/coverage-gate.sh
+
+      - name: Build installable Chrome ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/kar-ci-build"
+          python3 scripts/package.py "$RUNNER_TEMP/kar-ci-build"
+          ZIP="$RUNNER_TEMP/kar-ci-build/kleinanzeigen-renewal-chrome-v$VERSION.zip"
+          test -f "$ZIP"
+          unzip -t "$ZIP" >/dev/null
+          echo "ZIP=$ZIP" >> "$GITHUB_ENV"
+          echo "CI_CHROME_ZIP_SHA256=$(sha256sum "$ZIP" | awk '{print $1}')" >> "$GITHUB_ENV"
+
+      - name: Packaged browser E2E (local fixtures only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pip install --disable-pip-version-check -r tests/e2e/requirements.txt
+          E2E_ROOT="$RUNNER_TEMP/e2e-extension"
+          mkdir -p "$E2E_ROOT"
+          unzip -q "$ZIP" -d "$E2E_ROOT"
+          export KR_E2E_EXTENSION_ROOT="$E2E_ROOT"
+          python3 tests/e2e/run_browser_e2e.py

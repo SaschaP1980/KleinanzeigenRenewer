@@ -31,6 +31,14 @@ No Candidate.
 
 The release workflow must not be used to bypass a missing Work/PR contract.
 
+## 2a. Autonomous nonpublishing main CI
+
+Every accepted push to `main` triggers `.github/workflows/kar-ci.yml`. This is the read-only autonomous feedback loop for Fast Path corrections: exact-commit runtime, safety, 100% dynamic public-function coverage, architecture, Chrome ZIP integrity and local-fixture packaged-browser E2E. It neither publishes a GitHub Release nor changes a Kleinanzeigen account. A newer push cancels stale in-flight main CI; skipped/cancelled and unexecuted gates are not PASS.
+
+Analyze the first real RED on the exact SHA, correct narrowly, and commit again; the new main push should trigger a fresh CI. A trigger is only proven when a matching hosted run actually exists. Do not treat a prior SHA's GREEN as validation of an amended commit.
+
+Manual `KAR Release(mode=fast|work)` remains the only GitHub Release publication entry point and requires explicit owner authorization. It independently executes its own mandatory gates on the to-be-published SHA.
+
 ## 3. Current hosted release gate
 
 `.github/workflows/kar-release.yml` is the executable publication contract and must be read live before each release.

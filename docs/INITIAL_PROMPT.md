@@ -42,6 +42,7 @@ Always perform this sequence first:
    - the newest relevant section of `CHANGELOG.md`.
 5. Read the executable CI/release contracts:
    - `.github/workflows/kar-work-pr.yml`
+   - `.github/workflows/kar-ci.yml`
    - `.github/workflows/kar-release.yml`
    - `scripts/coverage-gate.sh`
    - `scripts/package.py`

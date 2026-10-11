@@ -140,7 +140,12 @@ Use expected-head merge protection where supported.
 KAR intentionally minimizes workflows.
 
 - `KAR Work PR`: Issue/Rolling contract + runtime/safety/coverage + package smoke.
-- `KAR Release`: manually dispatched release verification/package/E2E/publication.
+- `KAR CI`: autonomous read-only workflow on every push to `main` (and optional manual dispatch); full runtime/safety/100% public-function coverage and architecture gates, Chrome ZIP integrity and packaged browser E2E against local fixtures. No tag, GitHub Release, source ZIP publication or live-account mutation. The workflow is intentionally cancellable on a newer `main` push; only actually completed GREEN runs count as evidence.
+- `KAR Release`: manually dispatched release verification/package/E2E/publication. Never automatically published from `KAR CI`.
+
+**Autonomous correction loop:** On the Fast Path, an authorized GitHub-connected agent commits the smallest test-/source-corrective change to `main`; the resulting `push` event starts a fresh `KAR CI` run for the new SHA. Inspect that exact run and first failure, apply a bounded fix, commit and repeat until the complete hosted gate is GREEN. Do not rerun an old SHA-bound run after changing source. The agent cannot continue acting after the current interactive session ends unless separately scheduled/authorized. GitHub App push events must be confirmed by actual Actions evidence; do not equate a committed YAML trigger with a successfully launched run.
+
+Publication is a distinct, owner-authorized step. A GREEN nonpublishing `KAR CI` run cannot implicitly authorize `KAR Release`.
 
 Do not assume workflow success from YAML. Read the actual run, jobs and logs.
 
