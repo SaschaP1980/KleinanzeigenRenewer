@@ -63,6 +63,10 @@ jobs:
         run: |
           set -euo pipefail
           python3 -m pip install --disable-pip-version-check -r tests/e2e/requirements.txt
+          python3 -m playwright install --with-deps --no-shell chromium
+          export KR_CHROME_BINARY="$(python3 -c 'from playwright.sync_api import sync_playwright; p=sync_playwright().start(); print(p.chromium.executable_path); p.stop()')"
+          test -x "$KR_CHROME_BINARY"
+          export KR_E2E_BROWSER_CHANNEL=chromium
           E2E_ROOT="$RUNNER_TEMP/e2e-extension"
           mkdir -p "$E2E_ROOT"
           unzip -q "$ZIP" -d "$E2E_ROOT"

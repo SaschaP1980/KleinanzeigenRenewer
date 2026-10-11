@@ -112,10 +112,14 @@ def launch_env(playwright, browser_path: str, headless: bool = True) -> Env:
     args = [f"--disable-extensions-except={EXTENSION_ROOT}", f"--load-extension={EXTENSION_ROOT}"]
     if hasattr(os, "geteuid") and os.geteuid() == 0:
         args.append("--no-sandbox")
+    channel = os.environ.get("KR_E2E_BROWSER_CHANNEL") or None
+    if channel not in (None, "chromium"):
+        raise InfrastructureFailure("KR_E2E_BROWSER_CHANNEL muss leer oder chromium sein.")
     context = playwright.chromium.launch_persistent_context(
         profile.name,
         headless=headless,
         executable_path=browser_path,
+        channel=channel,
         ignore_default_args=["--disable-extensions"],
         args=args,
         viewport={"width": 1280, "height": 900},

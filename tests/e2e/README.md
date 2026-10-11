@@ -27,6 +27,11 @@ node tests/e2e/run.cjs --report build/browser-e2e-report.json
 
 Die Suite schlägt mit Exit-Code 2 fehl, wenn die Browser-Infrastruktur ungeeignet ist (z. B. Enterprise-Policy blockiert unpacked Extensions). Ein Infrastrukturproblem wird **niemals als PASS oder SKIP ausgegeben**.
 
+## GitHub-hosted E2E (KAR CI und KAR Release)
+
+Chrome-Branded-Builds ab 137/139 akzeptieren die benötigten `--load-extension`/`--disable-extensions-except`-Flags nicht mehr. Die Hosted-Workflows installieren daher den von Python Playwright bereitgestellten Chromium-Browser und setzen `KR_CHROME_BINARY` auf dessen tatsächliche ausführbare Datei und `KR_E2E_BROWSER_CHANNEL=chromium` für die Extension-fähige neue Headless-Implementierung. Der lokal isolierte Fixture-/Profil-/Safety-Test bleibt unverändert. Es werden keine System-/Enterprise-Browserrichtlinien verändert.
+
+
 ## Szenarien ab v1.22.0
 
 1. Extension-Boot + echter MV3-Service-Worker
