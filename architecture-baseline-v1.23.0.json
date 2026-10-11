@@ -1,0 +1,144 @@
+{
+  "version": "1.23.0",
+  "epic": "EPIC-REF-002",
+  "baseVersion": "1.22.30",
+  "baseSourceSha256": "6f34e313180fe63c3fe22ee3eedf1a1d2448c49d91fdcf67c40ba8dace50fc02",
+  "purpose": "Baseline, characterization and ownership plan for the complete second app.js/background.js modularization wave; no product workflow is moved in v1.23.0.",
+  "entryPointBaseline": {
+    "appJs": {
+      "loc": 4019,
+      "sha256": "0c9fdbd23c72db746494a535854e722685d2128658018847d6f3d7066d5de599"
+    },
+    "backgroundJs": {
+      "loc": 7313,
+      "sha256": "d1443315fcd1ed97a3c6d7c6254c1cca392b79c6983a8666604ccb47bf5fd7c9"
+    }
+  },
+  "invariants": {
+    "keepAppAsUiEntrypoint": true,
+    "keepBackgroundAsServiceWorkerLifecycleBoundary": true,
+    "noNewRuntimeBoundaryForModularization": true,
+    "dependencyRegistry": "KRDeps",
+    "emergencyResetRemainsAccountIndependentLocalLifecycleBoundary": true,
+    "directSubmitCallsMustRemainZero": true,
+    "requestSubmitCallsMustRemainZero": true
+  },
+  "performance": {
+    "standardRoute": [
+      "IKEA Tischleuchte",
+      "Weihnachtsfiguren",
+      "Hartan Kinderwagen"
+    ],
+    "mode": "fast",
+    "diagnosticsPolicy": "reset-before-run",
+    "reproduced": {
+      "v1203Seconds": 93.744,
+      "v12230Seconds": 99.332
+    },
+    "realThreeListingGate": {
+      "mandatoryVersion": "1.23.11",
+      "intermediatePolicy": "only-on-concrete-performance-suspicion",
+      "note": "Free monthly listings are a scarce test resource; automated/static hot-path gates run on every build."
+    }
+  },
+  "plan": {
+    "firstExtractionVersion": "1.23.1",
+    "finalSoakVersion": "1.23.11"
+  },
+  "extractionSpots": [
+    {
+      "id": "renewal-workflow",
+      "target": "renewal-workflow-controller.js",
+      "version": "1.23.1",
+      "source": "background.js"
+    },
+    {
+      "id": "mass-renewal-workflow",
+      "target": "mass-renewal-workflow-controller.js",
+      "version": "1.23.2",
+      "source": "background.js"
+    },
+    {
+      "id": "template-fill-orchestration",
+      "target": "template-fill-controller.js",
+      "version": "1.23.3",
+      "source": "background.js"
+    },
+    {
+      "id": "insertion-lock",
+      "target": "insertion-lock-service.js",
+      "version": "1.23.3",
+      "source": "background.js"
+    },
+    {
+      "id": "archive-insertion",
+      "target": "archive-insertion-controller.js",
+      "version": "1.23.4",
+      "source": "background.js"
+    },
+    {
+      "id": "bulk-inventory-workflow",
+      "target": "bulk-inventory-controller.js",
+      "version": "1.23.5",
+      "source": "background.js",
+      "mode": "extend-existing"
+    },
+    {
+      "id": "public-listing-evidence",
+      "target": "public-listing-evidence-service.js",
+      "version": "1.23.5",
+      "source": "background.js"
+    },
+    {
+      "id": "diagnostic-export",
+      "target": "diagnostic-export-service.js",
+      "version": "1.23.6",
+      "source": "background.js"
+    },
+    {
+      "id": "account-session",
+      "target": "account-session-controller.js",
+      "version": "1.23.7",
+      "source": "app.js"
+    },
+    {
+      "id": "profile-management",
+      "target": "profile-management-controller.js",
+      "version": "1.23.7",
+      "source": "app.js"
+    },
+    {
+      "id": "control-accordion",
+      "target": "control-accordion-controller.js",
+      "version": "1.23.8",
+      "source": "app.js"
+    },
+    {
+      "id": "diagnostics-controls",
+      "target": "diagnostics-controls-controller.js",
+      "version": "1.23.8",
+      "source": "app.js"
+    },
+    {
+      "id": "renewal-settings",
+      "target": "renewal-settings-controller.js",
+      "version": "1.23.8",
+      "source": "app.js"
+    },
+    {
+      "id": "inventory-capture-orchestration",
+      "target": "inventory-capture-controller.js",
+      "version": "1.23.9",
+      "source": "app.js",
+      "mode": "extend-existing"
+    }
+  ],
+  "cleanup": {
+    "version": "1.23.10",
+    "scope": "compatibility facades, redundant delegating wrappers, dead bridges; no new product behavior"
+  },
+  "finalSoak": {
+    "version": "1.23.11",
+    "scope": "full regression, browser E2E, reproducibility, safety, architecture ownership and final real three-listing performance gate"
+  }
+}

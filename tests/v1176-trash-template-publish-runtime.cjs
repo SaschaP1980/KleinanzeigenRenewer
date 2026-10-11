@@ -1,0 +1,18 @@
+const fs = require('node:fs');
+const vm = require('node:vm');
+const assert = require('node:assert/strict');
+const source = fs.readFileSync('background.js','utf8');
+const start = source.indexOf('function publishedAdCandidateFromUrl');
+const end = source.indexOf('\nfunction ', start + 10);
+assert.ok(start >= 0 && end > start, 'publishedAdCandidateFromUrl must exist');
+const context = { URL };
+vm.createContext(context);
+vm.runInContext(`${source.slice(start,end)}; this.parsePublished = publishedAdCandidateFromUrl;`, context);
+let n=0; const pass=l=>{n++;console.log('PASS '+l);};
+let out = context.parsePublished('https://www.kleinanzeigen.de/s-anzeige/demo/3514872335-154-1234','3490630842');
+assert.equal(out.adId,'3514872335'); assert.equal(out.kind,'public'); pass('public published URL yields new ad id');
+out = context.parsePublished('https://www.kleinanzeigen.de/p-anzeige-bearbeiten.html?adId=3514872335','3490630842');
+assert.equal(out.adId,'3514872335'); assert.equal(out.kind,'edit'); pass('edit URL yields new ad id');
+assert.equal(context.parsePublished('https://www.kleinanzeigen.de/s-anzeige/demo/3490630842-154-1234','3490630842'),null); pass('source ad id is rejected');
+assert.equal(context.parsePublished('https://example.com/s-anzeige/demo/3514872335-154-1234','3490630842'),null); pass('non Kleinanzeigen URL is rejected');
+console.log(`${n} v1.17.6 trash-template publish runtime groups passed`);

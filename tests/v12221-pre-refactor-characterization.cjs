@@ -1,0 +1,15 @@
+const assert=require('assert');
+const src=require('./v12221-source-surface.cjs');
+let p=0;const ok=(n,f)=>{try{f();p++;console.log('PASS '+n)}catch(e){console.error('FAIL '+n);throw e}};
+const has=n=>new RegExp(`(?:async\\s+)?function\\s+${n}\\s*\\(`).test(src);
+ok('replacement service keeps local removal safety contract',()=>{assert(has('removeReplacementReadyLocal'));assert.match(src,/Nur ein verifizierter, austauschbereiter Renewal-Kandidat/);assert.match(src,/renewal-candidate-removed/);});
+ok('atomic promotion keeps inventory and image transaction boundary',()=>{assert(has('promoteRenewalCandidateAtomic'));assert.match(src,/transaction\(\[INVENTORY_STORE, IMAGE_STORE\], 'readwrite'\)/);assert.match(src,/renewal-replaced/);assert.match(src,/trashExpiresAt/);});
+ok('phase 4 keeps fresh delete worker and own-ad delete command',()=>{assert(has('preverifyAndTriggerRenewalSourceDeleteAttempt'));assert.match(src,/renewal-phase4-delete/);assert.match(src,/DELETE_OWN_AD_BY_ID/);assert.match(src,/MY_ADS_STATUS/);});
+ok('phase 4 keeps independent post-delete absence verification',()=>{assert(has('verifyRenewalSourceAbsenceFresh'));assert.match(src,/renewal-phase4-verify/);assert.match(src,/VERIFY_OWN_AD_ABSENT_BY_ID/);assert.match(src,/RENEWAL_SOURCE_DELETE_VERIFICATION_ATTEMPT/);});
+ok('replacement completion never promotes before verified absence',()=>{assert(has('finishRenewalReplacement'));assert.match(src,/if \(!verification\?\.verified\)/);assert.match(src,/session\.stage = 'source-delete-verified'/);assert.match(src,/await promoteRenewalCandidateAtomic\(session\)/);});
+ok('failed phase 4 returns to replacement-ready without local promotion',()=>{assert.match(src,/session\.stage = 'replacement-ready'/);assert.match(src,/phase4AttemptsExhaustedAt/);assert.match(src,/RENEWAL_REPLACEMENT_FAILED/);});
+ok('transport interruption remains non-authoritative until independent verification',()=>{assert.match(src,/RENEWAL_SOURCE_DELETE_TRANSPORT_INTERRUPTED/);assert.match(src,/RENEWAL_SOURCE_DELETE_TRANSPORT_INTERRUPTION_VERIFIED/);});
+ok('successful replacement still clears renewal and fill sessions after promotion',()=>{assert.match(src,/delete latestRenewals\[renewalId\]/);assert.match(src,/String\(fill\?\.renewalId \|\| ''\) === renewalId/);assert.match(src,/RENEWAL_REPLACEMENT_COMPLETED/);});
+ok('target-tab cleanup remains ownership guarded',()=>{assert(has('renewalTargetTabStillOwned'));assert(has('renewalPublishedTargetTabStillOwned'));assert(has('closeCompletedRenewalTargetTab'));assert.match(src,/tab-no-longer-on-renewal-flow|tab-no-longer-owned/);});
+ok('runtime routes still expose local candidate removal and phase-4 finish',()=>{assert.match(src,/REMOVE_REPLACEMENT_READY_LOCAL/);assert.match(src,/FINISH_RENEWAL_REPLACEMENT/);});
+console.log(`${p}/10 PASS v1.22.21 pre-refactor characterization`);

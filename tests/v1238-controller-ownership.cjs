@@ -1,0 +1,11 @@
+const fs=require('fs'),assert=require('assert');
+const bg=fs.readFileSync('src/background/background.js','utf8');
+const pack=fs.readFileSync('scripts/package.py','utf8');
+let n=0;const pass=(l,f)=>{f();n++;console.log('PASS '+l)};
+pass('account session controller exists and is packaged',()=>{assert.ok(fs.existsSync('src/background/controllers/account-session-controller.js'));assert.ok(pack.includes("'src/background/controllers/account-session-controller.js'"));});
+pass('profile management controller exists and is packaged',()=>{assert.ok(fs.existsSync('src/background/controllers/profile-management-controller.js'));assert.ok(pack.includes("'src/background/controllers/profile-management-controller.js'"));});
+pass('background imports and resolves both controllers in-process',()=>{assert.match(bg,/controllers\/account-session-controller\.js/);assert.match(bg,/controllers\/profile-management-controller\.js/);assert.match(bg,/KRDeps\.require\('KRAccountSessionController'\)/);assert.match(bg,/KRDeps\.require\('KRProfileManagementController'\)/);});
+pass('account session behavior ownership leaves background',()=>{const c=fs.readFileSync('src/background/controllers/account-session-controller.js','utf8');assert.match(c,/ACCOUNT_BOUND_ACTION_ALLOWED/);assert.match(c,/AccountProbeService\.create/);assert.doesNotMatch(bg,/AccountProbeService\.create/);assert.doesNotMatch(bg,/stimmt nicht mit dem angemeldeten Kleinanzeigen-Konto/);});
+pass('profile management behavior ownership leaves background',()=>{const c=fs.readFileSync('src/background/controllers/profile-management-controller.js','utf8');for(const e of ['PROFILE_VIEW_SELECTED','PROFILE_BACKUP_IMPORTED','PROFILE_DELETED','PROFILE_RECOGNIZED','PROFILE_LEGACY_INVENTORY_ASSIGNED'])assert.ok(c.includes(e),e);for(const e of ['PROFILE_VIEW_SELECTED','PROFILE_BACKUP_IMPORTED','PROFILE_DELETED','PROFILE_RECOGNIZED','PROFILE_LEGACY_INVENTORY_ASSIGNED'])assert.ok(!bg.includes(e),e);});
+pass('profile repository creation ownership leaves background',()=>{const c=fs.readFileSync('src/background/controllers/profile-management-controller.js','utf8');assert.match(c,/ProfileRepository\.create/);assert.doesNotMatch(bg,/function requireProfileRepository/);});
+console.log(`${n}/6 PASS v1.23.8 controller ownership`);

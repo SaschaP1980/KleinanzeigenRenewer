@@ -1,0 +1,65 @@
+{
+  "version": "1.23.17",
+  "packageVersion": "1.23.17_c1",
+  "epic": "EPIC-REF-002",
+  "step": "template-filler-public-api-closure-correction",
+  "goldBaseline": "1.21.15",
+  "directBasis": "1.23.17",
+  "directBasisTechnicalReleaseGreen": true,
+  "directBasisNativeScopePending": true,
+  "publicApiAuditScope": [
+    "KRTemplateCategoryFlow",
+    "KRTemplateFormFields",
+    "KRTemplateImageUpload",
+    "KRTemplateVerification",
+    "KRTemplatePublishFlow"
+  ],
+  "publicMethodsBefore": 29,
+  "unnecessaryPublicExportsRemoved": [
+    "KRTemplateVerification.verifyTemplate"
+  ],
+  "publicMethodsAfter": 28,
+  "dynamicPublicMethodsExecuted": 28,
+  "dynamicPublicMethodCoveragePercent": 100,
+  "privateHelpersNotDirectTestTargets": true,
+  "noNewRuntimeBoundary": true,
+  "newRuntimeMessageType": false,
+  "files": {
+    "src/content/template-filler.js": {
+      "loc": 417,
+      "bytes": 22082
+    },
+    "src/content/template-category-flow.js": {
+      "loc": 521,
+      "bytes": 23476
+    },
+    "src/content/template-form-fields.js": {
+      "loc": 522,
+      "bytes": 23137
+    },
+    "src/content/template-image-upload.js": {
+      "loc": 410,
+      "bytes": 17777
+    },
+    "src/content/template-verification.js": {
+      "loc": 79,
+      "bytes": 4230
+    },
+    "src/content/template-publish-flow.js": {
+      "loc": 279,
+      "bytes": 14000
+    },
+    "src/app/app.js": {
+      "loc": 3306,
+      "bytes": 171582
+    },
+    "src/background/background.js": {
+      "loc": 3199,
+      "bytes": 188610
+    }
+  },
+  "nextPlannedBuild": "1.23.18",
+  "nextPlannedBuildGoal": "Inventory Runner modularisieren",
+  "globalPublicPrivateAuditVersion": "1.23.19",
+  "performanceGateVersion": "1.23.20"
+}

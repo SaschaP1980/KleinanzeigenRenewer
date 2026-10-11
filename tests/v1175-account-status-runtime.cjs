@@ -1,0 +1,18 @@
+const fs = require('node:fs');
+const vm = require('node:vm');
+const assert = require('node:assert/strict');
+const source = fs.readFileSync('app.js','utf8');
+const start = source.indexOf('function isPassiveAccountStatus');
+const end = source.indexOf('\nfunction setStatus', start);
+assert.ok(start >= 0 && end > start, 'isPassiveAccountStatus must exist before setStatus');
+const context = {};
+vm.createContext(context);
+vm.runInContext(source.slice(start,end), context);
+let n=0; const pass=label=>{n++; console.log('PASS '+label);};
+assert.equal(context.isPassiveAccountStatus('Angemeldet als konto@example.de',''), true); pass('matched account is compact-only');
+assert.equal(context.isPassiveAccountStatus('Kleinanzeigen-Konto wird geprüft …',''), true); pass('account checking is compact-only');
+assert.equal(context.isPassiveAccountStatus('Kein Kleinanzeigen-Konto erkannt',''), true); pass('missing account is compact-only');
+assert.equal(context.isPassiveAccountStatus('Kleinanzeigen-Konto nicht eindeutig',''), true); pass('ambiguous account is compact-only');
+assert.equal(context.isPassiveAccountStatus('Erfassung gestartet',''), false); pass('workflow status stays visible in actions');
+assert.equal(context.isPassiveAccountStatus('Kleinanzeigen-Konto wird geprüft …','reactivate-discarded'), false); pass('actionable account recovery stays visible');
+console.log(`${n} v1.17.5 account-status runtime groups passed`);

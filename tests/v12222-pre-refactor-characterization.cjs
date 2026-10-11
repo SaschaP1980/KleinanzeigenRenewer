@@ -1,0 +1,14 @@
+const fs=require('fs'), assert=require('assert');
+const bgRouter=fs.readFileSync('background.js','utf8');
+const emergency=fs.readFileSync('src/background/controllers/workflow-emergency-reset-controller.js','utf8');
+const bg=bgRouter+'\n'+emergency;
+const app=fs.readFileSync('app.js','utf8');
+const content=fs.readFileSync('content.js','utf8');
+const deps=fs.readFileSync('runtime-deps.js','utf8');
+let p=0; const ok=(n,f)=>{f();p++;console.log('PASS',n)};
+ok('background resolves extracted services through KRDeps',()=>{ for(const n of ['KRTemplateFillService','KRRemoteDeleteReplacementService','KRInventoryRepository']) assert.match(bg,new RegExp(`KRDeps\\.require\\('${n}'\\)`)); });
+ok('app resolves UI modules through KRDeps',()=>{ for(const n of ['KRArchiveTrashInsertionUiController','KRInventoryRenderController','KRAppActivityCenter']) assert.match(app,new RegExp(`KRDeps\\.require\\('${n}'\\)`)); });
+ok('content resolves shared APIs through KRDeps',()=>{ for(const n of ['KRManagedNavigation','KRPlatformHardening','KRForm','KRImages','KRTemplateFill','KRInventoryRun']) assert.match(content,new RegExp(`KRDeps\\.require\\('${n}'\\)`)); });
+ok('runtime dependency registry exposes explicit register/require contract',()=>{assert.match(deps,/Object\.freeze\(\{ register, require: requireDependency, optional, has, names \}\)/);});
+ok('emergency reset exists and is non-destructive entrypoint',()=>{assert.match(bg,/async function resetActiveWorkflows\(\)/);assert.match(bg,/manual-emergency-reset/);assert.match(bg,/RESET_ACTIVE_WORKFLOWS/);});
+console.log(`${p}/5 PASS v1.22.22 pre-refactor characterization`);

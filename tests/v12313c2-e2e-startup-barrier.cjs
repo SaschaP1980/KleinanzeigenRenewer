@@ -1,0 +1,12 @@
+const fs = require('node:fs');
+const assert = require('node:assert/strict');
+const source = fs.readFileSync('tests/e2e/run_browser_e2e.py','utf8');
+const start = source.indexOf('def launch_env');
+const end = source.indexOf('\ndef scenario_boot_mv3', start);
+assert.ok(start >= 0 && end > start, 'launch_env must exist');
+const launch = source.slice(start,end);
+assert.match(launch, /GET_BACKGROUND_EPOCH/, 'launch_env must actively trigger background readiness through GET_BACKGROUND_EPOCH');
+assert.match(launch, /last_background_error|lastBackgroundError/, 'launch_env must preserve the last background readiness error');
+assert.match(launch, /service_workers/, 'launch_env must still prove the MV3 service-worker is registered');
+assert.match(launch, /epoch/, 'launch_env must validate a real background epoch before returning');
+console.log('4/4 PASS v1.23.13_c2 E2E startup barrier contract');

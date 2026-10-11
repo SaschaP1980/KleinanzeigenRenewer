@@ -1,0 +1,10 @@
+const fs=require('node:fs'),assert=require('node:assert/strict');
+function walk(dir){return fs.readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?walk(dir+'/'+e.name):e.name.endsWith('.js')?[fs.readFileSync(dir+'/'+e.name,'utf8')]:[])}
+const source=walk('src/background').join('\n');const bg=fs.readFileSync('src/background/background.js','utf8');let n=0;const pass=(m,f)=>{f();n++;console.log('PASS '+m)};
+pass('bulk worker lifecycle and fail-closed reset generation remain present',()=>{for(const x of ['createBulkEditWorkerTabWithRetry','resolveBulkWorkerLifecycle','extractSaveBulkWorker','captureEmergencyResetGeneration','assertEmergencyResetGeneration'])assert.ok(source.includes(x),x)});
+pass('bulk reconciliation still requires independent stable roster evidence',()=>{for(const x of ['beginBulkReconciliation','BULK_RECONCILIATION_ROSTER_CONFIRMED','BULK_RECONCILIATION_SKIPPED','moveReconciliationCandidatesToTrash'])assert.ok(source.includes(x),x)});
+pass('archive recovery and verification promotion contracts remain present',()=>{for(const x of ['resumePendingArchiveInsertions','completeRecoveredArchiveInsertionIfAlreadyInventoried','compareArchiveInsertionRecords','promoteArchiveTemplateToInventory','verifyAndSaveArchiveInsertion'])assert.ok(source.includes(x),x)});
+pass('mass renewal watchdog still terminalizes stale workflows fail-closed',()=>{for(const x of ['MASS_RENEWAL_WATCHDOG_TIMEOUT','terminalizeTemplateFillForWatchdog','progress-watchdog-timeout','massRenewalWatchdogTick'])assert.ok(source.includes(x),x)});
+pass('global emergency reset remains account-independent and remote-safe',()=>{for(const x of ['ACTIVE_WORKFLOWS_EMERGENCY_RESET','remoteVerificationAttempted: false','manual-emergency-reset','emergency-reset-unverified'])assert.ok(source.includes(x),x);assert.ok(bg.includes('RESET_ACTIVE_WORKFLOWS'))});
+pass('publish bypass safety remains absent',()=>{const all=walk('src').join('\n');assert.equal((all.match(/\.submit\s*\(/g)||[]).length,0);assert.equal((all.match(/requestSubmit\s*\(/g)||[]).length,0)});
+console.log(`${n}/6 PASS v1.23.16 characterization`);

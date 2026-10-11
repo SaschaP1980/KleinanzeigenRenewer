@@ -1,0 +1,26 @@
+const fs = require('node:fs');
+const assert = require('node:assert/strict');
+const bg = fs.readFileSync('background.js', 'utf8');
+const backend = bg + '\n' + fs.readFileSync('template-fill-service.js', 'utf8');
+const app = require('./v12210-source-surface.cjs');
+const css = fs.readFileSync('app.css', 'utf8');
+let n = 0; const pass = label => { n += 1; console.log('PASS ' + label); };
+
+assert.match(bg, /function publicAvailabilityPending\(record\)/); pass('background has canonical pending-public helper');
+assert.match(app, /function publicAvailabilityPending\(record\)/); pass('app has canonical pending-public helper');
+assert.match(app, /badge\.textContent\s*=\s*'Bald Online'/); pass('inventory renders Bald Online badge');
+assert.match(css, /\.inventory-online-badge[^}]*Bald|\.inventory-online-badge\s*\{/s); pass('Bald Online badge has dedicated styling');
+assert.match(app, /updateButton\.textContent\s*=\s*publicAvailabilityPending\(record\)\s*\?\s*'Online-Status prüfen'\s*:\s*'Daten aktualisieren'/); pass('refresh CTA changes while public availability is pending');
+assert.match(app, /type:\s*'CHECK_INVENTORY_ONLINE_STATUS'/); pass('pending CTA uses dedicated online-status action');
+assert.match(bg, /async function checkInventoryOnlineStatus\(message\)/); pass('background implements dedicated online-status check');
+const onlineStart = bg.indexOf('async function checkInventoryOnlineStatus');
+const onlineEnd = bg.indexOf('\nasync function ', onlineStart + 20);
+const online = bg.slice(onlineStart, onlineEnd > onlineStart ? onlineEnd : undefined);
+assert.match(online, /canonical/); pass('online-status check attempts canonical route');
+assert.match(online, /id-direct/); pass('online-status check attempts ID-direct route');
+assert.match(online, /status:\s*'online'/); pass('successful online-status check clears pending state by marking online');
+assert.match(online, /status:\s*'pending'/); pass('unsuccessful online-status check retains pending state');
+assert.match(backend, /if \(publicAvailabilityPending\(record\)\)[\s\S]*Bald Online/); pass('backend blocks template starts while Bald Online is pending');
+assert.match(app, /if \(publicAvailabilityPending\(record\)\) return false;/); pass('UI template readiness blocks Neu inserieren while pending');
+assert.match(bg, /CHECK_INVENTORY_ONLINE_STATUS/); pass('runtime dispatcher exposes online-status check');
+console.log(`${n}/14 PASS`);

@@ -1,0 +1,69 @@
+{
+  "manifest_version": 3,
+  "name": "kleinanzeigen Manager",
+  "description": "Erfasst und verwaltet eigene Kleinanzeigen und unterstützt das kontrollierte Neu-Einstellen mit Prüfung und sicherem Austausch.",
+  "version": "1.23.22",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0D9S98xbAoX27yM0RPnBisXg7OQ2j6hi2NiEqxNxeKppgPo/ygbJLZ4TF6TZqfaxQUAjR9Eom05hmB8eEFFiGy6EWczTzZJuLtaUdVDm8uATRblFa/2eBjm5tKhsBFlYMnqlfcIdfxysRoTDO1jhAXlSkpC/NzN7xtFeGKfFX3Ol1Pmwr4bYRNRURIOzBGv4iQIa5Z/Hf+7EKr++mBLtwDA9JVuoMrRCXDptnxMLIk0dCqxd2Q3W7q849QirLeG7HX6a6c6AkhYkDsf8XfWCjK8tBC36bLXCiduze1PJ8SCKPHW5bRa2iTylyivqm5H83czFyWWVx/eo7E8tOpbnjQIDAQAB",
+  "minimum_chrome_version": "109",
+  "permissions": [
+    "activeTab",
+    "storage",
+    "unlimitedStorage",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://www.kleinanzeigen.de/*",
+    "https://kleinanzeigen.de/*",
+    "https://img.kleinanzeigen.de/*"
+  ],
+  "background": {
+    "service_worker": "src/background/background.js"
+  },
+  "action": {
+    "default_title": "Kleinanzeigen Renewal",
+    "default_icon": {
+      "16": "icons/taskbar-16.png",
+      "32": "icons/taskbar-32.png",
+      "48": "icons/taskbar-48.png"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.kleinanzeigen.de/*",
+        "https://kleinanzeigen.de/*"
+      ],
+      "js": [
+        "src/shared/runtime-deps.js",
+        "src/shared/message-contract-registry.js",
+        "src/shared/managed-navigation.js",
+        "src/shared/platform-hardening.js",
+        "src/content/platform-guard-content.js",
+        "src/content/image-extractor.js",
+        "src/content/form-extractor.js",
+        "src/content/paid-insertion-guard.js",
+        "src/content/template-category-flow.js",
+        "src/content/template-form-fields.js",
+        "src/content/template-image-upload.js",
+        "src/content/template-verification.js",
+        "src/content/template-publish-flow.js",
+        "src/content/template-filler.js",
+        "src/shared/my-ads-readiness.js",
+        "src/content/inventory-roster-parser.js",
+        "src/content/inventory-readiness.js",
+        "src/content/inventory-status-overlay.js",
+        "src/content/inventory-delete-operations.js",
+        "src/content/inventory-run-loop.js",
+        "src/content/inventory-runner.js",
+        "src/content/content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "icons": {
+    "16": "icons/taskbar-16.png",
+    "32": "icons/taskbar-32.png",
+    "48": "icons/taskbar-48.png",
+    "128": "icons/app-icon-128.png"
+  }
+}

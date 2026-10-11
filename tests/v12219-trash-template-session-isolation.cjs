@@ -1,0 +1,10 @@
+'use strict';
+const assert=require('assert'),fs=require('fs'),path=require('path');
+const root=path.resolve(__dirname,'..');
+const src=fs.readFileSync(path.join(root,'archive-trash-insertion-ui-controller.js'),'utf8');
+assert.match(src,/trashTemplateDialogRevision|trashTemplateDialogOwner/, 'controller needs explicit dialog ownership/revision state');
+assert.match(src,/new-draft/, 'new local draft must have an explicit ownership mode');
+assert.match(src,/allowTakeover/, 'recovery must distinguish passive sync from explicit takeover');
+assert.match(src,/expectedRevision|requestRevision|dialogRevision/, 'async recovery must be revision guarded');
+assert.match(src,/resume-trash-template/, 'explicit activity recovery action remains available');
+console.log('v1.22.19 trash-template session isolation: 5/5 PASS');

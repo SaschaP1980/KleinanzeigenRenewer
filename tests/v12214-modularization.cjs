@@ -1,0 +1,21 @@
+const fs=require('fs'),assert=require('assert');
+const bg=fs.readFileSync('background.js','utf8');
+const single=fs.readFileSync('single-inventory-controller.js','utf8');
+const bulk=fs.readFileSync('bulk-inventory-controller.js','utf8');
+const app=fs.readFileSync('app.js','utf8');
+const diagnostics=fs.readFileSync('diagnostics-controls-controller.js','utf8');
+const html=fs.readFileSync('app.html','utf8');
+let p=0;function ok(n,f){try{f();p++;console.log('PASS '+n)}catch(e){console.error('FAIL '+n);throw e}}
+ok('v1.22.14 controllers load before background entrypoint',()=>{const first=bg.split('\n')[0];assert(first.includes('single-inventory-controller.js'));assert(first.includes('bulk-inventory-controller.js'));});
+ok('background consumes both controllers through KRDeps',()=>{assert.match(bg,/KRDeps\.require\('KRSingleInventoryController'\)/);assert.match(bg,/KRDeps\.require\('KRBulkInventoryController'\)/);});
+ok('single inventory controller owns the complete capture workflow',()=>{for(const t of ['captureSingleInventory','assertSelectedProfileMatchesLiveAccount','single-inventory-edit','single-inventory-readonly','SINGLE_INVENTORY_CAPTURE_SUCCEEDED','closeManagedWorkerTab'])assert(single.includes(t),t);});
+ok('background single capture entrypoint is a thin controller facade',()=>assert.match(bg,/async function captureSingleInventory\(message\) \{ return requireSingleInventoryController\(\)\.captureSingleInventory\(message\); \}/));
+ok('bulk controller owns run initialization progress stop and terminal state transitions',()=>{for(const t of ['initBulkRun','updateBulkRun','requestBulkInventoryStopAfterCurrent','finishBulkRunControlledStop','recordBulkExistingSkip','recordBulkResult','failBulkRun'])assert(bulk.includes(t),t);});
+ok('background bulk state entrypoints delegate to controller',()=>{for(const n of ['initBulkRun','updateBulkRun','requestBulkInventoryStopAfterCurrent','finishBulkRunControlledStop','recordBulkExistingSkip','recordBulkResult','failBulkRun'])assert(bg.includes(`requireBulkInventoryController().${n}`),n);});
+ok('browser-heavy bulk executors remain background orchestration boundaries',()=>{for(const n of ['startBulkInventoryOperation','openBulkWorker','extractSaveBulkWorker','retryBulkFailure','finishBulkReconciliation'])assert(bg.includes(`async function ${n}`),n);});
+ok('bulk controller keeps source identity inventory scope and controlled stop semantics',()=>{for(const t of ['requireBulkSource','INVENTORY_SCOPE_NEW_ONLY','existingInventoryIds','skipped-controlled-stop','releaseBulkSourceOwnership'])assert(bulk.includes(t),t);});
+ok('emergency reset exposes accessible normal and confirmation help',()=>{assert.match(html,/emergencyWorkflowResetButton[^>]+title=/);assert.match(html,/emergencyWorkflowResetButton[^>]+aria-label=/);assert.match(diagnostics,/function syncEmergencyUi\(\)/);assert.match(diagnostics,/const CONFIRM_TOOLTIP/);});
+ok('emergency confirmation expiry is revision guarded',()=>{assert.match(diagnostics,/emergencyConfirmationRevision/);assert.match(diagnostics,/emergencyStatusRevision/);assert.match(diagnostics,/clearEmergencyConfirmationStatus/);});
+ok('late post-recovery bulk close is diagnostic info not an error',()=>{assert.match(bg,/isExpectedPostRecoveryBulkClose/);assert.match(bg,/BACKGROUND_REQUEST_EXPECTED_BULK_CLOSE/);});
+ok('publish safety keeps direct form submit bypasses absent',()=>{const rt=[bg,single,bulk].join('\n');assert.strictEqual((rt.match(/\.requestSubmit\s*\(/g)||[]).length,0);assert.strictEqual((rt.match(/\.submit\s*\(/g)||[]).length,0);});
+console.log(`${p}/12 PASS v1.22.14 modularization contract`);

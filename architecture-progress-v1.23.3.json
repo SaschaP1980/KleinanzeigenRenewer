@@ -1,0 +1,17 @@
+{
+  "version": "1.23.3",
+  "epic": "EPIC-REF-002",
+  "baseVersion": "1.23.2",
+  "releaseType": "refactoring-step",
+  "step": "mass-renewal-workflow",
+  "productRuntimeSemanticsChanged": false,
+  "noNewRuntimeBoundary": true,
+  "extractedModule": "mass-renewal-workflow-controller.js",
+  "stateModuleRetained": "mass-renewal-controller.js",
+  "backgroundOwnsLifecycleBoundary": true,
+  "packagingClosureGuard": true,
+  "packagedChromeE2E": true,
+  "nextVersion": "1.23.4",
+  "nextExtraction": "template-fill-orchestration-and-insertion-lock",
+  "finalSoakVersion": "1.23.12"
+}

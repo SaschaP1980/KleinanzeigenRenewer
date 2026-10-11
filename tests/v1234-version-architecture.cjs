@@ -1,0 +1,7 @@
+const fs=require('fs'),assert=require('assert');const manifest=JSON.parse(fs.readFileSync('manifest.json'));const pkg=JSON.parse(fs.readFileSync('package.json'));const pack=fs.readFileSync('scripts/package.py','utf8');const bg=fs.readFileSync('background.js','utf8');let n=0;const p=(l,f)=>{f();n++;console.log('PASS '+l)};
+p('version stays on or after v1.23.4 architecture baseline',()=>{assert.ok(['1.23.4','1.23.5','1.23.6','1.23.7','1.23.8','1.23.9','1.23.10','1.23.11','1.23.12','1.23.13','1.23.14','1.23.15','1.23.16','1.23.17','1.23.18','1.23.19','1.23.20','1.23.22'].includes(manifest.version));assert.equal(pkg.version,manifest.version);assert.equal(pkg.displayVersion,manifest.version)});
+p('packaging includes new runtime modules',()=>{assert(pack.includes("'src/background/controllers/template-fill-controller.js'"));assert(pack.includes("'src/background/services/insertion-lock-service.js'"));});
+p('background imports new runtime modules',()=>{assert(bg.includes('controllers/template-fill-controller.js'));assert(bg.includes('services/insertion-lock-service.js'));});
+p('no direct form submit bypass',()=>{assert.equal((bg.match(/\.submit\s*\(/g)||[]).length,0);assert.equal((bg.match(/requestSubmit\s*\(/g)||[]).length,0)});
+p('v1.23.4 extraction leaves app untouched',()=>{if(manifest.version==='1.23.4'){assert.equal(fs.readFileSync('app.js','utf8').split(/\r?\n/).length-1,4019)}else{assert.ok(fs.statSync('app.js').size>0)}});
+console.log(`${n}/5 PASS v1.23.4 version architecture`);

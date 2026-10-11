@@ -1,0 +1,11 @@
+const fs=require('node:fs'); const vm=require('node:vm'); const assert=require('node:assert/strict');
+const bg=fs.readFileSync('content-connection-manager.js','utf8'); let n=0; const pass=l=>{n++;console.log('PASS '+l);};
+assert.match(bg,/CONTENT_SCRIPT_BOOTSTRAP_DEFERRED_LOADING/); pass('loading navigation gets a dedicated non-error diagnostic');
+assert.match(bg,/KR_CONTENT_NAVIGATION_PENDING/); pass('navigation pending has a typed retryable classification');
+const start=bg.indexOf('function contentBootstrapNeedsNavigationWait'); const end=bg.indexOf('\n      async function waitForContentBootstrapNavigation',start); assert.ok(start>=0&&end>start);
+const context={}; vm.createContext(context); vm.runInContext(`${bg.slice(start,end)};this.f=contentBootstrapNeedsNavigationWait;`,context);
+assert.equal(context.f({status:'loading'}),true); assert.equal(context.f({status:'complete'}),false); pass('only loading tabs defer bootstrap injection');
+const ensureStart=bg.indexOf('async function ensureContentConnection'); const ensureEnd=bg.indexOf('\n\n      return Object.freeze',ensureStart); const block=bg.slice(ensureStart,ensureEnd);
+assert.ok(block.indexOf('waitForContentBootstrapNavigation') < block.indexOf('chrome.scripting.executeScript')); pass('navigation readiness is awaited before full script injection');
+assert.match(block,/if \(contentBootstrapNeedsNavigationWait\(latestTab\)\)[\s\S]*CONTENT_SCRIPT_BOOTSTRAP_DEFERRED_LOADING/); pass('inject/navigation race does not become bootstrap-failed cascade');
+console.log(`${n} PERFORMANCE-3 groups passed`);

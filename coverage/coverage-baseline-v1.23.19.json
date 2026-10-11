@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "version": "1.23.19",
+  "publicFunctions": {
+    "covered": 805,
+    "total": 805,
+    "percent": 100
+  },
+  "lines": {
+    "covered": 10096,
+    "total": 24512,
+    "percent": 41.19
+  },
+  "branches": {
+    "covered": 5181,
+    "total": 23612,
+    "percent": 21.94
+  },
+  "areas": {
+    "app": {
+      "lines": {
+        "covered": 3846,
+        "total": 9077,
+        "percent": 42.37
+      },
+      "branches": {
+        "covered": 2037,
+        "total": 9098,
+        "percent": 22.39
+      },
+      "public": {
+        "covered": 328,
+        "total": 328,
+        "percent": 100
+      }
+    },
+    "background": {
+      "lines": {
+        "covered": 4544,
+        "total": 10761,
+        "percent": 42.23
+      },
+      "branches": {
+        "covered": 2431,
+        "total": 10588,
+        "percent": 22.96
+      },
+      "public": {
+        "covered": 377,
+        "total": 377,
+        "percent": 100
+      }
+    },
+    "content": {
+      "lines": {
+        "covered": 1279,
+        "total": 4189,
+        "percent": 30.53
+      },
+      "branches": {
+        "covered": 501,
+        "total": 3560,
+        "percent": 14.07
+      },
+      "public": {
+        "covered": 76,
+        "total": 76,
+        "percent": 100
+      }
+    },
+    "popup": {
+      "lines": {
+        "covered": 0,
+        "total": 20,
+        "percent": 0
+      },
+      "branches": {
+        "covered": 0,
+        "total": 10,
+        "percent": 0
+      },
+      "public": {
+        "covered": 0,
+        "total": 0,
+        "percent": 100
+      }
+    },
+    "shared": {
+      "lines": {
+        "covered": 427,
+        "total": 465,
+        "percent": 91.83
+      },
+      "branches": {
+        "covered": 212,
+        "total": 356,
+        "percent": 59.55
+      },
+      "public": {
+        "covered": 24,
+        "total": 24,
+        "percent": 100
+      }
+    }
+  },
+  "note": "Gold baseline established by v1.23.19 after global public-vs-private audit. Future release coverage must keep public-function coverage at 100% and not regress aggregate or area line/branch percentages."
+}

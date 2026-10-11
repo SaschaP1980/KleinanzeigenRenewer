@@ -1,0 +1,10 @@
+const fs = require('node:fs');
+const assert = require('node:assert/strict');
+const css = fs.readFileSync('app.css','utf8');
+const app = fs.readFileSync('app.js','utf8') + '\n' + fs.readFileSync('control-accordion-controller.js','utf8');
+let n=0; const pass=l=>{n++;console.log('PASS '+l);};
+assert.match(app, /function (?:animateControlAccordion|animate)\(/); pass('accordion uses explicit smooth transition controller');
+assert.match(app, /prefers-reduced-motion/); pass('accordion animation respects reduced motion');
+assert.match(css, /\.control-accordion-panel\s*\{[^}]*overflow:\s*hidden/i); pass('accordion panel clips during height animation');
+assert.match(css, /\.app-header\s*\{[^}]*border-bottom:\s*1px solid #4de0b7/i); pass('header divider uses the same bright cyan as the active tab border');
+console.log(`${n} v1.17.6 accordion/header motion contract groups passed`);

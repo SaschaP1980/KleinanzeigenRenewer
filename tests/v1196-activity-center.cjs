@@ -1,0 +1,15 @@
+const fs = require('fs');
+const assert = require('assert');
+const html = fs.readFileSync('app.html','utf8');
+const js = fs.readFileSync('app.js','utf8');
+const css = fs.readFileSync('app.css','utf8');
+let n=0; const pass=m=>{n++; console.log('PASS',m)};
+assert.ok(html.indexOf('class="primary-actions"') < html.indexOf('id="controlStatus"'), 'current status card must live below primary actions'); pass('single current activity card is placed below primary actions');
+assert.match(html,/id="messageHistoryOpen"[^>]*>\s*Weitere Meldungen anzeigen\s*</); pass('compact history action exists');
+assert.match(html,/id="messageHistoryDialog"[\s\S]*Meldungsverlauf[\s\S]*id="messageHistoryList"/); pass('message history modal exists');
+assert.match(html,/id="appNotice"[^>]*class="[^"]*activity-state-source[^"]*hidden/); assert.match(html,/id="bulkRunStatus"[^>]*class="[^"]*activity-state-source[^"]*hidden/); pass('legacy workflow cards are state sources only, not independently visible');
+assert.match(js,/UI_ACTIVITY_CURRENT_KEY\s*=\s*['"]uiCurrentActivityV1['"]/); assert.match(js,/UI_ACTIVITY_HISTORY_KEY\s*=\s*['"]uiActivityHistoryV1['"]/); assert.match(js,/function publishUiActivity\(/); pass('activity center persists current item and history');
+assert.match(js,/function renderMessageHistory\(/); assert.match(js,/messageHistoryOpen\?\.addEventListener/); pass('history action renders and opens modal');
+assert.match(js,/publishUiActivity\(\{[\s\S]{0,500}id:\s*`bulk:\$\{runId\}`/); assert.match(js,/const activityId =[\s\S]{0,450}`notice:\$\{String\(currentAppNotice\.id/); assert.match(js,/publishUiActivity\(\{[\s\S]{0,300}slot:\s*'app-notice'/); pass('bulk and app notices feed the same current activity slot');
+assert.match(css,/\.message-history-open\s*\{[^}]*padding:[^;}]*;/s); assert.match(css,/\.message-history-list\s*\{[^}]*overflow:auto/s); pass('history trigger is compact and modal list scrolls');
+console.log(`${n} v1.19.6 activity-center checks passed`);

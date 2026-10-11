@@ -1,0 +1,12 @@
+const fs=require('node:fs'); const assert=require('node:assert/strict');
+const bg=require('./v12221-legacy-background-surface.cjs'); const runner=fs.readFileSync('inventory-runner.js','utf8'); let n=0; const pass=l=>{n++;console.log('PASS '+l);};
+assert.match(bg,/async function preverifyAndTriggerRenewalSourceDeleteAttempt/); pass('phase4 has one fresh preverify-delete worker');
+assert.match(bg,/RENEWAL_PHASE4_ATOMIC_PREVERIFY_DELETE_STARTED/); pass('atomic phase4 worker is diagnosed');
+const f=bg.indexOf('async function finishRenewalReplacement'); const e=bg.indexOf('\nasync function ',f+20); const block=bg.slice(f,e>f?e:bg.length);
+assert.doesNotMatch(block,/verifyRenewalSourceAbsenceFresh\([^\n]*'pre-delete'/); pass('phase4 no longer opens a separate pre-delete verification worker');
+assert.match(block,/preverifyAndTriggerRenewalSourceDeleteAttempt/); pass('each attempt uses atomic preverify-delete worker');
+assert.match(block,/verifyRenewalSourceAbsenceFresh\([^\n]*'post-delete'/); pass('independent fresh post-delete full scan remains mandatory');
+const d=runner.indexOf('async function deleteOwnAdById'); const de=runner.indexOf('\n  async function findOwnAdById',d); const del=runner.slice(d,de);
+assert.match(del,/const scan = await scanOwnAdsAcrossPages\(wanted\);[\s\S]*if \(!scan\.found\)[\s\S]*actionTriggered: false/); pass('delete worker performs full scan and never clicks when source is already absent');
+assert.ok(del.indexOf('scanOwnAdsAcrossPages') < del.indexOf('deleteControls')); pass('source presence is proven before resolving delete control');
+console.log(`${n} PERFORMANCE-4 groups passed`);

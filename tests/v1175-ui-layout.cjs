@@ -1,0 +1,15 @@
+const fs = require('node:fs');
+const assert = require('node:assert/strict');
+const html = fs.readFileSync('app.html','utf8');
+const css = fs.readFileSync('app.css','utf8');
+let n=0; const pass=(label)=>{n++; console.log('PASS '+label);};
+assert.match(html, /<header class="app-header">[\s\S]*content-view-navigation[\s\S]*<\/header>/); pass('view navigation is docked in app header');
+assert.doesNotMatch(html, /<div class="content-column">\s*<nav class="content-view-navigation"/); pass('view navigation is no longer inside content column');
+assert.match(html, /id="profileAccountStatusDot"/); pass('compact live-account status dot exists');
+assert.match(html, /id="profileDetectedText"/); pass('compact live-account status text exists');
+assert.doesNotMatch(html, /<section class="status-card control-status"/); pass('large account status block removed from profile area');
+assert.match(html, /id="configurationAccordion"[\s\S]*?<summary>[\s\S]*control-accordion-title[\s\S]*Konfiguration/); pass('configuration summary uses common left aligned title span');
+assert.match(html, /id="diagnosticsAccordion"[\s\S]*?<summary>[\s\S]*control-accordion-title[\s\S]*Diagnose/); pass('diagnostics summary uses common left aligned title span');
+assert.match(css, /\.control-accordion\[open\] > summary[^\{]*\{[^}]*color:\s*#4de0b7/i); pass('open accordion header uses cyan text');
+assert.match(css, /\.profile-account-status\s*\{/); pass('compact account status row is styled');
+console.log(`${n} v1.17.5 UI layout contract groups passed`);

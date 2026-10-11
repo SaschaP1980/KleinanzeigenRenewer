@@ -1,0 +1,13 @@
+const fs=require('fs'), path=require('path'), assert=require('assert/strict');
+const root=path.resolve(__dirname,'..');
+const read=n=>fs.existsSync(path.join(root,n))?fs.readFileSync(path.join(root,n),'utf8'):'';
+const code=[read('app.js'),read('app-layout-controller.js'),read('tab-page-inspection-controller.js'),read('shared-ui-helpers.js')].join('\n');
+let n=0; const ok=(m,f)=>{f();n++;console.log('PASS '+m)};
+ok('sticky target derives from app header plus shell gap',()=>{assert.match(code,/stickyHeaderThreshold[\s\S]*headerBottom\s*\+\s*stickyShellTopGap\(\)/);assert.match(code,/--app-content-sticky-top/);assert.match(code,/--list-sticky-top/)});
+ok('sticky pin/unpin preserves slot geometry and occlusion',()=>{assert.match(code,/setStickyHeaderPinned[\s\S]*slot\.style\.height/);assert.match(code,/classList\.add\('is-stuck'\)/);assert.match(code,/classList\.remove\('is-stuck'\)/);assert.match(code,/occlusion[\s\S]*is-active/)});
+ok('bottom diagnostics keep all targeted events and geometry evidence',()=>{for(const e of ['UI_SIDEBAR_SCROLL_SAMPLE','UI_SIDEBAR_BOTTOM_REACHED','UI_SIDEBAR_GEOMETRY_CHANGED','UI_SIDEBAR_STICKY_STATE_CHANGED','UI_SIDEBAR_BOTTOM_OSCILLATION_DETECTED'])assert.match(code,new RegExp(e));assert.match(code,/distanceToBottom/);assert.match(code,/visualViewport/);assert.match(code,/controlPanel[\s\S]*getBoundingClientRect/)});
+ok('tab bridge keeps transient retry and content bootstrap recovery',()=>{assert.match(code,/Receiving end does not exist|Could not establish connection/);assert.match(code,/ENSURE_CONTENT_CONNECTION/);assert.match(code,/TAB_CONNECTION_RECOVERED/);assert.match(code,/TAB_MESSAGE_FAILED/)});
+ok('tab lifecycle preserves expected-close, gone and discarded distinctions',()=>{assert.match(code,/KR_TAB_EXPECTED_CLOSED/);assert.match(code,/KR_TAB_GONE/);assert.match(code,/KR_TAB_DISCARDED/);assert.match(code,/TAB_EXPECTED_CLOSED_DURING_REQUEST/);assert.match(code,/TAB_GONE_DURING_REQUEST/);assert.match(code,/TAB_DISCARDED_DURING_REQUEST/)});
+ok('shared display helpers preserve price/category/date semantics',()=>{assert.match(code,/function displayPrice|displayPrice\s*[:=]/);assert.match(code,/EUR|€/);assert.match(code,/categoryLabel/);assert.match(code,/compactCategoryLabel/);assert.match(code,/Intl\.DateTimeFormat\('de-DE'/)});
+ok('compact icon button remains accessible and danger-aware',()=>{assert.match(code,/compact-icon-button/);assert.match(code,/aria-label/);assert.match(code,/danger/);assert.match(code,/compact-action-icon/)});
+console.log(`${n}/7 PASS`);

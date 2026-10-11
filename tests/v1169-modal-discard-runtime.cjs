@@ -1,0 +1,22 @@
+const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),assert=require('node:assert/strict');
+const app=fs.readFileSync(path.join(__dirname,'../app.js'),'utf8');
+const capture=fs.readFileSync(path.join(__dirname,'../inventory-capture-controller.js'),'utf8');
+function extract(src,name,next){ const start=src.indexOf(`function ${name}`); const end=src.indexOf(`\nfunction ${next}`,start); assert.ok(start>=0&&end>start,`missing ${name}`); return src.slice(start,end); }
+const normalize=extract(app,'normalizeInventoryCaptureReentryTarget','setInventoryCaptureReentryTarget');
+const severity=extract(capture,'inventoryCaptureShortcutSeverity','syncInventoryCaptureProgressShortcut');
+const ctx={inventoryCaptureDialogState:'progress',inventoryCaptureResultKind:'',currentBulkRunState:null,inventoryCaptureReentryTarget:null};
+ctx.getCurrentBulkRunState=()=>ctx.currentBulkRunState;
+vm.createContext(ctx); vm.runInContext(`${normalize}\n${severity}`,ctx);
+assert.deepEqual(JSON.parse(JSON.stringify(ctx.normalizeInventoryCaptureReentryTarget({mode:'single',adId:'351'}))),{mode:'single',adId:'351'});
+assert.equal(ctx.normalizeInventoryCaptureReentryTarget({mode:'single',adId:'x'}),null);
+assert.deepEqual(JSON.parse(JSON.stringify(ctx.normalizeInventoryCaptureReentryTarget({mode:'bulk',runId:'run-1'}))),{mode:'bulk',runId:'run-1'});
+assert.equal(ctx.inventoryCaptureShortcutSeverity({mode:'single',adId:'351'}),'active');
+ctx.inventoryCaptureDialogState='result'; ctx.inventoryCaptureResultKind='success'; assert.equal(ctx.inventoryCaptureShortcutSeverity({mode:'single',adId:'351'}),'success');
+ctx.inventoryCaptureResultKind='error'; assert.equal(ctx.inventoryCaptureShortcutSeverity({mode:'single',adId:'351'}),'error');
+ctx.inventoryCaptureResultKind='waiting'; assert.equal(ctx.inventoryCaptureShortcutSeverity({mode:'single',adId:'351'}),'waiting');
+ctx.currentBulkRunState={runId:'run-1',status:'running'}; assert.equal(ctx.inventoryCaptureShortcutSeverity({mode:'bulk',runId:'run-1'}),'active');
+ctx.currentBulkRunState.status='complete'; assert.equal(ctx.inventoryCaptureShortcutSeverity({mode:'bulk',runId:'run-1'}),'success');
+ctx.currentBulkRunState.status='complete-with-errors'; assert.equal(ctx.inventoryCaptureShortcutSeverity({mode:'bulk',runId:'run-1'}),'error');
+ctx.currentBulkRunState.status='needs-review'; assert.equal(ctx.inventoryCaptureShortcutSeverity({mode:'bulk',runId:'run-1'}),'waiting');
+ctx.currentBulkRunState={runId:'old-run',status:'complete'}; assert.equal(ctx.inventoryCaptureShortcutSeverity({mode:'bulk',runId:'new-run'}),'');
+console.log('PASS typed reentry targets and shortcut severity remain identity-bound at runtime');

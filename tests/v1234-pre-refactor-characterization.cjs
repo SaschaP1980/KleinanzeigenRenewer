@@ -1,0 +1,15 @@
+const assert=require('assert');
+const src=require('./v1234-source-surface.cjs');
+let n=0;const ok=(label,fn)=>{fn();n++;console.log('PASS '+label)};
+const has=name=>new RegExp(`(?:async\\s+)?function\\s+${name}\\s*\\(`).test(src);
+ok('insertion start gate serializes starts',()=>{assert(has('withInsertionStartGate'));assert.match(src,/insertionStartGate\s*=\s*Promise\.resolve/);});
+ok('global insertion lock has state/read contract',()=>{assert(has('getInsertionLockState'));assert(has('assertInsertionStartAvailable'));assert.match(src,/INSERTION_START_BLOCKED_BY_GLOBAL_LOCK/);});
+ok('global insertion lock covers renewal archive template and mass',()=>{for(const token of ['activeRenewals','activeArchiveInsertions','activeTemplateFills','massBatch'])assert(src.includes(token),token);});
+ok('trash template recovery/status flow exists',()=>{for(const name of ['getRecoverableTrashTemplateFill','prepareTrashTemplateInventoryCapture','completeTrashTemplateFlow','getTrashTemplateFillStatus'])assert(has(name),name);});
+ok('template starts are globally gated',()=>{for(const name of ['startTrashTemplateFillUnlocked','startTemplateFillUnlocked','startTrashTemplateFill','startTemplateFill'])assert(has(name),name);assert.match(src,/assertInsertionStartAvailable\(\{ kind: 'renewal'/);assert.match(src,/assertInsertionStartAvailable\(\{ kind: 'trash-template'/);});
+ok('template update protects terminal and publish stages',()=>{assert(has('updateTemplateFillSession'));assert.match(src,/TEMPLATE_FILL_STALE_PUBLISH_STAGE_IGNORED/);assert.match(src,/TEMPLATE_FILL_TERMINAL_UPDATE_IGNORED/);});
+ok('template update bridges renewal and archive state',()=>{assert.match(src,/session\.renewalId/);assert.match(src,/session\.archiveInsertionId/);assert.match(src,/persistRenewalSession/);assert.match(src,/persistArchiveInsertionSession/);});
+ok('platform error terminalization is fail-safe',()=>{assert(has('terminalizeTemplateFillOnPlatformError'));assert.match(src,/KLEINANZEIGEN_ERROR_PAGE_DETECTED/);assert.match(src,/platform-error-page/);});
+ok('mass workflow receives template and lock bridges',()=>{assert.match(src,/startTemplateFillUnlocked, withInsertionStartGate, assertInsertionStartAvailable/);assert.match(src,/terminalizeTemplateFillOnPlatformError/);});
+ok('archive insertion start uses global insertion gate',()=>{assert.match(src,/async function startArchiveInsertion[\s\S]*withInsertionStartGate/);assert.match(src,/assertInsertionStartAvailable\(\{ kind: 'archive-insertion'/);});
+console.log(`${n}/10 PASS v1.23.4 pre-refactor characterization`);

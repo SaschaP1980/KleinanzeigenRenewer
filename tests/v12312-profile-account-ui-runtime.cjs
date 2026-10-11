@@ -1,0 +1,11 @@
+const assert=require('assert'),fs=require('fs'),vm=require('vm');
+const deps=new Map();const KRDeps={register(n,v){deps.set(n,v);return v;},require(n){return deps.get(n)}};const ctx={globalThis:null,KRDeps,module:{exports:{}},Object,String,Boolean,Number,Error,Date,Set};ctx.globalThis=ctx;vm.createContext(ctx);
+vm.runInContext(fs.readFileSync('src/app/account-gate.js','utf8'),ctx);vm.runInContext(fs.readFileSync('src/app/profile-account-ui-controller.js','utf8'),ctx);
+const Gate=deps.get('KRAccountGate'), UI=deps.get('KRProfileAccountUiController'); let n=0;const ok=(c,m)=>{assert.ok(c,m);n++;console.log('PASS',m)};
+const status={textContent:'',title:'',classList:{toggle(){}}},dot={className:''}; const ui=UI.create({AccountGate:Gate,document:{createElement(){return {append(){},addEventListener(){},classList:{toggle(){}}}}},elements:{profileDetectedText:status,profileAccountStatusDot:dot},unassignedProfileId:'__unassigned__'});
+const profiles={profiles:[{profileId:'p1',displayName:'P1'}],selectedProfileId:'p1',unassigned:{profileId:'__unassigned__'}}; let state=Gate.createInitial(0); state=Gate.transition(state,{type:'CONFIRMED',profile:{profileId:'p1',displayName:'Live'}},1);
+ok(ui.accountGateModel(state,'p1',profiles).allowed===true,'matching selected/live profile is allowed through authoritative AccountGate model');
+ok(ui.accountGateModel(state,'__unassigned__',profiles).allowed===false,'unassigned selection remains fail-closed');
+const snap=ui.profileBindingSnapshot(state,'p1',profiles);ok(snap.liveProfileId==='p1'&&snap.accountState==='confirmed'&&snap.allowed===true,'binding snapshot derives only from authoritative gate state');
+ui.renderProfileAccountStatus(state);ok(/Live/.test(status.textContent)&&/is-ready/.test(dot.className),'confirmed account presentation renders ready state');
+console.log(`${n}/4 PASS v1.23.12 profile/account UI runtime`);

@@ -1,0 +1,13 @@
+const fs=require('fs'),assert=require('assert');
+let n=0; const pass=s=>{n++;console.log('PASS',s)};
+const bgRouter=fs.readFileSync('background.js','utf8');
+const emergency=fs.readFileSync('src/background/controllers/workflow-emergency-reset-controller.js','utf8');
+const bg=bgRouter+'\n'+emergency;
+const filler=fs.readFileSync('template-filler.js','utf8');
+const svc=fs.readFileSync('template-fill-service.js','utf8');
+assert.match(bg,/function\s+renewalHoldsInsertionLock\s*\(/); pass('renewal insertion lock policy exists on baseline');
+assert.match(bg,/ACTIVE_WORKFLOWS_EMERGENCY_RESET/); assert.match(bg,/manual-emergency-reset/); pass('emergency reset baseline retained');
+assert.match(filler,/PAID_INSERTION_REQUIRED_DETECTED_PRE_PUBLISH/); assert.match(filler,/PAID_INSERTION_CHECKOUT_DETECTED/); pass('paid insertion detection baseline retained');
+assert.match(svc,/isEmergencyResettableSession/); pass('template fill reset classifier baseline retained');
+assert.equal((bg.match(/\.submit\s*\(/g)||[]).length,0); assert.equal((bg.match(/requestSubmit\s*\(/g)||[]).length,0); pass('publish bypass invariant retained');
+console.log(`${n}/5 PASS v1.22.27 pre-stabilization characterization`);

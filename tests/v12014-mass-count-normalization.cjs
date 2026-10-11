@@ -1,0 +1,12 @@
+const fs=require('node:fs'); const assert=require('node:assert/strict');
+const app=fs.readFileSync('app.js','utf8')+'\n'+fs.readFileSync('mass-renewal-ui-controller.js','utf8')+'\n'+fs.readFileSync('archive-trash-insertion-ui-controller.js','utf8'); let n=0; const pass=m=>{n++;console.log('PASS '+m);};
+assert.match(app,/function massRenewalCountsFromItems\(batch\)/); pass('UI defines one derived-count function from batch items');
+assert.match(app,/function normalizeMassRenewalBatchSnapshot\(batch\)/); pass('UI defines canonical batch snapshot normalizer');
+const ns=app.indexOf('function normalizeMassRenewalBatchSnapshot'); const ne=app.indexOf('\nfunction ',ns+20); const block=app.slice(ns,ne>ns?ne:undefined);
+assert.match(block,/counts:\s*massRenewalCountsFromItems\(batch\)/); pass('normalizer overwrites counts from items instead of trusting persisted counts');
+const as=app.indexOf('function applyMassRenewalBatchSnapshot'); const ae=app.indexOf('\nasync function refreshMassRenewalBatchStatus',as); const apply=app.slice(as,ae);
+assert.match(apply,/normalizeMassRenewalBatchSnapshot\(batch\)/); pass('all applied storage/runtime snapshots are normalized');
+const rs=app.indexOf('function renderMassRenewalBatch'); const re=app.indexOf('\nfunction updateMassRenewalCloseAccessibility',rs); const render=app.slice(rs,re);
+assert.match(render,/normalizeMassRenewalBatchSnapshot\(batch\)/); pass('direct render paths also normalize snapshots');
+assert.ok(app.includes('${completedCount} von ${Number(counts.total || 0)} abgeschlossen')); pass('progress line consumes canonical normalized total');
+console.log(`${n} v1.20.14 mass-count normalization checks passed`);

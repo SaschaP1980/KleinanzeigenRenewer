@@ -1,0 +1,14 @@
+const fs=require('node:fs');const assert=require('node:assert/strict');
+const manifest=JSON.parse(fs.readFileSync('manifest.json','utf8'));
+const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
+const spec=JSON.parse(fs.readFileSync('release/release-spec.json','utf8'));
+const build=fs.readFileSync('scripts/build.sh','utf8');
+const changelog=fs.readFileSync('CHANGELOG.md','utf8');
+const parts=v=>String(v||'').split('.').map(Number);const atLeast=(v,b)=>{const a=parts(v),c=parts(b);for(let i=0;i<3;i++){if((a[i]||0)!==(c[i]||0))return (a[i]||0)>(c[i]||0)}return true};
+let n=0;const ok=(label,fn)=>{fn();n++;console.log('PASS '+label)};
+ok('c1 correction remains historical while later regular releases may advance',()=>{if(manifest.version==='1.23.13'){assert.ok(['1.23.13_c1','1.23.13_c2'].includes(manifest.version_name));assert.equal(pkg.version,'1.23.13')}else{assert.ok(atLeast(manifest.version,'1.23.14'));assert.equal(pkg.version,manifest.version)}assert.match(changelog,/## 1\.23\.13_c1[\s\S]*Bulk-Capture-Reentry|## 1\.23\.13_c1[\s\S]*Reentry-Fehler/i)});
+ok('correction history keeps final performance rule while later plans advance',()=>{if(manifest.version==='1.23.13'){assert.equal(spec.version,'1.23.13');assert.ok(['1.23.13_c1','1.23.13_c2'].includes(spec.packageVersion));assert.equal(spec.nextPlannedBuild,'1.23.14')}else{assert.equal(spec.version,manifest.version);assert.notEqual(spec.nextPlannedBuild,'1.23.14')}assert.equal(spec.performanceRunRequired,['1.23.20','1.23.22'].includes(manifest.version));assert.match(spec.performanceRule,manifest.version==='1.23.22'?/1\.23\.22|Fast-3er/:/1\.23\.20/)});
+ok('c1 scope remains documented as bulk capture UI reentry after app restart',()=>{assert.match(changelog,/v1\.23\.13-Reentry-Fehler[\s\S]*erneutem Öffnen/i);assert.match(changelog,/UI_INVENTORY_CAPTURE_BULK_REENTRY_BOUND/)});
+ok('c1 regression remains part of both full regression and official build',()=>{const packageText=fs.readFileSync('package.json','utf8');for(const t of ['v12313c1-bulk-reentry-rehydration-regression.cjs','v12313c1-version-release.cjs']){assert.ok(packageText.includes(t),`package missing ${t}`);assert.ok(build.includes(t),`build missing ${t}`)}});
+ok('correction release machinery retains visible package-version support',()=>{const supervisor=fs.readFileSync('scripts/release-supervisor.sh','utf8');const pipeline=fs.readFileSync('scripts/release-pipeline.sh','utf8');const finalizer=fs.readFileSync('scripts/release_finalize.py','utf8');assert.match(supervisor,/package_version=/);assert.match(pipeline,/package_version=/);assert.match(finalizer,/version_name/);assert.match(finalizer,/expected_package_version/)});
+console.log(`${n}/5 PASS v1.23.13_c1 historical version/release`);

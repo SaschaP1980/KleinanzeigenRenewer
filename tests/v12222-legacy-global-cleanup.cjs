@@ -1,0 +1,10 @@
+const fs=require('fs'),assert=require('assert');
+const read=f=>fs.readFileSync(f,'utf8');
+const files=fs.readdirSync('.').filter(f=>f.endsWith('.js') && f!=='runtime-deps.js');
+let p=0;const ok=(n,f)=>{f();p++;console.log('PASS',n)};
+ok('runtime dependency registry has no legacy global-name fallback',()=>{const s=read('runtime-deps.js');assert.doesNotMatch(s,/const legacy\s*=\s*globalThis\[key\]/);});
+ok('runtime entrypoints require the explicit dependency registry',()=>{for(const f of ['background.js','content.js','platform-guard-content.js'])assert.doesNotMatch(read(f),/globalThis\.KRDeps\s*\|\|/);});
+ok('module APIs do not publish duplicate KR globals',()=>{for(const f of files){const s=read(f);assert.doesNotMatch(s,/(?:globalThis|root)\.KR[A-Z][A-Za-z0-9_]*\s*=/,`${f} still publishes a KR global`);}});
+ok('legacy managed worker storage facade is removed',()=>{const s=read('background.js');for(const token of ['MANAGED_WORKER_TABS_KEY','readManagedWorkerTabs','writeManagedWorkerTabs'])assert.ok(!s.includes(token),token);});
+ok('all runtime dependency consumers still use KRDeps',()=>{for(const f of ['background.js','app.js','content.js'])assert.match(read(f),/KRDeps\.require\(/);});
+console.log(`${p}/5 PASS v1.22.22 legacy/global cleanup`);

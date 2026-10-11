@@ -1,0 +1,15 @@
+const fs=require('node:fs');const assert=require('node:assert/strict');
+const manifest=JSON.parse(fs.readFileSync('manifest.json','utf8'));
+const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
+const spec=JSON.parse(fs.readFileSync('release/release-spec.json','utf8'));
+const supervisor=fs.readFileSync('scripts/release-supervisor.sh','utf8');
+const pipeline=fs.readFileSync('scripts/release-pipeline.sh','utf8');
+const finalizer=fs.readFileSync('scripts/release_finalize.py','utf8');
+const build=fs.readFileSync('scripts/build.sh','utf8');
+let n=0;const ok=(label,fn)=>{fn();n++;console.log('PASS '+label)};
+ok('c1 correction metadata is exact on correction releases and regular releases clear version_name',()=>{if(manifest.version_name){assert.match(manifest.version_name,new RegExp(`^${manifest.version.replace(/\./g,'\\.')}__?c?`.replace('__?c?','_c')+'\\d+$'));assert.equal(pkg.version,manifest.version)}else{assert.ok(/^1\.23\.(?:1[3-9]|[2-9]\d+)$/.test(manifest.version));assert.equal(pkg.version,manifest.version)}});
+ok('release spec records correction semantics or a later native-green basis',()=>{if(manifest.version_name){assert.equal(spec.version,manifest.version);assert.equal(spec.packageVersion,manifest.version_name);const m=manifest.version_name.match(new RegExp(`^${manifest.version.replace(/\./g,'\\.')}_c(\\d+)$`));assert.ok(m,'version_name must encode a correction number');const correctionNumber=Number(m[1]);assert.ok(Number.isInteger(correctionNumber)&&correctionNumber>=1,'correction number must be >= 1');const expectedDirectBasis=correctionNumber===1?manifest.version:`${manifest.version}_c${correctionNumber-1}`;assert.equal(spec.directBasis,expectedDirectBasis);assert.equal(spec.directBasisNativeGreen,false);assert.notEqual(spec.nextPlannedBuild,'1.23.13')}else{assert.equal(spec.version,manifest.version);assert.equal(spec.directBasisNativeGreen,true);assert.notEqual(spec.nextPlannedBuild,'1.23.13')}});
+ok('release supervisor and pipeline use visible package version for artifact paths',()=>{assert.match(supervisor,/package_version=/);assert.match(supervisor,/source-v\$package_version\.zip/);assert.match(pipeline,/package_version=/);assert.match(pipeline,/chrome-v\$package_version(?:\"?\.zip|\.zip)/);assert.match(pipeline,/source-v\$package_version(?:\"?\.zip|\.zip)/)});
+ok('release finalizer distinguishes technical manifest version from package version',()=>{assert.match(finalizer,/package_version\s*=/);assert.match(finalizer,/version_name/);assert.match(finalizer,/chrome-v\{package_version\}\.zip/);assert.match(finalizer,/expected_package_version/)});
+ok('c1 regression is part of both full regression and official build',()=>{assert.match(pkg.scripts.test,/v12312c1-bulk-composition-root-regression\.cjs/);assert.match(pkg.scripts.test,/v12312c1-version-release\.cjs/);assert.match(build,/tests\/v12312c1-bulk-composition-root-regression\.cjs/);assert.match(build,/tests\/v12312c1-version-release\.cjs/)});
+console.log(`${n}/5 PASS v1.23.12_c1 version/release`);

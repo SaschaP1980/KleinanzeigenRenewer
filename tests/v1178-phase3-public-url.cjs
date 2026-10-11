@@ -1,0 +1,16 @@
+const fs=require('node:fs'); const assert=require('node:assert/strict');
+const bg=fs.readFileSync('background.js','utf8'); const nav=require('../managed-navigation.js');
+let n=0; const pass=l=>{n++;console.log('PASS '+l);};
+const canonical='https://www.kleinanzeigen.de/s-anzeige/demo/3515421759-123-456';
+const direct='https://www.kleinanzeigen.de/s-anzeige/3515421759';
+assert.equal(nav.publicAdIdFromUrl(canonical),'3515421759'); pass('canonical public URL still yields stable ad identity');
+assert.equal(nav.publicAdIdFromUrl(direct),'3515421759'); pass('id-direct public URL is accepted as the same public ad identity');
+assert.equal(nav.assessPublicAd({url:canonical,status:'complete'},'3515421759').state,nav.STATES.READY); pass('canonical URL can provide target-bound public evidence');
+assert.equal(nav.assessPublicAd({url:direct,status:'complete'},'3515421759').state,nav.STATES.READY); pass('id-direct URL can provide target-bound public evidence');
+const r0=bg.indexOf('async function resolveRenewalPublicEvidence'); const r1=bg.indexOf('\nasync function extractReadOnlyMetadata',r0); const block=bg.slice(r0,r1); assert.ok(r0>=0&&r1>r0);
+assert.match(block,/normalizeKnownPublicAdUrl\(knownPublicUrl, newAdId\)/); pass('resolver prefers a known canonical public URL when available');
+assert.match(block,/directPublicUrlForAdId\(newAdId\)/); pass('resolver has an ad-id direct fallback instead of depending on a slug');
+assert.match(block,/probeFreshRenewalPublicUrl\(canonicalKnownUrl, newAdId, 'canonical'/); pass('canonical verification uses a fresh dedicated public worker');
+assert.match(block,/probeFreshRenewalPublicUrl\(directIdUrl, newAdId, 'id-direct'/); pass('id-direct fallback uses a separate fresh dedicated public worker');
+assert.match(block,/findRenewalAdInMyAdsFresh\(/); pass('My Ads fallback is also isolated in its own fresh worker');
+console.log(`${n} v1.17.8 phase3 public-url historical contract groups passed`);

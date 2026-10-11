@@ -1,0 +1,15 @@
+const assert=require('assert');
+const src=require('./v12216-source-surface.cjs');
+let p=0;const ok=(n,f)=>{try{f();p++;console.log('PASS '+n)}catch(e){console.error('FAIL '+n);throw e}};
+const has=n=>src.includes(`function ${n}(`)||src.includes(`async function ${n}(`);
+ok('renewal state keeps retained session read/write contract',()=>{assert(has('readRenewalSessions'));assert(has('writeRenewalSessions'));assert.match(src,/RENEWAL_SESSION_MAX_AGE_MS/);});
+ok('renewal state keeps public snapshot and insertion metadata',()=>{assert(has('renewalPublicSnapshot'));assert(has('renewalInsertionMeta'));assert.match(src,/publicAvailabilityPending/);assert.match(src,/newIdConfirmedAt/);});
+ok('renewal persistence still updates skeleton and mass progress',()=>{assert(has('persistRenewalSession'));assert.match(src,/updateRenewalSkeleton\(session\)/);assert.match(src,/massRenewalTerminalOutcome\(session\)/);});
+ok('template fill keeps retained session storage and serialized mutation boundary',()=>{assert(has('readFillSessions'));assert(has('writeFillSessions'));assert(has('withTemplateFillMutation'));assert.match(src,/TEMPLATE_FILL_MAX_AGE_MS/);});
+ok('template fill watchdog remains terminal and fail-safe',()=>{assert(has('terminalizeTemplateFillForWatchdog'));assert.match(src,/progress-watchdog-timeout/);assert.match(src,/TERMINAL_TEMPLATE_FILL_STATUSES/);});
+ok('template fill keeps source readiness and payload semantics',()=>{assert(has('templatePayload'));assert(has('assertTemplateSourceReady'));assert.match(src,/capturedFromEditView/);assert.match(src,/templateComplete/);assert.match(src,/imageSetExplicitlyEmpty|inventoryImageSetExplicitlyEmpty/);});
+ok('template fill keeps image transfer cache and bounded chunk transport',()=>{assert(has('resolveTemplateImageTransfer'));assert(has('templateImageChunk'));assert.match(src,/512 \* 1024/);assert.match(src,/TEMPLATE_IMAGE_TRANSFER_CACHE_TTL_MS/);});
+ok('template fill keeps transient progress and terminal update protection',()=>{assert(has('isTransientTemplateFillProgress'));assert(has('templateFillProgressSnapshot'));assert(has('updateTemplateFillSession'));assert.match(src,/TEMPLATE_FILL_TERMINAL_UPDATE_IGNORED/);});
+ok('archive insertion keeps retained revisioned session persistence',()=>{assert(has('readArchiveInsertionSessions'));assert(has('writeArchiveInsertionSessions'));assert(has('persistArchiveInsertionSession'));assert.match(src,/archiveInsertionId/);assert.match(src,/revision/);});
+ok('archive insertion keeps public snapshot and full safe workflow boundaries',()=>{assert(has('archiveInsertionPublicSnapshot'));assert(has('startArchiveInsertion'));assert(has('runArchiveInsertionPostPublish'));assert(has('confirmPublishedArchiveInsertion'));assert.match(src,/assertInsertionStartAvailable/);assert.match(src,/assertSelectedProfileMatchesLiveAccount/);});
+console.log(`${p}/10 PASS v1.22.16 pre-refactor characterization`);

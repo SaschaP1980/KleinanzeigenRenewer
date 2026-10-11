@@ -1,0 +1,18 @@
+const fs = require('node:fs');
+const vm = require('node:vm');
+const assert = require('node:assert/strict');
+const source = fs.readFileSync('app.js','utf8');
+const start = source.indexOf('function bulkRunCardActionModel');
+const end = source.indexOf('\nfunction renderBulkState', start);
+assert.ok(start >= 0 && end > start, 'bulkRunCardActionModel must be defined before renderBulkState');
+const context = { console };
+vm.createContext(context);
+vm.runInContext(source.slice(start,end), context);
+let n=0; const pass=label=>{n++;console.log('PASS '+label);};
+let model = context.bulkRunCardActionModel({status:'running'});
+assert.equal(model.mode,'minimize'); assert.equal(model.label,'Fortschritt minimieren'); pass('running bulk card minimizes');
+model = context.bulkRunCardActionModel({status:'complete'});
+assert.equal(model.mode,'dismiss'); assert.equal(model.label,'Meldung ausblenden'); pass('terminal bulk card dismisses');
+model = context.bulkRunCardActionModel({status:'complete-with-errors',retryAdId:'123'});
+assert.equal(model.mode,'minimize'); pass('active retry is treated as running progress');
+console.log(`${n} v1.17.3 progress-control runtime groups passed`);

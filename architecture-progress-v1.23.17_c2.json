@@ -1,0 +1,51 @@
+{
+  "version": "1.23.17",
+  "packageVersion": "1.23.17_c2",
+  "epic": "EPIC-REF-002",
+  "step": "trash-template-modal-reopen-correction",
+  "goldBaseline": "1.21.15",
+  "directBasis": "1.23.17_c1",
+  "directBasisTechnicalReleaseGreen": true,
+  "directBasisNativeUiMostlyGreenWithReopenWeakness": true,
+  "problem": "After template-only-complete, closing the prepared-status modal made the recovery/status action focus the still-live Kleinanzeigen target tab and return before showModal(), so the modal could not be reopened while the target tab remained alive.",
+  "behaviorAfter": {
+    "recoveryActionReopensModal": true,
+    "reopenChecksTargetWithoutFocusing": true,
+    "explicitModalTargetAction": true,
+    "explicitModalTargetActionLabel": "Anzeige prüfen",
+    "targetLossRecoveryPreserved": true,
+    "autoPublishAllowed": false,
+    "restoredTabAutoAdopted": false
+  },
+  "runtime": {
+    "pollingAdded": false,
+    "newRuntimeMessageType": false,
+    "newRuntimeBoundary": false,
+    "publicControllerApiChanged": false
+  },
+  "domBindingsBefore": 234,
+  "domBindingsAfter": 235,
+  "files": {
+    "src/app/app.js": {
+      "loc": 3325,
+      "bytes": 172787
+    },
+    "src/background/background.js": {
+      "loc": 3199,
+      "bytes": 188610
+    },
+    "src/app/trash-template-ui-controller.js": {
+      "loc": 430,
+      "bytes": 32653
+    }
+  },
+  "templateModulePublicApiClosurePreserved": {
+    "publicMethods": 28,
+    "dynamicExecuted": 28,
+    "coveragePercent": 100
+  },
+  "globalPublicPrivateAuditVersion": "1.23.19",
+  "nextPlannedBuild": "1.23.18",
+  "nextPlannedBuildGoal": "Inventory Runner modularisieren",
+  "performanceGateVersion": "1.23.20"
+}

@@ -1,0 +1,65 @@
+{
+  "version": "1.23.17",
+  "epic": "EPIC-REF-002",
+  "step": "template-filler-modularization",
+  "goldBaseline": "1.21.15",
+  "directBasis": "1.23.16_c2",
+  "directBasisTechnicalReleaseGreen": true,
+  "directBasisCorrectionScopeNativeGreen": true,
+  "directBasisFullScopeNativeEvidence": false,
+  "before": {
+    "templateFillerLoc": 2021,
+    "appLoc": 3306,
+    "backgroundLoc": 3199
+  },
+  "files": {
+    "src/content/template-filler.js": {
+      "loc": 417,
+      "bytes": 22082
+    },
+    "src/content/template-category-flow.js": {
+      "loc": 521,
+      "bytes": 23476
+    },
+    "src/content/template-form-fields.js": {
+      "loc": 522,
+      "bytes": 23137
+    },
+    "src/content/template-image-upload.js": {
+      "loc": 410,
+      "bytes": 17777
+    },
+    "src/content/template-verification.js": {
+      "loc": 80,
+      "bytes": 4252
+    },
+    "src/content/template-publish-flow.js": {
+      "loc": 279,
+      "bytes": 14000
+    },
+    "src/app/app.js": {
+      "loc": 3306,
+      "bytes": 171582
+    },
+    "src/background/background.js": {
+      "loc": 3199,
+      "bytes": 188610
+    }
+  },
+  "newModules": [
+    "src/content/template-category-flow.js",
+    "src/content/template-form-fields.js",
+    "src/content/template-image-upload.js",
+    "src/content/template-verification.js",
+    "src/content/template-publish-flow.js"
+  ],
+  "templateFillerRemainsLifecycleOrchestrator": true,
+  "publicApiCompatibilityPreserved": true,
+  "noNewRuntimeBoundary": true,
+  "newRuntimeMessageType": false,
+  "testOnlyLegacyCompositeSource": true,
+  "publishSubmitBypassCalls": 0,
+  "nextPlannedBuild": "1.23.18",
+  "nextPlannedBuildGoal": "Inventory Runner modularisieren",
+  "performanceGateVersion": "1.23.20"
+}

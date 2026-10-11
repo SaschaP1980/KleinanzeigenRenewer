@@ -1,0 +1,13 @@
+{
+  "version": "1.23.5",
+  "epic": "EPIC-REF-002",
+  "step": "archive-insertion-controller",
+  "extractedModule": "archive-insertion-controller.js",
+  "stateModuleRetained": "archive-insertion-service.js",
+  "emergencyResetTerminalFillFix": true,
+  "noNewRuntimeBoundary": true,
+  "packagingClosureGuard": true,
+  "packagedChromeE2E": true,
+  "goldBaseline": "1.21.15",
+  "directBasis": "1.23.4"
+}

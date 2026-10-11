@@ -1,0 +1,16 @@
+const fs=require('fs'),path=require('path'),assert=require('assert');
+const root=path.join(__dirname,'..');
+const supervisor=path.join(root,'scripts','release-supervisor.sh');
+const pipeline=path.join(root,'scripts','release-pipeline.sh');
+const finalizer=path.join(root,'scripts','release_finalize.py');
+const build=path.join(root,'scripts','build.sh');
+const progress=JSON.parse(fs.readFileSync(path.join(root,'architecture-progress-v1.23.10.json'),'utf8'));
+let n=0;const p=(name,fn)=>{fn();n++;console.log('PASS '+name)};
+p('detached release supervisor is materialized',()=>{assert.ok(fs.existsSync(supervisor),'release-supervisor.sh missing');const s=fs.readFileSync(supervisor,'utf8');assert.ok(s.startsWith('#!/usr/bin/env bash'));assert.match(s,/nohup\s+setsid\s+bash/);assert.match(s,/release-supervisor\.pid/);assert.match(s,/release-supervisor\.rc/);assert.match(s,/release-supervisor\.wall-ms/)});
+p('supervisor creates durable source checkpoint before long pipeline',()=>{const s=fs.readFileSync(supervisor,'utf8');assert.match(s,/package\.py/);assert.match(s,/source-before-release/);assert.match(s,/sha256/)});
+p('status polling is short and non-blocking',()=>{const s=fs.readFileSync(supervisor,'utf8');assert.match(s,/status\)/);assert.doesNotMatch(s,/\bsleep\s+[0-9]/);assert.match(s,/kill -0/);assert.match(s,/tail -n/)});
+p('pipeline invalidates stale green state before regression',()=>{const s=fs.readFileSync(pipeline,'utf8');assert.match(s,/rm -f "\$release_dir\/RELEASE_GREEN"/);assert.match(s,/write_pipeline_state source-dirty/)});
+p('handover generator preserves stream-timeout and source-dirty recovery rules',()=>{const s=fs.readFileSync(finalizer,'utf8');for(const token of ['STREAM_TIMEOUT','source-dirty','kurz und nicht blockierend','PID, RC-Datei, Stage-State','spätestens ungefähr alle fünf Minuten'])assert.ok(s.includes(token),`missing hardening token: ${token}`)});
+p('initial prompt carries the same durable hardening',()=>{const s=fs.readFileSync(finalizer,'utf8');assert.match(s,/Stream-\/Tool-Timeout/);assert.match(s,/keine langen `sleep`-\/Wait-Schleifen/);assert.match(s,/alten `RELEASE_GREEN`/)});
+p('packaging and architecture record the supervisor',()=>{const f=fs.readFileSync(finalizer,'utf8');const b=fs.readFileSync(build,'utf8');assert.match(f,/release-supervisor\.sh/);assert.match(b,/v12310-release-supervisor-hardening\.cjs/);assert.equal(progress.releaseSupervisor,'scripts/release-supervisor.sh');assert.equal(progress.detachedReleaseSupervisor,true);assert.equal(progress.sourceDirtyInvalidation,true)});
+console.log(`${n}/${n} PASS v1.23.10 release supervisor hardening`);

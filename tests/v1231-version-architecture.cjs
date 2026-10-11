@@ -1,0 +1,10 @@
+const assert = require('assert');
+const fs = require('fs');
+const manifest = JSON.parse(fs.readFileSync('manifest.json','utf8'));
+const pkg = JSON.parse(fs.readFileSync('package.json','utf8'));
+const progress = JSON.parse(fs.readFileSync('architecture-progress-v1.23.1.json','utf8'));
+let passed=0; const ok=(n,f)=>{try{f();passed++;console.log('PASS '+n)}catch(e){console.error('FAIL '+n);throw e}};
+ok('version remains within 1.23.x after v1.23.1',()=>{assert.match(manifest.version,/^1\.23\.\d+$/);assert.equal(pkg.version,manifest.version);assert.equal(pkg.displayVersion,manifest.version)});
+ok('architecture progress records renewal workflow completion',()=>{assert.equal(progress.completedExtraction,'renewal-workflow');assert.equal(progress.module,'renewal-workflow-controller.js');assert.equal(progress.nextVersion,'1.23.2')});
+ok('runtime topology remains in-process',()=>{assert.equal(progress.noNewRuntimeBoundary,true);assert.equal(progress.backgroundRetainsEmergencyReset,true)});
+console.log(`${passed}/3 PASS v1.23.1 version architecture`);

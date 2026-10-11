@@ -1,0 +1,23 @@
+{
+  "version": "1.23.16",
+  "packageVersion": "1.23.16_c1",
+  "epic": "EPIC-REF-002",
+  "step": "trash-template-target-loss-recovery-correction",
+  "goldBaseline": "1.21.15",
+  "directBasis": "1.23.16",
+  "directBasisTechnicalReleaseGreen": true,
+  "directBasisNativeUiSmokeGreen": true,
+  "directBasisFullScopeNativeEvidence": false,
+  "bug": "A completed trash-template session could still reopen the normal 'Anzeige ist vorbereitet' dialog after its target tab had been closed.",
+  "uiRecoveryOwner": "src/app/trash-template-ui-controller.js",
+  "backgroundSafetyOwner": "src/background/controllers/template-fill-controller.js",
+  "sameStartMessageType": true,
+  "newRuntimeMessageType": false,
+  "targetLossMustBeBackgroundConfirmed": true,
+  "restoredTabIsNotAutoAdopted": true,
+  "autoPublishAllowed": false,
+  "supersededStage": "template-only-target-tab-lost-superseded",
+  "nextPlannedBuild": "1.23.17",
+  "nextPlannedBuildGoal": "Template Filler modularisieren",
+  "performanceGateVersion": "1.23.20"
+}

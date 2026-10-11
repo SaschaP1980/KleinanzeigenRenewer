@@ -1,0 +1,36 @@
+{
+  "version": "1.23.12",
+  "epic": "EPIC-REF-002",
+  "step": "composition-roots-routing-cleanup",
+  "goldBaseline": "1.21.15",
+  "directBasis": "1.23.11",
+  "directBasisNativeGreen": true,
+  "appElementsBindings": 233,
+  "backgroundMessageRoutes": 82,
+  "compatibilityMirrorsRemoved": [
+    "currentProfile",
+    "liveAccountState",
+    "liveAccountAmbiguousNames"
+  ],
+  "newModules": [
+    "src/app/app-elements.js",
+    "src/app/profile-account-ui-controller.js",
+    "src/background/background-message-router.js",
+    "src/shared/renewal-policy.js"
+  ],
+  "noNewRuntimeBoundary": true,
+  "packagingClosureGuard": true,
+  "declaredRuntimeReferenceClosure": true,
+  "releaseFinalizeGate": true,
+  "shortNonBlockingStatusPolls": true,
+  "fiveMinuteChatHeartbeat": true,
+  "selfContainedReleaseClosure": true,
+  "detachedReleaseSupervisor": true,
+  "sourceDirtyInvalidation": true,
+  "preReleaseSourceCheckpoint": true,
+  "streamTimeoutSeparateFromGateStatus": true,
+  "externalInProgressRecoveryCheckpoints": true,
+  "discardExternalIntermediateCheckpointsAfterReleaseGreen": true,
+  "finalReleaseBecomesRecoveryAuthority": true,
+  "performanceGateVersion": "1.23.20"
+}

@@ -1,0 +1,77 @@
+{
+  "version": "1.23.20",
+  "packageVersion": "1.23.20_c1",
+  "epic": "EPIC-REF-002",
+  "step": "stale-terminal-mass-renewal-rehydration-correction",
+  "goldBaseline": "1.21.15",
+  "directBasis": "1.23.20",
+  "directBasisTechnicalReleaseGreen": true,
+  "directBasisNativePerformancePreparationRed": true,
+  "nativeEvidence": {
+    "diagnostic": "kleinanzeigen-renewal-diagnose-v1.23.20-2026-10-01T11-45-28-348Z.zip",
+    "exportedEntries": 35,
+    "representedEvents": 39,
+    "warnings": 0,
+    "errors": 0,
+    "preparedInventoryIds": [
+      "3524018777",
+      "3524019175",
+      "3527816213"
+    ],
+    "startedEventPresent": false,
+    "staleBatchId": "19b07d73-85fc-48f8-ab3c-df3c7ee80fcb",
+    "staleBatchStatus": "complete"
+  },
+  "problem": "Automatic startup/actions/visibility/storage rehydration could adopt the most recently persisted terminal mass-renewal batch even while the UI held a local not-yet-started selection/order draft. This made the prepared draft appear completed although START_MASS_RENEWAL_BATCH had never been sent.",
+  "fix": {
+    "automaticRecoveryOnly": true,
+    "terminalHistoricalBatchIgnoredWhenUntrackedOrDifferentBatch": true,
+    "sameTrackedBatchTerminalTransitionPreserved": true,
+    "explicitTerminalReviewPreserved": true,
+    "draftWorkflowPersisted": false,
+    "newRuntimeBoundary": false,
+    "newMessageType": false,
+    "autoPublishChanged": false
+  },
+  "seriesFinal": true,
+  "nextPlannedBuild": null,
+  "performanceRunRequired": true,
+  "performanceGateVersion": "1.23.20_c1",
+  "runtime": {
+    "modules": 100,
+    "treeSha256": "efc96094e7d11cfcedf728f82bb3737773069d50511216ee09d0d8fc4c293890",
+    "changedVsV12320": [
+      "src/app/app.js",
+      "src/app/mass-renewal-ui-controller.js"
+    ],
+    "appJsSha256": "9349f26fac8e81ded8fd11af0e411829b9b8e92f509e85b6dda732f5a3edb821",
+    "massRenewalUiControllerSha256": "224d182b056600e937846e8dd561e7845491922591d22544447b2e64c36abe14",
+    "backgroundJsSha256": "a19fff0d98749e7e97cbca42f0c4e7fb819e6553327baee1465b43d3faf71077",
+    "submitCalls": 0,
+    "requestSubmitCalls": 0
+  },
+  "coverage": {
+    "publicFunctions": {
+      "covered": 805,
+      "total": 805,
+      "percent": 100
+    },
+    "lines": {
+      "covered": 10114,
+      "total": 24530,
+      "percent": 41.23
+    },
+    "branches": {
+      "covered": 5210,
+      "total": 23642,
+      "percent": 22.04
+    },
+    "noRegressionVsV12319": true
+  },
+  "releaseToolingHardening": {
+    "publicApiExecutionCountsNormalizedToBinary": true,
+    "reason": "Raw V8 execution frequencies varied across equivalent coverage runs; canonical coverage evidence now records only executed/not-executed.",
+    "runtimeSemanticsChanged": false,
+    "sourceCheckpointDeterminismRequired": true
+  }
+}

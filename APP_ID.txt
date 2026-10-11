@@ -1,0 +1,6 @@
+Chrome Extension ID: hafahjhhgiipdegfkgacchmnacgblnah
+Manifest key SHA-256: 70507977688f3465a60227cd0261bd07d92fad620625cd7ebff8f0856d9c5ed3
+
+Diese Werte sind ab Version 0.1.0 unveränderlich. Der öffentliche Schlüssel steht
+in manifest.json. Er muss in jedem späteren Entwicklungsbuild bytegleich erhalten
+bleiben, damit Chrome dieselbe ID ableitet.

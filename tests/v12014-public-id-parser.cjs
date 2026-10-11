@@ -1,0 +1,16 @@
+const fs = require('node:fs');
+const assert = require('node:assert/strict');
+const content = fs.readFileSync('content.js','utf8');
+const manifest = JSON.parse(fs.readFileSync('manifest.json','utf8'));
+const bg = fs.readFileSync('background.js','utf8');
+const nav = require('../managed-navigation.js');
+let n=0; const pass=m=>{n++; console.log('PASS '+m);};
+const id='3519062051';
+assert.equal(nav.publicAdIdFromUrl(`https://www.kleinanzeigen.de/s-anzeige/${id}`), id); pass('shared navigation parser accepts id-direct public URL');
+assert.equal(nav.publicAdIdFromUrl(`https://www.kleinanzeigen.de/s-anzeige/orientalisches-kleid-gr-l-neu-/${id}-154-1759`), id); pass('shared navigation parser accepts canonical public URL');
+const scripts = manifest.content_scripts?.[0]?.js || [];
+assert.ok(scripts.indexOf('src/shared/managed-navigation.js') >= 0 && scripts.indexOf('src/shared/managed-navigation.js') < scripts.indexOf('src/content/content.js')); pass('content context loads shared managed-navigation identity parser before content.js');
+assert.match(bg,/CONTENT_SCRIPT_FILES\s*=\s*\[[^\]]*"src\/shared\/managed-navigation\.js"[^\]]*"src\/content\/content\.js"/s); pass('runtime content bootstrap also loads shared parser before content.js');
+assert.match(content,/ManagedNavigation\?\.publicAdIdFromUrl\?\.\(location\.href\)/); pass('content read-only identity uses shared public-ad parser');
+assert.doesNotMatch(content,/const match = location\.pathname\.match\(\/\\\/\(\\d\+\)-\(\\d\+\)-\(\\d\+\)/); pass('content no longer relies solely on canonical-only ad-id regex');
+console.log(`${n} v1.20.14 public-id parser checks passed`);

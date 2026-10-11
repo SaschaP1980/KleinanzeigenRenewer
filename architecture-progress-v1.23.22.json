@@ -1,0 +1,84 @@
+{
+  "version": "1.23.22",
+  "packageVersion": "1.23.22",
+  "epic": "EPIC-REF-003-preflight-correction",
+  "step": "title-field-stability-correction",
+  "goldBaseline": "1.21.15",
+  "directBasis": "1.23.20_c1",
+  "directBasisTechnicalReleaseGreen": true,
+  "directBasisNativePerformanceGreen": true,
+  "problem": "Real mass-renewal runs on v1.23.20_c1 intermittently reached needs-review because the new-ad title field no longer exactly matched the template at final verification. The same unchanged title could succeed on a later retry, indicating a transient controlled-input/DOM-state race rather than invalid title content.",
+  "evidence": [
+    {
+      "diagnostic": "kleinanzeigen-renewal-diagnose-v1.23.20_c1-2026-10-10T11-22-33-506Z(1).zip",
+      "sha256": "0ac5642d4fb6b69575c88d6e116fa2152ad0cd84c512f38198afddfa3c72a4df",
+      "observed": "3 of 7 items showed transient title mismatch; source ad 3513068025 exhausted three phase-1 attempts and later succeeded unchanged after explicit restart."
+    },
+    {
+      "diagnostic": "kleinanzeigen-renewal-diagnose-v1.23.20_c1-2026-10-10T12-03-51-629Z(1).zip",
+      "sha256": "161cabb74e8a8eb454c91e3c35dc8158a7a782b9d0354fb4e003d12e487db641",
+      "observed": "5 of 10 items showed transient title mismatch; source ad 3528284445 required a later successful attempt with the same title."
+    }
+  ],
+  "fix": {
+    "boundedTitleReadbackRewriteAttempts": 3,
+    "activeVisiblePostingFormResolution": true,
+    "preVerificationStabilityReadback": true,
+    "verificationBoundToResolvedForm": true,
+    "diagnosticExpectedActualEvidence": true,
+    "exactTitleEqualityPreserved": true,
+    "newRuntimeBoundary": false,
+    "newMessageType": false,
+    "autoPublishChanged": false,
+    "deleteSafetyChanged": false
+  },
+  "testFirst": {
+    "baseline": "v1.23.20_c1",
+    "regressionTest": "tests/v12322-title-field-stability.cjs",
+    "baselineResult": "RED",
+    "fixedResult": "GREEN",
+    "scenario": "controlled title input accepts a write, resets after the initial settle and resets again after later form/image work; v1.23.22 must repair it before final verification and bind verification to the active form."
+  },
+  "runtime": {
+    "modules": 100,
+    "treeSha256": "b6219c1ba0547fb3441087b50948734a4444d82258ca7ab807e20ee3dd4605be",
+    "changedVsV12320c1": [
+      "src/content/template-filler.js",
+      "src/content/template-verification.js"
+    ],
+    "templateFillerSha256": "dead0fb0772f0d439a6fbd54a535a4ed3d0e3e33a6530b6bd01d4e6fd721f394",
+    "templateVerificationSha256": "2ed4c8c7b457cd1d42b3c612460595b6cd1c7f407df0e449b98f56e1afb3d143",
+    "appJsSha256": "9349f26fac8e81ded8fd11af0e411829b9b8e92f509e85b6dda732f5a3edb821",
+    "backgroundJsSha256": "a19fff0d98749e7e97cbca42f0c4e7fb819e6553327baee1465b43d3faf71077",
+    "submitCalls": 0,
+    "requestSubmitCalls": 0
+  },
+  "coverage": {
+    "publicFunctionsPercentRequired": 100,
+    "lineNoRegressionRequired": true,
+    "branchNoRegressionRequired": true,
+    "architectureNoRegressionRequired": true,
+    "publicFunctions": {
+      "covered": 805,
+      "total": 805,
+      "percent": 100
+    },
+    "lines": {
+      "covered": 10241,
+      "total": 24601,
+      "percent": 41.63
+    },
+    "branches": {
+      "covered": 5294,
+      "total": 23736,
+      "percent": 22.3
+    },
+    "runtimeModules": 100,
+    "loadedRuntimeModules": 95,
+    "architectureReachable": 100,
+    "architectureCycles": 0,
+    "status": "GREEN"
+  },
+  "nextPlannedBuild": "1.24.0",
+  "nextPlannedBuildGoal": "EPIC-REF-003 – Mass Renewal Lifecycle Separation after native validation of the v1.23.22 title-field correction."
+}

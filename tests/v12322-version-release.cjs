@@ -1,0 +1,48 @@
+'use strict';
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const crypto = require('node:crypto');
+const path = require('node:path');
+const j = p => JSON.parse(fs.readFileSync(p, 'utf8'));
+const sha = p => crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');
+const manifest = j('manifest.json');
+const pkg = j('package.json');
+const lock = j('package-lock.json');
+const spec = j('release/release-spec.json');
+const arch = j('architecture-progress-v1.23.22.json');
+
+assert.equal(manifest.version, '1.23.22');
+assert.equal(manifest.version_name, undefined);
+assert.equal(pkg.version, '1.23.22');
+assert.equal(pkg.displayVersion, '1.23.22');
+assert.equal(lock.version, '1.23.22');
+assert.equal(lock.packages[''].version, '1.23.22');
+assert.equal(spec.version, '1.23.22');
+assert.equal(spec.packageVersion, '1.23.22');
+assert.equal(spec.directBasis, '1.23.20_c1');
+assert.equal(spec.nextPlannedBuild, '1.24.0');
+assert.equal(arch.packageVersion, '1.23.22');
+assert.equal(arch.fix.newRuntimeBoundary, false);
+assert.equal(arch.fix.newMessageType, false);
+assert.equal(arch.fix.exactTitleEqualityPreserved, true);
+assert.equal(arch.testFirst.baselineResult, 'RED');
+assert.equal(arch.testFirst.fixedResult, 'GREEN');
+assert.deepEqual(arch.runtime.changedVsV12320c1.sort(), ['src/content/template-filler.js','src/content/template-verification.js'].sort());
+assert.equal(sha('src/app/app.js'), arch.runtime.appJsSha256);
+assert.equal(sha('src/background/background.js'), arch.runtime.backgroundJsSha256);
+assert.equal(sha('src/content/template-filler.js'), arch.runtime.templateFillerSha256);
+assert.equal(sha('src/content/template-verification.js'), arch.runtime.templateVerificationSha256);
+assert.equal(spec.performanceGoldlines.length, 2);
+assert.deepEqual(spec.performanceGoldlines.map(x => [x.totalSeconds, x.averageSeconds]), [[61.277,20.426],[110.34,36.771]]);
+assert.match(fs.readFileSync('scripts/release_finalize.py','utf8'), /Goldlinien-Performance-Matrix/);
+assert.match(pkg.scripts.test, /v12322-title-field-stability\.cjs/);
+assert.match(pkg.scripts.test, /v12322-version-release\.cjs/);
+
+const files=[];
+(function walk(dir){ for(const e of fs.readdirSync(dir,{withFileTypes:true})){ const p=path.join(dir,e.name); if(e.isDirectory()) walk(p); else if(p.endsWith('.js')) files.push(p.replace(/\\/g,'/')); } })('src');
+files.sort();
+const tree=crypto.createHash('sha256');
+for(const p of files){ tree.update(p); tree.update('\0'); tree.update(Buffer.from(sha(p),'hex')); }
+assert.equal(files.length, 100);
+assert.equal(tree.digest('hex'), arch.runtime.treeSha256);
+console.log('PASS v1.23.22 version, narrow correction scope, goldlines and runtime hashes');

@@ -1,0 +1,70 @@
+{
+  "version": "1.23.16",
+  "epic": "EPIC-REF-002",
+  "step": "bulk-archive-emergency-lifecycle",
+  "goldBaseline": "1.21.15",
+  "directBasis": "1.23.15",
+  "directBasisNativeGreen": true,
+  "files": {
+    "bulk-inventory-controller.js": {
+      "loc": 638,
+      "bytes": 44159
+    },
+    "bulk-worker-service.js": {
+      "loc": 361,
+      "bytes": 21511
+    },
+    "bulk-reconciliation-service.js": {
+      "loc": 327,
+      "bytes": 21789
+    },
+    "archive-insertion-controller.js": {
+      "loc": 182,
+      "bytes": 12640
+    },
+    "archive-insertion-recovery-service.js": {
+      "loc": 108,
+      "bytes": 6491
+    },
+    "archive-insertion-verification-service.js": {
+      "loc": 506,
+      "bytes": 30741
+    },
+    "mass-renewal-workflow-controller.js": {
+      "loc": 540,
+      "bytes": 34221
+    },
+    "mass-renewal-watchdog-service.js": {
+      "loc": 130,
+      "bytes": 8114
+    },
+    "workflow-emergency-reset-controller.js": {
+      "loc": 131,
+      "bytes": 9299
+    }
+  },
+  "newModules": [
+    "src/background/services/bulk-worker-service.js",
+    "src/background/services/bulk-reconciliation-service.js",
+    "src/background/services/archive-insertion-recovery-service.js",
+    "src/background/services/archive-insertion-verification-service.js",
+    "src/background/services/mass-renewal-watchdog-service.js",
+    "src/background/controllers/workflow-emergency-reset-controller.js"
+  ],
+  "noNewRuntimeBoundary": true,
+  "bulkControllerRetainsRunOrchestration": true,
+  "archiveControllerRetainsStartOrchestration": true,
+  "massWorkflowRetainsBatchOrchestration": true,
+  "emergencyResetSafetyBoundary": "src/background/controllers/workflow-emergency-reset-controller.js",
+  "publicContractTestStrategy": true,
+  "privateFunctionsAreImplementationDetails": true,
+  "packagingClosureGuard": true,
+  "declaredRuntimeReferenceClosure": true,
+  "releaseFinalizeGate": true,
+  "shortNonBlockingStatusPolls": true,
+  "fiveMinuteChatHeartbeat": true,
+  "externalInProgressRecoveryCheckpoints": true,
+  "checkpointsPersistUnderMntDataUntilReleaseGreen": true,
+  "finalReleaseBecomesRecoveryAuthority": true,
+  "performanceGateVersion": "1.23.20"
+}

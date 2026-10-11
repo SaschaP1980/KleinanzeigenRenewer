@@ -1,0 +1,23 @@
+'use strict';
+const assert = require('assert');
+const fs = require('fs');
+const path = require('path');
+const root = path.resolve(__dirname, '..');
+const read = f => fs.readFileSync(path.join(root, f), 'utf8');
+const html = read('app.html');
+const app = read('app.js');
+const controller = read('archive-trash-insertion-ui-controller.js');
+const filler = read('template-filler.js');
+
+assert.doesNotMatch(html, /trashTemplateResumeButton|trashTemplateResumeShell/, 'Recovery must not use a permanent Actions button');
+assert.doesNotMatch(app, /querySelector\('#trashTemplateResumeButton'\)/, 'app.js must not own a permanent recovery action button');
+assert.match(controller, /function renderTrashTemplateSource\s*\(/, 'Controller must have a reusable source-preview renderer');
+assert.match(controller, /publishTrashTemplateRecoveryActivity/, 'Controller must publish a persistent recovery activity card');
+assert.match(app, /resume-trash-template/, 'App activity action dispatcher must support trash-template recovery');
+assert.match(controller, /Anzeige prüfen/, 'Completed template recovery must expose the state-specific review action');
+assert.match(controller, /Inventarisierung fortsetzen/, 'Published template recovery must expose the inventory continuation action');
+assert.match(controller, /Problem prüfen/, 'Needs-review/error recovery must expose the problem-review action');
+assert.match(controller, /Status öffnen/, 'Running recovery must expose the status action');
+assert.match(filler, /!panelTemplateOnly\s*\|\|\s*options\.showTemplateOnlySafety === true/, 'Template-only intermediate toasts must suppress all safety text unless explicitly final');
+assert.match(filler, /Nicht veröffentlicht – bitte die ausgefüllte Anzeige prüfen und anschließend selbst veröffentlichen\.[^\n]*showTemplateOnlySafety: true/, 'Final template-only state must retain explicitly final publish reminder');
+console.log('v1.22.18 trash-template recovery UI: 11/11 PASS');

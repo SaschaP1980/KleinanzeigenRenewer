@@ -1,0 +1,9 @@
+const fs=require('fs'),assert=require('assert');
+const manifest=JSON.parse(fs.readFileSync('manifest.json'));const pkg=JSON.parse(fs.readFileSync('package.json'));const pack=fs.readFileSync('scripts/package.py','utf8');const bg=fs.readFileSync('background.js','utf8');const progress=JSON.parse(fs.readFileSync('architecture-progress-v1.23.6.json'));let n=0;const p=(l,f)=>{f();n++;console.log('PASS '+l)};
+p('version stays on or after v1.23.6 architecture baseline',()=>{assert.ok(['1.23.6','1.23.7','1.23.8','1.23.9','1.23.10','1.23.11','1.23.12','1.23.13','1.23.14','1.23.15','1.23.16','1.23.17','1.23.18','1.23.19','1.23.20','1.23.22'].includes(manifest.version));assert.equal(pkg.version,manifest.version);assert.equal(pkg.displayVersion,manifest.version)});
+p('packaging includes public evidence service',()=>{assert(pack.includes("'src/background/services/public-listing-evidence-service.js'"));});
+p('background imports and resolves public evidence service',()=>{assert(bg.includes('services/public-listing-evidence-service.js'));assert.match(bg,/KRDeps\.require\('KRPublicListingEvidenceService'\)/);});
+p('architecture metadata records both extraction targets',()=>{assert.equal(progress.step,'bulk-inventory-controller+public-listing-evidence-service');assert.equal(progress.bulkControllerCompleted,true);assert.equal(progress.noNewRuntimeBoundary,true);});
+p('recovery action UX is recorded',()=>{assert.equal(progress.trashTemplateRecoveryActionUx,true);});
+p('no direct form submit bypass',()=>{const walk=d=>fs.readdirSync(d,{withFileTypes:true}).flatMap(e=>e.isDirectory()?walk(d+'/'+e.name):(e.name.endsWith('.js')?[fs.readFileSync(d+'/'+e.name,'utf8')]:[]));const runtime=walk('src').join('\n');assert.equal((runtime.match(/\.submit\s*\(/g)||[]).length,0);assert.equal((runtime.match(/requestSubmit\s*\(/g)||[]).length,0)});
+console.log(`${n}/6 PASS v1.23.6 version architecture`);

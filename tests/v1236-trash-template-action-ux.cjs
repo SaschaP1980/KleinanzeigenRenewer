@@ -1,0 +1,11 @@
+const fs=require('fs'),assert=require('assert');
+const ui=fs.readFileSync('archive-trash-insertion-ui-controller.js','utf8');
+assert.match(ui,/template-only-complete[\s\S]{0,700}actionLabel:\s*'Status öffnen'/);
+assert.match(ui,/template-only-published[\s\S]{0,700}actionLabel:\s*'Inventarisierung fortsetzen'/);
+assert.match(ui,/status === 'error' \|\| status === 'needs-review'[\s\S]{0,700}actionLabel:\s*'Problem prüfen'/);
+assert.match(ui,/Vorlagen-Inserat wird vorbereitet[\s\S]{0,700}actionLabel:\s*'Status öffnen'/);
+assert.match(ui,/trashTemplateTarget/);
+assert.match(ui,/openTrashTemplateTarget/);
+assert.match(ui,/focusTrashTemplateTargetTab/);
+assert.match(ui,/trackedTrashTemplateTabId/);
+console.log('PASS v1.23.6 trash-template recovery action UX');

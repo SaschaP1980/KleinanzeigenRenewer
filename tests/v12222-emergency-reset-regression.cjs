@@ -1,0 +1,13 @@
+const assert=require('assert');
+const Service=require('../template-fill-service.js');
+let p=0; const ok=(n,f)=>{f();p++;console.log('PASS',n)};
+const storage={async get(){return {templateFillSessions:{}}},async set(){}};
+const api=Service.create({storageLocal:storage});
+ok('service exposes workflow-open classification for emergency reset',()=>assert.equal(typeof api.isEmergencyResettableSession,'function'));
+ok('template-only-complete is terminal for emergency-reset mutation from v1.23.5 onward',()=>assert.equal(api.isEmergencyResettableSession({templateOnly:true,status:'complete',stage:'template-only-complete'}),false));
+ok('template-only-published remains user-open until inventory finishes',()=>assert.equal(api.isEmergencyResettableSession({templateOnly:true,status:'complete',stage:'template-only-published',newAdId:'123'}),true));
+ok('template-only-inventoried is genuinely terminal',()=>assert.equal(api.isEmergencyResettableSession({templateOnly:true,status:'complete',stage:'template-only-inventoried'}),false));
+ok('normal running fill is resettable',()=>assert.equal(api.isEmergencyResettableSession({status:'running',stage:'filling'}),true));
+ok('needs-review template session is terminal and not emergency-resettable',()=>{const s={templateOnly:true,status:'needs-review',stage:'template-fill-needs-review'};assert.equal(api.isRecoverableTrashTemplateSession(s),false);assert.equal(api.isEmergencyResettableSession(s),false);});
+ok('error template session is terminal and not emergency-resettable',()=>{const s={templateOnly:true,status:'error',stage:'template-fill-error'};assert.equal(api.isRecoverableTrashTemplateSession(s),false);assert.equal(api.isEmergencyResettableSession(s),false);});
+console.log(`${p}/7 PASS v1.22.22 emergency reset regression`);

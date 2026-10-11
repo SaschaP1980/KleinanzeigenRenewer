@@ -1,0 +1,15 @@
+const fs=require('fs'),assert=require('assert/strict');
+const app=fs.readFileSync('app.js','utf8'),html=fs.readFileSync('app.html','utf8');
+const layout=fs.readFileSync('app-layout-controller.js','utf8');
+const tabs=fs.readFileSync('tab-page-inspection-controller.js','utf8');
+const helpers=fs.readFileSync('shared-ui-helpers.js','utf8');
+let n=0;const pass=m=>{n++;console.log('PASS '+m)};
+assert.match(html,/<script src="src\/app\/app-layout-controller\.js"><\/script>[\s\S]*<script src="src\/app\/tab-page-inspection-controller\.js"><\/script>[\s\S]*<script src="src\/app\/shared-ui-helpers\.js"><\/script>[\s\S]*<script src="src\/app\/app\.js"><\/script>/);pass('new app modules load before app entrypoint');
+for(const dep of ['KRAppLayoutController','KRTabPageInspectionController','KRSharedUiHelpers']) assert.match(app,new RegExp(`KRDeps\\.require\\('${dep}'\\)`)); pass('app consumes all three modules through KRDeps');
+assert.doesNotMatch(app,/let sidebarBottomLastWheelDeltaY|let sidebarBottomLastSnapshot|let stickyHeaderSyncFrame/);assert.match(layout,/let stickyHeaderSyncFrame/);assert.match(layout,/let lastSnapshot/);pass('sticky/sidebar diagnostic state ownership moved out of app');
+assert.doesNotMatch(app,/chrome\.tabs\.sendMessage\(tabId, message/);assert.match(tabs,/chromeApi\.tabs\.sendMessage/);assert.match(tabs,/ENSURE_CONTENT_CONNECTION/);pass('tab message/recovery implementation moved out of app');
+assert.doesNotMatch(app,/function makeCompactIconButton\([^)]*\)\s*\{[\s\S]{0,500}document\.createElement\('button'\)/);assert.match(helpers,/function makeCompactIconButton/);pass('shared compact UI construction moved into helper module');
+assert.match(app,/function scheduleListStickyHeaderSync\(\) \{ return requireAppLayoutController\(\)\.scheduleStickyHeaderSync\(\); \}/);pass('app retains thin sticky facade');
+assert.match(app,/function tabMessage\(tabId, message, options = \{\}\) \{ return tabPageInspectionController\.tabMessage/);pass('app retains thin tab-message facade');
+assert.match(layout,/UI_SIDEBAR_BOTTOM_REACHED/);assert.match(layout,/UI_SIDEBAR_GEOMETRY_CHANGED/);assert.match(layout,/UI_SIDEBAR_STICKY_STATE_CHANGED/);pass('temporary sidebar diagnostics remain active in layout module');
+console.log(`${n}/8 PASS`);

@@ -1,0 +1,14 @@
+{
+  "version": "1.23.2",
+  "epic": "EPIC-REF-002",
+  "baseVersion": "1.23.1",
+  "releaseType": "correction-build",
+  "corrects": "v1.23.1 Chrome packaging omitted renewal-workflow-controller.js",
+  "productRuntimeSemanticsChanged": false,
+  "packagingClosureGuard": true,
+  "packagedChromeE2E": true,
+  "noNewRuntimeBoundary": true,
+  "nextVersion": "1.23.3",
+  "nextExtraction": "mass-renewal-workflow",
+  "planShift": "All originally planned v1.23.2-v1.23.11 extraction/soak steps shift by +1; final soak/performance gate becomes v1.23.12."
+}

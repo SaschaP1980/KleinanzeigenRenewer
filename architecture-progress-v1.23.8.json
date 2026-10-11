@@ -1,0 +1,17 @@
+{
+  "version": "1.23.8",
+  "epic": "EPIC-REF-002",
+  "step": "account-session-controller+profile-management-controller",
+  "accountSessionController": "src/background/controllers/account-session-controller.js",
+  "profileManagementController": "src/background/controllers/profile-management-controller.js",
+  "noNewRuntimeBoundary": true,
+  "packagingClosureGuard": true,
+  "declaredRuntimeReferenceClosure": true,
+  "releaseFinalizeGate": true,
+  "goldBaseline": "1.21.15",
+  "directBasis": "1.23.7",
+  "directBasisNativeGreen": true,
+  "profileSafetySemanticsPreserved": true,
+  "accountBindingFailClosed": true,
+  "releasePipelineChained": true
+}

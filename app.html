@@ -1,0 +1,643 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>kleinanzeigen Manager</title>
+    <link rel="icon" href="icons/favicon.ico" sizes="16x16 32x32 48x48 64x64 128x128 256x256">
+    <link rel="icon" type="image/png" sizes="32x32" href="icons/taskbar-32.png">
+    <link rel="icon" type="image/png" sizes="128x128" href="icons/app-icon-128.png">
+    <link rel="stylesheet" href="app.css">
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="app-header-copy">
+        <div class="app-product-title">kleinanzeigen Manager <span id="appVersion" class="app-version" aria-label="Installierte Version"></span></div>
+        <p>Eigene Anzeigen erfassen, verwalten und kontrolliert neu einstellen.</p>
+      </div>
+      <div class="app-header-side">
+        <div class="global-account-status" role="status" aria-live="polite" aria-label="Aktuell erkanntes Kleinanzeigen-Konto">
+          <span id="profileAccountStatusDot" class="profile-account-status-dot is-checking" aria-hidden="true"></span>
+          <span id="profileDetectedText" class="profile-detected-text" title="Kleinanzeigen-Konto wird geprüft …">Kleinanzeigen-Konto wird geprüft …</span>
+        </div>
+        <nav class="content-view-navigation" aria-label="Inhaltsansicht">
+          <div class="content-view-tabs" role="group" aria-label="Bereich auswählen">
+            <button id="inventoryViewButton" class="secondary view-switch-button active" type="button" aria-pressed="true">Inventar <span id="inventoryHeaderCount">0</span></button>
+            <button id="trashViewButton" class="secondary view-switch-button" type="button" aria-pressed="false">Papierkorb <span id="trashHeaderCount">0</span></button>
+          </div>
+          <div class="global-view-controls" role="group" aria-label="Darstellung und Aktualisierung">
+            <button id="globalViewDetailed" class="global-view-option active" type="button" aria-pressed="true" aria-label="Kachelansicht" title="Kachelansicht"><span class="list-view-mode-icon view-mode-detailed" aria-hidden="true"></span></button>
+            <button id="globalViewCompact" class="global-view-option" type="button" aria-pressed="false" aria-label="Listenansicht" title="Listenansicht"><span class="list-view-mode-icon view-mode-compact" aria-hidden="true"></span></button>
+            <button id="refreshButton" class="secondary content-refresh-button content-view-refresh-button" type="button" aria-label="Ansicht und Kontostatus aktualisieren" title="Ansicht und Kontostatus aktualisieren">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 11a8 8 0 1 0-2.34 5.66M20 4v7h-7"/></svg>
+              <span class="refresh-success-mark" aria-hidden="true">✓</span>
+            </button>
+          </div>
+        </nav>
+      </div>
+    </header>
+
+    <main class="app-shell">
+      <section class="control-panel" aria-label="Inventarsteuerung">
+        <section class="profile-switcher" aria-labelledby="profileSwitcherLabel">
+          <div id="profileSwitcherLabel" class="control-section-label">Inventarprofil</div>
+          <div class="profile-switcher-controls">
+            <select id="profileSelect" class="profile-select" aria-label="Inventarprofil auswählen"></select>
+            <button id="profileManageButton" class="profile-manage-button" type="button" aria-label="Inventarprofile verwalten" title="Inventarprofile verwalten">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z"/><path d="M19.2 13.1c.05-.36.08-.73.08-1.1s-.03-.74-.08-1.1l2.02-1.58-1.92-3.32-2.38.96a8.5 8.5 0 0 0-1.9-1.1L14.66 3h-3.84l-.36 2.86c-.68.28-1.32.65-1.9 1.1L6.18 6 4.26 9.32l2.02 1.58c-.05.36-.08.73-.08 1.1s.03.74.08 1.1l-2.02 1.58L6.18 18l2.38-.96c.58.45 1.22.82 1.9 1.1l.36 2.86h3.84l.36-2.86a8.5 8.5 0 0 0 1.9-1.1l2.38.96 1.92-3.32-2.02-1.58Z"/></svg>
+            </button>
+          </div>
+        </section>
+
+        <section id="actionsAccordion" class="control-accordion control-actions" data-accordion-mode="controlled" data-open="true">
+          <button id="actionsAccordionToggle" class="control-accordion-summary" type="button" aria-expanded="true" aria-controls="actionsAccordionPanel">
+            <span class="control-accordion-title">Aktionen</span>
+            <span class="control-accordion-summary-meta">
+              <span id="actionsActivityIndicator" class="actions-activity-indicator" aria-hidden="true"></span>
+              <span id="renewalModeIndicator" class="renewal-mode-indicator">Vollprüfung</span>
+            </span>
+          </button>
+          <div id="actionsAccordionPanel" class="control-accordion-panel">
+            <div class="control-accordion-body">
+            <div id="actionAvailability" class="action-availability hidden" role="status" aria-live="polite">
+              <strong id="actionAvailabilityTitle">Aktionen nicht verfügbar</strong>
+              <p id="actionAvailabilityText"></p>
+            </div>
+            <div class="primary-actions" data-actions-diagnostic-surface="true">
+              <div class="control-action-attempt-shell" data-action-probe-for="fullInventoryButton"><button id="fullInventoryButton" class="primary control-action-primary" type="button" disabled>Anzeigen erfassen</button></div>
+              <div class="control-action-attempt-shell" data-action-probe-for="inventoryButton"><button id="inventoryButton" class="secondary control-action-secondary" type="button" disabled>Geöffnete Anzeige erfassen</button></div>
+              <div class="control-action-attempt-shell" data-action-probe-for="archiveInsertButton"><button id="archiveInsertButton" class="secondary control-action-secondary" type="button" disabled>Aus ZIP neu inserieren</button></div>
+              <div class="control-action-attempt-shell" data-action-probe-for="massRenewalButton"><button id="massRenewalButton" class="secondary control-action-secondary" type="button" disabled>Mehrere neu inserieren</button></div>
+            </div>
+
+
+            </div>
+          </div>
+        </section>
+
+        <details id="configurationAccordion" class="control-accordion configuration">
+          <summary><span class="control-accordion-title">Konfiguration</span></summary>
+          <div class="control-accordion-panel">
+          <div class="configuration-body">
+            <div class="configuration-label">Prüfmodus</div>
+            <div class="renewal-mode-toggle" role="group" aria-label="Prüfmodus für neue Anzeigen auswählen">
+              <button id="renewalModeSafeButton" type="button" class="renewal-mode-option" data-renewal-mode="safe" data-technical-name="Safe-Mode" aria-pressed="true"><span>Vollprüfung</span><small class="renewal-mode-recommended">Empfohlen</small></button>
+              <button id="renewalModeFastButton" type="button" class="renewal-mode-option" data-renewal-mode="fast" data-technical-name="Fast-Mode" aria-pressed="false"><span>Schnellprüfung</span></button>
+            </div>
+            <p id="renewalModeDescription" class="configuration-description">Vollprüfung: Vergleicht die neue Anzeige nach dem Einstellen noch einmal mit den gespeicherten Daten. Dauert etwas länger.</p>
+            <div class="configuration-subsection">
+              <div class="configuration-row">
+                <label class="configuration-label" for="renewalRetryRange">Versuche je Phase</label>
+                <output id="renewalRetryValue" class="configuration-value" for="renewalRetryRange">3 Versuche</output>
+              </div>
+              <input id="renewalRetryRange" class="configuration-range" type="range" min="1" max="5" step="1" value="3" aria-describedby="renewalRetryDescription">
+              <div class="configuration-range-scale" aria-hidden="true"><span>1</span><span>5</span></div>
+              <p id="renewalRetryDescription" class="configuration-description renewal-retry-description">Maximale Versuche je Phase · Standard: 3<br>Mehr Versuche erhöhen die Zuverlässigkeit, können den Ablauf aber verlängern.</p>
+            </div>
+          </div>
+          </div>
+        </details>
+
+        <details id="diagnosticsAccordion" class="control-accordion diagnostics">
+          <summary><span class="control-accordion-title">Diagnose</span></summary>
+          <div class="control-accordion-panel">
+          <div class="control-accordion-body diagnostics-body">
+          <div class="diagnostic-actions">
+            <button id="diagnosticZipButton" type="button" class="secondary diagnostic-primary">Diagnosedaten herunterladen</button>
+            <button id="diagnosticResetButton" type="button" class="secondary diagnostic-reset">Diagnose zurücksetzen</button>
+            <button id="emergencyWorkflowResetButton" type="button" class="secondary diagnostic-reset emergency-workflow-reset" title="Beendet aktive oder festhängende lokale Vorgänge und bereinigt Laufzeitreferenzen. Gespeicherte Anzeigen, Papierkorb, Profile, Bilder und Einstellungen bleiben erhalten; auf Kleinanzeigen wird nichts gelöscht oder verändert." aria-label="Laufende lokale Vorgänge zurücksetzen. Gespeicherte Anzeigen, Papierkorb, Profile, Bilder und Einstellungen bleiben erhalten; auf Kleinanzeigen wird nichts gelöscht oder verändert.">Laufende Vorgänge zurücksetzen</button>
+          </div>
+          <p id="diagnosticResetBlockReason" class="diagnostic-reset-block-reason" role="status"></p>
+          <p id="diagnosticZipStatus" role="status"></p>
+          </div>
+          </div>
+        </details>
+
+        <section id="messageDock" class="message-dock" aria-labelledby="messageDockLabel">
+          <div class="message-dock-heading">
+            <div id="messageDockLabel" class="message-dock-label">Meldungen</div>
+          </div>
+          <section class="control-activity" aria-label="Aktueller Status">
+              <section id="controlStatus" class="status-card operation-status hidden" aria-live="polite">
+                <span id="statusDot" class="status-dot"></span>
+                <div class="status-card-copy">
+                  <strong id="statusTitle"></strong>
+                  <p id="statusFacts" class="status-facts hidden"></p>
+                  <p id="statusText"></p>
+                  <p id="statusTime" class="message-timestamp"></p>
+                  <button id="statusAction" class="status-action hidden" type="button"></button>
+                </div>
+                <button id="statusDismiss" class="message-dismiss" type="button" aria-label="Meldung ausblenden" title="Meldung ausblenden">×</button>
+              </section>
+
+              <button id="renewalProgressShortcut" class="renewal-progress-shortcut activity-state-source hidden" type="button">
+                <span class="renewal-progress-shortcut-dot" aria-hidden="true"></span>
+                <span>
+                  <strong id="renewalProgressShortcutTitle">Austausch läuft</strong>
+                  <small id="renewalProgressShortcutText">Fortschritt anzeigen</small>
+                </span>
+              </button>
+
+              <button id="inventoryCaptureProgressShortcut" class="renewal-progress-shortcut activity-state-source hidden" type="button">
+                <span class="renewal-progress-shortcut-dot" aria-hidden="true"></span>
+                <span>
+                  <strong id="inventoryCaptureProgressShortcutTitle">Erfassung läuft</strong>
+                  <small id="inventoryCaptureProgressShortcutText">Fortschritt anzeigen</small>
+                </span>
+              </button>
+
+              <section id="appNotice" class="app-notice activity-state-source hidden" aria-live="polite">
+                <div>
+                  <strong id="appNoticeTitle"></strong>
+                  <p id="appNoticeText"></p>
+                  <p id="appNoticeTime" class="message-timestamp"></p>
+                </div>
+                <button id="appNoticeDismiss" class="message-dismiss" type="button" aria-label="Meldung ausblenden">×</button>
+              </section>
+
+              <div id="progress" class="progress hidden" role="status">
+                <span></span>
+                <p>Anzeige und Bilder werden lokal gespeichert …</p>
+              </div>
+
+              <section id="bulkRunStatus" class="bulk-run activity-state-source hidden" aria-live="polite"></section>
+
+              <button id="messageHistoryOpen" class="message-history-open is-zero" type="button" data-count="0">Weitere Meldungen anzeigen</button>
+            </section>
+        </section>
+      </section>
+
+      <div class="content-column">
+        <section id="inventorySection" class="inventory-section">
+          <div class="list-sticky-occlusion inventory-sticky-occlusion" aria-hidden="true"></div>
+          <div class="list-sticky-sentinel inventory-sticky-sentinel" aria-hidden="true"></div>
+          <div class="list-sticky-slot inventory-sticky-slot">
+          <div class="list-sticky-header inventory-list-sticky-header">
+          <div class="section-title">
+            <div>
+              <h2>Gespeicherte Anzeigen</h2>
+              <p id="inventoryCount">0 Einträge</p>
+            </div>
+            <div class="section-actions">
+              <button id="clearInventoryButton" class="danger-button" type="button">Alle in Papierkorb</button>
+            </div>
+          </div>
+        <div class="inventory-toolbar" aria-label="Inventarliste filtern und sortieren">
+          <label class="inventory-search">
+            <span>Titel suchen</span>
+            <input id="inventorySearchInput" type="search" placeholder="Titel durchsuchen …" autocomplete="off" spellcheck="false">
+          </label>
+          <label class="inventory-sort-select">
+            <span>Sortieren nach</span>
+            <select id="inventorySortKey">
+              <option value="title">Titel</option>
+              <option value="listingDate">Inseriert am</option>
+              <option value="endDate" selected>Endet am</option>
+              <option value="inventoryDate">Gespeichert am</option>
+            </select>
+          </label>
+          <div class="inventory-sort-direction" role="group" aria-label="Sortierrichtung">
+            <button id="inventorySortAsc" type="button" class="sort-direction-button active" aria-pressed="true">↑ Frühestes zuerst</button>
+            <button id="inventorySortDesc" type="button" class="sort-direction-button" aria-pressed="false">↓ Spätestes zuerst</button>
+          </div>
+        </div>
+          </div>
+          </div>
+        <div id="inventoryList" class="inventory-list"></div>
+      </section>
+
+      <section id="trashSection" class="inventory-section hidden">
+        <div class="list-sticky-occlusion trash-sticky-occlusion" aria-hidden="true"></div>
+        <div class="list-sticky-sentinel trash-sticky-sentinel" aria-hidden="true"></div>
+        <div class="list-sticky-slot trash-sticky-slot">
+        <div class="list-sticky-header trash-list-sticky-header">
+        <div class="section-title">
+          <div>
+            <h2>Papierkorb</h2>
+            <p id="trashCount">0 Einträge</p>
+          </div>
+          <div class="section-actions">
+          </div>
+        </div>
+        <div class="trash-intro"><span class="trash-intro-full">Einträge im Papierkorb werden 30 Tage lokal aufbewahrt. Du kannst sie in dieser Zeit als Vorlage für eine neue Anzeige verwenden. Die Anzeige bei Kleinanzeigen bleibt unverändert. Eine neue Anzeige wird nur vorbereitet und niemals automatisch veröffentlicht. Einträge können nicht zurück ins Inventar verschoben werden.</span><span class="trash-intro-sticky">Papierkorb: Einträge werden 30 Tage lokal aufbewahrt.</span></div>
+        </div>
+        </div>
+        <div id="trashList" class="inventory-list"></div>
+      </section>
+      </div>
+    </main>
+
+    <dialog id="renewalStartDialog" class="renewal-start-dialog" aria-labelledby="renewalStartDialogTitle" aria-describedby="renewalStartDialogText">
+      <div class="renewal-start-modal">
+        <header class="renewal-start-modal-header">
+          <div>
+            <span id="renewalStartKicker" class="renewal-start-kicker">ANZEIGE NEU INSERIEREN</span>
+            <h2 id="renewalStartDialogTitle">Anzeige neu inserieren und bisherige ersetzen?</h2>
+          </div>
+          <button id="renewalStartClose" class="modal-close" type="button" aria-label="Dialog schließen"><svg class="modal-close-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 6L18 18M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
+        </header>
+
+        <div id="renewalStartSource" class="renewal-start-source">
+          <img id="renewalStartCover" alt="Titelbild der bisherigen Anzeige">
+          <div>
+            <span id="renewalStartSourceLabel">Bisherige Anzeige</span>
+            <strong id="renewalStartTitle"></strong>
+            <small id="renewalStartSourceId"></small>
+          </div>
+        </div>
+
+        <p id="renewalStartDialogText" class="renewal-start-copy">Die Anzeige wird mit den gespeicherten Daten neu eingestellt, veröffentlicht und anschließend vollständig geprüft.</p>
+
+        <div id="renewalStartSafety" class="renewal-start-safety">
+          <strong id="renewalStartSafetyTitle">Die bisherige Anzeige wird erst gelöscht, wenn die neue Anzeige vollständig geprüft wurde.</strong>
+          <p id="renewalStartSafetyText">Die bisherige Anzeige bleibt danach 30 Tage als Sicherheitskopie im Papierkorb und kann dort über <b>Als Vorlage neu inserieren</b> erneut als Vorlage verwendet werden.</p>
+        </div>
+
+        <ol id="renewalStartSteps" class="renewal-start-steps" aria-label="Automatischer Ablauf">
+          <li data-phase="1"><span>1</span><strong id="renewalPhase1Label">Neue Anzeige einstellen</strong></li>
+          <li data-phase="2"><span>2</span><strong id="renewalPhase2Label">Neue Anzeige kontrollieren</strong></li>
+          <li data-phase="3"><span>3</span><strong id="renewalPhase3Label">Neue Anzeige finden</strong></li>
+          <li data-phase="4"><span>4</span><strong id="renewalPhase4Label">Bisherige Anzeige löschen</strong></li>
+        </ol>
+
+        <div id="renewalProgressMessage" class="renewal-progress-message hidden" role="status" aria-live="polite">
+          <strong id="renewalProgressMessageTitle"></strong>
+          <p id="renewalProgressMessageText"></p>
+        </div>
+        <p id="renewalBackgroundHint" class="background-process-hint hidden">Der Vorgang läuft im Hintergrund weiter, wenn du dieses Fenster schließt.</p>
+
+        <footer id="renewalStartActions" class="renewal-start-actions">
+          <button id="renewalStartCancel" class="secondary" type="button">Abbrechen</button>
+          <button id="renewalStartConfirm" class="primary" type="button">Jetzt neu inserieren und austauschen</button>
+        </footer>
+
+        <footer id="renewalProgressActions" class="renewal-start-actions hidden">
+          <button id="renewalProgressClose" class="secondary" type="button">Schließen</button>
+          <button id="renewalProgressView" class="primary hidden" type="button">Anzeige ansehen</button>
+          <button id="renewalProgressEdit" class="secondary hidden" type="button">Anzeige bearbeiten</button>
+        </footer>
+      </div>
+    </dialog>
+
+
+    <dialog id="archiveInsertDialog" class="renewal-start-dialog archive-insert-dialog" aria-labelledby="archiveInsertTitle" aria-describedby="archiveInsertIntro">
+      <div class="renewal-start-modal">
+        <header class="renewal-start-modal-header">
+          <div>
+            <span id="archiveInsertKicker" class="renewal-start-kicker">AUS ZIP NEU INSERIEREN</span>
+            <h2 id="archiveInsertTitle">Anzeige aus ZIP neu inserieren</h2>
+          </div>
+          <button id="archiveInsertClose" class="modal-close" type="button" aria-label="Dialog schließen"><svg class="modal-close-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 6L18 18M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
+        </header>
+
+        <p id="archiveInsertIntro" class="renewal-start-copy archive-insert-intro">Wähle ein ZIP aus, das zuvor mit dem kleinanzeigen Manager exportiert wurde. Das ZIP wird vollständig geprüft, bevor eine neue Anzeige erstellt werden kann.</p>
+
+        <ol id="archiveInsertSteps" class="renewal-start-steps archive-insert-steps hidden" aria-label="Automatischer ZIP-Inserierablauf">
+          <li data-phase="1"><span>1</span><strong>Neue Anzeige erstellen</strong></li>
+          <li data-phase="2"><span>2</span><strong>Unter „Meine Anzeigen“ finden</strong></li>
+          <li data-phase="3"><span>3</span><strong id="archivePhase3Label">Neue Anzeige überprüfen</strong></li>
+          <li data-phase="4"><span>4</span><strong>Ins Inventar aufnehmen</strong></li>
+        </ol>
+
+        <div class="archive-insert-flow">
+        <div id="archiveDropzone" class="archive-dropzone" role="button" tabindex="0" aria-label="ZIP auswählen oder hierher ziehen">
+          <input id="archiveFileInput" type="file" accept=".zip,application/zip" hidden>
+          <div class="archive-dropzone-icon" aria-hidden="true">ZIP</div>
+          <strong>ZIP hierher ziehen</strong>
+          <span>oder</span>
+          <button id="archiveChooseFile" type="button" class="secondary">ZIP auswählen</button>
+          <small>Verwende ein ZIP, das über „Als ZIP exportieren“ erstellt wurde.</small>
+        </div>
+
+        <div id="archiveValidationStatus" class="archive-validation-status hidden" role="status" aria-live="polite"></div>
+
+        <div id="archivePreview" class="renewal-start-source hidden">
+          <img id="archivePreviewCover" alt="Titelbild aus dem ZIP">
+          <div>
+            <span>ZIP geprüft</span>
+            <strong id="archivePreviewTitle"></strong>
+            <small id="archivePreviewMeta"></small>
+          </div>
+        </div>
+
+        <div id="archiveInsertSafety" class="renewal-start-safety info hidden">
+          <strong>Es wird eine neue Anzeige erstellt.</strong>
+          <p>Bestehende Anzeigen und Inventareinträge bleiben unverändert. Die neue Anzeige wird nach erfolgreichem Abschluss zusätzlich ins Inventar aufgenommen.</p>
+        </div>
+
+        <div id="archiveProgressMessage" class="renewal-progress-message hidden" role="status" aria-live="polite">
+          <strong id="archiveProgressMessageTitle"></strong>
+          <p id="archiveProgressMessageText"></p>
+        </div>
+        <p id="archiveBackgroundHint" class="background-process-hint hidden">Der Vorgang läuft im Hintergrund weiter, wenn du dieses Fenster schließt.</p>
+        </div>
+
+        <footer id="archiveInsertActions" class="renewal-start-actions">
+          <button id="archiveInsertCancel" class="secondary" type="button">Abbrechen</button>
+          <button id="archiveInsertConfirm" class="primary" type="button" disabled>Anzeige inserieren</button>
+        </footer>
+
+        <footer id="archiveProgressActions" class="renewal-start-actions hidden">
+          <button id="archiveProgressClose" class="secondary" type="button">Schließen</button>
+          <button id="archiveProgressView" class="primary hidden" type="button">Anzeige ansehen</button>
+          <button id="archiveProgressEdit" class="secondary hidden" type="button">Anzeige bearbeiten</button>
+        </footer>
+      </div>
+    </dialog>
+
+
+    <dialog id="trashTemplateDialog" class="renewal-start-dialog trash-template-dialog" aria-labelledby="trashTemplateTitle" aria-describedby="trashTemplateIntro">
+      <div class="renewal-start-modal">
+        <header class="renewal-start-modal-header">
+          <div>
+            <span class="renewal-start-kicker">ALS VORLAGE NEU INSERIEREN</span>
+            <h2 id="trashTemplateTitle">Vorlage prüfen</h2>
+          </div>
+          <button id="trashTemplateClose" class="modal-close" type="button" aria-label="Dialog schließen"><svg class="modal-close-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 6L18 18M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
+        </header>
+
+        <div id="trashTemplateSource" class="renewal-start-source">
+          <img id="trashTemplateCover" alt="Titelbild der Papierkorb-Vorlage">
+          <div>
+            <span>Papierkorb-Vorlage</span>
+            <strong id="trashTemplateSourceTitle"></strong>
+            <small id="trashTemplateSourceMeta"></small>
+          </div>
+        </div>
+
+        <p id="trashTemplateIntro" class="renewal-start-copy">Prüfe kurz, ob du diese Anzeige als Vorlage für eine neue Anzeige verwenden möchtest.</p>
+
+        <ol id="trashTemplateSteps" class="renewal-start-steps trash-template-steps" aria-label="Ablauf des Vorlagen-Inserats">
+          <li data-template-step="1"><span>1</span><strong>Vorlage bestätigen</strong></li>
+          <li data-template-step="2"><span>2</span><strong>Anzeige vorbereiten</strong></li>
+          <li data-template-step="3"><span>3</span><strong>Selbst veröffentlichen und anschließend erfassen</strong></li>
+        </ol>
+
+        <div id="trashTemplateProgressMessage" class="renewal-progress-message hidden" role="status" aria-live="polite">
+          <strong id="trashTemplateProgressTitle"></strong>
+          <p id="trashTemplateProgressText"></p>
+        </div>
+
+        <footer id="trashTemplateConfirmActions" class="renewal-start-actions">
+          <button id="trashTemplateCancel" class="secondary" type="button">Abbrechen</button>
+          <button id="trashTemplateConfirm" class="primary" type="button">Anzeige vorbereiten</button>
+        </footer>
+
+        <footer id="trashTemplateProgressActions" class="renewal-start-actions hidden">
+          <button id="trashTemplateDone" class="secondary" type="button">Schließen</button>
+          <button id="trashTemplateRestart" class="primary hidden" type="button">Anzeige neu vorbereiten</button>
+          <button id="trashTemplateTarget" class="secondary hidden" type="button">Anzeige prüfen</button>
+          <button id="trashTemplateInventory" class="primary" type="button" disabled>Ins Inventar aufnehmen</button>
+        </footer>
+      </div>
+    </dialog>
+
+
+    <dialog id="massRenewalDialog" class="mass-renewal-dialog" aria-labelledby="massRenewalTitle" aria-describedby="massRenewalIntro">
+      <div class="mass-renewal-modal">
+        <header class="mass-renewal-header">
+          <div>
+            <span id="massRenewalKicker" class="renewal-start-kicker">MEHRERE NEU INSERIEREN · VOLLPRÜFUNG</span>
+            <h2 id="massRenewalTitle">Mehrere Anzeigen neu inserieren</h2>
+          </div>
+          <button id="massRenewalClose" class="modal-close" type="button" aria-label="Dialog schließen"><svg class="modal-close-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 6L18 18M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
+        </header>
+        <p id="massRenewalIntro" class="mass-renewal-intro">Wähle bis zu 10 Anzeigen aus. Sie werden im aktuell gewählten Prüfmodus nacheinander neu inseriert.</p>
+        <ol class="mass-renewal-stepper" aria-label="Ablauf für mehrere Anzeigen">
+          <li data-mass-step="1" class="active"><span>1</span><strong>Anzeigen auswählen</strong></li>
+          <li data-mass-step="2"><span>2</span><strong>Reihenfolge festlegen</strong></li>
+          <li data-mass-step="3"><span>3</span><strong>Neu inserieren</strong></li>
+          <li data-mass-step="4"><span>4</span><strong>Übersicht</strong></li>
+        </ol>
+
+        <section id="massRenewalSelectPanel" class="mass-renewal-panel">
+          <div class="mass-renewal-selection-meta"><strong id="massRenewalSelectionCount">0 von 10 ausgewählt</strong><span>Sortiert nach frühestem Ende</span></div>
+          <div class="mass-renewal-table-wrap">
+            <table class="mass-renewal-table">
+              <thead><tr><th class="mass-check-col"><span class="sr-only">Auswahl</span></th><th>Titelbild</th><th>Anzeige</th><th>Preis</th><th>Endet am</th></tr></thead>
+              <tbody id="massRenewalSelectionBody"></tbody>
+            </table>
+          </div>
+          <p id="massRenewalSelectionHint" class="mass-renewal-hint">Es werden nur vollständig gespeicherte Vorlagen des ausgewählten Inventarprofils angeboten.</p>
+        </section>
+
+        <section id="massRenewalOrderPanel" class="mass-renewal-panel hidden">
+          <div class="mass-renewal-selection-meta"><strong>Reihenfolge</strong><span>Per Drag-and-drop oder mit den Pfeilen anpassen</span></div>
+          <div id="massRenewalOrderList" class="mass-renewal-order-list" aria-label="Reihenfolge der ausgewählten Anzeigen"></div>
+          <p class="mass-renewal-hint">Die Anzeigen werden von oben nach unten neu inseriert.</p>
+        </section>
+
+        <section id="massRenewalProgressPanel" class="mass-renewal-panel hidden" aria-live="polite">
+          <div class="mass-renewal-progress-head"><strong id="massRenewalProgressTitle">Anzeigen werden vorbereitet …</strong><span id="massRenewalProgressCount"></span></div>
+          <div id="massRenewalProgressList" class="mass-renewal-result-list"></div>
+          <p id="massRenewalBackgroundHint" class="background-process-hint">Der Vorgang läuft im Hintergrund weiter, wenn du dieses Fenster schließt.</p>
+        </section>
+
+        <section id="massRenewalSummaryPanel" class="mass-renewal-panel hidden">
+          <div class="mass-renewal-progress-head"><strong>Ergebnisse</strong><span id="massRenewalSummaryCount"></span></div>
+          <div id="massRenewalSummaryList" class="mass-renewal-result-list"></div>
+        </section>
+
+        <footer class="mass-renewal-actions">
+          <button id="massRenewalCancel" class="secondary" type="button">Abbrechen</button>
+          <button id="massRenewalBack" class="secondary hidden" type="button">Zurück</button>
+          <button id="massRenewalNext" class="primary" type="button" disabled>Weiter</button>
+          <button id="massRenewalStart" class="primary hidden" type="button" disabled>Start</button>
+          <button id="massRenewalStopAfterCurrent" class="danger-button hidden" type="button">Nach aktueller Anzeige stoppen</button>
+          <button id="massRenewalDone" class="primary hidden" type="button">Schließen</button>
+        </footer>
+      </div>
+    </dialog>
+
+    <dialog id="messageHistoryDialog" class="message-history-dialog" aria-labelledby="messageHistoryTitle">
+      <div class="message-history-modal">
+        <header class="message-history-header">
+          <div>
+            <span class="renewal-start-kicker">MELDUNGEN</span>
+            <h2 id="messageHistoryTitle">Meldungsverlauf</h2>
+          </div>
+          <button id="messageHistoryClose" class="modal-close" type="button" aria-label="Meldungsverlauf schließen"><svg class="modal-close-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 6L18 18M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
+        </header>
+        <p class="message-history-intro">Hier findest du frühere Status- und Ergebnismeldungen. Technische Details bleiben weiterhin in der Diagnose.</p>
+        <div id="messageHistoryList" class="message-history-list"></div>
+        <p id="messageHistoryEmpty" class="message-history-empty hidden">Es sind noch keine früheren Meldungen vorhanden.</p>
+        <footer class="message-history-actions">
+          <button id="messageHistoryClear" class="message-history-clear" type="button" aria-label="Meldungsverlauf leeren" title="Alle Meldungen löschen">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13M10 11v5m4-5v5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span>Alles löschen</span>
+          </button>
+          <button id="messageHistoryDone" class="primary" type="button">Schließen</button>
+        </footer>
+      </div>
+    </dialog>
+
+    <dialog id="inventoryCaptureDialog" class="renewal-start-dialog inventory-capture-dialog" aria-labelledby="inventoryCaptureTitle" aria-describedby="inventoryCaptureIntro">
+      <div class="renewal-start-modal">
+        <header class="renewal-start-modal-header">
+          <div>
+            <span id="inventoryCaptureKicker" class="renewal-start-kicker">ANZEIGEN ERFASSEN</span>
+            <h2 id="inventoryCaptureTitle">Anzeigen erfassen</h2>
+          </div>
+          <button id="inventoryCaptureClose" class="modal-close" type="button" aria-label="Dialog schließen"><svg class="modal-close-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 6L18 18M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
+        </header>
+
+        <p id="inventoryCaptureIntro" class="renewal-start-copy inventory-capture-intro"></p>
+
+        <ol class="renewal-start-steps inventory-capture-stepper" aria-label="Ablauf der Erfassung">
+          <li data-capture-step="1"><span>1</span><strong>Einstellungen</strong></li>
+          <li data-capture-step="2"><span>2</span><strong>Anzeigen erfassen</strong></li>
+          <li data-capture-step="3" data-bulk-only="true"><span>3</span><strong>Bestand bestätigen</strong></li>
+          <li data-capture-step="4"><span>4</span><strong>Ergebnis</strong></li>
+        </ol>
+
+        <div class="inventory-capture-content">
+        <section id="inventoryCaptureOptions" class="inventory-capture-options hidden" aria-labelledby="inventoryCaptureOptionsTitle">
+          <strong id="inventoryCaptureOptionsTitle" class="inventory-capture-options-title">Einstellungen für diese Erfassung</strong>
+          <div class="inventory-capture-option-group">
+            <div class="configuration-label">Erfassungsumfang</div>
+            <div class="renewal-mode-toggle inventory-capture-toggle" role="group" aria-label="Erfassungsumfang auswählen">
+              <button id="inventoryCaptureScopeNewOnly" type="button" class="renewal-mode-option inventory-scope-new-only" data-inventory-scope="new-only" aria-pressed="true"><span>Nur neue Anzeigen erfassen</span><small class="renewal-mode-recommended">Standard</small></button>
+              <button id="inventoryCaptureScopeAll" type="button" class="renewal-mode-option" data-inventory-scope="all" aria-pressed="false"><span>Gesamten Bestand neu einlesen</span></button>
+            </div>
+            <p id="inventoryCaptureScopeDescription" class="configuration-description inventory-capture-option-description">Bereits gespeicherte Anzeigen werden nicht erneut eingelesen. Nur neu hinzugekommene Anzeigen werden vollständig erfasst.</p>
+            <p class="configuration-description inventory-capture-option-hint">Wähle den passenden Umfang. Für regelmäßige Erfassungen reicht meist „Nur neue Anzeigen erfassen“.</p>
+          </div>
+          <div class="inventory-capture-option-group">
+            <div class="configuration-label">Prüfmodus</div>
+            <div class="renewal-mode-toggle inventory-capture-toggle" role="group" aria-label="Prüfmodus für diese Erfassung auswählen">
+              <button id="inventoryCaptureVerificationFast" type="button" class="renewal-mode-option" data-capture-verification-mode="fast" aria-pressed="false"><span>Schnellprüfung</span></button>
+              <button id="inventoryCaptureVerificationSafe" type="button" class="renewal-mode-option" data-capture-verification-mode="safe" aria-pressed="true"><span>Vollprüfung</span></button>
+            </div>
+            <p id="inventoryCaptureVerificationDescription" class="configuration-description inventory-capture-option-description"></p>
+          </div>
+        </section>
+
+        <section id="inventoryCaptureModeNotice" class="inventory-capture-mode-notice inventory-capture-selection-overview hidden" role="status" aria-live="polite">
+          <strong class="inventory-capture-selection-title">Auswahl im Überblick</strong>
+          <div class="inventory-capture-selection-facts">
+            <div><span>Erfassungsumfang</span><strong id="inventoryCaptureModeScope"></strong></div>
+            <div><span>Prüfmodus</span><strong id="inventoryCaptureModeVerification"></strong></div>
+          </div>
+          <p id="inventoryCaptureModeText" class="inventory-capture-mode-text"></p>
+        </section>
+
+        <section id="inventoryCaptureConfirmPanel" class="inventory-capture-panel">
+          <div class="inventory-capture-summary">
+            <strong id="inventoryCaptureConfirmTitle"></strong>
+            <p id="inventoryCaptureConfirmText"></p>
+            <small id="inventoryCaptureConfirmMeta"></small>
+          </div>
+          <div id="inventoryCaptureCandidateSection" class="inventory-capture-candidate-section hidden">
+            <strong class="inventory-capture-candidate-heading">Welche Anzeige möchtest du erfassen?</strong>
+            <div id="inventoryCaptureCandidateList" class="inventory-capture-candidate-list" role="radiogroup" aria-label="Geöffnete Anzeigen"></div>
+          </div>
+        </section>
+
+        <section id="inventoryCaptureProgressPanel" class="inventory-capture-panel hidden" aria-live="polite">
+          <div id="inventoryCaptureSelectedCandidate" class="inventory-capture-selected-candidate hidden"></div>
+          <div class="inventory-capture-progress-copy">
+            <strong id="inventoryCaptureProgressTitle">Erfassung wird vorbereitet …</strong>
+            <p id="inventoryCaptureProgressText"></p>
+          </div>
+          <div id="inventoryCaptureBulkCurrentCandidate" class="inventory-capture-bulk-current-candidate hidden"></div>
+          <div id="inventoryCaptureProgressTrack" class="inventory-capture-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+            <span id="inventoryCaptureProgressFill" class="inventory-capture-progress-fill"></span>
+          </div>
+          <div id="inventoryCaptureProgressCount" class="inventory-capture-progress-count"></div>
+          <p id="inventoryCaptureBackgroundHint" class="background-process-hint">Der Vorgang läuft im Hintergrund weiter, wenn du dieses Fenster schließt.</p>
+        </section>
+
+        <section id="inventoryCaptureResultPanel" class="inventory-capture-panel hidden" aria-live="polite">
+          <div id="inventoryCaptureResult" class="renewal-progress-message inventory-capture-result">
+            <strong id="inventoryCaptureResultTitle"></strong>
+            <p id="inventoryCaptureResultText"></p>
+          </div>
+          <p id="inventoryCaptureResultMeta" class="inventory-capture-result-meta"></p>
+          <div id="inventoryCaptureResultDetails" class="inventory-capture-result-details hidden"></div>
+        </section>
+
+        </div>
+
+        <footer class="renewal-start-actions inventory-capture-actions">
+          <button id="inventoryCaptureCancel" class="secondary" type="button">Abbrechen</button>
+          <button id="inventoryCaptureStopAfterCurrent" class="danger-button hidden" type="button">Nach aktueller Anzeige stoppen</button>
+          <button id="inventoryCaptureStart" class="primary" type="button">Erfassung starten</button>
+          <button id="inventoryCaptureDone" class="primary hidden" type="button">Schließen</button>
+        </footer>
+      </div>
+    </dialog>
+
+
+    <dialog id="profileManagerDialog" class="profile-manager-dialog" aria-labelledby="profileManagerTitle" aria-describedby="profileManagerIntro">
+      <div class="profile-manager-modal">
+        <header class="profile-manager-header">
+          <div>
+            <span class="profile-manager-kicker">PROFILMANAGEMENT</span>
+            <h2 id="profileManagerTitle">Profile verwalten</h2>
+          </div>
+          <button id="profileManagerClose" class="modal-close" type="button" aria-label="Profilmanagement schließen"><svg class="modal-close-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 6L18 18M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
+        </header>
+        <p id="profileManagerIntro" class="profile-manager-intro">Für jedes erkannte Kleinanzeigen-Konto führt die App ein eigenes Inventar. Das Umschalten hier ändert nur die Inventaransicht und meldet dich nicht bei Kleinanzeigen um.</p>
+        <div id="profileManagerList" class="profile-manager-list"></div>
+        <p id="profileManagerStatus" class="profile-manager-status" role="status" aria-live="polite"></p>
+        <footer class="profile-manager-actions">
+          <input id="profileBackupFileInput" type="file" accept=".zip,application/zip" hidden>
+          <button id="profileImportButton" class="secondary" type="button">Profil aus Sicherung wiederherstellen</button>
+          <button id="profileManagerDone" class="secondary" type="button">Schließen</button>
+        </footer>
+      </div>
+    </dialog>
+
+
+    <dialog id="actionConfirmDialog" class="action-confirm-dialog" aria-labelledby="actionConfirmTitle" aria-describedby="actionConfirmText">
+      <div class="action-confirm-modal">
+        <header class="action-confirm-header">
+          <h2 id="actionConfirmTitle"></h2>
+          <button id="actionConfirmClose" class="modal-close" type="button" aria-label="Dialog schließen"><svg class="modal-close-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 6L18 18M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
+        </header>
+        <p id="actionConfirmText" class="action-confirm-copy"></p>
+        <p id="actionConfirmDetail" class="action-confirm-detail hidden"></p>
+        <footer class="action-confirm-actions">
+          <button id="actionConfirmCancel" class="secondary" type="button">Abbrechen</button>
+          <button id="actionConfirmSubmit" class="primary" type="button">Bestätigen</button>
+        </footer>
+      </div>
+    </dialog>
+
+    <script src="src/shared/runtime-deps.js"></script>
+    <script src="src/shared/message-contract-registry.js"></script>
+    <script src="src/shared/renewal-policy.js"></script>
+    <script src="src/app/app-elements.js"></script>
+    <script src="src/app/diagnostic-zip.js"></script>
+    <script src="src/app/inventory-view.js"></script>
+    <script src="src/app/inventory-export.js"></script>
+    <script src="src/app/inventory-import.js"></script>
+    <script src="src/app/profile-backup.js"></script>
+    <script src="src/app/profile-backup-storage-service.js"></script>
+    <script src="src/app/profile-backup-controller.js"></script>
+    <script src="src/app/account-gate.js"></script>
+    <script src="src/app/profile-account-ui-controller.js"></script>
+    <script src="src/app/app-activity-center.js"></script>
+    <script src="src/app/actions-diagnostics-controller.js"></script>
+    <script src="src/app/control-accordion-controller.js"></script>
+    <script src="src/app/diagnostics-controls-controller.js"></script>
+    <script src="src/app/renewal-settings-controller.js"></script>
+    <script src="src/app/app-layout-controller.js"></script>
+    <script src="src/app/tab-page-inspection-controller.js"></script>
+    <script src="src/app/shared-ui-helpers.js"></script>
+    <script src="src/app/inventory-formatting.js"></script>
+    <script src="src/app/record-card-view.js"></script>
+    <script src="src/app/inventory-card-renderer.js"></script>
+    <script src="src/app/trash-card-renderer.js"></script>
+    <script src="src/app/inventory-render-controller.js"></script>
+    <script src="src/app/renewal-dialog-controller.js"></script>
+    <script src="src/app/inventory-candidate-model.js"></script>
+    <script src="src/app/inventory-capture-view.js"></script>
+    <script src="src/app/inventory-capture-controller.js"></script>
+    <script src="src/app/mass-renewal-ui-controller.js"></script>
+    <script src="src/app/archive-insertion-ui-controller.js"></script>
+    <script src="src/app/trash-template-ui-controller.js"></script>
+    <script src="src/app/archive-trash-insertion-ui-controller.js"></script>
+    <script src="src/app/app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,13 @@
+const assert=require('assert'),fs=require('fs'),path=require('path'),posix=path.posix;
+let n=0;const pass=(l,f)=>{f();n++;console.log('PASS '+l)};
+const manifest=JSON.parse(fs.readFileSync('manifest.json'));const layout=JSON.parse(fs.readFileSync('scripts/source-layout.json'));const pack=fs.readFileSync('scripts/package.py','utf8');
+const runtime=new Set([...pack.matchAll(/'([^']+)'/g)].map(m=>m[1]).filter(x=>x.endsWith('.js')||['manifest.json','app.html','popup.html'].includes(x)));
+pass('source root has no JavaScript files',()=>assert.deepEqual(fs.readdirSync('.').filter(x=>x.endsWith('.js')),[]));
+pass('layout retains all 64 v1.23.6 migrations and later JavaScript additions on unique src paths',()=>{const values=Object.values(layout.mapping);assert.ok(Object.keys(layout.mapping).length>=64);assert.equal(new Set(values).size,values.length);assert.ok(values.every(x=>x.startsWith('src/')));assert.ok(values.every(x=>fs.existsSync(x)));});
+pass('manifest JavaScript references exist and are packaged',()=>{const refs=[manifest.background.service_worker,...manifest.content_scripts.flatMap(x=>x.js||[])];for(const ref of refs){assert.ok(fs.existsSync(ref),ref);assert.ok(runtime.has(ref),ref);}});
+pass('HTML JavaScript references exist and are packaged',()=>{for(const html of ['app.html','popup.html']){const s=fs.readFileSync(html,'utf8');for(const m of s.matchAll(/<script\s+src=["']([^"']+\.js)["']/g)){assert.ok(fs.existsSync(m[1]),m[1]);assert.ok(runtime.has(m[1]),m[1]);}}});
+pass('background importScripts closure resolves to packaged files',()=>{const worker=manifest.background.service_worker;const s=fs.readFileSync(worker,'utf8');for(const call of s.matchAll(/importScripts\s*\(([^)]*)\)/gs)){for(const q of call[1].matchAll(/["']([^"']+)["']/g)){const ref=posix.normalize(posix.join(posix.dirname(worker),q[1]));assert.ok(fs.existsSync(ref),ref);assert.ok(runtime.has(ref),ref);}}});
+pass('background content bootstrap list uses extension-root src paths',()=>{const s=fs.readFileSync(manifest.background.service_worker,'utf8');const line=s.match(/const CONTENT_SCRIPT_FILES = (\[[^\n]+\]);/);assert.ok(line);const refs=JSON.parse(line[1]);assert.deepEqual(refs,manifest.content_scripts[0].js);});
+pass('diagnostic export service is included in package closure',()=>assert.ok(runtime.has('src/background/services/diagnostic-export-service.js')));
+pass('runtime entrypoints stay organized by context',()=>{assert.equal(manifest.background.service_worker,'src/background/background.js');assert.ok(manifest.content_scripts[0].js.every(x=>x.startsWith('src/shared/')||x.startsWith('src/content/')));});
+console.log(`${n}/8 PASS v1.23.7 path closure`);

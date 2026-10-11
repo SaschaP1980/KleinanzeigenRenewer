@@ -1,0 +1,14 @@
+const assert=require('assert');
+const Repo=require('../renewal-state-repository.js');
+const manifest=require('../manifest.json');
+let pass=0; const ok=(n,f)=>{f(); pass++; console.log('PASS',n)};
+const safe={renewalId:'r-safe',status:'needs-review',stage:'manual-emergency-reset',newAdId:null,publishClickedAt:null,phaseAttempts:{1:{attempt:1}}};
+ok('safe pre-publish legacy reset remains lock-free',()=>assert.equal(Repo.renewalHoldsInsertionLock(safe),false));
+const clicked={...safe,renewalId:'r-clicked',publishClickedAt:'2026-09-25T10:24:27.781Z'};
+ok('publish-click legacy reset remains fail-closed before independent recovery',()=>assert.equal(Repo.renewalHoldsInsertionLock(clicked),true));
+const submitted={renewalId:'r-submitted',status:'submitted',stage:'publish-submitted',newAdId:null,publishClickedAt:'2026-09-25T10:24:27.781Z'};
+ok('submitted renewal remains locked',()=>assert.equal(Repo.renewalHoldsInsertionLock(submitted),true));
+const paid={renewalId:'r-paid',status:'verification-failed',stage:'paid-insertion-required',newAdId:null,publishClickedAt:null,paidInsertion:{phase:'pre-publish'}};
+ok('pre-publish paid insertion remains lock-free',()=>assert.equal(Repo.renewalHoldsInsertionLock(paid),false));
+ok('checkout recovery proof API is absent on v1.22.28 and present on successor',()=>assert.equal(typeof Repo.evaluateCheckoutRecoveryProof, manifest.version === '1.22.28' ? 'undefined' : 'function'));
+console.log(`${pass}/5 PASS`);

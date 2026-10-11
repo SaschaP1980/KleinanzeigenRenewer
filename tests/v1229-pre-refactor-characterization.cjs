@@ -1,0 +1,14 @@
+const fs=require('fs'),path=require('path'),assert=require('assert/strict');
+const root=path.resolve(__dirname,'..');
+const read=n=>fs.existsSync(path.join(root,n))?fs.readFileSync(path.join(root,n),'utf8'):'';
+const code=[read('mass-renewal-ui-controller.js'),read('archive-trash-insertion-ui-controller.js'),read('app.js')].join('\n');
+let n=0;const ok=(m,f)=>{f();n++;console.log('PASS '+m)};
+ok('mass renewal keeps explicit selection order progress summary lifecycle',()=>{assert.match(code,/eligibleMassRenewalRecords/);assert.match(code,/renderMassRenewalSelection/);assert.match(code,/renderMassRenewalOrder/);assert.match(code,/renderMassRenewalBatch/);assert.match(code,/renderMassRenewalSummary/);assert.match(code,/MASS_RENEWAL_MAX_ITEMS/)});
+ok('mass renewal keeps safe fast four-phase presentation',()=>{assert.match(code,/massRenewalPhaseModel/);assert.match(code,/Zusätzliche Datenprüfung entfällt/);assert.match(code,/Neue Anzeige kontrollieren/);assert.match(code,/Neue Anzeige finden/);assert.match(code,/Bisherige Anzeige löschen/)});
+ok('mass renewal keeps retry and controlled stop semantics',()=>{assert.match(code,/massRenewalRetryActionLabel/);assert.match(code,/RETRY_MASS_RENEWAL_ITEM/);assert.match(code,/REQUEST_MASS_RENEWAL_STOP_AFTER_CURRENT/);assert.match(code,/Vorgang nach aktueller Anzeige stoppen/);assert.match(code,/stopAfterCurrentRequested/)});
+ok('archive insertion keeps validated zip and staged image workflow',()=>{assert.match(code,/validateArchiveFile/);assert.match(code,/InventoryImport\.parseInventoryArchive/);assert.match(code,/stageArchiveImages/);assert.match(code,/cleanupArchiveStaging/);assert.match(code,/START_ARCHIVE_INSERTION/)});
+ok('archive insertion keeps revision guarded progress and safe fast phases',()=>{assert.match(code,/archiveProgressModel/);assert.match(code,/applyArchiveInsertionSessionSnapshot/);assert.match(code,/ARCHIVE_INSERTION_UI_SNAPSHOT_IGNORED/);assert.match(code,/trackedArchiveInsertionRevision/);assert.match(code,/Zusätzliche Inhaltsprüfung wird übersprungen/)});
+ok('trash template keeps manual publish and explicit inventory gate',()=>{assert.match(code,/START_TRASH_TEMPLATE_FILL/);assert.match(code,/template-only-complete/);assert.match(code,/Anzeige prüfen und veröffentlichen/);assert.match(code,/trashTemplateInventoryGate/);assert.match(code,/startKnownSingleInventoryCapture/)});
+ok('archive and trash dialogs keep explicit cancel close and result actions',()=>{assert.match(code,/archiveInsertDialog\?\.addEventListener\(['"]cancel/);assert.match(code,/trashTemplateDialog\?\.addEventListener\(['"]cancel/);assert.match(code,/archiveProgressView/);assert.match(code,/archiveProgressEdit/);assert.match(code,/trashTemplateInventory/)});
+ok('publish safety still forbids direct form submit bypasses',()=>{assert.equal((code.match(/\.submit\s*\(/g)||[]).length,0);assert.equal((code.match(/requestSubmit\s*\(/g)||[]).length,0)});
+console.log(`${n}/8 PASS`);

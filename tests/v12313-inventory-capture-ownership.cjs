@@ -1,0 +1,15 @@
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const root=path.join(__dirname,'..');
+const read=r=>fs.existsSync(path.join(root,r))?fs.readFileSync(path.join(root,r),'utf8'):'';
+const controller=read('src/app/inventory-capture-controller.js');
+const view=read('src/app/inventory-capture-view.js');
+const model=read('src/app/inventory-candidate-model.js');
+const app=read('src/app/app.js');
+const html=read('app.html');
+let n=0;const p=(m,f)=>{f();n++;console.log('PASS '+m)};
+p('dedicated capture view and candidate model modules exist',()=>{assert.ok(view,'inventory-capture-view.js missing');assert.ok(model,'inventory-candidate-model.js missing')});
+p('candidate model owns pure candidate normalization and membership classification',()=>{assert.match(model,/function buildSingleInventoryCandidates\(/);assert.match(model,/function createMembershipSnapshot\(/);assert.match(model,/function storageState\(/);assert.doesNotMatch(model,/document\.|runtimeMessage\(|chrome\./)});
+p('capture view owns DOM rendering without workflow IPC',()=>{assert.match(view,/function setInventoryCaptureSteps\(/);assert.match(view,/function renderInventoryCaptureCandidates\(/);assert.match(view,/function renderInventoryCaptureResultDetails\(/);assert.match(view,/document\.createElement/);assert.doesNotMatch(view,/CAPTURE_SINGLE_INVENTORY|START_BULK_INVENTORY_OPERATION|REQUEST_BULK_INVENTORY_STOP_AFTER_CURRENT|runtimeMessage\(/)});
+p('controller retains lifecycle ownership but no direct candidate-card DOM creation',()=>{for(const t of ['startSingleInventoryCapture','startBulkInventoryCapture','requestBulkInventoryStopAfterCurrent','reopenInventoryCaptureFromShortcut','loadSingleInventoryCandidates'])assert.match(controller,new RegExp(`function ${t}\\(|async function ${t}\\(`));assert.doesNotMatch(controller,/function createInventoryCandidateVisual\(/);assert.doesNotMatch(controller,/document\.createElement/)});
+p('composition root wires both in-process dependencies before the controller',()=>{assert.match(app,/KRDeps\.require\('KRInventoryCaptureView'\)/);assert.match(app,/KRDeps\.require\('KRInventoryCandidateModel'\)/);assert.match(app,/InventoryCaptureController\.create\(\{[\s\S]*inventoryCaptureView:[\s\S]*inventoryCandidateModel:/);const vi=html.indexOf('src/app/inventory-capture-view.js');const mi=html.indexOf('src/app/inventory-candidate-model.js');const ci=html.indexOf('src/app/inventory-capture-controller.js');assert.ok(vi>=0&&mi>=0&&ci>=0&&vi<ci&&mi<ci,'new modules must load before controller')});
+console.log(`${n}/${n} PASS v1.23.13 inventory capture ownership`);

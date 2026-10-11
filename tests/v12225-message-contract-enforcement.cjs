@@ -1,0 +1,16 @@
+const fs=require('fs'),assert=require('assert');
+let n=0; const ok=(name,fn)=>{fn();n++;console.log('PASS',name)};
+const reg=fs.readFileSync('message-contract-registry.js','utf8');
+const bg=fs.readFileSync('background.js','utf8');
+const bgRouter=fs.readFileSync('background-message-router.js','utf8');
+const content=fs.readFileSync('content.js','utf8');
+const runner=fs.readFileSync('inventory-runner.js','utf8');
+const app=fs.readFileSync('app.js','utf8');
+ok('registry advertises enforced mode',()=>{assert.match(reg,/mode:\s*'enforced'/);assert.match(reg,/enforcement:\s*true/)});
+ok('registry exposes deterministic route enforcement API',()=>{assert.match(reg,/function\s+route\s*\(/);assert.match(reg,/KR_MESSAGE_CONTRACT_UNKNOWN/);assert.match(reg,/KR_MESSAGE_CONTRACT_TARGET_MISMATCH/)});
+ok('background enforces registry before routing any request',()=>{const listener=bg.indexOf('chrome.runtime.onMessage.addListener');const enforce=bg.indexOf("MessageContractRegistry.route(message?.type, 'background')",listener);const dispatch=bg.indexOf('backgroundMessageRouter.dispatch(message, sender, { messageContract })',listener);assert.ok(enforce>listener && dispatch>enforce);assert.match(bgRouter,/if \(contract\.action !== 'accept'\) throw registry\.errorFor\(contract\)/);});
+ok('content router requires registry and gates messages',()=>{assert.match(content,/KRDeps\.require\('KRMessageContractRegistry'\)/);assert.match(content,/MessageContractRegistry\.route\(message\?\.type,\s*'content'\)/)});
+ok('my-ads router requires registry and gates messages',()=>{assert.match(runner,/KRDeps\.require\('KRMessageContractRegistry'\)/);assert.match(runner,/MessageContractRegistry\.route\(message\?\.type,\s*'my-ads-content'\)/)});
+ok('app broadcast listener gates through registry',()=>{assert.match(app,/KRDeps\.require\('KRMessageContractRegistry'\)/);assert.match(app,/MessageContractRegistry\.route\(message\?\.type,\s*'app'\)/)});
+ok('contract rejects are diagnostically named',()=>{assert.ok(bg.includes('MESSAGE_CONTRACT_REJECTED'));assert.ok(content.includes('MESSAGE_CONTRACT_REJECTED'));assert.ok(runner.includes('MESSAGE_CONTRACT_REJECTED'));assert.ok(app.includes('MESSAGE_CONTRACT_REJECTED'))});
+console.log(`${n}/${n} PASS v1.22.25 message-contract enforcement contract`);

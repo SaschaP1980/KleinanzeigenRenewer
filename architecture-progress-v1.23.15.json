@@ -1,0 +1,60 @@
+{
+  "version": "1.23.15",
+  "epic": "EPIC-REF-002",
+  "step": "renewal-workflow-flow-and-checkout-extraction",
+  "goldBaseline": "1.21.15",
+  "directBasis": "1.23.14",
+  "directBasisNativeGreen": true,
+  "previousRenewalControllerLoc": 1086,
+  "renewalControllerLoc": 471,
+  "renewalVerificationFlowLoc": 201,
+  "renewalReinventoryFlowLoc": 375,
+  "paidCheckoutRecoveryServiceLoc": 155,
+  "files": {
+    "renewal-workflow-controller.js": {
+      "loc": 471,
+      "bytes": 25156
+    },
+    "renewal-verification-flow.js": {
+      "loc": 201,
+      "bytes": 14333
+    },
+    "renewal-reinventory-flow.js": {
+      "loc": 375,
+      "bytes": 24664
+    },
+    "paid-checkout-recovery-service.js": {
+      "loc": 155,
+      "bytes": 12620
+    }
+  },
+  "newModules": [
+    "src/background/services/renewal-verification-flow.js",
+    "src/background/services/renewal-reinventory-flow.js",
+    "src/background/services/paid-checkout-recovery-service.js"
+  ],
+  "noNewRuntimeBoundary": true,
+  "capabilityPorts": [
+    "sessionPort",
+    "inventoryPort",
+    "tabPort",
+    "diagnosticsPort",
+    "policyPort",
+    "validationPort",
+    "batchPort",
+    "flowPort",
+    "configPort",
+    "miscPort"
+  ],
+  "appJsExpectedByteIdentical": true,
+  "backgroundJsChangedForImportAndPolicyBinding": true,
+  "packagingClosureGuard": true,
+  "declaredRuntimeReferenceClosure": true,
+  "releaseFinalizeGate": true,
+  "shortNonBlockingStatusPolls": true,
+  "fiveMinuteChatHeartbeat": true,
+  "externalInProgressRecoveryCheckpoints": true,
+  "checkpointsPersistUnderMntDataUntilReleaseGreen": true,
+  "finalReleaseBecomesRecoveryAuthority": true,
+  "performanceGateVersion": "1.23.20"
+}

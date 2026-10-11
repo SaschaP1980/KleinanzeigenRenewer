@@ -1,0 +1,13 @@
+{
+  "version": "1.23.6",
+  "epic": "EPIC-REF-002",
+  "step": "bulk-inventory-controller+public-listing-evidence-service",
+  "bulkControllerCompleted": true,
+  "publicListingEvidenceService": "public-listing-evidence-service.js",
+  "trashTemplateRecoveryActionUx": true,
+  "noNewRuntimeBoundary": true,
+  "packagingClosureGuard": true,
+  "packagedChromeE2E": true,
+  "goldBaseline": "1.21.15",
+  "directBasis": "1.23.5"
+}

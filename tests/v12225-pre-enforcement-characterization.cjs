@@ -1,0 +1,12 @@
+const fs=require('fs'),assert=require('assert');
+const bg=fs.readFileSync('background.js','utf8')+'\n'+fs.readFileSync('background-message-router.js','utf8');
+const content=fs.readFileSync('content.js','utf8');
+const runner=fs.readFileSync('inventory-runner.js','utf8');
+const app=fs.readFileSync('app.js','utf8');
+let n=0; const ok=(name,fn)=>{fn();n++;console.log('PASS',name)};
+ok('registry inventory is stable before enforcement',()=>{const s=fs.readFileSync('message-contract-registry.js','utf8');for(const t of ['RESET_ACTIVE_WORKFLOWS','PAGE_STATUS','MY_ADS_STATUS','INVENTORY_DATA_CHANGED'])assert.ok(s.includes(`\"${t}\"`)||s.includes(`'${t}'`),t)});
+ok('background unknown request has existing fail-closed terminal fallback',()=>assert.match(bg,/throw new Error\(['\"]Unbekannte Erweiterungsanfrage['\"]\)/));
+ok('content and my-ads listeners remain separate co-resident routers',()=>{assert.match(content,/chrome\.runtime\.onMessage\.addListener/);assert.match(runner,/chrome\.runtime\.onMessage\.addListener/)});
+ok('app broadcast listener handles the three registered broadcast families',()=>{for(const t of ['ARCHIVE_INSERTION_STATE_CHANGED','PLATFORM_ACCESS_RESTRICTION_CHANGED','INVENTORY_DATA_CHANGED'])assert.ok(app.includes(t),t)});
+ok('v12224 registry fully covers physical router contracts before enforcement',()=>{const reg=fs.readFileSync('message-contract-registry.js','utf8');for(const [file,target] of [['background.js','background'],['background-message-router.js','background'],['content.js','content'],['inventory-runner.js','my-ads-content']]){const src=fs.readFileSync(file,'utf8');const types=[...src.matchAll(/message\?\.type\s*===\s*['\"]([A-Z0-9_]+)['\"]/g)].map(m=>m[1]);for(const type of new Set(types))assert.ok(reg.includes(`\"${type}\"`)||reg.includes(`'${type}'`),`${file}:${target}:${type}`)}});
+console.log(`${n}/${n} PASS v1.22.25 pre-enforcement characterization`);

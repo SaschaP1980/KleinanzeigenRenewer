@@ -1,0 +1,16 @@
+const fs=require('fs');const assert=require('assert');
+assert.ok(fs.existsSync('template-fill-controller.js'),'template-fill-controller.js must exist');
+assert.ok(fs.existsSync('insertion-lock-service.js'),'insertion-lock-service.js must exist');
+const bg=fs.readFileSync('background.js','utf8');
+const ctl=fs.readFileSync('template-fill-controller.js','utf8');
+const lock=fs.readFileSync('insertion-lock-service.js','utf8');
+assert.match(ctl,/KRDeps\.register\('KRTemplateFillController'/);
+assert.match(lock,/KRDeps\.register\('KRInsertionLockService'/);
+assert.match(bg,/template-fill-controller\.js/);
+assert.match(bg,/insertion-lock-service\.js/);
+assert.match(bg,/KRDeps\.require\('KRTemplateFillController'\)/);
+assert.match(bg,/KRDeps\.require\('KRInsertionLockService'\)/);
+for(const name of ['getRecoverableTrashTemplateFill','prepareTrashTemplateInventoryCapture','completeTrashTemplateFlow','getTrashTemplateFillStatus','startTrashTemplateFillUnlocked','startTemplateFillUnlocked','startTrashTemplateFill','startTemplateFill','updateTemplateFillSession','terminalizeTemplateFillOnPlatformError']) assert.ok(ctl.includes(`function ${name}(`)||ctl.includes(`async function ${name}(`),name+' must live in controller');
+for(const name of ['withInsertionStartGate','getInsertionLockState','insertionLockMessage','assertInsertionStartAvailable']) assert.ok(lock.includes(`function ${name}(`)||lock.includes(`async function ${name}(`),name+' must live in lock service');
+assert.ok(!bg.includes('let insertionStartGate = Promise.resolve()'),'background must not own insertion gate state');
+console.log('PASS v1.23.4 template/lock modularization ownership');

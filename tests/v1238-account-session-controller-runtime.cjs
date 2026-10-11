@@ -1,0 +1,19 @@
+const assert=require('node:assert/strict'),fs=require('fs'),vm=require('vm');
+const ctx={console};ctx.globalThis=ctx;vm.createContext(ctx);vm.runInContext(fs.readFileSync('src/shared/runtime-deps.js','utf8'),ctx,{filename:'runtime-deps.js'});vm.runInContext(fs.readFileSync('src/background/controllers/account-session-controller.js','utf8'),ctx,{filename:'account-session-controller.js'});
+const Controller=ctx.KRDeps.require('KRAccountSessionController');
+let saved=null,createCount=0,probeCount=0,probeResult={confirmed:true,profile:{profileId:'p1',displayName:'Alpha'}},logs=[];
+const AccountProbeService={create(opts){createCount++;assert.equal(opts.maxAttempts,2);return {probeLiveKleinanzeigenAccount:async()=>{probeCount++;return probeResult;}}}};
+let profileState={selectedProfileId:'p1',profiles:[{profileId:'p1',displayName:'Alpha'}]};
+const noop=async()=>{};
+const make=()=>Controller.create({AccountProbeService,storageSession:{set:async patch=>{saved=patch;}},accountGateDiagnosticStateKey:'gate',maxAttempts:2,retryDelayMs:250,navigationTimeoutMs:12000,myAdsProjectsUrl:'https://www.kleinanzeigen.de/m-meine-anzeigen.html?tab=PROJECTS',platformAccessRestrictionErrorCode:'KR_PLATFORM_ACCESS_RESTRICTED',randomUUID:()=> 'uuid',normalBrowserWindowId:()=>1,createManagedWorkerTab:noop,closeManagedWorkerTab:noop,updateAutomationTab:noop,waitForExpectedTabComplete:noop,ensureContentConnection:noop,sendTabRequestWithBootstrap:noop,normalizeProfileName:v=>String(v||'').replace(/\s+/g,' ').trim(),ensureProfile:noop,logDiagnostic:async(...a)=>logs.push(a),delay:noop,getProfileState:async()=>profileState,unassignedProfileId:'__unassigned__'});
+let n=0;const pass=l=>{n++;console.log('PASS '+l)};
+(async()=>{
+ const c=make();const d=await c.setAccountGateDiagnosticState({state:{accountState:'confirmed',gateKind:'ready',allowed:true,selectedProfileId:'p1',liveProfileId:'p1',reason:'ok',source:'ui',generation:'4',confirmedAt:'2026-09-28T09:00:00Z',ignored:'x'}});assert.equal(d.allowed,true);assert.equal(d.generation,4);assert.deepEqual(Object.keys(saved.gate).sort(),['accountState','allowed','capturedAt','confirmedAt','gateKind','generation','liveProfileId','reason','selectedProfileId','source'].sort());pass('account gate diagnostic snapshot keeps only bounded canonical fields');
+ await c.probeLiveKleinanzeigenAccount();await c.probeLiveKleinanzeigenAccount();assert.equal(createCount,1);assert.equal(probeCount,2);pass('account probe service is lazily created once and reused');
+ const live=await c.assertSelectedProfileMatchesLiveAccount({expectedProfileId:'p1',expectedProfileName:' alpha ',purpose:'refresh'});assert.equal(live.profileId,'p1');assert.ok(logs.some(x=>x[1]==='ACCOUNT_BOUND_ACTION_ALLOWED'));pass('matching selected and live profile authorizes account-bound action');
+ profileState={selectedProfileId:'__unassigned__',profiles:[]};await assert.rejects(()=>c.assertSelectedProfileMatchesLiveAccount(),/Wähle zuerst ein konkretes Inventarprofil/);pass('unassigned selection remains blocked before live probe');
+ profileState={selectedProfileId:'p1',profiles:[{profileId:'p1',displayName:'Alpha'}]};await assert.rejects(()=>c.assertSelectedProfileMatchesLiveAccount({expectedProfileId:'p2'}),/gehört nicht zum aktuell ausgewählten/);pass('expected profile mismatch remains fail-closed');
+ probeResult={confirmed:true,profile:{profileId:'p2',displayName:'Beta'}};await assert.rejects(()=>c.assertSelectedProfileMatchesLiveAccount(),/stimmt nicht mit dem angemeldeten Kleinanzeigen-Konto/);pass('live account mismatch remains fail-closed');
+ probeResult={confirmed:false,profile:null};await assert.rejects(()=>c.assertSelectedProfileMatchesLiveAccount(),/konnte nicht eindeutig erkannt werden/);pass('unconfirmed live account remains fail-closed');
+ console.log(`${n}/7 PASS v1.23.8 account session controller runtime`);
+})().catch(e=>{console.error(e);process.exit(1)});

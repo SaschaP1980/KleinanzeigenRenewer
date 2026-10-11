@@ -1,0 +1,14 @@
+const assert=require('assert'),fs=require('fs'),vm=require('vm');
+const deps=new Map();
+const KRDeps={register(n,v){deps.set(n,v);return v;},require(n){if(!deps.has(n))throw new Error('missing '+n);return deps.get(n);}};
+const ctx={globalThis:null,KRDeps,module:{exports:{}},Object,Map,Set,String};ctx.globalThis=ctx;
+vm.runInNewContext(fs.readFileSync('message-contract-registry.js','utf8'),ctx,{filename:'message-contract-registry.js'});
+const r=deps.get('KRMessageContractRegistry');
+let n=0; const ok=(name,fn)=>{fn();n++;console.log('PASS',name)};
+ok('registry snapshot preserves v1.22.24 contract inventory',()=>{const s=JSON.parse(JSON.stringify(r.snapshot()));assert.equal(s.schemaVersion,1);assert.equal(s.totalTypes,102);assert.deepStrictEqual(s.byTarget,{background:82,content:10,'my-ads-content':7,app:3});assert.equal(typeof s.mode,'string');assert.equal(typeof s.enforcement,'boolean')});
+ok('known background contract resolves for intended target',()=>{const v=r.inspect('RESET_ACTIVE_WORKFLOWS','background');assert.equal(v.registered,true);assert.equal(v.targetRegistered,true)});
+ok('cross-target lookup is observable but not accepted as target contract',()=>{const v=r.inspect('RESET_ACTIVE_WORKFLOWS','content');assert.equal(v.registered,true);assert.equal(v.targetRegistered,false)});
+ok('unknown contract is diagnostic data and does not throw',()=>{const v=r.inspect('UNKNOWN_TEST_MESSAGE','background');assert.equal(v.registered,false);assert.equal(v.targetRegistered,false)});
+ok('background router types are covered by registry',()=>{const src=fs.readFileSync('background.js','utf8');const routed=[...src.matchAll(/message\?\.type\s*===\s*['"]([A-Z0-9_]+)['"]/g)].map(m=>m[1]);for(const type of new Set(routed))assert.equal(r.has(type,'background'),true,type)});
+ok('content and my-ads router types are covered by registry',()=>{for(const [file,target] of [['content.js','content'],['inventory-runner.js','my-ads-content']]){const src=fs.readFileSync(file,'utf8');const routed=[...src.matchAll(/message\?\.type\s*===\s*['"]([A-Z0-9_]+)['"]/g)].map(m=>m[1]);for(const type of new Set(routed))assert.equal(r.has(type,target),true,`${file}:${type}`)}});
+console.log(`${n}/${n} PASS v1.22.24 message-contract registry runtime`);

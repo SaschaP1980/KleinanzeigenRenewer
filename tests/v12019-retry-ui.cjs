@@ -1,0 +1,15 @@
+const fs = require('node:fs');
+const assert = require('node:assert/strict');
+const app = fs.readFileSync('app.js', 'utf8') + '\n' + fs.readFileSync('mass-renewal-ui-controller.js', 'utf8') + '\n' + fs.readFileSync('archive-trash-insertion-ui-controller.js', 'utf8');
+let n = 0; const pass = label => { n += 1; console.log('PASS ' + label); };
+assert.match(app, /const massRenewalRetryInFlight\s*=\s*new Set\(\)/); pass('mass retry UI tracks in-flight retries independently of DOM instances');
+assert.match(app, /function massRenewalRetryKey\(batchId, index\)/); pass('mass retry state uses stable batch+item key');
+const start = app.indexOf('function renderMassRenewalItems');
+const end = app.indexOf('\nfunction renderMassRenewalSummary', start);
+const render = app.slice(start, end);
+assert.match(render, /massRenewalRetryInFlight\.has\(retryKey\)/); pass('re-renders consult local in-flight retry state');
+assert.match(render, /\['running', 'retrying'\]\.includes\(String\(item\.status/); pass('persisted running/retrying state also locks retry UI');
+assert.match(render, /retry\.textContent\s*=\s*retryLocked\s*\?\s*'Prüfung läuft …'/); pass('locked retry button renders explicit running label');
+assert.match(render, /massRenewalRetryInFlight\.add\(retryKey\)/); pass('click marks retry in flight before async request');
+assert.match(render, /massRenewalRetryInFlight\.delete\(retryKey\)/); pass('terminal response releases local retry lock');
+console.log(`${n}/7 PASS`);

@@ -1,0 +1,21 @@
+{
+  "version": "1.23.1",
+  "epic": "EPIC-REF-002",
+  "baseVersion": "1.23.0",
+  "completedExtraction": "renewal-workflow",
+  "module": "renewal-workflow-controller.js",
+  "noNewRuntimeBoundary": true,
+  "backgroundRetainsEmergencyReset": true,
+  "baselineEntryPoints": {
+    "appJs": {
+      "loc": 4019,
+      "sha256": "0c9fdbd23c72db746494a535854e722685d2128658018847d6f3d7066d5de599"
+    },
+    "backgroundJs": {
+      "loc": 7313,
+      "sha256": "d1443315fcd1ed97a3c6d7c6254c1cca392b79c6983a8666604ccb47bf5fd7c9"
+    }
+  },
+  "nextVersion": "1.23.2",
+  "nextExtraction": "mass-renewal-workflow"
+}

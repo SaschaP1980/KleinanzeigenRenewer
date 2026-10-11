@@ -1,0 +1,12 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert');
+const src=fs.readFileSync('archive-trash-insertion-ui-controller.js','utf8');
+const ctx={globalThis:null,console,URL,crypto:{randomUUID:()=> 'uuid'}};ctx.globalThis=ctx;vm.createContext(ctx);vm.runInContext(src,ctx);
+const api=ctx.KRArchiveTrashInsertionUiController;assert.ok(api?.create);
+const cls=()=>({hidden:true,toggle(name,flag){if(name==='hidden')this.hidden=!!flag;},add(){},remove(){}});
+const dialog={open:false,showModal(){this.open=true;},close(){this.open=false;},addEventListener(){}};
+const simple=()=>({classList:cls(),textContent:'',addEventListener(){},focus(){},querySelectorAll(){return[];}});
+const activities=[];
+const session={fillId:'fill-1',trashInventoryId:'inv-1',inventoryId:'inv-1',targetTabId:42,status:'complete',stage:'template-only-complete',newAdId:null,result:{complete:true,issues:[]}};
+const c=api.create({document:{createTextNode:()=>({}),createElement:()=>simple()},URL:{revokeObjectURL(){}},crypto:{randomUUID:()=> 'u'},InventoryImport:{},accountGateModel:()=>({allowed:true,tooltip:''}),runtimeMessage:async msg=>msg.type==='GET_RECOVERABLE_TRASH_TEMPLATE_FILL'?session:msg.type==='GET_TRASH_TEMPLATE_FILL_STATUS'?session:null,displayPriceWithType:()=> '10 €',publishTrashTemplateRecoveryActivity:a=>activities.push(a),elements:{trashTemplateDialog:dialog,trashTemplateTitle:simple(),trashTemplateIntro:simple(),trashTemplateProgressMessage:simple(),trashTemplateProgressTitle:simple(),trashTemplateProgressText:simple(),trashTemplateConfirmActions:simple(),trashTemplateProgressActions:simple(),trashTemplateSteps:simple(),trashTemplateInventory:simple()}});
+c.updateContext({selectedProfileId:'p1',trashRecords:[{inventoryId:'inv-1',profileId:'p1',title:'Vorlage'}],insertionLock:{locked:false}});
+(async()=>{const r=await c.recoverTrashTemplateSession();assert.equal(r.fillId,'fill-1');assert.equal(c.status().trackedTrashTemplateFillId,'fill-1');assert.ok(activities.some(a=>a.action==='resume-trash-template'));const opened=await c.reopenTrashTemplateSession();assert.equal(opened,true);assert.equal(dialog.open,true);console.log('v1.22.17 trash-template UI recovery runtime: 2/2 PASS');})().catch(e=>{console.error(e);process.exit(1)});

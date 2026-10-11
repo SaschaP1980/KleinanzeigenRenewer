@@ -1,0 +1,10 @@
+const fs = require('node:fs'); const assert=require('node:assert/strict');
+const bg=require('./v12215-source-surface.cjs'); let n=0; const pass=l=>{n++;console.log('PASS '+l);};
+assert.match(bg,/const MASS_RENEWAL_PROGRESS_FLUSH_MS = 1500;/); pass('mass progress has a coalescing window');
+assert.match(bg,/const massRenewalProgressPending = new Map\(\);/); pass('latest mass progress is buffered per renewal');
+assert.match(bg,/massRenewalProgressPending\.set\(key, cloneMassRenewalProgressSession\(session\)\)/); pass('new progress supersedes pending progress for the same renewal');
+const p=bg.indexOf('async function persistRenewalSession'); const q=bg.indexOf('\nconst automaticReplacementInFlight',p); const block=bg.slice(p,q);
+assert.match(block,/if \(massRenewalTerminalOutcome\(session\)\)[\s\S]*await reconcileMassRenewalBatchSession/); pass('terminal mass states remain immediately reconciled');
+assert.match(block,/else \{[\s\S]*queueMassRenewalProgress\(session\)/); pass('non-terminal mass progress is coalesced');
+assert.match(bg,/options\.progressOnly === true && !\['running', 'retrying'\]/); pass('late buffered progress cannot overwrite a terminal mass item');
+console.log(`${n} PERFORMANCE-2 groups passed`);

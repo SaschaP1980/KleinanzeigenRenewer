@@ -1,0 +1,13 @@
+const fs = require('fs');
+const assert = require('assert');
+const html = fs.readFileSync('app.html','utf8');
+const js = fs.readFileSync('app.js','utf8') + '\n' + fs.readFileSync('inventory-capture-controller.js','utf8') + '\n' + fs.readFileSync('src/app/inventory-capture-view.js','utf8');
+const bg = fs.readFileSync('background.js','utf8');
+let n=0; const pass=m=>{n++; console.log('PASS',m)};
+assert.match(html,/id="inventoryCaptureConfirmTitle"[^>]*><\/strong>/); assert.doesNotMatch(html,/Erfassung festlegen/); pass('confirmation summary title is no longer hard-coded to Erfassung festlegen');
+assert.match(js,/function inventoryCaptureSummaryText\(/); assert.match(js,/Auswahl im Überblick/); pass('all four inventory option combinations have a dynamic user-facing overview');
+assert.match(html,/inventory-capture-selection-overview/); assert.match(html,/Erfassungsumfang[\s\S]*Prüfmodus/); pass('progress/result selection overview has neutral structured fields');
+assert.match(js,/inventoryCaptureDialogState\s*===\s*['"]result['"][\s\S]{0,500}wurden erfasst|wurden neu eingelesen/); pass('result overview uses completed-action wording');
+assert.match(bg,/const APP_WINDOW_INITIAL_WIDTH\s*=\s*1180/); assert.match(bg,/const APP_WINDOW_INITIAL_HEIGHT\s*=\s*900/); assert.match(bg,/width:\s*APP_WINDOW_INITIAL_WIDTH/); assert.match(bg,/height:\s*APP_WINDOW_INITIAL_HEIGHT/); pass('manager opens at explicit ergonomic 1180x900 size');
+assert.doesNotMatch(bg,/windows\.onBoundsChanged[\s\S]{0,500}windows\.update/); pass('no resize-jump pseudo minimum is enforced');
+console.log(`${n} v1.19.6 inventory-summary/window checks passed`);

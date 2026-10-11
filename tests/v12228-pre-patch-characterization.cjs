@@ -1,0 +1,14 @@
+const fs=require('fs'),assert=require('assert');
+const Repo=require('../renewal-state-repository.js');
+let n=0;const pass=s=>{n++;console.log('PASS',s)};
+const manifest=JSON.parse(fs.readFileSync('manifest.json','utf8'));
+assert.ok(['1.22.27','1.22.28','1.22.29','1.22.30','1.23.0','1.23.1','1.23.2','1.23.3','1.23.4','1.23.5','1.23.6','1.23.7','1.23.8','1.23.9','1.23.10','1.23.11','1.23.12','1.23.13','1.23.14','1.23.15','1.23.16','1.23.17','1.23.18','1.23.19','1.23.20','1.23.22'].includes(manifest.version)); pass('characterization applies to v1.22.27 baseline and v1.22.28 successor');
+const legacy={renewalId:'legacy',status:'needs-review',stage:'manual-emergency-reset',newAdId:null,publishClickedAt:null,newIdConfirmedAt:null,comparison:null,publicAvailability:null,phaseAttempts:{1:{attempt:1}}};
+assert.equal(Repo.renewalHoldsInsertionLock(legacy), manifest.version === '1.22.27'); pass('legacy manual emergency reset behavior is characterized across baseline and successor');
+const safePaid={renewalId:'paid',status:'verification-failed',stage:'paid-insertion-required',newAdId:null,publishClickedAt:null,paidInsertion:{phase:'pre-publish'}};
+assert.equal(Repo.renewalHoldsInsertionLock(safePaid),false); pass('v1.22.27 safe paid insertion already releases lock');
+const submitted={renewalId:'submitted',status:'submitted',stage:'publish-submitted',publishClickedAt:'2026-09-25T10:00:00.000Z'};
+assert.equal(Repo.renewalHoldsInsertionLock(submitted),true); pass('publish-submitted renewal remains lock-holding');
+const app=fs.readFileSync('app.js','utf8')+'\n'+fs.readFileSync('diagnostics-controls-controller.js','utf8');
+if (manifest.version === '1.22.27') assert.match(app,/diagnosticResetButton\.title\s*=\s*busy\s*\?/); else assert.match(app,/function diagnosticResetBlockReason\(/); pass('diagnostic reset blocker presentation is characterized across baseline and successor');
+console.log(`${n}/5 PASS v1.22.28 pre-patch characterization`);

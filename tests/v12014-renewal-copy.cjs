@@ -1,0 +1,11 @@
+const fs=require('node:fs'); const assert=require('node:assert/strict');
+const app=require('./v12210-source-surface.cjs')+'\n'+fs.readFileSync('mass-renewal-ui-controller.js','utf8')+'\n'+fs.readFileSync('archive-trash-insertion-ui-controller.js','utf8'); let n=0; const pass=m=>{n++;console.log('PASS '+m);};
+assert.doesNotMatch(app,/Jetzt erneut prüfen/); pass('obsolete Jetzt erneut prüfen CTA removed');
+assert.doesNotMatch(app,/Prüfung erneut starten/); pass('same verification action no longer uses Prüfung erneut starten');
+assert.match(app,/if \(status === 'waiting-for-online'\) return 'VERÖFFENTLICHUNG NOCH NICHT BESTÄTIGT'/); pass('waiting state uses truthful publication-not-confirmed label');
+assert.match(app,/if \(status === 'verification-failed'\) return 'PRÜFUNG ERFORDERLICH'/); pass('uncertain verification uses Prüfung erforderlich label');
+assert.match(app,/if \(label === 'VERÖFFENTLICHUNG NOCH NICHT BESTÄTIGT'\) return 'Erneut prüfen'/); pass('publication retry CTA is Erneut prüfen');
+assert.match(app,/if \(label === 'PRÜFUNG ERFORDERLICH'\) return 'Erneut prüfen'/); pass('verification retry CTA is Erneut prüfen');
+assert.match(app,/title = 'Noch nicht online'/); pass('progress dialog uses concise truthful publication status');
+assert.doesNotMatch(app,/Veröffentlichung wird noch bestätigt/); pass('passive waiting state no longer sounds like background work continues');
+console.log(`${n} v1.20.14 renewal copy checks passed`);

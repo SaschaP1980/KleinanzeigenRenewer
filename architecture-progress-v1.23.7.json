@@ -1,0 +1,23 @@
+{
+  "version": "1.23.7",
+  "epic": "EPIC-REF-002",
+  "step": "diagnostic-export-service+source-layout",
+  "diagnosticExportService": "src/background/services/diagnostic-export-service.js",
+  "sourceLayout": "scripts/source-layout.json",
+  "migratedJavascriptFiles": 64,
+  "rootJavascriptFiles": 0,
+  "noNewRuntimeBoundary": true,
+  "packagingClosureGuard": true,
+  "declaredRuntimeReferenceClosure": true,
+  "releaseFinalizeGate": true,
+  "goldBaseline": "1.21.15",
+  "directBasis": "1.23.6",
+  "directBasisNativeGreen": true,
+  "releaseFinalizeScript": "scripts/release_finalize.py",
+  "releaseFinalizeWrapper": "scripts/release-finalize-gate.sh",
+  "releasePipeline": "scripts/release-pipeline.sh",
+  "freshE2EToFinalizeChained": true,
+  "atomicReleaseState": true,
+  "releaseGreenSentinel": true,
+  "e2eEvidenceBindsChromeSha": true
+}

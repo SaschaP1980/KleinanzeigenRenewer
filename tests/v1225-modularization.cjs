@@ -1,0 +1,17 @@
+const fs = require('node:fs');
+const assert = require('node:assert/strict');
+const app = fs.readFileSync('app.js','utf8');
+const bg = fs.readFileSync('background.js','utf8');
+const html = fs.readFileSync('app.html','utf8');
+const activity = fs.existsSync('app-activity-center.js') ? fs.readFileSync('app-activity-center.js','utf8') : '';
+const tabload = fs.existsSync('tab-load-coordinator.js') ? fs.readFileSync('tab-load-coordinator.js','utf8') : '';
+let n=0; const pass=m=>{n++; console.log('PASS '+m)};
+assert.ok(activity); assert.match(activity,/KRAppActivityCenter/); assert.match(activity,/create\s*\(/); pass('app activity center exists as dedicated module');
+assert.ok(tabload); assert.match(tabload,/KRTabLoadCoordinator/); assert.match(tabload,/create\s*\(/); pass('background tab-load coordinator exists as dedicated module');
+assert.match(html,/<script src="src\/app\/app-activity-center\.js"><\/script>[\s\S]*<script src="src\/app\/app\.js"><\/script>/); pass('app activity module loads before app entrypoint');
+assert.match(bg,/importScripts\([^\n]*"services\/tab-load-coordinator\.js"/); pass('background tab-load module loads before background entrypoint');
+assert.match(app,/KRDeps\.require\('KRAppActivityCenter'\)/); assert.match(bg,/KRDeps\.require\('KRTabLoadCoordinator'\)/); pass('entrypoints consume extracted modules through dependency registry');
+assert.doesNotMatch(app,/let uiActivityHistory\s*=\s*\[\]/); assert.doesNotMatch(app,/let uiCurrentActivity\s*=\s*null/); pass('activity mutable state no longer lives in app.js');
+assert.doesNotMatch(bg,/const tabLoadWaiters\s*=\s*new Map\(\)/); assert.doesNotMatch(bg,/const tabLoadSignalVersions\s*=\s*new Map\(\)/); pass('tab readiness mutable state no longer lives in background.js');
+assert.match(app,/function publishUiActivity\([^)]*\)\s*\{\s*return uiActivityCenter\.publish/); assert.match(bg,/async function waitForTabComplete\([^)]*\)[\s\S]{0,220}requireTabLoadCoordinator\(\)\.waitForComplete/); pass('legacy internal call sites are preserved behind thin facades');
+console.log(`${n}/8 PASS`);

@@ -1,0 +1,18 @@
+const fs = require('node:fs');
+const assert = require('node:assert/strict');
+const bg = fs.readFileSync('background.js','utf8');
+const app = fs.readFileSync('app.js','utf8');
+const html = fs.readFileSync('app.html','utf8');
+const diag = fs.readFileSync('diagnostics-service.js','utf8');
+const actions = fs.readFileSync('actions-diagnostics-controller.js','utf8');
+let n=0; const pass=m=>{n++; console.log('PASS '+m)};
+assert.match(diag,/KRDiagnosticsService/); assert.match(diag,/create\s*\(/); pass('dedicated diagnostics service exists');
+assert.match(actions,/KRActionsDiagnosticsController/); assert.match(actions,/create\s*\(/); pass('dedicated actions diagnostics controller exists');
+assert.match(bg,/importScripts\([^\n]*"services\/diagnostics-service\.js"/); assert.match(bg,/KRDeps\.require\('KRDiagnosticsService'\)/); pass('background loads and consumes diagnostics service through KRDeps');
+assert.match(html,/<script src="src\/app\/actions-diagnostics-controller\.js"><\/script>[\s\S]*<script src="src\/app\/app\.js"><\/script>/); assert.match(app,/KRDeps\.require\('KRActionsDiagnosticsController'\)/); pass('app loads and consumes actions diagnostics controller through KRDeps');
+assert.doesNotMatch(bg,/let diagnosticPendingEntries\s*=|let diagnosticStoredCache\s*=|let diagnosticWriteChain\s*=/); assert.match(bg,/function logDiagnostic\([^)]*\)\s*\{\s*return requireDiagnosticsService\(\)\.log/); pass('diagnostic mutable buffer/cache ownership moved out of background.js behind thin facade');
+for (const symbol of ['actionsStateSnapshotTimer','lastActionsStateSnapshotSignature','lastActionDesyncSignature','lastActionsStateSyncAt','actionsResyncInFlight','lastBackgroundEpoch']) assert.doesNotMatch(app,new RegExp(`let\\s+${symbol}\\s*=`));
+assert.match(app,/function recordActionsStateSnapshot\([^)]*\)[^{]*\{\s*return requireActionsDiagnosticsController\(\)\.recordSnapshot/); pass('actions diagnostic mutable state moved out of app.js behind thin facades');
+assert.match(actions,/UI_ACTIONS_STATE_SNAPSHOT/); assert.match(actions,/UI_ACTION_ATTEMPT/); assert.match(actions,/UI_ACTIONS_POINTER_CAPTURE/); assert.match(actions,/UI_ACTIONS_RESYNC_COMPLETED/); pass('actions diagnostic event contract lives in extracted controller');
+assert.match(diag,/IMAGE_GALLERY_DIAGNOSTIC_CAPTURED/); assert.match(diag,/DIAGNOSTIC_SESSION_RESET/); assert.match(diag,/requiresImmediateFlush/); pass('diagnostics service preserves gallery, reset and immediate-flush responsibilities');
+console.log(`${n}/8 PASS`);

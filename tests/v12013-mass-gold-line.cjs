@@ -1,0 +1,10 @@
+const fs=require('node:fs'); const assert=require('node:assert/strict');
+const app=fs.readFileSync('app.js','utf8')+'\n'+fs.readFileSync('mass-renewal-ui-controller.js','utf8'); const css=fs.readFileSync('app.css','utf8'); let n=0; const pass=m=>{n++;console.log('PASS '+m);};
+const ss=app.indexOf('function setMassRenewalStep'); const se=app.indexOf('\nfunction setMassRenewalKicker',ss); assert.ok(ss>=0&&se>ss); const step=app.slice(ss,se);
+assert.match(step,/classList\.toggle\(['"]completed['"]/); pass('global mass stepper marks prior steps completed');
+assert.match(step,/textContent\s*=\s*completed\s*\?\s*['"]✓['"]/); pass('global completed steps render checkmarks');
+assert.match(css,/\.mass-renewal-stepper li\.completed\s*\{[^}]*border-color:[^}]*background:/s); pass('global completed steps use success styling');
+const rs=app.indexOf('function renderMassRenewalPhaseStrip'); const re=app.indexOf('\nfunction renderMassRenewalItems',rs); assert.ok(rs>=0&&re>rs); const row=app.slice(rs,re);
+assert.match(row,/state\s*===\s*['"]success['"]\s*\?\s*['"]✓['"]/); pass('completed row phase renders a checkmark');
+assert.match(css,/\.mass-renewal-phase\.success\s*\{/); pass('row completed phase keeps green success styling');
+console.log(`${n} v1.20.13 mass gold-line checks passed`);

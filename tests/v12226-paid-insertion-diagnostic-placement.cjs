@@ -1,0 +1,12 @@
+const fs=require('fs'),assert=require('assert');
+const bg=fs.readFileSync('mass-renewal-workflow-controller.js','utf8')+'\n'+fs.readFileSync('background.js','utf8');
+let n=0; const pass=s=>{n++;console.log('PASS',s)};
+const start=bg.indexOf('async function startNextMassRenewalItem');
+const reconcile=bg.indexOf('async function reconcileMassRenewalBatchSession');
+assert.ok(start>=0&&reconcile>start);
+const startBody=bg.slice(start,reconcile);
+assert.doesNotMatch(startBody,/MASS_RENEWAL_PAID_INSERTION_STOPPED/); pass('paid insertion diagnostic is not emitted from generic mass start failure path');
+const reconcileEnd=bg.indexOf('\nasync function',reconcile+20);
+const reconcileBody=bg.slice(reconcile,reconcileEnd>reconcile?reconcileEnd:undefined);
+assert.match(reconcileBody,/MASS_RENEWAL_PAID_INSERTION_STOPPED/); assert.match(reconcileBody,/session\.stage[^\n]*paid-insertion-required/); pass('paid insertion diagnostic is emitted only from correlated terminal reconciliation');
+console.log(`${n}/2 PASS`);

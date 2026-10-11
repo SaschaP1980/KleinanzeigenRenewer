@@ -1,0 +1,12 @@
+const fs=require('node:fs'); const assert=require('node:assert/strict');
+const bg=fs.readFileSync('background.js','utf8'); let n=0; const pass=m=>{n++; console.log('PASS '+m);};
+assert.match(bg,/const RENEWAL_PUBLIC_READONLY_READINESS_TIMEOUT_MS\s*=\s*\d+/); pass('dedicated same-tab public read-only readiness timeout exists');
+assert.match(bg,/async function waitForRenewalPublicReadOnlyReady\(tabId, expectedAdId/); pass('dedicated same-tab public read-only readiness helper exists');
+const hs=bg.indexOf('async function waitForRenewalPublicReadOnlyReady'); const he=bg.indexOf('\nasync function ',hs+20); const helper=bg.slice(hs,he>hs?he:undefined);
+assert.match(helper,/extractReadOnlyMetadata\(tabId, expectedAdId/); pass('read-only readiness stays on the already-fresh verification tab');
+assert.doesNotMatch(helper,/createFreshRenewalVerificationTab\(/); pass('read-only readiness never creates or recycles another tab');
+assert.match(helper,/RENEWAL_PUBLIC_READONLY_READY/); pass('successful same-tab content readiness is diagnosed');
+assert.match(helper,/RENEWAL_PUBLIC_READONLY_TIMEOUT/); pass('same-tab content readiness timeout is diagnosed');
+const ps=bg.indexOf('async function probeFreshRenewalPublicUrl'); const pe=bg.indexOf('\nasync function findRenewalAdInMyAdsFresh',ps); const probe=bg.slice(ps,pe);
+assert.match(probe,/waitForRenewalPublicReadOnlyReady\(tabInfo\.tabId, expectedAdId/); pass('fresh public probe waits for semantic content readiness before opening another verification route');
+console.log(`${n} v1.20.16 phase3 same-tab public-readiness checks passed`);

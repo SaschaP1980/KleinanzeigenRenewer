@@ -1,0 +1,14 @@
+const assert=require('assert'),fs=require('fs'),vm=require('vm');
+const deps=new Map();
+const KRDeps={register(n,v){deps.set(n,v);return v;},require(n){if(!deps.has(n))throw new Error('missing '+n);return deps.get(n);}};
+const ctx={globalThis:null,KRDeps,module:{exports:{}},Object,Map,Set,String,Error};ctx.globalThis=ctx;
+vm.runInNewContext(fs.readFileSync('message-contract-registry.js','utf8'),ctx,{filename:'message-contract-registry.js'});
+const r=deps.get('KRMessageContractRegistry');
+let n=0; const ok=(name,fn)=>{fn();n++;console.log('PASS',name)};
+ok('snapshot reports enforcement enabled without changing contract inventory',()=>assert.deepStrictEqual(JSON.parse(JSON.stringify(r.snapshot())),{schemaVersion:1,mode:'enforced',enforcement:true,totalTypes:102,byTarget:{background:82,content:10,'my-ads-content':7,app:3}}));
+ok('known intended background request is accepted',()=>{const d=r.route('RESET_ACTIVE_WORKFLOWS','background');assert.equal(d.action,'accept');assert.equal(d.errorCode,null)});
+ok('known contract for co-resident other router is ignored',()=>{const d=r.route('MY_ADS_STATUS','content');assert.equal(d.action,'ignore');assert.equal(d.registered,true);assert.equal(d.targetRegistered,false)});
+ok('unknown contract is rejected fail-closed',()=>{const d=r.route('UNKNOWN_TEST_MESSAGE','background');assert.equal(d.action,'reject');assert.equal(d.errorCode,'KR_MESSAGE_CONTRACT_UNKNOWN')});
+ok('missing type is rejected fail-closed',()=>{const d=r.route('', 'background');assert.equal(d.action,'reject');assert.equal(d.errorCode,'KR_MESSAGE_CONTRACT_UNKNOWN')});
+ok('wrong-target enforcement error is constructible for strict routers',()=>{const e=r.errorFor(r.route('PAGE_STATUS','background'));assert.equal(e.code,'KR_MESSAGE_CONTRACT_TARGET_MISMATCH');assert.match(e.message,/PAGE_STATUS/)});
+console.log(`${n}/${n} PASS v1.22.25 message-contract enforcement runtime`);

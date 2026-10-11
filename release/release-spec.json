@@ -1,0 +1,406 @@
+{
+  "version": "1.23.22",
+  "project": "kleinanzeigen Manager / Kleinanzeigen Renewal",
+  "epic": "EPIC-REF-003-preflight-correction",
+  "goldBaseline": "1.21.15",
+  "directBasis": "1.23.20_c1",
+  "directBasisNativeGreen": true,
+  "directBasisObservation": "v1.23.20_c1 ist RELEASE_GREEN und besitzt reale Fast-3er-Goldlinien. Zwei spätere reale Massenläufe vom 10.10.2026 zeigten jedoch einen flüchtigen Titel-Fill-/DOM-State-Fehler: Diagnose 11-22-33 (SHA-256 0ac5642d4fb6b69575c88d6e116fa2152ad0cd84c512f38198afddfa3c72a4df) mit 3/7 temporären Titel-Mismatches und Diagnose 12-03-51 (SHA-256 161cabb74e8a8eb454c91e3c35dc8158a7a782b9d0354fb4e003d12e487db641) mit 5/10. Unveränderte Titel konnten in späteren Versuchen erfolgreich sein; daher wird v1.23.22 als enger Correction-Build vor EPIC-REF-003 erstellt.",
+  "scope": [
+    "Eng begrenzter Correction-Build für flüchtige Titel-Mismatches beim Template-Fill im Einzel-/Massen-Renewal.",
+    "Das aktive sichtbare Inserierformular wird für Titel-Readback und finale Scalar-Verifikation explizit aufgelöst; stale globale title-Knoten dürfen die Verifikation nicht mehr bestimmen.",
+    "Der Titel wird nach dem initialen Setzen bounded gelesen und bei einem Plattform-/Controlled-Input-Reset höchstens dreimal neu geschrieben. Unmittelbar vor der finalen Verifikation erfolgt ein weiterer Stabilitäts-Readback; nötige Reparaturen werden erneut bestätigt.",
+    "Exakte Titelgleichheit bleibt unverändert fail-closed. Es gibt keine Normalisierungslockerung, keinen Publish-Bypass und keine automatische Fortsetzung bei verbleibender Abweichung.",
+    "Neue Diagnoseevents TEMPLATE_TITLE_READBACK_MISMATCH, TEMPLATE_TITLE_READBACK_CONFIRMED und TEMPLATE_TITLE_STABILIZATION_FAILED liefern bei erneutem Auftreten Expected/Actual- und Feldkandidaten-Evidence.",
+    "Keine neue Runtime-/IPC-Grenze, kein neuer Message-Type, keine Änderung an Account-/Profil-/Delete-/Replacement-Safety.",
+    "EPIC-REF-003 wird nicht vorgezogen; nach nativer Abnahme von v1.23.22 bleibt v1.24.0 Mass Renewal Lifecycle Separation der nächste geplante Architektur-Build.",
+    "Dynamic Public Function Coverage muss 100 % bleiben; Line-/Branch-/Architecture-No-Regression gegen die bestehende Gold-Baseline bleibt Pflicht."
+  ],
+  "nextPlannedBuild": "1.24.0",
+  "nextPlannedBuildGoal": "EPIC-REF-003 – Mass Renewal Lifecycle Separation.",
+  "nativeSmokeRequired": true,
+  "performanceRunRequired": true,
+  "performanceRule": "Nach Installation von v1.23.22 zuerst einen realen Mass-Renewal-Smoke mit mindestens einem zuvor betroffenen Titel durchführen. Danach einen Fast-3er-Lauf 5/11/20 Bilder als Performance-/Stabilitätsvergleich gegen die passende Hardware-Goldlinie durchführen und Diagnose-ZIP direkt danach sichern. Rechnerübergreifende Werte nicht als alleinigen Regressionsbeweis verwenden.",
+  "safety": {
+    "runtimeSubmitCalls": 0,
+    "runtimeRequestSubmitCalls": 0,
+    "noNewRuntimeBoundary": true,
+    "publishViaVisibleGuardedControlOnly": true,
+    "unsafePostPublishRemainsFailClosed": true
+  },
+  "coverage": {
+    "schemaVersion": 1,
+    "engine": "Node/V8 precise coverage + Acorn source mapping",
+    "lineDefinition": "source lines containing meaningful JavaScript tokens; covered when V8 precise coverage reports execution for at least one token on the line",
+    "branchDefinition": "AST if/conditional/logical/switch arms mapped to V8 precise block counts",
+    "runtimeModules": 100,
+    "loadedRuntimeModules": 95,
+    "publicFunctions": {
+      "covered": 805,
+      "total": 805,
+      "percent": 100
+    },
+    "lines": {
+      "covered": 10241,
+      "total": 24601,
+      "percent": 41.63
+    },
+    "branches": {
+      "covered": 5294,
+      "total": 23736,
+      "percent": 22.3
+    },
+    "areas": {
+      "app": {
+        "lines": {
+          "covered": 3864,
+          "total": 9095,
+          "percent": 42.48
+        },
+        "branches": {
+          "covered": 2066,
+          "total": 9128,
+          "percent": 22.63
+        },
+        "public": {
+          "covered": 328,
+          "total": 328,
+          "percent": 100
+        }
+      },
+      "background": {
+        "lines": {
+          "covered": 4544,
+          "total": 10761,
+          "percent": 42.23
+        },
+        "branches": {
+          "covered": 2431,
+          "total": 10588,
+          "percent": 22.96
+        },
+        "public": {
+          "covered": 377,
+          "total": 377,
+          "percent": 100
+        }
+      },
+      "content": {
+        "lines": {
+          "covered": 1406,
+          "total": 4260,
+          "percent": 33
+        },
+        "branches": {
+          "covered": 585,
+          "total": 3654,
+          "percent": 16.01
+        },
+        "public": {
+          "covered": 76,
+          "total": 76,
+          "percent": 100
+        }
+      },
+      "popup": {
+        "lines": {
+          "covered": 0,
+          "total": 20,
+          "percent": 0
+        },
+        "branches": {
+          "covered": 0,
+          "total": 10,
+          "percent": 0
+        },
+        "public": {
+          "covered": 0,
+          "total": 0,
+          "percent": 100
+        }
+      },
+      "shared": {
+        "lines": {
+          "covered": 427,
+          "total": 465,
+          "percent": 91.83
+        },
+        "branches": {
+          "covered": 212,
+          "total": 356,
+          "percent": 59.55
+        },
+        "public": {
+          "covered": 24,
+          "total": 24,
+          "percent": 100
+        }
+      }
+    }
+  },
+  "releaseSummary": "v1.23.22 stabilisiert den Kleinanzeigen-Titel-Fill gegen flüchtige Controlled-Input-/DOM-Resets, bindet die finale Verifikation an das aktive Formular und lässt sämtliche Publish-/Delete-Safety unverändert fail-closed.",
+  "architectureHighlights": [
+    "Keine neue Runtime-/IPC-Grenze; die Korrektur bleibt in den bestehenden Template-Fill-/Verification-Ownern.",
+    "Title Readback/Rewrite ist bounded und repariert nur den exakt erwarteten Template-Titel; nach drei fehlgeschlagenen Versuchen bleibt der Ablauf needs-review/fail-closed.",
+    "Finale Feldverifikation kann an das konkret aufgelöste aktive Inserierformular gebunden werden statt erneut einen globalen, potenziell stalen Knoten zu lesen.",
+    "Bestehende Template-Filler-Public-API bleibt unverändert; keine neuen Public Runtime Functions wurden eingeführt.",
+    "EPIC-REF-003 Lifecycle-Refactoring bleibt separat und beginnt erst mit v1.24.0."
+  ],
+  "nativeSmokeChecks": [
+    "v1.23.22 über v1.23.20_c1 laden; kein Boot-, Service-Worker-, Duplicate-dependency- oder Message-Contract-Fehler.",
+    "Einen echten Renewal/Massen-Renewal mit mindestens einem der zuvor betroffenen Titel durchführen. Es darf kein unbegründetes needs-review allein wegen „Titel stimmt nicht mit der Vorlage überein.“ auftreten.",
+    "Falls TEMPLATE_TITLE_READBACK_MISMATCH auftritt, muss derselbe Fill bounded repariert werden und TEMPLATE_TITLE_READBACK_CONFIRMED folgen; nach maximal drei erfolglosen Versuchen muss der Ablauf weiterhin fail-closed stoppen.",
+    "Diagnose prüfen: bei einem verbleibenden Titelproblem müssen Expected/Actual, Längen sowie Kandidatenzahlen verfügbar sein; keine Publish-/Delete-Fortsetzung nach nicht bestätigtem Titel.",
+    "Vor dem Performance-Vergleich Diagnose zurücksetzen und den realen Fast-3er-Lauf ausführen: IKEA Tischleuchte 5 Bilder, Weihnachtsfiguren 11 Bilder, Hartan Kinderwagen 20 Bilder.",
+    "Direkt nach dem Performance-Lauf Diagnose-ZIP exportieren und gegen die passende Hardware-Goldlinie vergleichen; Rechnerübergreifende Werte nicht als alleinigen Regressionsbeweis verwenden.",
+    "Nach dem Smoke Goldlinien-Performance-Matrix und neue v1.23.22-Messung im nächsten Handover fortführen."
+  ],
+  "packageVersion": "1.23.22",
+  "directBasisNativePending": false,
+  "architectureFiles": [
+    {
+      "key": "appElements",
+      "label": "App DOM Element Registry",
+      "path": "src/app/app-elements.js"
+    },
+    {
+      "key": "profileAccountUiController",
+      "label": "Profile / Account UI Controller",
+      "path": "src/app/profile-account-ui-controller.js"
+    },
+    {
+      "key": "backgroundMessageRouter",
+      "label": "Background Message Router",
+      "path": "src/background/background-message-router.js"
+    },
+    {
+      "key": "renewalPolicy",
+      "label": "Shared Renewal Policy",
+      "path": "src/shared/renewal-policy.js"
+    },
+    {
+      "key": "inventoryCaptureView",
+      "label": "Inventory Capture View",
+      "path": "src/app/inventory-capture-view.js"
+    },
+    {
+      "key": "inventoryCandidateModel",
+      "label": "Inventory Candidate Model",
+      "path": "src/app/inventory-candidate-model.js"
+    },
+    {
+      "key": "inventoryCaptureController",
+      "label": "Inventory Capture Lifecycle Controller",
+      "path": "src/app/inventory-capture-controller.js"
+    },
+    {
+      "key": "appOrchestrator",
+      "label": "App Composition Root",
+      "path": "src/app/app.js"
+    },
+    {
+      "key": "backgroundOrchestrator",
+      "label": "Background Composition Root",
+      "path": "src/background/background.js"
+    },
+    {
+      "key": "recordCardView",
+      "label": "Shared Record Card View",
+      "path": "src/app/record-card-view.js"
+    },
+    {
+      "key": "inventoryCardRenderer",
+      "label": "Inventory Card Renderer",
+      "path": "src/app/inventory-card-renderer.js"
+    },
+    {
+      "key": "trashCardRenderer",
+      "label": "Trash Card Renderer",
+      "path": "src/app/trash-card-renderer.js"
+    },
+    {
+      "key": "inventoryRenderController",
+      "label": "Inventory Rendering Composition Facade",
+      "path": "src/app/inventory-render-controller.js"
+    },
+    {
+      "key": "archiveInsertionUiController",
+      "label": "Archive Insertion UI Controller",
+      "path": "src/app/archive-insertion-ui-controller.js"
+    },
+    {
+      "key": "trashTemplateUiController",
+      "label": "Trash Template UI Controller",
+      "path": "src/app/trash-template-ui-controller.js"
+    },
+    {
+      "key": "archiveTrashUiFacade",
+      "label": "Archive / Trash UI Composition Facade",
+      "path": "src/app/archive-trash-insertion-ui-controller.js"
+    },
+    {
+      "key": "profileBackupStorageService",
+      "label": "Profile Backup Storage Service",
+      "path": "src/app/profile-backup-storage-service.js"
+    },
+    {
+      "key": "profileBackupController",
+      "label": "Profile Backup UI Controller",
+      "path": "src/app/profile-backup-controller.js"
+    },
+    {
+      "key": "templateCategoryFlow",
+      "label": "Template Category Flow",
+      "path": "src/content/template-category-flow.js"
+    },
+    {
+      "key": "templateFormFields",
+      "label": "Template Form Fields",
+      "path": "src/content/template-form-fields.js"
+    },
+    {
+      "key": "templateImageUpload",
+      "label": "Template Image Upload",
+      "path": "src/content/template-image-upload.js"
+    },
+    {
+      "key": "templateVerification",
+      "label": "Template Verification",
+      "path": "src/content/template-verification.js"
+    },
+    {
+      "key": "templatePublishFlow",
+      "label": "Template Publish Flow",
+      "path": "src/content/template-publish-flow.js"
+    },
+    {
+      "key": "templateFiller",
+      "label": "Template Fill Lifecycle Orchestrator",
+      "path": "src/content/template-filler.js"
+    },
+    {
+      "key": "inventoryRosterParser",
+      "label": "Inventory Roster Parser",
+      "path": "src/content/inventory-roster-parser.js"
+    },
+    {
+      "key": "inventoryReadiness",
+      "label": "Inventory Readiness",
+      "path": "src/content/inventory-readiness.js"
+    },
+    {
+      "key": "inventoryStatusOverlay",
+      "label": "Inventory Status / Failure Overlay",
+      "path": "src/content/inventory-status-overlay.js"
+    },
+    {
+      "key": "inventoryDeleteOperations",
+      "label": "Inventory Delete / Verification Operations",
+      "path": "src/content/inventory-delete-operations.js"
+    },
+    {
+      "key": "inventoryRunLoop",
+      "label": "Inventory Bulk / Reconciliation Run Loop",
+      "path": "src/content/inventory-run-loop.js"
+    },
+    {
+      "key": "inventoryRunner",
+      "label": "Inventory Runner Composition Facade",
+      "path": "src/content/inventory-runner.js"
+    },
+    {
+      "key": "publicApiManifest",
+      "label": "Runtime Public API Manifest",
+      "path": "coverage/public-api-manifest.json"
+    },
+    {
+      "key": "publicApiCoverage",
+      "label": "Dynamic Public API Coverage",
+      "path": "coverage/public-api-coverage.json"
+    },
+    {
+      "key": "lineCoverage",
+      "label": "Runtime Line Coverage",
+      "path": "coverage/line-coverage.json"
+    },
+    {
+      "key": "branchCoverage",
+      "label": "Runtime Branch Coverage",
+      "path": "coverage/branch-coverage.json"
+    },
+    {
+      "key": "coverageBaseline",
+      "label": "v1.23.19 Coverage Gold Baseline",
+      "path": "coverage/coverage-baseline-v1.23.19.json"
+    },
+    {
+      "key": "architectureAudit",
+      "label": "Runtime Architecture Audit",
+      "path": "coverage/architecture-audit.json"
+    },
+    {
+      "key": "safetyPublicApis",
+      "label": "Safety-Critical Public API Closure",
+      "path": "coverage/safety-critical-public-apis.json"
+    }
+  ],
+  "seriesFinal": false,
+  "performanceCases": [
+    {
+      "name": "IKEA Tischleuchte",
+      "images": 5
+    },
+    {
+      "name": "Weihnachtsfiguren",
+      "images": 11
+    },
+    {
+      "name": "Hartan Kinderwagen",
+      "images": 20
+    }
+  ],
+  "historicalPerformance": {
+    "1.20.3": {
+      "totalSeconds": 93.744,
+      "averageSeconds": 31.248
+    },
+    "1.21.15": {
+      "totalSeconds": 113.73,
+      "averageSeconds": 37.91
+    },
+    "1.22.30": {
+      "totalSeconds": 99.332,
+      "averageSeconds": 33.111
+    }
+  },
+  "directBasisNativeRed": false,
+  "performanceGoldlines": [
+    {
+      "label": "bestehende Referenzmessung",
+      "version": "1.23.20_c1",
+      "hardware": "Referenzrechner (nicht weiter hardwareidentifiziert)",
+      "diagnostic": "kleinanzeigen-renewal-diagnose-v1.23.20_c1-2026-10-01T12-56-58-181Z.zip",
+      "sha256": "787371086c563924ee5102c2c951689b0778711ca726a2c21ea485d782420f07",
+      "mode": "fast",
+      "totalSeconds": 61.277,
+      "averageSeconds": 20.426,
+      "result": "3/3 erfolgreich, 0 Warnungen, 0 Fehler"
+    },
+    {
+      "label": "alter Rechner",
+      "version": "1.23.20_c1",
+      "hardware": "alter Rechner (Zuordnung aus Nutzerangabe; Diagnose enthält keinen Hardware-Fingerprint)",
+      "diagnostic": "kleinanzeigen-renewal-diagnose-v1.23.20_c1-2026-10-01T15-27-28-779Z.zip",
+      "sha256": "7406e103c66f2203548dbe82ffb49525f2e9c6377b95e7d19b5d7d380a34bf31",
+      "mode": "fast",
+      "totalSeconds": 110.34,
+      "averageSeconds": 36.771,
+      "itemSeconds": [
+        35.512,
+        29.24,
+        45.56
+      ],
+      "result": "3/3 erfolgreich, 0 Warnungen, 0 Fehler"
+    }
+  ]
+}

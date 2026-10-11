@@ -1,0 +1,16 @@
+const fs=require('fs'),path=require('path'),assert=require('assert');
+const root=path.join(__dirname,'..');
+const manifest=JSON.parse(fs.readFileSync(path.join(root,'manifest.json'),'utf8'));
+const pkg=JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'));
+const progress=JSON.parse(fs.readFileSync(path.join(root,'architecture-progress-v1.23.7.json'),'utf8'));
+const pack=fs.readFileSync(path.join(root,'scripts/package.py'),'utf8');
+const bg=fs.readFileSync(path.join(root,'src/background/background.js'),'utf8');
+const service=fs.readFileSync(path.join(root,'src/background/services/diagnostic-export-service.js'),'utf8');
+let n=0;const pass=(name,fn)=>{fn();n++;console.log('PASS '+name)};
+pass('version stays on or after v1.23.7 architecture baseline',()=>{assert.ok(['1.23.7','1.23.8','1.23.9','1.23.10','1.23.11','1.23.12','1.23.13','1.23.14','1.23.15','1.23.16','1.23.17','1.23.18','1.23.19','1.23.20','1.23.22'].includes(manifest.version));assert.equal(pkg.version,manifest.version);assert.equal(pkg.displayVersion,manifest.version)});
+pass('diagnostic export service is packaged, imported and resolved in-process',()=>{assert(pack.includes("'src/background/services/diagnostic-export-service.js'"));assert(bg.includes('services/diagnostic-export-service.js'));assert.match(bg,/KRDeps\.require\('KRDiagnosticExportService'\)/);assert.match(service,/KRDeps\?\.register\?\.\('KRDiagnosticExportService'/)});
+pass('diagnostic export builder ownership moved out of background',()=>{assert.doesNotMatch(bg,/async function buildDiagnosticExport\s*\(/);assert.match(service,/async function buildDiagnosticExport\s*\(/);assert.match(bg,/requireDiagnosticExportService\(\)\.buildDiagnosticExport\(\)/)});
+pass('source layout records zero root JavaScript and all migrated files',()=>{const layout=JSON.parse(fs.readFileSync(path.join(root,'scripts/source-layout.json'),'utf8'));assert.equal(fs.readdirSync(root).filter(n=>n.endsWith('.js')).length,0);assert.ok(Object.keys(layout.mapping).length>=64);for(const target of Object.values(layout.mapping))assert.ok(fs.existsSync(path.join(root,target)),target)});
+pass('architecture metadata records v1.23.7 ownership and release-finalize requirements',()=>{assert.equal(progress.step,'diagnostic-export-service+source-layout');assert.equal(progress.diagnosticExportService,'src/background/services/diagnostic-export-service.js');assert.equal(progress.rootJavascriptFiles,0);assert.equal(progress.noNewRuntimeBoundary,true);assert.equal(progress.packagingClosureGuard,true);assert.equal(progress.declaredRuntimeReferenceClosure,true);assert.equal(progress.releaseFinalizeGate,true);assert.equal(progress.directBasis,'1.23.6');assert.equal(progress.directBasisNativeGreen,true)});
+pass('runtime safety has zero direct submit bypass recursively',()=>{const texts=[];const walk=d=>{for(const e of fs.readdirSync(d,{withFileTypes:true})){const p=path.join(d,e.name);if(e.isDirectory())walk(p);else if(e.name.endsWith('.js'))texts.push(fs.readFileSync(p,'utf8'));}};walk(path.join(root,'src'));const runtime=texts.join('\n');assert.equal((runtime.match(/\.submit\s*\(/g)||[]).length,0);assert.equal((runtime.match(/requestSubmit\s*\(/g)||[]).length,0)});
+console.log(`${n}/6 PASS v1.23.7 version architecture`);

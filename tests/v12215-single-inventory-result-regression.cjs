@@ -1,0 +1,10 @@
+const assert=require('assert'),fs=require('fs'),vm=require('vm');
+class C{constructor(){this.s=new Set()}add(...x){x.forEach(v=>this.s.add(v))}remove(...x){x.forEach(v=>this.s.delete(v))}toggle(n,v){v?this.s.add(n):this.s.delete(n)}}
+class N{constructor(tag='div'){this.tagName=tag;this.children=[];this.classList=new C();this.dataset={};this.style={};this.textContent='';this.attributes={};}append(...x){this.children.push(...x)}replaceChildren(...x){this.children=[...x]}setAttribute(k,v){this.attributes[k]=String(v)}querySelector(){return null}}
+const doc={createElement:t=>new N(t)};const resultDetails=new N();const regs={};
+const ctx={console,globalThis:null,module:{exports:{}},exports:{},document:doc};ctx.globalThis=ctx;ctx.KRDeps={register(n,a){regs[n]=a;}};vm.createContext(ctx);for(const file of ['src/app/inventory-candidate-model.js','src/app/inventory-capture-view.js','inventory-capture-controller.js']) vm.runInContext(fs.readFileSync(file,'utf8'),ctx);
+const api=ctx.KRInventoryCaptureController||regs.KRInventoryCaptureController;let derivedCalls=0;const view=regs.KRInventoryCaptureView.create({document:doc,elements:{inventoryCaptureResultDetails:resultDetails},categoryLabel:()=> 'Cat',artLabel:()=> 'Art',displayPriceWithType:()=> '10 €',endDateWithRelativeLabel:()=> '01.10.2026',listingDatePresentation:()=>({label:'Eingestellt am',derived:true}),listingDateLabel:()=> '01.09.2026',formatDate:()=> 'heute',appendDerivedListingDateBadge:(node,record)=>{derivedCalls++;const badge=doc.createElement('span');badge.textContent='Abgeleitet';node.append(badge);return node;}});const ctl=api.create({document:doc,elements:{inventoryCaptureResultDetails:resultDetails},normalizeRenewalMode:x=>x,accountGateModel:()=>({allowed:true}),inventoryCaptureView:view,inventoryCandidateModel:regs.KRInventoryCandidateModel});
+assert.doesNotThrow(()=>ctl.renderResultDetails({inventoryId:'1',adId:'1',title:'T',images:[],capturedAt:'x'}));
+assert.strictEqual(derivedCalls,1);
+assert.strictEqual(resultDetails.children.length,1);
+console.log('PASS single inventory successful result renders with explicit derived-date badge dependency');

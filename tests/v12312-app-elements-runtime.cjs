@@ -1,0 +1,11 @@
+const assert=require('assert'); const fs=require('fs'),vm=require('vm');
+const deps=new Map(); const KRDeps={register(n,v){deps.set(n,v);return v;},require(n){return deps.get(n)}};
+const ctx={globalThis:null,KRDeps,module:{exports:{}},Object,String,Error};ctx.globalThis=ctx;vm.createContext(ctx);
+vm.runInContext(fs.readFileSync('src/app/app-elements.js','utf8'),ctx);
+const api=deps.get('KRAppElements'); let n=0; const ok=(c,m)=>{assert.ok(c,m);n++;console.log('PASS',m)};
+const seen=[]; const doc={querySelector(sel){seen.push(sel);return {sel};}}; const result=api.collect(doc);
+ok(Object.keys(result.flat).length===235,'collects exactly 235 named DOM bindings');
+ok(seen.length===235 && new Set(seen).size===235,'queries each selector exactly once');
+ok(Object.keys(result.groups).length>=8,'exposes structured element groups');
+ok(result.flat.profileSelect?.sel==='#profileSelect' && result.flat.inventoryCaptureDone?.sel==='#inventoryCaptureDone' && result.flat.trashTemplateRestart?.sel==='#trashTemplateRestart' && result.flat.trashTemplateTarget?.sel==='#trashTemplateTarget','preserves canonical selector mapping including target-loss and explicit target-open recovery');
+console.log(`${n}/4 PASS v1.23.12 app elements runtime`);

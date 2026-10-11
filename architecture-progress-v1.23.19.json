@@ -1,0 +1,230 @@
+{
+  "version": "1.23.19",
+  "epic": "EPIC-REF-002",
+  "step": "architecture-cleanup-coverage-closure",
+  "goldBaseline": "1.21.15",
+  "directBasis": "1.23.18",
+  "directBasisTechnicalReleaseGreen": true,
+  "directBasisNativeGreen": true,
+  "before": {
+    "runtimeJsModules": 101,
+    "implementedPublicFunctions": 897,
+    "appLoc": 3325,
+    "backgroundLoc": 3199
+  },
+  "after": {
+    "runtimeJsModules": 100,
+    "implementedPublicFunctions": 805,
+    "publicFunctionsDynamicExecuted": 805,
+    "publicFunctionCoveragePercent": 100,
+    "appLoc": 3325,
+    "backgroundLoc": 3199
+  },
+  "publicPrivateAudit": {
+    "removedImplementedPublicFunctions": 92,
+    "removedDeadRuntimeModules": [
+      "src/content/inventory-source-policy.js"
+    ],
+    "remainingUnconsumedPublicExports": 0,
+    "scope": [
+      "app",
+      "background",
+      "content",
+      "shared"
+    ]
+  },
+  "architectureAudit": {
+    "schemaVersion": 1,
+    "runtimeModules": 100,
+    "providers": 94,
+    "roots": [
+      "src/app/account-gate.js",
+      "src/app/actions-diagnostics-controller.js",
+      "src/app/app-activity-center.js",
+      "src/app/app-elements.js",
+      "src/app/app-layout-controller.js",
+      "src/app/app.js",
+      "src/app/archive-insertion-ui-controller.js",
+      "src/app/archive-trash-insertion-ui-controller.js",
+      "src/app/control-accordion-controller.js",
+      "src/app/diagnostic-zip.js",
+      "src/app/diagnostics-controls-controller.js",
+      "src/app/inventory-candidate-model.js",
+      "src/app/inventory-capture-controller.js",
+      "src/app/inventory-capture-view.js",
+      "src/app/inventory-card-renderer.js",
+      "src/app/inventory-export.js",
+      "src/app/inventory-formatting.js",
+      "src/app/inventory-import.js",
+      "src/app/inventory-render-controller.js",
+      "src/app/inventory-view.js",
+      "src/app/mass-renewal-ui-controller.js",
+      "src/app/profile-account-ui-controller.js",
+      "src/app/profile-backup-controller.js",
+      "src/app/profile-backup-storage-service.js",
+      "src/app/profile-backup.js",
+      "src/app/record-card-view.js",
+      "src/app/renewal-dialog-controller.js",
+      "src/app/renewal-settings-controller.js",
+      "src/app/shared-ui-helpers.js",
+      "src/app/tab-page-inspection-controller.js",
+      "src/app/trash-card-renderer.js",
+      "src/app/trash-template-ui-controller.js",
+      "src/background/background.js",
+      "src/content/content.js",
+      "src/content/form-extractor.js",
+      "src/content/image-extractor.js",
+      "src/content/inventory-delete-operations.js",
+      "src/content/inventory-readiness.js",
+      "src/content/inventory-roster-parser.js",
+      "src/content/inventory-run-loop.js",
+      "src/content/inventory-runner.js",
+      "src/content/inventory-status-overlay.js",
+      "src/content/paid-insertion-guard.js",
+      "src/content/platform-guard-content.js",
+      "src/content/template-category-flow.js",
+      "src/content/template-filler.js",
+      "src/content/template-form-fields.js",
+      "src/content/template-image-upload.js",
+      "src/content/template-publish-flow.js",
+      "src/content/template-verification.js",
+      "src/popup/popup.js",
+      "src/shared/managed-navigation.js",
+      "src/shared/message-contract-registry.js",
+      "src/shared/my-ads-readiness.js",
+      "src/shared/platform-hardening.js",
+      "src/shared/renewal-policy.js",
+      "src/shared/runtime-deps.js"
+    ],
+    "reachable": 100,
+    "unreachable": [],
+    "missingDependencies": [],
+    "cycles": []
+  },
+  "coverageBaseline": {
+    "schemaVersion": 1,
+    "version": "1.23.19",
+    "publicFunctions": {
+      "covered": 805,
+      "total": 805,
+      "percent": 100
+    },
+    "lines": {
+      "covered": 10096,
+      "total": 24512,
+      "percent": 41.19
+    },
+    "branches": {
+      "covered": 5181,
+      "total": 23612,
+      "percent": 21.94
+    },
+    "areas": {
+      "app": {
+        "lines": {
+          "covered": 3846,
+          "total": 9077,
+          "percent": 42.37
+        },
+        "branches": {
+          "covered": 2037,
+          "total": 9098,
+          "percent": 22.39
+        },
+        "public": {
+          "covered": 328,
+          "total": 328,
+          "percent": 100
+        }
+      },
+      "background": {
+        "lines": {
+          "covered": 4544,
+          "total": 10761,
+          "percent": 42.23
+        },
+        "branches": {
+          "covered": 2431,
+          "total": 10588,
+          "percent": 22.96
+        },
+        "public": {
+          "covered": 377,
+          "total": 377,
+          "percent": 100
+        }
+      },
+      "content": {
+        "lines": {
+          "covered": 1279,
+          "total": 4189,
+          "percent": 30.53
+        },
+        "branches": {
+          "covered": 501,
+          "total": 3560,
+          "percent": 14.07
+        },
+        "public": {
+          "covered": 76,
+          "total": 76,
+          "percent": 100
+        }
+      },
+      "popup": {
+        "lines": {
+          "covered": 0,
+          "total": 20,
+          "percent": 0
+        },
+        "branches": {
+          "covered": 0,
+          "total": 10,
+          "percent": 0
+        },
+        "public": {
+          "covered": 0,
+          "total": 0,
+          "percent": 100
+        }
+      },
+      "shared": {
+        "lines": {
+          "covered": 427,
+          "total": 465,
+          "percent": 91.83
+        },
+        "branches": {
+          "covered": 212,
+          "total": 356,
+          "percent": 59.55
+        },
+        "public": {
+          "covered": 24,
+          "total": 24,
+          "percent": 100
+        }
+      }
+    },
+    "note": "Gold baseline established by v1.23.19 after global public-vs-private audit. Future release coverage must keep public-function coverage at 100% and not regress aggregate or area line/branch percentages."
+  },
+  "safetyCriticalPublicApiCount": 15,
+  "files": {
+    "src/app/app.js": {
+      "loc": 3325,
+      "bytes": 172787,
+      "sha256": "8f1f8bac1bad369bf8155e9d3d35201f45b0b55efc56a8dabe609cc11bbd8cdd"
+    },
+    "src/background/background.js": {
+      "loc": 3199,
+      "bytes": 188816,
+      "sha256": "a19fff0d98749e7e97cbca42f0c4e7fb819e6553327baee1465b43d3faf71077"
+    }
+  },
+  "noNewRuntimeBoundary": true,
+  "newRuntimeMessageType": false,
+  "publishSubmitBypassCalls": 0,
+  "nextPlannedBuild": "1.23.20",
+  "nextPlannedBuildGoal": "Finaler Gesamt-Soak / Gold-Parität / Safety / Reproduzierbarkeit / realer 3er-Performance-Lauf",
+  "performanceGateVersion": "1.23.20"
+}

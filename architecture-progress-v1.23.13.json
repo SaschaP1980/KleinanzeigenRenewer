@@ -1,0 +1,33 @@
+{
+  "version": "1.23.13",
+  "epic": "EPIC-REF-002",
+  "step": "inventory-capture-internal-split",
+  "goldBaseline": "1.21.15",
+  "directBasis": "1.23.12_c1",
+  "directBasisNativeGreen": true,
+  "inventoryCaptureControllerLoc": 709,
+  "inventoryCaptureViewLoc": 290,
+  "inventoryCandidateModelLoc": 77,
+  "inventoryCaptureLifecycleOwner": "src/app/inventory-capture-controller.js",
+  "newModules": [
+    "src/app/inventory-capture-view.js",
+    "src/app/inventory-candidate-model.js"
+  ],
+  "candidateModelPureStateless": true,
+  "captureViewOwnsDomCreation": true,
+  "noNewRuntimeBoundary": true,
+  "packagingClosureGuard": true,
+  "declaredRuntimeReferenceClosure": true,
+  "releaseFinalizeGate": true,
+  "shortNonBlockingStatusPolls": true,
+  "fiveMinuteChatHeartbeat": true,
+  "selfContainedReleaseClosure": true,
+  "detachedReleaseSupervisor": true,
+  "sourceDirtyInvalidation": true,
+  "preReleaseSourceCheckpoint": true,
+  "streamTimeoutSeparateFromGateStatus": true,
+  "externalInProgressRecoveryCheckpoints": true,
+  "discardExternalIntermediateCheckpointsAfterReleaseGreen": true,
+  "finalReleaseBecomesRecoveryAuthority": true,
+  "performanceGateVersion": "1.23.20"
+}

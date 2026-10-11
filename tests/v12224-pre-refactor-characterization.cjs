@@ -1,0 +1,12 @@
+const fs=require('fs'),assert=require('assert');
+const bg=fs.readFileSync('background.js','utf8')+'\n'+fs.readFileSync('background-message-router.js','utf8');
+const content=fs.readFileSync('content.js','utf8');
+const runner=fs.readFileSync('inventory-runner.js','utf8');
+const app=fs.readFileSync('app.js','utf8');
+let n=0; const ok=(name,fn)=>{fn();n++;console.log('PASS',name)};
+ok('background router retains representative request contracts',()=>{for(const t of ['RESET_ACTIVE_WORKFLOWS','CAPTURE_SINGLE_INVENTORY','BULK_INIT_RUN','START_TEMPLATE_FILL','FINISH_RENEWAL_REPLACEMENT','GET_DIAGNOSTIC_EXPORT']) assert.ok(bg.includes(`message?.type === "${t}"`)||bg.includes(`message?.type === '${t}'`)||bg.includes(`"${t}": Object.freeze`),t)});
+ok('content router retains representative tab contracts',()=>{for(const t of ['KR_CONTENT_READY','PAGE_STATUS','INVENTORY_CANDIDATE_PREVIEW','EXTRACT_CURRENT_AD']) assert.ok(content.includes(t),t)});
+ok('my-ads router retains mutation and verification contracts',()=>{for(const t of ['DELETE_OWN_AD_BY_ID','VERIFY_OWN_AD_ABSENT_BY_ID','MY_ADS_STATUS']) assert.ok(runner.includes(t),t)});
+ok('app retains inventory-data broadcast listener',()=>assert.match(app,/INVENTORY_DATA_CHANGED/));
+ok('unknown background requests remain fail-closed',()=>assert.match(bg,/throw new Error\(['\"]Unbekannte Erweiterungsanfrage['\"]\)/));
+console.log(`${n}/${n} PASS v1.22.24 pre-refactor characterization`);

@@ -1,0 +1,16 @@
+const fs=require('fs'),assert=require('assert');
+const read=p=>fs.existsSync(p)?fs.readFileSync(p,'utf8'):'';
+const app=read('src/app/app.js');
+const accordion=app+'\n'+read('src/app/control-accordion-controller.js');
+const settings=app+'\n'+read('src/app/renewal-settings-controller.js');
+const diagnostics=app+'\n'+read('src/app/diagnostics-controls-controller.js');
+let n=0; const p=(l,f)=>{f();n++;console.log('PASS '+l)};
+p('accordion preserves controlled and native open semantics',()=>{for(const t of ['readOpen','writeOpen','effectiveOpen','setOpen','UI_ACTIONS_ACCORDION_TOGGLE_REQUESTED'])assert.ok(accordion.includes(t)||accordion.includes(t.replace('controlAccordion','')),t)});
+p('accordion stale-state recovery remains bounded',()=>{assert.match(accordion,/700/);assert.match(accordion,/UI_ACTIONS_ACCORDION_STALE_STATE_RECOVERED/);assert.match(accordion,/UI_ACTIONS_ACCORDION_WATCHDOG_RECOVERED/)});
+p('accordion diagnostics expose geometry and animation state',()=>{for(const t of ['panelScrollHeight','panelClientHeight','storedAnimation','webAnimations'])assert.ok(accordion.includes(t),t)});
+p('renewal settings preserve safe-fast acknowledgement gate',()=>{assert.match(settings,/Schnellprüfung aktivieren\?/);assert.match(settings,/SET_RENEWAL_MODE/);assert.match(settings,/fastModeAcknowledged/)});
+p('renewal settings preserve bounded phase attempts',()=>{assert.match(settings,/Math\.min\(5, Math\.max\(1/);assert.match(settings,/SET_RENEWAL_PHASE_ATTEMPTS/);assert.match(settings,/USER_RENEWAL_PHASE_ATTEMPTS_CHANGED/)});
+p('diagnostic reset remains fail-closed during active work',()=>{for(const alternatives of [['profileTransferLocked'],['insertionLockActive'],['bulkStartInFlight','startInFlight'],['singleInventoryCaptureBusy','singleInventoryBusy']])assert.ok(alternatives.some(t=>diagnostics.includes(t)),alternatives.join('|'));assert.match(diagnostics,/RESET_DIAGNOSTICS/)});
+p('diagnostic export preserves zip and result logging',()=>{assert.match(diagnostics,/GET_DIAGNOSTIC_EXPORT/);assert.match(diagnostics,/DiagnosticZip\.createZip/);assert.match(diagnostics,/USER_DIAGNOSTIC_ZIP_SUCCEEDED/);assert.match(diagnostics,/USER_DIAGNOSTIC_ZIP_FAILED/)});
+p('emergency workflow reset remains two-step guarded',()=>{assert.match(diagnostics,/Zur Bestätigung erneut klicken/);assert.match(diagnostics,/emergencyWorkflowResetConfirmUntil|emergencyConfirmUntil/);assert.match(diagnostics,/RESET_ACTIVE_WORKFLOWS/);assert.match(diagnostics,/USER_ACTIVE_WORKFLOWS_RESET_SUCCEEDED/)});
+console.log(`${n}/${n} PASS v1.23.9 pre-refactor characterization`);

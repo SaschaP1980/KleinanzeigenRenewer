@@ -1,0 +1,12 @@
+const fs=require('node:fs'); const assert=require('node:assert/strict');
+const app=fs.readFileSync('app.js','utf8'); let n=0; const pass=l=>{n++;console.log('PASS '+l);};
+const fnStart=app.indexOf('function refreshRenderedAccountBoundControls'); const fnEnd=app.indexOf('\nfunction scopedProfileMessage',fnStart); assert.ok(fnStart>=0&&fnEnd>fnStart);
+const fn=app.slice(fnStart,fnEnd);
+assert.match(fn,/\{\s*force\s*=\s*false\s*\}/); pass('account-bound card refresh supports an explicit force path');
+assert.match(fn,/if \(!force && String\(previousKey/); pass('unchanged view keys are skipped only when force is false');
+const inspectStart=app.indexOf('async function performInspectPage'); const inspectEnd=app.indexOf('\nfunction inspectPage',inspectStart); const inspect=app.slice(inspectStart,inspectEnd);
+assert.match(inspect,/refreshRenderedAccountBoundControls\(previousViewKey, lastInspectViewKey, \{ force: !background \}\)/); pass('foreground account checks force account-bound controls to resync even when view key is unchanged');
+const refreshStart=app.indexOf("refreshButton.addEventListener('click'"); const refreshEnd=app.indexOf('\nfunction requireDiagnosticsControlsController',refreshStart); assert.ok(refreshStart>=0&&refreshEnd>refreshStart); const refresh=app.slice(refreshStart,refreshEnd);
+assert.doesNotMatch(refresh,/Promise\.all\(\[inspectPage\(\), refreshInventories\(\)\]\)/); pass('manual refresh no longer races account inspection against inventory rendering');
+assert.match(refresh,/await inspectPage\(\{ forceFresh: true \}\)[\s\S]*await refreshInventories\(\)/); pass('manual refresh completes fresh account inspection before rendering inventory');
+console.log(`${n} v1.17.9 refresh/account-gate groups passed`);

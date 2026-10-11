@@ -1,0 +1,240 @@
+{
+  "version": "1.23.20",
+  "epic": "EPIC-REF-002",
+  "step": "final-soak-gold-parity-safety-reproducibility-performance-closure",
+  "goldBaseline": "1.21.15",
+  "directBasis": "1.23.19",
+  "directBasisTechnicalReleaseGreen": true,
+  "directBasisNativeGreen": true,
+  "runtimePolicy": "No new runtime refactor in v1.23.20; src/**/*.js must remain byte-identical to v1.23.19.",
+  "runtimeIdentity": {
+    "runtimeJsModules": 100,
+    "implementedPublicFunctions": 805,
+    "srcJsTreeSha256": "3d656de0a061a702b10738bd7bfa94b112eb09fd8c7b2dee1eaad1797f1313f0",
+    "appLoc": 3325,
+    "appSha256": "8f1f8bac1bad369bf8155e9d3d35201f45b0b55efc56a8dabe609cc11bbd8cdd",
+    "backgroundLoc": 3199,
+    "backgroundSha256": "a19fff0d98749e7e97cbca42f0c4e7fb819e6553327baee1465b43d3faf71077"
+  },
+  "coverageBaseline": {
+    "schemaVersion": 1,
+    "version": "1.23.19",
+    "publicFunctions": {
+      "covered": 805,
+      "total": 805,
+      "percent": 100
+    },
+    "lines": {
+      "covered": 10096,
+      "total": 24512,
+      "percent": 41.19
+    },
+    "branches": {
+      "covered": 5181,
+      "total": 23612,
+      "percent": 21.94
+    },
+    "areas": {
+      "app": {
+        "lines": {
+          "covered": 3846,
+          "total": 9077,
+          "percent": 42.37
+        },
+        "branches": {
+          "covered": 2037,
+          "total": 9098,
+          "percent": 22.39
+        },
+        "public": {
+          "covered": 328,
+          "total": 328,
+          "percent": 100
+        }
+      },
+      "background": {
+        "lines": {
+          "covered": 4544,
+          "total": 10761,
+          "percent": 42.23
+        },
+        "branches": {
+          "covered": 2431,
+          "total": 10588,
+          "percent": 22.96
+        },
+        "public": {
+          "covered": 377,
+          "total": 377,
+          "percent": 100
+        }
+      },
+      "content": {
+        "lines": {
+          "covered": 1279,
+          "total": 4189,
+          "percent": 30.53
+        },
+        "branches": {
+          "covered": 501,
+          "total": 3560,
+          "percent": 14.07
+        },
+        "public": {
+          "covered": 76,
+          "total": 76,
+          "percent": 100
+        }
+      },
+      "popup": {
+        "lines": {
+          "covered": 0,
+          "total": 20,
+          "percent": 0
+        },
+        "branches": {
+          "covered": 0,
+          "total": 10,
+          "percent": 0
+        },
+        "public": {
+          "covered": 0,
+          "total": 0,
+          "percent": 100
+        }
+      },
+      "shared": {
+        "lines": {
+          "covered": 427,
+          "total": 465,
+          "percent": 91.83
+        },
+        "branches": {
+          "covered": 212,
+          "total": 356,
+          "percent": 59.55
+        },
+        "public": {
+          "covered": 24,
+          "total": 24,
+          "percent": 100
+        }
+      }
+    },
+    "note": "Gold baseline established by v1.23.19 after global public-vs-private audit. Future release coverage must keep public-function coverage at 100% and not regress aggregate or area line/branch percentages."
+  },
+  "architectureAudit": {
+    "schemaVersion": 1,
+    "runtimeModules": 100,
+    "providers": 94,
+    "roots": [
+      "src/app/account-gate.js",
+      "src/app/actions-diagnostics-controller.js",
+      "src/app/app-activity-center.js",
+      "src/app/app-elements.js",
+      "src/app/app-layout-controller.js",
+      "src/app/app.js",
+      "src/app/archive-insertion-ui-controller.js",
+      "src/app/archive-trash-insertion-ui-controller.js",
+      "src/app/control-accordion-controller.js",
+      "src/app/diagnostic-zip.js",
+      "src/app/diagnostics-controls-controller.js",
+      "src/app/inventory-candidate-model.js",
+      "src/app/inventory-capture-controller.js",
+      "src/app/inventory-capture-view.js",
+      "src/app/inventory-card-renderer.js",
+      "src/app/inventory-export.js",
+      "src/app/inventory-formatting.js",
+      "src/app/inventory-import.js",
+      "src/app/inventory-render-controller.js",
+      "src/app/inventory-view.js",
+      "src/app/mass-renewal-ui-controller.js",
+      "src/app/profile-account-ui-controller.js",
+      "src/app/profile-backup-controller.js",
+      "src/app/profile-backup-storage-service.js",
+      "src/app/profile-backup.js",
+      "src/app/record-card-view.js",
+      "src/app/renewal-dialog-controller.js",
+      "src/app/renewal-settings-controller.js",
+      "src/app/shared-ui-helpers.js",
+      "src/app/tab-page-inspection-controller.js",
+      "src/app/trash-card-renderer.js",
+      "src/app/trash-template-ui-controller.js",
+      "src/background/background.js",
+      "src/content/content.js",
+      "src/content/form-extractor.js",
+      "src/content/image-extractor.js",
+      "src/content/inventory-delete-operations.js",
+      "src/content/inventory-readiness.js",
+      "src/content/inventory-roster-parser.js",
+      "src/content/inventory-run-loop.js",
+      "src/content/inventory-runner.js",
+      "src/content/inventory-status-overlay.js",
+      "src/content/paid-insertion-guard.js",
+      "src/content/platform-guard-content.js",
+      "src/content/template-category-flow.js",
+      "src/content/template-filler.js",
+      "src/content/template-form-fields.js",
+      "src/content/template-image-upload.js",
+      "src/content/template-publish-flow.js",
+      "src/content/template-verification.js",
+      "src/popup/popup.js",
+      "src/shared/managed-navigation.js",
+      "src/shared/message-contract-registry.js",
+      "src/shared/my-ads-readiness.js",
+      "src/shared/platform-hardening.js",
+      "src/shared/renewal-policy.js",
+      "src/shared/runtime-deps.js"
+    ],
+    "reachable": 100,
+    "unreachable": [],
+    "missingDependencies": [],
+    "cycles": []
+  },
+  "safetyCriticalPublicApiCount": 15,
+  "technicalClosure": {
+    "dynamicPublicFunctionCoverageRequiredPercent": 100,
+    "lineBranchNoRegressionAgainst": "1.23.19",
+    "build1EqualsBuild2EqualsFreshRequired": true,
+    "packagedBrowserE2ERequired": true,
+    "freshSourcePackagedBrowserE2ERequired": true,
+    "sha256SumsSelfContainedRequired": true,
+    "releaseFinalizeRequired": true
+  },
+  "nativeFinalClosure": {
+    "longDiagnosticSoakRequired": true,
+    "performanceRunRequired": true,
+    "diagnosticsResetBeforePerformance": true,
+    "diagnosticsExportImmediatelyAfterPerformance": true,
+    "performanceCases": [
+      {
+        "name": "IKEA Tischleuchte",
+        "images": 5
+      },
+      {
+        "name": "Weihnachtsfiguren",
+        "images": 11
+      },
+      {
+        "name": "Hartan Kinderwagen",
+        "images": 20
+      }
+    ],
+    "historicalComparisonSeconds": {
+      "1.20.3": {
+        "total": 93.744,
+        "average": 31.248
+      },
+      "1.21.15": {
+        "total": 113.73,
+        "average": 37.91
+      },
+      "1.22.30": {
+        "total": 99.332,
+        "average": 33.111
+      }
+    }
+  },
+  "seriesFinal": true,
+  "nextPlannedBuild": null
+}

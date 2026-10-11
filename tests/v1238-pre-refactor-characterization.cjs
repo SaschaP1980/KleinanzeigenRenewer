@@ -1,0 +1,18 @@
+const fs=require('fs'),assert=require('assert'),path=require('path');
+const root=process.cwd();
+const read=p=>fs.readFileSync(path.join(root,p),'utf8');
+const existing=p=>fs.existsSync(path.join(root,p))?read(p):'';
+const bg=read('src/background/background.js');
+const account=[bg,existing('src/background/controllers/account-session-controller.js'),read('src/background/services/account-probe-service.js')].join('\n');
+const profile=[bg,existing('src/background/controllers/profile-management-controller.js'),read('src/background/repositories/profile-repository.js')].join('\n');
+let n=0; const pass=(l,f)=>{f();n++;console.log('PASS '+l)};
+pass('account diagnostic snapshot preserves bounded gate fields',()=>{for(const token of ['accountState','gateKind','allowed','selectedProfileId','liveProfileId','reason','source','generation','confirmedAt'])assert.ok(account.includes(token),token);assert.match(account,/ACCOUNT_GATE_DIAGNOSTIC_STATE_KEY|accountGateDiagnosticStateKey/)});
+pass('live account probe remains retry bounded and target-bound',()=>{assert.match(account,/maxAttempts/);assert.match(account,/waitForExpectedTabComplete/);assert.match(account,/ACCOUNT_PROBE_ATTEMPT_UNAVAILABLE/);assert.match(account,/LIVE_ACCOUNT_PROBE_TRANSIENT_UNAVAILABLE/)});
+pass('account-bound actions require concrete selected profile and matching live identity',()=>{assert.match(account,/Wähle zuerst ein konkretes Inventarprofil aus/);assert.match(account,/Das ausgewählte Inventarprofil wurde nicht gefunden/);assert.match(account,/stimmt nicht mit dem angemeldeten Kleinanzeigen-Konto/);assert.match(account,/ACCOUNT_BOUND_ACTION_ALLOWED/)});
+pass('profile state counts active trash and unassigned inventory and exposes active bulk owner',()=>{assert.match(profile,/unassignedInventoryCount/);assert.match(profile,/unassignedTrashCount/);assert.match(profile,/inventoryCount/);assert.match(profile,/trashCount/);assert.match(profile,/activeBulkProfileId/)});
+pass('invalid selected profile falls back deterministically and persists automatic selection',()=>{assert.match(profile,/selectedValid/);assert.match(profile,/setSelected\([^\n]*automatic/);assert.match(profile,/clearSelected/)});
+pass('manual profile selection validates unassigned and known profile identity',()=>{assert.match(profile,/Es gibt keine nicht zugeordneten Inventareinträge/);assert.match(profile,/Das ausgewählte Profil wurde nicht gefunden/);assert.match(profile,/PROFILE_VIEW_SELECTED/);assert.match(profile,/profile-selected/)});
+pass('profile backup import retains conflict and active-work safety gates',()=>{assert.match(profile,/mehreren lokalen Profilidentitäten/);assert.match(profile,/laufenden Erfassung/);assert.match(profile,/Renewal-Vorgang aktiv/);assert.match(profile,/Massen-Neuinserats/);assert.match(profile,/PROFILE_BACKUP_IMPORTED/)});
+pass('profile deletion blocks active renewal and bulk work before unassigning inventory',()=>{assert.match(profile,/aktiver Renewal-Vorgang/);assert.match(profile,/Für dieses Profil läuft noch eine Erfassung/);assert.match(profile,/unassignProfileRecords/);assert.match(profile,/PROFILE_DELETED/)});
+pass('profile recognition preserves manual selection and legacy assignment is explicit',()=>{assert.match(profile,/selectedProfileSource[^\n]*manual/);assert.match(profile,/PROFILE_RECOGNIZED/);assert.match(profile,/assignUnassignedRecords/);assert.match(profile,/PROFILE_LEGACY_INVENTORY_ASSIGNED/)});
+console.log(`${n}/9 PASS v1.23.8 pre-refactor characterization`);

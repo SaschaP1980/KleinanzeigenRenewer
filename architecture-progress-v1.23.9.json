@@ -1,0 +1,17 @@
+{
+  "version": "1.23.9",
+  "epic": "EPIC-REF-002",
+  "step": "control-accordion+diagnostics-controls+renewal-settings-controllers",
+  "controlAccordionController": "src/app/control-accordion-controller.js",
+  "diagnosticsControlsController": "src/app/diagnostics-controls-controller.js",
+  "renewalSettingsController": "src/app/renewal-settings-controller.js",
+  "noNewRuntimeBoundary": true,
+  "packagingClosureGuard": true,
+  "declaredRuntimeReferenceClosure": true,
+  "releaseFinalizeGate": true,
+  "goldBaseline": "1.21.15",
+  "directBasis": "1.23.8",
+  "directBasisNativeGreen": true,
+  "uiSafetySemanticsPreserved": true,
+  "releasePipelineChained": true
+}

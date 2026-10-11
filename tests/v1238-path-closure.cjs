@@ -1,0 +1,9 @@
+const assert=require('assert'),fs=require('fs'),path=require('path'),posix=path.posix;
+const manifest=JSON.parse(fs.readFileSync('manifest.json'));const pack=fs.readFileSync('scripts/package.py','utf8');
+const runtime=new Set([...pack.matchAll(/'([^']+)'/g)].map(m=>m[1]).filter(x=>x.endsWith('.js')||['manifest.json','app.html','popup.html'].includes(x)));
+let n=0;const pass=(l,f)=>{f();n++;console.log('PASS '+l)};
+pass('source root remains free of JavaScript files',()=>assert.deepEqual(fs.readdirSync('.').filter(x=>x.endsWith('.js')),[]));
+pass('both v1.23.8 controllers are packaged',()=>{for(const f of ['src/background/controllers/account-session-controller.js','src/background/controllers/profile-management-controller.js']){assert.ok(fs.existsSync(f),f);assert.ok(runtime.has(f),f)}});
+pass('background importScripts closure includes both controllers',()=>{const worker=manifest.background.service_worker,s=fs.readFileSync(worker,'utf8');for(const wanted of ['controllers/profile-management-controller.js','controllers/account-session-controller.js'])assert.ok(s.includes(wanted),wanted);for(const call of s.matchAll(/importScripts\s*\(([^)]*)\)/gs)){for(const q of call[1].matchAll(/["']([^"']+)["']/g)){const ref=posix.normalize(posix.join(posix.dirname(worker),q[1]));assert.ok(fs.existsSync(ref),ref);assert.ok(runtime.has(ref),ref);}}});
+pass('runtime source stays recursively submit-bypass free',()=>{const text=[...function* walk(d){for(const e of fs.readdirSync(d,{withFileTypes:true})){const p=path.join(d,e.name);if(e.isDirectory())yield* walk(p);else if(e.name.endsWith('.js'))yield fs.readFileSync(p,'utf8')}}('src')].join('\n');assert.equal((text.match(/\.submit\s*\(/g)||[]).length,0);assert.equal((text.match(/requestSubmit\s*\(/g)||[]).length,0)});
+console.log(`${n}/4 PASS v1.23.8 path closure`);
