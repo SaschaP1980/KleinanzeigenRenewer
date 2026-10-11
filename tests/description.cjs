@@ -3,7 +3,7 @@ const vm=require('node:vm'),fs=require('node:fs'),path=require('node:path'),asse
 function capture(html, description='FLAT STRUCTURED TEXT') {
  const {document}=parseHTML(`<html><head><script type="application/ld+json">${JSON.stringify({'@type':'Product',description})}</script></head><body><a href="/bearbeiten">Anzeige bearbeiten</a><h1>Test</h1>${html}</body></html>`);
  let listener;
- const context={document,location:{href:'https://www.kleinanzeigen.de/s-anzeige/test/123-456-789',pathname:'/s-anzeige/test/123-456-789'},KRImages:{extract:()=>({images:[{url:'test'}],diagnostics:{}})},chrome:{runtime:{onMessage:{addListener:f=>listener=f}}}};
+ const context={document,location:{href:'https://www.kleinanzeigen.de/s-anzeige/test/123-456-789',pathname:'/s-anzeige/test/123-456-789'},KRImages:{extract:()=>({images:[{url:'test'}],diagnostics:{}})},chrome:{runtime:{onMessage:{addListener:f=>listener=f},sendMessage(_message,callback){callback?.({ok:true,result:{active:false}})}}}};
  vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../content.js'),'utf8'),context);
  let response;listener({type:'EXTRACT_CURRENT_AD'},null,r=>response=r);assert.equal(response.ok,true,response.error);return response.result;
 }
