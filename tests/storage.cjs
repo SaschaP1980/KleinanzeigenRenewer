@@ -8,6 +8,7 @@ const context = vm.createContext({indexedDB, IDBKeyRange, crypto:require('node:c
  chrome:{storage:{local:{get:async()=>({}),set:async()=>{}},session:{get:async()=>({...__session}),set:async patch=>Object.assign(__session,patch)}}, runtime:{onMessage:{addListener(){}}}}, importScripts(){}});
 vm.runInContext(fs.readFileSync(path.join(__dirname,'../tab-registry.js'),'utf8'),context);
 vm.runInContext(fs.readFileSync(path.join(__dirname,'../diagnostics-service.js'),'utf8'),context);
+vm.runInContext(fs.readFileSync(path.join(__dirname,'../inventory-repository.js'),'utf8'),context);
 vm.runInContext(fs.readFileSync(path.join(__dirname,'../background.js'),'utf8'),context);
 const ad = images => ({adId:'123',title:'New',description:'Absatz 1.\n\n- Farbe: grau\n\nAbsatz 3.',images:images.map(url=>({url})),warnings:[]});
 context.downloadInventoryImage=async source=>{const url=typeof source==='string'?source:source.url;return {blob:new Blob([url],{type:'image/jpeg'}),size:url.length,mimeType:'image/jpeg',sourceUrl:url,fetchedUrl:url}};
