@@ -38,21 +38,26 @@ jobs:
           CI_RUN_ID: ${{ github.event.workflow_run.id }}
         shell: bash
         run: |
-          set -euo pipefail
-          BASE_SHA='524d77b131acf06b7ee212201677bd9d877c79a9'
-          AUTH_MESSAGE='release: trigger owner-authorized KAR v1.23.22 fast'
+          set -Eeuo pipefail
+          trap 'rc=$?; echo "KAR18_DISPATCH_PRECHECK_FAILED rc=$rc line=$LINENO command=$BASH_COMMAND" >&2' ERR
+          BASE_SHA='81d01699afe1f7471c69fb23782631980f03a25b'
+          AUTH_MESSAGE='release: retry one-time owner-authorized KAR v1.23.22 fast'
           git init -q audit
           cd audit
           git remote add origin "https://github.com/$GITHUB_REPOSITORY.git"
           git fetch --no-tags --depth=2 origin "$HEAD_SHA"
           test "$(git rev-parse FETCH_HEAD)" = "$HEAD_SHA"
+          echo 'KAR18_CHECKPOINT_FETCH_OK'
           test "$(git show -s --format=%P "$HEAD_SHA")" = "$BASE_SHA"
           test "$(git show -s --format=%s "$HEAD_SHA")" = "$AUTH_MESSAGE"
+          echo 'KAR18_CHECKPOINT_IDENTITY_OK'
           test "$(git diff-tree --no-commit-id --name-only -r "$HEAD_SHA")" = '.github/workflows/kar-release-dispatch-once.yml'
+          echo 'KAR18_CHECKPOINT_DIFF_OK'
           test "$(git show "$HEAD_SHA:manifest.json" | jq -r '.version')" = '1.23.22'
           test "$(git show "$HEAD_SHA:package.json" | jq -r '.version')" = '1.23.22'
           test "$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)" = "$HEAD_SHA"
           test "$(gh api "repos/$GITHUB_REPOSITORY/issues/18" --jq .state)" = 'open'
+          echo 'KAR18_CHECKPOINT_REPO_ISSUE_OK'
           if gh release view v1.23.22 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo 'v1.23.22 already published; one-shot dispatch blocked.' >&2
             exit 1
@@ -64,6 +69,7 @@ jobs:
             .event == "push" and .status == "completed" and
             .conclusion == "success"
           ' <<< "$CI" >/dev/null
+          echo 'KAR18_CHECKPOINT_CI_OBJECT_OK'
           JOBS="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$CI_RUN_ID/jobs?per_page=100")"
           jq -e '[.jobs[] | select(.conclusion == "success" and
               .name == "Runtime, safety, coverage, Chrome ZIP and packaged browser E2E" and
@@ -71,9 +77,11 @@ jobs:
                                     .name == "Build installable Chrome ZIP" or
                                     .name == "Packaged browser E2E (local fixtures only)") |
                 .conclusion] == ["success","success","success"]))] | length == 1' <<< "$JOBS" >/dev/null
+          echo 'KAR18_CHECKPOINT_CI_JOBS_OK'
           PREVIOUS="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/kar-release.yml/runs?per_page=100" \
             --jq "[.workflow_runs[]|select(.head_sha==\"$HEAD_SHA\" and .event==\"workflow_dispatch\")]|length")"
           test "$PREVIOUS" = '0' || { echo "A release dispatch already exists for $HEAD_SHA" >&2; exit 1; }
+          echo 'KAR18_CHECKPOINT_PREVIOUS_DISPATCH_NONE'
           test "$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)" = "$HEAD_SHA"
           echo "KAR18_RELEASE_DISPATCH_AUTHORIZED sha=$HEAD_SHA ci=$CI_RUN_ID"
       - name: Dispatch exactly one manual-contract Fast release
