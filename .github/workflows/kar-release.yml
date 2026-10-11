@@ -121,18 +121,10 @@ jobs:
       - name: Publish one lean GitHub Release asset
         env:
           GH_TOKEN: ${{ github.token }}
+          MODE: ${{ inputs.mode }}
         shell: bash
         run: |
           set -euo pipefail
           NOTES="$RUNNER_TEMP/release-notes.md"
-          {
-            echo "Kleinanzeigen Renewer v$VERSION"
-            echo
-            echo "- Source authority: Git commit `$GITHUB_SHA`"
-            echo "- Development path: `${{ inputs.mode }}`"
-            echo "- Chrome ZIP bytes: `$ZIP_BYTES`"
-            echo "- Chrome ZIP SHA-256: `$ZIP_SHA256`"
-            echo "- Dynamic Public Function Coverage: mandatory 100% gate passed"
-            echo "- Native real-account smoke: not performed by hosted CI"
-          } > "$NOTES"
+          bash scripts/release-notes.sh > "$NOTES"
           gh release create "v$VERSION" "$ZIP"             --target "$GITHUB_SHA"             --title "Kleinanzeigen Renewer v$VERSION"             --notes-file "$NOTES"
