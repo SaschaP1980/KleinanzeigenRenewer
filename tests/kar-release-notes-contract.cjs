@@ -31,4 +31,5 @@ assert.match(release,/bash scripts\/release-notes\.sh > "\$NOTES"/);
 assert.match(release,/Publish one lean GitHub Release asset\s*\n\s*env:\s*\n\s*GH_TOKEN:\s*\$\{\{ github\.token \}\}\s*\n\s*MODE:\s*\$\{\{ inputs\.mode \}\}/);
 assert.match(release,/gh release create "v\$VERSION"/);
 assert.ok(!fs.existsSync(path.join(root,'.github/workflows/kar-release-dispatch-once.yml')),'the consumed owner-release dispatcher must be removed');
+assert.ok(!fs.existsSync(path.join(root,'.github/workflows/kar-release-notes-repair-once.yml')),'the single-use release-notes repair workflow must be removed after verified metadata correction');
 console.log('PASS release notes: literal SHA/path/size/digest, 5 fail-closed inputs, publisher wiring, one-shot dispatcher removed');
