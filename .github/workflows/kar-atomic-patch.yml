@@ -1,0 +1,76 @@
+name: KAR reusable atomic PATCH Work builder
+
+on:
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: Open KAR issue owning work/KAR-N
+        required: true
+        type: string
+      expected_work_sha:
+        description: Exact Work HEAD SHA (40 lowercase hex)
+        required: true
+        type: string
+      expected_main_sha:
+        description: Pinned authorized main SHA (40 lowercase hex)
+        required: true
+        type: string
+
+concurrency:
+  group: kar-atomic-patch-${{ inputs.issue_number }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: read
+
+jobs:
+  atomic_patch:
+    name: Exact-SHA one-shot Work PATCH ZIP
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.expected_work_sha }}
+          fetch-depth: 0
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install pinned packages
+        run: npm ci
+      - name: Issue, SHA, main and canonical comment preflight
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ inputs.issue_number }}
+          WORK_SHA: ${{ inputs.expected_work_sha }}
+          MAIN_SHA: ${{ inputs.expected_main_sha }}
+        run: |
+          set -euo pipefail
+          [[ "$ISSUE_NUMBER" =~ ^[1-9][0-9]*$ ]]
+          [[ "$WORK_SHA" =~ ^[a-f0-9]{40}$ ]]
+          [[ "$MAIN_SHA" =~ ^[a-f0-9]{40}$ ]]
+          test "$GITHUB_REF_NAME" = "work/KAR-$ISSUE_NUMBER"
+          test "$GITHUB_SHA" = "$WORK_SHA"
+          test "$(git rev-parse HEAD)" = "$WORK_SHA"
+          node scripts/kar-work-pr-preflight.cjs --issue "$ISSUE_NUMBER" --head-sha "$WORK_SHA"
+          python3 scripts/kar-atomic-patch.py --mode plan --issue "$ISSUE_NUMBER" --branch "work/KAR-$ISSUE_NUMBER" --work-sha "$WORK_SHA" --main-sha "$MAIN_SHA"
+      - name: Independently rebuild ZIP, full safety gate, and atomic five-file commit
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ inputs.issue_number }}
+          WORK_SHA: ${{ inputs.expected_work_sha }}
+          MAIN_SHA: ${{ inputs.expected_main_sha }}
+        run: |
+          set -euo pipefail
+          python3 scripts/kar-atomic-patch.py --mode build --issue "$ISSUE_NUMBER" --branch "work/KAR-$ISSUE_NUMBER" --work-sha "$WORK_SHA" --main-sha "$MAIN_SHA"
+      - name: Record exact dispatch identifiers
+        if: always()
+        run: |
+          echo "Issue ${{ inputs.issue_number }} / source ${{ inputs.expected_work_sha }} / base ${{ inputs.expected_main_sha }}"
+          echo "Bot-created PRs do not substitute for real hosted pull_request CI."
