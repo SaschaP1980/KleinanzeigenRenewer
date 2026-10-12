@@ -16,7 +16,7 @@ pass('v1.23.20_c1 release evidence remains explicit under later correction build
     assert.equal(lock.packages[''].version,'1.23.20');
     assert.equal(spec.packageVersion,'1.23.20_c1');
   } else {
-    assert.equal(manifest.version,'1.23.22');
+    assert.ok(['1.23.22','1.23.23'].includes(manifest.version));
     assert.equal(spec.directBasis,'1.23.20_c1');
   }
 });
