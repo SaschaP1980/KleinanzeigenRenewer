@@ -54,7 +54,7 @@ jobs:
           print("KAR43_GUARD_TOTAL",len(changed),sum(n for _,n in changed))
           PY
           node tests/validate.mjs
-          node tests/v016-contract.cjs
+          NODE_OPTIONS='--require ./tests/v12222-vm-legacy-bridge.cjs' node tests/v016-contract.cjs
       - name: Verify only test version literals and delete this temporary workflow
         shell: bash
         run: |
