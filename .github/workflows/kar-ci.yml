@@ -55,6 +55,10 @@ jobs:
           ZIP="$RUNNER_TEMP/kar-ci-build/kleinanzeigen-renewal-chrome-v$VERSION.zip"
           test -f "$ZIP"
           unzip -t "$ZIP" >/dev/null
+          python3 scripts/verify_committed_chrome_zip.py --report "$RUNNER_TEMP/kar-ci-build/committed-zip-parity.json"
+          ZIP="$PWD/release/kleinanzeigen-renewal-chrome-v$VERSION.zip"
+          test -f "$ZIP"
+          unzip -t "$ZIP" >/dev/null
           echo "ZIP=$ZIP" >> "$GITHUB_ENV"
           echo "CI_CHROME_ZIP_SHA256=$(sha256sum "$ZIP" | awk '{print $1}')" >> "$GITHUB_ENV"
 
