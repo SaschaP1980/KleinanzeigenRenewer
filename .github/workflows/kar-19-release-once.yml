@@ -1,0 +1,98 @@
+# Owner-authorized, one-shot v1.23.23 release dispatch. Publishing remains in
+# the independent KAR Release workflow with all mandatory tests and safety gates.
+name: KAR-19 Owner-Authorized Release Once
+
+on:
+  workflow_run:
+    workflows:
+      - KAR CI
+    types:
+      - completed
+
+concurrency:
+  group: kar-19-v12323-owner-release-once
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: write
+  issues: read
+  pull-requests: read
+
+jobs:
+  dispatch:
+    name: Verify PR, same-SHA CI and dispatch v1.23.23 fast once
+    if: >-
+      ${{ github.repository == 'SaschaP1980/KleinanzeigenRenewer' &&
+          github.event.workflow_run.event == 'push' &&
+          github.event.workflow_run.head_branch == 'main' &&
+          github.event.workflow_run.head_repository.full_name == github.repository &&
+          github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Validate owner release authority, PR, and full hosted CI
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          CI_RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          set -Eeuo pipefail
+          trap 'echo "KAR19_RELEASE_PRECHECK_FAILED line=$LINENO command=$BASH_COMMAND" >&2' ERR
+          BASE_SHA='906e90696136cc94152761272bd6dd321d0043e2'
+          AUTH_MESSAGE='release: authorize one-time v1.23.23 fast publication after work PR'
+          git init -q audit
+          cd audit
+          git remote add origin "https://github.com/$GITHUB_REPOSITORY.git"
+          git fetch --no-tags --depth=2 origin "$HEAD_SHA"
+          test "$(git rev-parse FETCH_HEAD)" = "$HEAD_SHA"
+          test "$(git show -s --format=%P "$HEAD_SHA")" = "$BASE_SHA"
+          test "$(git show -s --format=%s "$HEAD_SHA")" = "$AUTH_MESSAGE"
+          test "$(git diff-tree --no-commit-id --name-only -r "$HEAD_SHA")" = '.github/workflows/kar-19-release-once.yml'
+          test "$(git show "$HEAD_SHA:manifest.json" | jq -r '.version')" = '1.23.23'
+          test "$(git show "$HEAD_SHA:package.json" | jq -r '.version')" = '1.23.23'
+          test "$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)" = "$HEAD_SHA"
+          test "$(gh api "repos/$GITHUB_REPOSITORY/issues/19" --jq .state)" = 'open'
+          PR="$(gh api "repos/$GITHUB_REPOSITORY/pulls/20")"
+          jq -e --arg sha "$BASE_SHA" '
+            .state == "closed" and .merged == true and .merge_commit_sha == $sha and
+            .head.ref == "work/KAR-19" and
+            .base.ref == "main"
+          ' <<< "$PR" >/dev/null
+          if gh release view v1.23.23 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo 'v1.23.23 already exists; refusing duplicate release' >&2
+            exit 1
+          fi
+          test "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/v1.23.22" --jq .object.sha)" = 'd93e46952784b7550a76baf14eeae9a9e8ac2870'
+          CI="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$CI_RUN_ID")"
+          jq -e --arg sha "$HEAD_SHA" '
+            .head_sha == $sha and .head_branch == "main" and
+            .name == ("KAR CI main @ " + $sha) and
+            .path == ".github/workflows/kar-ci.yml" and
+            .event == "push" and .status == "completed" and
+            .conclusion == "success"
+          ' <<< "$CI" >/dev/null
+          JOBS="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$CI_RUN_ID/jobs?per_page=100")"
+          jq -e '[.jobs[] | select(.conclusion == "success" and
+              .name == "Runtime, safety, coverage, Chrome ZIP and packaged browser E2E" and
+              ([.steps[] | select(.name == "Full runtime / safety / coverage gate" or
+                                    .name == "Build installable Chrome ZIP" or
+                                    .name == "Packaged browser E2E (local fixtures only)") |
+                .conclusion] == ["success","success","success"]))] | length == 1' <<< "$JOBS" >/dev/null
+          PREVIOUS="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/kar-release.yml/runs?per_page=100" \
+             --jq "[.workflow_runs[] | select(.head_sha==\"$HEAD_SHA\" and .event==\"workflow_dispatch\")] | length")"
+          test "$PREVIOUS" = 0
+          test "$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)" = "$HEAD_SHA"
+          echo "KAR19_RELEASE_AUTHORIZED sha=$HEAD_SHA ci=$CI_RUN_ID mode=fast"
+      - name: Trigger gated KAR Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          test "$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)" = "$HEAD_SHA"
+          gh api --method POST "repos/$GITHUB_REPOSITORY/actions/workflows/kar-release.yml/dispatches" \
+            -f ref=main -f 'inputs[mode]=fast'
+          echo "KAR19_RELEASE_DISPATCH_POST_ACCEPTED sha=$HEAD_SHA mode=fast"
