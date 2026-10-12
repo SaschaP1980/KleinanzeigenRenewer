@@ -1,3 +1,4 @@
+const { includesActivePatch } = require('./current-patch-policy.cjs');
 const assert = require('assert');
 const fs = require('fs');
 const manifest = JSON.parse(fs.readFileSync('manifest.json','utf8'));
@@ -16,7 +17,7 @@ pass('v1.23.20_c1 release evidence remains explicit under later correction build
     assert.equal(lock.packages[''].version,'1.23.20');
     assert.equal(spec.packageVersion,'1.23.20_c1');
   } else {
-    assert.ok(['1.23.22','1.23.23','1.23.24'].includes(manifest.version));
+    assert.ok(includesActivePatch(['1.23.22','1.23.23','1.23.24'], manifest.version));
     assert.equal(spec.directBasis,'1.23.20_c1');
   }
 });
