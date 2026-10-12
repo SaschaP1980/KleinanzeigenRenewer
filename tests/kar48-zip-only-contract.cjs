@@ -22,6 +22,9 @@ assert.match(main, /bash scripts\/coverage-gate\.sh/);
 for (const workflow of [work, main]) {
   assert.doesNotMatch(workflow, /\bgh release (?:create|upload)|\bgit push\b/);
 }
+const independentNegatives = execFileSync('python3', ['tests/kar48-archive-negative.py'],
+  {cwd:root,encoding:'utf8',timeout:30000});
+assert.match(independentNegatives, /PASS KAR-48 missing archive and collision negatives: 3\/3/);
 const selfTest = execFileSync('python3', [validator, '--self-test'],
   {cwd:root,encoding:'utf8',timeout:30000});
 assert.match(selfTest, /PASS KAR-48 ZIP verifier self-test: authentic archive \+ 10 fail-closed mutations/);

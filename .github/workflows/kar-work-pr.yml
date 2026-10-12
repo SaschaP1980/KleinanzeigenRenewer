@@ -68,6 +68,9 @@ jobs:
         run: |
           set -euo pipefail
           python3 tests/kar46-unfixed-next-patch-red.py
+      - name: Execute pinned unfixed archive-E2E boundary RED (isolated)
+        shell: bash
+        run: python3 tests/kar48-historical-unfixed-red.py
       - name: Mandatory coverage and architecture gate
         run: bash scripts/coverage-gate.sh
       - name: Build installable package once
