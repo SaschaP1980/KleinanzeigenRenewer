@@ -1,7 +1,7 @@
 'use strict';
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
-const { isCurrentPatchVersion, assertCompatibleCurrentPatch } = require('./current-patch-policy.cjs');
+const { isCurrentPatchVersion, assertCompatibleCurrentPatch, includesActivePatch } = require('./current-patch-policy.cjs');
 const read = file => JSON.parse(fs.readFileSync(file, 'utf8'));
 const canonical = {
   manifest: read('manifest.json'),
@@ -10,6 +10,14 @@ const canonical = {
   spec: read('release/release-spec.json')
 };
 const clone = value => JSON.parse(JSON.stringify(value));
+const historicalEra = ['1.23.20', '1.23.22', '1.23.23', '1.23.24'];
+assert.equal(includesActivePatch(historicalEra, '1.23.25'), true);
+assert.equal(includesActivePatch(historicalEra, '1.23.23'), true);
+assert.equal(includesActivePatch(historicalEra, '1.23.21'), false);
+assert.equal(includesActivePatch(['1.23.22', '1.23.23'], '1.23.25'), false);
+assert.equal(includesActivePatch(historicalEra, '1.24.0'), false);
+assert.equal(includesActivePatch(historicalEra, '1.23.025'), false);
+assert.deepEqual(historicalEra, ['1.23.20', '1.23.22', '1.23.23', '1.23.24']);
 const validNextPatch = clone(canonical);
 for (const name of ['manifest', 'pkg', 'lock', 'spec']) validNextPatch[name].version = '1.23.25';
 validNextPatch.pkg.displayVersion = '1.23.25';

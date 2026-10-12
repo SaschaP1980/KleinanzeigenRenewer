@@ -1,11 +1,10 @@
-const { includesActivePatch } = require('./current-patch-policy.cjs');
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
-const { isCurrentPatchVersion, assertCompatibleCurrentPatch } = createRequire(import.meta.url)("./current-patch-policy.cjs");
+const { isCurrentPatchVersion, assertCompatibleCurrentPatch, includesActivePatch } = createRequire(import.meta.url)("./current-patch-policy.cjs");
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const manifest = JSON.parse(fs.readFileSync(path.join(root, "manifest.json"), "utf8"));
