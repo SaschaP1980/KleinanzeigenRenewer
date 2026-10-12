@@ -16,3 +16,6 @@ assert.match(bg,/function isTrustedProdAdImageUrl/);assert.ok(bg.includes('prod-
 assert.match(bg,/large\.searchParams\.set\("rule", "\$_57\.JPG"\)/);assert.match(bg,/isTrustedProdAdImageUrl\(url\) \|\| rule/);pass('trusted UUID image without visible rule tries established $_57.JPG candidate');
 assert.match(bg,/JPEG ist nur Thumbnail-Größe/);assert.match(bg,/largeEnough\(/);pass('strict decoded-dimension thumbnail rejection remains enabled');
 console.log(`${n} v0.1.6 contract tests passed`);
+
+// Run the full historical suite on an isolated next-PATCH fixture, never on production metadata.
+if (process.env.KAR46_SYNTHETIC_PATCH !== '1') require('./current-patch-next-release-regression.cjs');
