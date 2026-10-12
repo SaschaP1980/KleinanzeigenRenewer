@@ -1,3 +1,4 @@
+const { includesActivePatch } = require('./current-patch-policy.cjs');
 const fs = require('fs');
 const assert = require('assert');
 const app = fs.readFileSync('app.js','utf8');
@@ -14,7 +15,7 @@ assert.match(manifest.name, /kleinanzeigen Manager/);
 assert.equal(manifest.action.default_title, 'Kleinanzeigen Renewal');
 pass('visible product identity stays kleinanzeigen Manager while action.default_title retains the proven Windows taskbar identity');
 
-if (['1.22.1','1.22.2','1.22.3','1.22.4','1.22.5','1.22.6','1.22.7','1.22.8','1.22.9','1.22.10','1.22.11','1.22.12','1.22.13','1.22.14','1.22.15','1.22.16','1.22.17','1.22.18','1.22.19','1.22.20','1.22.21','1.22.22','1.22.23','1.22.24','1.22.25','1.22.26','1.22.27','1.22.28','1.22.29','1.22.30','1.23.0','1.23.1','1.23.2','1.23.3','1.23.4','1.23.5','1.23.6','1.23.7','1.23.8','1.23.9','1.23.10','1.23.11','1.23.12','1.23.13','1.23.14','1.23.15','1.23.16','1.23.17','1.23.18','1.23.19','1.23.20','1.23.22','1.23.23','1.23.24'].includes(manifest.version)) {
+if (includesActivePatch(['1.22.1','1.22.2','1.22.3','1.22.4','1.22.5','1.22.6','1.22.7','1.22.8','1.22.9','1.22.10','1.22.11','1.22.12','1.22.13','1.22.14','1.22.15','1.22.16','1.22.17','1.22.18','1.22.19','1.22.20','1.22.21','1.22.22','1.22.23','1.22.24','1.22.25','1.22.26','1.22.27','1.22.28','1.22.29','1.22.30','1.23.0','1.23.1','1.23.2','1.23.3','1.23.4','1.23.5','1.23.6','1.23.7','1.23.8','1.23.9','1.23.10','1.23.11','1.23.12','1.23.13','1.23.14','1.23.15','1.23.16','1.23.17','1.23.18','1.23.19','1.23.20','1.23.22','1.23.23','1.23.24'], manifest.version)) {
   assert.doesNotMatch(html, /<details[^>]+id="actionsAccordion"/);
   assert.match(html, /<(?:section|div)[^>]+id="actionsAccordion"[^>]+data-accordion-mode="controlled"[^>]+data-open="true"/);
   assert.match(html, /id="actionsAccordionToggle"[^>]+aria-expanded="true"/);
