@@ -1,0 +1,39 @@
+name: KAR-50 Atomic PATCH Work Build
+run-name: KAR-50 atomic PATCH build from ${{ github.sha }}
+
+on:
+  push:
+    branches: [work/KAR-50]
+
+concurrency:
+  group: kar50-atomic-work-build
+  cancel-in-progress: false
+
+# One narrowly scoped Work-only generator. Existing safety CI is read-only.
+permissions:
+  contents: write
+
+jobs:
+  atomic_build:
+    name: Atomic 4 metadata + 1 Chrome ZIP Work commit
+    if: "startsWith(github.event.head_commit.message, 'ci(KAR-50):')"
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Guard, build, fully validate, commit and push five exact paths
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          python3 scripts/kar50-atomic-patch.py
