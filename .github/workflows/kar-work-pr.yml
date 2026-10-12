@@ -47,12 +47,27 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Verify exact Work HEAD for mandatory validation
+        env:
+          EXPECTED_WORK_HEAD: ${{ github.event.pull_request.head.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_WORK_HEAD"
+          echo "Validated exact Work HEAD: $EXPECTED_WORK_HEAD"
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: npm
       - name: Install dependencies
         run: npm ci
+      - name: Prove unfixed baseline RED for consistent future PATCH (isolated)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tests/kar46-unfixed-next-patch-red.py
       - name: Mandatory coverage and architecture gate
         run: bash scripts/coverage-gate.sh
       - name: Build installable package once
@@ -65,3 +80,59 @@ jobs:
           test -f "$ZIP"
           unzip -t "$ZIP" >/dev/null
           echo "Chrome ZIP: $(sha256sum "$ZIP")"
+
+  browser_e2e:
+    name: Packaged Chromium E2E (exact Work HEAD)
+    needs: validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      EXPECTED_WORK_HEAD: ${{ github.event.pull_request.head.sha }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Verify exact checked-out PR HEAD
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_WORK_HEAD"
+          echo "E2E exact Work HEAD: $EXPECTED_WORK_HEAD"
+          mkdir -p "$RUNNER_TEMP/kar-work-pr-e2e-evidence"
+          echo "EVIDENCE_DIR=$RUNNER_TEMP/kar-work-pr-e2e-evidence" >> "$GITHUB_ENV"
+      - name: Build and verify installable ZIP from exact Work HEAD
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/kar-work-pr-e2e-build"
+          python3 scripts/package.py "$RUNNER_TEMP/kar-work-pr-e2e-build"
+          VERSION="$(node -p "require('./manifest.json').version")"
+          ZIP="$RUNNER_TEMP/kar-work-pr-e2e-build/kleinanzeigen-renewal-chrome-v$VERSION.zip"
+          test -f "$ZIP"
+          unzip -t "$ZIP" >/dev/null
+          echo "E2E_CHROME_ZIP=$ZIP" >> "$GITHUB_ENV"
+          sha256sum "$ZIP" | tee "$EVIDENCE_DIR/zip-sha256.txt"
+      - name: Real packaged Chromium E2E (logged-out local fixtures)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pip install --disable-pip-version-check -r tests/e2e/requirements.txt
+          python3 -m playwright install --with-deps --no-shell chromium
+          export KR_CHROME_BINARY="$(python3 -c 'from playwright.sync_api import sync_playwright; p=sync_playwright().start(); print(p.chromium.executable_path); p.stop()')"
+          test -x "$KR_CHROME_BINARY"
+          export KR_E2E_BROWSER_CHANNEL=chromium
+          E2E_ROOT="$RUNNER_TEMP/kar-work-pr-e2e-extension"
+          mkdir -p "$E2E_ROOT"
+          unzip -q "$E2E_CHROME_ZIP" -d "$E2E_ROOT"
+          export KR_E2E_EXTENSION_ROOT="$E2E_ROOT"
+          python3 tests/e2e/run_browser_e2e_supervisor.py --report "$EVIDENCE_DIR/browser-e2e-report.json"
+          python3 tests/e2e/verify_pr_e2e_report.py --report "$EVIDENCE_DIR/browser-e2e-report.json" --zip "$E2E_CHROME_ZIP" --expected-head "$EXPECTED_WORK_HEAD" --out "$EVIDENCE_DIR/e2e-attestation.json"
+      - name: Preserve real browser E2E evidence, including failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kar-work-pr-browser-e2e-${{ github.event.pull_request.head.sha }}
+          path: ${{ runner.temp }}/kar-work-pr-e2e-evidence/
+          if-no-files-found: warn
+          retention-days: 14

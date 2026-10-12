@@ -1,3 +1,4 @@
+const { includesActivePatch } = require('./current-patch-policy.cjs');
 const fs=require('fs'),path=require('path'),assert=require('assert');
 const root=path.join(__dirname,'..');
 const manifest=JSON.parse(fs.readFileSync(path.join(root,'manifest.json'),'utf8'));
@@ -7,7 +8,7 @@ const pack=fs.readFileSync(path.join(root,'scripts/package.py'),'utf8');
 const bg=fs.readFileSync(path.join(root,'src/background/background.js'),'utf8');
 const service=fs.readFileSync(path.join(root,'src/background/services/diagnostic-export-service.js'),'utf8');
 let n=0;const pass=(name,fn)=>{fn();n++;console.log('PASS '+name)};
-pass('version stays on or after v1.23.7 architecture baseline',()=>{assert.ok(['1.23.7','1.23.8','1.23.9','1.23.10','1.23.11','1.23.12','1.23.13','1.23.14','1.23.15','1.23.16','1.23.17','1.23.18','1.23.19','1.23.20','1.23.22','1.23.23','1.23.24'].includes(manifest.version));assert.equal(pkg.version,manifest.version);assert.equal(pkg.displayVersion,manifest.version)});
+pass('version stays on or after v1.23.7 architecture baseline',()=>{assert.ok(includesActivePatch(['1.23.7','1.23.8','1.23.9','1.23.10','1.23.11','1.23.12','1.23.13','1.23.14','1.23.15','1.23.16','1.23.17','1.23.18','1.23.19','1.23.20','1.23.22','1.23.23','1.23.24'], manifest.version));assert.equal(pkg.version,manifest.version);assert.equal(pkg.displayVersion,manifest.version)});
 pass('diagnostic export service is packaged, imported and resolved in-process',()=>{assert(pack.includes("'src/background/services/diagnostic-export-service.js'"));assert(bg.includes('services/diagnostic-export-service.js'));assert.match(bg,/KRDeps\.require\('KRDiagnosticExportService'\)/);assert.match(service,/KRDeps\?\.register\?\.\('KRDiagnosticExportService'/)});
 pass('diagnostic export builder ownership moved out of background',()=>{assert.doesNotMatch(bg,/async function buildDiagnosticExport\s*\(/);assert.match(service,/async function buildDiagnosticExport\s*\(/);assert.match(bg,/requireDiagnosticExportService\(\)\.buildDiagnosticExport\(\)/)});
 pass('source layout records zero root JavaScript and all migrated files',()=>{const layout=JSON.parse(fs.readFileSync(path.join(root,'scripts/source-layout.json'),'utf8'));assert.equal(fs.readdirSync(root).filter(n=>n.endsWith('.js')).length,0);assert.ok(Object.keys(layout.mapping).length>=64);for(const target of Object.values(layout.mapping))assert.ok(fs.existsSync(path.join(root,target)),target)});
