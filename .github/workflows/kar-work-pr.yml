@@ -18,7 +18,10 @@ jobs:
     name: Issue / Rolling Comment contract
     runs-on: ubuntu-latest
     steps:
-      - name: Enforce work/KAR-Issue branch and canonical Rolling Comment
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Enforce issue, branch, exact PR HEAD and normative Rolling Comment
         env:
           GH_TOKEN: ${{ github.token }}
           HEAD_REF: ${{ github.head_ref }}
@@ -32,33 +35,9 @@ jobs:
             exit 1
           }
           ISSUE="${BASH_REMATCH[1]}"
-          gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE" > /tmp/issue.json
-          test "$(jq -r '.state' /tmp/issue.json)" = "open"
-          gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE/comments?per_page=100" > /tmp/comments.json
-          COUNT="$(jq '[.[] | select(.body | contains("<!-- KAR-ROLLING-COMMENT -->"))] | length' /tmp/comments.json)"
-          test "$COUNT" = "1" || {
-            echo "Issue #$ISSUE must have exactly one canonical KAR Rolling Comment; found $COUNT." >&2
-            exit 1
-          }
-          jq -r '.[] | select(.body | contains("<!-- KAR-ROLLING-COMMENT -->")) | .body' /tmp/comments.json > /tmp/rolling.md
-          for required in             "## KAR-$ISSUE — Rolling Development State"             "**Work-Chat-ID:**"             "**Base main:**"             "**Work branch / head:**"             "**Current phase:**"             "**Last safe checkpoint:**"             "**Next action:**"             "### Scope"             "### Completed"             "### Validation"             "### Failures / risks"; do
-            grep -Fq "$required" /tmp/rolling.md || {
-              echo "Rolling Comment missing: $required" >&2
-              exit 1
-            }
-          done
-          grep -Fq "$HEAD_SHA" /tmp/rolling.md || {
-            echo "Rolling Comment must contain exact PR HEAD SHA $HEAD_SHA." >&2
-            exit 1
-          }
-          grep -Eq 'Work-Chat-ID:.*[A-Za-z0-9_-]{8,}' /tmp/rolling.md || {
-            echo "Rolling Comment requires a stable Work-Chat-ID." >&2
-            exit 1
-          }
-          grep -Eq "(Closes|Fixes|Resolves)[[:space:]]+#$ISSUE\b" <<< "${PR_BODY:-}" || {
-            echo "PR body must close its KAR Issue (#$ISSUE)." >&2
-            exit 1
-          }
+          gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE" > /tmp/kar-issue.json
+          gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/issues/$ISSUE/comments?per_page=100" > /tmp/kar-comments.json
+          node scripts/kar-work-pr-contract.cjs /tmp/kar-issue.json /tmp/kar-comments.json
 
   validation:
     name: Runtime / safety / coverage
