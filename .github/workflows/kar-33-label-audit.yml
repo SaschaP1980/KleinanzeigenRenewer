@@ -1,0 +1,81 @@
+name: KAR-33 Label Taxonomy Audit
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/kar-33-label-audit.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  audit-label-taxonomy:
+    name: Read-only verify 16 KAR label definitions
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify complete public label taxonomy
+        run: |
+          python3 - <<'PY'
+          import json, urllib.request
+          repo = "SaschaP1980/KleinanzeigenRenewer"
+          expected = {
+            "accessibility": ("f143ab", "Barrier affecting people with disabilities"),
+            "bug": ("d73a4a", "Something isn't working"),
+            "dev-ops": ("c4907e", "Development Operations or CI/CD related"),
+            "dev-path: work-branch": ("8250df", "Uses work/KAR-<issue> for Issue-backed changes through PR and required CI."),
+            "documentation": ("0075ca", "Improvements or additions to documentation"),
+            "duplicate": ("cfd3d7", "This issue or pull request already exists"),
+            "enhancement": ("a2eeef", "New feature or request"),
+            "good first issue": ("7057ff", "Good for newcomers"),
+            "help wanted": ("008672", "Extra attention is needed"),
+            "invalid": ("e4e669", "This doesn't seem right"),
+            "priority: critical": ("b60205", "Requires immediate attention / blocks important functionality"),
+            "priority: high": ("ffa500", "High priority; should be addressed soon"),
+            "priority: low": ("c5def5", "Low priority; can be addressed later"),
+            "priority: medium": ("fbca04", "Normal priority"),
+            "question": ("d876e3", "Further information is requested"),
+            "wontfix": ("ffffff", "This will not be worked on"),
+          }
+          labels = []
+          for page in range(1, 102):
+            url = f"https://api.github.com/repos/{repo}/labels?per_page=100&page={page}"
+            request = urllib.request.Request(url, headers={
+              "Accept": "application/vnd.github+json",
+              "User-Agent": "KAR-33-read-only-label-audit",
+            })
+            with urllib.request.urlopen(request, timeout=30) as response:
+              current = json.load(response)
+            if not isinstance(current, list):
+              raise RuntimeError("Unexpected public GitHub label API response")
+            labels.extend(current)
+            if len(current) < 100:
+              break
+          else:
+            raise RuntimeError("GitHub labels pagination exceeded safety bound")
+          actual = {}
+          for item in labels:
+            name = item["name"]
+            if name in actual:
+              raise RuntimeError("Duplicate label name in GitHub API response: " + name)
+            actual[name] = (item["color"].lower(), item.get("description"))
+          missing = sorted(set(expected) - set(actual))
+          unexpected = sorted(set(actual) - set(expected))
+          mismatched = {
+            name: {"expected": expected[name], "actual": actual[name]}
+            for name in sorted(set(expected) & set(actual))
+            if actual[name] != expected[name]
+          }
+          print("KAR33_TAXONOMY_JSON_BEGIN")
+          print(json.dumps({
+            "repository": repo,
+            "count": len(actual),
+            "labels": [{"name": n, "color": v[0], "description": v[1]} for n, v in sorted(actual.items())],
+            "missing": missing,
+            "unexpected": unexpected,
+            "mismatched": mismatched,
+          }, sort_keys=True, ensure_ascii=False))
+          print("KAR33_TAXONOMY_JSON_END")
+          if missing or unexpected or mismatched:
+            raise SystemExit("KAR-33 label taxonomy AUDIT FAILED")
+          print("KAR33_LABEL_TAXONOMY_PASS: 16/16 exact names, colors, descriptions; no excluded fast-path label")
+          PY
