@@ -184,3 +184,9 @@ When engineering work establishes a new durable rule about:
 update the appropriate file under `docs/` in the same workstream.
 
 A fresh session that reads only GitHub must be able to recover the rule. Do not leave durable project knowledge only in chat memory.
+
+## Branch cleanup after verified Work merge
+
+A successful merge and a closed Issue do **not** prove the source Work branch was deleted. Before retiring a historical `work/KAR-N` ref, re-read the exact ref SHA, the matching Issue and merged PR, and search for any open PR using that head. Delete only the verified historical ref, with an exact-ref/expected-head safeguard where supported. Read back that the branch is absent; never rewrite/force-move it to `main` and claim deletion. If the connected tooling does not support safe ref deletion, record the cleanup as blocked and leave the ref untouched.
+
+The current normative scaffold is `docs/templates/WORK_PATH_ROLLING_COMMENT.md`. The executable `scripts/kar-work-pr-contract.cjs` is used by `KAR Work PR`; its positive and fail-closed regression tests are `tests/kar-work-pr-contract.cjs`. The validator requires the scaffold's **exact** field labels/headings, saved comment ID, issued Work-Chat-ID, open Issue, one marker, matching branch and PR HEAD, and a real PR closing reference. Do not maintain a separate independent list of legacy headings in the workflow.
