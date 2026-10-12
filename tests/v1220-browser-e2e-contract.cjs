@@ -40,4 +40,5 @@ assert.equal((fs.readFileSync(path.join(root,'background.js'),'utf8').match(/req
 pass('publish safety invariant retained');
 require('./kar46-work-pr-e2e-contract.cjs');
 require('./kar48-zip-only-contract.cjs');
+require('./kar50-next-patch-contract.cjs');
 console.log(`${passed}/8 PASS v1.22.0 browser E2E contract`);

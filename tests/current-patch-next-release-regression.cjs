@@ -1,6 +1,6 @@
 'use strict';
 // KAR-46: Execute real full regression and coverage gates on a throwaway
-// prospective 1.23.25 fixture; never change checked-out product metadata.
+// prospective next-PATCH fixture; never change checked-out product metadata.
 const assert = require('node:assert/strict');
 const { execFileSync } = require('node:child_process');
 const fs = require('node:fs');
@@ -31,13 +31,13 @@ if (process.env.KAR46_SYNTHETIC_PATCH !== '1') {
       fs.symlinkSync(path.join(sourceRoot, 'node_modules'),
         path.join(fixtureRoot, 'node_modules'), 'dir');
     }
-    const next = '1.23.25';
     const manifest = JSON.parse(snapshots['manifest.json']);
+    const next = require('./kar50-next-patch.cjs').nextPatch(manifest.version);
     const pkg = JSON.parse(snapshots['package.json']);
     const lock = JSON.parse(snapshots['package-lock.json']);
     const spec = JSON.parse(snapshots['release/release-spec.json']);
-    assert.equal(manifest.version, '1.23.24',
-      'synthetic PATCH requires an unchanged, explicitly pinned product source');
+    assert.notEqual(next, manifest.version,
+      'synthetic PATCH must advance the source product patch version');
     for (const item of [manifest, pkg, lock, spec]) item.version = next;
     pkg.displayVersion = next;
     lock.packages[''].version = next;
@@ -57,7 +57,7 @@ if (process.env.KAR46_SYNTHETIC_PATCH !== '1') {
     assert.match(result, /PASS coverage no-regression: public 100%/);
     assert.match(result, /PASS v1\.23\.19 coverage gate/);
     completed = true;
-    console.log('PASS KAR-46 full synthetic 1.23.25 npm regression + dynamic public coverage + line/branch + architecture gates');
+    console.log(`PASS KAR-46 full synthetic ${next} npm regression + dynamic public coverage + line/branch + architecture gates`);
   } catch (error) {
     const stdout = String(error.stdout || '');
     const stderr = String(error.stderr || '');
