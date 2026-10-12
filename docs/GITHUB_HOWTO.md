@@ -32,6 +32,32 @@ Closed Issues must remain searchable and readable because regressions may requir
 
 For a concrete task, read its Issue body and all comments in full. For an Epic step, also read the parent Epic and relevant predecessor Issue(s).
 
+## Timeboxed Issues and independent Waves
+
+**Operational goal:** Complete a single implementation Issue in **less than 20 minutes of active ChatGPT work whenever practicable**. This is an observed stream-continuity planning target, **not** a guaranteed session or execution limit. Before starting, estimate the end-to-end scope, GitHub calls, validation and expected CI cost. Plan no more than **15 minutes of focused active work** and leave approximately **5 minutes for verification, GitHub latency, recovery and unexpected delays**. Do not report a time target as achieved without measured evidence.
+
+- If the expected active work or validation cannot reasonably fit this budget, **split the implementation into separately tracked, independently acceptable Wave Issues before coding**. Keep the parent Issue/Epic as an outcome/dependency index rather than one continuous implementation run.
+- Every Wave must specify its own `[KAR-N]` Issue, small bounded scope, dependencies, acceptance criteria, estimated effort, own single canonical Rolling Comment, and a safe stopping point. Sequence dependent Waves explicitly; do not silently implement other Waves while working on one.
+- Treat the estimate as a decision aid rather than a reason to weaken validation. Full required RED→GREEN, safety, exact-head PR, CI and release authorization checks remain mandatory.
+- If scope expands or the time budget becomes unrealistic, stop at a **verified and read-backed GitHub checkpoint**, record current branch/commit/PR/CI state, failures and next action, then create or request the next bounded Wave as authorized. Never force completion, skip tests, claim unexecuted checks passed, or leave ambiguous writes.
+- CI and external service waits may exceed the target; record actual status and continue active heartbeats while the agent is running. An inactive ChatGPT conversation cannot guarantee periodic execution or notifications. A scheduled or hosted runner must be explicitly supported and authorized before claiming unattended coverage.
+
+**Example:** [KAR-24](https://github.com/SaschaP1980/KleinanzeigenRenewer/issues/24) tracks separately authorized, independently accepted Waves [KAR-25](https://github.com/SaschaP1980/KleinanzeigenRenewer/issues/25) through [KAR-37](https://github.com/SaschaP1980/KleinanzeigenRenewer/issues/37). The parent closes only after verified child outcomes; it is not a single 20-minute work package.
+
+## English-only GitHub and Issue identity
+
+GitHub-facing text is **English by default and required for new or edited material**: Issue/PR titles and bodies, canonical Rolling Comments, commit messages, process documentation, workflow names, diagnostic release notes and GitHub metadata. Do not translate code literals, stable product identifiers, URLs, technical identifiers, proper nouns or user-facing product UI strings when their semantics would change.
+
+Every **Issue** title begins with the literal `[KAR-N]`, using its **actual GitHub Issue number N**, followed by a descriptive English title. Useful secondary markers such as `[Wave 01]`, `[UI]` or `[v1.24.0]` follow the mandatory prefix. After creating a new Issue (when the number may not be known in advance), read back the assigned number and immediately correct/read back the title. **Do not mistake Pull Requests for Issues**; PR numbers share the GitHub number sequence, but they are not subject to the Issue-title migration. Enforcement/legacy migration is tracked by [KAR-26](https://github.com/SaschaP1980/KleinanzeigenRenewer/issues/26) and [KAR-27](https://github.com/SaschaP1980/KleinanzeigenRenewer/issues/27); do not treat documentation of the rule as proof that existing Issues were already migrated.
+
+All open Issue bodies are to be translated to English in their separately authorized Waves. Closed Issue titles may be translated with the correct prefix, but **closed Issue bodies remain unchanged**, including historical evidence and checklist states. Preserve established technical facts, links and historical comments unless separately authorized.
+
+## Owner-directed, agent-operated GitHub workflow
+
+The owner directs priorities, acceptance and explicit authorizations through Issues/chat. The agent handles routine GitHub creation, reading, editing, labeling, branch/PR/CI work, supported workflow dispatch, merge, cleanup and closure end-to-end **without instructing the owner to perform routine GitHub UI steps**. Use the connected GitHub tools first and confirm every consequential write by reading it back; if a required operation is not exposed, evaluate a narrowly scoped, auditable GitHub-native action with minimum permissions. Record actual technical blockers transparently; do not invent successful operations, broaden tokens/permissions, bypass branch/CI/safety checks or silently delegate work to the owner.
+
+Issue-directed autonomy does **not** preauthorize a GitHub Release, account mutation, new product scope, unsupported unattended execution or a weakening of owner approval gates. A ChatGPT session cannot continue running GitHub work after the interactive run ends unless separately supported/authorized automation is configured.
+
 ## Branch naming
 
 Issue-backed Work branch:
