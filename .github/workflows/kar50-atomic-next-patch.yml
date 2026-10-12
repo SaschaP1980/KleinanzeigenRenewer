@@ -16,7 +16,7 @@ permissions:
 jobs:
   atomic_build:
     name: Atomic 4 metadata + 1 Chrome ZIP Work commit
-    if: "github.event.head_commit.message == 'ci(KAR-50): fix atomic Work generator YAML'"
+    if: "startsWith(github.event.head_commit.message, 'ci(KAR-50):')"
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:

@@ -97,9 +97,15 @@ def main():
     changed = set(filter(None, git("diff", "--name-only").splitlines()))
     require(changed == set(FILES), "unapproved modified tracked files: " + repr(changed))
     archive = target.relative_to(ROOT).as_posix()
+    # release/*.zip is intentionally ignored by Git; the next archive must
+    # be explicitly force-added, never mistaken for absent or silently skipped.
+    require(target.is_file(), "new archive disappeared after full coverage")
     untracked = set(filter(None, git("ls-files", "--others", "--exclude-standard").splitlines()))
-    require(untracked == {archive}, "unapproved new files: " + repr(untracked))
-    subprocess.run(["git", "add", "--", *FILES, archive], cwd=ROOT, check=True)
+    require(not untracked, "unapproved non-ignored new files: " + repr(untracked))
+    ignored = subprocess.run(["git", "check-ignore", "-q", archive],
+                             cwd=ROOT, timeout=15)
+    require(ignored.returncode == 0, "release ZIP ignore policy unexpectedly changed")
+    subprocess.run(["git", "add", "--force", "--", *FILES, archive], cwd=ROOT, check=True)
     staged = set(filter(None, git("diff", "--cached", "--name-only").splitlines()))
     require(staged == set(FILES) | {archive}, "five-path atomic commit scope invalid")
     subprocess.run(["git", "config", "user.name", "github-actions[bot]"], cwd=ROOT, check=True)
