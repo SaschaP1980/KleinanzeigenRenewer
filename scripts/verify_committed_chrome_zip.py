@@ -123,11 +123,16 @@ def run_self_test(root: Path):
         # false claim that release/ already contains a distributable.
         require(os.environ.get("KAR46_SYNTHETIC_PATCH") == "1",
                 "current archive missing outside the nonpublishing synthetic PATCH fixture")
-        with tempfile.TemporaryDirectory(prefix="kar48-synthetic-") as tmp:
-            subprocess.run([sys.executable, "scripts/package.py", tmp], cwd=root,
-                           capture_output=True, text=True, check=True, timeout=90)
-            current = (Path(tmp) / archive_path.name).read_bytes()
-    assert validate_bytes(current, current, source_manifest, app_id)["bytes"] > 1000
+        # This is only the negative-verifier self-test: use a small valid ZIP
+        # in memory. The actual byte-for-byte clean rebuild stays mandatory
+        # in Work PR and main CI against the committed release archive.
+        stream = io.BytesIO()
+        with zipfile.ZipFile(stream, "w", compression=zipfile.ZIP_DEFLATED) as z:
+            z.writestr("manifest.json", json.dumps(source_manifest))
+            z.writestr("APP_ID.txt", app_id)
+            z.writestr("synthetic-fixture.js", "// test-only")
+        current = stream.getvalue()
+    assert validate_bytes(current, current, source_manifest, app_id)["bytes"] > 100
     negatives: list[tuple[str, bytes, dict, str]] = [
         ("tampered-bytes", current + b"bad", source_manifest, app_id),
         ("truncated", current[:72], source_manifest, app_id),
