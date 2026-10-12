@@ -55,7 +55,7 @@ jobs:
         run: |
           set -euo pipefail
           npm ci
-          npm test
+          bash scripts/coverage-gate.sh
       - name: Commit test-only update and remove this one-time workflow
         shell: bash
         run: |
