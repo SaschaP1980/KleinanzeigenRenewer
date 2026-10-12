@@ -8,6 +8,8 @@ KAR deliberately uses a short release cycle. It does not copy the Candidate/Stag
 - Do not publish Source ZIPs.
 - A GitHub Release contains the installable Chrome package only:
   `kleinanzeigen-renewal-chrome-vX.Y.Z.zip`
+- **Additionally**, archive exactly the same checked Chrome ZIP as `release/kleinanzeigen-renewal-chrome-vX.Y.Z.zip` on `main`, visible at https://github.com/SaschaP1980/KleinanzeigenRenewer/tree/main/release. This is a real committed repository file, not the GitHub Releases asset listing. SHA-256 and size must match the published asset.
+- `scripts/archive-release-zip.sh` verifies the published single-asset Release, tag source commit, bytes, hash, ZIP manifest, and main SHA before a fast-forward-only push. It uses `git add -f` because `*.zip` is gitignored; the installable runtime package remains unchanged.
 - Release notes must include the source commit SHA, development path, ZIP byte size and SHA-256.
 - The Chrome extension identity/key must remain stable.
 
@@ -51,7 +53,8 @@ Its intended responsibilities are deliberately compact:
 4. build the installable Chrome ZIP once;
 5. integrity-check the ZIP;
 6. run packaged Browser E2E;
-7. create the version tag/GitHub Release with exactly that lean ZIP asset.
+7. create the version tag/GitHub Release with exactly that lean ZIP asset;
+8. commit that byte-identical ZIP to `main/release/` with the archive script (only after successful publish).
 
 If the workflow currently differs from this document, executable workflow behaviour is stronger authority and the documentation must be corrected in the same workstream.
 

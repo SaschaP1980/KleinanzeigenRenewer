@@ -1,0 +1,22 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs'),cp=require('node:child_process'),path=require('node:path');
+const root=path.resolve(__dirname,'..');
+const read=p=>fs.readFileSync(path.join(root,p),'utf8');
+const wf=read('.github/workflows/kar-release.yml'),ci=read('.github/workflows/kar-ci.yml');
+const script=path.join(root,'scripts/archive-release-zip.sh'),src=fs.readFileSync(script,'utf8');
+const check=cp.spawnSync('bash',['-n',script],{encoding:'utf8'});
+assert.equal(check.status,0,check.stderr);
+assert.ok(wf.indexOf('gh release create "v$VERSION"')>=0);
+assert.ok(wf.indexOf('gh release create "v$VERSION"')<wf.indexOf('bash scripts/archive-release-zip.sh'));
+assert.match(wf,/bash scripts\/archive-release-zip\.sh "\$ZIP" "\$VERSION" "\$ZIP_SHA256" "\$ZIP_BYTES" "\$GITHUB_SHA"/);
+for(const required of ['gh api "repos/$GITHUB_REPOSITORY/releases/tags/v$VERSION"','.assets[0].state == "uploaded"','.assets[0].digest == $dig','.assets[0].size == $bytes','.target_commitish == $sha','git/ref/tags/v$VERSION','sha256sum "$ZIP"','sha256sum "$TARGET"','unzip -t "$ZIP"','unzip -p "$ZIP" manifest.json','git add -f -- "$TARGET"','git diff --cached --name-only','git ls-remote origin refs/heads/main','git push origin HEAD:refs/heads/main','release/$NAME'])
+ assert.ok(src.includes(required),'missing exact publication safety contract: '+required);
+assert.doesNotMatch(src,/gh release (create|upload|edit|delete)/);
+assert.doesNotMatch(ci,/gh release (create|upload|edit|delete)/);
+const manifest=JSON.parse(read('manifest.json')),pkg=JSON.parse(read('package.json'));
+assert.equal(manifest.version,pkg.version);
+assert.match(pkg.scripts.test,/node tests\/kar-release-repo-archive-contract\.cjs/);
+const packager=read('scripts/package.py');
+assert.ok(packager.includes("p.suffix not in {'.zip','.pyc'}"),'Source archives must exclude committed ZIPs');
+assert.ok(packager.includes("('chrome',runtime)"),'Chrome runtime must use explicit allowlist');
+console.log('PASS KAR repository ZIP archive: postpublication, provenance, bytes, tag, branch and package exclusion');

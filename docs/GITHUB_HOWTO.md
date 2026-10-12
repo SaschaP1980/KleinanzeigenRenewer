@@ -164,7 +164,9 @@ The current design does not require GitHub Actions to create/approve PRs.
 - Git is the source authority.
 - Do not store new Source ZIPs in the repository.
 - Do not attach Source ZIPs to KAR GitHub Releases.
-- Published package is the lean Chrome ZIP only.
+- Published GitHub Release asset is the lean Chrome ZIP only.
+- The same verified Chrome ZIP must also be committed under `main/release/kleinanzeigen-renewal-chrome-vX.Y.Z.zip`. A GitHub Release asset alone does **not** place a file into this directory. `scripts/archive-release-zip.sh` checks the published SHA-256/bytes, version, tag and single-asset identity and uses `git add -f` to override the global `*.zip` ignore for this path only.
+- GitHub Actions pushes made with `GITHUB_TOKEN` may not trigger ordinary push CI. For automatic repository binary commits, dispatch `KAR CI` on the new main ref and require that actual run GREEN before marking acceptance.
 - Keep its SHA-256 in release notes/evidence.
 
 ## Living-document rule
