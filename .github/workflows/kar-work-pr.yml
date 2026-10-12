@@ -63,6 +63,11 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
+      - name: Prove unfixed baseline RED for consistent future PATCH (isolated)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tests/kar46-unfixed-next-patch-red.py
       - name: Mandatory coverage and architecture gate
         run: bash scripts/coverage-gate.sh
       - name: Build installable package once

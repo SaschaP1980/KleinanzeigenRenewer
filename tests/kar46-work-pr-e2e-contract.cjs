@@ -12,6 +12,9 @@ assert.match(work, /^  browser_e2e:\s*$/m, 'Independent packaged Chromium E2E Wo
 const validation = work.split('\n  validation:\n')[1]?.split('\n  browser_e2e:\n')[0];
 const browser = work.split('\n  browser_e2e:\n')[1];
 assert.ok(validation && browser, 'Must preserve validated contract -> runtime -> browser gating');
+assert.match(validation, /python3 tests\/kar46-unfixed-next-patch-red\.py/);
+assert.ok(fs.existsSync(path.join(root, 'tests/kar46-unfixed-next-patch-red.py')),
+  'Pinned unfixed-basis RED proof must remain executable in Work PR');
 assert.match(browser, /^    needs: validation$/m);
 assert.match(browser, /^    timeout-minutes: 30$/m);
 assert.match(validation, /ref: \$\{\{ github\.event\.pull_request\.head\.sha \}\}/);
