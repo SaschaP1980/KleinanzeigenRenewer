@@ -109,6 +109,20 @@ There is **no Candidate layer**.
 
 Never create `work/KAR-*` before the Issue's canonical Rolling Comment has been created and read back.
 
+### General Issue work budget and Wave split
+
+Before implementation, estimate whether the full scoped Issue, including verification, can be completed in **less than 20 minutes of active ChatGPT work**. This is an observed continuity target, **not** a technical guarantee. Plan **at most 15 minutes of active work** and reserve approximately 5 minutes for verification, recovery and unexpected GitHub/CI latency. If the expected work is larger, first create/identify **independently acceptable, separately scoped Wave Issues** with dependencies and their own recovery checkpoint; keep the parent open as the coordination index. If a Wave overruns its estimate, checkpoint and read back the actual safe GitHub state, then split the remainder. Do not sacrifice tests, safety gates or exact-SHA CI to meet a time estimate. See the authoritative policy in `docs/GITHUB_HOWTO.md`.
+
+### GitHub language, identifiers and agent ownership
+
+All new/changed GitHub-facing writing must be **English**. Every Issue title must start with **`[KAR-N]` where N is that Issue's real number**, corrected and read back after creation if necessary; do not apply Issue rules to PR titles or rewrite historical closed Issue bodies. Existing title/body/label migration is separate work under KAR-24 Waves. Technical identifiers and literal user-facing UI text retain their required semantics.
+
+The owner sets scope, priorities and permission to implement/publish through Issues and explicit chat instructions; the agent conducts ordinary authorized GitHub setup, Issue/comment, branch, PR, CI, labeling and cleanup work without asking the owner to operate GitHub manually. Unsupported actions must be acknowledged, and least-privilege approved GitHub-native alternatives assessed; never fake a successful write or expand authorization. Releases and live-account actions always retain separate safety/owner gates. No unattended work is promised after the interactive session ends without specifically supported automation.
+
+### Active Rolling Comment cadence
+
+During an **actively executing** Issue-backed session, update and **read back the same single canonical Rolling Comment at least every three minutes**, even with no new progress. Record the verified UTC heartbeat, current status, known exact refs/IDs, blockers and next action. **Also update/read back immediately after each meaningful successful intermediate step** and on failure/phase change; preserve actual evidence and never mark queued or incomplete CI GREEN. Continue while actively waiting on CI using real `WAITING_FOR_GITHUB` evidence. This cannot guarantee background heartbeats after a session ends. The exact procedure is in `docs/DEVELOPMENT_GUIDELINES.md` and the Rolling Comment template.
+
 ## 5. Recovery rule for active Work
 
 The canonical Issue Rolling Comment is the recovery anchor. Use exactly one comment containing:
