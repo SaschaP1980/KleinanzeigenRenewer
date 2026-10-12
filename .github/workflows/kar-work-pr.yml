@@ -91,6 +91,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
+          fetch-depth: 0
           persist-credentials: false
           ref: ${{ github.event.pull_request.head.sha }}
       - name: Verify exact checked-out PR HEAD
@@ -101,14 +102,15 @@ jobs:
           echo "E2E exact Work HEAD: $EXPECTED_WORK_HEAD"
           mkdir -p "$RUNNER_TEMP/kar-work-pr-e2e-evidence"
           echo "EVIDENCE_DIR=$RUNNER_TEMP/kar-work-pr-e2e-evidence" >> "$GITHUB_ENV"
-      - name: Build and verify installable ZIP from exact Work HEAD
+      - name: Rebuild, verify committed ZIP, and reject version-path collisions
         shell: bash
+        env:
+          EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
           set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/kar-work-pr-e2e-build"
-          python3 scripts/package.py "$RUNNER_TEMP/kar-work-pr-e2e-build"
-          VERSION="$(node -p "require('./manifest.json').version")"
-          ZIP="$RUNNER_TEMP/kar-work-pr-e2e-build/kleinanzeigen-renewal-chrome-v$VERSION.zip"
+          VERSION="$(node -p "require('./manifest.json').version_name || require('./manifest.json').version")"
+          python3 scripts/verify_committed_chrome_zip.py --base-sha "$EXPECTED_BASE_SHA" --report "$EVIDENCE_DIR/committed-zip-parity.json"
+          ZIP="$PWD/release/kleinanzeigen-renewal-chrome-v$VERSION.zip"
           test -f "$ZIP"
           unzip -t "$ZIP" >/dev/null
           echo "E2E_CHROME_ZIP=$ZIP" >> "$GITHUB_ENV"
