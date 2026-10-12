@@ -43,6 +43,12 @@ First chat:
 
 Additional working chats append their own visible marker under **Chat origin**. Do not invent ChatGPT internal IDs or URLs.
 
+### Executable contract parity (KAR-22)
+
+The complete fenced scaffold below is the **normative** PR recovery document. Its field labels (including `**Work branch / exact head:**`), `- Originating Work-Chat-ID:` and full `###` headings are checked by `scripts/kar-work-pr-contract.cjs` in `KAR Work PR`; `tests/kar-work-pr-contract.cjs` must accept an instantiated scaffold and reject missing or altered fields. Do not add shorter legacy aliases merely to satisfy an old grep contract.
+
+Immediately before opening or updating a PR, store and read back the **exact current** Work HEAD SHA in the one canonical comment, ensure `**Canonical comment ID:**` contains the saved numeric comment ID, and keep the link to the real Issue. An earlier BOOTSTRAP `NOT CREATED` value must not persist into PR validation.
+
 ## Canonical scaffold
 
 ~~~markdown
