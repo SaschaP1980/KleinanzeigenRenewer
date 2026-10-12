@@ -35,6 +35,16 @@ Use `WAITING_FOR_GITHUB` only when an exact queued/running GitHub run is known. 
 
 Never invent timestamps, results, SHAs, test counts or native evidence.
 
+### Active heartbeat and checkpoint policy (KAR-25)
+
+- While an authorized agent session is actively working, **write and read back a heartbeat in this same canonical comment at least once every three minutes**, even without a meaningful change. Refresh the verified `Last heartbeat (UTC)`, agent state, phase, exact known refs/IDs, last safe checkpoint, blockers and precise next action.
+- **Immediately after each meaningful successful step** (including branch/ref creation, commit, test RED/GREEN, PR, CI result, merge, issue-state transition or authorized release), update the cumulative evidence ledger and read back the same comment with actual SHA/URL/run status. Milestone updates are mandatory in addition to timed heartbeats. Preserve failed/unfinished checks as such.
+- If actively waiting for known GitHub runs, record `WAITING_FOR_GITHUB`, the exact run ID and current status. Do not claim success before completed GREEN evidence. No background cadence is guaranteed after the interactive session ends unless separately supported and authorized scheduling is configured.
+- Each independently accepted **Wave** has its own issue and one canonical comment; the parent Issue links child dependencies and verified outcomes. Target **less than 20 minutes active work per Issue**, with at most **15 minutes planned** and approximately five minutes reserved for verification/recovery. Split any larger anticipated scope before work; checkpoint and read back when further splitting becomes necessary.
+- GitHub-facing comment text is written in **English**. The Issue title begins with its actual `[KAR-N]` prefix. The owner determines scope/authorization, while the agent handles routine GitHub operations with least-privilege supported tools and readback; do not offload routine UI work to the owner or override existing safety/release gates.
+
+These procedural requirements supplement the scaffold below without changing its exact fields/headings enforced by `scripts/kar-work-pr-contract.cjs`. Consult `docs/GITHUB_HOWTO.md` for the normative timing and Wave policy and `docs/DEVELOPMENT_GUIDELINES.md` for the active comment lifecycle.
+
 ## Work-Chat-ID
 
 First chat:
