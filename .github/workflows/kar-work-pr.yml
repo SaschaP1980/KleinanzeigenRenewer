@@ -110,10 +110,11 @@ jobs:
           set -euo pipefail
           VERSION="$(node -p "require('./manifest.json').version_name || require('./manifest.json').version")"
           python3 scripts/verify_committed_chrome_zip.py --base-sha "$EXPECTED_BASE_SHA" --report "$EVIDENCE_DIR/committed-zip-parity.json"
-          ZIP="$PWD/release/kleinanzeigen-renewal-chrome-v$VERSION.zip"
+          E2E_CHROME_ZIP="$PWD/release/kleinanzeigen-renewal-chrome-v$VERSION.zip"
+          ZIP="$E2E_CHROME_ZIP"
           test -f "$ZIP"
           unzip -t "$ZIP" >/dev/null
-          echo "E2E_CHROME_ZIP=$ZIP" >> "$GITHUB_ENV"
+          echo "E2E_CHROME_ZIP=$E2E_CHROME_ZIP" >> "$GITHUB_ENV"
           sha256sum "$ZIP" | tee "$EVIDENCE_DIR/zip-sha256.txt"
       - name: Real packaged Chromium E2E (logged-out local fixtures)
         shell: bash
