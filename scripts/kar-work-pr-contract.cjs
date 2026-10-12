@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 'use strict';
 const fs = require('node:fs');
+const { validateIssueTitle } = require('./kar-issue-title.cjs');
 const BT = String.fromCharCode(96);
 const MARKER = '<!-- KAR-ROLLING-COMMENT -->';
 const HEADINGS = Object.freeze([
@@ -22,6 +23,7 @@ function requireCondition(ok, reason) {
 function validateContract({ issue, comments, headRef, headSha, prBody, repositoryFullName }) {
   const number = Number(issue?.number);
   requireCondition(Number.isSafeInteger(number) && number > 0, 'invalid issue number');
+  requireCondition(validateIssueTitle(issue).kind === 'issue', 'Work PR owner must be a GitHub Issue');
   requireCondition(issue?.state === 'open', 'KAR issue must be open');
   requireCondition(typeof repositoryFullName === 'string' &&
     /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repositoryFullName), 'invalid repository identity');

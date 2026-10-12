@@ -28,7 +28,7 @@ function fixture() {
   replaceLine('- Originating Work-Chat-ID:', BT + 'KAR22CHATABCDEF012345' + BT);
   replaceLine('- Marker visibly issued in chat:', 'yes');
   return {
-    issue: { number: 22, state: 'open' },
+    issue: { number: 22, state: 'open', title: '[KAR-22] Contract validation' },
     comments: [{ id: 12345, body }],
     headRef: 'work/KAR-22',
     headSha,
@@ -48,6 +48,10 @@ rejects('no marked comment', input => { input.comments = []; });
 rejects('two marked comments', input => { input.comments.push({ ...input.comments[0], id: 999 }); });
 rejects('two markers within one comment', input => { input.comments[0].body += '\n<!-- KAR-ROLLING-COMMENT -->'; });
 rejects('closed issue', input => { input.issue.state = 'closed'; });
+rejects('missing Issue title prefix', input => { input.issue.title = 'Incorrect'; });
+rejects('wrong Issue title prefix', input => { input.issue.title = '[KAR-23] Wrong number'; });
+rejects('duplicate Issue title prefix', input => { input.issue.title = '[KAR-22] [KAR-22] Duplicate'; });
+rejects('PR masquerading as Issue', input => { input.issue.pull_request = { url: 'https://api.github.com/repos/a/b/pulls/22' }; });
 rejects('wrong issue identity', input => { input.issue.number = 23; });
 rejects('incorrect heading number', input => { input.comments[0].body = input.comments[0].body.replace('## KAR-22 — Rolling Development State', '## KAR-23 — Rolling Development State'); });
 rejects('incorrect canonical Issue URL', input => { input.comments[0].body = input.comments[0].body.replace('/issues/22)', '/issues/23)'); });
