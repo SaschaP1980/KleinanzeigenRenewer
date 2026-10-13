@@ -126,3 +126,9 @@ On failure:
 6. rerun only the required gate.
 
 Do not mark an Issue/release complete while a mandatory gate is failed, skipped or not actually executed.
+
+### KAR-52 reusable Work ZIP-only PATCH tooling
+
+The repeatable, owner-dispatched entrypoint is scripts/kar-atomic-patch.py and .github/workflows/kar-atomic-patch.yml. The workflow only responds to an explicit workflow_dispatch on work/KAR-N with exact expected source and main SHAs. It calculates next compatible PATCH dynamically and requires exactly four version metadata files plus one new archived installable Chrome ZIP in an atomic Git commit. It checks clean source/archive byte parity, package/runtime closure, manifest identity/permissions and the full safety and coverage gate. Legacy historical GitHub Release objects/tags remain untouched; no release object or tag is a ZIP-only path requirement.
+
+Before opening a PR, the canonical single Rolling Comment must be synchronized and read back at the exact new Work HEAD. The strict Work PR contract tolerates a short bounded API readback race but never accepts stale SHA or missing headings. GitHub bot pushes alone do not establish real Work PR CI. Preserve all nine Chromium E2E scenarios against the PR-committed ZIP and repeat the mandatory exact-main test after an owner-authorized merge. See docs/GITHUB_HOWTO.md. KAR-52 itself performs no PATCH bump or release.

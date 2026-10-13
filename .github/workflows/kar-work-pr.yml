@@ -35,9 +35,20 @@ jobs:
             exit 1
           }
           ISSUE="${BASH_REMATCH[1]}"
-          gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE" > /tmp/kar-issue.json
-          gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/issues/$ISSUE/comments?per_page=100" > /tmp/kar-comments.json
-          node scripts/kar-work-pr-contract.cjs /tmp/kar-issue.json /tmp/kar-comments.json
+          # Bound the GH event/comment-readback race without weakening the contract.
+          for attempt in 1 2 3 4 5 6; do
+            gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE" > /tmp/kar-issue.json
+            gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/issues/$ISSUE/comments?per_page=100" > /tmp/kar-comments.json
+            if node scripts/kar-work-pr-contract.cjs /tmp/kar-issue.json /tmp/kar-comments.json; then
+              echo "KAR Work exact-head contract PASS on read $attempt/6"
+              exit 0
+            fi
+            if [[ "$attempt" -eq 6 ]]; then
+              echo "KAR Work canonical contract still RED after 6 reads; FAIL CLOSED" >&2
+              exit 1
+            fi
+            sleep 8
+          done
 
   validation:
     name: Runtime / safety / coverage
@@ -74,6 +85,15 @@ jobs:
       - name: Execute pinned unfixed archive-E2E boundary RED (isolated)
         shell: bash
         run: python3 tests/kar48-historical-unfixed-red.py
+      - name: Execute reusable SHA-bound next-PATCH read-only plan (KAR-52)
+        if: github.head_ref == 'work/KAR-52'
+        shell: bash
+        env:
+          PINNED_WORK_HEAD: ${{ github.event.pull_request.head.sha }}
+          PINNED_MAIN_BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          python3 scripts/kar-atomic-patch.py --mode plan --issue 52 --branch work/KAR-52 --work-sha "$PINNED_WORK_HEAD" --main-sha "$PINNED_MAIN_BASE"
       - name: Mandatory coverage and architecture gate
         run: bash scripts/coverage-gate.sh
       - name: Build installable package once
