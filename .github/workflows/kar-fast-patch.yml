@@ -1,0 +1,45 @@
+name: KAR Fast atomic PATCH ZIP-only builder
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: kar-fast-atomic-main
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  issues: read
+  actions: write
+
+jobs:
+  fast_patch:
+    # Normal pushes and the GITHUB_TOKEN-produced 5-file commit cannot retrigger this job.
+    if: >-
+      github.event_name == 'push' && github.ref == 'refs/heads/main' &&
+      startsWith(github.event.head_commit.message, 'ci(KAR-') &&
+      contains(github.event.head_commit.message, ': fast PATCH base=')
+    name: Guarded empty-marker Fast PATCH and exact-main CI dispatch
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install pinned packages
+        run: npm ci
+      - name: Verify authorized empty marker, issue, base SHA and future ZIP
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/kar-fast-patch.py --mode plan
+      - name: Build exact five-path ZIP, run all safety gates, commit, and dispatch final-SHA KAR CI
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/kar-fast-patch.py --mode build

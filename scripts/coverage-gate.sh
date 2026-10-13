@@ -13,4 +13,5 @@ node scripts/v12319-architecture-audit.cjs >/dev/null
 node scripts/coverage-no-regression.cjs
 
 rm -rf "$raw"
+python3 tests/kar58-fast-patch-policy.py
 echo "PASS v1.23.19 coverage gate"
