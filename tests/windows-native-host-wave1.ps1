@@ -19,43 +19,35 @@ function Check([bool]$ok,[string]$reason) {
  Write-Host ('PASS KAR-64 '+$reason)
 }
 function Run-Host([byte[]]$request) {
- $psi=[Diagnostics.ProcessStartInfo]::new()
- $psi.FileName=$exe
- $psi.RedirectStandardInput=$true
- $psi.StandardInputEncoding=[Text.UTF8Encoding]::new($false) # Native Messaging is binary; no StreamWriter BOM.
- $psi.RedirectStandardOutput=$true
- $psi.RedirectStandardError=$true
- $psi.UseShellExecute=$false
- $psi.CreateNoWindow=$true
- $proc=[Diagnostics.Process]::Start($psi)
+ # Windows PowerShell 5.1/.NET Framework wraps redirected Process.StandardInput in a
+ # BOM-producing StreamWriter. File-backed native stdin is required to test binary
+ # Chrome Native Messaging frames without adding a UTF-8 BOM to the four-byte header.
+ $stem=Join-Path $base ('native-frame-'+[Guid]::NewGuid().ToString('N'))
+ $inputFile=$stem+'.in'
+ $outputFile=$stem+'.out'
+ $errorFile=$stem+'.err'
+ [IO.File]::WriteAllBytes($inputFile,$request)
+ $proc=$null
  try {
-  $proc.StandardInput.BaseStream.Write($request,0,$request.Length)
-  $proc.StandardInput.BaseStream.Flush()
-  $proc.StandardInput.Close()
-  $output=$proc.StandardOutput.BaseStream
-  $header=New-Object byte[] 4
-  $read=0
-  while ($read -lt 4) {
-   $n=$output.Read($header,$read,4-$read)
-   if ($n -eq 0) { throw 'Native host returned no frame' }
-   $read+=$n
-  }
-  $length=[uint32]$header[0] -bor ([uint32]$header[1] -shl 8) -bor ([uint32]$header[2] -shl 16) -bor ([uint32]$header[3] -shl 24)
-  if ($length -lt 2 -or $length -gt 8192) { throw 'Invalid response frame length' }
-  $data=New-Object byte[] ([int]$length)
-  $read=0
-  while ($read -lt $length) {
-   $n=$output.Read($data,$read,([int]$length-$read))
-   if ($n -eq 0) { throw 'Truncated native response' }
-   $read+=$n
-  }
-  $text=[Text.Encoding]::UTF8.GetString($data)
-  $value=$text|ConvertFrom-Json
+  $proc=Start-Process -FilePath $exe -PassThru -NoNewWindow -RedirectStandardInput $inputFile -RedirectStandardOutput $outputFile -RedirectStandardError $errorFile
   Check ($proc.WaitForExit(90000)) 'native host exits after one response'
-  return $value
+  $response=[IO.File]::ReadAllBytes($outputFile)
+  if ($response.Length -lt 6) { throw 'Native host returned no complete frame' }
+  $length=[uint32]$response[0] -bor ([uint32]$response[1] -shl 8) -bor ([uint32]$response[2] -shl 16) -bor ([uint32]$response[3] -shl 24)
+  if ($length -lt 2 -or $length -gt 8192 -or $response.Length -ne (4+[int]$length)) {
+   throw 'Native host returned invalid, truncated or trailing response bytes'
+  }
+  $utf8=New-Object Text.UTF8Encoding($false,$true)
+  $text=$utf8.GetString($response,4,[int]$length)
+  return ($text|ConvertFrom-Json)
  } finally {
-  if (-not $proc.HasExited) { $proc.Kill() }
-  $proc.Dispose()
+  if ($null -ne $proc) {
+   if (-not $proc.HasExited) { $proc.Kill();[void]$proc.WaitForExit(10000) }
+   $proc.Dispose()
+  }
+  foreach ($file in @($inputFile,$outputFile,$errorFile)) {
+   if (Test-Path -LiteralPath $file) { Remove-Item -LiteralPath $file -Force }
+  }
  }
 }
 function Frame([string]$text) {
