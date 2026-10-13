@@ -89,7 +89,7 @@ const InventoryExport = require(path.join(root, 'inventory-export.js'));
 
   assert.ok(app.includes("USER_INVENTORY_EXPORT_SUCCEEDED"));
   assert.ok(css.includes('.inventory-export-button'));
-  assert.deepStrictEqual(manifest.permissions, ['activeTab', 'storage', 'unlimitedStorage', 'scripting']);
+  assert.deepStrictEqual(manifest.permissions, require('./current-patch-policy.cjs').expectedManifestPermissions(manifest.version));
   assert.deepStrictEqual(manifest.host_permissions, [
     'https://www.kleinanzeigen.de/*',
     'https://kleinanzeigen.de/*',

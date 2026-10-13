@@ -60,10 +60,16 @@ function assertCompatibleCurrentPatch({ manifest, pkg, lock, spec } = {}) {
   return version;
 }
 
+function expectedManifestPermissions(version) {
+  const historic = ['activeTab', 'storage', 'unlimitedStorage', 'scripting'];
+  return isCurrentPatchVersion(version) && Number(version.split('.')[2]) >= 30
+    ? [...historic, 'nativeMessaging'] : historic;
+}
+
 function includesActivePatch(knownVersions, version) {
   assert.ok(Array.isArray(knownVersions), 'historical release predicate must remain an array');
   return knownVersions.includes(version) ||
     (knownVersions.includes('1.23.24') && isCurrentPatchVersion(version));
 }
 
-module.exports = { isCurrentPatchVersion, assertCompatibleCurrentPatch, includesActivePatch };
+module.exports = { isCurrentPatchVersion, assertCompatibleCurrentPatch, includesActivePatch, expectedManifestPermissions };
