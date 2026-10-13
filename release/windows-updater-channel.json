@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "version": "1.23.28",
+  "commit": "2e18f8069f46537b94bcf01a39ae0a65950f675f",
+  "sha256": "5730336c299f2dc4271ece00b98fc30f1c91f3287c0057bc5ffb1d9f21deaec4",
+  "bytes": 751444,
+  "extensionId": "hafahjhhgiipdegfkgacchmnacgblnah",
+  "channel": "approved",
+  "note": "Changes to this allowlisted version require verified GitHub CI and a separate explicit approval commit. The immutable commit contains the distributable ZIP."
+}
