@@ -46,7 +46,7 @@ function SaveJson([string]$File,$Data) {
  $temp=$File+'.'+[Guid]::NewGuid().ToString('N')+'.tmp'
  try {
   [IO.File]::WriteAllText($temp,($Data|ConvertTo-Json -Depth 12 -Compress),([Text.UTF8Encoding]::new($false)))
-  if (Test-Path -LiteralPath $File) { [IO.File]::Replace($temp,$File,$null) } else { [IO.File]::Move($temp,$File) }
+  if (Test-Path -LiteralPath $File) { [IO.File]::Replace($temp,$File,($File+'.previous')) } else { [IO.File]::Move($temp,$File) }
  } finally { if (Test-Path -LiteralPath $temp) { Remove-Item -LiteralPath $temp -Force } }
 }
 function Digest([string]$File) { return (Get-FileHash -LiteralPath $File -Algorithm SHA256).Hash.ToLowerInvariant() }
