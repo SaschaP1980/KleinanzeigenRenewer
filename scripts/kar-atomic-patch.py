@@ -74,7 +74,7 @@ def run(*args, binary=False, timeout=30):
                     # stack under megabytes of printed input. Preserve bounded
                     # source location hints instead of silently losing root cause.
                     locations = list(dict.fromkeys(re.findall(
-                        r"(?:tests|scripts)/[A-Za-z0-9_./-]+\\.(?:cjs|mjs|js|py):\\d+(?::\\d+)?",
+                        r"(?:tests|scripts)/[A-Za-z0-9_./-]+\.(?:cjs|mjs|js|py):\d+(?::\d+)?",
                         raw)))
                     print("KAR69_BUILD_GATE_SOURCE_LOCATIONS: " + repr(locations[-20:]),
                           file=sys.stderr)
