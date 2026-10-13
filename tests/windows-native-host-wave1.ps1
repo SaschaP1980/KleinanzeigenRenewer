@@ -52,32 +52,33 @@ function Run-Host([byte[]]$request,[string[]]$chromeArgs=@('chrome-extension://h
  }
 }
 function Deny-Launch([string[]]$chromeArgs,[string]$label) {
- # Verify that the executable rejects untrusted process arguments before
- # reading any framed input, without writes or stdout protocol confusion.
- $stem=Join-Path $base ('reject-args-'+[Guid]::NewGuid().ToString('N'))
- $inputFile=$stem+'.in'
- $outputFile=$stem+'.out'
- $errorFile=$stem+'.err'
- [IO.File]::WriteAllBytes($inputFile, (Frame '{"protocol":1,"requestId":"0123456789abcdef","operation":"health"}'))
- $proc=$null
+ # Direct .NET process launcher is needed here: Windows PowerShell 5.1
+ # Start-Process -PassThru does not reliably expose an ExitCode for rapid exits.
+ # Intentionally close stdin: a wrongly accepted caller must still terminate.
+ $proc=New-Object System.Diagnostics.Process
  try {
-  $options=@{ FilePath=$exe;PassThru=$true;NoNewWindow=$true;
-   RedirectStandardInput=$inputFile;RedirectStandardOutput=$outputFile;RedirectStandardError=$errorFile }
-  if (@($chromeArgs).Count -gt 0) { $options.ArgumentList=$chromeArgs }
-  $proc=Start-Process @options
+  $info=New-Object System.Diagnostics.ProcessStartInfo
+  $info.FileName=$exe
+  $info.Arguments=(@($chromeArgs) -join ' ')
+  $info.UseShellExecute=$false
+  $info.CreateNoWindow=$true
+  $info.RedirectStandardInput=$true
+  $info.RedirectStandardOutput=$true
+  $info.RedirectStandardError=$true
+  $proc.StartInfo=$info
+  Check ($proc.Start()) ('rejected launch process started: '+$label)
+  $proc.StandardInput.Close()
   $exited=$proc.WaitForExit(10000)
   Check $exited ('rejected launch exits: '+$label)
-  $raw=[IO.File]::ReadAllBytes($outputFile)
-  Write-Host ('KAR-66 HOST_LAUNCH_DIAGNOSTIC: label='+$label+' exit='+$proc.ExitCode+' stdoutBytes='+$raw.Length)
-  Check ($proc.ExitCode -eq 2 -and $raw.Length -eq 0) ('rejected launch leaves stdout empty: '+$label)
+  $output=$proc.StandardOutput.ReadToEnd()
+  $errorOutput=$proc.StandardError.ReadToEnd()
+  $proc.Refresh()
+  $exitCode=$proc.ExitCode
+  Write-Host ('KAR-66 HOST_LAUNCH_DIAGNOSTIC: label='+$label+' exit='+$exitCode+' stdoutBytes='+[Text.Encoding]::UTF8.GetByteCount($output)+' stderrBytes='+[Text.Encoding]::UTF8.GetByteCount($errorOutput))
+  Check ($exitCode -eq 2 -and $output.Length -eq 0) ('rejected launch exits 2 without stdout: '+$label)
  } finally {
-  if ($null -ne $proc) {
-   if (-not $proc.HasExited) { $proc.Kill();[void]$proc.WaitForExit(10000) }
-   $proc.Dispose()
-  }
-  foreach ($file in @($inputFile,$outputFile,$errorFile)) {
-   if (Test-Path -LiteralPath $file) { Remove-Item -LiteralPath $file -Force }
-  }
+  if (-not $proc.HasExited) { $proc.Kill();[void]$proc.WaitForExit(10000) }
+  $proc.Dispose()
  }
 }
 function Frame([string]$text) {
