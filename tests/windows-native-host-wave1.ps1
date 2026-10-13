@@ -29,7 +29,8 @@ function Run-Host([byte[]]$request) {
  [IO.File]::WriteAllBytes($inputFile,$request)
  $proc=$null
  try {
-  $proc=Start-Process -FilePath $exe -PassThru -NoNewWindow -RedirectStandardInput $inputFile -RedirectStandardOutput $outputFile -RedirectStandardError $errorFile
+  # Chrome on Windows passes the origin, then the parent-window handle (0 for MV3 service workers).
+  $proc=Start-Process -FilePath $exe -ArgumentList @('chrome-extension://hafahjhhgiipdegfkgacchmnacgblnah/','--parent-window=0') -PassThru -NoNewWindow -RedirectStandardInput $inputFile -RedirectStandardOutput $outputFile -RedirectStandardError $errorFile
   Check ($proc.WaitForExit(90000)) 'native host exits after one response'
   $response=[IO.File]::ReadAllBytes($outputFile)
   if ($response.Length -lt 6) { throw 'Native host returned no complete frame' }
