@@ -68,9 +68,19 @@ def run(*args, binary=False, timeout=30):
         # Preserve the failing safety gate and bounded evidence instead of a silent RC1.
         for label, stream in (("stdout", error.stdout), ("stderr", error.stderr)):
             if stream:
-                evidence = stream[-16000:]
-                if isinstance(evidence, bytes):
-                    evidence = evidence.decode("utf-8", "replace")
+                raw = stream.decode("utf-8", "replace") if isinstance(stream, bytes) else stream
+                if label == "stderr":
+                    # Node assertions on large source files hide their actual test
+                    # stack under megabytes of printed input. Preserve bounded
+                    # source location hints instead of silently losing root cause.
+                    locations = list(dict.fromkeys(re.findall(
+                        r"(?:tests|scripts)/[A-Za-z0-9_./-]+\\.(?:cjs|mjs|js|py):\\d+(?::\\d+)?",
+                        raw)))
+                    print("KAR69_BUILD_GATE_SOURCE_LOCATIONS: " + repr(locations[-20:]),
+                          file=sys.stderr)
+                    evidence = raw[:1800] + "\n...[bounded red-gate evidence]...\n" + raw[-4400:]
+                else:
+                    evidence = raw[-6000:]
                 print("KAR69_BUILD_GATE_" + label.upper() + ":\n" + evidence,
                       file=sys.stderr)
         raise
