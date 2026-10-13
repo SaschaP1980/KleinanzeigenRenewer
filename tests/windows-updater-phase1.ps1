@@ -87,13 +87,13 @@ try {
  $z=[IO.Compression.ZipFile]::Open($manifestAttack,[IO.Compression.ZipArchiveMode]::Update)
  try {
   $entry=$z.GetEntry('manifest.json')
-  $mStream=New-Object IO.StreamReader($entry.Open())
+  $mStream=[IO.StreamReader]::new($entry.Open())
   try { $manifestText=$mStream.ReadToEnd() } finally { $mStream.Dispose() }
   $entry.Delete()
   $m=$manifestText|ConvertFrom-Json
   $m.permissions=@('storage')
   $replacement=$z.CreateEntry('manifest.json')
-  $writer=New-Object IO.StreamWriter($replacement.Open())
+  $writer=[IO.StreamWriter]::new($replacement.Open())
   try { $writer.Write(($m|ConvertTo-Json -Depth 15 -Compress)) } finally { $writer.Dispose() }
  } finally { $z.Dispose() }
  $attackChannel=Channel 'manifest-attack' '1.23.28' $manifestAttack

@@ -45,7 +45,7 @@ function ReadJson([string]$File) {
 function SaveJson([string]$File,$Data) {
  $temp=$File+'.'+[Guid]::NewGuid().ToString('N')+'.tmp'
  try {
-  [IO.File]::WriteAllText($temp,($Data|ConvertTo-Json -Depth 12 -Compress),(New-Object Text.UTF8Encoding($false)))
+  [IO.File]::WriteAllText($temp,($Data|ConvertTo-Json -Depth 12 -Compress),([Text.UTF8Encoding]::new($false)))
   if (Test-Path -LiteralPath $File) { [IO.File]::Replace($temp,$File,$null) } else { [IO.File]::Move($temp,$File) }
  } finally { if (Test-Path -LiteralPath $temp) { Remove-Item -LiteralPath $temp -Force } }
 }
@@ -104,7 +104,7 @@ function Proof([string]$Folder,$Receipt) {
  $expected=@($Receipt.files)
  $actual=@(Get-ChildItem -LiteralPath $Folder -File -Recurse -Force)
  Require ($expected.Count -ge 7 -and $expected.Count -eq $actual.Count -and $actual.Count -le 250) 'Installed file set differs'
- $names=New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::OrdinalIgnoreCase)
+ $names=[System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
  foreach ($file in $expected) {
   $name=[string]$file.path
   Require ($name -cmatch '^[a-zA-Z0-9._/-]+$' -and $name -notmatch '(^/|//|(^|/)\.\.?(/|$))' -and $names.Add($name)) 'Duplicate/unsafe receipt file'
@@ -122,10 +122,10 @@ function ExtractZip([string]$Zip,$Approval,[string]$Folder) {
  $stream=[IO.File]::OpenRead($Zip)
  $archive=$null
  try {
-  $archive=New-Object IO.Compression.ZipArchive($stream,[IO.Compression.ZipArchiveMode]::Read,$false)
+  $archive=[IO.Compression.ZipArchive]::new($stream,[IO.Compression.ZipArchiveMode]::Read,$false)
   $entries=@($archive.Entries)
   Require ($entries.Count -ge 7 -and $entries.Count -le 250) 'ZIP entries outside limits'
-  $seen=New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::OrdinalIgnoreCase)
+  $seen=[System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
   $total=0L
   foreach ($item in $entries) {
    $name=[string]$item.FullName
