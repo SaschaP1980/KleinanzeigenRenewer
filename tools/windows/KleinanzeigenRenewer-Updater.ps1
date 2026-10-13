@@ -184,7 +184,7 @@ function RestoreJournal {
  Remove-Item -LiteralPath $JournalPath -Force
  Event 'RECOVERED' 'Previous program files restored. No browser data was touched.'
 }
-function Switch([string]$Ready,$Receipt) {
+function Apply-Install([string]$Ready,$Receipt) {
  RequireIdle
  Require (-not (Test-Path -LiteralPath $JournalPath)) 'Recover pending transaction first'
  $old=$null
@@ -241,7 +241,7 @@ try {
   $target=Join-Path $StageRoot ('candidate-'+[Guid]::NewGuid().ToString('N'))
   Copy-Item -LiteralPath $candidate.folder -Destination $target -Recurse
   Proof $target $candidate.receipt
-  Switch $target $candidate.receipt
+  Apply-Install $target $candidate.receipt
   return
  }
  $approval=Approved
@@ -274,7 +274,7 @@ try {
   Require ((Get-Item -LiteralPath $zip).Length -le 12000000L) 'Downloaded ZIP too large'
   $proof=ExtractZip $zip $approval $payload
   Remove-Item -LiteralPath $zip -Force
-  Switch $payload $proof
+  Apply-Install $payload $proof
   Event 'ACTION_REQUIRED' 'Open same Chrome profile, reload the existing unpacked extension under chrome://extensions/, then verify version. Do not remove/reinstall existing extension!'
  } finally { if (Test-Path -LiteralPath $slot) { Remove-Item -LiteralPath $slot -Recurse -Force -ErrorAction SilentlyContinue } }
 } catch { Event 'ERROR' $_.Exception.Message;throw }
