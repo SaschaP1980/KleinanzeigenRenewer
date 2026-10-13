@@ -26,10 +26,10 @@ function Channel([string]$Name,[string]$Version,[string]$File,[string]$Hash='') 
 function Call([string]$Name,[string]$Command,[string]$InstallRoot,[string]$ChannelFile,[string]$Zip,[bool]$Success) {
  $thrown=$null
  try {
-  $argsList=@('-Command',$Command,'-Yes','-TestRoot',$InstallRoot)
-  if ($ChannelFile) { $argsList+=@('-TestChannel',$ChannelFile) }
-  if ($Zip) { $argsList+=@('-TestZip',$Zip) }
-  & $updater @argsList | Out-Null
+  $params=@{Command=$Command;Yes=$true;TestRoot=$InstallRoot}
+  if ($ChannelFile) { $params.TestChannel=$ChannelFile }
+  if ($Zip) { $params.TestZip=$Zip }
+  & $updater @params | Out-Null
  } catch { $thrown=$_.Exception.Message }
  if ($Success) { Check ($null -eq $thrown) ($Name+': success: '+$thrown) }
  else { Check ($null -ne $thrown) ($Name+': rejected as required') }
