@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "kleinanzeigen Manager",
   "description": "Erfasst und verwaltet eigene Kleinanzeigen und unterstützt das kontrollierte Neu-Einstellen mit Prüfung und sicherem Austausch.",
-  "version": "1.23.26",
+  "version": "1.23.27",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0D9S98xbAoX27yM0RPnBisXg7OQ2j6hi2NiEqxNxeKppgPo/ygbJLZ4TF6TZqfaxQUAjR9Eom05hmB8eEFFiGy6EWczTzZJuLtaUdVDm8uATRblFa/2eBjm5tKhsBFlYMnqlfcIdfxysRoTDO1jhAXlSkpC/NzN7xtFeGKfFX3Ol1Pmwr4bYRNRURIOzBGv4iQIa5Z/Hf+7EKr++mBLtwDA9JVuoMrRCXDptnxMLIk0dCqxd2Q3W7q849QirLeG7HX6a6c6AkhYkDsf8XfWCjK8tBC36bLXCiduze1PJ8SCKPHW5bRa2iTylyivqm5H83czFyWWVx/eo7E8tOpbnjQIDAQAB",
   "minimum_chrome_version": "109",
   "permissions": [
