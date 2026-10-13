@@ -27,7 +27,7 @@ internal static class Program {
                 byte[] header = ReadExactly(input, 4);
                 if (header == null) return 0;
                 uint length = (uint)(header[0] | (header[1] << 8) | (header[2] << 16) | (header[3] << 24));
-                if (length == 0 || length > MaximumFrame) { Write(Error(null, "FRAME_REJECTED")); return 1; }
+                if (length == 0 || length > MaximumFrame) { var error = Error(null, "FRAME_REJECTED"); error["receivedHeader"] = BitConverter.ToString(header); Write(error); return 1; }
                 byte[] payload = ReadExactly(input, (int)length);
                 if (payload == null) { Write(Error(null, "FRAME_TRUNCATED")); return 1; }
                 Dictionary<string, object> message;
