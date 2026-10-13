@@ -26,6 +26,7 @@ function Run-Host([byte[]]$request) {
  $psi.RedirectStandardError=$true
  $psi.UseShellExecute=$false
  $psi.CreateNoWindow=$true
+ if ($request.Length -ge 4) { Write-Host ('DIAG KAR-64 bound frame: total='+$request.Length+' prefix='+[BitConverter]::ToInt32($request,0)+' header='+[BitConverter]::ToString($request,0,4)) }
  $proc=[Diagnostics.Process]::Start($psi)
  try {
   $proc.StandardInput.BaseStream.Write($request,0,$request.Length)
