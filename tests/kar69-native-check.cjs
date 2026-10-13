@@ -9,7 +9,8 @@ const root = path.join(__dirname,'..');
 const runtimeVersion = JSON.parse(fs.readFileSync(path.join(root,'manifest.json'),'utf8')).version;
 const extensionId = 'hafahjhhgiipdegfkgacchmnacgblnah';
 const appUrl = 'chrome-extension://' + extensionId + '/app.html';
-const sender = { id: extensionId, url: appUrl, origin: 'chrome-extension://' + extensionId };
+// Regression from the real owner's Chrome type:popup app: Chrome supplies sender.tab.
+const sender = { id: extensionId, url: appUrl, origin: 'chrome-extension://' + extensionId, tab: { id: 111, windowId: 222 } };
 const sha = 'a'.repeat(64), commit = 'b'.repeat(40);
 let assertions=0;
 function check(ok,label) { assert.ok(ok,label); assertions++; console.log('PASS KAR-69 '+label); }
