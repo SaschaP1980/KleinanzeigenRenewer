@@ -67,7 +67,9 @@ function Deny-Launch([string[]]$chromeArgs,[string]$label) {
   $proc=Start-Process @options
   $exited=$proc.WaitForExit(10000)
   Check $exited ('rejected launch exits: '+$label)
-  Check ($proc.ExitCode -eq 2 -and (Get-Item -LiteralPath $outputFile).Length -eq 0) ('rejected launch leaves stdout empty: '+$label)
+  $raw=[IO.File]::ReadAllBytes($outputFile)
+  Write-Host ('KAR-66 HOST_LAUNCH_DIAGNOSTIC: label='+$label+' exit='+$proc.ExitCode+' stdoutBytes='+$raw.Length)
+  Check ($proc.ExitCode -eq 2 -and $raw.Length -eq 0) ('rejected launch leaves stdout empty: '+$label)
  } finally {
   if ($null -ne $proc) {
    if (-not $proc.HasExited) { $proc.Kill();[void]$proc.WaitForExit(10000) }
