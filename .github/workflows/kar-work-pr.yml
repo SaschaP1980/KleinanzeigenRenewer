@@ -165,3 +165,23 @@ jobs:
           path: ${{ runner.temp }}/kar-work-pr-e2e-evidence/
           if-no-files-found: warn
           retention-days: 14
+
+  windows_updater:
+    name: KAR-59 Phase 1 Windows updater fixture/rollback
+    needs: validation
+    runs-on: windows-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    env:
+      KAR_UPDATER_TEST_MODE: '1'
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Real Windows PowerShell 5.1 updater fixture tests
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & .\tests\windows-updater-phase1.ps1

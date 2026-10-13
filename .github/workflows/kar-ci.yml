@@ -76,3 +76,23 @@ jobs:
           unzip -q "$ZIP" -d "$E2E_ROOT"
           export KR_E2E_EXTENSION_ROOT="$E2E_ROOT"
           python3 tests/e2e/run_browser_e2e.py
+
+  windows_updater:
+    name: KAR-59 Phase 1 Windows updater fixture/rollback
+    needs: ci
+    runs-on: windows-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    env:
+      KAR_UPDATER_TEST_MODE: '1'
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Real Windows PowerShell 5.1 updater fixture tests
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & .\tests\windows-updater-phase1.ps1
