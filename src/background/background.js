@@ -3059,7 +3059,13 @@ function requireNativeStatusBridge() {
   nativeStatusBridge = NativeStatusBridge.create({
   gateway: nativeUpdateGateway,
   getExtensionId: () => chrome.runtime.id,
-  getAppUrl: () => chrome.runtime.getURL('app.html')
+  getAppUrl: () => chrome.runtime.getURL('app.html'),
+  getAppWindowId: async () => {
+    const value = await chrome.storage.session.get(APP_WINDOW_SESSION_KEY);
+    return value?.[APP_WINDOW_SESSION_KEY];
+  },
+  getWindow: windowId => chrome.windows.get(windowId),
+  getTab: tabId => chrome.tabs.get(tabId)
   });
   
   return nativeStatusBridge;

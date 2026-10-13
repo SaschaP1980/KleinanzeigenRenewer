@@ -34,14 +34,39 @@ async function tick() { await new Promise(resolve=>setTimeout(resolve,20)); }
 async function run() {
  const message={type:'GET_NATIVE_UPDATE_STATUS'};
  let calls=0;
- const adapter=bridge.create({gateway:{request:async op=>{calls++;check(op==='check','only read-only native check');return {ok:true,operation:'check'};}},getExtensionId:()=>extensionId,getAppUrl:()=>appUrl});
+ let registeredWindowId=222;
+ let liveWindowType='popup';
+ let liveWindowId=222;
+ let liveTabWindowId=222;
+ const adapter=bridge.create({
+  gateway:{request:async op=>{calls++;check(op==='check','only read-only native check');return {ok:true,operation:'check'};}},
+  getExtensionId:()=>extensionId,
+  getAppUrl:()=>appUrl,
+  getAppWindowId:async()=>registeredWindowId,
+  getWindow:async()=>({id:liveWindowId,type:liveWindowType}),
+  getTab:async id=>({id,windowId:id===111?liveTabWindowId:999})
+ });
  const good=await adapter.status(message,sender);
  check(good.ok===true&&calls===1,'trusted app message accepted');
  await deny(adapter,{...message,operation:'apply_update'},sender,'reject injected action field');
  await deny(adapter,message,{...sender,id:'other-extension'},'reject other extension');
  await deny(adapter,message,{...sender,url:'https://www.kleinanzeigen.de/'},'reject page origin');
  await deny(adapter,message,{...sender,url:appUrl+'?spoof'},'reject forged extension document URL');
- await deny(adapter,message,{...sender,tab:{id:8}},'reject content-script tab sender');
+ await deny(adapter,message,{...sender,tab:{id:8,windowId:222}},'reject a different tab despite app URL');
+ await deny(adapter,message,{...sender,tab:{id:111,windowId:999}},'reject tab outside registered window');
+ await deny(adapter,message,{...sender,tab:undefined},'reject extension page lacking registered popup tab');
+ registeredWindowId=333;
+ await deny(adapter,message,sender,'reject stale or unregistered popup window');
+ registeredWindowId=222;
+ liveWindowType='normal';
+ await deny(adapter,message,sender,'reject ordinary Chrome window');
+ liveWindowType='popup';
+ liveWindowId=333;
+ await deny(adapter,message,sender,'reject window ID mismatch from Chrome');
+ liveWindowId=222;
+ liveTabWindowId=333;
+ await deny(adapter,message,sender,'reject live tab moved into different window');
+ liveTabWindowId=222;
  await deny(adapter,message,{...sender,origin:'https://attacker.invalid'},'reject mismatched sender origin');
  await deny(adapter,message,null,'reject missing sender');
  await deny(adapter,{type:'NATIVE_APPLY_UPDATE'},sender,'reject mutation operation');
@@ -56,6 +81,9 @@ async function run() {
  check(router.includes('"GET_NATIVE_UPDATE_STATUS"') && worker.includes('requireNativeStatusBridge().status(message, sender)'),'background owns native status');
  check(worker.includes("crypto.getRandomValues(new Uint8Array(16))"),'fresh cryptographically random nonce');
  check(worker.includes('chrome.runtime.sendNativeMessage(host, payload'),'fixed native transport owned by background');
+ check(worker.includes("getAppWindowId: async () =>") && worker.includes('chrome.storage.session.get(APP_WINDOW_SESSION_KEY)')
+  && worker.includes('chrome.windows.get(windowId)') && worker.includes('chrome.tabs.get(tabId)'),
+  'bridge consults authoritative registered Chrome popup window and tab');
  let requests=0;
  const payload={ok:true,operation:'check',installed:'1.23.29',approved:'1.23.30',sha256:sha,sourceCommit:commit};
  let screen=boot((msg,cb)=>{requests++;check(msg.type==='GET_NATIVE_UPDATE_STATUS','app only requests native status');cb({ok:true,result:payload});});
