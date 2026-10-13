@@ -17,7 +17,7 @@ import time
 ROOT = Path(__file__).resolve().parent.parent
 HEX = re.compile(r"[a-f0-9]{40}")
 ISSUE = re.compile(r"[1-9][0-9]*")
-MARKER = re.compile(r"ci\\(KAR-([1-9][0-9]*)\\): fast PATCH base=([a-f0-9]{40})")
+MARKER = re.compile(r"ci\(KAR-([1-9][0-9]*)\): fast PATCH base=([a-f0-9]{40})")
 TIMINGS = {}
 
 spec = importlib.util.spec_from_file_location("kar52_shared", ROOT / "scripts/kar-atomic-patch.py")
@@ -98,7 +98,7 @@ def read_authorization(subject, marker):
     require(not data.get("pull_request"), "issue must not be a pull request")
     content = canonical[0]["body"]
     require(f"**Issue:** [KAR-{issue_num}]" in content and
-            f"**Base main:** \`{base}\`" in content and
+            f"**Base main:** `{base}`" in content and
             "**Agent-State:** ACTIVE" in content and
             "**Canonical comment ID:** " + str(canonical[0]["id"]) in content,
             "canonical owner authorization missing")
@@ -138,7 +138,7 @@ def plan():
 def build(data, future):
     with timed("zip_packaging"):
         for p in META:
-            (ROOT / p).write_text(json.dumps(future[p], ensure_ascii=False, indent=2) + "\\n",
+            (ROOT / p).write_text(json.dumps(future[p], ensure_ascii=False, indent=2) + "\n",
                                   encoding="utf-8")
         with tempfile.TemporaryDirectory(prefix="kar58-fast-") as temp:
             run(sys.executable, "scripts/package.py", temp, timeout=120)
