@@ -50,7 +50,7 @@ async function run() {
  check(manifest.host_permissions.length===3,'existing host permissions unchanged');
  const router=fs.readFileSync(path.join(root,'src/background/background-message-router.js'),'utf8');
  const worker=fs.readFileSync(path.join(root,'src/background/background.js'),'utf8');
- check(router.includes('"GET_NATIVE_UPDATE_STATUS"') && worker.includes('nativeStatusBridge.status(message, sender)'),'background owns native status');
+ check(router.includes('"GET_NATIVE_UPDATE_STATUS"') && worker.includes('requireNativeStatusBridge().status(message, sender)'),'background owns native status');
  check(worker.includes("crypto.getRandomValues(new Uint8Array(16))"),'fresh cryptographically random nonce');
  check(worker.includes('chrome.runtime.sendNativeMessage(host, payload'),'fixed native transport owned by background');
  let requests=0;
