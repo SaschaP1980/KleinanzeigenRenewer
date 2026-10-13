@@ -6,6 +6,7 @@ $root=Split-Path $PSScriptRoot -Parent
 $updater=Join-Path $root 'tools\windows\KleinanzeigenRenewer-Updater.ps1'
 $oldZip=Join-Path $root 'release\kleinanzeigen-renewal-chrome-v1.23.27.zip'
 $newZip=Join-Path $root 'release\kleinanzeigen-renewal-chrome-v1.23.28.zip'
+$nativeZip=Join-Path $root 'release\kleinanzeigen-renewal-chrome-v1.23.30.zip'
 $base=Join-Path ([IO.Path]::GetTempPath()) ('kar59-'+[Guid]::NewGuid().ToString('N'))
 [void][IO.Directory]::CreateDirectory($base)
 $good=0
@@ -50,6 +51,11 @@ try {
  Check ($current.version -eq '1.23.28' -and $current.activation -eq 'reload-required') 'version advanced without claiming Chrome reload'
  Check (@(Get-ChildItem -LiteralPath (Join-Path $target 'Backups') -Directory).Count -ge 1) 'previous program-file backup retained'
  Call 'updated files verify' 'verify' $target $null $null $true
+ $channel30=Channel 'approved30' '1.23.30' $nativeZip
+ $nativeTarget=NewRoot 'reviewed-native-permission'
+ Call 'reviewed nativeMessaging 1.23.30 permission install' 'install' $nativeTarget $channel30 $nativeZip $true
+ Call 'reviewed nativeMessaging installed file verify' 'verify' $nativeTarget $null $null $true
+
  Call 'verified rollback' 'rollback' $target $null $null $true
  $recovered=(Get-Content -LiteralPath (Join-Path $target 'State\active.json') -Raw|ConvertFrom-Json)
  Check ($recovered.version -eq '1.23.27') 'rollback restored earlier version'

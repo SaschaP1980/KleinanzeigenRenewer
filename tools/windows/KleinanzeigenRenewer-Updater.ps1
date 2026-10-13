@@ -83,7 +83,8 @@ function CheckManifest([string]$Folder,[string]$Version) {
  Require ($h -ceq $KeySha) 'Public key / extension identity changed'
  $p=@($m.permissions|Sort-Object)
  $h=@($m.host_permissions|Sort-Object)
- Require (($p -join '|') -ceq 'activeTab|scripting|storage|unlimitedStorage') 'Permission change requires security review'
+ $expectedPermissions=if ([version]$Version -ge [version]'1.23.30') { 'activeTab|nativeMessaging|scripting|storage|unlimitedStorage' } else { 'activeTab|scripting|storage|unlimitedStorage' }
+ Require (($p -join '|') -ceq $expectedPermissions) 'Permission change requires security review'
  Require (($h -join '|') -ceq 'https://img.kleinanzeigen.de/*|https://kleinanzeigen.de/*|https://www.kleinanzeigen.de/*') 'Host permission change requires security review'
  Require ([IO.File]::ReadAllText((Join-Path $Folder 'APP_ID.txt')).Contains('Chrome Extension ID: '+$ExtensionId)) 'Extension ID differs'
  $required=@('manifest.json','APP_ID.txt','app.html','popup.html','src/background/background.js',[string]$m.background.service_worker)
