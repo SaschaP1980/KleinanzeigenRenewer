@@ -59,8 +59,12 @@ function Run-Host([byte[]]$request) {
 }
 function Frame([string]$text) {
  $bytes=[Text.Encoding]::UTF8.GetBytes($text)
- $len=[BitConverter]::GetBytes([uint32]$bytes.Length)
- return [byte[]]($len+$bytes)
+ $prefix=[BitConverter]::GetBytes([int]$bytes.Length)
+ $frame=New-Object byte[] (4+$bytes.Length)
+ [Buffer]::BlockCopy($prefix,0,$frame,0,4)
+ [Buffer]::BlockCopy($bytes,0,$frame,4,$bytes.Length)
+ if ([BitConverter]::ToInt32($frame,0) -ne ($frame.Length-4)) { throw 'KAR64_TEST_FRAMING_INVALID' }
+ return ,$frame
 }
 function Expect-Deny([string]$json,[string]$code) {
  $x=Run-Host (Frame $json)
