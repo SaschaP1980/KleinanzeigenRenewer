@@ -16,6 +16,9 @@ on:
         required: true
         type: string
 
+  push:
+    branches: ['work/KAR-*']
+
 concurrency:
   group: kar-atomic-patch-${{ inputs.issue_number }}
   cancel-in-progress: false
@@ -27,13 +30,17 @@ permissions:
 
 jobs:
   atomic_patch:
+    # Ordinary pushes and builder-produced commits never authorize a build.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'push' && startsWith(github.event.head_commit.message, 'ci(KAR-'))
     name: Exact-SHA one-shot Work PATCH ZIP
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
         with:
-          ref: ${{ inputs.expected_work_sha }}
+          ref: ${{ github.sha }}
           fetch-depth: 0
           persist-credentials: true
       - uses: actions/setup-node@v4
@@ -46,31 +53,46 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          ISSUE_NUMBER: ${{ inputs.issue_number }}
-          WORK_SHA: ${{ inputs.expected_work_sha }}
-          MAIN_SHA: ${{ inputs.expected_main_sha }}
+          DISPATCH_ISSUE: ${{ inputs.issue_number }}
+          DISPATCH_WORK_SHA: ${{ inputs.expected_work_sha }}
+          DISPATCH_MAIN_SHA: ${{ inputs.expected_main_sha }}
         run: |
           set -euo pipefail
+          [[ "$GITHUB_REF_NAME" =~ ^work/KAR-([1-9][0-9]*)$ ]]
+          ISSUE_NUMBER="${BASH_REMATCH[1]}"
+          WORK_SHA="$GITHUB_SHA"
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            test "$DISPATCH_ISSUE" = "$ISSUE_NUMBER"
+            test "$DISPATCH_WORK_SHA" = "$WORK_SHA"
+            MAIN_SHA="$DISPATCH_MAIN_SHA"
+          elif [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
+            SUBJECT="$(git log -1 --pretty=%s)"
+            PREFIX="ci(KAR-$ISSUE_NUMBER): atomic PATCH base="
+            [[ "$SUBJECT" == "$PREFIX"* ]] || { echo "No explicit authorized marker"; exit 1; }
+            MAIN_SHA="${SUBJECT#"$PREFIX"}"
+            test -z "$(git diff-tree --no-commit-id --name-only -r HEAD)"
+          else
+            echo "Unexpected builder event" >&2
+            exit 1
+          fi
           [[ "$ISSUE_NUMBER" =~ ^[1-9][0-9]*$ ]]
           [[ "$WORK_SHA" =~ ^[a-f0-9]{40}$ ]]
           [[ "$MAIN_SHA" =~ ^[a-f0-9]{40}$ ]]
-          test "$GITHUB_REF_NAME" = "work/KAR-$ISSUE_NUMBER"
-          test "$GITHUB_SHA" = "$WORK_SHA"
           test "$(git rev-parse HEAD)" = "$WORK_SHA"
+          echo "ISSUE_NUMBER=$ISSUE_NUMBER" >> "$GITHUB_ENV"
+          echo "WORK_SHA=$WORK_SHA" >> "$GITHUB_ENV"
+          echo "MAIN_SHA=$MAIN_SHA" >> "$GITHUB_ENV"
           node scripts/kar-work-pr-preflight.cjs --issue "$ISSUE_NUMBER" --head-sha "$WORK_SHA"
           python3 scripts/kar-atomic-patch.py --mode plan --issue "$ISSUE_NUMBER" --branch "work/KAR-$ISSUE_NUMBER" --work-sha "$WORK_SHA" --main-sha "$MAIN_SHA"
       - name: Independently rebuild ZIP, full safety gate, and atomic five-file commit
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          ISSUE_NUMBER: ${{ inputs.issue_number }}
-          WORK_SHA: ${{ inputs.expected_work_sha }}
-          MAIN_SHA: ${{ inputs.expected_main_sha }}
         run: |
           set -euo pipefail
           python3 scripts/kar-atomic-patch.py --mode build --issue "$ISSUE_NUMBER" --branch "work/KAR-$ISSUE_NUMBER" --work-sha "$WORK_SHA" --main-sha "$MAIN_SHA"
       - name: Record exact dispatch identifiers
         if: always()
         run: |
-          echo "Issue ${{ inputs.issue_number }} / source ${{ inputs.expected_work_sha }} / base ${{ inputs.expected_main_sha }}"
+          echo "Event $GITHUB_EVENT_NAME / Issue $ISSUE_NUMBER / source $WORK_SHA / base $MAIN_SHA"
           echo "Bot-created PRs do not substitute for real hosted pull_request CI."

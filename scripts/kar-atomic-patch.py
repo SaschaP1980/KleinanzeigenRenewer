@@ -110,12 +110,31 @@ def collect(issue, branch, head, base):
     }, next_meta
 
 
-def build(plan, future):
-    require(os.environ.get("GITHUB_EVENT_NAME") == "workflow_dispatch",
-            "write requires explicit workflow_dispatch")
+def authorized_push(subject, changed_files, issue, base):
+    """Require an explicit one-shot, empty Work commit pinned to exact main."""
+    require(subject == "ci(KAR-%s): atomic PATCH base=%s" % (issue, base),
+            "wrong push marker / issue or pinned main SHA")
+    require(not changed_files, "push trigger commit must be empty")
+
+
+def assert_build_entry(plan):
+    event = os.environ.get("GITHUB_EVENT_NAME")
+    require(event in ("workflow_dispatch", "push"),
+            "write requires explicit workflow_dispatch or guarded marker push")
+    require(os.environ.get("GITHUB_REPOSITORY") == "SaschaP1980/KleinanzeigenRenewer",
+            "unexpected builder repository")
     require(os.environ.get("GITHUB_REF_NAME") == plan["branch"] and
             os.environ.get("GITHUB_SHA") == plan["sourceSha"],
-            "dispatch Work ref and SHA must match explicit inputs")
+            "dispatch/push Work ref and exact event SHA must match")
+    if event == "push":
+        authorized_push(git("log", "-1", "--pretty=%s"),
+                        git("diff-tree", "--no-commit-id", "--name-only", "-r", "HEAD"),
+                        plan["issue"], plan["mainSha"])
+
+
+def build(plan, future):
+    assert_build_entry(plan)
+    # Event, branch and immutable triggering SHA were checked above.
     old = ROOT / plan["oldZip"]
     new = ROOT / plan["newZip"]
     for p in META:
