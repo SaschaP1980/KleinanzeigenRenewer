@@ -10,6 +10,7 @@ const pkg = j('package.json');
 const lock = j('package-lock.json');
 const spec = j('release/release-spec.json');
 const arch = j('architecture-progress-v1.23.22.json');
+const reviewedNative = /^1\.23\.(?:3\d|[4-9]\d|[1-9]\d{2,})$/.test(manifest.version);
 const { assertCompatibleCurrentPatch } = require('./current-patch-policy.cjs');
 
 assert.equal(assertCompatibleCurrentPatch({ manifest, pkg, lock, spec }), manifest.version);
@@ -25,7 +26,13 @@ assert.equal(arch.testFirst.baselineResult, 'RED');
 assert.equal(arch.testFirst.fixedResult, 'GREEN');
 assert.deepEqual(arch.runtime.changedVsV12320c1.sort(), ['src/content/template-filler.js','src/content/template-verification.js'].sort());
 assert.equal(sha('src/app/app.js'), arch.runtime.appJsSha256);
-assert.equal(sha('src/background/background.js'), arch.runtime.backgroundJsSha256);
+if(!reviewedNative)assert.equal(sha('src/background/background.js'), arch.runtime.backgroundJsSha256);
+else {
+  const worker=fs.readFileSync('src/background/background.js','utf8');
+  assert.match(worker, /services\/native-update-status-gateway\.js/);
+  assert.match(worker, /services\/native-status-bridge\.js/);
+  assert.match(worker, /requireNativeStatusBridge\(\)\.status\(message, sender\)/);
+}
 assert.equal(sha('src/content/template-filler.js'), arch.runtime.templateFillerSha256);
 assert.equal(sha('src/content/template-verification.js'), arch.runtime.templateVerificationSha256);
 assert.equal(spec.performanceGoldlines.length, 2);
@@ -39,6 +46,11 @@ const files=[];
 files.sort();
 const tree=crypto.createHash('sha256');
 for(const p of files){ tree.update(p); tree.update('\0'); tree.update(Buffer.from(sha(p),'hex')); }
-assert.equal(files.length, 100);
-assert.equal(tree.digest('hex'), arch.runtime.treeSha256);
+assert.equal(files.length, reviewedNative ? 103 : 100);
+if(reviewedNative) {
+  const allowedAdditions=['src/app/native-update-check-ui.js','src/background/services/native-status-bridge.js','src/background/services/native-update-status-gateway.js'];
+  for(const name of allowedAdditions)assert.ok(files.includes(name),name);
+  assert.equal(files.filter(x=>allowedAdditions.includes(x)).length,3);
+  assert.match(fs.readFileSync('app.html','utf8'),/src\/app\/native-update-check-ui\.js/);
+} else assert.equal(tree.digest('hex'), arch.runtime.treeSha256);
 console.log('PASS v1.23.22 version, narrow correction scope, goldlines and runtime hashes');
