@@ -61,8 +61,19 @@ def metadata_plan(meta):
 
 
 def run(*args, binary=False, timeout=30):
-    result = subprocess.run(args, cwd=ROOT, capture_output=True, check=True,
-                            timeout=timeout, text=not binary)
+    try:
+        result = subprocess.run(args, cwd=ROOT, capture_output=True, check=True,
+                                timeout=timeout, text=not binary)
+    except subprocess.CalledProcessError as error:
+        # Preserve the failing safety gate and bounded evidence instead of a silent RC1.
+        for label, stream in (("stdout", error.stdout), ("stderr", error.stderr)):
+            if stream:
+                evidence = stream[-16000:]
+                if isinstance(evidence, bytes):
+                    evidence = evidence.decode("utf-8", "replace")
+                print("KAR69_BUILD_GATE_" + label.upper() + ":\n" + evidence,
+                      file=sys.stderr)
+        raise
     return result.stdout if binary else result.stdout.strip()
 
 
