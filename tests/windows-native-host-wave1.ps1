@@ -22,11 +22,11 @@ function Run-Host([byte[]]$request) {
  $psi=[Diagnostics.ProcessStartInfo]::new()
  $psi.FileName=$exe
  $psi.RedirectStandardInput=$true
+ $psi.StandardInputEncoding=[Text.UTF8Encoding]::new($false) # Native Messaging is binary; no StreamWriter BOM.
  $psi.RedirectStandardOutput=$true
  $psi.RedirectStandardError=$true
  $psi.UseShellExecute=$false
  $psi.CreateNoWindow=$true
- if ($request.Length -ge 4) { Write-Host ('DIAG KAR-64 bound frame: total='+$request.Length+' prefix='+[BitConverter]::ToInt32($request,0)+' header='+[BitConverter]::ToString($request,0,4)) }
  $proc=[Diagnostics.Process]::Start($psi)
  try {
   $proc.StandardInput.BaseStream.Write($request,0,$request.Length)
@@ -83,7 +83,6 @@ try {
  Check ([string](Get-Item -LiteralPath $reg).GetValue('') -ceq (Join-Path $live 'host.json')) 'HKCU registry default value points to exact manifest'
  $id='0123456789abcdef'
  $reply=Run-Host (Frame ('{"protocol":1,"requestId":"'+$id+'","operation":"health"}'))
- Write-Host ('DIAG KAR-64 health reply: '+($reply|ConvertTo-Json -Compress -Depth 6))
  Check ($reply.ok -eq $true -and $reply.requestId -ceq $id -and $reply.operation -ceq 'health') 'valid local read-only health message'
  Check (@($reply.capabilities).Count -eq 2 -and @($reply.capabilities) -contains 'health' -and @($reply.capabilities) -contains 'check') 'only health/check exposed'
  Expect-Deny ('{"protocol":1,"requestId":"'+$id+'","operation":"apply_update"}') 'OPERATION_DENIED'
