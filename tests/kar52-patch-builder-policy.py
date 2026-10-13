@@ -53,8 +53,18 @@ reject("foreign issue branch",lambda:m.assert_lease(52,"work/KAR-53","a"*40,"b"*
 reject("invalid expected SHA",lambda:m.assert_lease(52,"work/KAR-52","bad","b"*40));rejects+=1
 event=os.environ.pop("GITHUB_EVENT_NAME",None)
 try:
-    reject("write without workflow_dispatch",lambda:m.build({},{}));rejects+=1
+    reject("write without a qualified explicit event",lambda:m.build({},{}));rejects+=1
 finally:
     if event is not None:os.environ["GITHUB_EVENT_NAME"]=event
+sha="a"*40
+m.authorized_push("ci(KAR-54): atomic PATCH base="+sha, "", 54, sha)
+for marker,changed,issue,base in [
+    ("ci(KAR-53): atomic PATCH base="+sha,"",54,sha),
+    ("ci(KAR-54): atomic PATCH base="+"b"*40,"",54,sha),
+    ("ci(KAR-54): atomic PATCH base="+sha+" extra","",54,sha),
+    ("ci(KAR-54): atomic PATCH base="+sha,"manifest.json",54,sha),
+    ("build(KAR-54): atomic PATCH base="+sha,"",54,sha)]:
+    reject("unauthorized/nonempty guarded push",lambda a=marker,b=changed,c=issue,d=base:m.authorized_push(a,b,c,d))
+    rejects+=1
 assert json.dumps({p:json.loads((ROOT/p).read_text()) for p in m.META},sort_keys=True)==snap
 print("PASS KAR-52 dynamic next-PATCH "+current+" -> "+nxt+" with "+str(rejects)+" fail-closed policy negatives and no mutation")
