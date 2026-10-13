@@ -5,7 +5,10 @@ const ctx={globalThis:null,KRDeps,module:{exports:{}},Object,Map,Set,String,Erro
 vm.runInNewContext(fs.readFileSync('message-contract-registry.js','utf8'),ctx,{filename:'message-contract-registry.js'});
 const r=deps.get('KRMessageContractRegistry');
 let n=0; const ok=(name,fn)=>{fn();n++;console.log('PASS',name)};
-ok('snapshot reports enforcement enabled without changing contract inventory',()=>assert.deepStrictEqual(JSON.parse(JSON.stringify(r.snapshot())),{schemaVersion:1,mode:'enforced',enforcement:true,totalTypes:102,byTarget:{background:82,content:10,'my-ads-content':7,app:3}}));
+const nextVersion=JSON.parse(fs.readFileSync('manifest.json','utf8')).version;
+const reviewedNative=/^1\.23\.(?:3\d|[4-9]\d|[1-9]\d{2,})$/.test(nextVersion);
+const newlyRegistered=reviewedNative?1:0;
+ok('snapshot reports enforcement enabled with exact versioned contract inventory',()=>{assert.deepStrictEqual(JSON.parse(JSON.stringify(r.snapshot())),{schemaVersion:1,mode:'enforced',enforcement:true,totalTypes:102+newlyRegistered,byTarget:{background:82+newlyRegistered,content:10,'my-ads-content':7,app:3}});if(reviewedNative)assert.equal(r.has('GET_NATIVE_UPDATE_STATUS','background'),true);});
 ok('known intended background request is accepted',()=>{const d=r.route('RESET_ACTIVE_WORKFLOWS','background');assert.equal(d.action,'accept');assert.equal(d.errorCode,null)});
 ok('known contract for co-resident other router is ignored',()=>{const d=r.route('MY_ADS_STATUS','content');assert.equal(d.action,'ignore');assert.equal(d.registered,true);assert.equal(d.targetRegistered,false)});
 ok('unknown contract is rejected fail-closed',()=>{const d=r.route('UNKNOWN_TEST_MESSAGE','background');assert.equal(d.action,'reject');assert.equal(d.errorCode,'KR_MESSAGE_CONTRACT_UNKNOWN')});
