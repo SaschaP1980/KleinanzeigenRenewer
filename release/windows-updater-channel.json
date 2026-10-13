@@ -1,8 +1,8 @@
 {
   "schema": 1,
-  "version": "1.23.28",
-  "commit": "2e18f8069f46537b94bcf01a39ae0a65950f675f",
-  "sha256": "5730336c299f2dc4271ece00b98fc30f1c91f3287c0057bc5ffb1d9f21deaec4",
+  "version": "1.23.29",
+  "commit": "2dc3c688571cbd8a664bf7f12c6de5be6cae67ef",
+  "sha256": "d29125df4e3e9e62fbbaf51f3c840d7f54ed0b6a4b9d138bf3a165c29cd5264a",
   "bytes": 751444,
   "extensionId": "hafahjhhgiipdegfkgacchmnacgblnah",
   "channel": "approved",
