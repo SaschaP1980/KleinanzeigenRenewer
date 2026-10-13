@@ -6,6 +6,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 const bridge = require('../src/background/services/native-status-bridge.js');
 const root = path.join(__dirname,'..');
+const runtimeVersion = JSON.parse(fs.readFileSync(path.join(root,'manifest.json'),'utf8')).version;
 const extensionId = 'hafahjhhgiipdegfkgacchmnacgblnah';
 const appUrl = 'chrome-extension://' + extensionId + '/app.html';
 const sender = { id: extensionId, url: appUrl, origin: 'chrome-extension://' + extensionId };
@@ -21,7 +22,7 @@ function boot(send) {
  const ids=['nativeUpdateCheckButton','nativeUpdateCheckStatus','nativeUpdateCheckEvidence'];
  const nodes=Object.fromEntries(ids.map(id=>[id,{textContent:'',disabled:false,handlers:{},addEventListener(name,fn){this.handlers[name]=fn;}}]));
  const windowHandlers={};
- const extension={runtime:{getManifest:()=>({version:'1.23.30'}),lastError:null,sendMessage:send}};
+ const extension={runtime:{getManifest:()=>({version:runtimeVersion}),lastError:null,sendMessage:send}};
  const source=fs.readFileSync(path.join(root,'src/app/native-update-check-ui.js'),'utf8');
  vm.runInNewContext(source,{document:{getElementById:id=>nodes[id]||null},chrome:extension,
   window:{addEventListener:(name,fn)=>{windowHandlers[name]=fn;}},setTimeout,clearTimeout});
@@ -45,7 +46,8 @@ async function run() {
  await deny(adapter,{type:'NATIVE_APPLY_UPDATE'},sender,'reject mutation operation');
  check(calls===1,'untrusted messages never trigger native transport');
  const manifest=JSON.parse(fs.readFileSync(path.join(root,'manifest.json'),'utf8'));
- check(manifest.version==='1.23.30','new Chrome ZIP version required');
+ const v=/^1\.23\.(0|[1-9]\d*)$/.exec(manifest.version);
+ check(Boolean(v)&&Number(v[1])>=30,'reviewed Chrome ZIP version 1.23.30+ required');
  check(manifest.permissions.includes('nativeMessaging') && manifest.permissions.length===5,'reviewed nativeMessaging permission only');
  check(manifest.host_permissions.length===3,'existing host permissions unchanged');
  const router=fs.readFileSync(path.join(root,'src/background/background-message-router.js'),'utf8');
@@ -62,7 +64,7 @@ async function run() {
  await tick();
  check(requests===1,'busy UI suppresses duplicate requests');
  check(screen.status.textContent.includes('neuere Version'),'show read-only update availability');
- check(screen.evidence.textContent.includes('v1.23.30') && screen.evidence.textContent.includes(sha),'show active and pinned evidence');
+ check(screen.evidence.textContent.includes('v'+runtimeVersion) && screen.evidence.textContent.includes(sha),'show active and pinned evidence');
  check(!screen.button.disabled,'UI unlocks after check');
  screen=boot((msg,cb)=>cb({ok:true,result:{ok:false,error:'HOST_UNAVAILABLE'}}));
  screen.button.handlers.click();await tick();
