@@ -96,3 +96,10 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           & .\tests\windows-updater-phase1.ps1
+      - name: Hosted Windows Native Messaging host and IPC security tests (KAR-64)
+        shell: powershell
+        env:
+          KAR_NATIVE_HOST_TEST_MODE: '1'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & .\tests\windows-native-host-wave1.ps1
