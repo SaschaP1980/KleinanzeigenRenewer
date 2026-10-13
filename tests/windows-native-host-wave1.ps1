@@ -18,7 +18,7 @@ function Check([bool]$ok,[string]$reason) {
  $script:good++
  Write-Host ('PASS KAR-64 '+$reason)
 }
-function Run-Host([byte[]]$request) {
+function Run-Host([byte[]]$request,[string[]]$chromeArgs=@('chrome-extension://hafahjhhgiipdegfkgacchmnacgblnah/','--parent-window=0')) {
  # Windows PowerShell 5.1/.NET Framework wraps redirected Process.StandardInput in a
  # BOM-producing StreamWriter. File-backed native stdin is required to test binary
  # Chrome Native Messaging frames without adding a UTF-8 BOM to the four-byte header.
@@ -30,7 +30,7 @@ function Run-Host([byte[]]$request) {
  $proc=$null
  try {
   # Chrome on Windows passes the origin, then the parent-window handle (0 for MV3 service workers).
-  $proc=Start-Process -FilePath $exe -ArgumentList @('chrome-extension://hafahjhhgiipdegfkgacchmnacgblnah/','--parent-window=0') -PassThru -NoNewWindow -RedirectStandardInput $inputFile -RedirectStandardOutput $outputFile -RedirectStandardError $errorFile
+  $proc=Start-Process -FilePath $exe -ArgumentList $chromeArgs -PassThru -NoNewWindow -RedirectStandardInput $inputFile -RedirectStandardOutput $outputFile -RedirectStandardError $errorFile
   Check ($proc.WaitForExit(90000)) 'native host exits after one response'
   $response=[IO.File]::ReadAllBytes($outputFile)
   if ($response.Length -lt 6) { throw 'Native host returned no complete frame' }
@@ -41,6 +41,33 @@ function Run-Host([byte[]]$request) {
   $utf8=New-Object Text.UTF8Encoding($false,$true)
   $text=$utf8.GetString($response,4,[int]$length)
   return ($text|ConvertFrom-Json)
+ } finally {
+  if ($null -ne $proc) {
+   if (-not $proc.HasExited) { $proc.Kill();[void]$proc.WaitForExit(10000) }
+   $proc.Dispose()
+  }
+  foreach ($file in @($inputFile,$outputFile,$errorFile)) {
+   if (Test-Path -LiteralPath $file) { Remove-Item -LiteralPath $file -Force }
+  }
+ }
+}
+function Deny-Launch([string[]]$chromeArgs,[string]$label) {
+ # Verify that the executable rejects untrusted process arguments before
+ # reading any framed input, without writes or stdout protocol confusion.
+ $stem=Join-Path $base ('reject-args-'+[Guid]::NewGuid().ToString('N'))
+ $inputFile=$stem+'.in'
+ $outputFile=$stem+'.out'
+ $errorFile=$stem+'.err'
+ [IO.File]::WriteAllBytes($inputFile, (Frame '{"protocol":1,"requestId":"0123456789abcdef","operation":"health"}'))
+ $proc=$null
+ try {
+  $options=@{ FilePath=$exe;PassThru=$true;NoNewWindow=$true;
+   RedirectStandardInput=$inputFile;RedirectStandardOutput=$outputFile;RedirectStandardError=$errorFile }
+  if (@($chromeArgs).Count -gt 0) { $options.ArgumentList=$chromeArgs }
+  $proc=Start-Process @options
+  $exited=$proc.WaitForExit(10000)
+  Check $exited ('rejected launch exits: '+$label)
+  Check ($proc.ExitCode -eq 2 -and (Get-Item -LiteralPath $outputFile).Length -eq 0) ('rejected launch leaves stdout empty: '+$label)
  } finally {
   if ($null -ne $proc) {
    if (-not $proc.HasExited) { $proc.Kill();[void]$proc.WaitForExit(10000) }
@@ -78,6 +105,22 @@ try {
  $reply=Run-Host (Frame ('{"protocol":1,"requestId":"'+$id+'","operation":"health"}'))
  Check ($reply.ok -eq $true -and $reply.requestId -ceq $id -and $reply.operation -ceq 'health') 'valid local read-only health message'
  Check (@($reply.capabilities).Count -eq 2 -and @($reply.capabilities) -contains 'health' -and @($reply.capabilities) -contains 'check') 'only health/check exposed'
+ $origin='chrome-extension://hafahjhhgiipdegfkgacchmnacgblnah/'
+ $health=Frame ('{"protocol":1,"requestId":"'+$id+'","operation":"health"}')
+ $nonSlash=Run-Host $health @('chrome-extension://hafahjhhgiipdegfkgacchmnacgblnah','--parent-window=0')
+ Check ($nonSlash.ok -eq $true -and $nonSlash.operation -ceq 'health') 'Chrome origin without trailing slash is accepted'
+ $handle=Run-Host $health @($origin,'--parent-window=4294967296')
+ Check ($handle.ok -eq $true -and $handle.operation -ceq 'health') 'numeric 64-bit Windows parent handle is accepted'
+ Deny-Launch @() 'missing Chrome arguments'
+ Deny-Launch @($origin) 'origin without parent handle'
+ Deny-Launch @('--parent-window=0') 'handle without origin'
+ Deny-Launch @('https://www.kleinanzeigen.de/','--parent-window=0') 'webpage origin'
+ Deny-Launch @('chrome-extension://hafahjhhgiipdegfkgacchmnacgblnaha/','--parent-window=0') 'unlisted extension origin'
+ Deny-Launch @($origin,'--parent-window=-1') 'negative parent handle'
+ Deny-Launch @($origin,'--parent-window=abc') 'non-numeric parent handle'
+ Deny-Launch @($origin,'--parent-window=18446744073709551616') 'overflow parent handle'
+ Deny-Launch @($origin,'--parent-window=0','apply_update') 'extra command arguments'
+ Deny-Launch @('--parent-window=0',$origin) 'reversed Chrome arguments'
  Expect-Deny ('{"protocol":1,"requestId":"'+$id+'","operation":"apply_update"}') 'OPERATION_DENIED'
  Expect-Deny ('{"protocol":1,"requestId":"'+$id+'","operation":"rollback"}') 'OPERATION_DENIED'
  Expect-Deny ('{"protocol":1,"requestId":"'+$id+'","operation":"health","path":"C:\\Temp\\x"}') 'INVALID_REQUEST'

@@ -7,6 +7,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Diagnostics;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Web.Script.Serialization;
 
 internal static class Program {
@@ -19,9 +20,26 @@ internal static class Program {
         @"^CHECK: installed=(?<installed>not installed|[0-9]+\.[0-9]+\.[0-9]+) approved=(?<approved>[0-9]+\.[0-9]+\.[0-9]+) sha256=(?<sha>[a-f0-9]{64}) sourceCommit=(?<commit>[a-f0-9]{40})\r?$",
         RegexOptions.Multiline | RegexOptions.CultureInvariant);
 
+    const string TrustedOrigin = "chrome-extension://hafahjhhgiipdegfkgacchmnacgblnah/";
+    const string ParentWindowPrefix = "--parent-window=";
+
+    static bool ValidChromeLaunch(string[] args) {
+        // Chrome passes the caller origin first, and on Windows the numeric
+        // parent-window handle second (0 for an MV3 service worker).
+        // Do not permit any other origin or user-selected process arguments.
+        if (args == null || args.Length != 2
+            || (args[0] != TrustedOrigin
+                && args[0] != TrustedOrigin.Substring(0, TrustedOrigin.Length - 1))
+            || args[1] == null
+            || !args[1].StartsWith(ParentWindowPrefix, StringComparison.Ordinal)) return false;
+        string handle = args[1].Substring(ParentWindowPrefix.Length);
+        ulong value;
+        return handle.Length > 0 && handle.Length <= 20
+            && ulong.TryParse(handle, NumberStyles.None, CultureInfo.InvariantCulture, out value);
+    }
+
     static int Main(string[] args) {
-        // Chrome may append --parent-window=..., but never accept custom arguments.
-        if (args.Length > 1 || (args.Length == 1 && !args[0].StartsWith("--parent-window=", StringComparison.Ordinal))) return 2;
+        if (!ValidChromeLaunch(args)) return 2;
         try {
             using (Stream input = Console.OpenStandardInput()) {
                 byte[] header = ReadExactly(input, 4);
