@@ -43,6 +43,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: KAR-68 strict read-only Native Messaging gateway unit tests
+        run: node tests/kar68-native-status-gateway.cjs
+
       - name: Full runtime / safety / coverage gate
         run: bash scripts/coverage-gate.sh
 
