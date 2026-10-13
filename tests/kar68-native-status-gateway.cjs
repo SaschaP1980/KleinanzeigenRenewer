@@ -23,7 +23,7 @@ async function run() {
   check(calls===1,'unknown operations never reach transport');
   check((await create(()=>{throw Error('called')},{getPlatform:()=> 'linux'}).request('check')).error==='UNSUPPORTED_PLATFORM','Windows-only');
   check((await create(()=>{throw Error('called')},{newNonce:()=> 'invalid'}).request('health')).error==='NONCE_INVALID','invalid nonce rejected');
-  check((await create(msg=>okHealth(msg.requestId),{newNonce:()=>goodId}).request('health')).ok,'first unique nonce accepted');
+  check((await create((host,msg)=>okHealth(msg.requestId),{newNonce:()=>goodId}).request('health')).ok,'first unique nonce accepted');
   const reuse=create((_,p)=>okHealth(p.requestId));
   await reuse.request('health');
   check((await reuse.request('health')).error==='NONCE_REUSED','replayed local nonce denied');
