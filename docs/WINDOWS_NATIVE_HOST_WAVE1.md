@@ -1,6 +1,6 @@
 # KAR-64 — Native Messaging host Wave 01 (read-only)
 
-This is **Phase 2, Wave 01**, not an operational one-click updater. It installs a per-user Chrome Native Messaging helper with two read-only operations: \`health\` (no network) and \`check\` (delegates to the existing Phase 1 \`-Command check\`). No \`nativeMessaging\` permission or update button has been added to the extension; the standalone Phase 1 updater continues to work as before.
+This is the **Phase 2, Wave 01** standalone per-user Windows host. Current Chrome extension **v1.23.31** has a separately reviewed read-only `nativeMessaging` permission and a user-initiated **Auf Updates prüfen** UI; it **cannot install/apply updates from Chrome**. The helper exposes only `health` (no network) and `check` (delegates to the Phase 1 `-Command check`). Phase 1 Windows program-file updating remains a separately confirmed standalone action.
 
 ## Install and verification (Windows PowerShell 5.1)
 
@@ -30,3 +30,62 @@ The only other operation is \`check\`, same schema. All three keys are required 
 ## Acceptance limits
 
 Hosted Windows tests validate the host executable, registry/origin binding, framing, parsing and failure cases. Real owner-PC Chrome Native Messaging handshakes, app UI, pending workflow safety/reload, and update activation remain for later Wave(s). A green hosted fixture is **not** a native user-PC activation result.
+
+
+## KAR-66: controlled refresh of an already installed read-only host (2026-10-13)
+
+The Windows Native Messaging helper installed from the initial KAR-64 code rejects Chrome's real **two-argument** host launch. The fix accepts only the exact Chrome extension origin `chrome-extension://hafahjhhgiipdegfkgacchmnacgblnah/` (with or without the serialized trailing slash) followed by a valid unsigned decimal `--parent-window=<handle>` (0 for MV3 worker). It rejects missing, swapped, hostile, extra or malformed arguments **before** reading stdin. The hosted Windows RED→GREEN regression suite runs actual compiled .NET Framework processes with the Chrome startup arguments and strict negative cases. This changes **the separately compiled host source**, not the v1.23.31 Chrome ZIP, extension ID, saved data or the approved updater channel.
+
+**Immutable reviewed source checkpoint:** `35bf0acd95c482d719bd95d0d7da4fcc6b8643a0`. Expected download hashes (SHA-256) for files in `tools/windows/` at that commit:
+
+| File | SHA-256 |
+| --- | --- |
+| `KleinanzeigenRenewer.NativeHost.cs` | `c32f51d6f948018a7b03fc4eedb1e7ef8b533fd979c1217f23bbc6d7dd116844` |
+| `Install-KleinanzeigenRenewer-NativeHost.ps1` | `712ec4d2f1699d2298bbfd672b6ec9b926f560046c93e0e6492a57e93a04e7cd` |
+| `KleinanzeigenRenewer-Updater.ps1` | `c81cabf9f232731f924ccf39cd3c0378be952684911b3716652e43f3ada4a621` |
+
+**Before removal:** Complete/stop any active Kleinanzeigen operation, close **all** Chrome processes without force-terminating active work, and keep the same Chrome profile. In Windows PowerShell 5.1 under the existing user, first verify the current installation:
+
+```powershell
+Set-Location (Join-Path $HOME 'Downloads')
+.\Install-KleinanzeigenRenewer-NativeHost.ps1 -Action verify
+```
+
+Download the revised **C# host source only** from the immutable commit above to a temporary `.download` file in the same directory as the current installer and Phase 1 updater. Do not execute, copy into place or compile a downloaded file until its exact SHA-256 matches. Verify the two existing scripts against the table too. Do not edit the extension folder or any Chrome profile files:
+
+```powershell
+$sourceCommit = '35bf0acd95c482d719bd95d0d7da4fcc6b8643a0'
+$url = "https://raw.githubusercontent.com/SaschaP1980/KleinanzeigenRenewer/$sourceCommit/tools/windows/KleinanzeigenRenewer.NativeHost.cs"
+$temp = Join-Path (Get-Location) 'KleinanzeigenRenewer.NativeHost.cs.download'
+Invoke-WebRequest -Uri $url -OutFile $temp -UseBasicParsing
+$expected = 'c32f51d6f948018a7b03fc4eedb1e7ef8b533fd979c1217f23bbc6d7dd116844'
+if ((Get-FileHash $temp -Algorithm SHA256).Hash.ToLowerInvariant() -cne $expected) { throw 'Host source checksum mismatch: STOP' }
+if ((Get-FileHash '.\Install-KleinanzeigenRenewer-NativeHost.ps1' -Algorithm SHA256).Hash.ToLowerInvariant() -cne '712ec4d2f1699d2298bbfd672b6ec9b926f560046c93e0e6492a57e93a04e7cd') { throw 'Installer checksum mismatch: STOP' }
+if ((Get-FileHash '.\KleinanzeigenRenewer-Updater.ps1' -Algorithm SHA256).Hash.ToLowerInvariant() -cne 'c81cabf9f232731f924ccf39cd3c0378be952684911b3716652e43f3ada4a621') { throw 'Updater delegate checksum mismatch: STOP' }
+Move-Item -LiteralPath $temp -Destination '.\KleinanzeigenRenewer.NativeHost.cs' -Force
+```
+
+**Before changing the installed helper**, copy the entire original receipt-verified NativeHost directory to a unique sibling backup **outside** the live directory and verify its EXE digest matches the original. Never overwrite an existing backup:
+
+```powershell
+$live = Join-Path $env:LOCALAPPDATA 'KleinanzeigenRenewer\NativeHost'
+$backup = Join-Path $env:LOCALAPPDATA ('KleinanzeigenRenewer\NativeHost-Backup-KAR66-' + (Get-Date -Format 'yyyyMMdd-HHmmss'))
+if (Test-Path -LiteralPath $backup) { throw 'Backup already exists: STOP' }
+Copy-Item -LiteralPath $live -Destination $backup -Recurse -ErrorAction Stop
+if ((Get-FileHash (Join-Path $backup 'KleinanzeigenRenewer.NativeHost.exe') -Algorithm SHA256).Hash -cne (Get-FileHash (Join-Path $live 'KleinanzeigenRenewer.NativeHost.exe') -Algorithm SHA256).Hash) { throw 'Backup validation failed: STOP' }
+Write-Host ('Verified previous host backup: ' + $backup)
+```
+
+The **existing reviewed installer** deliberately refuses overwriting a live registered host. Execute its two separate consented operations, each requiring **JA**, never bypass its ownership/receipt checks or force-remove a foreign registry entry:
+
+```powershell
+.\Install-KleinanzeigenRenewer-NativeHost.ps1 -Action uninstall
+.\Install-KleinanzeigenRenewer-NativeHost.ps1 -Action install
+.\Install-KleinanzeigenRenewer-NativeHost.ps1 -Action verify
+```
+
+Only after `PASS KAR-64 NATIVE_HOST_VERIFIED` restart the **same** Chrome profile. Under `chrome://extensions/` verify the **same** extension ID and v1.23.31. In the manager click **Auf Updates prüfen**: expected active/installed/approved **1.23.31** with source commit `4dbb6fddf8a73470fa2daf4567af4c44ee218841` and SHA-256 `dab1b2e9a28ab2e161d20f8e0ca23772bb42f65c77031584e86dc95190776283`. Verify inventory, photos, trash, profiles, settings and after a normal Chrome restart. For extra separation of failure causes, the owner's extension Service Worker DevTools can perform a single read-only `health` probe; the response must be framed protocol version 1 with `ok:true`, `operation:'health'` and exactly `health,check` capabilities. Do not send file-install or mutation requests.
+
+**If uninstall or install fails:** STOP. Preserve the verified `$backup` and actual console output for owner-guided recovery; **do not** recursively delete unknown directories or registry entries, silently overwrite an installed binary, disable permission checks, or claim live health passed. A failed host refresh affects only the optional native status helper, not existing extension storage or the independently accepted Phase 1 updater. The old verified directory copy provides recovery evidence, but restoring the HKCU registration requires a separate deliberate, ownership-checked procedure and must not be assumed automatic.
+
+Native owner-machine acceptance for #66 remains pending until the real Chrome`→`host check works; hosted CI or installer `verify` alone cannot close the Issue.
