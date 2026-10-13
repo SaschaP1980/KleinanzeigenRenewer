@@ -861,3 +861,9 @@ select:not([multiple]) { appearance:none; -webkit-appearance:none; background-im
 .global-view-option:focus-visible, .global-view-controls .content-view-refresh-button:focus-visible { outline:2px solid #4de0b7; outline-offset:2px; position:relative; z-index:1; }
 .global-view-option .list-view-mode-icon { width:17px; height:17px; }
 .content-view-tabs .view-switch-button span { font-variant-numeric:tabular-nums; }
+
+/* KAR-69 read-only Windows updater check */
+.native-update-check { display:flex; flex-direction:column; align-items:stretch; gap:6px; }
+.native-update-check > button { align-self:flex-start; }
+.native-update-check > button:disabled { opacity:.65; cursor:wait; }
+.native-update-evidence { overflow-wrap:anywhere; font-size:11px; }

@@ -93,6 +93,14 @@
               <input id="renewalRetryRange" class="configuration-range" type="range" min="1" max="5" step="1" value="3" aria-describedby="renewalRetryDescription">
               <div class="configuration-range-scale" aria-hidden="true"><span>1</span><span>5</span></div>
               <p id="renewalRetryDescription" class="configuration-description renewal-retry-description">Maximale Versuche je Phase · Standard: 3<br>Mehr Versuche erhöhen die Zuverlässigkeit, können den Ablauf aber verlängern.</p>
+              <div class="configuration-subsection native-update-check" aria-label="Windows-Updater prüfen">
+                <div class="configuration-label">Windows-Updater</div>
+                <p class="configuration-description">Nur Statusprüfung. Installation aus der App folgt in einer späteren Version.</p>
+                <button id="nativeUpdateCheckButton" class="secondary" type="button">Auf Updates prüfen</button>
+                <p id="nativeUpdateCheckStatus" class="configuration-description" role="status" aria-live="polite">Noch nicht geprüft.</p>
+                <p id="nativeUpdateCheckEvidence" class="configuration-description native-update-evidence"></p>
+              </div>
+
             </div>
           </div>
           </div>
@@ -639,5 +647,6 @@
     <script src="src/app/trash-template-ui-controller.js"></script>
     <script src="src/app/archive-trash-insertion-ui-controller.js"></script>
     <script src="src/app/app.js"></script>
+    <script src="src/app/native-update-check-ui.js"></script>
   </body>
 </html>

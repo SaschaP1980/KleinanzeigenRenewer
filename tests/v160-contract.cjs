@@ -16,7 +16,7 @@ assert.ok(includesActivePatch(['1.6.0','1.6.1','1.6.2','1.7.0','1.7.1','1.8.0','
 assert.equal(pkg.version, manifest.version);
 assert.equal(lock.version, manifest.version);
 assert.equal(lock.packages[''].version, manifest.version);
-assert.deepEqual([...manifest.permissions].sort(), ['activeTab','storage','unlimitedStorage','scripting'].sort());
+assert.deepEqual([...manifest.permissions].sort(), require('./current-patch-policy.cjs').expectedManifestPermissions(manifest.version).sort());
 pass('v1.6.0 keeps the established manifest permissions and fixed extension architecture');
 
 assert.match(content, /EXTRACT_READONLY_METADATA/);

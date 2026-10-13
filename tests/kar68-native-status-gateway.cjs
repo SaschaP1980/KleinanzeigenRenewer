@@ -1,7 +1,7 @@
 // KAR-68 independent strict read-only extension-side Native Messaging security checks.
 'use strict';
 const assert = require('node:assert/strict');
-const gateway = require('../tools/native-update-status-gateway.js');
+const gateway = require('../src/background/services/native-update-status-gateway.js');
 const sha = 'a'.repeat(64), commit = 'b'.repeat(40);
 const goodId = '0123456789abcdef0123456789abcdef';
 const okHealth = id => ({protocol:1,requestId:id,ok:true,operation:'health',hostVersion:'1',capabilities:['health','check']});

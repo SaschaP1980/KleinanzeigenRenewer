@@ -7,6 +7,7 @@
     "CLEAR_PLATFORM_ACCESS_RESTRICTION": Object.freeze({ handler: "CLEAR_PLATFORM_ACCESS_RESTRICTION", preSafety: true }),
     "OPEN_APP_WINDOW": Object.freeze({ handler: "OPEN_APP_WINDOW", preSafety: false }),
     "GET_BACKGROUND_EPOCH": Object.freeze({ handler: "GET_BACKGROUND_EPOCH", preSafety: false }),
+    "GET_NATIVE_UPDATE_STATUS": Object.freeze({ handler: "GET_NATIVE_UPDATE_STATUS", preSafety: true }),
     "LOG_DIAGNOSTIC_EVENT": Object.freeze({ handler: "LOG_DIAGNOSTIC_EVENT", preSafety: false }),
     "SET_ACCOUNT_GATE_DIAGNOSTIC_STATE": Object.freeze({ handler: "SET_ACCOUNT_GATE_DIAGNOSTIC_STATE", preSafety: false }),
     "STORE_GALLERY_DIAGNOSTIC": Object.freeze({ handler: "STORE_GALLERY_DIAGNOSTIC", preSafety: false }),

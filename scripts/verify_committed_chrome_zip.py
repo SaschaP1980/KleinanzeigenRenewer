@@ -42,8 +42,12 @@ def digest(data: bytes) -> str:
 def check_identity(manifest: dict, app_id: str):
     require(isinstance(manifest, dict), "manifest must be a JSON object")
     require(manifest.get("manifest_version") == 3, "MV3 manifest required")
-    require(set(manifest.get("permissions") or []) == PERMISSIONS
-            and len(manifest.get("permissions") or []) == len(PERMISSIONS),
+    version = manifest.get("version")
+    require(isinstance(version, str) and re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", version) is not None,
+            "manifest version invalid")
+    expected_permissions = PERMISSIONS | ({"nativeMessaging"} if tuple(map(int, version.split("."))) >= (1, 23, 30) else set())
+    require(set(manifest.get("permissions") or []) == expected_permissions
+            and len(manifest.get("permissions") or []) == len(expected_permissions),
             "manifest permissions changed without explicit authorization")
     require(set(manifest.get("host_permissions") or []) == HOST_PERMISSIONS
             and len(manifest.get("host_permissions") or []) == len(HOST_PERMISSIONS),

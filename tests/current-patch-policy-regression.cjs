@@ -23,6 +23,8 @@ for (const name of ['manifest', 'pkg', 'lock', 'spec']) validNextPatch[name].ver
 validNextPatch.pkg.displayVersion = '1.23.25';
 validNextPatch.lock.packages[''].version = '1.23.25';
 validNextPatch.spec.packageVersion = '1.23.25';
+// Historical 1.23.25 fixture predates the reviewed v1.23.30 nativeMessaging permission.
+validNextPatch.manifest.permissions = validNextPatch.manifest.permissions.filter(p => p !== 'nativeMessaging');
 
 assert.equal(assertCompatibleCurrentPatch(canonical), canonical.manifest.version);
 assert.equal(assertCompatibleCurrentPatch(validNextPatch), '1.23.25',

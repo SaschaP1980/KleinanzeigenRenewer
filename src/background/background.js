@@ -1,10 +1,12 @@
-importScripts("../shared/runtime-deps.js", "../shared/message-contract-registry.js", "../shared/renewal-policy.js", "background-message-router.js", "repositories/profile-repository.js", "repositories/inventory-repository.js", "repositories/inventory-image-store.js", "services/trash-service.js", "services/diagnostics-service.js", "services/tab-registry.js", "services/managed-tab-worker-service.js", "services/content-connection-manager.js", "services/account-probe-service.js", "controllers/profile-management-controller.js", "controllers/account-session-controller.js", "controllers/platform-safety-controller.js", "controllers/tab-lifecycle-observer.js", "controllers/workflow-emergency-reset-controller.js", "lib/bulk-run-guard.js", "controllers/single-inventory-controller.js", "services/bulk-worker-service.js", "services/bulk-reconciliation-service.js", "controllers/bulk-inventory-controller.js", "controllers/mass-renewal-controller.js", "services/mass-renewal-watchdog-service.js", "controllers/mass-renewal-workflow-controller.js", "services/renewal-verification-flow.js", "services/renewal-reinventory-flow.js", "services/paid-checkout-recovery-service.js", "controllers/renewal-workflow-controller.js", "services/renewal-verification-service.js", "repositories/renewal-state-repository.js", "services/template-fill-service.js", "services/insertion-lock-service.js", "controllers/template-fill-controller.js", "services/archive-insertion-service.js", "services/archive-insertion-verification-service.js", "services/archive-insertion-recovery-service.js", "controllers/archive-insertion-controller.js", "services/remote-delete-replacement-service.js", "services/published-inventory-resolver.js", "services/diagnostic-export-service.js", "services/public-listing-evidence-service.js", "../shared/managed-navigation.js", "lib/inventory-reconciliation.js", "../shared/my-ads-readiness.js", "lib/inventory-scope.js", "../shared/platform-hardening.js", "services/tab-load-coordinator.js");
+importScripts("../shared/runtime-deps.js", "../shared/message-contract-registry.js", "../shared/renewal-policy.js", "background-message-router.js", "services/native-update-status-gateway.js", "services/native-status-bridge.js", "repositories/profile-repository.js", "repositories/inventory-repository.js", "repositories/inventory-image-store.js", "services/trash-service.js", "services/diagnostics-service.js", "services/tab-registry.js", "services/managed-tab-worker-service.js", "services/content-connection-manager.js", "services/account-probe-service.js", "controllers/profile-management-controller.js", "controllers/account-session-controller.js", "controllers/platform-safety-controller.js", "controllers/tab-lifecycle-observer.js", "controllers/workflow-emergency-reset-controller.js", "lib/bulk-run-guard.js", "controllers/single-inventory-controller.js", "services/bulk-worker-service.js", "services/bulk-reconciliation-service.js", "controllers/bulk-inventory-controller.js", "controllers/mass-renewal-controller.js", "services/mass-renewal-watchdog-service.js", "controllers/mass-renewal-workflow-controller.js", "services/renewal-verification-flow.js", "services/renewal-reinventory-flow.js", "services/paid-checkout-recovery-service.js", "controllers/renewal-workflow-controller.js", "services/renewal-verification-service.js", "repositories/renewal-state-repository.js", "services/template-fill-service.js", "services/insertion-lock-service.js", "controllers/template-fill-controller.js", "services/archive-insertion-service.js", "services/archive-insertion-verification-service.js", "services/archive-insertion-recovery-service.js", "controllers/archive-insertion-controller.js", "services/remote-delete-replacement-service.js", "services/published-inventory-resolver.js", "services/diagnostic-export-service.js", "services/public-listing-evidence-service.js", "../shared/managed-navigation.js", "lib/inventory-reconciliation.js", "../shared/my-ads-readiness.js", "lib/inventory-scope.js", "../shared/platform-hardening.js", "services/tab-load-coordinator.js");
 
 const KRDeps = globalThis.KRDeps;
 if (!KRDeps) throw new Error('runtime-deps.js must load before background.js');
 const MessageContractRegistry = KRDeps.require('KRMessageContractRegistry');
 const RenewalPolicy = KRDeps.require('KRRenewalPolicy');
 const BackgroundMessageRouter = KRDeps.require('KRBackgroundMessageRouter');
+const NativeUpdateStatusGateway = KRDeps.require('KRNativeUpdateStatusGateway');
+const NativeStatusBridge = KRDeps.require('KRNativeStatusBridge');
 const DiagnosticsService = KRDeps.require('KRDiagnosticsService');
 const TabRegistry = KRDeps.require('KRTabRegistry');
 const ManagedNavigation = KRDeps.require('KRManagedNavigation');
@@ -3034,6 +3036,35 @@ function isExpectedPostRecoveryBulkClose(error, message, run) {
   return noActiveRun && /Keine aktive Erfassung vorhanden|Erfassung wurde nicht gefunden|nicht mehr aktiv/i.test(text);
 }
 
+let nativeStatusBridge = null;
+function requireNativeStatusBridge() {
+  // Instantiate on the first trusted app request: legacy VM fixtures deliberately
+  // load the background script without Chrome Native Messaging/these dependencies.
+  if (nativeStatusBridge) return nativeStatusBridge;
+  const nativeUpdateGateway = NativeUpdateStatusGateway.create({
+  getPlatform: () => new Promise(resolve => {
+    chrome.runtime.getPlatformInfo(info => {
+      resolve(!chrome.runtime.lastError && info?.os === 'win' ? 'win' : 'unsupported');
+    });
+  }),
+  newNonce: () => Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2, '0')).join(''),
+  transport: (host, payload) => new Promise((resolve, reject) => {
+    chrome.runtime.sendNativeMessage(host, payload, response => {
+      if (chrome.runtime.lastError) reject(new Error(String(chrome.runtime.lastError.message || 'HOST_UNAVAILABLE')));
+      else resolve(response);
+    });
+  }),
+  timeoutMs: 5000
+  });
+  nativeStatusBridge = NativeStatusBridge.create({
+  gateway: nativeUpdateGateway,
+  getExtensionId: () => chrome.runtime.id,
+  getAppUrl: () => chrome.runtime.getURL('app.html')
+  });
+  
+  return nativeStatusBridge;
+}
+
 const backgroundMessageRouter = BackgroundMessageRouter.create({
   MessageContractRegistry,
   assertPlatformAccessAllowedForRequest,
@@ -3043,6 +3074,7 @@ const backgroundMessageRouter = BackgroundMessageRouter.create({
   "CLEAR_PLATFORM_ACCESS_RESTRICTION": (message, sender) => clearPlatformAccessRestriction(),
   "OPEN_APP_WINDOW": (message, sender) => openOrFocusAppWindow(),
   "GET_BACKGROUND_EPOCH": (message, sender) => ({ epoch: currentDiagnosticSessionId() }),
+  "GET_NATIVE_UPDATE_STATUS": (message, sender) => requireNativeStatusBridge().status(message, sender),
   "LOG_DIAGNOSTIC_EVENT": (message, sender) => logClientDiagnostic(message, sender),
   "SET_ACCOUNT_GATE_DIAGNOSTIC_STATE": (message, sender) => setAccountGateDiagnosticState(message),
   "STORE_GALLERY_DIAGNOSTIC": (message, sender) => storeGalleryDiagnostic(message, sender),
