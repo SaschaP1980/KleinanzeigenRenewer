@@ -42,7 +42,10 @@ function assertCompatibleCurrentPatch({ manifest, pkg, lock, spec } = {}) {
   assert.equal(spec?.performanceRunRequired, true);
   assert.match(spec?.performanceRule || '', /1\.23\.22|Fast-3er/,
     'correction-series performance comparison must stay relevant');
-  assert.deepEqual([...(manifest.permissions || [])].sort(), PERMISSIONS);
+  const requiredPermissions = Number(version.split('.')[2]) >= 30
+    ? [...PERMISSIONS, 'nativeMessaging'].sort()
+    : PERMISSIONS;
+  assert.deepEqual([...(manifest.permissions || [])].sort(), requiredPermissions);
   assert.deepEqual([...(manifest.host_permissions || [])].sort(), [...HOST_PERMISSIONS].sort());
   assert.equal(createHash('sha256').update(Buffer.from(manifest.key || '', 'base64')).digest('hex'),
     MANIFEST_KEY_SHA256, 'extension identity key must remain unchanged');
