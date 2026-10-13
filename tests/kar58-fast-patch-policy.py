@@ -16,14 +16,13 @@ negatives = [
     (good, "", "open", 0, sha),
     (good, "", "open", 2, sha),
     (good, "", "open", 1, "b" * 40),
-    ("ci(KAR-57): fast PATCH base=" + sha, "", "open", 1, sha),
     ("ci(KAR-58): atomic PATCH base=" + sha, "", "open", 1, sha),
     ("ci(KAR-58): fast PATCH base=" + "b" * 40, "", "open", 1, sha),
     (good + " trailing", "", "open", 1, sha),
     ("build(KAR-58): fast PATCH base=" + sha, "", "open", 1, sha),
     ("ci(KAR-58): fast PATCH base=not-sha", "", "open", 1, sha),
 ]
-# A foreign issue is syntactically valid but rejected by the exact issue/comment API gate.
+# A foreign issue is syntactically valid and must be separately authorized through the matching GitHub issue/comment API gate.
 for subject, files, state, count, parent in negatives:
     try:
         fast.marker_contract(subject, files, state, count, parent)
