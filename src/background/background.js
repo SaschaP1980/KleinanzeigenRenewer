@@ -3036,7 +3036,12 @@ function isExpectedPostRecoveryBulkClose(error, message, run) {
   return noActiveRun && /Keine aktive Erfassung vorhanden|Erfassung wurde nicht gefunden|nicht mehr aktiv/i.test(text);
 }
 
-const nativeUpdateGateway = NativeUpdateStatusGateway.create({
+let nativeStatusBridge = null;
+function requireNativeStatusBridge() {
+  // Instantiate on the first trusted app request: legacy VM fixtures deliberately
+  // load the background script without Chrome Native Messaging/these dependencies.
+  if (nativeStatusBridge) return nativeStatusBridge;
+  const nativeUpdateGateway = NativeUpdateStatusGateway.create({
   getPlatform: () => new Promise(resolve => {
     chrome.runtime.getPlatformInfo(info => {
       resolve(!chrome.runtime.lastError && info?.os === 'win' ? 'win' : 'unsupported');
@@ -3050,12 +3055,15 @@ const nativeUpdateGateway = NativeUpdateStatusGateway.create({
     });
   }),
   timeoutMs: 5000
-});
-const nativeStatusBridge = NativeStatusBridge.create({
+  });
+  nativeStatusBridge = NativeStatusBridge.create({
   gateway: nativeUpdateGateway,
   getExtensionId: () => chrome.runtime.id,
   getAppUrl: () => chrome.runtime.getURL('app.html')
-});
+  });
+  
+  return nativeStatusBridge;
+}
 
 const backgroundMessageRouter = BackgroundMessageRouter.create({
   MessageContractRegistry,
@@ -3066,7 +3074,7 @@ const backgroundMessageRouter = BackgroundMessageRouter.create({
   "CLEAR_PLATFORM_ACCESS_RESTRICTION": (message, sender) => clearPlatformAccessRestriction(),
   "OPEN_APP_WINDOW": (message, sender) => openOrFocusAppWindow(),
   "GET_BACKGROUND_EPOCH": (message, sender) => ({ epoch: currentDiagnosticSessionId() }),
-  "GET_NATIVE_UPDATE_STATUS": (message, sender) => nativeStatusBridge.status(message, sender),
+  "GET_NATIVE_UPDATE_STATUS": (message, sender) => requireNativeStatusBridge().status(message, sender),
   "LOG_DIAGNOSTIC_EVENT": (message, sender) => logClientDiagnostic(message, sender),
   "SET_ACCOUNT_GATE_DIAGNOSTIC_STATE": (message, sender) => setAccountGateDiagnosticState(message),
   "STORE_GALLERY_DIAGNOSTIC": (message, sender) => storeGalleryDiagnostic(message, sender),
