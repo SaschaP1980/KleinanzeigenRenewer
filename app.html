@@ -99,6 +99,13 @@
                 <button id="nativeUpdateCheckButton" class="secondary" type="button">Auf Updates prüfen</button>
                 <p id="nativeUpdateCheckStatus" class="configuration-description" role="status" aria-live="polite">Noch nicht geprüft.</p>
                 <p id="nativeUpdateCheckEvidence" class="configuration-description native-update-evidence"></p>
+                <div id="nativeUpdateFallback" class="native-update-fallback" role="note">
+                  <div class="configuration-label">Manueller Windows-One-Click-Updater</div>
+                  <p id="nativeUpdateFallbackStatus" class="configuration-description">Die separate Desktop-Verknüpfung kann Updates auch ohne NativeHost starten.</p>
+                  <p class="configuration-description">Windows-Verknüpfung „Kleinanzeigen Manager aktualisieren“ auf dem Desktop starten. Sie prüft nur freigegebene Updates und fragt vor einer Installation nach deiner Zustimmung.</p>
+                  <p class="configuration-description">Vor dem Dateiaustausch alle Chrome-Prozesse schließen. Nach erfolgreichem Update Chrome mit demselben Profil starten und die bestehende Erweiterung unter chrome://extensions/ neu laden.</p>
+                  <a class="native-update-setup-link" href="https://github.com/SaschaP1980/KleinanzeigenRenewer/blob/main/docs/WINDOWS_ONECLICK_UPDATER.md" target="_blank" rel="noopener noreferrer">Einrichtung der Windows-Verknüpfung</a>
+                </div>
               </div>
 
             </div>
