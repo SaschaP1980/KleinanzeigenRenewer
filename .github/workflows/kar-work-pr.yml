@@ -195,3 +195,11 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           & .\tests\windows-native-host-wave1.ps1
+      - name: KAR-80 Windows one-click shortcut lifecycle (isolated)
+        if: github.head_ref == 'work/KAR-80'
+        shell: powershell
+        env:
+          KAR_ONECLICK_TEST_MODE: '1'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & .\tests\windows-oneclick-shortcut.ps1
