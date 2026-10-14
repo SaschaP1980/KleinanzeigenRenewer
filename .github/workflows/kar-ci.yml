@@ -99,6 +99,13 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           & .\tests\windows-updater-phase1.ps1
+      - name: Windows One-Click shortcut ownership and fixed-launch contract (KAR-79)
+        shell: powershell
+        env:
+          KAR_ONECLICK_TEST_MODE: '1'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & .\tests\windows-oneclick-shortcut.ps1
       - name: Hosted Windows Native Messaging host and IPC security tests (KAR-64)
         shell: powershell
         env:
