@@ -39,14 +39,31 @@ function NewRoot([string]$Name) { return (Join-Path $base ('root-'+$Name)) }
 try {
  $channel27=Channel 'approved27' '1.23.27' $oldZip
  $channel28=Channel 'approved28' '1.23.28' $newZip
+ $starter=Get-Content -LiteralPath (Join-Path $root 'tools\windows\OneClick-Update-KleinanzeigenRenewer.cmd') -Raw
+ Check (($starter.Contains(' -Command oneclick')) -and
+        ([regex]::Matches($starter,'powershell\.exe')).Count -eq 1 -and
+        (-not $starter.Contains(' -Command check')) -and
+        (-not $starter.Contains(' -Command update'))) 'one-click invokes a single fixed PowerShell operation'
  $target=NewRoot 'positive'
  Call 'not-installed status' 'check' $target $channel27 $null $true
  Call 'initial offline install' 'install' $target $channel27 $oldZip $true
  Check ((Test-Path (Join-Path $target 'Extension\manifest.json')) -and (Test-Path (Join-Path $target 'State\active.json'))) 'stable extension path and receipt'
  Call 'installed SHA-256 proof' 'verify' $target $null $null $true
  Call 'duplicate install refused' 'install' $target $channel27 $oldZip $false
+ $priorReceipt=(Get-FileHash -LiteralPath (Join-Path $target 'State\active.json') -Algorithm SHA256).Hash
+ $equalOutput=@(& $updater -Command oneclick -Yes -TestRoot $target -TestChannel $channel27)
+ Check ((($equalOutput -join [Environment]::NewLine) -match 'BEREITS_AKTUELL: Bereits aktuell - kein Update erforderlich') -and
+        ((Get-FileHash -LiteralPath (Join-Path $target 'State\active.json') -Algorithm SHA256).Hash -ceq $priorReceipt)) 'oneclick equal is neutral and receipt unchanged'
  Call 'reinstall/downgrade refused' 'update' $target $channel27 $oldZip $false
  Call 'verified update' 'update' $target $channel28 $newZip $true
+ $olderOutput=@(& $updater -Command oneclick -Yes -TestRoot $target -TestChannel $channel27)
+ Check ((($olderOutput -join [Environment]::NewLine) -match 'KEIN_NEUERES_UPDATE:') -and
+        ((Get-Content -LiteralPath (Join-Path $target 'State\active.json') -Raw | ConvertFrom-Json).version -eq '1.23.28')) 'oneclick older approval does not downgrade'
+ $clickTarget=NewRoot 'oneclick-newer'
+ Call 'oneclick fixture initial install' 'install' $clickTarget $channel27 $oldZip $true
+ Call 'oneclick strictly newer approval installs' 'oneclick' $clickTarget $channel28 $newZip $true
+ Check (((Get-Content -LiteralPath (Join-Path $clickTarget 'State\active.json') -Raw | ConvertFrom-Json).version -eq '1.23.28') -and
+        (Test-Path -LiteralPath (Join-Path $clickTarget 'Backups') -PathType Container)) 'oneclick newer retains backup and receipt'
  $current=(Get-Content -LiteralPath (Join-Path $target 'State\active.json') -Raw|ConvertFrom-Json)
  Check ($current.version -eq '1.23.28' -and $current.activation -eq 'reload-required') 'version advanced without claiming Chrome reload'
  Check (@(Get-ChildItem -LiteralPath (Join-Path $target 'Backups') -Directory).Count -ge 1) 'previous program-file backup retained'
