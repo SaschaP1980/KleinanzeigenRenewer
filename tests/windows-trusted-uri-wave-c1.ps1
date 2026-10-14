@@ -50,6 +50,8 @@ try {
     Copy-Item -LiteralPath $unsigned -Destination $marked -ErrorAction Stop
     Set-Content -LiteralPath $marked -Stream 'Zone.Identifier' -Value "[ZoneTransfer]`nZoneId=3" -ErrorAction Stop
     MustDeny { & $preflight -Candidate $marked -ExpectedSha256 $hash -ExpectedSignerThumbprint $signer } 'INTERNET_ZONE'
+    Set-Content -LiteralPath $marked -Stream 'Zone.Identifier' -Value "[ZoneTransfer]`nZoneId=not_a_number" -ErrorAction Stop
+    MustDeny { & $preflight -Candidate $marked -ExpectedSha256 $hash -ExpectedSignerThumbprint $signer } 'ZONE_METADATA_INVALID'
 
     MustDenyAny { & $handler 'kar77poc://caller-controlled-data' } 'UNTRUSTED_URI_REJECTED'
     Check (-not (Test-Path -LiteralPath (Join-Path $tmp 'Extension'))) 'no installation effects'
