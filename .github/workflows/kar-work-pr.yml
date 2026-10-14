@@ -195,3 +195,20 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           & .\tests\windows-native-host-wave1.ps1
+      - name: KAR-75 real Windows Chromium MV3 URI consent PoC (lab only)
+        shell: powershell
+        env:
+          KAR75_POC: '1'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          python -m pip install --disable-pip-version-check playwright==1.55.0 pywinauto==0.6.9
+          python -m playwright install chromium
+          python .\tests\kar75-chrome-uri-poc.py
+      - name: Preserve KAR-75 lab result (including failures)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kar75-chrome-uri-${{ github.event.pull_request.head.sha }}
+          path: ${{ runner.temp }}/kar75-chrome-uri-result.json
+          if-no-files-found: warn
+          retention-days: 14
