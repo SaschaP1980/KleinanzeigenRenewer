@@ -9,7 +9,7 @@ $ErrorActionPreference = 'Stop'
 if ($env:CI -cne 'true' -or $env:KAR73_URI_POC_TEST_MODE -cne '1') {
     throw 'KAR73_LAB_ONLY: no owner-PC registration permitted'
 }
-if (-not $IsWindows -and $PSVersionTable.PSEdition -ne 'Desktop') {
+if ($PSVersionTable.PSEdition -cne 'Desktop') {
     throw 'KAR73_WINDOWS_PS51_REQUIRED'
 }
 if (-not $env:RUNNER_TEMP) { throw 'KAR73_RUNNER_TEMP_MISSING' }
