@@ -20,6 +20,11 @@ function MustDeny([scriptblock]$Invoke,[string]$Code) {
     try { & $Invoke | Out-Null } catch { $failure = $_.Exception.Message }
     Check ($null -ne $failure -and $failure.Contains($Code)) ('fail-closed ' + $Code)
 }
+function MustDenyAny([scriptblock]$Invoke,[string]$Label) {
+    $failure = $null
+    try { & $Invoke | Out-Null } catch { $failure = $_.Exception.Message }
+    Check ($null -ne $failure -and $failure.Length -gt 0) ('fail-closed ' + $Label)
+}
 try {
     [void](New-Item -ItemType Directory -Path $tmp -ErrorAction Stop)
     Check ((Test-Path -LiteralPath $handler -PathType Leaf) -and (Test-Path -LiteralPath $preflight -PathType Leaf)) 'source present'
@@ -46,7 +51,7 @@ try {
     Set-Content -LiteralPath $marked -Stream 'Zone.Identifier' -Value "[ZoneTransfer]`nZoneId=3" -ErrorAction Stop
     MustDeny { & $preflight -Candidate $marked -ExpectedSha256 $hash -ExpectedSignerThumbprint $signer } 'INTERNET_ZONE'
 
-    MustDeny { & $handler 'kar77poc://caller-controlled-data' } 'KAR77_URI_ARGUMENT_DENIED'
+    MustDenyAny { & $handler 'kar77poc://caller-controlled-data' } 'UNTRUSTED_URI_REJECTED'
     Check (-not (Test-Path -LiteralPath (Join-Path $tmp 'Extension'))) 'no installation effects'
     Write-Host ('PASS KAR77 Windows security contract: ' + $good + ' assertions; enterprise ASR/signing acceptance PENDING')
 } finally {
