@@ -76,6 +76,9 @@ jobs:
         run: npm ci
       - name: KAR-68 strict read-only Native Messaging gateway unit tests
         run: node tests/kar68-native-status-gateway.cjs
+      - name: KAR-81 independently operable manual fallback UI
+        if: github.head_ref == 'work/KAR-81'
+        run: node tests/kar81-native-fallback.cjs
 
       - name: Prove unfixed baseline RED for consistent future PATCH (isolated)
         shell: bash

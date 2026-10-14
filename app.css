@@ -867,3 +867,8 @@ select:not([multiple]) { appearance:none; -webkit-appearance:none; background-im
 .native-update-check > button { align-self:flex-start; }
 .native-update-check > button:disabled { opacity:.65; cursor:wait; }
 .native-update-evidence { overflow-wrap:anywhere; font-size:11px; }
+/* KAR-81: safe NativeHost-independent manual Windows update path */
+.native-update-fallback { display:flex; flex-direction:column; gap:6px; margin-top:7px; padding:10px; border:1px solid rgba(120,154,144,.26); border-radius:9px; background:rgba(10,32,27,.2); }
+.native-update-fallback .configuration-description { margin:0; line-height:1.45; overflow-wrap:anywhere; }
+.native-update-setup-link { align-self:flex-start; font-size:12px; line-height:1.35; overflow-wrap:anywhere; color:#a3f2d9; text-underline-offset:2px; }
+.native-update-setup-link:focus-visible { outline:2px solid #4de0b7; outline-offset:2px; }

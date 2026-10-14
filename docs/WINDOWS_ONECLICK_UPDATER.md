@@ -35,6 +35,6 @@ One click launches the update **workflow**, but does not mean unattended file mu
 - `tests/windows-oneclick-shortcut.ps1` is a CI-only Windows PowerShell 5.1 fixture (`KAR_ONECLICK_TEST_MODE=1`) with scratch directories under `RUNNER_TEMP`; it cannot run against the owner's Desktop/LocalAppData in CI.
 - Hosted Windows tests verify actual WScript.Shell `.lnk` target/arguments, idempotence, collision denial and ownership removal. They do not invoke the online update action, make real Kleinanzeigen account changes or establish permission on a managed corporate computer.
 - Full Phase 1 updater fixture SHA/ZIP traversal/rollback/recovery tests must remain GREEN on the same exact GitHub commit.
-- The extension Manager fallback presentation is implemented in separate dependent child #81 after this launcher is validated. It must **not** pretend Chrome can start the Windows shortcut directly without an authenticated local bridge.
+- The extension Manager fallback guidance is tracked in dependent child #81. The **read-only** NativeHost check remains optional; if native transport fails, the Manager displays standalone Desktop shortcut instructions and a separate setup guide link. The Manager **cannot launch** the shortcut directly without an authorized local bridge. This is a browser-facing instruction, not proof the shortcut is installed or company policy permits its execution.
 
 Tracking: parent #79; this Windows wave #80; follow-up browser UI wave #81.
