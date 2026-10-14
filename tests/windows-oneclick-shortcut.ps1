@@ -35,7 +35,9 @@ try{
     Check (Test-Path -LiteralPath $manager -PathType Leaf) 'manager exists'
     Check (Test-Path -LiteralPath $launcher -PathType Leaf) 'one-click launcher exists'
     $text=[IO.File]::ReadAllText($launcher)
-    $fixedCommands=$text.Contains(' -Command update') -and $text.Contains(' -Command check') -and
+    $fixedCommands=$text.Contains(' -Command oneclick') -and
+        ([regex]::Matches($text,'powershell\.exe')).Count -eq 1 -and
+        (-not $text.Contains(' -Command check')) -and (-not $text.Contains(' -Command update')) -and
         (-not ($text -match '(?i)ExecutionPolicy\s+Bypass|\%[*1]|Start-ScheduledTask|schtasks|runas'))
     Check $fixedCommands 'fixed non-elevated updater commands'
     Check (-not (Test-Path -LiteralPath $root)) 'initially absent'
