@@ -1,0 +1,40 @@
+# KAR-80 — Independent Windows One-Click updater
+
+The desktop shortcut starts the **existing user-level Phase 1 updater**, not NativeHost.exe.
+One click launches the update **workflow**, but does not mean unattended file mutation.
+
+## Components and version scope
+
+- `tools/windows/OneClick-Update-KleinanzeigenRenewer.cmd`: stable no-parameter entrypoint for `check` followed by `update`.
+- `tools/windows/KleinanzeigenRenewer-Updater.ps1`: unchanged approved Phase 1 update core. It verifies pinned GitHub ZIP source commit/size/SHA-256 and installation integrity, asks `JA`, requires all Chrome processes closed before switching files, and maintains journal/backup/rollback.
+- `tools/windows/Manage-KleinanzeigenRenewer-OneClick.ps1`: controlled per-user shortcut setup/status/removal (source unchanged after setup).
+
+**Production Chrome extension v1.23.31 is unchanged.** The helper is not embedded in the Chrome ZIP. NativeHost installation or IPC is not required. This feature does not implement automatic in-app apply (#67).
+
+## Setup (user action, never administrator)
+
+1. On a Windows system where user-script execution is **permitted by the actual OS/company policy**, place **all three named components** above in a single folder obtained from an authorized, trustworthy source. Do not run them from an untrusted or unknown folder. The code is not currently a signed installer and is not proof of corporate trust.
+2. Inspect the source/paths and use **ordinary** Windows PowerShell (not elevated) in that folder:
+   `./Manage-KleinanzeigenRenewer-OneClick.ps1 -Action check`
+3. Set up the starter by invoking `./Manage-KleinanzeigenRenewer-OneClick.ps1 -Action install` and typing exactly `JA` when asked. If a security policy refuses execution, **stop**; do not unblock the file, disable ASR/WDAC, alter ExecutionPolicy, elevate, change paths to evade checks, or use a scheduled task.
+4. The installer copies only `OneClick-Update-KleinanzeigenRenewer.cmd` and `KleinanzeigenRenewer-Updater.ps1` to `%LOCALAPPDATA%\KleinanzeigenRenewer\Updater` and creates **Kleinanzeigen Manager aktualisieren.lnk** in the current user's Desktop directory. The two files and exact SHA-256 are recorded in `owner.json`. Nothing in `%LOCALAPPDATA%\KleinanzeigenRenewer\Extension` is changed during setup.
+5. To update an **existing** installed extension, save all browser work, close **all** Chrome processes, and double-click the shortcut. It checks approved metadata, then calls the existing `-Command update` path. A newer approved version triggers an explicit `JA` confirmation before any switch. The current Chrome profile, Extension ID and storage are left intact. After a successful update, reopen the same Chrome profile and **reload** the existing unpacked extension under `chrome://extensions/`. Do not remove and reinstall it.
+6. If the installed version is already current, the existing update core rejects the non-newer version; this is a harmless stop, not a successful reinstall. If installation is missing, use the original manually accepted `Update-KleinanzeigenRenewer.cmd` installer first, then the shortcut for updates.
+
+## Safety and idempotence
+
+- Existing Desktop links or kit directories without a matching owner receipt are **never** overwritten, adopted or deleted.
+- Pre-existing owned kit files must match their recorded digests; unknown extra entries, missing entries, tampered scripts and reparse points fail closed.
+- A second `-Action install` simply verifies the already owned shortcut and kit; it does **not** update scripts in place or bypass a changed signature.
+- `-Action check` is read-only. `-Action remove` verifies ownership, asks for `JA` and removes only the owned Desktop `.lnk` and owned Updater kit, **never** the installed extension, native host, settings, backups or Chrome data. When absent, remove is idempotent.
+- Updating the shortcut kit itself in a future release requires an explicitly consented **remove followed by new install**; do not silently overwrite a running or unverified updater.
+- The shortcut cannot execute with elevated privileges by construction. A user-writable path must never be used as an elevated scheduled-task target.
+
+## Testing and limitations
+
+- `tests/windows-oneclick-shortcut.ps1` is a CI-only Windows PowerShell 5.1 fixture (`KAR_ONECLICK_TEST_MODE=1`) with scratch directories under `RUNNER_TEMP`; it cannot run against the owner's Desktop/LocalAppData in CI.
+- Hosted Windows tests verify actual WScript.Shell `.lnk` target/arguments, idempotence, collision denial and ownership removal. They do not invoke the online update action, make real Kleinanzeigen account changes or establish permission on a managed corporate computer.
+- Full Phase 1 updater fixture SHA/ZIP traversal/rollback/recovery tests must remain GREEN on the same exact GitHub commit.
+- The extension Manager fallback presentation is implemented in separate dependent child #81 after this launcher is validated. It must **not** pretend Chrome can start the Windows shortcut directly without an authenticated local bridge.
+
+Tracking: parent #79; this Windows wave #80; follow-up browser UI wave #81.
