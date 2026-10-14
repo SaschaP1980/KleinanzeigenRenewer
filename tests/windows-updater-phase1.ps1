@@ -51,13 +51,15 @@ try {
  Call 'installed SHA-256 proof' 'verify' $target $null $null $true
  Call 'duplicate install refused' 'install' $target $channel27 $oldZip $false
  $priorReceipt=(Get-FileHash -LiteralPath (Join-Path $target 'State\active.json') -Algorithm SHA256).Hash
- $equalOutput=@(& $updater -Command oneclick -Yes -TestRoot $target -TestChannel $channel27)
- Check ((($equalOutput -join [Environment]::NewLine) -match 'BEREITS_AKTUELL: Bereits aktuell - kein Update erforderlich') -and
+ & $updater -Command oneclick -Yes -TestRoot $target -TestChannel $channel27
+ $equalEvents=@(Get-Content -LiteralPath (Join-Path $target 'State\updater.jsonl') | ForEach-Object { $_ | ConvertFrom-Json } | Where-Object { $_.type -ceq 'BEREITS_AKTUELL' })
+ Check (($equalEvents.Count -eq 1) -and ($equalEvents[0].detail -match 'Bereits aktuell - kein Update erforderlich') -and
         ((Get-FileHash -LiteralPath (Join-Path $target 'State\active.json') -Algorithm SHA256).Hash -ceq $priorReceipt)) 'oneclick equal is neutral and receipt unchanged'
  Call 'reinstall/downgrade refused' 'update' $target $channel27 $oldZip $false
  Call 'verified update' 'update' $target $channel28 $newZip $true
- $olderOutput=@(& $updater -Command oneclick -Yes -TestRoot $target -TestChannel $channel27)
- Check ((($olderOutput -join [Environment]::NewLine) -match 'KEIN_NEUERES_UPDATE:') -and
+ & $updater -Command oneclick -Yes -TestRoot $target -TestChannel $channel27
+ $olderEvents=@(Get-Content -LiteralPath (Join-Path $target 'State\updater.jsonl') | ForEach-Object { $_ | ConvertFrom-Json } | Where-Object { $_.type -ceq 'KEIN_NEUERES_UPDATE' })
+ Check (($olderEvents.Count -eq 1) -and
         ((Get-Content -LiteralPath (Join-Path $target 'State\active.json') -Raw | ConvertFrom-Json).version -eq '1.23.28')) 'oneclick older approval does not downgrade'
  $clickTarget=NewRoot 'oneclick-newer'
  Call 'oneclick fixture initial install' 'install' $clickTarget $channel27 $oldZip $true
