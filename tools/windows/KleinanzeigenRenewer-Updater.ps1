@@ -1,7 +1,7 @@
 # KAR-59 Phase 1. Standalone Windows PowerShell 5.1-compatible program updater.
 [CmdletBinding()]
 param(
- [ValidateSet('check','install','update','verify','rollback','recover','accept')][string]$Command='check',
+ [ValidateSet('check','install','update','oneclick','verify','rollback','recover','accept')][string]$Command='check',
  [switch]$Yes,
  [string]$TestRoot,
  [string]$TestChannel,
@@ -249,14 +249,22 @@ try {
  $active=$null
  if (Test-Path -LiteralPath $Live) { $active=ReadJson $ReceiptPath;Proof $Live $active }
  else { Require (-not (Test-Path -LiteralPath $ReceiptPath)) 'Stale receipt; manual recovery needed' }
- if ($Command -eq 'check') {
+ if ($Command -eq 'check' -or $Command -eq 'oneclick') {
   $current=if ($active) { [string]$active.version } else { 'not installed' }
   Event 'CHECK' ("installed=$current approved=$($approval.version) sha256=$($approval.sha256) sourceCommit=$($approval.commit)")
-  return
+  if ($Command -eq 'check') { return }
  }
  if ($Command -eq 'install') { Require ($null -eq $active) 'Already installed: use update' }
- if ($Command -eq 'update') {
+ if ($Command -eq 'update' -or $Command -eq 'oneclick') {
   Require ($null -ne $active) 'Not installed: use install'
+  if ($Command -eq 'oneclick' -and [version]$approval.version -le [version]$active.version) {
+   if ([version]$approval.version -eq [version]$active.version) {
+    Event 'BEREITS_AKTUELL' ("Bereits aktuell - kein Update erforderlich. version=$($active.version)")
+   } else {
+    Event 'KEIN_NEUERES_UPDATE' ("Keine neuere Version freigegeben. installed=$($active.version) approved=$($approval.version)")
+   }
+   return
+  }
   Require ([version]$approval.version -gt [version]$active.version) 'Approved version must be strictly newer'
  }
  Consent ('Install approved version '+$approval.version+' (commit '+$approval.commit+')')
