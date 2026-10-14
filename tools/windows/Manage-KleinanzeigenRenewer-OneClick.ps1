@@ -70,8 +70,8 @@ function Read-Owner {
         Stop-KAR 'UNOWNED_UPDATER_DIRECTORY'
     }
     $data=Get-Content -LiteralPath $receipt -Raw -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
-    if ($data.schema -ne 1 -or $data.owner -cne 'KAR-80-OneClick'
-        -or @($data.files).Count -ne 2) { Stop-KAR 'INVALID_OWNER_RECEIPT' }
+    $invalidOwner=($data.schema -ne 1) -or ($data.owner -cne 'KAR-80-OneClick') -or (@($data.files).Count -ne 2)
+    if ($invalidOwner) { Stop-KAR 'INVALID_OWNER_RECEIPT' }
     $actual=@(Get-ChildItem -LiteralPath $kit -Force -ErrorAction Stop)
     if ($actual.Count -ne 3) { Stop-KAR 'UNEXPECTED_KIT_CONTENT' }
     foreach ($name in $names) {
@@ -85,18 +85,15 @@ function Read-Owner {
         if ((FileSha $file) -cne [string]$entry[0].sha256) { Stop-KAR 'KIT_HASH_MISMATCH' }
     }
 }
-function Get-Shell { return New-Object -ComObject WScript.Shell }
+function Get-Shell { return (New-Object -ComObject WScript.Shell) }
 function Assert-ShortcutOwned {
     if (-not (Test-Path -LiteralPath $shortcut -PathType Leaf)) {
         Stop-KAR 'SHORTCUT_MISSING'
     }
     Assert-NoJunction $shortcut
     $link=(Get-Shell).CreateShortcut($shortcut)
-    if ($link.TargetPath -ine $target
-        -or -not [string]::IsNullOrWhiteSpace($link.Arguments)
-        -or $link.WorkingDirectory -ine $kit) {
-        Stop-KAR 'FOREIGN_SHORTCUT'
-    }
+    $owned=($link.TargetPath -ieq $target) -and ([string]::IsNullOrWhiteSpace($link.Arguments)) -and ($link.WorkingDirectory -ieq $kit)
+    if (-not $owned) { Stop-KAR 'FOREIGN_SHORTCUT' }
 }
 function Approve([string]$What) {
     if ($ci) { return }
