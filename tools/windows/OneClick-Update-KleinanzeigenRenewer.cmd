@@ -16,18 +16,17 @@ if not exist "%SCRIPT%" (
   pause
   exit /b 2
 )
-"%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -File "%SCRIPT%" -Command check
-if errorlevel 1 (
-  echo STOP: Freigabepruefung fehlgeschlagen. Kein Update gestartet.
-  pause
-  exit /b 1
-)
-echo.
-echo Update wird vorbereitet. Bei bereits aktueller Version wird abgebrochen.
-echo Vor Datei-Aenderungen fordert der Windows-Updater erneut JA als Zustimmung an.
-"%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -File "%SCRIPT%" -Command update
+echo Freigegebene Version wird einmalig geprueft.
+echo Ist sie bereits installiert, endet dieser Vorgang ohne Dateiaustausch.
+echo Nur bei einer neueren Version fordert der Updater JA vor dem Dateiaustausch.
+"%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -File "%SCRIPT%" -Command oneclick
 set "RC=%ERRORLEVEL%"
-if not "%RC%"=="0" echo STOP oder kein neuerer freigegebener Stand. Keine Browser-Daten geaendert.
-if "%RC%"=="0" echo Update abgeschlossen. Chrome starten und dieselbe Erweiterung unter chrome://extensions/ neu laden.
+if not "%RC%"=="0" (
+  echo STOP: Windows-Updater fehlgeschlagen. Kein erfolgreicher Updateabschluss bestaetigt.
+) else (
+  echo.
+  echo Pruefung beendet. Bei BEREITS_AKTUELL ist kein Update erforderlich.
+  echo Nur nach FILES_INSTALLED_RELOAD_REQUIRED: Chrome starten und die bestehende Erweiterung unter chrome://extensions/ neu laden.
+)
 pause
 exit /b %RC%
