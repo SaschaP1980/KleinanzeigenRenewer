@@ -35,8 +35,9 @@ try{
     Check (Test-Path -LiteralPath $manager -PathType Leaf) 'manager exists'
     Check (Test-Path -LiteralPath $launcher -PathType Leaf) 'one-click launcher exists'
     $text=[IO.File]::ReadAllText($launcher)
-    Check ($text.Contains(' -Command update') -and $text.Contains(' -Command check')
-        -and -not ($text -match '(?i)ExecutionPolicy\s+Bypass|\%[*1]|Start-ScheduledTask|schtasks|runas')) 'fixed non-elevated updater commands'
+    $fixedCommands=$text.Contains(' -Command update') -and $text.Contains(' -Command check') -and
+        (-not ($text -match '(?i)ExecutionPolicy\s+Bypass|\%[*1]|Start-ScheduledTask|schtasks|runas'))
+    Check $fixedCommands 'fixed non-elevated updater commands'
     Check (-not (Test-Path -LiteralPath $root)) 'initially absent'
     Invoke-Manager 'install' $root $desktop $source | Out-Null
     $link=Join-Path $desktop $name
