@@ -195,3 +195,11 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           & .\tests\windows-native-host-wave1.ps1
+      - name: KAR-77 trusted local URI handler negative trust/consent contract
+        if: github.head_ref == 'work/KAR-77'
+        shell: powershell
+        env:
+          KAR77_TEST_MODE: '1'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & .\tests\windows-trusted-uri-wave-c1.ps1
