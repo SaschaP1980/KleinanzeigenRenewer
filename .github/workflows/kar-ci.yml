@@ -106,3 +106,10 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           & .\tests\windows-native-host-wave1.ps1
+      - name: KAR-73 disposable Windows Shell URI handoff PoC (no Chrome, no update)
+        shell: powershell
+        env:
+          KAR73_URI_POC_TEST_MODE: '1'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & .\tests\kar73-windows-uri-protocol.ps1
