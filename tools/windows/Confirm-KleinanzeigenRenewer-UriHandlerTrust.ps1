@@ -19,8 +19,12 @@ if ($actual -cne $ExpectedSha256.ToUpperInvariant()) { Deny 'HASH_MISMATCH' }
 
 # Read the Mark-of-the-Web ADS only. Missing stream is accepted, but an
 # existing stream that is malformed or originates in Internet/Restricted is not.
-$ads = @(Get-Content -LiteralPath $file.FullName -Stream 'Zone.Identifier' -ErrorAction SilentlyContinue)
-if ($ads.Count -gt 0) {
+$streams = @(Get-Item -LiteralPath $file.FullName -Stream * -ErrorAction Stop)
+$zoneStreams = @($streams | Where-Object { $_.Stream -ieq 'Zone.Identifier' })
+if ($zoneStreams.Count -gt 1) { Deny 'ZONE_METADATA_INVALID' }
+if ($zoneStreams.Count -eq 1) {
+    # An unreadable/empty/malformed present ADS is a denial, not an absent mark.
+    $ads = @(Get-Content -LiteralPath $file.FullName -Stream 'Zone.Identifier' -ErrorAction Stop)
     $zoneLines = @($ads | Where-Object { $_ -match '^ZoneId\s*=\s*(\d+)\s*$' })
     if ($zoneLines.Count -ne 1) { Deny 'ZONE_METADATA_INVALID' }
     $zone = [int]([regex]::Match($zoneLines[0], '^ZoneId\s*=\s*(\d+)\s*$').Groups[1].Value)
