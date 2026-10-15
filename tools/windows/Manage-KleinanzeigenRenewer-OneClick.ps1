@@ -10,7 +10,12 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
 function Stop-KAR([string]$Reason) { throw ('KAR80_ONECLICK_DENIED: '+$Reason) }
-if ($args.Count -ne 0) { Stop-KAR 'UNEXPECTED_ARGUMENTS' }
+# With powershell.exe -File, strict mode may leave $args undefined.
+# InvocationInfo reports unbound arguments in both direct and in-process calls.
+$unboundArguments=$MyInvocation.UnboundArguments
+if ($null -ne $unboundArguments -and @($unboundArguments).Count -ne 0) {
+    Stop-KAR 'UNEXPECTED_ARGUMENTS'
+}
 $ci=($env:CI -ceq 'true' -and $env:KAR_ONECLICK_TEST_MODE -ceq '1')
 if (($TestRoot -or $TestDesktop -or $TestSource) -and -not $ci) {
     Stop-KAR 'TEST_OVERRIDES_DISABLED'
