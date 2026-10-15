@@ -54,7 +54,7 @@ if "%KAR94_TEST_MODE%"=="1" goto :RunManagerTest
 "%KAR94_PS%" -NoProfile -File "%KAR94_SETUP_MANAGER%" -Action %1
 exit /b %ERRORLEVEL%
 :RunManagerTest
-"%KAR94_PS%" -NoProfile -File "%KAR94_SETUP_MANAGER%" -Action %1 -TestRoot "%KAR94_TEST_ROOT%" -TestDesktop "%KAR94_TEST_DESKTOP%" -TestSource "%KAR94_SETUP_SOURCE%"
+"%KAR94_PS%" -NoProfile -File "%KAR94_SETUP_MANAGER%" -Action %1 -TestRoot "%KAR94_TEST_ROOT%" -TestDesktop "%KAR94_TEST_DESKTOP%" -TestSource "%KAR94_SETUP_SOURCE%."
 exit /b %ERRORLEVEL%
 
 :Failure
