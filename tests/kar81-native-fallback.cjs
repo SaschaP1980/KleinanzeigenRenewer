@@ -27,8 +27,8 @@ async function run(){
        html.includes('id="nativeUpdateFallbackStatus"'),'manual fallback retained in progressive guide');
  check(/id="nativeUpdateGuide"[^>]*hidden/.test(html) && !html.includes('id="nativeUpdateFallback"'),
   'fallback help is available on demand, not a permanent visual wall');
- check(html.includes('WINDOWS_ONECLICK_UPDATER.md') &&
-       html.includes('rel="noopener noreferrer"'),'fixed human-click GitHub setup docs link');
+ check(html.includes('docs/user-manuals/windows-updater-einrichten.md') &&
+       html.includes('rel="noopener noreferrer"'),'fixed human-click German beginner setup guide link');
  check(html.includes('Windows-Verknüpfung') &&
        html.includes('Chrome') && html.includes('neu'),
   'manual instructions include Desktop shortcut and browser reload');
