@@ -15,6 +15,8 @@
   const lastChecked = document.getElementById('nativeUpdateLastChecked');
   const activeVersionText = document.getElementById('nativeUpdateActiveVersion');
   const managedVersionText = document.getElementById('nativeUpdateManagedVersion');
+  const friendly = document.getElementById('nativeUpdateFriendlyStatus');
+  const approvedVersionText = document.getElementById('nativeUpdateApprovedVersion');
   if (!button || !status || !details) return;
   let sequence = 0;
   let busy = false;
@@ -38,13 +40,15 @@
       if (!guide) return;
       guide.hidden = !guide.hidden;
       guideButton.setAttribute?.('aria-expanded', String(!guide.hidden));
-      guideButton.textContent = guide.hidden ? 'Updateanleitung anzeigen' : 'Updateanleitung ausblenden';
+      guideButton.textContent = guide.hidden ? 'So aktualisierst du' : 'Anleitung ausblenden';
     });
   }
   function unknown() {
     if (approvedChannelVerified) return;
     if (nativeApproval) { renderApproval(nativeApproval); return; }
     if (summary) summary.textContent = 'Update-Status derzeit nicht verfügbar.';
+    if (friendly) friendly.textContent = 'Die Verfügbarkeit konnte gerade nicht geprüft werden.';
+    if (approvedVersionText) approvedVersionText.textContent = 'Nicht ermittelt';
     if (lastChecked) lastChecked.textContent = '';
   }
   const messages = Object.freeze({
@@ -81,9 +85,15 @@
     if (!summary) return;
     if (!approvedVersion(activeVersion) || !approvedVersion(approved)) {
       summary.textContent = 'Update-Status derzeit nicht verfügbar.';
+      if (friendly) friendly.textContent = 'Die Verfügbarkeit konnte gerade nicht geprüft werden.';
+      if (approvedVersionText) approvedVersionText.textContent = 'Nicht ermittelt';
       return;
     }
     const difference = compareVersions(activeVersion, approved);
+    if (approvedVersionText) approvedVersionText.textContent = 'v' + approved;
+    if (friendly) friendly.textContent = difference < 0 ? 'Eine neue Version ist verfügbar: v' + approved + '.'
+      : difference > 0 ? 'Deine Version ist neuer als die derzeit freigegebene Version.'
+      : 'Du verwendest die aktuell freigegebene Version.';
     summary.textContent = difference < 0 ? 'Neue Version v' + approved + ' verfügbar.'
       : difference > 0 ? 'Aktive Version ist neuer als die Freigabe.'
         : 'Es ist keine neue Version verfügbar.';
@@ -110,6 +120,8 @@
     channelAbort = controller;
     approvedChannelVerified = false;
     if (summary && !approvedChannelVerified) summary.textContent = 'Neue Version wird geprüft …';
+    if (friendly) friendly.textContent = 'Suche nach Updates …';
+    if (approvedVersionText) approvedVersionText.textContent = 'Wird geprüft …';
     if (lastChecked) lastChecked.textContent = '';
     const timeoutId = setTimeout(() => controller.abort(), 8000);
     try {
@@ -174,7 +186,8 @@
     const own = ++sequence;
     button.disabled = true;
     status.textContent = 'Windows-Updater wird geprüft …';
-    if (summary) summary.textContent = 'Neue Version wird geprüft …';
+    if (summary && !approvedChannelVerified) summary.textContent = 'Neue Version wird geprüft …';
+    if (friendly && !approvedChannelVerified) friendly.textContent = 'Suche nach Updates …';
     details.textContent = '';
     let timeoutId;
     try {

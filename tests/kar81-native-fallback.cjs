@@ -23,10 +23,10 @@ function boot(send){
 }
 async function tick(){return new Promise(resolve=>setTimeout(resolve,30));}
 async function run(){
- check(html.includes('id="nativeUpdateFallback"') &&
-       html.includes('id="nativeUpdateFallbackStatus"'),'HTML includes always-visible manual fallback section');
- check(!/<[^>]*id="nativeUpdateFallback"[^>]*\shidden(?:\s|>)/.test(html),
-  'fallback guidance visible before native check');
+ check(html.includes('id="nativeUpdateGuide"') &&
+       html.includes('id="nativeUpdateFallbackStatus"'),'manual fallback retained in progressive guide');
+ check(/id="nativeUpdateGuide"[^>]*hidden/.test(html) && !html.includes('id="nativeUpdateFallback"'),
+  'fallback help is available on demand, not a permanent visual wall');
  check(html.includes('WINDOWS_ONECLICK_UPDATER.md') &&
        html.includes('rel="noopener noreferrer"'),'fixed human-click GitHub setup docs link');
  check(html.includes('Windows-Verknüpfung') &&
