@@ -77,7 +77,8 @@ try{
     $env:KAR94_TEST_ROOT=$root3
     $env:KAR94_TEST_DESKTOP=$desktop3
     try {
-      & $env:ComSpec /d /c $setup | Out-Null
+      $firstRun= & $env:ComSpec /d /c $setup 2>&1 | Out-String
+      Write-Host ('KAR94_FIRST_SETUP_OUTPUT '+$firstRun)
       Check ($LASTEXITCODE -eq 0) 'first-user installer exits successfully'
       Check (Test-Path -LiteralPath (Join-Path $desktop3 $name) -PathType Leaf) 'fresh user Desktop shortcut exists'
       Invoke-Manager 'check' $root3 $desktop3 $source | Out-Null
