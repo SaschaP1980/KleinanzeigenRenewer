@@ -42,7 +42,8 @@ function boot(send) {
   const doc={getElementById:id=>nodes[id]||null};
   const runtime={lastError:null,getManifest:()=>({version:'1.23.32'}),sendMessage:send};
   vm.runInNewContext(js,{document:doc,chrome:{runtime},
-    window:{addEventListener:(name,fn)=>{handlers[name]=fn;}},setTimeout,clearTimeout});
+    window:{addEventListener:(name,fn)=>{handlers[name]=fn;}},setTimeout,clearTimeout},
+    {filename:path.join(root,'src/app/native-update-check-ui.js')});
   return {nodes,handlers,getFocused:()=>focused};
 }
 const delay=()=>new Promise(done=>setTimeout(done,25));
