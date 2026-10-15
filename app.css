@@ -881,7 +881,8 @@ select:not([multiple]) { appearance:none; -webkit-appearance:none; background-im
 .native-update-modal { display:flex; flex-direction:column; min-height:0; max-height:calc(100dvh - 24px); }
 .native-update-modal-header { padding:16px 18px 12px; border-bottom:1px solid #294840; display:flex; align-items:center; justify-content:space-between; gap:12px; flex:none; }
 .native-update-modal-header h2 { margin:0; color:#c9f6e8; font-size:17px; }
-.native-update-modal-header .modal-close { min-width:33px; min-height:33px; font-size:21px; }
+.native-update-modal-header .native-update-close { min-width:33px; min-height:33px; padding:5px; border:1px solid #345449; border-radius:7px; background:transparent; color:#d0eee3; font-size:21px; cursor:pointer; }
+.native-update-modal-header .native-update-close:hover { background:#4de0b7; color:#08271f; }
 .native-update-modal-scroll { overflow-y:auto; overscroll-behavior:contain; min-height:0; padding:15px 18px; display:flex; flex-direction:column; align-items:flex-start; gap:12px; }
 .native-update-intro, .native-update-detail-status, .native-update-last-checked { margin:0; font-size:12px; line-height:1.5; color:#b8c9c5; overflow-wrap:anywhere; }
 .native-update-last-checked { color:#8da69e; font-size:11px; }
