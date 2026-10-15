@@ -1,5 +1,5 @@
 {
-  "version": "1.23.33",
+  "version": "1.23.34",
   "project": "kleinanzeigen Manager / Kleinanzeigen Renewal",
   "epic": "EPIC-REF-003-preflight-correction",
   "goldBaseline": "1.21.15",
@@ -155,7 +155,7 @@
     "Direkt nach dem Performance-Lauf Diagnose-ZIP exportieren und gegen die passende Hardware-Goldlinie vergleichen; Rechnerübergreifende Werte nicht als alleinigen Regressionsbeweis verwenden.",
     "Nach dem Smoke Goldlinien-Performance-Matrix und neue v1.23.22-Messung im nächsten Handover fortführen."
   ],
-  "packageVersion": "1.23.33",
+  "packageVersion": "1.23.34",
   "directBasisNativePending": false,
   "architectureFiles": [
     {
