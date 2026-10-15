@@ -53,7 +53,7 @@ try {
  $priorReceipt=(Get-FileHash -LiteralPath (Join-Path $target 'State\active.json') -Algorithm SHA256).Hash
  & $updater -Command oneclick -Yes -TestRoot $target -TestChannel $channel27
  $equalEvents=@(Get-Content -LiteralPath (Join-Path $target 'State\updater.jsonl') | ForEach-Object { $_ | ConvertFrom-Json } | Where-Object { $_.type -ceq 'BEREITS_AKTUELL' })
- Check (($equalEvents.Count -eq 1) -and ($equalEvents[0].detail -match 'Bereits aktuell - kein Update erforderlich') -and
+ Check (($equalEvents.Count -eq 1) -and ($equalEvents[0].detail -match 'Already up to date - no update required') -and
         ((Get-FileHash -LiteralPath (Join-Path $target 'State\active.json') -Algorithm SHA256).Hash -ceq $priorReceipt)) 'oneclick equal is neutral and receipt unchanged'
  Call 'reinstall/downgrade refused' 'update' $target $channel27 $oldZip $false
  Call 'verified update' 'update' $target $channel28 $newZip $true

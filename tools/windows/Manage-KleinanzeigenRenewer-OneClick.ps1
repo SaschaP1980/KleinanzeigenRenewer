@@ -97,7 +97,7 @@ function Assert-ShortcutOwned {
 }
 function Approve([string]$What) {
     if ($ci) { return }
-    if ((Read-Host ($What+'; zur Bestaetigung JA eingeben')) -cne 'JA') {
+    if ((Read-Host ($What+'; type YES to confirm')) -cne 'YES') {
         Stop-KAR 'USER_DECLINED'
     }
 }
@@ -109,33 +109,33 @@ if (-not (Test-Path -LiteralPath $desktop -PathType Container)) {
 if ($Action -eq 'check') {
     if (-not (Test-Path -LiteralPath $kit)) {
         if (Test-Path -LiteralPath $shortcut) { Stop-KAR 'FOREIGN_SHORTCUT' }
-        Write-Host 'NICHT_EINGERICHTET: One-Click-Desktopverknuepfung fehlt.'
+        Write-Host 'NOT_CONFIGURED: One-Click Desktop shortcut is missing.'
         return
     }
     Read-Owner
     Assert-ShortcutOwned
-    Write-Host 'PASS: One-Click-Desktopverknuepfung und beide Quelldateien verifiziert.'
+    Write-Host 'PASS: One-Click Desktop shortcut and both Updater copy files verified.'
     return
 }
 if ($Action -eq 'remove') {
     if (-not (Test-Path -LiteralPath $kit)) {
         if (Test-Path -LiteralPath $shortcut) { Stop-KAR 'FOREIGN_SHORTCUT' }
-        Write-Host 'NICHT_EINGERICHTET: Nichts zu entfernen.'
+        Write-Host 'NOT_CONFIGURED: No installed One-Click kit to remove.'
         return
     }
     Read-Owner
     Assert-ShortcutOwned
-    Approve 'Nur eigene One-Click-Verknuepfung und eigene Updater-Kopie entfernen'
+    Approve 'Remove only the owned One-Click Desktop shortcut and owned Updater copy'
     Remove-Item -LiteralPath $shortcut -Force -ErrorAction Stop
     Remove-Item -LiteralPath $kit -Recurse -Force -ErrorAction Stop
-    Write-Host 'PASS: Eigene One-Click-Verknuepfung und Updater-Kopie entfernt.'
+    Write-Host 'PASS: Owned One-Click Desktop shortcut and Updater copy removed.'
     return
 }
 # Only 'install' remains. Do not modify an existing/unknown installation.
 if (Test-Path -LiteralPath $kit) {
     Read-Owner
     Assert-ShortcutOwned
-    Write-Host 'PASS: One-Click-Desktopverknuepfung bereits eingerichtet.'
+    Write-Host 'PASS: One-Click Desktop shortcut is already configured. Existing receipt-bound kit remains unchanged.'
     return
 }
 if (Test-Path -LiteralPath $shortcut) { Stop-KAR 'FOREIGN_SHORTCUT' }
@@ -146,7 +146,7 @@ foreach ($name in $names) {
     if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { Stop-KAR 'SOURCE_FILE_MISSING' }
     Assert-NoJunction $file
 }
-Approve 'One-Click-Updater im Benutzerprofil einrichten und Desktopverknuepfung erstellen'
+Approve 'Install the One-Click updater in your user profile and create the Desktop shortcut'
 $parent=Split-Path -Path $kit -Parent
 Assert-NoJunction $parent
 if (-not (Test-Path -LiteralPath $parent)) {
@@ -176,11 +176,11 @@ try {
     $link.TargetPath=$target
     $link.Arguments=''
     $link.WorkingDirectory=$kit
-    $link.Description='Kleinanzeigen Manager: genehmigtes Windows-Update starten'
+    $link.Description='Kleinanzeigen Manager: run the approved Windows update'
     $link.Save()
     $linkCreated=$true
     Assert-ShortcutOwned
-    Write-Host 'PASS: Desktopverknuepfung erstellt. Vor dem Dateiaustausch Chrome schliessen; Zustimmung im Updater erforderlich.'
+    Write-Host 'PASS: Desktop shortcut created. Close all Chrome processes before replacing program files; explicit consent is required in the updater.'
 } catch {
     $originalError=$_
     if ($linkCreated -and (Test-Path -LiteralPath $shortcut)) {
