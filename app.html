@@ -610,43 +610,45 @@
       </div>
     </dialog>
 
-    <dialog id="nativeUpdateDialog" class="native-update-dialog" aria-labelledby="nativeUpdateDialogTitle" aria-describedby="nativeUpdateDialogIntro">
-      <div class="native-update-modal">
-        <header class="native-update-modal-header">
-          <h2 id="nativeUpdateDialogTitle">Windows-Updater</h2>
-          <button id="nativeUpdateClose" type="button" class="native-update-close" aria-label="Windows-Updater schließen">×</button>
+    <dialog id="nativeUpdateDialog" class="profile-manager-dialog native-update-dialog" aria-labelledby="nativeUpdateDialogTitle" aria-describedby="nativeUpdateDialogIntro">
+      <div class="profile-manager-modal native-update-modal">
+        <header class="profile-manager-header">
+          <div><span class="profile-manager-kicker">UPDATES</span><h2 id="nativeUpdateDialogTitle">Windows-Updater</h2></div>
+          <button id="nativeUpdateClose" type="button" class="modal-close" aria-label="Windows-Updater schließen"><svg class="modal-close-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 6L18 18M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
         </header>
+        <p id="nativeUpdateDialogIntro" class="profile-manager-intro">Hier siehst du, ob eine neue Version des kleinanzeigen Managers verfügbar ist.</p>
         <div class="native-update-modal-scroll">
-          <p id="nativeUpdateDialogIntro" class="native-update-intro">Versionen prüfen und den sicheren Windows-One-Click-Updater verwenden. Eine Installation direkt aus Chrome ist derzeit nicht verfügbar.</p>
-          <div class="native-update-versions">
-            <div><span>Aktive Chrome-Erweiterung</span><strong id="nativeUpdateActiveVersion">Wird ermittelt</strong></div>
-            <div><span>Windows-Installationsversion</span><strong id="nativeUpdateManagedVersion">nicht verifiziert (NativeHost nicht erreichbar)</strong></div>
-          </div>
-          <button id="nativeUpdateCheckButton" type="button" class="secondary">Erneut prüfen</button>
-          <p id="nativeUpdateCheckStatus" class="native-update-detail-status" role="status" aria-live="polite">Noch nicht geprüft.</p>
-          <p id="nativeUpdateLastChecked" class="native-update-last-checked"></p>
-          <p id="nativeUpdateCheckEvidence" class="native-update-evidence"></p>
-          <button id="nativeUpdateGuideToggle" class="secondary" type="button" aria-controls="nativeUpdateGuide" aria-expanded="false">Updateanleitung anzeigen</button>
-          <div id="nativeUpdateGuide" class="native-update-guide" hidden>
-            <ol>
-              <li>Laufende Kleinanzeigen-Vorgänge beenden und eigene Daten/Sicherungen prüfen.</li>
-              <li>Alle Chrome-Fenster normal schließen und sicherstellen, dass kein Chrome-Prozess mehr läuft.</li>
-              <li>Die bestehende Desktop-Verknüpfung „Kleinanzeigen Manager aktualisieren“ starten.</li>
-              <li>Die freigegebene Version kontrollieren und nur nach ausdrücklicher Zustimmung installieren.</li>
-              <li>Chrome mit demselben Profil starten und die bestehende Erweiterung unter chrome://extensions/ neu laden. Nicht entfernen und nicht neu installieren.</li>
-            </ol>
-          </div>
-          <div id="nativeUpdateFallback" class="native-update-fallback" role="note">
-            <div class="configuration-label">Manueller Windows-One-Click-Updater</div>
-            <p id="nativeUpdateFallbackStatus" class="configuration-description">Die separate Desktop-Verknüpfung kann Updates auch ohne NativeHost starten.</p>
-            <p class="configuration-description">Windows-Verknüpfung „Kleinanzeigen Manager aktualisieren“ auf dem Desktop starten. Sie prüft ausschließlich freigegebene Updates und fragt vor einer Installation nach deiner Zustimmung.</p>
-            <p class="configuration-description">Vor dem Dateiaustausch alle Chrome-Prozesse schließen. Anschließend Chrome mit demselben Profil starten und die vorhandene Erweiterung neu laden.</p>
-            <a class="native-update-setup-link" href="https://github.com/SaschaP1980/KleinanzeigenRenewer/blob/main/docs/WINDOWS_ONECLICK_UPDATER.md" target="_blank" rel="noopener noreferrer">Einrichtung der Windows-Verknüpfung</a>
-          </div>
+          <section class="native-update-summary-card" aria-label="Ergebnis der Updateprüfung">
+            <p id="nativeUpdateFriendlyStatus" class="native-update-friendly-status" role="status" aria-live="polite">Die Verfügbarkeit konnte gerade nicht geprüft werden.</p>
+            <div class="native-update-versions">
+              <div><span>Version in Chrome</span><strong id="nativeUpdateActiveVersion">Wird ermittelt</strong></div>
+              <div><span>Freigegebene Version</span><strong id="nativeUpdateApprovedVersion">Noch nicht geprüft</strong></div>
+            </div>
+            <p id="nativeUpdateLastChecked" class="native-update-last-checked"></p>
+          </section>
+          <div class="native-update-actions-row"><button id="nativeUpdateCheckButton" class="secondary" type="button">Erneut prüfen</button></div>
+          <section class="native-update-help">
+            <button id="nativeUpdateGuideToggle" class="secondary" type="button" aria-controls="nativeUpdateGuide" aria-expanded="false">So aktualisierst du</button>
+            <div id="nativeUpdateGuide" class="native-update-guide" hidden>
+              <p>Für die Aktualisierung verwendest du die Verknüpfung „Kleinanzeigen Manager aktualisieren“ auf deinem Windows-Desktop.</p>
+              <ol>
+                <li>Speichere deine Arbeit und schließe Chrome vollständig.</li>
+                <li>Öffne auf dem Desktop „Kleinanzeigen Manager aktualisieren“.</li>
+                <li>Prüfe die angebotene Version und bestätige die Aktualisierung.</li>
+                <li>Starte Chrome anschließend mit demselben Profil und lade die vorhandene Erweiterung unter chrome://extensions/ neu.</li>
+              </ol>
+              <p id="nativeUpdateFallbackStatus" class="native-update-help-note">Die Desktop-Verknüpfung funktioniert auch ohne NativeHost.</p>
+              <a class="native-update-setup-link" href="https://github.com/SaschaP1980/KleinanzeigenRenewer/blob/main/docs/WINDOWS_ONECLICK_UPDATER.md" target="_blank" rel="noopener noreferrer">Hilfe zur Windows-Verknüpfung</a>
+              <details class="native-update-technical-details">
+                <summary>Technische Details</summary>
+                <p id="nativeUpdateCheckStatus" class="native-update-detail-status" role="status" aria-live="polite">Noch nicht geprüft.</p>
+                <p>Windows-Installationsversion: <span id="nativeUpdateManagedVersion">nicht verifiziert</span></p>
+                <p id="nativeUpdateCheckEvidence" class="native-update-evidence"></p>
+              </details>
+            </div>
+          </section>
         </div>
-        <footer class="native-update-modal-footer">
-          <button id="nativeUpdateDone" type="button" class="secondary">Schließen</button>
-        </footer>
+        <footer class="profile-manager-actions native-update-modal-footer"><button id="nativeUpdateDone" type="button" class="secondary">Schließen</button></footer>
       </div>
     </dialog>
 
