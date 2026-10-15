@@ -6,6 +6,8 @@ if not "%~1"=="" (
 )
 set "KAR94_SETUP_SOURCE=%~dp0"
 set "KAR94_SETUP_MANAGER=%~dp0Manage-KleinanzeigenRenewer-OneClick.ps1"
+set "KAR94_TEST_MODE=0"
+if /I "%CI%"=="true" if "%KAR_ONECLICK_TEST_MODE%"=="1" set "KAR94_TEST_MODE=1"
 set "KAR94_PS=%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe"
 echo.
 echo Kleinanzeigen Manager - Desktop OneClick shortcut setup
@@ -22,8 +24,6 @@ if errorlevel 1 (
   echo STOP: Incomplete or modified setup package. Use only the official ZIP.
   goto :Failure
 )
-set "KAR94_TEST_MODE=0"
-if /I "%CI%"=="true" if "%KAR_ONECLICK_TEST_MODE%"=="1" set "KAR94_TEST_MODE=1"
 if "%KAR94_TEST_MODE%"=="1" (
   if not defined KAR94_TEST_ROOT goto :Failure
   if not defined KAR94_TEST_DESKTOP goto :Failure
