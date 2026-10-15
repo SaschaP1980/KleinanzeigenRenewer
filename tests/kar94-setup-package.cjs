@@ -1,0 +1,22 @@
+// KAR-94 first-time Windows setup bundle contract (test-first).
+'use strict';
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict'),cp=require('node:child_process');
+const root=path.resolve(__dirname,'..');
+const cmdPath=path.join(root,'tools/windows/OneClick-Einrichtung.cmd');
+assert.ok(fs.existsSync(cmdPath),'KAR94_RED: standalone double-clickable setup entrypoint must exist');
+const cmd=fs.readFileSync(cmdPath,'utf8');
+assert.match(cmd,/Manage-KleinanzeigenRenewer-OneClick\.ps1/,'existing trusted per-user manager');
+assert.match(cmd,/call :RunManager install/,'guarded install through delegated existing manager');
+assert.match(cmd,/call :RunManager check/,'read-only post-install verification through manager');
+assert.match(cmd,/[Tt]ype YES|type YES to confirm/,'exact human confirmation explained');
+assert.match(cmd,/Get-FileHash/,'bundled source integrity verification');
+assert.doesNotMatch(cmd,/ExecutionPolicy\s+Bypass|Unblock-File|Start-ScheduledTask|schtasks|runas| -Verb RunAs/i,'no policy bypass/elevation');
+assert.doesNotMatch(cmd,/Invoke-WebRequest|DownloadString|curl |bitsadmin/i,'offline immutable kit');
+const zip=path.join(root,'release/kleinanzeigen-oneclick-einrichtung-v1.23.36.zip');
+assert.ok(fs.existsSync(zip),'KAR94_RED: committed deterministic setup ZIP required');
+const check=cp.spawnSync('python3',['scripts/package-oneclick-setup.py','--check'],{cwd:root,encoding:'utf8'});
+assert.equal(check.status,0,check.stderr||check.stdout||'KAR94 package reproducibility/contents fail');
+const guide=fs.readFileSync(path.join(root,'docs/user-manuals/windows-updater-einrichten.md'),'utf8');
+assert.match(guide,/kleinanzeigen-oneclick-einrichtung-v1\.23\.36\.zip/,'real download referenced in German beginner guide');
+assert.doesNotMatch(guide,/noch nicht als einfacher Download|Selbstinstallation ist in Vorbereitung/,'no stale setup placeholder after delivery');
+console.log('PASS KAR94 independent offline setup, verified installer source, reproducible ZIP and beginner guide');

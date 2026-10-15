@@ -68,6 +68,64 @@ try{
     Check (-not (Test-Path -LiteralPath $link) -and -not (Test-Path -LiteralPath $root)) 'owned remove fully cleans'
     Invoke-Manager 'remove' $root $desktop $source | Out-Null
     Check (-not (Test-Path -LiteralPath $root)) 'remove idempotent'
+    # KAR-94: real detached Windows .cmd entrypoint executed only in hosted scratch paths.
+    # Test real distributed ZIP bytes, not Git-checkout PS1 (Windows checkout may CRLF-convert files).
+    $bundle=Join-Path $base 'verified-bundle'
+    $zip=Join-Path $repo 'release\kleinanzeigen-oneclick-einrichtung-v1.23.36.zip'
+    Expand-Archive -LiteralPath $zip -DestinationPath $bundle -Force
+    $setup=Join-Path $bundle 'OneClick-Einrichtung.cmd'
+    function Invoke-Setup([string]$Batch,[string]$Tag) {
+      $out=Join-Path $base ('kar94-'+$Tag+'-stdout.txt')
+      $err=Join-Path $base ('kar94-'+$Tag+'-stderr.txt')
+      $arguments='/d /c "'+$Batch+'"'
+      $p=Start-Process -FilePath $env:ComSpec -ArgumentList $arguments -Wait -PassThru -NoNewWindow -RedirectStandardOutput $out -RedirectStandardError $err
+      $stdout=Get-Content -LiteralPath $out -Raw -ErrorAction SilentlyContinue
+      $stderr=Get-Content -LiteralPath $err -Raw -ErrorAction SilentlyContinue
+      Write-Host ('KAR94_SETUP_'+$Tag+' exit='+$p.ExitCode+' stdout='+$stdout+' stderr='+$stderr)
+      return [int]$p.ExitCode
+    }
+    Check (Test-Path -LiteralPath $setup -PathType Leaf) 'first-user setup entrypoint exists'
+    $root3=Join-Path $base 'new-user-kit'
+    $desktop3=Join-Path $base 'new-user-desktop'
+    New-Item -Path $desktop3 -ItemType Directory -Force | Out-Null
+    $env:KAR94_TEST_ROOT=$root3
+    $env:KAR94_TEST_DESKTOP=$desktop3
+    try {
+      $firstExit=Invoke-Setup $setup 'fresh'
+      Check ($firstExit -eq 0) 'first-user installer exits successfully'
+      Check (Test-Path -LiteralPath (Join-Path $desktop3 $name) -PathType Leaf) 'fresh user Desktop shortcut exists'
+      Invoke-Manager 'check' $root3 $desktop3 $source | Out-Null
+      $repeatExit=Invoke-Setup $setup 'repeat'
+      Check ($repeatExit -eq 0) 'repeat setup is idempotent'
+      $staged=Join-Path $base 'altered-bundle'
+      New-Item -Path $staged -ItemType Directory -Force | Out-Null
+      foreach($file in @('OneClick-Einrichtung.cmd','Manage-KleinanzeigenRenewer-OneClick.ps1','OneClick-Update-KleinanzeigenRenewer.cmd','KleinanzeigenRenewer-Updater.ps1')) {
+        Copy-Item -LiteralPath (Join-Path $bundle $file) -Destination (Join-Path $staged $file) -ErrorAction Stop
+      }
+      Add-Content -LiteralPath (Join-Path $staged 'KleinanzeigenRenewer-Updater.ps1') -Value '# altered' -Encoding ASCII
+      $tamperedExit=Invoke-Setup (Join-Path $staged 'OneClick-Einrichtung.cmd') 'tampered'
+      Check ($tamperedExit -ne 0) 'modified package fails before manager install'
+      Invoke-Manager 'check' $root3 $desktop3 $source | Out-Null
+      Remove-Item -LiteralPath (Join-Path $staged 'KleinanzeigenRenewer-Updater.ps1') -Force
+      $missingExit=Invoke-Setup (Join-Path $staged 'OneClick-Einrichtung.cmd') 'missing'
+      Check ($missingExit -ne 0) 'missing package file fails before manager install'
+      Invoke-Manager 'check' $root3 $desktop3 $source | Out-Null
+      $foreignRoot=Join-Path $base 'fresh-foreign-kit'
+      $foreignDesk=Join-Path $base 'fresh-foreign-desktop'
+      New-Item -Path $foreignDesk -ItemType Directory -Force | Out-Null
+      $linkForeign=Join-Path $foreignDesk $name
+      $conflict=$shell.CreateShortcut($linkForeign)
+      $conflict.TargetPath=Join-Path $env:SystemRoot 'System32\notepad.exe'
+      $conflict.Save()
+      $env:KAR94_TEST_ROOT=$foreignRoot
+      $env:KAR94_TEST_DESKTOP=$foreignDesk
+      $foreignExit=Invoke-Setup $setup 'foreign'
+      Check ($foreignExit -ne 0) 'foreign Desktop shortcut blocked'
+      Check ((-not (Test-Path -LiteralPath $foreignRoot)) -and (Test-Path -LiteralPath $linkForeign)) 'foreign shortcut and existing files untouched'
+    } finally {
+      Remove-Item Env:\KAR94_TEST_ROOT -ErrorAction SilentlyContinue
+      Remove-Item Env:\KAR94_TEST_DESKTOP -ErrorAction SilentlyContinue
+    }
     Write-Host ("PASS KAR80 Windows one-click suite: $passed assertions; real corporate launch PENDING")
 }finally{
     if (Test-Path -LiteralPath $base){Remove-Item -LiteralPath $base -Recurse -Force -ErrorAction Stop}
