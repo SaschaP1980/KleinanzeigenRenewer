@@ -33,4 +33,37 @@ test(j.includes('Du verwendest die aktuell freigegebene Version.') &&
  j.includes('Suche nach Updates'), 'clear end-user German status states');
 test(j.includes('approvedChannelVerified') && j.includes('GET_NATIVE_UPDATE_STATUS'),
  'existing fail-closed read-only approved channel and native bridge preserved');
+
+// KAR-90 follow-up: intent-based setup and fixed independent footer (test-first).
+const modal=m?.[0]||'';
+const footer=modal.match(/<footer class="profile-manager-actions native-update-modal-footer">([\s\S]*?)<\/footer>/)?.[1]||'';
+test(footer.includes('id="nativeUpdateCheckButton"') &&
+ footer.includes('id="nativeUpdateDone"') &&
+ footer.indexOf('id="nativeUpdateCheckButton"')<footer.indexOf('id="nativeUpdateDone"') &&
+ (modal.match(/id="nativeUpdateCheckButton"/g)||[]).length===1,
+ 'retry on left and close on right in one fixed footer; exactly one functional retry button');
+test(modal.includes('Zum ersten Mal hier?') &&
+ modal.includes('Einrichtungsanleitung öffnen') &&
+ modal.includes('Verknüpfung bereits vorhanden?') &&
+ modal.includes('Update-Schritte anzeigen') &&
+ modal.indexOf('Einrichtungsanleitung öffnen')<modal.indexOf('id="nativeUpdateGuide"'),
+ 'two self-selected user paths; beginner guide is discoverable without expanding update instructions');
+test(modal.includes('docs/user-manuals/windows-updater-einrichten.md') &&
+ !modal.includes('docs/WINDOWS_ONECLICK_UPDATER.md') &&
+ modal.includes('rel="noopener noreferrer"'),
+ 'beginner action links only to real German end-user manual and is an external instruction, not install');
+test(/id="nativeUpdateGuide"[^>]*hidden/.test(modal) &&
+ /id="nativeUpdateGuideToggle"[^>]*aria-expanded="false"/.test(modal) &&
+ j.includes('Update-Schritte anzeigen') &&
+ j.includes('Update-Schritte ausblenden'),
+ 'existing-user instructions are progressive, accessible and initially collapsed');
+test(/\.native-update-modal-footer\s*\{[^}]*justify-content:space-between;/.test(c) &&
+ /\.native-update-modal-footer\s+button/.test(c),
+ 'fixed footer left/right alignment without changing shared Profile Manager styling');
+test(modal.includes('id="nativeUpdateActiveVersion"') &&
+ modal.includes('id="nativeUpdateApprovedVersion"') &&
+ modal.includes('id="nativeUpdateManagedVersion"') &&
+ j.includes('approvedChannelVerified') && !modal.includes('nativeApplyUpdateButton'),
+ 'approved channel, Chrome version, unknown Windows kit and no in-browser installer remain distinct');
+
 console.log('PASS KAR90 total '+passes);
