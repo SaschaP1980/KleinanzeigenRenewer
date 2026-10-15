@@ -72,7 +72,7 @@
   const API = 'https://api.github.com/repos/SaschaP1980/KleinanzeigenRenewer';
   const COMMIT = /^[a-f0-9]{40}$/;
   const SHA256 = /^[a-f0-9]{64}$/;
-  const VERSION = /^(?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*)$/;
+  const VERSION = /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)$/;
   function approvedVersion(value) {
     return typeof value === 'string' && VERSION.test(value)
       && value.split('.').every(part => Number.isSafeInteger(Number(part)) && Number(part) <= 2147483647);
@@ -124,7 +124,7 @@
         || !Number.isSafeInteger(item.size) || item.size < 20 || item.size > 8192
         || typeof item.sha !== 'string' || !COMMIT.test(item.sha))
         throw new Error('INVALID_CHANNEL_FILE');
-      const encoded = item.content.replace(/\\s/g, '');
+      const encoded = item.content.replace(/\s/g, '');
       if (encoded.length > 16384 || !/^[A-Za-z0-9+/]*={0,2}$/.test(encoded))
         throw new Error('INVALID_CHANNEL_BASE64');
       const decoded = atob(encoded);
