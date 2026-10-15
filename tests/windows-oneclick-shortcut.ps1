@@ -69,7 +69,11 @@ try{
     Invoke-Manager 'remove' $root $desktop $source | Out-Null
     Check (-not (Test-Path -LiteralPath $root)) 'remove idempotent'
     # KAR-94: real detached Windows .cmd entrypoint executed only in hosted scratch paths.
-    $setup=Join-Path $source 'OneClick-Einrichtung.cmd'
+    # Test real distributed ZIP bytes, not Git-checkout PS1 (Windows checkout may CRLF-convert files).
+    $bundle=Join-Path $base 'verified-bundle'
+    $zip=Join-Path $repo 'release\kleinanzeigen-oneclick-einrichtung-v1.23.36.zip'
+    Expand-Archive -LiteralPath $zip -DestinationPath $bundle -Force
+    $setup=Join-Path $bundle 'OneClick-Einrichtung.cmd'
     Check (Test-Path -LiteralPath $setup -PathType Leaf) 'first-user setup entrypoint exists'
     $root3=Join-Path $base 'new-user-kit'
     $desktop3=Join-Path $base 'new-user-desktop'
@@ -87,7 +91,7 @@ try{
       $staged=Join-Path $base 'altered-bundle'
       New-Item -Path $staged -ItemType Directory -Force | Out-Null
       foreach($file in @('OneClick-Einrichtung.cmd','Manage-KleinanzeigenRenewer-OneClick.ps1','OneClick-Update-KleinanzeigenRenewer.cmd','KleinanzeigenRenewer-Updater.ps1')) {
-        Copy-Item -LiteralPath (Join-Path $source $file) -Destination (Join-Path $staged $file) -ErrorAction Stop
+        Copy-Item -LiteralPath (Join-Path $bundle $file) -Destination (Join-Path $staged $file) -ErrorAction Stop
       }
       Add-Content -LiteralPath (Join-Path $staged 'KleinanzeigenRenewer-Updater.ps1') -Value '# altered' -Encoding ASCII
       & $env:ComSpec /d /c (Join-Path $staged 'OneClick-Einrichtung.cmd') | Out-Null
