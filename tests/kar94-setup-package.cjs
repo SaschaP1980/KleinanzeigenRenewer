@@ -8,7 +8,7 @@ const cmd=fs.readFileSync(cmdPath,'utf8');
 assert.match(cmd,/Manage-KleinanzeigenRenewer-OneClick\.ps1/,'existing trusted per-user manager');
 assert.match(cmd,/-Action install/,'explicit guarded install');
 assert.match(cmd,/-Action check/,'read-only post-install verification');
-assert.match(cmd,/type YES|type YES to confirm/,'exact human confirmation explained');
+assert.match(cmd,/[Tt]ype YES|type YES to confirm/,'exact human confirmation explained');
 assert.match(cmd,/Get-FileHash/,'bundled source integrity verification');
 assert.doesNotMatch(cmd,/ExecutionPolicy\s+Bypass|Unblock-File|Start-ScheduledTask|schtasks|runas| -Verb RunAs/i,'no policy bypass/elevation');
 assert.doesNotMatch(cmd,/Invoke-WebRequest|DownloadString|curl |bitsadmin/i,'offline immutable kit');

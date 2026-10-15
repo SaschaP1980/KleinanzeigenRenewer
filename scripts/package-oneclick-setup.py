@@ -10,6 +10,7 @@ from zipfile import ZIP_STORED, ZipFile, ZipInfo
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = '1.23.36'  # the approved, already released Windows kit source, NOT a Chrome bump
 DEST = ROOT / 'release' / f'kleinanzeigen-oneclick-einrichtung-v{VERSION}.zip'
+DIGEST_FILE = ROOT / 'release' / f'kleinanzeigen-oneclick-einrichtung-v{VERSION}.sha256'
 NAMES = (
     'OneClick-Einrichtung.cmd',
     'Manage-KleinanzeigenRenewer-OneClick.ps1',
@@ -39,12 +40,16 @@ def main() -> None:
         parser.error('choose exactly one of --check or --write')
     data = build()
     sha = hashlib.sha256(data).hexdigest()
+    digest_line = sha + '  ' + DEST.name + '\n'
     if args.check:
         if DEST.read_bytes() != data:
             raise SystemExit('KAR94_ZIP_SOURCE_MISMATCH')
+        if DIGEST_FILE.read_text(encoding='ascii') != digest_line:
+            raise SystemExit('KAR94_ZIP_DIGEST_MISMATCH')
     else:
         DEST.parent.mkdir(parents=True, exist_ok=True)
         DEST.write_bytes(data)
+        DIGEST_FILE.write_text(digest_line, encoding='ascii')
     print(f'PASS KAR94 ZIP {DEST.name} bytes={len(data)} sha256={sha}')
 
 if __name__ == '__main__':

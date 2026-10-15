@@ -1,56 +1,43 @@
 # Windows-Updates für den kleinanzeigen Manager
 
-> **Hinweis zur Ersteinrichtung:** Die Desktop-Verknüpfung lässt sich derzeit noch nicht direkt im kleinanzeigen Manager installieren. Eine einfache, geprüfte Selbstinstallation ist in Vorbereitung. Diese Anleitung erklärt den Unterschied zwischen Einrichtung und Aktualisierung und zeigt, wie du eine bereits eingerichtete Verknüpfung verwendest.
+## Warum gibt es die Desktop-Verknüpfung?
 
-## Wozu brauche ich die Desktop-Verknüpfung?
+Im kleinanzeigen Manager kannst du prüfen, ob eine neue Version verfügbar ist. Die Aktualisierung selbst kann Chrome hier nicht durchführen.
 
-Im kleinanzeigen Manager kannst du nachsehen, ob eine neue Version verfügbar ist. Die Aktualisierung der Erweiterung kann Chrome auf diesem Weg aber nicht selbst durchführen.
+Dafür gibt es die zusätzliche Windows-Verknüpfung **„Kleinanzeigen Manager aktualisieren“**. Sie prüft auf neue Versionen. Bevor etwas aktualisiert wird, wirst du gefragt.
 
-Deshalb gibt es auf Windows die Verknüpfung **„Kleinanzeigen Manager aktualisieren“**. Sie prüft, ob ein Update bereitsteht, und fragt dich vor einer Aktualisierung um Erlaubnis. Du entscheidest selbst, wann du aktualisierst.
+## Desktop-Verknüpfung einmalig einrichten
 
-## 1. Ist die Verknüpfung schon eingerichtet?
+Du benötigst einen Windows-Computer und die bereits eingerichtete Chrome-Erweiterung **kleinanzeigen Manager**. Die Desktop-Verknüpfung ersetzt **nicht** die erstmalige Installation der Chrome-Erweiterung.
 
-1. Zeige deinen Windows-Desktop an.
-2. Suche nach der Verknüpfung **„Kleinanzeigen Manager aktualisieren“**.
-3. **Gefunden?** Dann ist keine neue Einrichtung nötig. Weiter geht es bei **„Später aktualisieren“**.
-4. **Nicht gefunden?** Lies den nächsten Abschnitt.
+1. **<a href="https://github.com/SaschaP1980/KleinanzeigenRenewer/raw/main/release/kleinanzeigen-oneclick-einrichtung-v1.23.36.zip">Einrichtung herunterladen (ZIP)</a>.** Verwende ausschließlich diesen Download aus dem offiziellen Projekt.
+2. Öffne den Ordner **Downloads**, klicke mit der rechten Maustaste auf die ZIP-Datei und wähle **Alle extrahieren**.
+3. Öffne den entpackten Ordner. Doppelklicke auf **OneClick-Einrichtung.cmd**. Starte sie **nicht als Administrator**.
+4. Lies die Meldung im geöffneten Fenster. Wenn du die Desktop-Verknüpfung einrichten möchtest, tippe **YES** und drücke **Enter**.
+5. Warte auf die Bestätigung **SUCCESS**. Danach findest du auf deinem Windows-Desktop die Verknüpfung **„Kleinanzeigen Manager aktualisieren“**.
 
-## 2. Desktop-Verknüpfung erstmals einrichten
+Das ist alles. Die Einrichtung ändert **nicht** deine Anzeigen, Bilder, Einstellungen oder das Chrome-Profil.
 
-**Diese Einrichtung ist aktuell noch nicht als einfacher Download für neue Benutzer verfügbar.** Der kleinanzeigen Manager selbst kann die Verknüpfung nicht anlegen.
+**Ist die Verknüpfung schon vorhanden?** Dann brauchst du sie nicht erneut einzurichten. Die Einrichtung prüft vorhandene Dateien und ersetzt sie nicht ungefragt. Wenn eine ältere oder fremde Verknüpfung erkannt wird, stoppt sie ohne automatischen Austausch.
 
-Solange die vereinfachte Einrichtung noch fehlt:
+## Später aktualisieren
 
-1. Lass dir die geprüften Einrichtungsdateien und Unterstützung von der Person geben, die dir den kleinanzeigen Manager eingerichtet hat.
-2. Führe die Einrichtung nur aus, wenn du der Quelle vertraust und dein Windows-Computer sie erlaubt.
-3. Bestätige die Einrichtung erst, nachdem dir erklärt wurde, was auf dem Desktop erstellt wird.
-4. Kontrolliere anschließend, ob die Verknüpfung **„Kleinanzeigen Manager aktualisieren“** auf deinem Desktop erscheint.
+1. Speichere deine Arbeit und schließe **alle Chrome-Fenster** vollständig.
+2. Doppelklicke auf dem Desktop auf **„Kleinanzeigen Manager aktualisieren“**.
+3. Das Fenster prüft, ob eine neuere Version verfügbar ist. Wenn du schon aktuell bist, wird nichts verändert.
+4. Wird ein neues Update angeboten, lies die Meldung und bestätige es nur, wenn du aktualisieren möchtest.
+5. Öffne anschließend Chrome wieder **mit demselben Profil**.
+6. Öffne `chrome://extensions/` und klicke bei der **vorhandenen** Erweiterung auf **Neu laden**.
 
-**Du richtest den kleinanzeigen Manager ganz neu ein?** Dann muss zuerst die Chrome-Erweiterung eingerichtet werden. Die Windows-Verknüpfung ist ein zusätzlicher Weg für spätere Updates und ersetzt die erste Installation nicht.
+**Wichtig:** Entferne die bisherige Erweiterung nicht und installiere sie nicht neu. Deine gespeicherten Daten sollen erhalten bleiben.
 
-> Sobald eine geprüfte, selbstständig nutzbare Einrichtung verfügbar ist, werden hier die konkreten Download- und Einrichtungsschritte ergänzt. Bis dahin wird kein vermeintlicher Ein-Klick-Download angeboten.
+## Wenn etwas nicht funktioniert
 
-## 3. Später aktualisieren
+- **Windows blockiert die Einrichtung:** Beende den Vorgang. Auf einem Firmen-PC kann deine IT-Abteilung weiterhelfen. Umgehe keine Sicherheitseinstellungen.
+- **Keine Desktop-Verknüpfung nach der Einrichtung:** Merke dir die Fehlermeldung und fordere Unterstützung an.
+- **Eine andere oder ältere Verknüpfung wurde erkannt:** Sie wird nicht automatisch überschrieben. Für den Wechsel ist eine gesonderte, bestätigte Umstellung nötig.
+- **Die Datei wirkt unbekannt oder verdächtig:** Starte sie nicht. Überprüfe, ob du wirklich den Link aus dem offiziellen Projekt verwendet hast.
 
-Wenn die Desktop-Verknüpfung vorhanden ist:
+Die Einrichtung enthält derzeit **keine digitale Herausgebersignatur**. Manche Windows- oder Firmenrichtlinien erlauben solche Dateien nicht. Das ist kein Grund, den Schutz zu umgehen.
 
-1. Speichere deine Arbeit im Browser.
-2. Schließe **alle Chrome-Fenster** und warte, bis Chrome vollständig beendet ist.
-3. Öffne auf dem Desktop **„Kleinanzeigen Manager aktualisieren“**.
-4. Das Fenster prüft, ob eine neuere Version bereitsteht. Wenn bereits alles aktuell ist, brauchst du nichts zu tun.
-5. Wenn ein Update angeboten wird, lies die angezeigte Meldung und bestätige nur, wenn du aktualisieren möchtest.
-6. Nach einer erfolgreichen Aktualisierung öffnest du Chrome wieder **mit demselben Profil**.
-7. Öffne in Chrome die Adresse `chrome://extensions/` und klicke bei der **vorhandenen** Erweiterung „kleinanzeigen Manager“ auf **Neu laden**.
-
-**Wichtig:** Entferne die bisherige Erweiterung nicht und richte sie nicht erneut ein. Die Aktualisierung soll deine gespeicherten Anzeigen, Bilder und Einstellungen erhalten.
-
-## 4. Wenn etwas nicht funktioniert
-
-- **Die Verknüpfung fehlt:** Die erstmalige Einrichtung ist noch nicht abgeschlossen. Verwende keine unbekannten Downloads.
-- **Windows verhindert die Ausführung:** Beende den Vorgang. Auf einem Firmen-PC kann deine IT-Abteilung helfen. Umgehe keine Sicherheitseinstellungen.
-- **Es wird kein Update angeboten:** Prüfe im kleinanzeigen Manager unter **Windows-Updater**, welche Version in Chrome angezeigt wird und welche Version freigegeben ist.
-- **Ein Fehler erscheint:** Beende den Vorgang und bewahre die Fehlermeldung auf. Versuche nicht, die bisherige Erweiterung zu löschen, um den Fehler zu beheben.
-
----
-
-*Stand: Oktober 2026 · Anleitung für Benutzer. Die technische Dokumentation und Einrichtungswerkzeuge werden getrennt gepflegt.*
+*Stand: Oktober 2026 · Anleitung für neue Benutzer. Technische Hintergrundinformationen sind separat dokumentiert.*
