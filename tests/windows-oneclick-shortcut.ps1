@@ -68,6 +68,50 @@ try{
     Check (-not (Test-Path -LiteralPath $link) -and -not (Test-Path -LiteralPath $root)) 'owned remove fully cleans'
     Invoke-Manager 'remove' $root $desktop $source | Out-Null
     Check (-not (Test-Path -LiteralPath $root)) 'remove idempotent'
+    # KAR-94: real detached Windows .cmd entrypoint executed only in hosted scratch paths.
+    $setup=Join-Path $source 'OneClick-Einrichtung.cmd'
+    Check (Test-Path -LiteralPath $setup -PathType Leaf) 'first-user setup entrypoint exists'
+    $root3=Join-Path $base 'new-user-kit'
+    $desktop3=Join-Path $base 'new-user-desktop'
+    New-Item -Path $desktop3 -ItemType Directory -Force | Out-Null
+    $env:KAR94_TEST_ROOT=$root3
+    $env:KAR94_TEST_DESKTOP=$desktop3
+    try {
+      & $env:ComSpec /d /c $setup | Out-Null
+      Check ($LASTEXITCODE -eq 0) 'first-user installer exits successfully'
+      Check (Test-Path -LiteralPath (Join-Path $desktop3 $name) -PathType Leaf) 'fresh user Desktop shortcut exists'
+      Invoke-Manager 'check' $root3 $desktop3 $source | Out-Null
+      & $env:ComSpec /d /c $setup | Out-Null
+      Check ($LASTEXITCODE -eq 0) 'repeat setup is idempotent'
+      $staged=Join-Path $base 'altered-bundle'
+      New-Item -Path $staged -ItemType Directory -Force | Out-Null
+      foreach($file in @('OneClick-Einrichtung.cmd','Manage-KleinanzeigenRenewer-OneClick.ps1','OneClick-Update-KleinanzeigenRenewer.cmd','KleinanzeigenRenewer-Updater.ps1')) {
+        Copy-Item -LiteralPath (Join-Path $source $file) -Destination (Join-Path $staged $file) -ErrorAction Stop
+      }
+      Add-Content -LiteralPath (Join-Path $staged 'KleinanzeigenRenewer-Updater.ps1') -Value '# altered' -Encoding ASCII
+      & $env:ComSpec /d /c (Join-Path $staged 'OneClick-Einrichtung.cmd') | Out-Null
+      Check ($LASTEXITCODE -ne 0) 'modified package fails before manager install'
+      Invoke-Manager 'check' $root3 $desktop3 $source | Out-Null
+      Remove-Item -LiteralPath (Join-Path $staged 'KleinanzeigenRenewer-Updater.ps1') -Force
+      & $env:ComSpec /d /c (Join-Path $staged 'OneClick-Einrichtung.cmd') | Out-Null
+      Check ($LASTEXITCODE -ne 0) 'missing package file fails before manager install'
+      Invoke-Manager 'check' $root3 $desktop3 $source | Out-Null
+      $foreignRoot=Join-Path $base 'fresh-foreign-kit'
+      $foreignDesk=Join-Path $base 'fresh-foreign-desktop'
+      New-Item -Path $foreignDesk -ItemType Directory -Force | Out-Null
+      $linkForeign=Join-Path $foreignDesk $name
+      $conflict=$shell.CreateShortcut($linkForeign)
+      $conflict.TargetPath=Join-Path $env:SystemRoot 'System32\notepad.exe'
+      $conflict.Save()
+      $env:KAR94_TEST_ROOT=$foreignRoot
+      $env:KAR94_TEST_DESKTOP=$foreignDesk
+      & $env:ComSpec /d /c $setup | Out-Null
+      Check ($LASTEXITCODE -ne 0) 'foreign Desktop shortcut blocked'
+      Check ((-not (Test-Path -LiteralPath $foreignRoot)) -and (Test-Path -LiteralPath $linkForeign)) 'foreign shortcut and existing files untouched'
+    } finally {
+      Remove-Item Env:\KAR94_TEST_ROOT -ErrorAction SilentlyContinue
+      Remove-Item Env:\KAR94_TEST_DESKTOP -ErrorAction SilentlyContinue
+    }
     Write-Host ("PASS KAR80 Windows one-click suite: $passed assertions; real corporate launch PENDING")
 }finally{
     if (Test-Path -LiteralPath $base){Remove-Item -LiteralPath $base -Recurse -Force -ErrorAction Stop}
