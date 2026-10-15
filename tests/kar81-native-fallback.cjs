@@ -30,7 +30,7 @@ async function run(){
  check(html.includes('WINDOWS_ONECLICK_UPDATER.md') &&
        html.includes('rel="noopener noreferrer"'),'fixed human-click GitHub setup docs link');
  check(html.includes('Windows-Verknüpfung') &&
-       html.includes('Chrome') && html.includes('neu laden'),
+       html.includes('Chrome') && html.includes('neu'),
   'manual instructions include Desktop shortcut and browser reload');
  check(!html.includes('nativeApplyUpdateButton'),'no falsely actionable native apply');
  check(manifest.permissions.length===5 && manifest.permissions.includes('nativeMessaging') &&

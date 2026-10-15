@@ -10,11 +10,11 @@ const j=fs.readFileSync(path.join(root,'src/app/native-update-check-ui.js'),'utf
 let passes=0;
 const test=(condition,message)=>{assert.ok(condition,message);passes++;console.log('PASS KAR90 '+message);};
 const m=h.match(/<dialog id="nativeUpdateDialog"[\s\S]*?<\/dialog>/);
-test(m&&m[0].includes('class="profile-manager-modal"')&&m[0].includes('class="profile-manager-header"'), 'canonical Profile Management modal shell and header reused');
+test(m&&m[0].includes('class="profile-manager-modal native-update-modal"')&&m[0].includes('class="profile-manager-header"'), 'canonical Profile Management modal shell and header reused');
 test(m&&m[0].includes('class="profile-manager-kicker"')&&m[0].includes('>UPDATES<'), 'same uppercase kicker and heading hierarchy');
 test(m&&/id="nativeUpdateClose"[^>]*class="modal-close"/.test(m[0])&&
  m[0].includes('class="modal-close-icon"'), 'matching circular SVG close control');
-test(m&&m[0].includes('class="profile-manager-actions"')&&
+test(m&&m[0].includes('class="profile-manager-actions native-update-modal-footer"')&&
  m[0].includes('id="nativeUpdateDone"'), 'same Profile Management footer layout');
 test(/\.native-update-check\s*\{[^}]*padding-bottom:(?:12|14|16)px;/.test(c),
  'bottom inset below Updater öffnen before following separator');
