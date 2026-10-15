@@ -5,10 +5,40 @@
   const status = document.getElementById('nativeUpdateCheckStatus');
   const details = document.getElementById('nativeUpdateCheckEvidence');
   const fallbackStatus = document.getElementById('nativeUpdateFallbackStatus');
+  const opener = document.getElementById('nativeUpdateOpenButton');
+  const summary = document.getElementById('nativeUpdateSummaryStatus');
+  const dialog = document.getElementById('nativeUpdateDialog');
+  const closeButton = document.getElementById('nativeUpdateClose');
+  const doneButton = document.getElementById('nativeUpdateDone');
+  const guideButton = document.getElementById('nativeUpdateGuideToggle');
+  const guide = document.getElementById('nativeUpdateGuide');
+  const lastChecked = document.getElementById('nativeUpdateLastChecked');
+  const activeVersionText = document.getElementById('nativeUpdateActiveVersion');
   if (!button || !status || !details) return;
   let sequence = 0;
   let busy = false;
   const activeVersion = String(chrome.runtime.getManifest()?.version || 'unbekannt');
+  if (activeVersionText) activeVersionText.textContent = 'v' + activeVersion;
+  if (summary) summary.textContent = 'Update-Status derzeit nicht verfügbar.';
+  if (opener && dialog && typeof dialog.showModal === 'function') {
+    opener.addEventListener('click', () => {
+      if (!dialog.open) { dialog.showModal(); button.focus(); }
+    });
+    const close = () => { if (dialog.open) dialog.close(); };
+    closeButton?.addEventListener('click', close);
+    doneButton?.addEventListener('click', close);
+    dialog.addEventListener('close', () => { opener.focus(); });
+    guideButton?.addEventListener('click', () => {
+      if (!guide) return;
+      guide.hidden = !guide.hidden;
+      guideButton.setAttribute?.('aria-expanded', String(!guide.hidden));
+      guideButton.textContent = guide.hidden ? 'Updateanleitung anzeigen' : 'Updateanleitung ausblenden';
+    });
+  }
+  function unknown() {
+    if (summary) summary.textContent = 'Update-Status derzeit nicht verfügbar.';
+    if (lastChecked) lastChecked.textContent = '';
+  }
   const messages = Object.freeze({
     UNSUPPORTED_PLATFORM: 'Nur unter Windows verfügbar.',
     HOST_UNAVAILABLE: 'Der Windows-Helfer ist nicht erreichbar. Die Ursache ist aus dieser Meldung nicht sicher bestimmbar.',
@@ -45,6 +75,7 @@
     const own = ++sequence;
     button.disabled = true;
     status.textContent = 'Windows-Updater wird geprüft …';
+    if (summary) summary.textContent = 'Neue Version wird geprüft …';
     details.textContent = '';
     let timeoutId;
     try {
@@ -61,11 +92,13 @@
       if (sequence !== own) return;
       if (!answer?.ok) {
         status.textContent = messages[answer?.error] || 'Updateprüfung fehlgeschlagen. Keine Dateien wurden verändert.';
+        unknown();
         showFallback(answer?.error === 'UNSUPPORTED_PLATFORM' ? 'unsupported' : 'manual');
         return;
       }
       if (answer.operation !== 'check') {
         status.textContent = 'Unerwartete Statusantwort. Keine Dateien wurden verändert.';
+        unknown();
         showFallback('manual');
         return;
       }
@@ -79,11 +112,19 @@
           : 'Verwaltete Programmdateien entsprechen der Freigabe.';
       details.textContent = 'Aktive Erweiterung: v' + activeVersion + ' · Verwaltete Dateien: ' + installed
         + ' · Freigegeben: ' + approved + ' · SHA-256: ' + answer.sha256 + ' · Commit: ' + answer.sourceCommit;
+      if (summary) {
+        const difference = compareVersions(activeVersion, approved);
+        summary.textContent = difference < 0 ? 'Neue Version v' + approved + ' verfügbar.'
+          : difference > 0 ? 'Aktive Version ist neuer als die Freigabe.'
+            : 'Es ist keine neue Version verfügbar.';
+      }
+      if (lastChecked) lastChecked.textContent = 'Zuletzt erfolgreich geprüft: ' + new Date().toLocaleString('de-DE');
       showFallback('native');
     } catch (error) {
       if (sequence === own) {
         status.textContent = messages[error?.message]
           || 'Der Windows-Helfer ist nicht erreichbar. Keine Dateien wurden verändert.';
+        unknown();
         showFallback(error?.message === 'UNSUPPORTED_PLATFORM' ? 'unsupported' : 'manual');
       }
     } finally {
