@@ -57,7 +57,7 @@ function RequireIdle {
 }
 function Consent([string]$Prompt) {
  if ($Yes) { return }
- Require ((Read-Host ($Prompt+'; type JA to proceed')) -ceq 'JA') 'User did not approve change'
+ Require ((Read-Host ($Prompt+'; type YES to proceed')) -ceq 'YES') 'User did not approve change'
 }
 function Approved {
  if ($TestChannel) { $a=ReadJson $TestChannel }
@@ -259,9 +259,9 @@ try {
   Require ($null -ne $active) 'Not installed: use install'
   if ($Command -eq 'oneclick' -and [version]$approval.version -le [version]$active.version) {
    if ([version]$approval.version -eq [version]$active.version) {
-    Event 'BEREITS_AKTUELL' ("Bereits aktuell - kein Update erforderlich. version=$($active.version)")
+    Event 'BEREITS_AKTUELL' ("Already up to date - no update required. version=$($active.version)")
    } else {
-    Event 'KEIN_NEUERES_UPDATE' ("Keine neuere Version freigegeben. installed=$($active.version) approved=$($approval.version)")
+    Event 'KEIN_NEUERES_UPDATE' ("No newer version is approved. installed=$($active.version) approved=$($approval.version)")
    }
    return
   }
