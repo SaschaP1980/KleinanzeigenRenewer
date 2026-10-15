@@ -40,7 +40,7 @@
       if (!guide) return;
       guide.hidden = !guide.hidden;
       guideButton.setAttribute?.('aria-expanded', String(!guide.hidden));
-      guideButton.textContent = guide.hidden ? 'So aktualisierst du' : 'Anleitung ausblenden';
+      guideButton.textContent = guide.hidden ? 'Update-Schritte anzeigen' : 'Update-Schritte ausblenden';
     });
   }
   function unknown() {

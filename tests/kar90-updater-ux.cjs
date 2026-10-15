@@ -27,7 +27,7 @@ test(m&&m[0].includes('class="native-update-technical-details"')&&
  m[0].indexOf('Windows-Installationsversion')>m[0].indexOf('id="nativeUpdateGuide"')&&
  m[0].indexOf('id="nativeUpdateCheckEvidence"')>m[0].indexOf('<summary>Technische Details</summary>'),
  'technical receipt and evidence only within secondary collapsed details');
-test(m&&m[0].includes('Hilfe zur Windows-Verknüpfung'), 'help link visible only within guide');
+test(m&&m[0].includes('Einrichtungsanleitung öffnen'), 'German beginner manual linked from visible first-user path');
 test(j.includes('Du verwendest die aktuell freigegebene Version.') &&
  j.includes('Die Verfügbarkeit konnte gerade nicht geprüft werden.') &&
  j.includes('Suche nach Updates'), 'clear end-user German status states');
