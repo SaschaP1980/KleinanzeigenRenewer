@@ -1,9 +1,9 @@
 {
   "schema": 1,
-  "version": "1.23.31",
-  "commit": "4dbb6fddf8a73470fa2daf4567af4c44ee218841",
-  "sha256": "dab1b2e9a28ab2e161d20f8e0ca23772bb42f65c77031584e86dc95190776283",
-  "bytes": 757279,
+  "version": "1.23.32",
+  "commit": "eb2f0319f89b0e535aaf202e195b93bc9e8c710d",
+  "sha256": "3f3c7827ed92f395e4a6c85200a6ca69e6a7b5968993292287b266f5ba61fbdb",
+  "bytes": 758063,
   "extensionId": "hafahjhhgiipdegfkgacchmnacgblnah",
   "channel": "approved",
   "note": "Changes to this allowlisted version require verified GitHub CI and a separate explicit approval commit. The immutable commit contains the distributable ZIP."
