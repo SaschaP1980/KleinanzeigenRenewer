@@ -94,7 +94,14 @@ if(typeof api.create==='function') {
       },
       has:()=>true
     });
-    instance=api.create(options);
+    // A journal needs a genuine Worker identity and a safe inert storage port.
+    // The generic proxy intentionally is not a valid durable identity.
+    const sourceOptions = rel.endsWith('/phase4-uncertainty-journal.js')
+      ? {storageLocal:{get:async()=>({}),set:async()=>{}},
+         clock:()=>123456,newToken:()=> 'coverage-probe-attempt-12345',
+         workerInstanceId:'coverage-probe-worker'}
+      : options;
+    instance=api.create(sourceOptions);
   } catch(e) { createError=String(e?.message||e); }
 }
 const instanceMethods=instance && typeof instance==='object' ? Object.entries(instance).filter(([,v])=>typeof v==='function').map(([k])=>k) : [];

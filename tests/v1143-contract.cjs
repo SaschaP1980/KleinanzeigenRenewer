@@ -37,7 +37,12 @@ assert.match(bg, /await persistRenewalSession\(renewal\)/);
 
 // The existing reconciliation path must still mark attention and schedule the next decision point.
 assert.match(bg, /MASS_RENEWAL_ITEM_ATTENTION_REQUIRED/);
-assert.match(bg, /queueMicrotask(?:Fn)?\(\(\) => \{ void startNextMassRenewalItem\(batchId\)/);
+if (bg.includes("withAutonomousAdmission('mass-renewal-next-item'")) {
+  assert.match(bg, /queueMicrotask(?:Fn)?\(\(\) => \{ void withAutonomousAdmission\('mass-renewal-next-item', \(\) => startNextMassRenewalItem\(batchId\)/);
+  assert.match(bg, /KR_UPDATE_FENCE_UNAVAILABLE/);
+} else {
+  assert.match(bg, /queueMicrotask(?:Fn)?\(\(\) => \{ void startNextMassRenewalItem\(batchId\)/);
+}
 assert.match(bg, /if \(batch\.stopAfterCurrentRequested\)[\s\S]*stopMassRenewalBatchBeforeNext/);
 assert.match(bg, /stopped-with-attention/);
 assert.match(bg, /not-started-after-stop/);
