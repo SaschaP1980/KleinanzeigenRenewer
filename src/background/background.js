@@ -1,4 +1,4 @@
-importScripts("../shared/runtime-deps.js", "../shared/message-contract-registry.js", "../shared/renewal-policy.js", "background-message-router.js", "services/native-update-status-gateway.js", "services/native-status-bridge.js", "repositories/profile-repository.js", "repositories/inventory-repository.js", "repositories/inventory-image-store.js", "services/trash-service.js", "services/diagnostics-service.js", "services/tab-registry.js", "services/managed-tab-worker-service.js", "services/content-connection-manager.js", "services/account-probe-service.js", "controllers/profile-management-controller.js", "controllers/account-session-controller.js", "controllers/platform-safety-controller.js", "controllers/tab-lifecycle-observer.js", "controllers/workflow-emergency-reset-controller.js", "lib/bulk-run-guard.js", "controllers/single-inventory-controller.js", "services/bulk-worker-service.js", "services/bulk-reconciliation-service.js", "controllers/bulk-inventory-controller.js", "controllers/mass-renewal-controller.js", "services/mass-renewal-watchdog-service.js", "controllers/mass-renewal-workflow-controller.js", "services/renewal-verification-flow.js", "services/renewal-reinventory-flow.js", "services/paid-checkout-recovery-service.js", "controllers/renewal-workflow-controller.js", "services/renewal-verification-service.js", "repositories/renewal-state-repository.js", "services/template-fill-service.js", "services/insertion-lock-service.js", "controllers/template-fill-controller.js", "services/archive-insertion-service.js", "services/archive-insertion-verification-service.js", "services/archive-insertion-recovery-service.js", "controllers/archive-insertion-controller.js", "services/remote-delete-replacement-service.js", "services/published-inventory-resolver.js", "services/diagnostic-export-service.js", "services/public-listing-evidence-service.js", "../shared/managed-navigation.js", "lib/inventory-reconciliation.js", "../shared/my-ads-readiness.js", "lib/inventory-scope.js", "../shared/platform-hardening.js", "services/tab-load-coordinator.js");
+importScripts("../shared/runtime-deps.js", "../shared/message-contract-registry.js", "../shared/renewal-policy.js", "background-message-router.js", "services/native-update-status-gateway.js", "services/native-status-bridge.js", "services/update-workflow-fence.js", "repositories/profile-repository.js", "repositories/inventory-repository.js", "repositories/inventory-image-store.js", "services/trash-service.js", "services/diagnostics-service.js", "services/tab-registry.js", "services/managed-tab-worker-service.js", "services/content-connection-manager.js", "services/account-probe-service.js", "controllers/profile-management-controller.js", "controllers/account-session-controller.js", "controllers/platform-safety-controller.js", "controllers/tab-lifecycle-observer.js", "controllers/workflow-emergency-reset-controller.js", "lib/bulk-run-guard.js", "controllers/single-inventory-controller.js", "services/bulk-worker-service.js", "services/bulk-reconciliation-service.js", "controllers/bulk-inventory-controller.js", "controllers/mass-renewal-controller.js", "services/mass-renewal-watchdog-service.js", "controllers/mass-renewal-workflow-controller.js", "services/renewal-verification-flow.js", "services/renewal-reinventory-flow.js", "services/paid-checkout-recovery-service.js", "controllers/renewal-workflow-controller.js", "services/renewal-verification-service.js", "repositories/renewal-state-repository.js", "services/template-fill-service.js", "services/insertion-lock-service.js", "controllers/template-fill-controller.js", "services/archive-insertion-service.js", "services/archive-insertion-verification-service.js", "services/archive-insertion-recovery-service.js", "controllers/archive-insertion-controller.js", "services/remote-delete-replacement-service.js", "services/published-inventory-resolver.js", "services/diagnostic-export-service.js", "services/public-listing-evidence-service.js", "../shared/managed-navigation.js", "lib/inventory-reconciliation.js", "../shared/my-ads-readiness.js", "lib/inventory-scope.js", "../shared/platform-hardening.js", "services/tab-load-coordinator.js", "services/persisted-owner-observer.js");
 
 const KRDeps = globalThis.KRDeps;
 if (!KRDeps) throw new Error('runtime-deps.js must load before background.js');
@@ -7,6 +7,8 @@ const RenewalPolicy = KRDeps.require('KRRenewalPolicy');
 const BackgroundMessageRouter = KRDeps.require('KRBackgroundMessageRouter');
 const NativeUpdateStatusGateway = KRDeps.require('KRNativeUpdateStatusGateway');
 const NativeStatusBridge = KRDeps.require('KRNativeStatusBridge');
+const UpdateWorkflowFence = KRDeps.require('KRUpdateWorkflowFence');
+const PersistedOwnerObserver = KRDeps.require('KRPersistedOwnerObserver');
 const DiagnosticsService = KRDeps.require('KRDiagnosticsService');
 const TabRegistry = KRDeps.require('KRTabRegistry');
 const ManagedNavigation = KRDeps.require('KRManagedNavigation');
@@ -167,6 +169,7 @@ function requireTemplateFillController() {
     recordRenewalPhaseAttemptError, canRetryRenewalPhase1, restartRenewalPhase1Attempt,
     evictTemplateImageTransfersForFill, classifyKleinanzeigenInsertionErrorUrl,
     cryptoApi: crypto, chromeApi: chrome, queueMicrotaskFn: queueMicrotask,
+    withAutonomousAdmission,
     TEMPLATE_TARGET_URL, TAB_ROLES, TERMINAL_TEMPLATE_FILL_STATUSES
   });
   return templateFillController;
@@ -2457,6 +2460,7 @@ function requireMassRenewalWorkflowController() {
       publicAvailabilityPending, readFillSessions, classifyKleinanzeigenInsertionErrorUrl,
       terminalizeTemplateFillOnPlatformError, terminalizeTemplateFillForWatchdog, persistRenewalSession,
       cryptoApi: globalThis.crypto, chromeApi: chrome, queueMicrotaskFn: globalThis.queueMicrotask,
+      withAutonomousAdmission: (kind, task) => withAutonomousAdmission(kind, task),
       setTimeoutFn: globalThis.setTimeout, clearTimeoutFn: globalThis.clearTimeout,
       MASS_RENEWAL_MAX_ITEMS, MASS_RENEWAL_WATCHDOG_STALE_MS, MASS_RENEWAL_WATCHDOG_TICK_MS,
       UNASSIGNED_PROFILE_ID
@@ -2532,6 +2536,7 @@ function requireRenewalWorkflowController() {
       assertMassRenewalManualActionAllowed, broadcastInventoryChanged, closeManagedWorkerTab, closeRegistryTab,
       compareRenewalRecords, correlationContext, createManagedWorkerTab, delay, detectPublishedAdForFill,
       dropMassRenewalProgress, ensureContentConnection, evaluateCheckoutRecoveryProof, finishRenewalReplacement,
+      withAutonomousAdmission,
       flushDiagnosticBuffer, getInventory, isCheckoutAbortedRecoveryCandidate, isNonRetryableRenewalSafetyError,
       isSafeLegacyManualEmergencyReset, logDiagnostic, logRenewalPhaseAttemptFailed, logRenewalPhaseAttemptStarted,
       massRenewalBatchCounts, massRenewalTerminalOutcome, mergeListingMetadata, mutateMassRenewalBatch,
@@ -2945,11 +2950,11 @@ chrome.storage?.onChanged?.addListener((changes, areaName) => {
 
 chrome.tabs?.onUpdated?.addListener((tabId, changeInfo, tab) => {
   if (changeInfo?.status || changeInfo?.url) notifyTabLoadWaiters(tabId, { kind: 'updated', status: changeInfo.status || tab?.status || null, url: changeInfo.url || tab?.url || null, tab });
-  if (tab?.id) void observeTabLifecycleUpdate(tab).catch(() => {});
+  if (tab?.id) void withAutonomousAdmission('tab-lifecycle-update', () => observeTabLifecycleUpdate(tab)).catch(() => {});
   const observedUrl = String(changeInfo.url || tab?.url || '');
   const platformError = classifyKleinanzeigenInsertionErrorUrl(observedUrl, { title: tab?.title || '' });
   if (platformError.isError) {
-    void terminalizeTemplateFillOnPlatformError(tabId, observedUrl, { ...platformError, title: tab?.title || '', source: 'tab-navigation' }).catch(async error => {
+    void withAutonomousAdmission('template-error-terminalize', () => terminalizeTemplateFillOnPlatformError(tabId, observedUrl, { ...platformError, title: tab?.title || '', source: 'tab-navigation' })).catch(async error => {
       await logDiagnostic('error', 'KLEINANZEIGEN_ERROR_PAGE_TERMINALIZATION_FAILED', {
         tabId, path: platformError.path || null, errorCode: platformError.errorCode || null,
         message: String(error.message || error).slice(0, 800)
@@ -2958,7 +2963,7 @@ chrome.tabs?.onUpdated?.addListener((tabId, changeInfo, tab) => {
   }
   if (changeInfo.status !== 'complete' || renewalPublishDetectionInFlight.has(tabId)) return;
   renewalPublishDetectionInFlight.add(tabId);
-  (async () => {
+  void withAutonomousAdmission('renewal-publish-detection', async () => {
     const fills = await readFillSessions();
     const fill = Object.values(fills).find(item => item?.targetTabId === tabId && (item?.renewalId || item?.archiveInsertionId) && item?.stage === 'publish-submitted' && item?.status === 'running');
     if (!fill) return;
@@ -2992,15 +2997,19 @@ chrome.tabs?.onUpdated?.addListener((tabId, changeInfo, tab) => {
         message: String(error.message || error).slice(0, 500)
       }, { module: 'background', operation: fill.archiveInsertionId ? 'archive-import-publish-detect' : 'renewal-publish-detect', context: sessionCorrelationContext(fill, { renewalId: fill.renewalId || null, adId: fill.sourceAdId, targetTabId: tabId }) }).catch(() => {});
     }
-  })().finally(() => renewalPublishDetectionInFlight.delete(tabId));
+  }).catch(error => {
+    void logDiagnostic('warning', 'RENEWAL_PUBLISH_AUTO_ADMISSION_REJECTED', {
+      errorCode: String(error?.code || ''), tabId
+    }, { module: 'background', operation: 'renewal-publish-auto-admission' }).catch(() => {});
+  }).finally(() => renewalPublishDetectionInFlight.delete(tabId));
 });
 
 chrome.tabs?.onActivated?.addListener(({ tabId }) => {
-  void requireTabLifecycleObserver().handleActivated(tabId).catch(() => {});
+  void withAutonomousAdmission('tab-activated', () => requireTabLifecycleObserver().handleActivated(tabId)).catch(() => {});
 });
 
 chrome.tabs?.onRemoved?.addListener(tabId => {
-  void requireTabLifecycleObserver().handleRemoved(tabId).catch(() => {});
+  void withAutonomousAdmission('tab-removed', () => requireTabLifecycleObserver().handleRemoved(tabId)).catch(() => {});
 });
 
 
@@ -3071,7 +3080,76 @@ function requireNativeStatusBridge() {
   return nativeStatusBridge;
 }
 
+// No trusted 15-owner snapshot provider exists yet: reserve always fails closed.
+let updateWorkflowFence = null;
+function requireUpdateWorkflowFence() {
+  if (!updateWorkflowFence) {
+    if (typeof UpdateWorkflowFence?.create !== 'function')
+      throw new Error('KR_UPDATE_FENCE_UNAVAILABLE');
+    updateWorkflowFence = UpdateWorkflowFence.create({
+      storageLocal: chrome.storage.local,
+      clock: () => Date.now(),
+      newToken: () => crypto.randomUUID()
+    });
+  }
+  return updateWorkflowFence;
+}
+// This tracker covers positively identified autonomous paths only. Message
+// handlers, detached tasks and previous worker generations still need their
+// own complete proofs before KAR-97 can treat ANY owner as confirmed idle.
+let persistedOwnerObserver = null;
+function requirePersistedOwnerObserver() {
+  if (!persistedOwnerObserver) {
+    if (typeof PersistedOwnerObserver?.create !== 'function') throw new Error('KR_UPDATE_OWNER_OBSERVER_UNAVAILABLE');
+    persistedOwnerObserver = PersistedOwnerObserver.create({
+      storageLocal: chrome.storage.local, storageSession: chrome.storage.session, clock: () => Date.now(),
+      workerInstanceId: crypto.randomUUID()
+    });
+  }
+  return persistedOwnerObserver;
+}
+const AUTONOMOUS_PERSISTED_OWNER_KINDS = Object.freeze({
+  'bulk-runtime-recovery': ['bulkInventory', 'bulkReconciliation'],
+  'bulk-watchdog': ['bulkInventory'],
+  'renewal-resume': ['renewal', 'insertionLock'],
+  'renewal-detached-verify': ['renewal', 'insertionLock'],
+  'renewal-detached-retry': ['renewal', 'insertionLock'],
+  'renewal-publish-detection': ['renewal', 'templateFill', 'archiveInsertion', 'insertionLock'],
+  'mass-resume': ['massRenewal', 'insertionLock'],
+  'mass-renewal-next-item': ['massRenewal', 'insertionLock'],
+  'mass-renewal-watchdog-timer': ['massRenewal', 'insertionLock'],
+  'renewal-phase1-retry': ['renewal', 'templateFill', 'insertionLock'],
+  'archive-resume': ['archiveInsertion', 'templateFill', 'insertionLock'],
+  'template-error-terminalize': ['renewal', 'templateFill', 'archiveInsertion', 'insertionLock'],
+  // Tab-driven paths can update several persisted sessions or reload a managed
+  // worker; conservatively hold every candidate owner until the handler settles.
+  'trash-publish-detection': ['templateFill', 'insertionLock'],
+  'tab-removed': ['bulkInventory', 'bulkReconciliation', 'renewal', 'templateFill', 'archiveInsertion', 'insertionLock'],
+  'tab-lifecycle-update': ['bulkInventory', 'bulkReconciliation', 'renewal', 'massRenewal', 'templateFill', 'archiveInsertion', 'insertionLock']
+});
+// A single Work-fence service protects both routed and autonomous entrypoints.
+// Track actual admitted asynchronous starts, not mere intentions; missing
+// tracker/fence must fail closed. Preserve the legacy admission call signature
+// to avoid weakening existing message-router and KAR-101 safety contracts.
+function withAutonomousAdmission(kind, task) {
+  try {
+    const names = AUTONOMOUS_PERSISTED_OWNER_KINDS[kind];
+    if (names) {
+      const admittedTask = task;
+      task = () => requirePersistedOwnerObserver().track(names, admittedTask);
+    }
+    return requireUpdateWorkflowFence().withAdmission('AUTONOMOUS:' + kind, task);
+  } catch (error) { return Promise.reject(error); }
+}
+// All currently fenced routed handlers can transitively mutate any persisted
+// workflow; conservatively count all seven for the lifetime of their admitted
+// Promise. The same existing fence arbitrates admission. This is in-memory
+// BUSY evidence only, never proof of idle after restart or update permission.
+function withRoutedAdmission(type, task) {
+  return requireUpdateWorkflowFence().withAdmission(type, () => requirePersistedOwnerObserver().track(PersistedOwnerObserver.OWNERS, task));
+}
 const backgroundMessageRouter = BackgroundMessageRouter.create({
+  withWorkflowAdmission: (type, task) => withRoutedAdmission(type, task),
   MessageContractRegistry,
   assertPlatformAccessAllowedForRequest,
   handlers: Object.freeze({
@@ -3200,7 +3278,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 chrome.tabs?.onUpdated?.addListener((tabId, changeInfo, tab) => {
   if (!changeInfo?.url && changeInfo?.status !== 'complete') return;
-  void maybeDetectTrashTemplatePublishedAd(tabId, changeInfo, tab).catch(error => {
+  void withAutonomousAdmission('trash-publish-detection', () => maybeDetectTrashTemplatePublishedAd(tabId, changeInfo, tab)).catch(error => {
     void logDiagnostic('warning', 'TRASH_TEMPLATE_PUBLISH_DETECTION_FAILED', {
       tabId: Number(tabId || 0) || null,
       message: String(error?.message || error || '').slice(0, 500)
@@ -3214,24 +3292,27 @@ chrome.action?.onClicked?.addListener(() => {
   });
 });
 
-void reconcileTabRegistry().catch(() => {});
-chrome.runtime.onStartup?.addListener(() => { void reconcileTabRegistry().catch(() => {}); });
+// Startup maintenance mutates local registry/trash state outside the message router.
+// Deny it while the persisted update lease is held, including after an MV3 restart.
+// These short tasks use the same admission service as routed workflow requests.
+void withAutonomousAdmission('tab-registry-boot', () => reconcileTabRegistry()).catch(() => {});
+chrome.runtime.onStartup?.addListener(() => { void withAutonomousAdmission('tab-registry-startup', () => reconcileTabRegistry()).catch(() => {}); });
 
-// Opportunistic lifecycle cleanup is sufficient for the 30-day archive: it runs
-// whenever the service worker starts, and again before each inventory/trash listing.
-void purgeExpiredTrash().catch(() => {});
-chrome.runtime.onStartup?.addListener(() => { void purgeExpiredTrash().catch(() => {}); });
-chrome.runtime.onInstalled?.addListener(() => { void purgeExpiredTrash().catch(() => {}); });
+// The 30-day trash purge is locally mutating maintenance, not just a read.
+// All three autonomous launch paths must observe the persistent update fence.
+void withAutonomousAdmission('trash-purge-boot', () => purgeExpiredTrash()).catch(() => {});
+chrome.runtime.onStartup?.addListener(() => { void withAutonomousAdmission('trash-purge-startup', () => purgeExpiredTrash()).catch(() => {}); });
+chrome.runtime.onInstalled?.addListener(() => { void withAutonomousAdmission('trash-purge-installed', () => purgeExpiredTrash()).catch(() => {}); });
 
 // Bulk inventory recovery: extension reload/browser restart invalidates the session lease,
 // while an independent watchdog enforces the hard per-item deadline even if the source loop stalls.
-void ensureBulkRuntimeRecovery().catch(() => {});
-void bulkRunWatchdogTick().catch(() => {});
-if (typeof setInterval === 'function') setInterval(() => { void bulkRunWatchdogTick().catch(() => {}); }, BULK_RUN_WATCHDOG_TICK_MS);
+void withAutonomousAdmission('bulk-runtime-recovery', () => ensureBulkRuntimeRecovery()).catch(() => {});
+void withAutonomousAdmission('bulk-watchdog', () => bulkRunWatchdogTick()).catch(() => {});
+if (typeof setInterval === 'function') setInterval(() => { void withAutonomousAdmission('bulk-watchdog', () => bulkRunWatchdogTick()).catch(() => {}); }, BULK_RUN_WATCHDOG_TICK_MS);
 
 // Recover persisted workflows only when no platform safety stop is active.
 void readPlatformAccessRestriction().then(state => {
   if (state?.active) return;
-  void resumePendingRenewals().finally(() => resumeMassRenewalBatch().catch(() => {})).catch(() => {});
-  void resumePendingArchiveInsertions().catch(() => {});
+  void withAutonomousAdmission('renewal-resume', () => resumePendingRenewals()).finally(() => withAutonomousAdmission('mass-resume', () => resumeMassRenewalBatch()).catch(() => {})).catch(() => {});
+  void withAutonomousAdmission('archive-resume', () => resumePendingArchiveInsertions()).catch(() => {});
 }).catch(() => {});
