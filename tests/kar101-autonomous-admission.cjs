@@ -40,12 +40,13 @@ confirm(worker.includes("withAutonomousAdmission('tab-removed'")&&worker.include
   'tab activation/removal callbacks are admitted through the same gate');
 // Controllers schedule work outside the router. Future callbacks must never
 // invoke start/retry functions directly; a missing admission dependency blocks.
-const massContinuations=(mass.match(/queueMicrotaskFn\\(\\(\\) => \\{ void withAutonomousAdmission\\('mass-renewal-next-item', \\(\\) => startNextMassRenewalItem\\(/g)||[]);
-confirm(massContinuations.length===7,'seven queued mass renewal continuations require the shared gate');
-confirm(/await withAutonomousAdmission\\('mass-renewal-next-item', \\(\\) => startNextMassRenewalItem\\(/.test(mass),
+const count=(s,needle)=>s.split(needle).length-1;
+const massQueuedPrefix="queueMicrotaskFn(() => { void withAutonomousAdmission('mass-renewal-next-item', () => startNextMassRenewalItem(";
+confirm(count(mass,massQueuedPrefix)===7,'seven queued mass renewal continuations require the shared gate');
+confirm(mass.includes("await withAutonomousAdmission('mass-renewal-next-item', () => startNextMassRenewalItem("),
   'direct mass renewal retry continuation requires the shared gate');
-const phaseOneContinuations=(fill.match(/queueMicrotaskFn\\(\\(\\) => \\{ void withAutonomousAdmission\\('renewal-phase1-retry', \\(\\) => restartRenewalPhase1Attempt\\(/g)||[]);
-confirm(phaseOneContinuations.length===2,'both queued renewal phase-one retries require the shared gate');
+const phaseOnePrefix="queueMicrotaskFn(() => { void withAutonomousAdmission('renewal-phase1-retry', () => restartRenewalPhase1Attempt(";
+confirm(count(fill,phaseOnePrefix)===2,'both queued renewal phase-one retries require the shared gate');
 confirm(mass.includes('withAutonomousAdmission,')&&fill.includes('withAutonomousAdmission,'),
   'both controllers receive a real background-owned admission dependency');
 confirm(worker.includes('withAutonomousAdmission,')&&worker.includes('withAutonomousAdmission:'),
