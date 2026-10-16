@@ -51,6 +51,7 @@ const deps = {
   finishRenewalReplacement: fn('finishRenewalReplacement'),
   // Historical fixture contains no autonomous runtime: deny rather than executing untracked work.
   withAutonomousAdmission: () => Promise.reject(new Error('KR_TEST_AUTONOMOUS_ADMISSION_UNAVAILABLE')),
+  beginPhase4Attempt: async () => { throw new Error('KR_PHASE4_JOURNAL_UNAVAILABLE'); },
   flushDiagnosticBuffer: fn('flushDiagnosticBuffer'),
   getInventory: fn('getInventory', id => records.get(String(id)) || null),
   isCheckoutAbortedRecoveryCandidate: sync('isCheckoutAbortedRecoveryCandidate', false),
