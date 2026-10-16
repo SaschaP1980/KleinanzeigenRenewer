@@ -70,11 +70,11 @@ async function main(){
   await assert.rejects(first.begin({...req,newAdId:'unverified'}),/KR_PHASE4_JOURNAL_IDENTITY/);
   ok(true,'unbound profile or new Ad-ID rejects journaling');
   ok(!source.includes('void (async () =>'), 'bare autonomous Phase4 execution remains prohibited');
-  ok(source.includes('await phase4Journal.begin(current)'), 'durable journal begins before source delete operation');
-  ok(source.indexOf('await phase4Journal.begin(current)')<source.indexOf('await finishRenewalReplacement({ renewalId: id, automatic: true })'),
+  ok(source.includes('await beginPhase4Attempt(current)'), 'durable journal begins before source delete operation');
+  ok(source.indexOf('await beginPhase4Attempt(current)')<source.indexOf('await finishRenewalReplacement({ renewalId: id, automatic: true })'),
     'Phase4 journal confirmation happens before any remote side effect');
   ok(source.includes("KR_PHASE4_JOURNAL_"),'journal rejection is classified as deferral not remote failure');
-  ok(worker.includes('phase4Journal: requirePhase4UncertaintyJournal()'),
+  ok(worker.includes('beginPhase4Attempt: current => requirePhase4UncertaintyJournal().begin(current)'),
     'real worker injects required journal into controller');
   ok(worker.includes('services/phase4-uncertainty-journal.js'),'module loads in actual MV3 Worker');
   ok(!worker.includes('getOwnerSnapshot: () => requirePersistedOwnerObserver()'),
