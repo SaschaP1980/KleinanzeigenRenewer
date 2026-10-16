@@ -47,7 +47,7 @@ confirm(mass.includes("await withAutonomousAdmission('mass-renewal-next-item', (
   'direct mass renewal retry continuation requires the shared gate');
 const phaseOnePrefix="queueMicrotaskFn(() => { void withAutonomousAdmission('renewal-phase1-retry', () => restartRenewalPhase1Attempt(";
 confirm(count(fill,phaseOnePrefix)===2,'both queued renewal phase-one retries require the shared gate');
-confirm(mass.includes('withAutonomousAdmission,')&&fill.includes('withAutonomousAdmission,'),
+confirm(mass.includes('withAutonomousAdmission =')&&fill.includes('withAutonomousAdmission ='),
   'both controllers receive a real background-owned admission dependency');
 confirm(worker.includes('withAutonomousAdmission,')&&worker.includes('withAutonomousAdmission:'),
   'parent background binds controller callbacks to the shared fence');
