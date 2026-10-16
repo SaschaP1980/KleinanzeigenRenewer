@@ -5,6 +5,7 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const Journal=require('../src/background/services/phase4-uncertainty-journal.js');
 const source=fs.readFileSync('src/background/controllers/renewal-workflow-controller.js','utf8');
+const remote=fs.readFileSync('src/background/services/remote-delete-replacement-service.js','utf8');
 const worker=fs.readFileSync('src/background/background.js','utf8');
 let n=0;
 function ok(cond,label){assert.ok(cond,label);++n;console.log('PASS KAR117 '+label);}
@@ -70,9 +71,9 @@ async function main(){
   await assert.rejects(first.begin({...req,newAdId:'unverified'}),/KR_PHASE4_JOURNAL_IDENTITY/);
   ok(true,'unbound profile or new Ad-ID rejects journaling');
   ok(!source.includes('void (async () =>'), 'bare autonomous Phase4 execution remains prohibited');
-  ok(source.includes('await beginPhase4Attempt(current)'), 'durable journal begins before source delete operation');
-  ok(source.indexOf('await beginPhase4Attempt(current)')<source.indexOf('await finishRenewalReplacement({ renewalId: id, automatic: true })'),
-    'Phase4 journal confirmation happens before any remote side effect');
+  ok(remote.includes('await beginPhase4Attempt({'), 'durable journal begins inside shared remote service after fresh account check');
+  ok(remote.indexOf('await beginPhase4Attempt({')<remote.indexOf("type: 'DELETE_OWN_AD_BY_ID'"),
+    'Phase4 journal confirmation happens before the actual remote DELETE request');
   ok(source.includes("KR_PHASE4_JOURNAL_"),'journal rejection is classified as deferral not remote failure');
   ok(worker.includes('beginPhase4Attempt: current => requirePhase4UncertaintyJournal().begin(current)'),
     'real worker injects required journal into controller');
