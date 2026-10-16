@@ -3073,13 +3073,21 @@ function requireNativeStatusBridge() {
 }
 
 // No trusted 15-owner snapshot provider exists yet: reserve always fails closed.
-const updateWorkflowFence = UpdateWorkflowFence.create({
-  storageLocal: chrome.storage.local,
-  clock: () => Date.now(),
-  newToken: () => crypto.randomUUID()
-});
+let updateWorkflowFence = null;
+function requireUpdateWorkflowFence() {
+  if (!updateWorkflowFence) {
+    if (typeof UpdateWorkflowFence?.create !== 'function')
+      throw new Error('KR_UPDATE_FENCE_UNAVAILABLE');
+    updateWorkflowFence = UpdateWorkflowFence.create({
+      storageLocal: chrome.storage.local,
+      clock: () => Date.now(),
+      newToken: () => crypto.randomUUID()
+    });
+  }
+  return updateWorkflowFence;
+}
 const backgroundMessageRouter = BackgroundMessageRouter.create({
-  withWorkflowAdmission: (type, task) => updateWorkflowFence.withAdmission(type, task),
+  withWorkflowAdmission: (type, task) => requireUpdateWorkflowFence().withAdmission(type, task),
   MessageContractRegistry,
   assertPlatformAccessAllowedForRequest,
   handlers: Object.freeze({
