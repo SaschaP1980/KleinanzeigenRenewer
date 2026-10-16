@@ -2512,6 +2512,7 @@ function requireArchiveInsertionController() {
       createAutomationTab, registerShadowTab, closePublishedRenewalTargetTab,
       assertSelectedProfileMatchesLiveAccount, getRenewalConfiguration, withInsertionStartGate, assertInsertionStartAvailable,
       readFillSessions, writeFillSessions, detectPublishedAdForFill,
+      withAutonomousAdmission,
       correlationContext, sessionCorrelationContext, delay, logDiagnostic, setAppNotice, broadcastInventoryChanged,
       cryptoApi: globalThis.crypto, chromeApi: chrome,
       MY_ADS_PROJECTS_URL, TAB_LOAD_TIMEOUT_RENEWAL_MS, BULK_RETRY_TIMEOUT_MS, BULK_RETRY_POLL_MS,
@@ -3133,6 +3134,7 @@ const AUTONOMOUS_PERSISTED_OWNER_KINDS = Object.freeze({
   'mass-renewal-watchdog-timer': ['massRenewal', 'insertionLock'],
   'renewal-phase1-retry': ['renewal', 'templateFill', 'insertionLock'],
   'archive-resume': ['archiveInsertion', 'templateFill', 'insertionLock'],
+  'archive-postpublish-detached': ['archiveInsertion', 'templateFill', 'insertionLock'],
   'template-error-terminalize': ['renewal', 'templateFill', 'archiveInsertion', 'insertionLock'],
   // Tab-driven paths can update several persisted sessions or reload a managed
   // worker; conservatively hold every candidate owner until the handler settles.
