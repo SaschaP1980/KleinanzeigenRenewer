@@ -94,6 +94,16 @@
     if (!registry?.route || !registry?.errorFor) throw new Error('background-message-router requires MessageContractRegistry.');
     if (typeof assertPlatformAccessAllowedForRequest !== 'function') throw new Error('background-message-router requires platform safety guard.');
 
+    // Allow only genuinely read-only or essential safety-control routes during a fence.
+    // All other current/future routes are conservatively treated as mutations.
+    const UNFENCED_ROUTES = new Set([
+      'GET_NATIVE_UPDATE_STATUS', 'GET_BACKGROUND_EPOCH',
+      'GET_PLATFORM_ACCESS_RESTRICTION', 'PLATFORM_ACCESS_RESTRICTED',
+      'GET_PROFILE_STATE', 'LIST_INVENTORIES', 'LIST_TRASH',
+      'OPEN_APP_WINDOW', 'GET_APP_NOTICE', 'GET_DIAGNOSTICS'
+    ]);
+    const withWorkflowAdmission = options.withWorkflowAdmission;
+
     async function dispatch(message, sender, { messageContract = null } = {}) {
       const contract = messageContract || registry.route(message?.type, 'background');
       if (contract.action !== 'accept') throw registry.errorFor(contract);
@@ -102,6 +112,8 @@
       const handler = handlers[descriptor.handler];
       if (typeof handler !== 'function') throw new Error(`Background handler fehlt: ${descriptor.handler}`);
       if (!descriptor.preSafety) await assertPlatformAccessAllowedForRequest(message);
+      if (typeof withWorkflowAdmission === 'function' && !UNFENCED_ROUTES.has(descriptor.handler))
+        return withWorkflowAdmission(descriptor.handler, () => handler(message, sender));
       return handler(message, sender);
     }
 
