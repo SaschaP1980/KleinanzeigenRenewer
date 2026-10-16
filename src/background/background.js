@@ -3101,7 +3101,8 @@ function requirePersistedOwnerObserver() {
   if (!persistedOwnerObserver) {
     if (typeof PersistedOwnerObserver?.create !== 'function') throw new Error('KR_UPDATE_OWNER_OBSERVER_UNAVAILABLE');
     persistedOwnerObserver = PersistedOwnerObserver.create({
-      storageLocal: chrome.storage.local, storageSession: chrome.storage.session, clock: () => Date.now()
+      storageLocal: chrome.storage.local, storageSession: chrome.storage.session, clock: () => Date.now(),
+      workerInstanceId: crypto.randomUUID()
     });
   }
   return persistedOwnerObserver;
