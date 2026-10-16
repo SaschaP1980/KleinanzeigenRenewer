@@ -22,6 +22,7 @@
         evaluateCheckoutRecoveryProof,
         finishRenewalReplacement,
         withAutonomousAdmission,
+        beginPhase4Attempt,
         flushDiagnosticBuffer,
         getInventory,
         isCheckoutAbortedRecoveryCandidate,
@@ -93,6 +94,7 @@
         evaluateCheckoutRecoveryProof,
         finishRenewalReplacement,
         withAutonomousAdmission,
+        beginPhase4Attempt,
         flushDiagnosticBuffer,
         getInventory,
         isCheckoutAbortedRecoveryCandidate,
@@ -282,13 +284,16 @@ function scheduleAutomaticRenewalReplacement(renewalId, trigger = 'verification-
   void withAutonomousAdmission('renewal-auto-phase4', async () => {
     const sessions = await readRenewalSessions().catch(() => ({}));
     const current = sessions[id] || { renewalId: id };
+    // Durable evidence must be acknowledged before any remote source mutation.
+    await beginPhase4Attempt(current);
     await logDiagnostic('info', 'RENEWAL_AUTO_REPLACEMENT_STARTED', { renewalId: id, trigger }, { module: 'background', operation: 'renewal-auto-phase-4', context: sessionCorrelationContext(current, { renewalId: id }) }).catch(() => {});
     await finishRenewalReplacement({ renewalId: id, automatic: true });
   }).catch(async error => {
     // A blocked admission is not a remote replacement attempt. Preserve the
     // persisted recovery state and never invent a failed source deletion.
     const admissionCode = String(error?.code || error?.message || '');
-    if (admissionCode.startsWith('KR_UPDATE_FENCE_') || admissionCode.startsWith('KR_UPDATE_OWNER_OBSERVER_')) return;
+    if (admissionCode.startsWith('KR_UPDATE_FENCE_') || admissionCode.startsWith('KR_UPDATE_OWNER_OBSERVER_')
+        || admissionCode.startsWith('KR_PHASE4_JOURNAL_')) return;
     const sessions = await readRenewalSessions().catch(() => ({}));
     const latest = sessions[id];
     if (latest) {
