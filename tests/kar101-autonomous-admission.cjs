@@ -57,13 +57,13 @@ confirm(worker.includes('withAutonomousAdmission,')&&worker.includes('withAutono
  // Dedicated KAR-101 watchdog RED: timer-driven stale checks and their queued
  // next-item continuation do not enter the background message router. Both
  // need the *same* background-owned admission decision before they can run.
- confirm(/withAutonomousAdmission\\s*=\\s*\\(\\)\\s*=>\\s*Promise\\.reject/.test(watchdog),
+ confirm(/withAutonomousAdmission\s*=\s*\(\)\s*=>\s*Promise\.reject/.test(watchdog),
    'watchdog requires an explicit fail-closed autonomous admission dependency');
- confirm(/massRenewalWatchdogTimer\\s*=\\s*setTimeoutFn\\(async\\s*\\(\\)\\s*=>\\s*\\{[\\s\\S]*?await\\s+withAutonomousAdmission\\('mass-renewal-watchdog-timer',\\s*\\(\\)\\s*=>\\s*runMassRenewalWatchdog\\(\\{ trigger: 'background-timer' \\}\\)\\)/.test(watchdog),
+ confirm(/massRenewalWatchdogTimer\s*=\s*setTimeoutFn\(async\s*\(\)\s*=>\s*\{[\s\S]*?await\s+withAutonomousAdmission\('mass-renewal-watchdog-timer',\s*\(\)\s*=>\s*runMassRenewalWatchdog\(\{ trigger: 'background-timer' \}\)\)/.test(watchdog),
    'watchdog self-timer cannot run a stale-check outside shared admission');
- confirm(/queueMicrotaskFn\\(\\(\\)\\s*=>\\s*\\{\\s*void\\s+withAutonomousAdmission\\('mass-renewal-next-item',\\s*\\(\\)\\s*=>\\s*startNextMassRenewalItem\\(batch\\.batchId\\)\\)/.test(watchdog),
+ confirm(/queueMicrotaskFn\(\(\)\s*=>\s*\{\s*void\s+withAutonomousAdmission\('mass-renewal-next-item',\s*\(\)\s*=>\s*startNextMassRenewalItem\(batch\.batchId\)\)/.test(watchdog),
    'watchdog timeout continuation cannot start the next item without admission');
- confirm(/massRenewalWatchdogService\\s*=\\s*serviceApi\\.create\\(\\{[\\s\\S]*?\\.\\.\\.options/.test(mass),
+ confirm(/massRenewalWatchdogService\s*=\s*serviceApi\.create\(\{[\s\S]*?\.\.\.options/.test(mass),
    'watchdog receives parent controller options including background admission');
 
 console.log('PASS KAR101 '+checks+' tests');
