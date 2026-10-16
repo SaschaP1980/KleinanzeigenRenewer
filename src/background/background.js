@@ -3110,13 +3110,18 @@ const AUTONOMOUS_PERSISTED_OWNER_KINDS = Object.freeze({
   'bulk-runtime-recovery': ['bulkInventory', 'bulkReconciliation'],
   'bulk-watchdog': ['bulkInventory'],
   'renewal-resume': ['renewal', 'insertionLock'],
-  'renewal-publish-detection': ['renewal', 'insertionLock'],
+  'renewal-publish-detection': ['renewal', 'templateFill', 'archiveInsertion', 'insertionLock'],
   'mass-resume': ['massRenewal', 'insertionLock'],
   'mass-renewal-next-item': ['massRenewal', 'insertionLock'],
-  'mass-renewal-watchdog-timer': ['massRenewal'],
+  'mass-renewal-watchdog-timer': ['massRenewal', 'insertionLock'],
   'renewal-phase1-retry': ['renewal', 'templateFill', 'insertionLock'],
-  'archive-resume': ['archiveInsertion', 'insertionLock'],
-  'template-error-terminalize': ['templateFill', 'insertionLock']
+  'archive-resume': ['archiveInsertion', 'templateFill', 'insertionLock'],
+  'template-error-terminalize': ['renewal', 'templateFill', 'archiveInsertion', 'insertionLock'],
+  // Tab-driven paths can update several persisted sessions or reload a managed
+  // worker; conservatively hold every candidate owner until the handler settles.
+  'trash-publish-detection': ['templateFill', 'insertionLock'],
+  'tab-removed': ['bulkInventory', 'bulkReconciliation', 'renewal', 'templateFill', 'archiveInsertion', 'insertionLock'],
+  'tab-lifecycle-update': ['bulkInventory', 'bulkReconciliation', 'renewal', 'massRenewal', 'templateFill', 'archiveInsertion', 'insertionLock']
 });
 // A single Work-fence service protects both routed and autonomous entrypoints.
 // Track actual admitted asynchronous starts, not mere intentions; missing
