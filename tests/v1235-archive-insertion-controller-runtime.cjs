@@ -16,6 +16,8 @@ const deps={
  readFillSessions:async()=>fillSessions,writeFillSessions:async s=>{fillSessions=s},detectPublishedAdForFill:async()=>null,correlationContext:(...xs)=>Object.assign({},...xs.filter(x=>x&&typeof x==='object')),sessionCorrelationContext:(s,e={})=>({...e}),delay:asyncNoop,logDiagnostic:async(level,event,details)=>{diagnostics.push({level,event,details})},setAppNotice:async x=>{notices.push(x)},broadcastInventoryChanged:(...x)=>broadcasts.push(x),
  cryptoApi:{randomUUID:()=>`00000000-0000-4000-8000-${String(++uuid).padStart(12,'0')}`,subtle:require('crypto').webcrypto.subtle},chromeApi:{tabs:{get:async()=>({url:'https://www.kleinanzeigen.de/p-anzeige-bearbeiten.html?adId=999'}),remove:asyncNoop}},
  MY_ADS_PROJECTS_URL:'https://www.kleinanzeigen.de/m-meine-anzeigen.html?tab=PROJECTS',TAB_LOAD_TIMEOUT_RENEWAL_MS:1000,BULK_RETRY_TIMEOUT_MS:50,BULK_RETRY_POLL_MS:1,RENEWAL_MODE_FAST:'fast',TEMPLATE_TARGET_URL:'https://www.kleinanzeigen.de/p-anzeige-aufgeben-schritt2.html',TAB_ROLES:{ARCHIVE_TARGET:'archive-target'},INVENTORY_STORE:'inventories',IMAGE_STORE:'images',
+ // Historical fixture must never silently permit detached post-publish starts.
+ withAutonomousAdmission:()=>Promise.reject(new Error('KR_TEST_AUTONOMOUS_ADMISSION_UNAVAILABLE')),
  archiveInsertionVerificationServiceApi:ArchiveVerificationService,archiveInsertionRecoveryServiceApi:ArchiveRecoveryService
 };
 const ctl=API.create(deps); let n=0; const pass=l=>{n++;console.log('PASS '+l)};
