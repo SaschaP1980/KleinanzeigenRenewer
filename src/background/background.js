@@ -3137,8 +3137,15 @@ function withAutonomousAdmission(kind, task) {
     return requireUpdateWorkflowFence().withAdmission('AUTONOMOUS:' + kind, task);
   } catch (error) { return Promise.reject(error); }
 }
+// All currently fenced routed handlers can transitively mutate any persisted
+// workflow; conservatively count all seven for the lifetime of their admitted
+// Promise. The same existing fence arbitrates admission. This is in-memory
+// BUSY evidence only, never proof of idle after restart or update permission.
+function withRoutedAdmission(type, task) {
+  return requireUpdateWorkflowFence().withAdmission(type, () => requirePersistedOwnerObserver().track(PersistedOwnerObserver.OWNERS, task));
+}
 const backgroundMessageRouter = BackgroundMessageRouter.create({
-  withWorkflowAdmission: (type, task) => requireUpdateWorkflowFence().withAdmission(type, task),
+  withWorkflowAdmission: (type, task) => withRoutedAdmission(type, task),
   MessageContractRegistry,
   assertPlatformAccessAllowedForRequest,
   handlers: Object.freeze({
