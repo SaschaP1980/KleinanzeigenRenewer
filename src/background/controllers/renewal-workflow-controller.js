@@ -22,7 +22,6 @@
         evaluateCheckoutRecoveryProof,
         finishRenewalReplacement,
         withAutonomousAdmission,
-        beginPhase4Attempt,
         flushDiagnosticBuffer,
         getInventory,
         isCheckoutAbortedRecoveryCandidate,
@@ -94,7 +93,6 @@
         evaluateCheckoutRecoveryProof,
         finishRenewalReplacement,
         withAutonomousAdmission,
-        beginPhase4Attempt,
         flushDiagnosticBuffer,
         getInventory,
         isCheckoutAbortedRecoveryCandidate,
@@ -284,8 +282,8 @@ function scheduleAutomaticRenewalReplacement(renewalId, trigger = 'verification-
   void withAutonomousAdmission('renewal-auto-phase4', async () => {
     const sessions = await readRenewalSessions().catch(() => ({}));
     const current = sessions[id] || { renewalId: id };
-    // Durable evidence must be acknowledged before any remote source mutation.
-    await beginPhase4Attempt(current);
+    // The shared RemoteDeleteReplacementService records durable intent after
+    // fresh live profile verification, before the first remote deletion.
     await logDiagnostic('info', 'RENEWAL_AUTO_REPLACEMENT_STARTED', { renewalId: id, trigger }, { module: 'background', operation: 'renewal-auto-phase-4', context: sessionCorrelationContext(current, { renewalId: id }) }).catch(() => {});
     await finishRenewalReplacement({ renewalId: id, automatic: true });
   }).catch(async error => {
