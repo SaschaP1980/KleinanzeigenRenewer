@@ -168,6 +168,7 @@ function requireTemplateFillController() {
     recordRenewalPhaseAttemptError, canRetryRenewalPhase1, restartRenewalPhase1Attempt,
     evictTemplateImageTransfersForFill, classifyKleinanzeigenInsertionErrorUrl,
     cryptoApi: crypto, chromeApi: chrome, queueMicrotaskFn: queueMicrotask,
+    withAutonomousAdmission,
     TEMPLATE_TARGET_URL, TAB_ROLES, TERMINAL_TEMPLATE_FILL_STATUSES
   });
   return templateFillController;
@@ -2458,6 +2459,7 @@ function requireMassRenewalWorkflowController() {
       publicAvailabilityPending, readFillSessions, classifyKleinanzeigenInsertionErrorUrl,
       terminalizeTemplateFillOnPlatformError, terminalizeTemplateFillForWatchdog, persistRenewalSession,
       cryptoApi: globalThis.crypto, chromeApi: chrome, queueMicrotaskFn: globalThis.queueMicrotask,
+      withAutonomousAdmission: (kind, task) => withAutonomousAdmission(kind, task),
       setTimeoutFn: globalThis.setTimeout, clearTimeoutFn: globalThis.clearTimeout,
       MASS_RENEWAL_MAX_ITEMS, MASS_RENEWAL_WATCHDOG_STALE_MS, MASS_RENEWAL_WATCHDOG_TICK_MS,
       UNASSIGNED_PROFILE_ID

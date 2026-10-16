@@ -13,9 +13,9 @@ confirm(worker.includes('resumePendingRenewals()'), 'service worker boot resumes
 confirm(worker.includes('resumePendingArchiveInsertions()'), 'service worker boot resumes archive insertion');
 confirm(worker.includes('maybeDetectTrashTemplatePublishedAd('), 'tabs listener directly starts trash publish detection');
 confirm(worker.includes('observeTabLifecycleUpdate(tab)'), 'tabs listener directly invokes lifecycle mutator');
-confirm((mass.match(/queueMicrotaskFn\(\(\) => \{ void startNextMassRenewalItem\(/g)||[]).length>=5,
+confirm((mass.match(/queueMicrotaskFn\(\(\) => \{ void withAutonomousAdmission\(/g)||[]).length>=7,
   'mass renewal controller schedules future batches through out-of-router microtasks');
-confirm((fill.match(/queueMicrotaskFn\(\(\) => \{ void restartRenewalPhase1Attempt\(/g)||[]).length===2,
+confirm((fill.match(/queueMicrotaskFn\(\(\) => \{ void withAutonomousAdmission\(/g)||[]).length===2,
   'template fill controller schedules independent phase-one retries');
 confirm(worker.includes('const backgroundMessageRouter = BackgroundMessageRouter.create('), 'single message router exists but does not own these autonomous callbacks');
 
