@@ -61,8 +61,10 @@
     async function observe() {
       // This is an observation only: no storage writes, sweeps, expiries,
       // account probing or auto-recovery mutating getters.
-      const [localRead, sessionRead] = await Promise.allSettled([
-        storageLocal.get([...LOCAL_KEYS, ...PROFILE_KEYS]), storageSession.get([...SESSION_KEYS])
+      const [localRead, sessionRead, journalRead] = await Promise.allSettled([
+        storageLocal.get([...LOCAL_KEYS, ...PROFILE_KEYS]), storageSession.get([...SESSION_KEYS]),
+        // Dynamic immutable attempt keys require read-only enumeration.
+        storageLocal.get(null)
       ]);
       const local = localRead.status === 'fulfilled' && isRecord(localRead.value) ? localRead.value : null;
       const session = sessionRead.status === 'fulfilled' && isRecord(sessionRead.value) ? sessionRead.value : null;
@@ -117,6 +119,39 @@
         set('insertionLock', insertionBusy
           ? active('PERSISTED_INSERTION_OWNER_ACTIVE')
           : unknown('INSERTION_LOCK_NO_AUTHORITATIVE_IDLE_PROOF'));
+      }
+      // A receipt from an earlier Worker generation is positive BUSY evidence
+      // even if the renewal session no longer appears in this process.
+      // Corruption and read failure must never masquerade as an empty journal.
+      const prefix = 'karPhase4UncertainAttemptV1_';
+      let journalEvidence = 'missing';
+      if (journalRead.status !== 'fulfilled' || !isRecord(journalRead.value)) {
+        journalEvidence = 'unavailable';
+      } else {
+        const remoteRows = Object.entries(journalRead.value)
+          .filter(([key]) => key.startsWith(prefix));
+        const id = value => typeof value === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(value);
+        const ad = value => typeof value === 'string' && /^\d+$/.test(value);
+        const valid = ([key, row]) => isRecord(row) && row.schema === 1
+          && row.state === 'outcome-unverified' && id(row.renewalId)
+          && id(row.attemptId) && id(row.workerInstanceId)
+          && typeof row.profileId === 'string' && row.profileId.trim().length > 0
+          && row.profileId.length <= 256 && ad(row.sourceAdId) && ad(row.newAdId)
+          && row.sourceAdId !== row.newAdId && Number.isSafeInteger(row.createdAtMs)
+          && row.createdAtMs >= 0
+          && key === prefix + row.renewalId + '_' + row.attemptId;
+        journalEvidence = remoteRows.every(valid)
+          ? (remoteRows.length ? 'unresolved' : 'missing') : 'corrupt';
+      }
+      if (journalEvidence === 'unresolved') {
+        set('renewal', active('PHASE4_JOURNAL_UNRESOLVED'));
+        set('insertionLock', active('PHASE4_JOURNAL_UNRESOLVED'));
+      } else if (journalEvidence === 'corrupt' || journalEvidence === 'unavailable') {
+        const reason = journalEvidence === 'corrupt'
+          ? 'PHASE4_JOURNAL_CORRUPT' : 'PHASE4_JOURNAL_STORAGE_UNAVAILABLE';
+        // Independent positive BUSY evidence always takes precedence.
+        for (const name of ['renewal', 'insertionLock'])
+          if (result[name].state !== 'active') set(name, unknown(reason));
       }
       const validProfile = value => isRecord(value) && typeof value.profileId === 'string'
         && PROFILE_ID.test(value.profileId);
