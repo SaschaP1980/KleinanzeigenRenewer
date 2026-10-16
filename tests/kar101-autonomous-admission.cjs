@@ -38,4 +38,17 @@ confirm(/withAutonomousAdmission\('renewal-publish-detection',[\s\S]{0,100}async
   'renewal post-publish detection IIFE is admitted before starting');
 confirm(worker.includes("withAutonomousAdmission('tab-removed'")&&worker.includes("withAutonomousAdmission('tab-activated'"),
   'tab activation/removal callbacks are admitted through the same gate');
+// Controllers schedule work outside the router. Future callbacks must never
+// invoke start/retry functions directly; a missing admission dependency blocks.
+const massContinuations=(mass.match(/queueMicrotaskFn\\(\\(\\) => \\{ void withAutonomousAdmission\\('mass-renewal-next-item', \\(\\) => startNextMassRenewalItem\\(/g)||[]);
+confirm(massContinuations.length===7,'seven queued mass renewal continuations require the shared gate');
+confirm(/await withAutonomousAdmission\\('mass-renewal-next-item', \\(\\) => startNextMassRenewalItem\\(/.test(mass),
+  'direct mass renewal retry continuation requires the shared gate');
+const phaseOneContinuations=(fill.match(/queueMicrotaskFn\\(\\(\\) => \\{ void withAutonomousAdmission\\('renewal-phase1-retry', \\(\\) => restartRenewalPhase1Attempt\\(/g)||[]);
+confirm(phaseOneContinuations.length===2,'both queued renewal phase-one retries require the shared gate');
+confirm(mass.includes('withAutonomousAdmission,')&&fill.includes('withAutonomousAdmission,'),
+  'both controllers receive a real background-owned admission dependency');
+confirm(worker.includes('withAutonomousAdmission,')&&worker.includes('withAutonomousAdmission:'),
+  'parent background binds controller callbacks to the shared fence');
+
 console.log('PASS KAR101 '+checks+' tests');
