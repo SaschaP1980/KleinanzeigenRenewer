@@ -13,14 +13,19 @@
     'templateFillSessions', 'archiveInsertionSessionsV1'
   ]);
   const SESSION_KEYS = Object.freeze(['bulkRunRuntimeLeaseV1', 'runtimeEpochV1']);
+  const PROFILE_KEYS = Object.freeze(['activeDetectedProfileV1', 'selectedInventoryProfileV1']);
+  const PROFILE_ID = /^[A-Za-z0-9_-]{1,128}$/;
   const isRecord = v => v !== null && typeof v === 'object' && !Array.isArray(v);
   const active = reason => Object.freeze({state: 'active', reason});
   const unknown = reason => Object.freeze({state: 'unknown', reason});
 
-  function create({storageLocal, storageSession, clock = () => Date.now()} = {}) {
+  function create({storageLocal, storageSession, clock = () => Date.now(), workerInstanceId = null} = {}) {
     if (typeof storageLocal?.get !== 'function' || typeof storageSession?.get !== 'function'
       || typeof clock !== 'function') throw new Error('persisted owner observer requires read-only storage and clock');
     const pending = new Map(OWNERS.map(name => [name, 0]));
+    // A fresh *in-process* ID is not a persisted MV3-generation attestation.
+    const localInstanceId = typeof workerInstanceId === 'string' && PROFILE_ID.test(workerInstanceId)
+      ? workerInstanceId : null;
     function snapshotInFlight() {
       return Object.freeze(Object.fromEntries(OWNERS.map(name => [name, pending.get(name)])));
     }
@@ -57,10 +62,16 @@
       // This is an observation only: no storage writes, sweeps, expiries,
       // account probing or auto-recovery mutating getters.
       const [localRead, sessionRead] = await Promise.allSettled([
-        storageLocal.get([...LOCAL_KEYS]), storageSession.get([...SESSION_KEYS])
+        storageLocal.get([...LOCAL_KEYS, ...PROFILE_KEYS]), storageSession.get([...SESSION_KEYS])
       ]);
       const local = localRead.status === 'fulfilled' && isRecord(localRead.value) ? localRead.value : null;
       const session = sessionRead.status === 'fulfilled' && isRecord(sessionRead.value) ? sessionRead.value : null;
+      // A second profile read detects a change during the observation. Identical
+      // reads are NOT atomic and cannot certify the live website account or
+      // that a prior Service Worker has completed all detached work.
+      const profileRecheck = await Promise.allSettled([storageLocal.get([...PROFILE_KEYS])]);
+      const laterProfiles = profileRecheck[0].status === 'fulfilled' && isRecord(profileRecheck[0].value)
+        ? profileRecheck[0].value : null;
       const observedAtMs = clock();
       const counts = snapshotInFlight();
       const result = Object.create(null);
@@ -107,13 +118,40 @@
           ? active('PERSISTED_INSERTION_OWNER_ACTIVE')
           : unknown('INSERTION_LOCK_NO_AUTHORITATIVE_IDLE_PROOF'));
       }
+      const validProfile = value => isRecord(value) && typeof value.profileId === 'string'
+        && PROFILE_ID.test(value.profileId);
+      const priorActive = local?.activeDetectedProfileV1;
+      const priorSelected = local?.selectedInventoryProfileV1;
+      const nextActive = laterProfiles?.activeDetectedProfileV1;
+      const nextSelected = laterProfiles?.selectedInventoryProfileV1;
+      let profileReason = 'PROFILE_MISSING_OR_INVALID';
+      let groundedProfileId = null;
+      if (!local || !laterProfiles) profileReason = 'PROFILE_STORAGE_UNAVAILABLE';
+      else if ([priorActive, priorSelected, nextActive, nextSelected].every(validProfile)) {
+        if (priorActive.profileId !== nextActive.profileId || priorSelected.profileId !== nextSelected.profileId)
+          profileReason = 'PROFILE_CHANGED_DURING_READ';
+        else if (priorActive.profileId !== priorSelected.profileId)
+          profileReason = 'PROFILE_MISMATCH';
+        else {
+          profileReason = 'STORED_PROFILES_MATCH_BUT_LIVE_UNVERIFIED';
+          groundedProfileId = priorActive.profileId;
+        }
+      }
+      const context = Object.freeze({
+        profile: Object.freeze({ state: 'unverified', reason: profileReason, profileId: groundedProfileId }),
+        // runtimeEpochV1 belongs to the bulk-run session lease, not this
+        // Worker instance: even equal/matching epochs never prove an MV3 owner.
+        worker: Object.freeze({ state: 'unverified', reason: 'NO_CROSS_WORKER_GENERATION_PROOF',
+          workerInstanceId: localInstanceId })
+      });
       // All results are explicitly non-authoritative. They cannot be fed into
       // KRUpdateIdlePolicy's confirmed owner records or production reserve().
       return Object.freeze({
         schema: 1,
         eligibleForLease: false,
         observedAtMs: Number.isSafeInteger(observedAtMs) ? observedAtMs : null,
-        observations: Object.freeze({...result})
+        observations: Object.freeze({...result}),
+        context
       });
     }
     return Object.freeze({observe, track, snapshotInFlight});
