@@ -2,7 +2,7 @@
 
 **Status: tested candidate classifier only. Not a permission to install or reload an extension.**
 
-The pure `src/background/services/update-idle-policy.js` module accepts a versioned, strictly shaped observation and an explicit monotonic clock reading in milliseconds. Its only decisions are `{status:"blocked",reason:"..."}` and `{status:"candidate-idle",reason:"ALL_OWNERS_IDLE"}`. The latter means *all mandatory observations appear coherent and idle at one instant*; it is **not** an authorization for a NativeHost or file update.
+The pure `lib/update-idle-policy.js` module accepts a versioned, strictly shaped observation and an explicit monotonic clock reading in milliseconds. Its only decisions are `{status:"blocked",reason:"..."}` and `{status:"candidate-idle",reason:"ALL_OWNERS_IDLE"}`. The latter means *all mandatory observations appear coherent and idle at one instant*; it is **not** an authorization for a NativeHost or file update.
 
 ## Snapshot contract
 

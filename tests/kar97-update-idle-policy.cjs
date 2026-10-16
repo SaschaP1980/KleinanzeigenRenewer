@@ -2,7 +2,7 @@
 // Deliberately no NativeHost, Chrome runtime, file changes or update activation here.
 'use strict';
 const assert = require('node:assert/strict');
-const Policy = require('../src/background/services/update-idle-policy.js');
+const Policy = require('../lib/update-idle-policy.js');
 const NOW = Date.UTC(2026, 9, 16, 10, 0, 0);
 const GENERATION = 'worker-epoch-1';
 const PROFILE = 'profile-fixture';
