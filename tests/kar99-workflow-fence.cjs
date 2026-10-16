@@ -30,7 +30,7 @@ const reject=async(p,code,label)=>{await assert.rejects(p,e=>e.code===code,label
   const storage=memory(),gate=init(storage);
   assert.equal(await gate.withAdmission('START_TEMPLATE_FILL',async()=>42),42);pass('ordinary requests allowed absent lease');
   assert.equal((await gate.status()).state,'unlocked');pass('status unlocked and no apply operation');
-  await reject(gate.reserve({profileId:profile,workerGeneration:generation,transactionId:'tx1'}),'KR_UPDATE_FENCE_OWNER_UNAVAILABLE','requires trusted provider on missing observation');
+  await reject(init(storage,{getOwnerSnapshot:null}).reserve({profileId:profile,workerGeneration:generation,transactionId:'tx1'}),'KR_UPDATE_FENCE_OWNER_UNAVAILABLE','requires trusted provider on missing observation');
   const missing=init(storage,{getOwnerSnapshot:async()=>null});
   await reject(missing.reserve({profileId:profile,workerGeneration:generation,transactionId:'tx1'}),'KR_UPDATE_FENCE_NOT_IDLE','missing owner observation fails closed');
   const active=init(storage,{getOwnerSnapshot:async()=>{let s=snapshot();s.owners.renewal.state='active';return s}});
@@ -76,7 +76,7 @@ const reject=async(p,code,label)=>{await assert.rejects(p,e=>e.code===code,label
   const registry={route(){return {action:'accept'}},errorFor(){return Error('bad')}};
   const safe=Router.create({MessageContractRegistry:registry,assertPlatformAccessAllowedForRequest:async()=>{},handlers:{
    START_TEMPLATE_FILL:async()=>5,GET_NATIVE_UPDATE_STATUS:async()=>7
-  },withWorkflowAdmission:gate.withAdmission});
+  },withWorkflowAdmission:gate2.withAdmission});
   await reject(safe.dispatch({type:'START_TEMPLATE_FILL'},{}),'KR_UPDATE_FENCE_HELD','router denies mutations through fence');
   assert.equal(await safe.dispatch({type:'GET_NATIVE_UPDATE_STATUS'},{}),7);pass('read-only status remains available');
   console.log('PASS KAR99 '+checks+' focused checks');
