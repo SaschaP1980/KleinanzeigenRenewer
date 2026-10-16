@@ -17,6 +17,7 @@
                 recordRenewalPhaseAttemptError, canRetryRenewalPhase1, restartRenewalPhase1Attempt,
                 evictTemplateImageTransfersForFill, classifyKleinanzeigenInsertionErrorUrl,
                 cryptoApi, chromeApi, queueMicrotaskFn,
+                 withAutonomousAdmission = () => Promise.reject(Object.assign(new Error('KR_UPDATE_FENCE_UNAVAILABLE'), { code: 'KR_UPDATE_FENCE_UNAVAILABLE' })),
                 TEMPLATE_TARGET_URL, TAB_ROLES, TERMINAL_TEMPLATE_FILL_STATUSES
       } = options;
       const required = {
@@ -56,7 +57,7 @@
         restartRenewalPhase1Attempt,
         evictTemplateImageTransfersForFill,
         classifyKleinanzeigenInsertionErrorUrl,
-        queueMicrotaskFn,
+        queueMicrotaskFn, withAutonomousAdmission,
       };
       for (const [name, value] of Object.entries(required)) {
         if (typeof value !== 'function') throw new Error(`template fill controller dependency ${name} is required`);
@@ -493,7 +494,7 @@ async function updateTemplateFillSession(message, sender) {
             renewal.status = 'draft';
             renewal.stage = 'phase1-retry-pending';
             renewal.lastError = issue;
-            queueMicrotaskFn(() => { void restartRenewalPhase1Attempt(renewal.renewalId, session.fillId, issue || session.stage || 'fill-failed'); });
+            queueMicrotaskFn(() => { void withAutonomousAdmission('renewal-phase1-retry', () => restartRenewalPhase1Attempt(renewal.renewalId, session.fillId, issue || session.stage || 'fill-failed')).catch(() => {}); });
           } else {
             renewal.status = 'verification-failed';
             renewal.stage = session.stage || 'fill-failed';
@@ -608,7 +609,7 @@ async function terminalizeTemplateFillOnPlatformError(tabId, rawUrl, evidence = 
         renewal.stage = 'phase1-retry-pending';
         renewal.lastError = issue;
         await persistRenewalSession(renewal);
-        queueMicrotaskFn(() => { void restartRenewalPhase1Attempt(renewal.renewalId, session.fillId, issue); });
+        queueMicrotaskFn(() => { void withAutonomousAdmission('renewal-phase1-retry', () => restartRenewalPhase1Attempt(renewal.renewalId, session.fillId, issue)).catch(() => {}); });
       } else {
         renewal.status = 'verification-failed';
         renewal.stage = 'platform-error-page';
