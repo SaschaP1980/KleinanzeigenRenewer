@@ -198,7 +198,8 @@ function requireRemoteDeleteReplacementService() {
     renewalMaxPhaseAttempts, isPhase4DeleteTransportInterruption, assertMassRenewalManualActionAllowed, getInventory, normalBrowserWindowId,
     renewalPhaseAttemptAvailable, renewalAttemptState, delay, renewalPhaseRetryDelayMs, logRenewalPhaseAttemptStarted,
     logRenewalPhaseAttemptFailed, isNonRetryableRenewalSafetyError, renewalAttemptDetails, setAppNotice, markMassRenewalItemSucceeded,
-    IDBKeyRangeCtor: globalThis.IDBKeyRange, captureEmergencyResetGeneration, assertEmergencyResetGeneration
+    IDBKeyRangeCtor: globalThis.IDBKeyRange, captureEmergencyResetGeneration, assertEmergencyResetGeneration,
+    beginPhase4Attempt: current => requirePhase4UncertaintyJournal().begin(current)
   });
   return remoteDeleteReplacementService;
 }
@@ -2548,7 +2549,6 @@ function requireRenewalWorkflowController() {
       compareRenewalRecords, correlationContext, createManagedWorkerTab, delay, detectPublishedAdForFill,
       dropMassRenewalProgress, ensureContentConnection, evaluateCheckoutRecoveryProof, finishRenewalReplacement,
       withAutonomousAdmission,
-      beginPhase4Attempt: current => requirePhase4UncertaintyJournal().begin(current),
       flushDiagnosticBuffer, getInventory, isCheckoutAbortedRecoveryCandidate, isNonRetryableRenewalSafetyError,
       isSafeLegacyManualEmergencyReset, logDiagnostic, logRenewalPhaseAttemptFailed, logRenewalPhaseAttemptStarted,
       massRenewalBatchCounts, massRenewalTerminalOutcome, mergeListingMetadata, mutateMassRenewalBatch,
