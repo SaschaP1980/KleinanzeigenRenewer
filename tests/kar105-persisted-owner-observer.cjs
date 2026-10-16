@@ -1,4 +1,5 @@
 // KAR-105 test-first executable owner evidence characterization.
+// Intentional hosted RED: missing new module is not an idle/lease permission.
 'use strict';
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
