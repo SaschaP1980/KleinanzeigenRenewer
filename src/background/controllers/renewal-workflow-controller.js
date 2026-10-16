@@ -21,6 +21,7 @@
         ensureContentConnection,
         evaluateCheckoutRecoveryProof,
         finishRenewalReplacement,
+        withAutonomousAdmission,
         flushDiagnosticBuffer,
         getInventory,
         isCheckoutAbortedRecoveryCandidate,
@@ -91,6 +92,7 @@
         ensureContentConnection,
         evaluateCheckoutRecoveryProof,
         finishRenewalReplacement,
+        withAutonomousAdmission,
         flushDiagnosticBuffer,
         getInventory,
         isCheckoutAbortedRecoveryCandidate,
@@ -392,8 +394,8 @@ async function confirmPublishedRenewal(fill, detected) {
   await sendRenewalFeedback(renewal, 'Neue Anzeige veröffentlicht', feedbackText);
   await logDiagnostic('info', 'RENEWAL_NEW_ID_CONFIRMED', { renewalId: renewal.renewalId, sourceAdId: renewal.sourceAdId, newAdId, publicUrlAvailable: Boolean(renewal.newPublicUrl), renewalMode }, { module: 'background', operation: 'renewal-publish', context: sessionCorrelationContext(renewal, { renewalId: renewal.renewalId, adId: newAdId, targetTabId: renewal.targetTabId }) }).catch(() => {});
   await retirePublishedRenewalTargetTab(renewal);
-  if (renewalMode === RENEWAL_MODE_FAST) void runFastRenewalVerification(renewal.renewalId).catch(() => {});
-  else void runRenewalReinventory(renewal.renewalId).catch(() => {});
+  if (renewalMode === RENEWAL_MODE_FAST) void withAutonomousAdmission('renewal-detached-verify', () => runFastRenewalVerification(renewal.renewalId)).catch(() => {});
+  else void withAutonomousAdmission('renewal-detached-verify', () => runRenewalReinventory(renewal.renewalId)).catch(() => {});
   return renewalPublicSnapshot(renewal);
 }
 
@@ -434,12 +436,12 @@ async function resumePendingRenewals() {
         await logDiagnostic('info', 'RENEWAL_LEGACY_ONLINE_WAIT_MIGRATED', {
           renewalId: renewal.renewalId, sourceAdId: renewal.sourceAdId, newAdId: renewal.newAdId
         }, { module: 'background', operation: 'renewal-resume', context: sessionCorrelationContext(renewal, { renewalId: renewal.renewalId, adId: renewal.newAdId }) }).catch(() => {});
-        if (renewalPhaseAttemptAvailable(renewal, 3)) void retryRenewalVerification({ renewalId: renewal.renewalId }).catch(() => {});
+        if (renewalPhaseAttemptAvailable(renewal, 3)) void withAutonomousAdmission('renewal-detached-retry', () => retryRenewalVerification({ renewalId: renewal.renewalId })).catch(() => {});
       } else if (String(renewal?.status || '') === 'waiting-for-online' && /^\d+$/.test(String(renewal?.newAdId || ''))) {
-        if (renewalPhaseAttemptAvailable(renewal, 3)) void retryRenewalVerification({ renewalId: renewal.renewalId }).catch(() => {});
+        if (renewalPhaseAttemptAvailable(renewal, 3)) void withAutonomousAdmission('renewal-detached-retry', () => retryRenewalVerification({ renewalId: renewal.renewalId })).catch(() => {});
       } else if (['new-id-confirmed', 'reinventorizing', 'verifying'].includes(String(renewal?.status || '')) && /^\d+$/.test(String(renewal?.newAdId || ''))) {
-        if (normalizeRenewalMode(renewal?.renewalMode) === RENEWAL_MODE_FAST) void runFastRenewalVerification(renewal.renewalId).catch(() => {});
-        else void runRenewalReinventory(renewal.renewalId).catch(() => {});
+        if (normalizeRenewalMode(renewal?.renewalMode) === RENEWAL_MODE_FAST) void withAutonomousAdmission('renewal-detached-verify', () => runFastRenewalVerification(renewal.renewalId)).catch(() => {});
+        else void withAutonomousAdmission('renewal-detached-verify', () => runRenewalReinventory(renewal.renewalId)).catch(() => {});
       }
     } catch (error) {
       await logDiagnostic('warning', 'RENEWAL_RESUME_DEFERRED', { renewalId: renewal?.renewalId || null, status: renewal?.status || null, message: String(error.message || error).slice(0, 500) }, { module: 'background', operation: 'renewal-resume', context: sessionCorrelationContext(renewal, { renewalId: renewal?.renewalId || null, adId: renewal?.newAdId || renewal?.sourceAdId || null }) }).catch(() => {});
