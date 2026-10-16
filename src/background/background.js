@@ -3243,14 +3243,17 @@ chrome.action?.onClicked?.addListener(() => {
   });
 });
 
-void reconcileTabRegistry().catch(() => {});
-chrome.runtime.onStartup?.addListener(() => { void reconcileTabRegistry().catch(() => {}); });
+// Startup maintenance mutates local registry/trash state outside the message router.
+// Deny it while the persisted update lease is held, including after an MV3 restart.
+// These short tasks use the same admission service as routed workflow requests.
+void withAutonomousAdmission('tab-registry-boot', () => reconcileTabRegistry()).catch(() => {});
+chrome.runtime.onStartup?.addListener(() => { void withAutonomousAdmission('tab-registry-startup', () => reconcileTabRegistry()).catch(() => {}); });
 
-// Opportunistic lifecycle cleanup is sufficient for the 30-day archive: it runs
-// whenever the service worker starts, and again before each inventory/trash listing.
-void purgeExpiredTrash().catch(() => {});
-chrome.runtime.onStartup?.addListener(() => { void purgeExpiredTrash().catch(() => {}); });
-chrome.runtime.onInstalled?.addListener(() => { void purgeExpiredTrash().catch(() => {}); });
+// The 30-day trash purge is locally mutating maintenance, not just a read.
+// All three autonomous launch paths must observe the persistent update fence.
+void withAutonomousAdmission('trash-purge-boot', () => purgeExpiredTrash()).catch(() => {});
+chrome.runtime.onStartup?.addListener(() => { void withAutonomousAdmission('trash-purge-startup', () => purgeExpiredTrash()).catch(() => {}); });
+chrome.runtime.onInstalled?.addListener(() => { void withAutonomousAdmission('trash-purge-installed', () => purgeExpiredTrash()).catch(() => {}); });
 
 // Bulk inventory recovery: extension reload/browser restart invalidates the session lease,
 // while an independent watchdog enforces the hard per-item deadline even if the source loop stalls.
