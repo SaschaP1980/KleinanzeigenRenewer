@@ -8,6 +8,7 @@ const Observer = require('../src/background/services/persisted-owner-observer.js
 const worker = fs.readFileSync('src/background/background.js','utf8');
 const lifecycle = fs.readFileSync('src/background/controllers/tab-lifecycle-observer.js','utf8');
 const template = fs.readFileSync('src/background/controllers/template-fill-controller.js','utf8');
+const watchdog = fs.readFileSync('src/background/services/mass-renewal-watchdog-service.js','utf8');
 const part = worker.match(/const AUTONOMOUS_PERSISTED_OWNER_KINDS = Object\.freeze\((\{[\s\S]*?\})\);/);
 assert.ok(part, 'real background autonomous owner map must be available');
 const names = vm.runInNewContext('('+part[1]+')', Object.create(null));
@@ -24,7 +25,7 @@ const required = Object.freeze({
 });
 async function main() {
   for (const [kind, owners] of Object.entries(required)) {
-    ok(worker.includes("withAutonomousAdmission('"+kind+"'"),
+    ok((kind === 'mass-renewal-watchdog-timer' ? watchdog : worker).includes("withAutonomousAdmission('"+kind+"'"),
       kind+' is a real source-called autonomous boundary');
     ok(Array.isArray(names[kind]) && owners.every(owner=>names[kind].includes(owner)),
       kind+' tracks every relevant persisted owner');
