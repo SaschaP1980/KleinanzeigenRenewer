@@ -2946,11 +2946,11 @@ chrome.storage?.onChanged?.addListener((changes, areaName) => {
 
 chrome.tabs?.onUpdated?.addListener((tabId, changeInfo, tab) => {
   if (changeInfo?.status || changeInfo?.url) notifyTabLoadWaiters(tabId, { kind: 'updated', status: changeInfo.status || tab?.status || null, url: changeInfo.url || tab?.url || null, tab });
-  if (tab?.id) void observeTabLifecycleUpdate(tab).catch(() => {});
+  if (tab?.id) void withAutonomousAdmission('tab-lifecycle-update', () => observeTabLifecycleUpdate(tab)).catch(() => {});
   const observedUrl = String(changeInfo.url || tab?.url || '');
   const platformError = classifyKleinanzeigenInsertionErrorUrl(observedUrl, { title: tab?.title || '' });
   if (platformError.isError) {
-    void terminalizeTemplateFillOnPlatformError(tabId, observedUrl, { ...platformError, title: tab?.title || '', source: 'tab-navigation' }).catch(async error => {
+    void withAutonomousAdmission('template-error-terminalize', () => terminalizeTemplateFillOnPlatformError(tabId, observedUrl, { ...platformError, title: tab?.title || '', source: 'tab-navigation' })).catch(async error => {
       await logDiagnostic('error', 'KLEINANZEIGEN_ERROR_PAGE_TERMINALIZATION_FAILED', {
         tabId, path: platformError.path || null, errorCode: platformError.errorCode || null,
         message: String(error.message || error).slice(0, 800)
@@ -2959,7 +2959,7 @@ chrome.tabs?.onUpdated?.addListener((tabId, changeInfo, tab) => {
   }
   if (changeInfo.status !== 'complete' || renewalPublishDetectionInFlight.has(tabId)) return;
   renewalPublishDetectionInFlight.add(tabId);
-  (async () => {
+  void withAutonomousAdmission('renewal-publish-detection', async () => {
     const fills = await readFillSessions();
     const fill = Object.values(fills).find(item => item?.targetTabId === tabId && (item?.renewalId || item?.archiveInsertionId) && item?.stage === 'publish-submitted' && item?.status === 'running');
     if (!fill) return;
@@ -2993,15 +2993,19 @@ chrome.tabs?.onUpdated?.addListener((tabId, changeInfo, tab) => {
         message: String(error.message || error).slice(0, 500)
       }, { module: 'background', operation: fill.archiveInsertionId ? 'archive-import-publish-detect' : 'renewal-publish-detect', context: sessionCorrelationContext(fill, { renewalId: fill.renewalId || null, adId: fill.sourceAdId, targetTabId: tabId }) }).catch(() => {});
     }
-  })().finally(() => renewalPublishDetectionInFlight.delete(tabId));
+  }).catch(error => {
+    void logDiagnostic('warning', 'RENEWAL_PUBLISH_AUTO_ADMISSION_REJECTED', {
+      errorCode: String(error?.code || ''), tabId
+    }, { module: 'background', operation: 'renewal-publish-auto-admission' }).catch(() => {});
+  }).finally(() => renewalPublishDetectionInFlight.delete(tabId));
 });
 
 chrome.tabs?.onActivated?.addListener(({ tabId }) => {
-  void requireTabLifecycleObserver().handleActivated(tabId).catch(() => {});
+  void withAutonomousAdmission('tab-activated', () => requireTabLifecycleObserver().handleActivated(tabId)).catch(() => {});
 });
 
 chrome.tabs?.onRemoved?.addListener(tabId => {
-  void requireTabLifecycleObserver().handleRemoved(tabId).catch(() => {});
+  void withAutonomousAdmission('tab-removed', () => requireTabLifecycleObserver().handleRemoved(tabId)).catch(() => {});
 });
 
 
@@ -3085,6 +3089,13 @@ function requireUpdateWorkflowFence() {
     });
   }
   return updateWorkflowFence;
+}
+// A single Work-fence service protects both routed and autonomous entrypoints.
+// Convert missing service/dependency to a rejected promise so boot callbacks
+// cannot accidentally run unprotected in an incomplete MV3 startup environment.
+function withAutonomousAdmission(kind, task) {
+  try { return requireUpdateWorkflowFence().withAdmission('AUTONOMOUS:' + kind, task); }
+  catch (error) { return Promise.reject(error); }
 }
 const backgroundMessageRouter = BackgroundMessageRouter.create({
   withWorkflowAdmission: (type, task) => requireUpdateWorkflowFence().withAdmission(type, task),
@@ -3216,7 +3227,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 chrome.tabs?.onUpdated?.addListener((tabId, changeInfo, tab) => {
   if (!changeInfo?.url && changeInfo?.status !== 'complete') return;
-  void maybeDetectTrashTemplatePublishedAd(tabId, changeInfo, tab).catch(error => {
+  void withAutonomousAdmission('trash-publish-detection', () => maybeDetectTrashTemplatePublishedAd(tabId, changeInfo, tab)).catch(error => {
     void logDiagnostic('warning', 'TRASH_TEMPLATE_PUBLISH_DETECTION_FAILED', {
       tabId: Number(tabId || 0) || null,
       message: String(error?.message || error || '').slice(0, 500)
@@ -3241,13 +3252,13 @@ chrome.runtime.onInstalled?.addListener(() => { void purgeExpiredTrash().catch((
 
 // Bulk inventory recovery: extension reload/browser restart invalidates the session lease,
 // while an independent watchdog enforces the hard per-item deadline even if the source loop stalls.
-void ensureBulkRuntimeRecovery().catch(() => {});
-void bulkRunWatchdogTick().catch(() => {});
-if (typeof setInterval === 'function') setInterval(() => { void bulkRunWatchdogTick().catch(() => {}); }, BULK_RUN_WATCHDOG_TICK_MS);
+void withAutonomousAdmission('bulk-runtime-recovery', () => ensureBulkRuntimeRecovery()).catch(() => {});
+void withAutonomousAdmission('bulk-watchdog', () => bulkRunWatchdogTick()).catch(() => {});
+if (typeof setInterval === 'function') setInterval(() => { void withAutonomousAdmission('bulk-watchdog', () => bulkRunWatchdogTick()).catch(() => {}); }, BULK_RUN_WATCHDOG_TICK_MS);
 
 // Recover persisted workflows only when no platform safety stop is active.
 void readPlatformAccessRestriction().then(state => {
   if (state?.active) return;
-  void resumePendingRenewals().finally(() => resumeMassRenewalBatch().catch(() => {})).catch(() => {});
-  void resumePendingArchiveInsertions().catch(() => {});
+  void withAutonomousAdmission('renewal-resume', () => resumePendingRenewals()).finally(() => withAutonomousAdmission('mass-resume', () => resumeMassRenewalBatch()).catch(() => {})).catch(() => {});
+  void withAutonomousAdmission('archive-resume', () => resumePendingArchiveInsertions()).catch(() => {});
 }).catch(() => {});
