@@ -3114,6 +3114,7 @@ const AUTONOMOUS_PERSISTED_OWNER_KINDS = Object.freeze({
   'renewal-resume': ['renewal', 'insertionLock'],
   'renewal-detached-verify': ['renewal', 'insertionLock'],
   'renewal-detached-retry': ['renewal', 'insertionLock'],
+  'renewal-auto-phase4': ['renewal', 'insertionLock'],
   'renewal-publish-detection': ['renewal', 'templateFill', 'archiveInsertion', 'insertionLock'],
   'mass-resume': ['massRenewal', 'insertionLock'],
   'mass-renewal-next-item': ['massRenewal', 'insertionLock'],
