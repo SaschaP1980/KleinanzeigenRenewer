@@ -5,6 +5,7 @@ const fs=require('node:fs'),assert=require('node:assert/strict');
 const worker=fs.readFileSync('src/background/background.js','utf8');
 const mass=fs.readFileSync('src/background/controllers/mass-renewal-workflow-controller.js','utf8');
 const fill=fs.readFileSync('src/background/controllers/template-fill-controller.js','utf8');
+const watchdog=fs.readFileSync('src/background/services/mass-renewal-watchdog-service.js','utf8');
 let checks=0;
 function confirm(condition,msg){ assert.ok(condition,msg);checks++;console.log('PASS KAR101 '+msg); }
 confirm(worker.includes('ensureBulkRuntimeRecovery()'), 'service worker boot asynchronously starts bulk runtime recovery');
@@ -51,5 +52,18 @@ confirm(mass.includes('withAutonomousAdmission =')&&fill.includes('withAutonomou
   'both controllers receive a real background-owned admission dependency');
 confirm(worker.includes('withAutonomousAdmission,')&&worker.includes('withAutonomousAdmission:'),
   'parent background binds controller callbacks to the shared fence');
+
+
+ // Dedicated KAR-101 watchdog RED: timer-driven stale checks and their queued
+ // next-item continuation do not enter the background message router. Both
+ // need the *same* background-owned admission decision before they can run.
+ confirm(/withAutonomousAdmission\\s*=\\s*\\(\\)\\s*=>\\s*Promise\\.reject/.test(watchdog),
+   'watchdog requires an explicit fail-closed autonomous admission dependency');
+ confirm(/massRenewalWatchdogTimer\\s*=\\s*setTimeoutFn\\(async\\s*\\(\\)\\s*=>\\s*\\{[\\s\\S]*?await\\s+withAutonomousAdmission\\('mass-renewal-watchdog-timer',\\s*\\(\\)\\s*=>\\s*runMassRenewalWatchdog\\(\\{ trigger: 'background-timer' \\}\\)\\)/.test(watchdog),
+   'watchdog self-timer cannot run a stale-check outside shared admission');
+ confirm(/queueMicrotaskFn\\(\\(\\)\\s*=>\\s*\\{\\s*void\\s+withAutonomousAdmission\\('mass-renewal-next-item',\\s*\\(\\)\\s*=>\\s*startNextMassRenewalItem\\(batch\\.batchId\\)\\)/.test(watchdog),
+   'watchdog timeout continuation cannot start the next item without admission');
+ confirm(/massRenewalWatchdogService\\s*=\\s*serviceApi\\.create\\(\\{[\\s\\S]*?\\.\\.\\.options/.test(mass),
+   'watchdog receives parent controller options including background admission');
 
 console.log('PASS KAR101 '+checks+' tests');
