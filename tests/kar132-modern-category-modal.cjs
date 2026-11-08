@@ -5,7 +5,7 @@ const { parseHTML } = require('linkedom');
 require('../src/shared/runtime-deps.js');
 const Category = require('../src/content/template-category-flow.js');
 
-const clean = value => String(value ?? '').replace(/\\s+/g, ' ').trim();
+const clean = value => String(value ?? '').replace(/\s+/g, ' ').trim();
 const target = '/p-anzeige-aufgeben-schritt2.html';
 const categoryPath = ['Mode & Beauty', 'Damenbekleidung', 'Jeans'];
 const noop = () => {};
@@ -44,6 +44,7 @@ function fixture({ committedId = '154', disableConfirmation = false, duplicateLe
     const ready = Boolean(activity.selected) && !disableConfirmation;
     mount.innerHTML = '<dialog open aria-modal="true"><header><h2>Kategorie wählen</h2></header>' +
       '<div data-testid="scrollable-content" role="region" aria-label="Kategorie wählen Inhalt">' +
+      (level === 0 ? '<fieldset id="modal-category-picker" role="radiogroup" aria-label="Kategorienvorschläge"><label><input type="radio" name="modal-category-suggestions" value="160">Mode &amp; Beauty → Herrenbekleidung → Jeans</label></fieldset>' : '') +
       breadcrumb() + '<ul>' + choices() + '</ul></div>' +
       '<footer><button aria-disabled="false">Abbrechen</button>' +
       '<button aria-disabled="' + !ready + '">Übernehmen</button></footer></dialog>';
@@ -122,5 +123,14 @@ function makeFlow() {
     assert.equal(activity.confirms, 0, 'ambiguous leaf must never confirm');
     passed++;
   }
-  console.log(passed + '/4 PASS KAR-132 modern same-page category modal safety');
+  {
+    const { form, activity } = fixture();
+    form.querySelector('input[name="categoryId"]').value = '154';
+    assert.deepEqual(await makeFlow().setCategory({ categoryId: 154 }, 'kar132-already-set'), {
+      confirmed: true, pendingNavigation: false
+    });
+    assert.equal(activity.opens, 0, 'pre-matched category should preserve existing shortcut');
+    passed++;
+  }
+  console.log(passed + '/5 PASS KAR-132 modern same-page category modal safety');
 })().catch(error => { console.error(error); process.exitCode = 1; });
