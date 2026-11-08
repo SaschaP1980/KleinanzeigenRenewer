@@ -33,7 +33,23 @@ else {
   assert.match(worker, /services\/native-status-bridge\.js/);
   assert.match(worker, /requireNativeStatusBridge\(\)\.status\(message, sender\)/);
 }
-assert.equal(sha('src/content/template-filler.js'), arch.runtime.templateFillerSha256);
+// KAR-132: keep the v1.23.22 exact historical SHA unless the later,
+// independently tested modern category-modal fix intentionally changes the
+// template filler. A marker alone is not sufficient: require the guarded
+// modal workflow, unchanged legacy path and new exact postcommit readback.
+const categoryFiller = fs.readFileSync('src/content/template-filler.js', 'utf8');
+const categoryAdapter = fs.readFileSync('src/content/template-category-flow.js', 'utf8');
+if (categoryFiller.includes('if (categoryState?.confirmed) form = resolveActivePostingForm(form);')) {
+  assert.match(categoryAdapter, /if \(opening\.modernDialog\) return await selectModernCategory/);
+  assert.match(categoryAdapter, /function runLegacyCategorySelection\(session\)/);
+  assert.match(categoryAdapter, /CATEGORY_MODAL_LEAF_CONFIRMED/);
+  assert.match(categoryAdapter, /CATEGORY_MODAL_COMMIT_VERIFIED/);
+  assert.match(categoryAdapter, /inputs\.length === 1 && String\(inputs\[0\]\.value\) === wanted/);
+  assert.match(categoryAdapter, /confirm\.getAttribute\('aria-disabled'\) !== 'false'/);
+  assert.match(categoryFiller, /if \(categoryState\?\.pendingNavigation\) return \{ pending: true, issues \}/);
+} else {
+  assert.equal(sha('src/content/template-filler.js'), arch.runtime.templateFillerSha256);
+}
 assert.equal(sha('src/content/template-verification.js'), arch.runtime.templateVerificationSha256);
 assert.equal(spec.performanceGoldlines.length, 2);
 assert.deepEqual(spec.performanceGoldlines.map(x => [x.totalSeconds, x.averageSeconds]), [[61.277,20.426],[110.34,36.771]]);
