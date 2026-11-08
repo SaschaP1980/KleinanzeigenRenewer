@@ -336,6 +336,8 @@
       issues.push(`Kategorie: ${error.message}`);
     }
     if (categoryState?.pendingNavigation) return { pending: true, issues };
+    // React may replace the entire posting form after the modal category commit.
+    if (categoryState?.confirmed) form = resolveActivePostingForm(form);
     const paidAfterCategory = paidInsertionDetection();
     if (paidAfterCategory.required) return await stopForPaidInsertion(session, paidAfterCategory, 'after-category');
 

@@ -48,6 +48,110 @@
     return [...form.querySelectorAll('a,button')].find(element => /wähle deine kategorie|kategorie ändern/i.test(visibleText(element))) || null;
   }
 
+
+  // KAR-132: new category navigation lives in a native same-page dialog.
+  function modernLabel(value) { return clean(value).normalize('NFC').toLocaleLowerCase('de-DE'); }
+  function sameModernPath(actual, expected) {
+    return actual.length === expected.length &&
+      actual.every((part, index) => modernLabel(part) === modernLabel(expected[index]));
+  }
+  function modernDialog() {
+    return [...document.querySelectorAll('dialog[open][aria-modal="true"]')].find(dialog =>
+      visible(dialog) && [...dialog.querySelectorAll('h2')].some(heading => modernLabel(visibleText(heading)) === 'kategorie wählen')) || null;
+  }
+  function modernState() {
+    const dialog = modernDialog();
+    if (!dialog) return null;
+    const region = dialog.querySelector('[aria-label="Kategorie wählen Inhalt"]');
+    if (!region) throw new Error('Inhaltsbereich des Kategorie-Dialogs fehlt.');
+    const nav = region.querySelector('nav[aria-label="Kategoriennavigation"]');
+    let path = [];
+    let list = region.querySelector('ul');
+    if (nav) {
+      const crumbs = [...nav.querySelectorAll('ol > li')].map(li =>
+        visibleText(li.querySelector('[aria-current="page"]') || li.querySelector('button')));
+      if (!crumbs.length || modernLabel(crumbs[0]) !== 'alle kategorien')
+        throw new Error('Kategorien-Breadcrumb ist nicht eindeutig.');
+      path = crumbs.slice(1);
+      list = nav.nextElementSibling;
+    }
+    if (!list || list.tagName !== 'UL') throw new Error('Aktuelle Unterkategorien sind nicht eindeutig.');
+    return { dialog, path, list };
+  }
+  function modernChoices(state) {
+    return [...state.list.children].filter(li => li.tagName === 'LI')
+      .map(li => [...li.children].find(item => item.tagName === 'BUTTON'))
+      .filter(button => button && visible(button))
+      .map(button => ({ button, label: visibleText(button.querySelector('span.flex-1') || button) }));
+  }
+  function exactModernChoice(state, name) {
+    const matched = modernChoices(state).filter(item => modernLabel(item.label) === modernLabel(name));
+    if (matched.length !== 1) throw new Error('Kategorie „' + name + '“ ist nicht eindeutig (' + matched.length + ' Treffer).');
+    const button = matched[0].button;
+    if (button.disabled || button.getAttribute('aria-disabled') === 'true')
+      throw new Error('Kategorie „' + name + '“ ist deaktiviert.');
+    return button;
+  }
+  async function selectModernCategory(template, fillId, path) {
+    const wanted = String(template.categoryId);
+    for (let i = 0; i < path.length; i += 1) {
+      const prior = path.slice(0, i), name = path[i];
+      const state = await waitFor(() => {
+        const current = modernState();
+        return current && sameModernPath(current.path, prior) ? current : null;
+      }, { timeout: 10000, description: 'Kategorieebene „' + prior.join(' › ') + '“' });
+      const button = exactModernChoice(state, name);
+      const leaf = i === path.length - 1;
+      const branch = Boolean(button.querySelector('svg[data-title="arrowRight"]'));
+      const selectable = button.hasAttribute('aria-pressed');
+      if (!leaf) {
+        if (!branch || selectable) throw new Error('Kategorie „' + name + '“ ist keine Unterkategorie.');
+        button.click();
+        await waitFor(() => {
+          const current = modernState();
+          return current && sameModernPath(current.path, path.slice(0, i + 1)) ? current : null;
+        }, { timeout: 10000, description: 'Unterkategorien nach „' + name + '“' });
+        void diagnostic(fillId, 'CATEGORY_MODAL_BRANCH_CONFIRMED', { label: name, level: i });
+      } else {
+        if (branch || !selectable) throw new Error('Kategorie „' + name + '“ ist keine Endkategorie.');
+        button.click();
+        await waitFor(() => {
+          const current = modernState();
+          if (!current || !sameModernPath(current.path, prior)) return null;
+          const selected = modernChoices(current).filter(item => item.button.getAttribute('aria-pressed') === 'true');
+          return selected.length === 1 && modernLabel(selected[0].label) === modernLabel(name) ? current : null;
+        }, { timeout: 10000, description: 'Endkategorie „' + name + '“' });
+        void diagnostic(fillId, 'CATEGORY_MODAL_LEAF_CONFIRMED', { label: name, level: i });
+      }
+    }
+    const ready = modernState();
+    if (!ready || !sameModernPath(ready.path, path.slice(0, -1)))
+      throw new Error('Kategoriepfad änderte sich vor der Übernahme.');
+    const selected = modernChoices(ready).filter(item => item.button.getAttribute('aria-pressed') === 'true');
+    if (selected.length !== 1 || !sameModernPath([...ready.path, selected[0].label], path))
+      throw new Error('Endkategorie stimmt nicht exakt mit der Vorlage überein.');
+    const confirms = [...ready.dialog.querySelectorAll('footer button')]
+      .filter(button => visible(button) && modernLabel(visibleText(button)) === 'übernehmen');
+    if (confirms.length !== 1) throw new Error('Übernehmen-Button nicht eindeutig.');
+    const confirm = confirms[0];
+    if (confirm.disabled || confirm.getAttribute('aria-disabled') !== 'false' ||
+        confirm.getAttribute('aria-busy') === 'true')
+      throw new Error('Kategorie-Übernehmen ist deaktiviert.');
+    confirm.click();
+    try {
+      await waitFor(() => {
+        if (modernDialog()) return null;
+        const inputs = [...document.querySelectorAll('form input[name="categoryId"]')];
+        return inputs.length === 1 && String(inputs[0].value) === wanted ? true : null;
+      }, { timeout: 12000, description: 'Verifizierte Kategorie-ID nach Übernehmen' });
+    } catch {
+      const actual = [...document.querySelectorAll('form input[name="categoryId"]')].map(input => input.value);
+      throw new Error('Kategorie-ID nicht verifiziert: erwartet ' + wanted + ', tatsächlich ' + JSON.stringify(actual) + '.');
+    }
+    void diagnostic(fillId, 'CATEGORY_MODAL_COMMIT_VERIFIED', { categoryId: wanted, depth: path.length });
+    return { confirmed: true, pendingNavigation: false };
+  }
+
   function normalizeLocalInteractionAttempts(value) {
     const parsed = Number.parseInt(String(value ?? ''), 10);
     if (!Number.isFinite(parsed)) return LOCAL_INTERACTION_ATTEMPTS_DEFAULT;
@@ -64,6 +168,7 @@
     const localMaxAttempts = normalizeLocalInteractionAttempts(maxAttempts);
     for (let attempt = 1; attempt <= localMaxAttempts; attempt += 1) {
       if (location.pathname === CATEGORY_PATH) return { pendingNavigation: true, fallbackUsed: false, attempt };
+      if (modernDialog()) return { modernDialog: true, pendingNavigation: false, fallbackUsed: false, attempt };
       const currentChooser = attempt === 1 && chooser?.isConnected ? chooser : findCategoryChooser();
       if (!currentChooser) throw new Error('Kategorieauswahl wurde während des Wiederholungsversuchs nicht mehr gefunden.');
       const beforeUrl = location.href;
@@ -88,11 +193,18 @@
       });
 
       try {
-        await waitFor(() => location.pathname === CATEGORY_PATH, {
-          timeout: CATEGORY_OPEN_LOCAL_CONFIRM_MS,
+        const opened = await waitFor(() => {
+          if (location.pathname === CATEGORY_PATH) return 'legacy';
+          return modernDialog() ? 'modal' : null;
+        }, {
+          timeout: Math.max(3500, CATEGORY_OPEN_LOCAL_CONFIRM_MS),
           interval: 50,
-          description: 'Navigation zur Kategorieauswahl'
+          description: 'Kategorieauswahl: Navigation oder Dialog'
         });
+        if (opened === 'modal') {
+          void diagnostic(fillId, 'CATEGORY_MODAL_OPEN_CONFIRMED', { fromPath: new URL(beforeUrl).pathname, attempt });
+          return { modernDialog: true, pendingNavigation: false, fallbackUsed: false, attempt };
+        }
         void diagnostic(fillId, 'CATEGORY_OPEN_NAVIGATION_CONFIRMED', {
           method: 'semantic-click',
           fromPath: new URL(beforeUrl).pathname,
@@ -136,11 +248,15 @@
     const path = Array.isArray(template.categoryPath) ? template.categoryPath.filter(Boolean) : [];
     if (!path.length) throw new Error('Kategoriepfad der Vorlage fehlt.');
     const chooser = [...form.querySelectorAll('a,button')].find(element => /wähle deine kategorie|kategorie ändern/i.test(visibleText(element)));
-    if (!chooser) throw new Error('Kategorieauswahl wurde nicht gefunden.');
+    const alreadyOpen = modernDialog();
+    if (!chooser && !alreadyOpen) throw new Error('Kategorieauswahl wurde nicht gefunden.');
 
     await runtimeMessage({ type: 'UPDATE_TEMPLATE_FILL_SESSION', fillId, status: 'running', stage: 'category-opening' });
-    updatePanel('Kategorie wird übernommen', `„${path.join(' › ')}“ wird ausgewählt …`);
-    const opening = await openCategoryChooser(chooser, fillId, path, maxAttempts);
+    updatePanel('Kategorie wird übernommen', '„' + path.join(' › ') + '“ wird ausgewählt …');
+    const opening = alreadyOpen
+      ? { modernDialog: true, pendingNavigation: false }
+      : await openCategoryChooser(chooser, fillId, path, maxAttempts);
+    if (opening.modernDialog) return await selectModernCategory(template, fillId, path);
     return { confirmed: false, pendingNavigation: opening.pendingNavigation, fallbackUsed: opening.fallbackUsed };
   }
 
