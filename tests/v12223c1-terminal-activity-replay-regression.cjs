@@ -27,14 +27,21 @@ function loadActivityCenter(initial = {}) {
   return { center, stored: () => structuredClone(stored) };
 }
 
+// KAR-132 validation repair: keep the archived test activity inside the
+// product's real 30-day retention window regardless of CI execution date.
+// The historical fixed September 2026 dates expired on 2026-10-25 and
+// incorrectly caused normal retention to look like an activity replay bug.
+const fixtureNow = Date.now();
+const ago = minutes => new Date(fixtureNow - minutes * 60 * 1000).toISOString();
+
 const oldBulk = {
   id: 'bulk:run-old', slot: 'bulk', kind: 'ready', title: 'Erfassung abgeschlossen',
   text: '', facts: '10 gefunden · 1 neu · 9 vorhanden', badgeLabel: 'Abgeschlossen',
-  createdAt: '2026-09-25T05:19:00.000Z', archivedAt: '2026-09-25T05:30:00.000Z', active: false
+  createdAt: ago(30), archivedAt: ago(20), active: false
 };
 const recovery = {
   id: 'trash-template-recovery', slot: 'status', kind: 'waiting', title: 'Vorlagen-Inserat wird vorbereitet',
-  text: 'Fortsetzbarer Vorgang', createdAt: '2026-09-25T06:00:00.000Z', active: true
+  text: 'Fortsetzbarer Vorgang', createdAt: ago(10), active: true
 };
 
 (async () => {
