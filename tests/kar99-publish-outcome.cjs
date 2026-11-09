@@ -88,5 +88,63 @@ const create=(store,manager,worker='worker-1',verify=proof)=>Journal.create({
  corrupt.rows[key].profileId='changed';
  await deny(create(corrupt,manager).observe(request.fillId),
   'KR_PUBLISH_INTENT_CORRUPT','corrupted resolution is fail-closed');
+ // Exercise the actual capture listeners (not only source-text assertions).
+ const original={KRDeps:globalThis.KRDeps,document:globalThis.document,
+   Element:globalThis.Element,HTMLInputElement:globalThis.HTMLInputElement};
+ globalThis.KRDeps={register(){}};
+ const Flow=require('../src/content/template-publish-flow.js');
+ class ElementStub {
+  constructor(){this.textContent='Anzeige aufgeben';this.disabled=false;this.isConnected=true;}
+  closest(){return this;}
+ }
+ class InputStub extends ElementStub {}
+ globalThis.Element=ElementStub;globalThis.HTMLInputElement=InputStub;
+ function rig(fillId,authorization){
+  const events=Object.create(null);let remote=0,signals=0,denials=0;
+  globalThis.document={addEventListener(type,fn){events[type]=fn;}};
+  const button=new ElementStub();
+  function synthetic(type,submitter=button){
+   const e={target:button,submitter,defaultPrevented:false,stopped:false,
+     preventDefault(){this.defaultPrevented=true;},
+     stopImmediatePropagation(){this.stopped=true;}};
+   events[type](e);
+   if(type==='click'&&!e.defaultPrevented)remote++;
+   return e;
+  }
+  button.click=()=>synthetic('click');
+  const api=Flow.create({
+   clean:s=>String(s||'').trim(),visible:()=>true,
+   runtimeMessage:m=>m.type==='AUTHORIZE_AUTOMATIC_PUBLISH'?authorization():
+     (m.type==='RENEWAL_PUBLISH_CLICKED'?(signals++,Promise.resolve({accepted:true})):
+       Promise.resolve({})),
+   diagnostic:()=>{denials++},updatePanel:()=>{},sleep:async()=>{},
+   PaidInsertionGuard:{detect:()=>({required:false})}
+  });
+  api.armPublishDetection(fillId);
+  return {synthetic,get remote(){return remote;},get signals(){return signals;},get denials(){return denials;}};
+ }
+ let approve;
+ const promise=new Promise(resolve=>approve=resolve);
+ const allowed=rig('manual-event-001',()=>promise);
+ const intercepted=allowed.synthetic('click');
+ ok(intercepted.defaultPrevented&&intercepted.stopped&&allowed.remote===0,
+  'manual click is synchronously suppressed before background authorization');
+ approve({authorized:true});
+ for(let k=0;k<14;k++)await Promise.resolve();
+ ok(allowed.remote===1&&allowed.signals===1,
+  'one authorized manual click crosses UI boundary after durable approval');
+ const repeat=allowed.synthetic('click');
+ ok(repeat.defaultPrevented&&allowed.remote===1,
+  'second manual click cannot replay publication');
+ const refused=rig('manual-event-denied',async()=>({authorized:false}));
+ const refusedEvent=refused.synthetic('click');
+ for(let k=0;k<14;k++)await Promise.resolve();
+ ok(refusedEvent.defaultPrevented&&refused.remote===0,
+  'denied background authorization never clicks external publish');
+ const implicit=rig('manual-keyboard-unknown',async()=>({authorized:true}));
+ const enter=implicit.synthetic('submit',null);
+ ok(enter.defaultPrevented&&enter.stopped&&implicit.remote===0,
+  'implicit submit without submitter fails closed');
+ Object.assign(globalThis,original);
  console.log('PASS KAR99 P6 independently verified publication '+n+' assertions');
 })().catch(error=>{console.error(error);process.exitCode=1;});

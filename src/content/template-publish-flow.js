@@ -84,7 +84,16 @@
     }, true);
     document.addEventListener('submit', event => {
       const submitter = event.submitter;
-      if (submitted && acceptedSubmitter === submitter) return;
+      if (submitted && (acceptedSubmitter === submitter || !submitter)) return;
+      // An implicit Enter-key submission without a real submitter must not
+      // bypass the before-remote journal. Require the visible button instead.
+      if (!submitter) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        void diagnostic(fillId, 'PUBLISH_IMPLICIT_SUBMIT_BLOCKED',
+          { reason: 'missing-submit-control' }, 'warning');
+        return;
+      }
       if (!isPublishControl(submitter)) return;
       event.preventDefault();
       event.stopImmediatePropagation();
