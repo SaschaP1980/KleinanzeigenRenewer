@@ -102,6 +102,18 @@ jobs:
           python3 scripts/kar-atomic-patch.py --mode plan --issue 52 --branch work/KAR-52 --work-sha "$PINNED_WORK_HEAD" --main-sha "$PINNED_MAIN_BASE"
       - name: Mandatory coverage and architecture gate
         run: bash scripts/coverage-gate.sh
+      - name: KAR-99 P8 real MV3 Web Locks probe (isolated, no account)
+        if: github.head_ref == 'work/KAR-99'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pip install --disable-pip-version-check -r tests/e2e/requirements.txt
+          python3 -m playwright install --with-deps --no-shell chromium
+          export KR_CHROME_BINARY="$(python3 -c 'from playwright.sync_api import sync_playwright; p=sync_playwright().start(); print(p.chromium.executable_path); p.stop()')"
+          test -x "$KR_CHROME_BINARY"
+          export KR_E2E_BROWSER_CHANNEL=chromium
+          python3 tests/e2e/kar99_atomic_mv3_probe.py --report "$RUNNER_TEMP/kar99-atomic-mv3-probe.json"
+
       - name: Build installable package once
         shell: bash
         run: |
