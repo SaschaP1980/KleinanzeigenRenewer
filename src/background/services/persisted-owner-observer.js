@@ -181,6 +181,40 @@
         for (const name of ['renewal', 'insertionLock'])
           if (result[name].state !== 'active') set(name, unknown(reason));
       }
+      // Every publish intent is a durable BEFORE-click uncertainty boundary.
+      // No exact independently verified remote outcome pairing exists yet:
+      // even a terminal local fill is never evidence of no external publish.
+      const publishPrefix = 'karAutoPublishIntentV1_';
+      let publishEvidence = 'missing';
+      let publishKinds = new Set();
+      if (journalRead.status !== 'fulfilled' || !isRecord(journalRead.value)) {
+        publishEvidence = 'unavailable';
+      } else {
+        const records = Object.entries(journalRead.value).filter(([key]) => key.startsWith(publishPrefix));
+        const id = value => typeof value === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(value);
+        const valid = ([key, row]) => isRecord(row) && row.schema === 1
+          && row.state === 'outcome-unverified' && id(row.fillId)
+          && id(row.workflowId) && id(row.attemptId) && id(row.workerInstanceId)
+          && ['archive','renewal'].includes(row.kind)
+          && typeof row.profileId === 'string' && Boolean(row.profileId.trim())
+          && row.profileId.length <= 256 && Number.isSafeInteger(row.targetTabId)
+          && row.targetTabId > 0 && (typeof row.sourceAdId === 'string')
+          && (/^\\d+$/.test(row.sourceAdId) || (row.kind === 'archive' && row.sourceAdId === ''))
+          && Number.isSafeInteger(row.createdAtMs) && row.createdAtMs >= 0
+          && key === publishPrefix + row.fillId + '_' + row.attemptId;
+        publishEvidence = records.every(valid) ? (records.length ? 'unresolved' : 'missing') : 'corrupt';
+        if (publishEvidence === 'unresolved') publishKinds = new Set(records.map(([,row]) => row.kind));
+      }
+      if (publishEvidence === 'unresolved') {
+        if (publishKinds.has('renewal')) set('renewal', active('PUBLISH_INTENT_UNRESOLVED'));
+        if (publishKinds.has('archive')) set('archiveInsertion', active('PUBLISH_INTENT_UNRESOLVED'));
+        set('templateFill', active('PUBLISH_INTENT_UNRESOLVED'));
+        set('insertionLock', active('PUBLISH_INTENT_UNRESOLVED'));
+      } else if (['corrupt','unavailable'].includes(publishEvidence)) {
+        for (const name of ['renewal','archiveInsertion','templateFill','insertionLock'])
+          if (result[name].state !== 'active') set(name, unknown(
+            publishEvidence === 'corrupt' ? 'PUBLISH_INTENT_CORRUPT' : 'PUBLISH_INTENT_STORAGE_UNAVAILABLE'));
+      }
       const validProfile = value => isRecord(value) && typeof value.profileId === 'string'
         && PROFILE_ID.test(value.profileId);
       const priorActive = local?.activeDetectedProfileV1;

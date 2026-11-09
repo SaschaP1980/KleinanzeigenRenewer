@@ -165,6 +165,21 @@
     updatePanel('Vorlage vollständig übernommen', 'Alle kontrollierten Werte und Bilder stimmen. Die Anzeige wird jetzt automatisch veröffentlicht.', [], { safetyText: 'Automatische Veröffentlichung freigegeben – keine Abweichungen erkannt.' });
     try { button.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' }); } catch { /* Komfortschritt */ }
     await sleep(180);
+    // The real remote mutation is the click, NOT the later asynchronous click notification.
+    // A recorded, account-bound, cross-worker-exclusive intent is mandatory first.
+    try {
+      const authorization = await runtimeMessage({ type: 'AUTHORIZE_AUTOMATIC_PUBLISH', fillId });
+      if (authorization?.authorized !== true) throw new Error('KR_PUBLISH_INTENT_UNVERIFIED');
+      if (!button.isConnected || button.disabled || !visible(button)) throw new Error('KR_PUBLISH_BUTTON_STALE');
+    } catch (error) {
+      updatePanel('Automatische Veröffentlichung gesperrt',
+        'Der Veröffentlichungsversuch wurde nicht automatisch gestartet. Bitte den aktuellen Anzeigenstatus prüfen und keine automatische Wiederholung auslösen.',
+        [String(error?.message || error).slice(0,240)],
+        { safetyText: 'Keine automatische Veröffentlichung ohne bestätigten dauerhaften Vorabbeleg.' });
+      void diagnostic(fillId, 'AUTO_PUBLISH_INTENT_BLOCKED',
+        { reason: String(error?.message || error).slice(0,180) }, 'warning');
+      return { awaitingPublish: true, autoPublishBlocked: true };
+    }
     void diagnostic(fillId, 'AUTO_PUBLISH_GATE_PASSED', { candidateCount: 1, path: location.pathname });
     button.click();
     void diagnostic(fillId, 'AUTO_PUBLISH_CLICKED', { path: location.pathname });

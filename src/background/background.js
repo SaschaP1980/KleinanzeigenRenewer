@@ -1,4 +1,4 @@
-importScripts("../shared/runtime-deps.js", "../shared/message-contract-registry.js", "../shared/renewal-policy.js", "background-message-router.js", "services/native-update-status-gateway.js", "services/native-status-bridge.js", "services/update-workflow-fence.js", "repositories/profile-repository.js", "repositories/inventory-repository.js", "repositories/inventory-image-store.js", "services/trash-service.js", "services/diagnostics-service.js", "services/tab-registry.js", "services/managed-tab-worker-service.js", "services/content-connection-manager.js", "services/account-probe-service.js", "controllers/profile-management-controller.js", "controllers/account-session-controller.js", "controllers/platform-safety-controller.js", "controllers/tab-lifecycle-observer.js", "controllers/workflow-emergency-reset-controller.js", "lib/bulk-run-guard.js", "controllers/single-inventory-controller.js", "services/bulk-worker-service.js", "services/bulk-reconciliation-service.js", "controllers/bulk-inventory-controller.js", "controllers/mass-renewal-controller.js", "services/mass-renewal-watchdog-service.js", "controllers/mass-renewal-workflow-controller.js", "services/renewal-verification-flow.js", "services/renewal-reinventory-flow.js", "services/paid-checkout-recovery-service.js", "controllers/renewal-workflow-controller.js", "services/renewal-verification-service.js", "repositories/renewal-state-repository.js", "services/template-fill-service.js", "services/insertion-lock-service.js", "controllers/template-fill-controller.js", "services/archive-insertion-service.js", "services/archive-insertion-verification-service.js", "services/archive-insertion-recovery-service.js", "controllers/archive-insertion-controller.js", "services/remote-delete-replacement-service.js", "services/published-inventory-resolver.js", "services/diagnostic-export-service.js", "services/public-listing-evidence-service.js", "../shared/managed-navigation.js", "lib/inventory-reconciliation.js", "../shared/my-ads-readiness.js", "lib/inventory-scope.js", "../shared/platform-hardening.js", "services/tab-load-coordinator.js", "services/persisted-owner-observer.js", "services/additional-owner-observer.js", "services/phase4-uncertainty-journal.js", "services/cross-worker-atomic-admission.js");
+importScripts("../shared/runtime-deps.js", "../shared/message-contract-registry.js", "../shared/renewal-policy.js", "background-message-router.js", "services/native-update-status-gateway.js", "services/native-status-bridge.js", "services/update-workflow-fence.js", "repositories/profile-repository.js", "repositories/inventory-repository.js", "repositories/inventory-image-store.js", "services/trash-service.js", "services/diagnostics-service.js", "services/tab-registry.js", "services/managed-tab-worker-service.js", "services/content-connection-manager.js", "services/account-probe-service.js", "controllers/profile-management-controller.js", "controllers/account-session-controller.js", "controllers/platform-safety-controller.js", "controllers/tab-lifecycle-observer.js", "controllers/workflow-emergency-reset-controller.js", "lib/bulk-run-guard.js", "controllers/single-inventory-controller.js", "services/bulk-worker-service.js", "services/bulk-reconciliation-service.js", "controllers/bulk-inventory-controller.js", "controllers/mass-renewal-controller.js", "services/mass-renewal-watchdog-service.js", "controllers/mass-renewal-workflow-controller.js", "services/renewal-verification-flow.js", "services/renewal-reinventory-flow.js", "services/paid-checkout-recovery-service.js", "controllers/renewal-workflow-controller.js", "services/renewal-verification-service.js", "repositories/renewal-state-repository.js", "services/template-fill-service.js", "services/insertion-lock-service.js", "controllers/template-fill-controller.js", "services/archive-insertion-service.js", "services/archive-insertion-verification-service.js", "services/archive-insertion-recovery-service.js", "controllers/archive-insertion-controller.js", "services/remote-delete-replacement-service.js", "services/published-inventory-resolver.js", "services/diagnostic-export-service.js", "services/public-listing-evidence-service.js", "../shared/managed-navigation.js", "lib/inventory-reconciliation.js", "../shared/my-ads-readiness.js", "lib/inventory-scope.js", "../shared/platform-hardening.js", "services/tab-load-coordinator.js", "services/persisted-owner-observer.js", "services/additional-owner-observer.js", "services/phase4-uncertainty-journal.js", "services/cross-worker-atomic-admission.js", "services/auto-publish-intent-journal.js");
 
 const KRDeps = globalThis.KRDeps;
 if (!KRDeps) throw new Error('runtime-deps.js must load before background.js');
@@ -9,6 +9,7 @@ const NativeUpdateStatusGateway = KRDeps.require('KRNativeUpdateStatusGateway');
 const NativeStatusBridge = KRDeps.require('KRNativeStatusBridge');
 const UpdateWorkflowFence = KRDeps.require('KRUpdateWorkflowFence');
 const AtomicMV3Admission = KRDeps.require('KRAtomicMV3Admission');
+const AutoPublishIntentJournal = KRDeps.require('KRAutoPublishIntentJournal');
 const PersistedOwnerObserver = KRDeps.require('KRPersistedOwnerObserver');
 const AdditionalOwnerObserver = KRDeps.require('KRAdditionalOwnerObserver');
 const Phase4UncertaintyJournal = KRDeps.require('KRPhase4UncertaintyJournal');
@@ -2550,6 +2551,62 @@ function requirePhase4UncertaintyJournal() {
   }
   return phase4Journal;
 }
+let autoPublishIntentJournal = null;
+function requireAutoPublishIntentJournal() {
+  if (!autoPublishIntentJournal) {
+    autoPublishIntentJournal = AutoPublishIntentJournal.create({
+      storageLocal: chrome.storage.local, clock: () => Date.now(),
+      newToken: () => crypto.randomUUID(), workerInstanceId: crypto.randomUUID(),
+      lockName: AtomicMV3Admission.LOCK_NAME,
+      lockManager: globalThis.navigator?.locks
+    });
+  }
+  return autoPublishIntentJournal;
+}
+async function authorizeAutomaticPublish(message, sender) {
+  const fillId = String(message?.fillId || '');
+  const tabId = Number(sender?.tab?.id || 0);
+  if (!/^[A-Za-z0-9_-]{1,128}$/.test(fillId) || !Number.isSafeInteger(tabId) || tabId <= 0)
+    throw new Error('KR_PUBLISH_INTENT_IDENTITY');
+  // Never trust a claimed page URL from the message body.
+  let url;
+  try { url = new URL(String(sender?.url || '')); }
+  catch { throw new Error('KR_PUBLISH_INTENT_WRONG_PAGE'); }
+  if (!['www.kleinanzeigen.de','kleinanzeigen.de'].includes(url.hostname)
+      || !url.pathname.startsWith('/p-anzeige-aufgeben'))
+    throw new Error('KR_PUBLISH_INTENT_WRONG_PAGE');
+  const fill = (await readFillSessions())[fillId];
+  if (!fill || String(fill.fillId || '') !== fillId || Number(fill.targetTabId) !== tabId
+      || fill.templateOnly || fill.status !== 'running' || fill.stage !== 'auto-publish-ready'
+      || fill?.result?.complete !== true || !Array.isArray(fill?.result?.issues)
+      || fill.result.issues.length !== 0
+      || Boolean(fill.renewalId) === Boolean(fill.archiveInsertionId))
+    throw new Error('KR_PUBLISH_INTENT_SESSION_UNVERIFIED');
+  const archive = Boolean(fill.archiveInsertionId);
+  const workflowId = String(archive ? fill.archiveInsertionId : fill.renewalId);
+  const session = archive
+    ? (await readArchiveInsertionSessions())[workflowId]
+    : (await readRenewalSessions())[workflowId];
+  const profileId = String((archive ? session?.targetProfileId : session?.profileId) || '');
+  const sourceAdId = String(session?.sourceAdId || '');
+  if (!session || !profileId || session.fillId !== fillId
+      || Number(session.targetTabId) !== tabId || session.newAdId
+      || String(fill.sourceAdId || '') !== sourceAdId
+      || (!archive && !/^\\d+$/.test(sourceAdId)))
+    throw new Error('KR_PUBLISH_INTENT_WORKFLOW_UNVERIFIED');
+  const bound = await assertSelectedProfileMatchesLiveAccount({
+    expectedProfileId: profileId,
+    ...(archive ? {expectedProfileName: String(session.targetProfileName || '')} : {}),
+    purpose: 'automatic-publish-preflight'
+  });
+  if (!bound?.profileId || String(bound.profileId) !== profileId)
+    throw new Error('KR_PUBLISH_INTENT_ACCOUNT_UNVERIFIED');
+  const entry = await requireAutoPublishIntentJournal().begin({
+    fillId, workflowId, kind: archive ? 'archive' : 'renewal',
+    profileId, sourceAdId, targetTabId: tabId
+  });
+  return {authorized:true, receiptId:entry.attemptId};
+}
 function requireRenewalWorkflowController() {
   if (!renewalWorkflowController) {
     renewalWorkflowController = RenewalWorkflowController.create({
@@ -3283,6 +3340,7 @@ const backgroundMessageRouter = BackgroundMessageRouter.create({
   "GET_APP_NOTICE": (message, sender) => getAppNotice(),
   "DISMISS_APP_NOTICE": (message, sender) => dismissAppNotice(message),
   "RENEWAL_PUBLISH_CLICKED": (message, sender) => markRenewalPublishClicked(message, sender),
+  "AUTHORIZE_AUTOMATIC_PUBLISH": (message, sender) => authorizeAutomaticPublish(message, sender),
   "GET_TEMPLATE_FILL_SESSION": (message, sender) => getTemplateFillSession(sender),
   "GET_TEMPLATE_IMAGE_CHUNK": (message, sender) => templateImageChunk(message, sender),
   "UPDATE_TEMPLATE_FILL_SESSION": (message, sender) => updateTemplateFillSession(message, sender),
