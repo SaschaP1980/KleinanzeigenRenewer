@@ -25,9 +25,34 @@
     expectValue('input[name="priceType"]', template.price?.type, 'Preistyp');
     if (template.adType?.value && !checkedRadio('adType', template.adType.value)?.checked) issues.push('Gebot/Gesuch stimmt nicht mit der Vorlage überein.');
     for (const attribute of template.dynamicAttributes || []) {
-      const hidden = [...queryAllRoot.querySelectorAll('input[type="hidden"][name^="attributeMap["]')]
-        .find(input => input.name === `attributeMap[${attribute.key}]`);
-      if (!hidden || String(hidden.value) !== String(attribute.technicalValue)) issues.push(`Merkmal „${attribute.label || attribute.key}“ stimmt nicht mit der Vorlage überein.`);
+      // The capture extractor records empty optional fields too; absence of a
+      // saved selection must not become a false blocking mismatch.
+      if (!attribute?.key || attribute.technicalValue === null ||
+          attribute.technicalValue === undefined || attribute.technicalValue === '') continue;
+      const desired = attribute.technicalValue;
+      const target = 'attributeMap[' + attribute.key + ']';
+      const all = [...queryAllRoot.querySelectorAll('input[name^="attributeMap["]')]
+        .filter(input => input.type === 'hidden' || input.type === 'checkbox');
+      let matching = all.filter(input => input.name === target);
+      if (!matching.length && String(queryRoot.querySelector('input[name="categoryId"]')?.value) === '405') {
+        const aliases = {
+          'wearables.gehausegrosse': 'wearables.case_size',
+          'wearables.ringgrosse': 'wearables.ring_size'
+        };
+        const renamed = aliases[attribute.key];
+        if (renamed) matching = all.filter(input => input.name === 'attributeMap[' + renamed + ']');
+      }
+      let matches = false;
+      if (matching.length === 1 && matching[0].type === 'checkbox') {
+        const normalized = typeof desired === 'string' ? desired.trim().toLowerCase() : desired;
+        const wantedChecked = normalized === true || normalized === 'true' || normalized === 1 || normalized === '1'
+          ? true : normalized === false || normalized === 'false' || normalized === 0 || normalized === '0'
+            ? false : null;
+        matches = wantedChecked !== null && matching[0].checked === wantedChecked;
+      } else if (matching.length === 1 && matching[0].type === 'hidden') {
+        matches = String(matching[0].value) === String(desired);
+      }
+      if (!matches) issues.push(`Merkmal „${attribute.label || attribute.key}“ stimmt nicht mit der Vorlage überein.`);
     }
     if (template.shipping?.value) {
       const shippingRadio = [...queryAllRoot.querySelectorAll('input[type="radio"][name^="attributeMap["]')]

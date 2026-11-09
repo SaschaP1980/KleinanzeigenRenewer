@@ -66,7 +66,16 @@ for (const event of [
 if (includesActivePatch(['1.19.8','1.20.0','1.20.1','1.20.2','1.20.3','1.20.4','1.20.5','1.20.7','1.20.8','1.20.9','1.20.10','1.20.11','1.20.12','1.20.13','1.20.14','1.20.15','1.20.16','1.20.17','1.20.18','1.20.19','1.20.20','1.20.21','1.20.22','1.21.0','1.21.1','1.21.2','1.21.3','1.21.4','1.21.5','1.21.6','1.21.7','1.21.8','1.21.9','1.21.10','1.21.11','1.21.12','1.21.13','1.21.14','1.21.15','1.22.0','1.22.1','1.22.2','1.22.3','1.22.4','1.22.5','1.22.6','1.22.7','1.22.8','1.22.9','1.22.10','1.22.11','1.22.12','1.22.13','1.22.14','1.22.15','1.22.16','1.22.17','1.22.18','1.22.19','1.22.20','1.22.21','1.22.22','1.22.23','1.22.24','1.22.25','1.22.26','1.22.27','1.22.28','1.22.29','1.22.30','1.23.0','1.23.1','1.23.2','1.23.3','1.23.4','1.23.5','1.23.6','1.23.7','1.23.8','1.23.9','1.23.10','1.23.11','1.23.12','1.23.13','1.23.14','1.23.15','1.23.16','1.23.17','1.23.18','1.23.19','1.23.20','1.23.22','1.23.23','1.23.24'], manifest.version)) {
   assert.match(opener, /for \(let attempt = 1; attempt <= localMaxAttempts; attempt \+= 1\)/);
   assert.match(opener, /findCategoryChooser\(\)/);
-  assert.match(opener, /await waitFor\(\(\) => location\.pathname === CATEGORY_PATH/);
+  // KAR-132: retain the legacy route guard or accept the proven same-page modal
+  // extension only when *both* routes have explicit verification and the modal
+  // is independently recognized. Historical route-only implementations pass.
+  const legacyOnly = /await waitFor\(\(\) => location\.pathname === CATEGORY_PATH/.test(opener);
+  const dualRoute = /const opened = await waitFor\(\(\) => \{/.test(opener)
+    && /if \(location\.pathname === CATEGORY_PATH\) return 'legacy'/.test(opener)
+    && /return modernDialog\(\) \? 'modal' : null/.test(opener)
+    && /if \(opened === 'modal'\)/.test(opener)
+    && /CATEGORY_MODAL_OPEN_CONFIRMED/.test(opener);
+  assert.ok(legacyOnly || dualRoute, 'category opener must verify legacy navigation and/or proven modern modal');
   assert.match(opener, /maxAttempts: localMaxAttempts/);
   assert.match(opener, /CATEGORY_OPEN_LOCAL_RETRY/);
   assert.match(opener, /CATEGORY_OPEN_LOCAL_RETRY_DELAY_MS/);
@@ -90,7 +99,14 @@ const setCategoryStart = filler.indexOf('async function setCategory');
 const setCategoryEnd = filler.indexOf('\n  function legacyCategoryAnchors', setCategoryStart);
 const setCategory = filler.slice(setCategoryStart, setCategoryEnd);
 assert.match(setCategory, /stage: 'category-opening'/);
-if (includesActivePatch(['1.19.8','1.20.0','1.20.1','1.20.2','1.20.3','1.20.4','1.20.5','1.20.7','1.20.8','1.20.9','1.20.10','1.20.11','1.20.12','1.20.13','1.20.14','1.20.15','1.20.16','1.20.17','1.20.18','1.20.19','1.20.20','1.20.21','1.20.22','1.21.0','1.21.1','1.21.2','1.21.3','1.21.4','1.21.5','1.21.6','1.21.7','1.21.8','1.21.9','1.21.10','1.21.11','1.21.12','1.21.13','1.21.14','1.21.15','1.22.0','1.22.1','1.22.2','1.22.3','1.22.4','1.22.5','1.22.6','1.22.7','1.22.8','1.22.9','1.22.10','1.22.11','1.22.12','1.22.13','1.22.14','1.22.15','1.22.16','1.22.17','1.22.18','1.22.19','1.22.20','1.22.21','1.22.22','1.22.23','1.22.24','1.22.25','1.22.26','1.22.27','1.22.28','1.22.29','1.22.30','1.23.0','1.23.1','1.23.2','1.23.3','1.23.4','1.23.5','1.23.6','1.23.7','1.23.8','1.23.9','1.23.10','1.23.11','1.23.12','1.23.13','1.23.14','1.23.15','1.23.16','1.23.17','1.23.18','1.23.19','1.23.20','1.23.22','1.23.23','1.23.24'], manifest.version)) assert.match(setCategory, /const opening = await openCategoryChooser\(chooser, fillId, path, maxAttempts\)/);
+if (includesActivePatch(['1.19.8','1.20.0','1.20.1','1.20.2','1.20.3','1.20.4','1.20.5','1.20.7','1.20.8','1.20.9','1.20.10','1.20.11','1.20.12','1.20.13','1.20.14','1.20.15','1.20.16','1.20.17','1.20.18','1.20.19','1.20.20','1.20.21','1.20.22','1.21.0','1.21.1','1.21.2','1.21.3','1.21.4','1.21.5','1.21.6','1.21.7','1.21.8','1.21.9','1.21.10','1.21.11','1.21.12','1.21.13','1.21.14','1.21.15','1.22.0','1.22.1','1.22.2','1.22.3','1.22.4','1.22.5','1.22.6','1.22.7','1.22.8','1.22.9','1.22.10','1.22.11','1.22.12','1.22.13','1.22.14','1.22.15','1.22.16','1.22.17','1.22.18','1.22.19','1.22.20','1.22.21','1.22.22','1.22.23','1.22.24','1.22.25','1.22.26','1.22.27','1.22.28','1.22.29','1.22.30','1.23.0','1.23.1','1.23.2','1.23.3','1.23.4','1.23.5','1.23.6','1.23.7','1.23.8','1.23.9','1.23.10','1.23.11','1.23.12','1.23.13','1.23.14','1.23.15','1.23.16','1.23.17','1.23.18','1.23.19','1.23.20','1.23.22','1.23.23','1.23.24'], manifest.version)) {
+  const legacyDirect = /const opening = await openCategoryChooser\(chooser, fillId, path, maxAttempts\)/.test(setCategory);
+  const guardedModern = /const alreadyOpen = modernDialog\(\)/.test(setCategory)
+    && /const opening = alreadyOpen/.test(setCategory)
+    && /: await openCategoryChooser\(chooser, fillId, path, maxAttempts\)/.test(setCategory)
+    && /if \(opening\.modernDialog\) return await selectModernCategory\(template, fillId, path\)/.test(setCategory);
+  assert.ok(legacyDirect || guardedModern, 'category chooser must preserve legacy and validate modern flow');
+}
 else assert.match(setCategory, /const opening = await openCategoryChooser\(chooser, fillId, path\)/);
 assert.doesNotMatch(setCategory, /chooser\.click\(\);\s*return \{ confirmed: false, pendingNavigation: true \}/);
 pass('setCategory no longer assumes that chooser.click() itself guarantees navigation');

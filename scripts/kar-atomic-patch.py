@@ -110,6 +110,34 @@ def assert_lease(issue, branch, head, base, clean=True):
         require(not git("status", "--porcelain"), "nonclean Work source")
 
 
+def sealed_prior_archive(issue, base, head, relative, current):
+    """Return immutable ZIP bytes sealed by main or a prior exact-scope Work build."""
+    require(HEX.fullmatch(base) and HEX.fullmatch(head), "invalid provenance SHA")
+    require(relative == "release/kleinanzeigen-renewal-chrome-v" + current + ".zip",
+            "previous archive path/version mismatch")
+    has_main = subprocess.run(["git", "cat-file", "-e", base + ":" + relative],
+                              cwd=ROOT, capture_output=True, timeout=15)
+    if has_main.returncode == 0:
+        return run("git", "show", base + ":" + relative, binary=True), "main"
+
+    # Same-Work consecutive PATCH only: require the previous ZIP to originate
+    # from the exact authorized five-file atomic build already in our history.
+    seal = git("log", "-1", "--format=%H", head, "--", relative)
+    require(HEX.fullmatch(seal), "previous Work ZIP has no traceable commit")
+    require(git("show", "-s", "--format=%s", seal) ==
+            "build(KAR-%s): atomic PATCH %s plus ZIP" % (issue, current),
+            "previous ZIP was not sealed by the matching atomic Work builder")
+    changed = set(git("diff-tree", "--no-commit-id", "--name-only", "-r", seal).splitlines())
+    require(changed == set([*META, relative]),
+            "previous Work ZIP commit did not change exactly the five atomic paths")
+    git("merge-base", "--is-ancestor", base, seal)
+    for item in META:
+        old_meta = json.loads(run("git", "show", seal + ":" + item))
+        require(old_meta.get("version") == current,
+                "previous Work ZIP metadata version mismatch at " + item)
+    return run("git", "show", seal + ":" + relative, binary=True), "work"
+
+
 def collect(issue, branch, head, base):
     assert_lease(issue, branch, head, base)
     meta = {p: json.loads((ROOT / p).read_text(encoding="utf-8")) for p in META}
@@ -118,8 +146,10 @@ def collect(issue, branch, head, base):
     nxt = ROOT / "release" / ("kleinanzeigen-renewal-chrome-v" + future + ".zip")
     require(old.is_file(), "current release ZIP missing")
     require(not nxt.exists(), "next version archive already exists")
-    prev = run("git", "show", base + ":release/" + old.name, binary=True)
-    require(prev == old.read_bytes(), "current archived ZIP differs from main")
+    prev, old_origin = sealed_prior_archive(issue, base, head,
+                                            old.relative_to(ROOT).as_posix(), current)
+    require(prev == old.read_bytes(),
+            "current archived ZIP differs from its sealed " + old_origin + " basis")
     clash = subprocess.run(["git", "cat-file", "-e", base + ":release/" + nxt.name],
                            cwd=ROOT, capture_output=True, timeout=15)
     require(clash.returncode != 0, "next version collides in main")
@@ -127,7 +157,8 @@ def collect(issue, branch, head, base):
         "issue": int(issue), "branch": branch, "sourceSha": head, "mainSha": base,
         "currentVersion": current, "nextVersion": future,
         "oldZip": old.relative_to(ROOT).as_posix(), "newZip": nxt.relative_to(ROOT).as_posix(),
-        "oldZipSha256": digest(prev), "fivePaths": sorted([*META, nxt.relative_to(ROOT).as_posix()])
+        "oldZipSha256": digest(prev), "oldZipOrigin": old_origin,
+         "fivePaths": sorted([*META, nxt.relative_to(ROOT).as_posix()])
     }, next_meta
 
 
