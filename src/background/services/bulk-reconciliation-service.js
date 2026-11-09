@@ -62,6 +62,22 @@ async function recordBulkRosterPage(message, sender, { reconciliation = false } 
   requireBulkSource(state, sender);
   const page = Number(message?.page || 0);
   if (!Number.isInteger(page) || page < 1 || page > 100) throw new Error('Anzeigenbestand enthält eine ungültige Seitennummer.');
+  if (!reconciliation) {
+    // Each captured page must still belong to the same authenticated inventory profile.
+    // The online header may differ from the final unique set, but may not change
+    // during an enumeration whose absence evidence will affect local inventory.
+    const profile = normalizeProfileName(message?.profileName || '').toLocaleLowerCase('de-DE');
+    const owner = normalizeProfileName(state.profileName || '').toLocaleLowerCase('de-DE');
+    const count = message?.onlineCount === null || message?.onlineCount === undefined ? NaN : Number(message.onlineCount);
+    if (!profile || !owner || profile !== owner || !Number.isInteger(count) ||
+        count < 0 || count !== Number(state.expectedTotal)) {
+      const issue = 'Kleinanzeigen-Konto oder Online-Zähler hat sich während der Erfassung geändert.';
+      state.remoteRosterInvalid = issue;
+      state.issues = [...new Set([...(state.issues || []), issue])];
+      await writeBulkRunState(state);
+      throw new Error(issue);
+    }
+  }
   const ids = normalizedBulkRosterIds(message?.ids);
   const key = reconciliation ? 'reconciliationRosterPages' : 'remoteRosterPages';
   const pages = state[key] && typeof state[key] === 'object' ? { ...state[key] } : {};
