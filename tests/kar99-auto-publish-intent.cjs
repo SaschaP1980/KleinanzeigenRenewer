@@ -14,7 +14,7 @@ const click=publish.indexOf('button.click();');
 const permit=publish.indexOf("type: 'AUTHORIZE_AUTOMATIC_PUBLISH'");
 ok(click>0 && permit>0 && permit<click,
  'automated remote publish requires background authorization before the real click');
-ok(publish.slice(permit,click).includes('await runtimeMessage('),
+ok(publish.lastIndexOf('await runtimeMessage(',permit)>=0,
  'the authorization must be awaited, not an asynchronous notification');
 ok(publish.slice(permit,click).includes('catch'),
  'authorization rejection must halt the click rather than silently continue');

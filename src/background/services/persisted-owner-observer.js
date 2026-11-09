@@ -199,7 +199,7 @@
           && typeof row.profileId === 'string' && Boolean(row.profileId.trim())
           && row.profileId.length <= 256 && Number.isSafeInteger(row.targetTabId)
           && row.targetTabId > 0 && (typeof row.sourceAdId === 'string')
-          && (/^\\d+$/.test(row.sourceAdId) || (row.kind === 'archive' && row.sourceAdId === ''))
+          && (/^\d+$/.test(row.sourceAdId) || (row.kind === 'archive' && row.sourceAdId === ''))
           && Number.isSafeInteger(row.createdAtMs) && row.createdAtMs >= 0
           && key === publishPrefix + row.fillId + '_' + row.attemptId;
         publishEvidence = records.every(valid) ? (records.length ? 'unresolved' : 'missing') : 'corrupt';

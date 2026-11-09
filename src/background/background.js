@@ -2592,7 +2592,7 @@ async function authorizeAutomaticPublish(message, sender) {
   if (!session || !profileId || session.fillId !== fillId
       || Number(session.targetTabId) !== tabId || session.newAdId
       || String(fill.sourceAdId || '') !== sourceAdId
-      || (!archive && !/^\\d+$/.test(sourceAdId)))
+      || (!archive && !/^\d+$/.test(sourceAdId)))
     throw new Error('KR_PUBLISH_INTENT_WORKFLOW_UNVERIFIED');
   const bound = await assertSelectedProfileMatchesLiveAccount({
     expectedProfileId: profileId,
