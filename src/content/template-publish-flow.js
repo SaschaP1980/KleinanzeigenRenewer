@@ -205,6 +205,11 @@
   async function autoPublishVerifiedRenewal(session) {
     const fillId = session?.fillId;
     if (session?.templateOnly) return await prepareTemplateOnlyComplete(session);
+    // Both direct post-fill recovery and ordinary advancing paths MUST arm
+    // the manual before-click journal interceptor BEFORE any early return,
+    // including ambiguous or missing final publish controls.
+    if (fillId && (session?.renewalId || session?.archiveInsertionId))
+      armPublishDetection(fillId);
     if ((session?.renewalId || session?.archiveInsertionId) && ['publish-submitted', 'new-id-confirmed'].includes(String(session?.stage || ''))) {
       updatePanel('Veröffentlichung wird verarbeitet', 'Kleinanzeigen verarbeitet die neue Anzeige. Die neue Anzeigen-ID wird automatisch ermittelt.', [], { safetyText: false });
       void diagnostic(fillId, 'AUTO_PUBLISH_POST_SUBMIT_SKIPPED', { stage: session.stage, path: location.pathname });
