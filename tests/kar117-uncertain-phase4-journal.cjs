@@ -31,7 +31,7 @@ function make(db,workerId='worker-a'){
   let i=0;
   return Journal.create({storageLocal:db,clock:()=>1700000000000,
     newToken:()=>workerId+'-unique-'+(++i).toString().padStart(7,'0'),
-    workerInstanceId:workerId});
+    workerInstanceId:workerId,...require('./helpers/phase4-locks.cjs')()});
 }
 const req={renewalId:'r-1',profileId:'p_1',sourceAdId:'11111',newAdId:'22222'};
 async function main(){

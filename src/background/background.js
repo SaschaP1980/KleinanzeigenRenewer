@@ -2543,7 +2543,9 @@ function requirePhase4UncertaintyJournal() {
     phase4Journal = Phase4UncertaintyJournal.create({
       storageLocal: chrome.storage.local, clock: () => Date.now(),
       newToken: () => crypto.randomUUID(), workerInstanceId: crypto.randomUUID(),
-      verifyRemoteOutcome: receipt => requireRemoteDeleteReplacementService().verifyPhase4RemoteOutcomeFresh(receipt)
+      verifyRemoteOutcome: receipt => requireRemoteDeleteReplacementService().verifyPhase4RemoteOutcomeFresh(receipt),
+      lockName: AtomicMV3Admission.LOCK_NAME,
+      lockManager: globalThis.navigator?.locks
     });
   }
   return phase4Journal;

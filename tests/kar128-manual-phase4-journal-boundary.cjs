@@ -20,7 +20,7 @@ function harness(beginPort) {
  let deleteCalls=0,receiptStateAtDelete=null;
  const db=storage();let i=0;
  const journal=Journal.create({storageLocal:db,newToken:()=> 'attempt-'+(++i),
-   workerInstanceId:'worker-test',clock:()=>1337});
+   workerInstanceId:'worker-test',clock:()=>1337,...require('./helpers/phase4-locks.cjs')()});
  const opts={
   beginPhase4Attempt:beginPort?req=>beginPort(req,journal):req=>journal.begin(req),
   createManagedWorkerTab:async()=>({id:42}),

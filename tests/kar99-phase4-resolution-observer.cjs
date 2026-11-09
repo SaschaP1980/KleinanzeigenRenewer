@@ -29,7 +29,7 @@ const verified=receipt=>({
 });
 const journal=d=>Journal.create({storageLocal:d,clock:()=>120000,
  newToken:()=> 'receipt-id-0000001',workerInstanceId:'worker-old',
- verifyRemoteOutcome:verified});
+ verifyRemoteOutcome:verified,...require('./helpers/phase4-locks.cjs')()});
 const observer=d=>Owner.create({storageLocal:d,storageSession:{get:async()=>({})},
  clock:()=>120100,workerInstanceId:'worker-new'});
 (async()=>{

@@ -33,7 +33,7 @@ async function main(){
  const empty=await fresh.observe();
  ok(empty.eligibleForLease===false,'missing journal cannot authorize lease');
  ok(empty.observations.renewal.state==='unknown','missing renewal row is unknown, never idle');
- const journal=Journal.create({storageLocal:local,clock:()=>1111,newToken:()=> 'unique-attempt-0001',workerInstanceId:'old-worker'});
+ const journal=Journal.create({storageLocal:local,clock:()=>1111,newToken:()=> 'unique-attempt-0001',workerInstanceId:'old-worker',...require('./helpers/phase4-locks.cjs')()});
  await journal.begin(request);
  const before=local.observerWrites;
  const restarted=await observer(local).observe();

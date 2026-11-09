@@ -29,7 +29,7 @@ const proof=entry=>({
 });
 function init(db,verifyRemoteOutcome,worker='worker-new') {
   return Journal.create({storageLocal:db,clock:()=>123000,newToken:()=> 'attempt-safe-0001',
-    workerInstanceId:worker,verifyRemoteOutcome});
+    workerInstanceId:worker,verifyRemoteOutcome,...require('./helpers/phase4-locks.cjs')()});
 }
 (async()=>{
   const db=storage(),j=init(db,proof);

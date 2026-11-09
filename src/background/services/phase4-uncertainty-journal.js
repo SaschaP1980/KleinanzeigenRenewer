@@ -5,15 +5,37 @@
   const PREFIX = 'karPhase4UncertainAttemptV1_';
   const RESOLUTION_PREFIX = 'karPhase4VerifiedResolutionV1_';
   const SCHEMA = 1;
+  // Must match KRAtomicMV3Admission.LOCK_NAME. No storage-only CAS fallback.
+  const SHARED_LOCK_NAME = 'kar-updater-global-admission-v1';
   const isRecord = v => v !== null && typeof v === 'object' && !Array.isArray(v);
   const denied = code => Object.assign(new Error(code), {code});
   const safeId = value => typeof value === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(value);
   const adId = value => typeof value === 'string' && /^\d+$/.test(value);
-  function create({storageLocal, clock, newToken, workerInstanceId, verifyRemoteOutcome = null} = {}) {
+  function create({storageLocal, clock, newToken, workerInstanceId, verifyRemoteOutcome = null, lockManager = null, lockName = null} = {}) {
     if (typeof storageLocal?.get !== 'function' || typeof storageLocal?.set !== 'function'
         || typeof clock !== 'function' || typeof newToken !== 'function')
       throw denied('KR_PHASE4_JOURNAL_STORAGE');
     if (!safeId(workerInstanceId)) throw denied('KR_PHASE4_JOURNAL_IDENTITY');
+    function assertAtomicAvailable() {
+      if (typeof lockManager?.request !== 'function' || lockName !== SHARED_LOCK_NAME)
+        throw denied('KR_PHASE4_JOURNAL_ATOMIC_UNAVAILABLE');
+    }
+    async function withAtomic(action) {
+      assertAtomicAvailable();
+      try {
+        return await lockManager.request(SHARED_LOCK_NAME,
+          {mode:'exclusive',ifAvailable:true},async lock=>{
+            if (!lock) throw denied('KR_PHASE4_JOURNAL_ATOMIC_BUSY');
+            return action();
+          });
+      } catch (error) {
+        // Preserve original journal reasons (unknown, corrupt, unavailable)
+        // instead of falsely treating a storage failure as a lock failure.
+        if (typeof error?.code === 'string' && error.code.startsWith('KR_PHASE4_JOURNAL_'))
+          throw error;
+        throw denied('KR_PHASE4_JOURNAL_ATOMIC_UNAVAILABLE');
+      }
+    }
     async function read(keys) {
       try {
         const value = await storageLocal.get(keys);
@@ -76,8 +98,9 @@
           || profileId.length > 256 || !adId(String(sourceAdId || ''))
           || !adId(String(newAdId || '')) || String(sourceAdId) === String(newAdId))
         throw denied('KR_PHASE4_JOURNAL_IDENTITY');
-      if ((await observe(renewalId)).attempts.length)
-        throw denied('KR_PHASE4_JOURNAL_UNRESOLVED');
+      return withAtomic(async () => {
+        if ((await observe(renewalId)).attempts.length)
+          throw denied('KR_PHASE4_JOURNAL_UNRESOLVED');
       let attemptId;
       try { attemptId = newToken(); }
       catch { throw denied('KR_PHASE4_JOURNAL_IDENTITY'); }
@@ -100,6 +123,7 @@
       if ((await observe(renewalId)).attempts.length !== 1)
         throw denied('KR_PHASE4_JOURNAL_UNRESOLVED');
       return entry;
+      });
     }
     // Caller cannot supply its own proof. The worker-owned verifier performs
     // fresh My Ads source+target checks and returns a grounded result.
@@ -107,10 +131,14 @@
     async function resolveVerified({renewalId, attemptId} = {}) {
       if (!safeId(renewalId) || !safeId(attemptId))
         throw denied('KR_PHASE4_JOURNAL_IDENTITY');
-      const before = await observe(renewalId);
-      if (before.attempts.length !== 1 || before.attempts[0].attemptId !== attemptId)
-        throw denied('KR_PHASE4_JOURNAL_UNRESOLVED');
-      const original = before.attempts[0];
+      // Initial validation and final durable commit share the origin-wide
+      // mutex with admission/reserve, but NEVER hold it over remote navigation.
+      const original = await withAtomic(async () => {
+        const before = await observe(renewalId);
+        if (before.attempts.length !== 1 || before.attempts[0].attemptId !== attemptId)
+          throw denied('KR_PHASE4_JOURNAL_UNRESOLVED');
+        return before.attempts[0];
+      });
       if (typeof verifyRemoteOutcome !== 'function')
         throw denied('KR_PHASE4_JOURNAL_UNVERIFIED');
       let proof;
@@ -127,6 +155,7 @@
         throw denied('KR_PHASE4_JOURNAL_UNVERIFIED');
       // Always inspect the receipt again after the remote verification; neither
       // a changed account nor lost storage can become a positive outcome.
+      return withAtomic(async () => {
       const after = await observe(renewalId);
       if (after.attempts.length !== 1 || !exactlySame(after.attempts[0], original))
         throw denied('KR_PHASE4_JOURNAL_UNRESOLVED');
@@ -161,6 +190,7 @@
       if (final.resolutions.length !== 1 || !exactlySame(final.resolutions[0], resolved))
         throw denied('KR_PHASE4_JOURNAL_STORAGE');
       return resolved;
+      });
     }
     return Object.freeze({begin, observe, resolveVerified});
   }
