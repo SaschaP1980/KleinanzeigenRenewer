@@ -13,7 +13,7 @@ const asyncNoop = async () => ({});
 let passed = 0;
 
 function fixture({ committedId = '154', disableConfirmation = false, duplicateLeaf = false,
-  activePath = categoryPath, formSuggestions = [], misleadingWearablesBranch = false,
+  activePath = categoryPath, formSuggestions = [], misleadingWearablesBranch = false, misleadingBranchName = null,
   delayedWearablesSuggestionAtQuery = 0 } = {}) {
   const formRadio = ({ id, path }) => '<label><input type="radio" name="category-suggestions" value="' +
     id + '">' + path.join(' → ') + '</label>';
@@ -33,7 +33,7 @@ function fixture({ committedId = '154', disableConfirmation = false, duplicateLe
   // Real 2026-11-09 UI can navigate into child choices from an apparent
   // selectable parent: aria-pressed exists but the click opens another level.
   const button = (name, kind, pressed = false) => {
-    const deceptive = misleadingWearablesBranch && kind === 'branch' && name === 'Wearables';
+    const deceptive = kind === 'branch' && ((misleadingWearablesBranch && name === 'Wearables') || name === misleadingBranchName);
     return '<li><button data-kind="' + kind + '" data-name="' + name + '" type="button"' +
       (kind === 'leaf' || deceptive ? ' aria-pressed="' + pressed + '"' : '') +
       '><span class="flex-1">' + name + '</span>' +
@@ -262,5 +262,77 @@ function makeFlow() {
     assert.equal(activity.confirms, 0, 'known 405 proof must not be used for another ID');
     passed++;
   }
-  console.log(passed + '/15 PASS KAR-132 modern same-page category modal safety');
+
+  // KAR-143: actual 2026-11-09 owner listing has a two-level captured category
+  // path, while its explicit "Typ" display value identifies the terminal child.
+  // The real modal navigated into children when the apparent parent was clicked.
+  const shoesPath = ['Familie, Kind & Baby', 'Baby- & Kinderschuhe', 'Halb- & Schnürschuhe'];
+  const shoesTemplate = {
+    categoryId: 19, categoryPath: shoesPath.slice(0, 2),
+    dynamicAttributes: [{ key: 'babyshoes.type', label: 'Typ',
+      technicalValue: 'half-lace', displayValue: 'Halb- & Schnürschuhe' }]
+  };
+  {
+    const { activity } = fixture({ committedId: '19', activePath: shoesPath,
+      misleadingBranchName: 'Baby- & Kinderschuhe', formSuggestions: [] });
+    assert.deepEqual(await makeFlow().setCategory(shoesTemplate, 'kar143-shoes-pressed-parent'), {
+      confirmed: true, pendingNavigation: false
+    });
+    assert.deepEqual(activity.clicked, shoesPath);
+    assert.equal(activity.confirms, 1);
+    passed++;
+  }
+  {
+    const { activity } = fixture({ committedId: '19', activePath: shoesPath, formSuggestions: [] });
+    assert.deepEqual(await makeFlow().setCategory(shoesTemplate, 'kar143-shoes-arrow-parent'), {
+      confirmed: true, pendingNavigation: false
+    });
+    assert.deepEqual(activity.clicked, shoesPath);
+    assert.equal(activity.confirms, 1);
+    passed++;
+  }
+  {
+    const { activity } = fixture({ committedId: '19', activePath: shoesPath,
+      misleadingBranchName: 'Baby- & Kinderschuhe', formSuggestions: [] });
+    await assert.rejects(makeFlow().setCategory({ ...shoesTemplate, dynamicAttributes: [] },
+      'kar143-no-typ'), /Endkategorie|Kategorie|Typ|Unterkategorie/i);
+    assert.equal(activity.confirms, 0, 'a missing captured terminal label must never confirm');
+    passed++;
+  }
+  {
+    const alternative = [...shoesPath.slice(0, 2), 'Sneaker & Sportschuhe'];
+    const { activity } = fixture({ committedId: '19', activePath: alternative,
+      misleadingBranchName: 'Baby- & Kinderschuhe', formSuggestions: [] });
+    await assert.rejects(makeFlow().setCategory(shoesTemplate, 'kar143-wrong-live-child'),
+      /Kategorie|eindeutig|Halb|Endkategorie/i);
+    assert.equal(activity.confirms, 0, 'never infer a missing terminal child from a similar title');
+    passed++;
+  }
+  {
+    const { activity } = fixture({ committedId: '999', activePath: shoesPath,
+      misleadingBranchName: 'Baby- & Kinderschuhe', formSuggestions: [] });
+    await assert.rejects(makeFlow().setCategory(shoesTemplate, 'kar143-wrong-committed-id'),
+      /Kategorie-ID|19|999/);
+    assert.equal(activity.confirms, 1, 'numeric postcommit verification must reject mismatch');
+    passed++;
+  }
+  {
+    const { activity } = fixture({ committedId: '19', activePath: shoesPath,
+      misleadingBranchName: 'Baby- & Kinderschuhe', duplicateLeaf: true, formSuggestions: [] });
+    await assert.rejects(makeFlow().setCategory(shoesTemplate, 'kar143-duplicate-child'),
+      /Kategorie|eindeutig|Halb|Endkategorie/i);
+    assert.equal(activity.confirms, 0, 'ambiguous end choices must never confirm');
+    passed++;
+  }
+  {
+    const { activity } = fixture();
+    assert.deepEqual(await makeFlow().setCategory({
+      categoryId: 154, categoryPath,
+      dynamicAttributes: [{ label: 'Typ', displayValue: 'Blau', technicalValue: 'blue' }]
+    }, 'kar143-do-not-extend-valid-terminal'), { confirmed: true, pendingNavigation: false });
+    assert.deepEqual(activity.clicked, categoryPath);
+    assert.equal(activity.confirms, 1, 'type of a valid category must not become another category level');
+    passed++;
+  }
+  console.log(passed + '/22 PASS KAR-132/KAR-143 modern same-page category modal safety');
 })().catch(error => { console.error(error); process.exitCode = 1; });
