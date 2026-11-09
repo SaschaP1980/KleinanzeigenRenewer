@@ -6,9 +6,11 @@ assert.match(filler.slice(s,e),/findAttributeControl\(/); pass('control is resol
 assert.match(filler.slice(s,e),/chooseExactOption\(/); pass('each local attempt uses strict exact selection');
 assert.match(filler.slice(s,e),/for \(let attempt = 1; attempt <= LOCAL_ATTRIBUTE_SELECTION_ATTEMPTS; attempt \+= 1\)/); pass('local retry loop is bounded');
 const state={chooseCalls:0};
-const hidden={name:'attributeMap[brand]',value:'',isConnected:true};
+const hidden={name:'attributeMap[brand]',type:'hidden',value:'',isConnected:true};
 const context={
-  document:{querySelectorAll:()=>[hidden]},
+  document:{querySelectorAll:()=>[hidden],querySelector:()=>({value:'154'})},
+  resolvedAttributeName:attribute=>'attributeMap['+attribute.key+']',
+  exactDynamicInput:()=>hidden,
   waitFor:async fn=>fn(),
   findAttributeControl:()=>({id:'brand-control'}),
   chooseExactOption:async function(_control,_display,technicalInput,technical){ state.chooseCalls++; if(state.chooseCalls===1) throw new Error('Auswahl wurde nicht angeboten'); technicalInput.value=technical; },
