@@ -117,5 +117,93 @@ const a = (key, technicalValue, label = key) =>
     assert.deepEqual(x.verification.verify({ categoryId: 405, dynamicAttributes: attrs }, x.document), []);
     pass('optional blank ring size never becomes a false verification mismatch');
   }
-  console.log(passes + '/8 PASS KAR-132 wearables attribute controls');
+  // Actual owner-supplied v1.23.42 portal dropdown: aria-controls of
+  // wearables.case_size points to a portalled listbox; option text is "44mm",
+  // whereas the archived value and display are "44".
+  function caseMenuFixture({ selected = '44', technical = '44',
+      otherOnly = false, duplicate = false } = {}) {
+    const html = '<html><body><form><input type="hidden" name="categoryId" value="405">' +
+      '<input name="attributeMap[wearables.case_size]" type="hidden" value="">' +
+      '<button id="wearables.case_size" type="button" role="combobox"' +
+      ' aria-controls="wearables.case_size-menu" aria-expanded="false">' +
+      '<span id="wearables.case_size-selected-option">Bitte wählen</span></button>' +
+      '<ul id="wearables.case_size-menu" role="listbox">' +
+      '<li role="option" id="wearables.case_size-menu-option-1">43mm</li>' +
+      (otherOnly ? '' : '<li role="option" id="wearables.case_size-menu-option-2">44mm</li>') +
+      (duplicate ? '<li role="option" id="wearables.case_size-menu-option-3">44mm</li>' : '') +
+      '</ul></form></body></html>';
+    const { document } = parseHTML(html);
+    global.document = document;
+    global.HTMLInputElement = document.defaultView.HTMLInputElement;
+    const button = document.getElementById('wearables.case_size');
+    const hidden = document.querySelector('input[name="attributeMap[wearables.case_size]"]');
+    const menu = document.getElementById('wearables.case_size-menu');
+    let opened = false, clicks = 0;
+    button.focus = () => {};
+    button.click = () => { opened = true; button.setAttribute('aria-expanded', 'true'); };
+    for (const option of menu.querySelectorAll('[role="option"]')) {
+      option.click = () => {
+        clicks++;
+        hidden.value = option.textContent.trim() === '44mm' ? technical : '43';
+        document.getElementById('wearables.case_size-selected-option').textContent = option.textContent.trim();
+      };
+    }
+    const waitCalls = [];
+    const fields = Fields.create({
+      Form: null, SEARCH_KEY_DELAY_MS: 1, SEARCH_SETTLE_MS: 1,
+      LOCAL_ATTRIBUTE_SELECTION_ATTEMPTS: 1, LOCAL_ATTRIBUTE_RETRY_DELAY_MS: 0,
+      clean, sleep: async () => {}, actionText: /^$/,
+      diagnostic: () => {}, visible: node => !node.closest?.('[role="listbox"]') || opened,
+      visibleText: node => clean(node?.textContent),
+      waitFor: async (fn, opts = {}) => {
+        waitCalls.push(opts);
+        const found = fn();
+        if (found) return found;
+        throw new Error(opts.description || 'missing');
+      }
+    });
+    const verification = Verification.create({ checkedRadio: () => null });
+    const attr = {
+      key: 'wearables.gehausegrosse', label: 'Gehäusegrösse (mm)',
+      technicalValue: selected, displayValue: selected, controlType: 'input'
+    };
+    return { fields, verification, document, hidden, attr, waitCalls,
+      clickCount: () => clicks };
+  }
+  {
+    const x = caseMenuFixture();
+    assert.deepEqual(await x.fields.fillDynamicAttributes({ dynamicAttributes: [x.attr] }, 'exact-mm'), []);
+    assert.equal(x.clickCount(), 1, 'click the exact selected 44mm row once');
+    assert.equal(x.hidden.value, '44');
+    assert.deepEqual(x.verification.verify({ categoryId: 405, dynamicAttributes: [x.attr] }, x.document), []);
+    pass('saved 44 finds the real portalled case_size 44mm option');
+  }
+  {
+    const x = caseMenuFixture({ technical: '44mm' });
+    assert.deepEqual(await x.fields.fillDynamicAttributes({ dynamicAttributes: [x.attr] }, 'normalized-mm'), []);
+    assert.equal(x.clickCount(), 1);
+    assert.equal(x.hidden.value, '44mm');
+    assert.deepEqual(x.verification.verify({ categoryId: 405, dynamicAttributes: [x.attr] }, x.document), []);
+    pass('portal technical 44mm accepted only with matching 44mm selected label');
+  }
+  {
+    const x = caseMenuFixture({ technical: '45' });
+    assert.equal((await x.fields.fillDynamicAttributes({ dynamicAttributes: [x.attr] }, 'wrong-readback')).length, 1);
+    assert.equal(x.clickCount(), 1);
+    assert.ok(x.verification.verify({ categoryId: 405, dynamicAttributes: [x.attr] }, x.document).length);
+    pass('wrong technical value remains blocked even after 44mm click');
+  }
+  {
+    const x = caseMenuFixture({ duplicate: true });
+    assert.equal((await x.fields.fillDynamicAttributes({ dynamicAttributes: [x.attr] }, 'ambiguous-mm')).length, 1);
+    assert.equal(x.clickCount(), 0, 'do not select one of two identical 44mm rows');
+    pass('duplicate exact case_size choices fail closed');
+  }
+  {
+    const x = caseMenuFixture({ otherOnly: true });
+    assert.equal((await x.fields.fillDynamicAttributes({ dynamicAttributes: [x.attr] }, 'missing-mm')).length, 1);
+    assert.equal(x.clickCount(), 0, 'do not approximate 44mm with 43mm');
+    pass('unoffered 44mm case_size option is not guessed');
+  }
+  console.log(passes + '/13 PASS KAR-132 wearables attribute controls');
 })().catch(error => { console.error(error); process.exitCode = 1; });
