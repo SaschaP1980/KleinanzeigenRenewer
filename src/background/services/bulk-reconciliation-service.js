@@ -107,9 +107,9 @@ async function recordBulkRosterPage(message, sender, { reconciliation = false } 
 
 async function protectedInventoryIdsForReconciliation(profileId) {
   const [renewals, fills, massBatch] = await Promise.all([
-    readRenewalSessions().catch(() => ({})),
-    readFillSessions().catch(() => ({})),
-    readMassRenewalBatch().catch(() => null)
+    readRenewalSessions(),
+    readFillSessions(),
+    readMassRenewalBatch()
   ]);
   const protectedIds = new Set();
   for (const session of Object.values(renewals || {})) {
