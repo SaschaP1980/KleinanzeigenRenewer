@@ -271,7 +271,7 @@ async function startTrashTemplateFillUnlocked(inventoryId) {
 // tab strip is being edited. Retry ONLY that specific, rejected local API call.
 // Never retry an uncertain remote publish, a platform restriction or tab update.
 function chromeTabCreationTemporarilyBlocked(error) {
-  return /^Tabs cannot be edited right now(?:\\b|[.(])/i.test(String(error?.message || error || ''));
+  return /^Tabs cannot be edited right now(?:\\s|[.(]|$)/i.test(String(error?.message || error || ''));
 }
 
 async function createRenewalTargetTab(renewal) {
