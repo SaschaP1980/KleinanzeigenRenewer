@@ -13,7 +13,7 @@ const asyncNoop = async () => ({});
 let passed = 0;
 
 function fixture({ committedId = '154', disableConfirmation = false, duplicateLeaf = false,
-  activePath = categoryPath, formSuggestions = [], misleadingWearablesBranch = false, misleadingBranchName = null,
+  activePath = categoryPath, formSuggestions = [], misleadingWearablesBranch = false, misleadingBranchName = null, extraLeafChoices = [], disabledLeaf = false,
   delayedWearablesSuggestionAtQuery = 0 } = {}) {
   const formRadio = ({ id, path }) => '<label><input type="radio" name="category-suggestions" value="' +
     id + '">' + path.join(' → ') + '</label>';
@@ -52,8 +52,11 @@ function fixture({ committedId = '154', disableConfirmation = false, duplicateLe
       return button(activePath[level], 'branch') + button('Andere Kategorie', 'branch');
     }
     const leaf = activePath[activePath.length - 1];
-    return button(leaf, 'leaf', activity.selected === leaf) +
-      (duplicateLeaf ? button(leaf, 'leaf') : '') + button('Andere Endkategorie', 'leaf');
+    return button(leaf, 'leaf', activity.selected === leaf).replace('data-kind="leaf"',
+        'data-kind="leaf"' + (disabledLeaf ? ' aria-disabled="true"' : '')) +
+      (duplicateLeaf ? button(leaf, 'leaf') : '') +
+      extraLeafChoices.map(name => button(name, 'leaf', activity.selected === name)).join('') +
+      button('Andere Endkategorie', 'leaf');
   }
   function render() {
     const ready = Boolean(activity.selected) && !disableConfirmation;
@@ -392,7 +395,7 @@ function makeFlow() {
         { label: 'Art', displayValue: 'Sneaker & Sportschuhe', technicalValue: 'sneaker' }]
     };
     const { activity } = fixture({ activePath: conflictingPath, committedId: '159',
-      misleadingBranchName: 'Damenschuhe', formSuggestions: [] });
+      misleadingBranchName: 'Damenschuhe', extraLeafChoices: ['Sneaker & Sportschuhe'], formSuggestions: [] });
     await assert.rejects(makeFlow().setCategory(conflictingTemplate, 'kar143-conflicting-typ-art'),
       /Kategorie|eindeutig|Typ|Art|Unterkategorie/i);
     assert.equal(activity.confirms, 0, 'conflicting explicit terminal attributes must fail closed');
@@ -417,5 +420,77 @@ function makeFlow() {
     assert.equal(activity.confirms, 1);
     passed++;
   }
-  console.log(passed + '/30 PASS KAR-132/KAR-143 modern same-page category modal safety');
+
+  // KAR-143 owner diagnostic: categoryId=217 and parent-only template path.
+  // Public original Art=Zubehör, Typ=Cityräder. Real owner modal lists
+  // Damen/Herren/Kinder/Zubehör/Weitere ... and marks selectable parent
+  // misleadingly without arrow. The only *live* exact leaf match is Zubehör.
+  const bicyclePath = ['Auto, Rad & Boot', 'Fahrräder & Zubehör', 'Zubehör'];
+  const bicycleAttrs = [
+    { key: 'bike.art', label: 'Art', technicalValue: 'accessory', displayValue: 'Zubehör' },
+    { key: 'bike.type', label: 'Typ', technicalValue: 'city', displayValue: 'Cityräder' }
+  ];
+  const bicycleTemplate = { categoryId: 217, categoryPath: bicyclePath.slice(0, 2),
+    dynamicAttributes: bicycleAttrs };
+  const bicycleSiblings = ['Damen', 'Herren', 'Kinder', 'Weitere Fahrräder & Zubehör'];
+  {
+    const { activity } = fixture({ committedId: '217', activePath: bicyclePath,
+      misleadingBranchName: 'Fahrräder & Zubehör', extraLeafChoices: bicycleSiblings, formSuggestions: [] });
+    assert.deepEqual(await makeFlow().setCategory(bicycleTemplate, 'kar143-bicycle-live-leaf-pressed-parent'),
+      { confirmed: true, pendingNavigation: false });
+    assert.deepEqual(activity.clicked, bicyclePath, 'only exact live Zubehör matches captured Art');
+    assert.equal(activity.confirms, 1);
+    passed++;
+  }
+  {
+    const { activity } = fixture({ committedId: '217', activePath: bicyclePath,
+      extraLeafChoices: bicycleSiblings, formSuggestions: [] });
+    assert.deepEqual(await makeFlow().setCategory(bicycleTemplate, 'kar143-bicycle-live-leaf-arrow-parent'),
+      { confirmed: true, pendingNavigation: false });
+    assert.deepEqual(activity.clicked, bicyclePath);
+    assert.equal(activity.confirms, 1);
+    passed++;
+  }
+  {
+    const { activity } = fixture({ committedId: '999', activePath: bicyclePath,
+      misleadingBranchName: 'Fahrräder & Zubehör', extraLeafChoices: bicycleSiblings, formSuggestions: [] });
+    await assert.rejects(makeFlow().setCategory(bicycleTemplate, 'kar143-bicycle-wrong-id'), /Kategorie-ID|217|999/);
+    assert.equal(activity.confirms, 1, 'wrong committed category ID 999 must reject 217');
+    passed++;
+  }
+  {
+    const { activity } = fixture({ committedId: '217', activePath: bicyclePath,
+      misleadingBranchName: 'Fahrräder & Zubehör', extraLeafChoices: [...bicycleSiblings, 'Cityräder'], formSuggestions: [] });
+    await assert.rejects(makeFlow().setCategory(bicycleTemplate, 'kar143-bicycle-two-live-candidates'),
+      /eindeutig|mehrdeutig|Kategorie|Typ|Art/i);
+    assert.equal(activity.confirms, 0, 'two distinct matching live terminal options must not be selected');
+    passed++;
+  }
+  {
+    const { activity } = fixture({ committedId: '217',
+      activePath: ['Auto, Rad & Boot', 'Fahrräder & Zubehör', 'Satteltaschen'],
+      misleadingBranchName: 'Fahrräder & Zubehör', extraLeafChoices: bicycleSiblings, formSuggestions: [] });
+    await assert.rejects(makeFlow().setCategory(bicycleTemplate, 'kar143-bicycle-no-live-candidate'),
+      /eindeutig|Kategorie|Typ|Art|Endkategorie/i);
+    assert.equal(activity.confirms, 0, 'missing live exact terminal match must not confirm');
+    passed++;
+  }
+  {
+    const { activity } = fixture({ committedId: '217', activePath: bicyclePath,
+      misleadingBranchName: 'Fahrräder & Zubehör', duplicateLeaf: true, extraLeafChoices: bicycleSiblings, formSuggestions: [] });
+    await assert.rejects(makeFlow().setCategory(bicycleTemplate, 'kar143-bicycle-duplicate-leaf'),
+      /eindeutig|Kategorie/i);
+    assert.equal(activity.confirms, 0, 'duplicate exact terminal choice must reject');
+    passed++;
+  }
+  {
+    const { activity } = fixture({ committedId: '217', activePath: bicyclePath,
+      misleadingBranchName: 'Fahrräder & Zubehör', disabledLeaf: true,
+      extraLeafChoices: bicycleSiblings, formSuggestions: [] });
+    await assert.rejects(makeFlow().setCategory(bicycleTemplate, 'kar143-bicycle-disabled-leaf'),
+      /deaktiviert|Kategorie/i);
+    assert.equal(activity.confirms, 0, 'disabled matching terminal must reject');
+    passed++;
+  }
+  console.log(passed + '/37 PASS KAR-132/KAR-143 modern same-page category modal safety');
 })().catch(error => { console.error(error); process.exitCode = 1; });
