@@ -67,6 +67,45 @@ rejects('missing Work-Chat-ID', input => { input.comments[0].body = input.commen
 rejects('missing readback ID', input => { input.comments[0].body = input.comments[0].body.replace('**Canonical comment ID:** 12345', '**Canonical comment ID:** pending'); });
 rejects('unsafe empty next action', input => { input.comments[0].body = input.comments[0].body.replace('**Next action:** Verify the current pull request checks.', '**Next action:** '); });
 rejects('missing visible origin acknowledgement', input => { input.comments[0].body = input.comments[0].body.replace('- Marker visibly issued in chat: yes', '- Marker visibly issued in chat: no'); });
+
+// KAR-141 M4: several work sessions and internal Waves remain inside ONE Issue/comment.
+const multiSession = fixture();
+multiSession.prBody = 'Interim phase checkpoint; keep owning Issue OPEN.\n\nRefs #22';
+multiSession.comments[0].body = multiSession.comments[0].body
+  .replace('- Additional Work-Chat-IDs: none',
+    '- Additional Work-Chat-IDs: ' + BT + 'KAR22CHAT123456ABCDEF' + BT + ', ' + BT + 'KAR22CHATABCDEF987654' + BT)
+  .replace('### Current implementation state',
+    '### Current implementation state\n\n- Internal Wave P1: source GREEN on a verified earlier SHA.\n- Internal Wave P2: source RED pending correction, same Issue and recovery record.')
+  .replace('**Current phase:** PR', '**Current phase:** P2 CHECKPOINT / PR');
+assert.doesNotThrow(() => validateContract(multiSession),
+  'multiple sessions and internal Waves with Refs must reuse one Issue and one canonical comment');
+const manyComments = fixture();
+manyComments.prBody = 'Refs #22';
+manyComments.comments.push({ id: 67890, body: 'Ordinary noncanonical review discussion.' });
+assert.doesNotThrow(() => validateContract(manyComments),
+  'ordinary discussion comments must not invalidate one canonical recovery comment');
+rejects('wrong intermediate PR issue reference', input => { input.prBody = 'Refs #223'; });
+rejects('intermediate PR lacking exact issue reference', input => { input.prBody = 'Part of the next phase'; });
+rejects('intermediate PR for different issue', input => { input.prBody = 'Refs #23'; });
+rejects('wrong interim PR branch', input => { input.prBody = 'Refs #22'; input.headRef = 'work/KAR-23'; });
+rejects('stale interim PR HEAD', input => { input.prBody = 'Refs #22'; input.headSha = 'd'.repeat(40); });
+rejects('duplicate canonical after separate session', input => {
+  input.prBody = 'Refs #22';
+  input.comments.push({ id: 67890, body: input.comments[0].body });
+});
+for (const file of [
+  'docs/INITIAL_PROMPT.md',
+  'docs/DEVELOPMENT_GUIDELINES.md',
+  'docs/GITHUB_HOWTO.md',
+  'docs/templates/WORK_PATH_ROLLING_COMMENT.md'
+]) {
+  const policy = fs.readFileSync(path.join(ROOT, file), 'utf8');
+  assert.match(policy, /One coherent technical\/product outcome = one Issue/,
+    file + ' must specify one technical outcome per Issue');
+  assert.doesNotMatch(policy, /separately tracked, independently acceptable Wave Issues|Each independently accepted \*\*Wave\*\* has its own issue|Every Wave must specify its own Issue/i,
+    file + ' must not revive mandatory child Issues for timeboxed Waves');
+}
+
 const workflow = fs.readFileSync(path.join(ROOT, '.github/workflows/kar-work-pr.yml'), 'utf8');
 assert.match(workflow, /node scripts\/kar-work-pr-contract\.cjs/, 'PR workflow must execute shared validator');
 const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
