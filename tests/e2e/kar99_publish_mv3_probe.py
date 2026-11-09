@@ -51,15 +51,17 @@ def fixture(directory):
       chrome.runtime.onMessage.addListener((message,sender,reply)=>{
         (async()=>{
           if(message.type==='info')return {generation,lockApi:typeof navigator.locks?.request==='function'};
-          if(message.type==='observe')return journal.observe('fill-probe');
+          if(message.type==='observe')return journal.observe(message.fillId||'fill-probe');
           if(message.type==='RENEWAL_PUBLISH_CLICKED')return {accepted:true};
           if(message.type==='AUTHORIZE_AUTOMATIC_PUBLISH'){
-            if(message.fillId!=='fill-probe'||!await profileAllowed())
+            if(!['fill-probe','fill-switch'].includes(message.fillId)||!await profileAllowed())
               throw Object.assign(Error('PROFILE_MISMATCH'),{code:'PROFILE_MISMATCH'});
             const attempt=await journal.begin({
-              fillId:'fill-probe',workflowId:'renewal-probe',kind:'renewal',
+              fillId:message.fillId,workflowId:'renewal-probe',kind:'renewal',
               profileId:'expected',sourceAdId:'1234',targetTabId:99
             });
+            if(message.fillId==='fill-switch')
+              await chrome.storage.local.set({fixtureAccount:'other'});
             if(!await profileAllowed())
               throw Object.assign(Error('PROFILE_CHANGED'),{code:'PROFILE_CHANGED'});
             return {authorized:true,receiptId:attempt.attemptId};
@@ -108,7 +110,9 @@ def fixture(directory):
         runtimeMessage,updatePanel:()=>{},sleep:async()=>{},
         PaidInsertionGuard:{detect:()=>({required:false})}
       });
-      flow.armPublishDetection('fill-probe');
+      const fillId=new URLSearchParams(location.search).get('fill')||'fill-probe';
+      if(!['fill-probe','fill-switch'].includes(fillId))throw Error('INVALID_FIXTURE_FILL_ID');
+      flow.armPublishDetection(fillId);
     """,encoding="utf-8")
 
 def main():
@@ -187,8 +191,30 @@ def main():
                         checked(raw_submit and page.evaluate("()=>window.__posts")==1,
                                 "duplicate_click_and_implicit_submit_fail_closed")
 
+                        # Force the authenticated account to switch only AFTER
+                        # the journal has persisted and read back the intent.
+                        # This is a separate fill ID: the first legitimate
+                        # publication remains immutable and may not be replayed.
+                        changed=context.new_page()
+                        changed.goto("chrome-extension://"+extension_id+
+                                     "/probe.html?fill=fill-switch",
+                                     wait_until="domcontentloaded",timeout=12000)
+                        page.evaluate("async()=>await chrome.storage.local.set({fixtureAccount:'expected'})")
+                        changed.locator("#publish").click()
+                        changed.wait_for_function("()=>window.__denials===1",timeout=10000)
+                        switched=changed.evaluate(
+                          "async()=>await chrome.runtime.sendMessage({type:'observe',fillId:'fill-switch'})")
+                        checked(changed.evaluate("()=>window.__posts")==0
+                                and switched.get("ok")
+                                and switched["result"]["state"]=="unverified"
+                                and len(switched["result"]["attempts"])==1
+                                and not switched["result"]["resolutions"],
+                                "post_journal_account_switch_denies_real_native_submit")
+                        changed.close()
+                        page.evaluate("async()=>await chrome.storage.local.set({fixtureAccount:'expected'})")
+
                         # Kill the actual MV3 worker and recover from the
-                        # persistent chrome.storage.local receipt after reload.
+                        # persistent chrome.storage.local receipts after reload.
                         cdp=context.browser.new_browser_cdp_session()
                         targets=[t for t in cdp.send("Target.getTargets")["targetInfos"]
                                  if t.get("type")=="service_worker"
@@ -219,8 +245,8 @@ def main():
                                 and not resumed["result"]["resolutions"],
                                 "reloaded_page_and_worker_deny_duplicate_publish")
                         after=page.evaluate("async()=>await chrome.storage.local.get(null)")
-                        checked(len([k for k in after if k.startswith(PUBLISH_PREFIX)])==1,
-                                "exactly_one_immutable_before_remote_attempt_survives_crash")
+                        checked(len([k for k in after if k.startswith(PUBLISH_PREFIX)])==2,
+                                "both_immutable_before_remote_attempts_survive_crash")
                         report["workerGenerationChanged"]=old_generation!=new_generation
                         report["chromiumVersion"]=context.browser.version
                         report["status"]="PASS"
