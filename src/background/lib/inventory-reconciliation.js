@@ -78,5 +78,58 @@
     });
   }
 
-  return { normalizeRosterIds, rosterEvidence, sameIdSet, completeRoster, selectAbsentCandidates, FRESH_RECONCILIATION_SOURCE_MAX_ATTEMPTS };
+
+  // A nominal account count can lag an otherwise consistently enumerated roster.
+  // This is solely permission to collect a second independent read-only roster:
+  // neither first-pass consistency nor matching counts ever prove remote absence
+  // or authorize moving a local record into trash.
+  function assessFirstRosterForIndependentScan({
+    rosterPages = {}, expectedTotal = null, processedIds = [],
+    terminalPageVerified = false, invalidReason = null
+  } = {}) {
+    const nominalExpectedCount = expectedTotal === null || expectedTotal === undefined
+      ? null : Number(expectedTotal);
+    const pages = rosterPages && typeof rosterPages === 'object' && !Array.isArray(rosterPages)
+      ? Object.entries(rosterPages) : [];
+    const result = (reason, observedCount = 0) => ({
+      status: 'needs-review', reason, observedCount, nominalExpectedCount,
+      countMismatch: Number.isInteger(nominalExpectedCount) && nominalExpectedCount >= 0
+        ? observedCount !== nominalExpectedCount : true,
+      canStartIndependentScan: false, absenceProven: false, canMoveToTrash: false
+    });
+    if (!Number.isInteger(nominalExpectedCount) || nominalExpectedCount < 0)
+      return result('invalid-nominal-count');
+    if (invalidReason) return result('invalid-roster-evidence');
+    if (!pages.length || pages.length > 100) return result('missing-page');
+
+    const pageNumbers = pages.map(([key]) => Number(key));
+    if (pageNumbers.some((number, index) =>
+      !Number.isInteger(number) || number < 1 || number > 100 ||
+      !/^[1-9]\d*$/.test(pages[index][0])
+    ) || new Set(pageNumbers).size !== pageNumbers.length) return result('invalid-page');
+    if (!pages.every(([, ids]) => Array.isArray(ids))) return result('invalid-roster-evidence');
+
+    const rosterIds = pages.flatMap(([, ids]) => ids.map(id => String(id ?? '').trim()));
+    if (rosterIds.some(id => !/^\d+$/.test(id))) return result('invalid-ad-id');
+    if (new Set(rosterIds).size !== rosterIds.length) return result('duplicate-ad-id', rosterIds.length);
+    const evidence = rosterEvidence(rosterPages);
+    if (!evidence.pagesContiguous) return result('missing-page', evidence.ids.length);
+    if (terminalPageVerified !== true) return result('terminal-page-unverified', evidence.ids.length);
+
+    if (!Array.isArray(processedIds)) return result('processed-roster-mismatch', evidence.ids.length);
+    const processed = processedIds.map(id => String(id ?? '').trim());
+    if (processed.some(id => !/^\d+$/.test(id)) ||
+        new Set(processed).size !== processed.length ||
+        !sameIdSet(evidence.ids, processed)) return result('processed-roster-mismatch', evidence.ids.length);
+
+    return {
+      status: 'independent-scan-required', reason: null,
+      observedCount: evidence.ids.length, nominalExpectedCount,
+      countMismatch: evidence.ids.length !== nominalExpectedCount,
+      canStartIndependentScan: true,
+      absenceProven: false, canMoveToTrash: false
+    };
+  }
+
+  return { normalizeRosterIds, rosterEvidence, sameIdSet, completeRoster, selectAbsentCandidates, assessFirstRosterForIndependentScan, FRESH_RECONCILIATION_SOURCE_MAX_ATTEMPTS };
 });
