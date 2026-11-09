@@ -1,4 +1,4 @@
-importScripts("../shared/runtime-deps.js", "../shared/message-contract-registry.js", "../shared/renewal-policy.js", "background-message-router.js", "services/native-update-status-gateway.js", "services/native-status-bridge.js", "services/update-workflow-fence.js", "repositories/profile-repository.js", "repositories/inventory-repository.js", "repositories/inventory-image-store.js", "services/trash-service.js", "services/diagnostics-service.js", "services/tab-registry.js", "services/managed-tab-worker-service.js", "services/content-connection-manager.js", "services/account-probe-service.js", "controllers/profile-management-controller.js", "controllers/account-session-controller.js", "controllers/platform-safety-controller.js", "controllers/tab-lifecycle-observer.js", "controllers/workflow-emergency-reset-controller.js", "lib/bulk-run-guard.js", "controllers/single-inventory-controller.js", "services/bulk-worker-service.js", "services/bulk-reconciliation-service.js", "controllers/bulk-inventory-controller.js", "controllers/mass-renewal-controller.js", "services/mass-renewal-watchdog-service.js", "controllers/mass-renewal-workflow-controller.js", "services/renewal-verification-flow.js", "services/renewal-reinventory-flow.js", "services/paid-checkout-recovery-service.js", "controllers/renewal-workflow-controller.js", "services/renewal-verification-service.js", "repositories/renewal-state-repository.js", "services/template-fill-service.js", "services/insertion-lock-service.js", "controllers/template-fill-controller.js", "services/archive-insertion-service.js", "services/archive-insertion-verification-service.js", "services/archive-insertion-recovery-service.js", "controllers/archive-insertion-controller.js", "services/remote-delete-replacement-service.js", "services/published-inventory-resolver.js", "services/diagnostic-export-service.js", "services/public-listing-evidence-service.js", "../shared/managed-navigation.js", "lib/inventory-reconciliation.js", "../shared/my-ads-readiness.js", "lib/inventory-scope.js", "../shared/platform-hardening.js", "services/tab-load-coordinator.js", "services/persisted-owner-observer.js", "services/phase4-uncertainty-journal.js");
+importScripts("../shared/runtime-deps.js", "../shared/message-contract-registry.js", "../shared/renewal-policy.js", "background-message-router.js", "services/native-update-status-gateway.js", "services/native-status-bridge.js", "services/update-workflow-fence.js", "repositories/profile-repository.js", "repositories/inventory-repository.js", "repositories/inventory-image-store.js", "services/trash-service.js", "services/diagnostics-service.js", "services/tab-registry.js", "services/managed-tab-worker-service.js", "services/content-connection-manager.js", "services/account-probe-service.js", "controllers/profile-management-controller.js", "controllers/account-session-controller.js", "controllers/platform-safety-controller.js", "controllers/tab-lifecycle-observer.js", "controllers/workflow-emergency-reset-controller.js", "lib/bulk-run-guard.js", "controllers/single-inventory-controller.js", "services/bulk-worker-service.js", "services/bulk-reconciliation-service.js", "controllers/bulk-inventory-controller.js", "controllers/mass-renewal-controller.js", "services/mass-renewal-watchdog-service.js", "controllers/mass-renewal-workflow-controller.js", "services/renewal-verification-flow.js", "services/renewal-reinventory-flow.js", "services/paid-checkout-recovery-service.js", "controllers/renewal-workflow-controller.js", "services/renewal-verification-service.js", "repositories/renewal-state-repository.js", "services/template-fill-service.js", "services/insertion-lock-service.js", "controllers/template-fill-controller.js", "services/archive-insertion-service.js", "services/archive-insertion-verification-service.js", "services/archive-insertion-recovery-service.js", "controllers/archive-insertion-controller.js", "services/remote-delete-replacement-service.js", "services/published-inventory-resolver.js", "services/diagnostic-export-service.js", "services/public-listing-evidence-service.js", "../shared/managed-navigation.js", "lib/inventory-reconciliation.js", "../shared/my-ads-readiness.js", "lib/inventory-scope.js", "../shared/platform-hardening.js", "services/tab-load-coordinator.js", "services/persisted-owner-observer.js", "services/additional-owner-observer.js", "services/phase4-uncertainty-journal.js");
 
 const KRDeps = globalThis.KRDeps;
 if (!KRDeps) throw new Error('runtime-deps.js must load before background.js');
@@ -9,6 +9,7 @@ const NativeUpdateStatusGateway = KRDeps.require('KRNativeUpdateStatusGateway');
 const NativeStatusBridge = KRDeps.require('KRNativeStatusBridge');
 const UpdateWorkflowFence = KRDeps.require('KRUpdateWorkflowFence');
 const PersistedOwnerObserver = KRDeps.require('KRPersistedOwnerObserver');
+const AdditionalOwnerObserver = KRDeps.require('KRAdditionalOwnerObserver');
 const Phase4UncertaintyJournal = KRDeps.require('KRPhase4UncertaintyJournal');
 const DiagnosticsService = KRDeps.require('KRDiagnosticsService');
 const TabRegistry = KRDeps.require('KRTabRegistry');
@@ -3124,6 +3125,19 @@ function requirePersistedOwnerObserver() {
   }
   return persistedOwnerObserver;
 }
+// Additional owner observation is ACTIVE/UNKNOWN only and cannot grant a lease.
+let additionalOwnerObserver = null;
+function requireAdditionalOwnerObserver() {
+  if (!additionalOwnerObserver) {
+    if (typeof AdditionalOwnerObserver?.create !== 'function')
+      throw new Error('KR_ADDITIONAL_OWNER_OBSERVER_UNAVAILABLE');
+    additionalOwnerObserver = AdditionalOwnerObserver.create({
+      storageLocal:chrome.storage.local,storageSession:chrome.storage.session,
+      clock:()=>Date.now(),workerInstanceId:crypto.randomUUID()
+    });
+  }
+  return additionalOwnerObserver;
+}
 const AUTONOMOUS_PERSISTED_OWNER_KINDS = Object.freeze({
   'bulk-runtime-recovery': ['bulkInventory', 'bulkReconciliation'],
   'bulk-watchdog': ['bulkInventory'],
@@ -3156,6 +3170,8 @@ function withAutonomousAdmission(kind, task) {
       const admittedTask = task;
       task = () => requirePersistedOwnerObserver().track(names, admittedTask);
     }
+    const started = task;
+    task = () => requireAdditionalOwnerObserver().track(AdditionalOwnerObserver.OWNERS, started);
     return requireUpdateWorkflowFence().withAdmission('AUTONOMOUS:' + kind, task);
   } catch (error) { return Promise.reject(error); }
 }
@@ -3164,7 +3180,7 @@ function withAutonomousAdmission(kind, task) {
 // Promise. The same existing fence arbitrates admission. This is in-memory
 // BUSY evidence only, never proof of idle after restart or update permission.
 function withRoutedAdmission(type, task) {
-  return requireUpdateWorkflowFence().withAdmission(type, () => requirePersistedOwnerObserver().track(PersistedOwnerObserver.OWNERS, task));
+  return requireUpdateWorkflowFence().withAdmission(type, () => requirePersistedOwnerObserver().track(PersistedOwnerObserver.OWNERS, () => requireAdditionalOwnerObserver().track(AdditionalOwnerObserver.OWNERS, task)));
 }
 const backgroundMessageRouter = BackgroundMessageRouter.create({
   withWorkflowAdmission: (type, task) => withRoutedAdmission(type, task),
