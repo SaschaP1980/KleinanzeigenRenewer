@@ -216,13 +216,23 @@ async function withAttempt(env,kind='renewal'){
     if(type==='click'&&!event.defaultPrevented)submits++;
     return event;
   }
-  b.click=()=>dispatch('click');
+  let normalSubmitPassed=false;
+  b.click=()=>{
+    const click=dispatch('click');
+    if (!click.defaultPrevented) {
+      const nativeSubmit=dispatch('submit',b);
+      normalSubmitPassed=!nativeSubmit.defaultPrevented;
+    }
+  };
   flow.create({clean:String,visible:()=>true,diagnostic:()=>{},
     updatePanel:()=>{},runtimeMessage:async()=>({authorized:true})})
     .armPublishDetection('p6-manual-replay');
   dispatch('click');
   for(let i=0;i<15;i++)await Promise.resolve();
   assert.equal(submits,1);
+  assert.equal(normalSubmitPassed,true,
+    'first native form submit produced synchronously by authorized click must pass');
+  pass('exactly one authorized native submit is allowed');
   // This was unguarded before this Wave: submitted=true permitted any
   // subsequent submit with null or the same submitter indefinitely.
   assert.equal(dispatch('submit',null).defaultPrevented,true,

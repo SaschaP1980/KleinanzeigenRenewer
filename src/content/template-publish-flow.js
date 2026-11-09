@@ -24,6 +24,8 @@
     let authorizing = false;
     let permitted = null;
     let acceptedSubmitter = null;
+    let approvedClickInProgress = false;
+    let nativeSubmitConsumed = false;
     const isPublishControl = element => {
       if (!(element instanceof Element) || !visible(element) || element.disabled) return false;
       const value = element instanceof HTMLInputElement ? element.value : element.textContent;
@@ -36,6 +38,14 @@
         if (submitted || authorizing || permitted || !isPublishControl(control)) return false;
         permitted = control;
         return true;
+      },
+      beginApprovedClick(control) {
+        if (submitted || approvedClickInProgress || permitted !== control) return false;
+        approvedClickInProgress = true;
+        return true;
+      },
+      endApprovedClick() {
+        approvedClickInProgress = false;
       }
     });
     globalThis[key] = detector;
@@ -53,8 +63,13 @@
         if (approval?.authorized !== true || !isPublishControl(control) || !control.isConnected)
           throw new Error('KR_PUBLISH_INTENT_UNVERIFIED');
         authorizing = false;
-        if (!detector.permitOnce(control)) throw new Error('KR_PUBLISH_INTENT_UNVERIFIED');
-        control.click(); // Guarded native UI action; do not form.submit/requestSubmit.
+        if (!detector.permitOnce(control) || !detector.beginApprovedClick(control))
+          throw new Error('KR_PUBLISH_INTENT_UNVERIFIED');
+        try {
+          control.click(); // Guarded native UI action; do not form.submit/requestSubmit.
+        } finally {
+          detector.endApprovedClick();
+        }
       } catch (error) {
         void diagnostic(fillId, 'MANUAL_PUBLISH_INTENT_BLOCKED',
           { reason: String(error?.message || error).slice(0,180) }, 'warning');
@@ -70,7 +85,7 @@
       const control = event.target instanceof Element
         ? event.target.closest('button,input[type="submit"]') : null;
       if (!isPublishControl(control)) return;
-      if (permitted === control && !submitted) {
+      if (permitted === control && approvedClickInProgress && !submitted) {
         permitted = null;
         acceptedSubmitter = control;
         submitted = true;
@@ -84,20 +99,25 @@
     }, true);
     document.addEventListener('submit', event => {
       const submitter = event.submitter;
-      if (submitted && (acceptedSubmitter === submitter || !submitter)) return;
-      // An implicit Enter-key submission without a real submitter must not
-      // bypass the before-remote journal. Require the visible button instead.
-      if (!submitter) {
+      // Allow at most ONE native submit synchronously produced by the single
+      // authorized click. After the click has returned, even the same button
+      // and implicit Enter submits are never permitted again.
+      if (submitted && approvedClickInProgress
+          && submitter === acceptedSubmitter && !nativeSubmitConsumed) {
+        nativeSubmitConsumed = true;
+        return;
+      }
+      if (submitted || !submitter) {
         event.preventDefault();
         event.stopImmediatePropagation();
-        void diagnostic(fillId, 'PUBLISH_IMPLICIT_SUBMIT_BLOCKED',
+        if (!submitter) void diagnostic(fillId, 'PUBLISH_IMPLICIT_SUBMIT_BLOCKED',
           { reason: 'missing-submit-control' }, 'warning');
         return;
       }
       if (!isPublishControl(submitter)) return;
       event.preventDefault();
       event.stopImmediatePropagation();
-      if (!submitted) void authorizeManual(submitter);
+      void authorizeManual(submitter);
     }, true);
   }
 
@@ -242,7 +262,13 @@
       return { awaitingPublish: true, autoPublishBlocked: true };
     }
     void diagnostic(fillId, 'AUTO_PUBLISH_GATE_PASSED', { candidateCount: 1, path: location.pathname });
-    button.click();
+    if (!globalThis[`krRenewalPublishArmed_${fillId}`]?.beginApprovedClick?.(button))
+      throw new Error('KR_PUBLISH_INTENT_UNVERIFIED');
+    try {
+      button.click();
+    } finally {
+      globalThis[`krRenewalPublishArmed_${fillId}`].endApprovedClick();
+    }
     void diagnostic(fillId, 'AUTO_PUBLISH_CLICKED', { path: location.pathname });
     updatePanel('Anzeige wird veröffentlicht', 'Kleinanzeigen verarbeitet die neue Anzeige. Anschließend wird die neue Anzeigen-ID automatisch ermittelt.', [], { safetyText: false });
     return { publishTriggered: true };
