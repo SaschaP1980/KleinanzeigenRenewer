@@ -30,8 +30,6 @@
         isTrashRecord,
         assertTemplateSourceReady,
         createAutomationTab,
-        deleteInventoryStorageRecord,
-        delay,
         registerShadowTab,
         updateAutomationTab,
         logDiagnostic,
@@ -286,6 +284,7 @@ async function createRenewalTargetTab(renewal) {
         renewalId: renewal.renewalId, sourceAdId: renewal.sourceAdId,
         attempt, maxAttempts: 3, reason: 'chrome-tab-strip-busy'
       }, { module: 'background', operation: 'renewal-start', context: sessionCorrelationContext(renewal, { adId: renewal.sourceAdId }) }).catch(() => {});
+      if (typeof delay !== 'function') throw new Error('Wartefunktion für Renewal-Tab-Retry nicht verfügbar.');
       await delay(250 * attempt);
     }
   }
@@ -316,6 +315,8 @@ async function rollbackUnopenedRenewal(renewal, error) {
   current.updatedAt = new Date().toISOString();
   if (current.massBatchId) current.massBatchTerminal = true;
   await writeRenewalSessions(renewals);
+  if (typeof deleteInventoryStorageRecord !== 'function')
+    throw new Error('Lokaler Renewal-Entwurf konnte nicht sicher entfernt werden: Bereinigungsfunktion fehlt.');
   await deleteInventoryStorageRecord(skeletonId);
   delete renewals[renewal.renewalId];
   await writeRenewalSessions(renewals);
