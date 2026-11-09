@@ -158,7 +158,7 @@ function requireTemplateFillController() {
     isRecoverableTrashTemplateSession: session => requireTemplateFillService().isRecoverableTrashTemplateSession(session),
     resolvePublishedInventory: input => requirePublishedInventoryResolver().resolve(input),
     broadcastInventoryChanged, getInventory, isTrashRecord, assertTemplateSourceReady,
-    createAutomationTab, registerShadowTab, updateAutomationTab, logDiagnostic, correlationContext, sessionCorrelationContext,
+    createAutomationTab, deleteInventoryStorageRecord, delay, registerShadowTab, updateAutomationTab, logDiagnostic, correlationContext, sessionCorrelationContext,
     assertSelectedProfileMatchesLiveAccount, getInsertionLockState, assertInsertionStartAvailable, withInsertionStartGate,
     getRenewalConfiguration, normalizeRenewalMode, normalizeRenewalPhaseAttempts,
     readRenewalSessions, writeRenewalSessions, createRenewalSkeleton, persistRenewalSession,
