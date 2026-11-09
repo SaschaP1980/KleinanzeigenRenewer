@@ -2517,7 +2517,7 @@ function requireArchiveInsertionController() {
       createAutomationTab, registerShadowTab, closePublishedRenewalTargetTab,
       assertSelectedProfileMatchesLiveAccount, getRenewalConfiguration, withInsertionStartGate, assertInsertionStartAvailable,
       readFillSessions, writeFillSessions, detectPublishedAdForFill,
-      withAutonomousAdmission,
+      withAutonomousAdmission, resolvePublishIntent: resolveManagedPublishIntent,
       correlationContext, sessionCorrelationContext, delay, logDiagnostic, setAppNotice, broadcastInventoryChanged,
       cryptoApi: globalThis.crypto, chromeApi: chrome,
       MY_ADS_PROJECTS_URL, TAB_LOAD_TIMEOUT_RENEWAL_MS, BULK_RETRY_TIMEOUT_MS, BULK_RETRY_POLL_MS,
@@ -2558,10 +2558,87 @@ function requireAutoPublishIntentJournal() {
       storageLocal: chrome.storage.local, clock: () => Date.now(),
       newToken: () => crypto.randomUUID(), workerInstanceId: crypto.randomUUID(),
       lockName: AtomicMV3Admission.LOCK_NAME,
-      lockManager: globalThis.navigator?.locks
+      lockManager: globalThis.navigator?.locks,
+      verifyRemoteOutcome: (intent, newAdId) => verifyAutoPublishRemoteOutcomeFresh(intent, newAdId)
     });
   }
   return autoPublishIntentJournal;
+}
+// A caller-supplied new-ID redirect is only a candidate. Read-only My Ads
+// verification in an independent managed tab is the sole outcome authority.
+async function verifyAutoPublishRemoteOutcomeFresh(intent, newAdId) {
+  const deny = () => { throw Object.assign(new Error('KR_PUBLISH_INTENT_UNVERIFIED'),
+    {code:'KR_PUBLISH_INTENT_UNVERIFIED'}); };
+  if (!intent || !/^\d+$/.test(String(newAdId || ''))
+      || String(intent.sourceAdId || '') === String(newAdId) || !intent.workflowId) deny();
+  const archive = intent.kind === 'archive';
+  const session = archive
+    ? (await readArchiveInsertionSessions())[intent.workflowId]
+    : (await readRenewalSessions())[intent.workflowId];
+  if (!session || session.fillId !== intent.fillId
+      || String((archive ? session.targetProfileId : session.profileId) || '') !== intent.profileId
+      || String(session.sourceAdId || '') !== intent.sourceAdId
+      || Number(session.targetTabId) !== intent.targetTabId) deny();
+  const bound = await assertSelectedProfileMatchesLiveAccount({
+    expectedProfileId: intent.profileId,
+    ...(archive ? {expectedProfileName:String(session.targetProfileName || '')} : {}),
+    purpose:'publish-independent-result-verification'
+  });
+  const expectedName = normalizeProfileName(bound?.displayName || '');
+  if (String(bound?.profileId || '') !== intent.profileId || !expectedName) deny();
+  let tabId = null;
+  try {
+    const tab = await createManagedWorkerTab({
+      url:MY_ADS_PROJECTS_URL,active:false
+    },'publish-independent-presence',{
+      ownerType:archive?'archive-insertion':'renewal',ownerId:intent.workflowId,
+      fillId:intent.fillId,adId:newAdId,phaseAttemptId:intent.attemptId
+    });
+    if (!Number.isSafeInteger(tab?.id) || tab.id<=0) deny();
+    tabId=tab.id;
+    await waitForTabComplete(tabId,{
+      timeoutMs:TAB_LOAD_TIMEOUT_PHASE4_MS,purpose:'publish-independent-presence',
+      label:'Unabhängige Veröffentlichungsprüfung',operation:'publish-verification',
+      context:{fillId:intent.fillId,adId:newAdId,workerTabId:tabId}
+    });
+    await ensureContentConnection({tabId});
+    const normalize=text=>normalizeProfileName(text).toLocaleLowerCase('de-DE');
+    const assertStatus=async()=>{
+      const status=await sendTabRequestWithBootstrap(tabId,{type:'MY_ADS_STATUS'});
+      if(status?.isMyAdsPage!==true||status?.isProjectsTab!==true
+          ||!status.profileName||normalize(status.profileName)!==normalize(expectedName))deny();
+    };
+    await assertStatus();
+    const presence=await sendTabRequestWithBootstrap(tabId,{
+      type:'FIND_OWN_AD_BY_ID',adId:newAdId,
+      correlation:{fillId:intent.fillId,
+        ...(archive?{archiveInsertionId:intent.workflowId}:{renewalId:intent.workflowId})}
+    });
+    await assertStatus(); // Also check account after navigation / full pagination.
+    const confirmed = await assertSelectedProfileMatchesLiveAccount({
+      expectedProfileId:intent.profileId,purpose:'publish-independent-result-readback'
+    });
+    if (String(confirmed?.profileId||'')!==intent.profileId
+        ||presence?.found!==true||String(presence.adId||'')!==newAdId
+        ||presence.evidence!=='found-in-my-ads-full-pagination-scan'
+        ||!Number.isSafeInteger(presence.pagesScanned)||presence.pagesScanned<1
+        ||!Number.isSafeInteger(presence.page)||presence.page<1)deny();
+    return Object.freeze({
+      fillId:intent.fillId,workflowId:intent.workflowId,kind:intent.kind,
+      profileId:intent.profileId,sourceAdId:intent.sourceAdId,newAdId,
+      targetPresent:true,targetEvidence:presence.evidence,
+      targetPagesScanned:presence.pagesScanned,targetFoundPage:presence.page
+    });
+  } finally {
+    if(tabId)await closeManagedWorkerTab(tabId).catch(()=>{});
+  }
+}
+async function resolveManagedPublishIntent(fill,detected) {
+  const fillId=String(fill?.fillId||''),newAdId=String(detected?.adId||'');
+  const result=await requireAutoPublishIntentJournal().resolveVerified({fillId,newAdId});
+  if(result?.state!=='resolved-confirmed'||result.fillId!==fillId||result.newAdId!==newAdId)
+    throw Object.assign(new Error('KR_PUBLISH_INTENT_UNVERIFIED'),{code:'KR_PUBLISH_INTENT_UNVERIFIED'});
+  return result;
 }
 async function authorizeAutomaticPublish(message, sender) {
   const fillId = String(message?.fillId || '');
@@ -2577,7 +2654,8 @@ async function authorizeAutomaticPublish(message, sender) {
     throw new Error('KR_PUBLISH_INTENT_WRONG_PAGE');
   const fill = (await readFillSessions())[fillId];
   if (!fill || String(fill.fillId || '') !== fillId || Number(fill.targetTabId) !== tabId
-      || fill.templateOnly || fill.status !== 'running' || fill.stage !== 'auto-publish-ready'
+      || fill.templateOnly || fill.status !== 'running'
+      || !['auto-publish-ready','awaiting-publish','awaiting-manual-publish'].includes(fill.stage)
       || fill?.result?.complete !== true || !Array.isArray(fill?.result?.issues)
       || fill.result.issues.length !== 0
       || Boolean(fill.renewalId) === Boolean(fill.archiveInsertionId))
@@ -2613,7 +2691,7 @@ function requireRenewalWorkflowController() {
       assertMassRenewalManualActionAllowed, broadcastInventoryChanged, closeManagedWorkerTab, closeRegistryTab,
       compareRenewalRecords, correlationContext, createManagedWorkerTab, delay, detectPublishedAdForFill,
       dropMassRenewalProgress, ensureContentConnection, evaluateCheckoutRecoveryProof, finishRenewalReplacement,
-      withAutonomousAdmission,
+      withAutonomousAdmission, resolvePublishIntent: resolveManagedPublishIntent,
       flushDiagnosticBuffer, getInventory, isCheckoutAbortedRecoveryCandidate, isNonRetryableRenewalSafetyError,
       isSafeLegacyManualEmergencyReset, logDiagnostic, logRenewalPhaseAttemptFailed, logRenewalPhaseAttemptStarted,
       massRenewalBatchCounts, massRenewalTerminalOutcome, mergeListingMetadata, mutateMassRenewalBatch,
