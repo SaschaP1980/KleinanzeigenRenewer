@@ -81,9 +81,9 @@ function init(db,verifyRemoteOutcome,worker='worker-new') {
   unreadable.setReadFail(true);
   await denied(r.resolveVerified({renewalId:req.renewalId,attemptId:rIntent.attemptId}),
     'KR_PHASE4_JOURNAL_STORAGE','indeterminate readback must never count as verified');
-  ok(remoteCode.includes("type: 'FIND_OWN_AD_BY_ID'"),
+  ok(remoteCode.includes("scanFresh('target',targetId,'FIND_OWN_AD_BY_ID')"),
     'real remote verifier independently finds published target by exact ID in My Ads');
-  ok(remoteCode.includes("type: 'VERIFY_OWN_AD_ABSENT_BY_ID'"),
+  ok(remoteCode.includes("scanFresh('source',sourceId,'VERIFY_OWN_AD_ABSENT_BY_ID')"),
     'real remote verifier independently proves source absence by exact ID');
   ok(background.includes('verifyRemoteOutcome:'),
     'live worker constructs verifier from real remote service rather than UI-supplied proof');
