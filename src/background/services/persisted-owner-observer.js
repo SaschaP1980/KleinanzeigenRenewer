@@ -123,25 +123,53 @@
       // A receipt from an earlier Worker generation is positive BUSY evidence
       // even if the renewal session no longer appears in this process.
       // Corruption and read failure must never masquerade as an empty journal.
+      // Original immutable intent is NEVER cleared. Only a second, independently
+      // verified, exact-identity immutable receipt can classify it as resolved.
       const prefix = 'karPhase4UncertainAttemptV1_';
+      const resolutionPrefix = 'karPhase4VerifiedResolutionV1_';
       let journalEvidence = 'missing';
       if (journalRead.status !== 'fulfilled' || !isRecord(journalRead.value)) {
         journalEvidence = 'unavailable';
       } else {
-        const remoteRows = Object.entries(journalRead.value)
-          .filter(([key]) => key.startsWith(prefix));
-        const id = value => typeof value === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(value);
-        const ad = value => typeof value === 'string' && /^\d+$/.test(value);
-        const valid = ([key, row]) => isRecord(row) && row.schema === 1
+        const rows = journalRead.value;
+        const original = Object.entries(rows).filter(([key]) => key.startsWith(prefix));
+        const resolved = Object.entries(rows).filter(([key]) => key.startsWith(resolutionPrefix));
+        const id = v => typeof v === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(v);
+        const ad = v => typeof v === 'string' && /^\d+$/.test(v);
+        const validIntent = ([key, row]) => isRecord(row) && row.schema === 1
           && row.state === 'outcome-unverified' && id(row.renewalId)
           && id(row.attemptId) && id(row.workerInstanceId)
           && typeof row.profileId === 'string' && row.profileId.trim().length > 0
           && row.profileId.length <= 256 && ad(row.sourceAdId) && ad(row.newAdId)
           && row.sourceAdId !== row.newAdId && Number.isSafeInteger(row.createdAtMs)
-          && row.createdAtMs >= 0
-          && key === prefix + row.renewalId + '_' + row.attemptId;
-        journalEvidence = remoteRows.every(valid)
-          ? (remoteRows.length ? 'unresolved' : 'missing') : 'corrupt';
+          && row.createdAtMs >= 0 && key === prefix + row.renewalId + '_' + row.attemptId;
+        const validCompletion = ([key, row]) => {
+          if (!isRecord(row) || row.schema !== 1 || row.state !== 'resolved-confirmed'
+              || !id(row.renewalId) || !id(row.attemptId) || !id(row.workerInstanceId)
+              || key !== resolutionPrefix + row.renewalId + '_' + row.attemptId
+              || !ad(row.sourceAdId) || !ad(row.newAdId) || row.sourceAdId === row.newAdId
+              || row.sourceEvidence !== 'not-in-my-ads-full-pagination-scan'
+              || row.targetEvidence !== 'found-in-my-ads-full-pagination-scan'
+              || !Number.isSafeInteger(row.sourcePagesScanned) || row.sourcePagesScanned < 1
+              || !Number.isSafeInteger(row.targetPagesScanned) || row.targetPagesScanned < 1
+              || !Number.isSafeInteger(row.targetFoundPage) || row.targetFoundPage < 1
+              || !Number.isSafeInteger(row.verifiedAtMs) || row.verifiedAtMs < 0)
+            return false;
+          const originalKey = prefix + row.renewalId + '_' + row.attemptId;
+          const intent = rows[originalKey];
+          return validIntent([originalKey, intent])
+            && row.profileId === intent.profileId
+            && row.sourceAdId === intent.sourceAdId
+            && row.newAdId === intent.newAdId
+            && row.verifiedAtMs >= intent.createdAtMs;
+        };
+        if (!original.every(validIntent) || !resolved.every(validCompletion))
+          journalEvidence = 'corrupt';
+        else if (original.some(([key]) =>
+          !Object.prototype.hasOwnProperty.call(rows,
+            resolutionPrefix + key.slice(prefix.length))))
+          journalEvidence = 'unresolved';
+        else journalEvidence = original.length > 0 ? 'resolved' : 'missing';
       }
       if (journalEvidence === 'unresolved') {
         set('renewal', active('PHASE4_JOURNAL_UNRESOLVED'));
