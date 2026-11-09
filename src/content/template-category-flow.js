@@ -123,21 +123,58 @@
     return fullPath;
   }
 
+  // KAR-132: a single evidence-backed compatibility bridge, not a generic
+  // category-name inference. Owner-supplied original posting form outerHTML
+  // (2026-11-09) explicitly bound numeric 405 to this full ancestry.
+  // Verify the live committed numeric ID independently after selection.
+  function ownerVerifiedWearablesPath(categoryId, storedPrefix) {
+    const captured = ['Elektronik', 'Wearables', 'Smartwatches'];
+    return String(categoryId) === '405' &&
+      sameModernPath(storedPrefix, captured.slice(0, 2))
+      ? captured : null;
+  }
+
   async function selectModernCategory(template, fillId, path) {
     const wanted = String(template.categoryId);
     const storedDepth = path.length;
     let idProvenExtension = false;
 
-    // KAR-132: resolve the last leaf BEFORE the first category click. The real
-    // Wearables parent may expose aria-pressed yet open another navigation
-    // level, so inferring branch/leaf solely from its button shape is unsafe.
-    // Use only the unique categoryId-matched full path provided by the form.
-    const resolved = resolveModernCategoryPathById(wanted, path);
+    // First prefer current site's own unique numeric-ID suggestion. It can be
+    // populated asynchronously AFTER the title/chooser changes, so a single
+    // synchronous lookup is insufficient (native 1.23.40 evidence).
+    let resolved = resolveModernCategoryPathById(wanted, path);
+    let source = resolved ? 'live-numeric-id-suggestion' : null;
+    const documented = ownerVerifiedWearablesPath(wanted, path);
+    if (!resolved && documented) {
+      for (let probe = 0; probe < 10 && !resolved; probe += 1) {
+        await sleep(150);
+        resolved = resolveModernCategoryPathById(wanted, path);
+        if (resolved) source = 'late-live-numeric-id-suggestion';
+      }
+      if (!resolved) {
+        // The owner captured this exact ID/path binding from the real form.
+        // Never apply this bridge to other IDs or ancestry; the true site
+        // categoryId must STILL match after pressing Übernehmen.
+        resolved = documented;
+        source = 'owner-captured-id405-form';
+      }
+    }
+    const candidateForms = [...document.querySelectorAll('form')]
+      .filter(form => form.querySelector('input[name="categoryId"]'));
+    const candidates = candidateForms.length === 1
+      ? [...candidateForms[0].querySelectorAll('#ad-category-picker input[name="category-suggestions"][type="radio"]')]
+      : [];
+    void diagnostic(fillId, 'CATEGORY_MODAL_ID_PATH_PROBE', {
+      categoryId: wanted, storedDepth, candidateCount: candidates.length,
+      exactIdCandidateCount: candidates.filter(input => String(input.value) === wanted).length,
+      resolvedSource: source || 'none'
+    });
     if (resolved) {
       path = resolved;
       idProvenExtension = true;
       void diagnostic(fillId, 'CATEGORY_MODAL_PATH_EXTENDED_BY_ID', {
-        categoryId: wanted, storedDepth, resolvedDepth: path.length, timing: 'before-navigation'
+        categoryId: wanted, storedDepth, resolvedDepth: path.length,
+        timing: 'before-navigation', source
       });
     }
     for (let i = 0; i < path.length; i += 1) {
