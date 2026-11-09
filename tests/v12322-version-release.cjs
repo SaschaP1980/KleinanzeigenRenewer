@@ -11,6 +11,9 @@ const lock = j('package-lock.json');
 const spec = j('release/release-spec.json');
 const arch = j('architecture-progress-v1.23.22.json');
 const reviewedNative = /^1\.23\.(?:3\d|[4-9]\d|[1-9]\d{2,})$/.test(manifest.version);
+const reviewedFence = fs.existsSync('src/background/services/update-workflow-fence.js') && fs.readFileSync('src/background/background.js','utf8').includes('"services/update-workflow-fence.js"');
+const reviewedPersistedObserver = fs.existsSync('src/background/services/persisted-owner-observer.js') && fs.readFileSync('src/background/background.js','utf8').includes('"services/persisted-owner-observer.js"');
+const reviewedPhase4Journal = fs.existsSync('src/background/services/phase4-uncertainty-journal.js') && fs.readFileSync('src/background/background.js','utf8').includes('"services/phase4-uncertainty-journal.js"');
 const { assertCompatibleCurrentPatch } = require('./current-patch-policy.cjs');
 
 assert.equal(assertCompatibleCurrentPatch({ manifest, pkg, lock, spec }), manifest.version);
@@ -77,8 +80,9 @@ const files=[];
 files.sort();
 const tree=crypto.createHash('sha256');
 for(const p of files){ tree.update(p); tree.update('\0'); tree.update(Buffer.from(sha(p),'hex')); }
-assert.equal(files.length, reviewedNative ? 103 : 100);
+assert.equal(files.length, (reviewedPhase4Journal ? 106 : reviewedPersistedObserver ? 105 : reviewedFence ? 104 : reviewedNative ? 103 : 100));
 if(reviewedNative) {
+  if(reviewedFence){ assert.ok(files.includes('src/background/services/update-workflow-fence.js')); assert.match(fs.readFileSync('src/background/background.js','utf8'), /KRDeps\.require\('KRUpdateWorkflowFence'\)/); }
   const allowedAdditions=['src/app/native-update-check-ui.js','src/background/services/native-status-bridge.js','src/background/services/native-update-status-gateway.js'];
   for(const name of allowedAdditions)assert.ok(files.includes(name),name);
   assert.equal(files.filter(x=>allowedAdditions.includes(x)).length,3);

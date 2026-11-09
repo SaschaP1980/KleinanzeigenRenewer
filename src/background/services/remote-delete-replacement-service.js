@@ -13,6 +13,10 @@
         logRenewalPhaseAttemptFailed, isNonRetryableRenewalSafetyError, renewalAttemptDetails, setAppNotice,
         markMassRenewalItemSucceeded, captureEmergencyResetGeneration, assertEmergencyResetGeneration
       } = options;
+      // A missing shared Phase-4 journal port must never permit remote deletion.
+      const beginPhase4Attempt = typeof options.beginPhase4Attempt === 'function'
+        ? options.beginPhase4Attempt
+        : async () => { throw Object.assign(new Error('KR_PHASE4_JOURNAL_UNAVAILABLE'), {code:'KR_PHASE4_JOURNAL_UNAVAILABLE'}); };
       const TRASH_RETENTION_MS = Number(options.TRASH_RETENTION_MS);
       const INVENTORY_STORE = String(options.INVENTORY_STORE || 'inventories');
       const IMAGE_STORE = String(options.IMAGE_STORE || 'images');
@@ -338,6 +342,17 @@ async function preverifyAndTriggerRenewalSourceDeleteAttempt(session, expectedPr
       throw new Error('Das aktuell angemeldete Kleinanzeigen-Konto entspricht nicht dem Inventarprofil der Quellanzeige.');
     }
 
+    // Common manual, mass and automatic Phase-4 source-delete boundary.
+    // Store/read back the irreversible uncertainty receipt only after the
+    // fresh My Ads page has independently confirmed the expected profile.
+    // No follow-up DELETE_OWN_AD_BY_ID may run if this admission fails.
+    await beginPhase4Attempt({
+      renewalId: String(session.renewalId || ''),
+      profileId: actualProfile,
+      sourceAdId: String(session.sourceAdId || ''),
+      newAdId: String(session.newAdId || '')
+    });
+
     await logDiagnostic('info', 'RENEWAL_PHASE4_ATOMIC_PREVERIFY_DELETE_STARTED', {
       renewalId: session.renewalId,
       sourceAdId: session.sourceAdId,
@@ -485,6 +500,10 @@ async function finishRenewalReplacement(message) {
       const pageText = verification?.foundPage ? ` (gefunden auf Seite ${verification.foundPage})` : '';
       throw new Error(`Quellanzeige ist nach der Löschaktion weiterhin in „Meine Anzeigen“ vorhanden${pageText}.`);
     } catch (error) {
+      // A journal denial means no confirmed remote attempt was admitted.
+      // Never classify missing/corrupt/old-worker receipts as a failed delete
+      // or continue automatic retries under an ambiguous MV3 generation.
+      if (String(error?.code || error?.message || '').startsWith('KR_PHASE4_JOURNAL_')) throw error;
       lastError = error;
       session.stage = 'source-delete-retry-pending';
       session.lastError = String(error.message || error).slice(0, 800);

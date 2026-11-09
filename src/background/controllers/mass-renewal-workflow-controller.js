@@ -17,6 +17,7 @@
         publicAvailabilityPending, readFillSessions, classifyKleinanzeigenInsertionErrorUrl,
         terminalizeTemplateFillOnPlatformError, terminalizeTemplateFillForWatchdog, persistRenewalSession,
         cryptoApi, chromeApi, queueMicrotaskFn, setTimeoutFn, clearTimeoutFn,
+        withAutonomousAdmission = () => Promise.reject(Object.assign(new Error('KR_UPDATE_FENCE_UNAVAILABLE'), { code: 'KR_UPDATE_FENCE_UNAVAILABLE' })),
         MASS_RENEWAL_MAX_ITEMS, MASS_RENEWAL_WATCHDOG_STALE_MS, MASS_RENEWAL_WATCHDOG_TICK_MS,
         UNASSIGNED_PROFILE_ID
       } = options;
@@ -30,7 +31,7 @@
         getRenewalConfiguration, normalizeRenewalMode, finishRenewalReplacement, retryRenewalVerification,
         discardRenewalDraft, publicAvailabilityPending, readFillSessions, classifyKleinanzeigenInsertionErrorUrl,
         terminalizeTemplateFillOnPlatformError, terminalizeTemplateFillForWatchdog, persistRenewalSession,
-        cryptoApi, chromeApi, queueMicrotaskFn, setTimeoutFn, clearTimeoutFn
+        cryptoApi, chromeApi, queueMicrotaskFn, setTimeoutFn, clearTimeoutFn, withAutonomousAdmission
       };
       for (const [name, value] of Object.entries(required)) {
         if (value == null) throw new Error(`Mass renewal workflow dependency missing: ${name}`);
@@ -148,7 +149,7 @@ async function startNextMassRenewalItem(batchId) {
           batchId: id, index: selected.index, inventoryId: selected.inventoryId, status: 'error', stage: failed.stage, message: failed.lastError
         }, { module: 'background', operation: 'mass-renewal', context: sessionCorrelationContext(batch, { massBatchId: id, adId: selected.sourceAdId || null }) }).catch(() => {});
       }
-      queueMicrotaskFn(() => { void startNextMassRenewalItem(id).catch(() => {}); });
+      queueMicrotaskFn(() => { void withAutonomousAdmission('mass-renewal-next-item', () => startNextMassRenewalItem(id)).catch(() => {}); });
     }
     return massRenewalPublicSnapshot(await readMassRenewalBatch());
   } finally {
@@ -209,7 +210,7 @@ async function reconcileMassRenewalBatchSession(session, options = {}) {
     batchId, index: snapshot.index, inventoryId: snapshot.inventoryId, renewalId: session.renewalId,
     status: snapshot.status, stage: snapshot.stage, newAdId: snapshot.newAdId || null, message: snapshot.lastError
   }, { module: 'background', operation: 'mass-renewal', context: sessionCorrelationContext(session, { massBatchId: batchId, renewalId: session.renewalId, adId: snapshot.newAdId || snapshot.sourceAdId || null }) }).catch(() => {});
-  queueMicrotaskFn(() => { void startNextMassRenewalItem(batchId).catch(() => {}); });
+  queueMicrotaskFn(() => { void withAutonomousAdmission('mass-renewal-next-item', () => startNextMassRenewalItem(batchId)).catch(() => {}); });
   return true;
 }
 
@@ -266,7 +267,7 @@ async function markMassRenewalItemSucceeded(session, result = {}) {
       success: finalState.counts.success, attention: finalState.counts.attention, cancelled: finalState.counts.cancelled
     }, { module: 'background', operation: 'mass-renewal', context: sessionCorrelationContext(mutation.batch, { massBatchId: batchId }) }).catch(() => {});
   } else {
-    queueMicrotaskFn(() => { void startNextMassRenewalItem(batchId).catch(() => {}); });
+    queueMicrotaskFn(() => { void withAutonomousAdmission('mass-renewal-next-item', () => startNextMassRenewalItem(batchId)).catch(() => {}); });
   }
   return true;
 }
@@ -314,7 +315,7 @@ async function startMassRenewalBatch(message) {
       operationId: batch.operationId, batchId: batch.batchId, profileId, profileName: batch.profileName, renewalMode: batch.renewalMode, maxPhaseAttempts: batch.maxPhaseAttempts, itemCount: batch.items.length
     }, { module: 'background', operation: 'mass-renewal', context: sessionCorrelationContext(batch, { massBatchId: batch.batchId }) }).catch(() => {});
     armMassRenewalWatchdog();
-    queueMicrotaskFn(() => { void startNextMassRenewalItem(batch.batchId).catch(() => {}); });
+    queueMicrotaskFn(() => { void withAutonomousAdmission('mass-renewal-next-item', () => startNextMassRenewalItem(batch.batchId)).catch(() => {}); });
     return massRenewalPublicSnapshot(batch);
   });
 }
@@ -413,7 +414,7 @@ async function retryMassRenewalItem(message) {
         item.operationId = null; item.parentOperationId = batch.operationId || null; item.renewalId = null; item.renewalStatus = null; item.newAdId = null; item.publicAvailabilityPending = false; item.stage = 'queued'; item.status = 'queued'; item.startAttemptId = null; batch.currentIndex = null; touchMassRenewalItemProgress(item);
         return { changed: true };
       });
-      await startNextMassRenewalItem(batchId);
+      await withAutonomousAdmission('mass-renewal-next-item', () => startNextMassRenewalItem(batchId));
     }
   } catch (error) {
     await mutateMassRenewalBatch(batchId, batch => {
@@ -465,7 +466,7 @@ async function resumeMassRenewalBatch() {
       });
       if (requeued) {
         await logDiagnostic('warning', 'MASS_RENEWAL_RECOVERY_STARTING_REQUEUED', { batchId: batch.batchId, index: running.index, inventoryId: running.inventoryId, reason: 'running-without-renewal-id-and-no-matching-session' }, { module: 'background', operation: 'mass-renewal-recovery', context: sessionCorrelationContext(running, { parentOperationId: running.parentOperationId || batch.operationId || null, massBatchId: batch.batchId, adId: running.sourceAdId || null }) }).catch(() => {});
-        queueMicrotaskFn(() => { void startNextMassRenewalItem(batch.batchId).catch(() => {}); });
+        queueMicrotaskFn(() => { void withAutonomousAdmission('mass-renewal-next-item', () => startNextMassRenewalItem(batch.batchId)).catch(() => {}); });
         return getMassRenewalBatchStatus();
       }
     }
@@ -479,7 +480,7 @@ async function resumeMassRenewalBatch() {
           item.status = 'success'; item.stage = 'complete'; item.newInventoryId = String(existing.inventoryId || running.newAdId); item.publicAvailabilityPending = publicAvailabilityPending(existing); item.completedAt = new Date().toISOString(); touchMassRenewalItemProgress(item, item.completedAt); current.currentIndex = null;
           return { changed: true };
         });
-        queueMicrotaskFn(() => { void startNextMassRenewalItem(batch.batchId).catch(() => {}); });
+        queueMicrotaskFn(() => { void withAutonomousAdmission('mass-renewal-next-item', () => startNextMassRenewalItem(batch.batchId)).catch(() => {}); });
         return getMassRenewalBatchStatus();
       }
     }
@@ -491,7 +492,7 @@ async function resumeMassRenewalBatch() {
       return { changed: true };
     });
   }
-  queueMicrotaskFn(() => { void startNextMassRenewalItem(batch.batchId).catch(() => {}); });
+  queueMicrotaskFn(() => { void withAutonomousAdmission('mass-renewal-next-item', () => startNextMassRenewalItem(batch.batchId)).catch(() => {}); });
   return getMassRenewalBatchStatus();
 }
 

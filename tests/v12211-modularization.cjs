@@ -10,17 +10,22 @@ const profileManagement = fs.readFileSync('profile-management-controller.js', 'u
 let n = 0;
 const pass = label => { n += 1; console.log(`PASS ${label}`); };
 
-assert.match(bg, /^importScripts\("\.\.\/shared\/runtime-deps\.js", "\.\.\/shared\/message-contract-registry\.js", (?:"\.\.\/shared\/renewal-policy\.js", "background-message-router\.js", )?(?:"services\/native-update-status-gateway\.js", "services\/native-status-bridge\.js", )?"repositories\/profile-repository\.js", "repositories\/inventory-repository\.js", "repositories\/inventory-image-store\.js", "services\/trash-service\.js",/);
+assert.match(bg, /^importScripts\("\.\.\/shared\/runtime-deps\.js", "\.\.\/shared\/message-contract-registry\.js", (?:"\.\.\/shared\/renewal-policy\.js", "background-message-router\.js", )?(?:"services\/native-update-status-gateway\.js", "services\/native-status-bridge\.js", (?:"services\/update-workflow-fence\.js", )?)?"repositories\/profile-repository\.js", "repositories\/inventory-repository\.js", "repositories\/inventory-image-store\.js", "services\/trash-service\.js",/);
 pass('repository and trash modules load before background entrypoint');
 
 // Strict version-specific import registration guard for the reviewed new gateway.
 // Keep the historical four-permission runtime prefix unchanged before v1.23.30.
 const observedManifest = JSON.parse(fs.readFileSync('manifest.json', 'utf8'));
 const reviewedNative = /^1\.23\.(?:3\d|[4-9]\d|[1-9]\d{2,})$/.test(observedManifest.version);
-const exactNewPair = /"background-message-router\.js", "services\/native-update-status-gateway\.js", "services\/native-status-bridge\.js", "repositories\/profile-repository\.js"/;
+const exactNewPair = /"background-message-router\.js", "services\/native-update-status-gateway\.js", "services\/native-status-bridge\.js", (?:"services\/update-workflow-fence\.js", )?"repositories\/profile-repository\.js"/;
 if (reviewedNative) assert.match(bg, exactNewPair);
 else assert.doesNotMatch(bg, /"services\/native-update-status-gateway\.js"/);
 pass('native read-only modules are registered in-order only on reviewed 1.23.30+ runtime');
+if (bg.includes('"services/update-workflow-fence.js"')) {
+  assert.match(bg, /"services\/native-status-bridge\.js", "services\/update-workflow-fence\.js", "repositories\/profile-repository\.js"/);
+  assert.match(bg, /KRDeps\.require\('KRUpdateWorkflowFence'\)/);
+}
+pass('KAR-99 new workflow fence module is placed in strict import order when present');
 
 
 for (const dep of ['KRProfileRepository','KRInventoryRepository','KRInventoryImageStore','KRTrashService']) assert.match(bg, new RegExp(`KRDeps\\.require\\('${dep}'\\)`));
