@@ -20,6 +20,7 @@ const ids = Array.from({length: 61}, (_, i) => String(100001 + i));
 const pages = {1:ids.slice(0,25), 2:ids.slice(25,50), 3:ids.slice(50)};
 check('source must explicitly prove the terminal page rather than trusting a guessed page number', () => {
   assert.match(loop, /BULK_FINISH_RUN'[^}]*terminalPageVerified:\s*true/);
+  assert.match(loop, /BULK_FINISH_RUN'[^}]*terminalAdIds:/);
   assert.match(controller, /message\.terminalPageVerified === true/);
 });
 check('first roster is admitted on exact IDs, even if expected header 60 differs from 61 online', () => {
