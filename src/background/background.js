@@ -2683,6 +2683,17 @@ async function authorizeAutomaticPublish(message, sender) {
     fillId, workflowId, kind: archive ? 'archive' : 'renewal',
     profileId, sourceAdId, targetTabId: tabId
   });
+  // Web Locks serialize journal operations, but cannot freeze the external
+  // login while storage I/O is pending. Rebind immediately AFTER the durable
+  // receipt and BEFORE returning a usable click permit. A changed account
+  // leaves the immutable attempt unresolved and never authorizes publication.
+  const afterReceipt = await assertSelectedProfileMatchesLiveAccount({
+    expectedProfileId: profileId,
+    ...(archive ? {expectedProfileName: String(session.targetProfileName || '')} : {}),
+    purpose: 'publish-preclick-account-readback'
+  });
+  if (String(afterReceipt?.profileId || '') !== profileId)
+    throw new Error('KR_PUBLISH_INTENT_ACCOUNT_CHANGED');
   return {authorized:true, receiptId:entry.attemptId};
 }
 function requireRenewalWorkflowController() {
