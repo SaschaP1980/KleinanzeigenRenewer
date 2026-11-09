@@ -134,32 +134,33 @@
       ? captured : null;
   }
 
-  // KAR-143: the captured edit-form "Typ" may be the terminal choice
-  // under a stored parent category. Treat it only as a *candidate*, never
-  // as an independently proven category ID or a title-based inference.
-  // It becomes usable only after the live dialog actually drills down
-  // from that exact stored parent, exposes one exact terminal choice,
-  // and the resulting form independently confirms the saved numeric ID.
-  function capturedTypeTerminalPath(template, storedPath) {
+  // KAR-143 native evidence: the terminal category is captured under either
+  // "Typ" (children's shoes) or "Art" (women's shoes). Only ONE exact
+  // nonempty captured category candidate is eligible. Do not use product
+  // titles, arbitrary attributes, site suggestion order or label similarity.
+  // The live modal must actually navigate to the child, expose one exact
+  // choice and then independently commit the saved numeric category ID.
+  function capturedTerminalAttributePath(template, storedPath) {
     if (!Array.isArray(template?.dynamicAttributes) ||
         storedPath.length < 2 || storedPath.length >= 8) return null;
-    const types = template.dynamicAttributes.filter(attribute =>
-      modernLabel(attribute?.label) === 'typ' &&
+    const candidates = template.dynamicAttributes.filter(attribute =>
+      ['typ', 'art'].includes(modernLabel(attribute?.label)) &&
       typeof attribute?.displayValue === 'string' &&
       clean(attribute.displayValue));
-    if (types.length !== 1) return null;
-    const terminal = clean(types[0].displayValue);
+    if (candidates.length !== 1) return null; // conflicting Typ and Art: fail closed
+    const label = modernLabel(candidates[0].label);
+    const terminal = clean(candidates[0].displayValue);
     if (terminal.length > 150 ||
         storedPath.some(name => modernLabel(name) === modernLabel(terminal))) return null;
-    return [...storedPath, terminal];
+    return { path: [...storedPath, terminal], label };
   }
 
   async function selectModernCategory(template, fillId, path) {
     const wanted = String(template.categoryId);
     const storedDepth = path.length;
     let idProvenExtension = false;
-    let typeBackedExtension = false;
-    const capturedTypePath = capturedTypeTerminalPath(template, path);
+    let attributeBackedExtension = false;
+    const capturedAttribute = capturedTerminalAttributePath(template, path);
 
     // First prefer current site's own unique numeric-ID suggestion. It can be
     // populated asynchronously AFTER the title/chooser changes, so a single
@@ -217,10 +218,10 @@
       if (leaf && branch && !selectable) {
         // A true branch cannot be the terminal selection. Prefer a
         // uniquely ID-bound site suggestion; in its absence the captured
-        // explicit Typ choice is permitted as a candidate only.
-        const byType = capturedTypePath && sameModernPath(capturedTypePath.slice(0, path.length), path)
-          ? capturedTypePath : null;
-        const extended = byType || await waitFor(
+        // explicit Typ/Art choice is permitted as a candidate only.
+        const byAttribute = capturedAttribute && sameModernPath(capturedAttribute.path.slice(0, path.length), path)
+          ? capturedAttribute : null;
+        const extended = byAttribute?.path || await waitFor(
           () => resolveModernCategoryPathById(wanted, path),
           { timeout: 4000, description: 'Endkategorie nach „' + name + '“ für Kategorie-ID ' + wanted }
         );
@@ -228,12 +229,14 @@
             extended.length <= path.length) {
           throw new Error('Endkategorie nach „' + name + '“ für Kategorie-ID ' + wanted + ' nicht nachgewiesen.');
         }
-        void diagnostic(fillId, byType ? 'CATEGORY_MODAL_PATH_EXTENDED_BY_TYPE' : 'CATEGORY_MODAL_PATH_EXTENDED_BY_ID', {
+        void diagnostic(fillId, byAttribute
+          ? (byAttribute.label === 'typ' ? 'CATEGORY_MODAL_PATH_EXTENDED_BY_TYPE' : 'CATEGORY_MODAL_PATH_EXTENDED_BY_ART')
+          : 'CATEGORY_MODAL_PATH_EXTENDED_BY_ID', {
           categoryId: wanted, storedDepth: path.length, resolvedDepth: extended.length,
-          source: byType ? 'captured-explicit-typ-unverified-until-commit' : 'live-numeric-id-suggestion'
+          source: byAttribute ? 'captured-explicit-' + byAttribute.label + '-unverified-until-commit' : 'live-numeric-id-suggestion'
         });
         path = extended;
-        if (byType) typeBackedExtension = true;
+        if (byAttribute) attributeBackedExtension = true;
         else idProvenExtension = true;
         leaf = false;
       }
@@ -242,7 +245,7 @@
         // complete descendant path, a misleading parent affordance is not
         // authoritative. Still require exact breadcrumb transition after
         // clicking; a true leaf can never masquerade as a successful branch.
-        const provenDescendant = (idProvenExtension || typeBackedExtension) && i >= storedDepth - 1;
+        const provenDescendant = (idProvenExtension || attributeBackedExtension) && i >= storedDepth - 1;
         if ((!branch || selectable) && !provenDescendant)
           throw new Error('Kategorie „' + name + '“ ist keine Unterkategorie.');
         button.click();
@@ -266,15 +269,16 @@
           return selected.length === 1 && modernLabel(selected[0].label) === modernLabel(name) ? 'leaf' : null;
         }, { timeout: 10000, description: 'Endkategorie oder Unterkategorie „' + name + '“' });
         if (outcome === 'drilldown') {
-          if (!capturedTypePath || !sameModernPath(capturedTypePath.slice(0, path.length), path)) {
-            throw new Error('Endkategorie nach „' + name + '“ ohne eindeutig erfassten Typ nicht nachgewiesen.');
+          if (!capturedAttribute || !sameModernPath(capturedAttribute.path.slice(0, path.length), path)) {
+            throw new Error('Endkategorie nach „' + name + '“ ohne eindeutig erfasstes Merkmal „Typ“ oder „Art“ nicht nachgewiesen.');
           }
-          void diagnostic(fillId, 'CATEGORY_MODAL_PATH_EXTENDED_BY_TYPE', {
-            categoryId: wanted, storedDepth: path.length, resolvedDepth: capturedTypePath.length,
-            source: 'captured-explicit-typ-unverified-until-commit'
+          void diagnostic(fillId, capturedAttribute.label === 'typ'
+            ? 'CATEGORY_MODAL_PATH_EXTENDED_BY_TYPE' : 'CATEGORY_MODAL_PATH_EXTENDED_BY_ART', {
+            categoryId: wanted, storedDepth: path.length, resolvedDepth: capturedAttribute.path.length,
+            source: 'captured-explicit-' + capturedAttribute.label + '-unverified-until-commit'
           });
-          path = capturedTypePath;
-          typeBackedExtension = true;
+          path = capturedAttribute.path;
+          attributeBackedExtension = true;
           void diagnostic(fillId, 'CATEGORY_MODAL_BRANCH_CONFIRMED', { label: name, level: i });
         } else {
           void diagnostic(fillId, 'CATEGORY_MODAL_LEAF_CONFIRMED', { label: name, level: i });
