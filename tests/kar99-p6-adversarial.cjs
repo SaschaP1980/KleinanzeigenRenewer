@@ -242,5 +242,52 @@ async function withAttempt(env,kind='renewal'){
     'a second form submit with prior submitter must not reuse approval');
   pass('second form submit cannot reuse prior authorization');
   Object.assign(globalThis,original);
+  // Admission can take several awaited storage/lock steps after first live
+  // account check. Switching the account between that check and the durable
+  // receipt must not return a usable click authorization.
+  const authorizeStart=bg.indexOf('async function authorizeAutomaticPublish(');
+  const authorizeEnd=bg.indexOf('function requireRenewalWorkflowController()',authorizeStart);
+  assert(authorizeStart>=0&&authorizeEnd>authorizeStart,
+    'production automatic/manual publish handler must be present');
+  const actualAuthorize=bg.slice(authorizeStart,authorizeEnd);
+  function admissionRig(changeAfterJournal){
+    let live='profile-one',checks=0,writes=0;
+    const fill={fillId:'fill-one',targetTabId:99,status:'running',
+      stage:'auto-publish-ready',sourceAdId:'1234',renewalId:'renew-one',
+      result:{complete:true,issues:[]}};
+    const renewal={fillId:'fill-one',targetTabId:99,
+      profileId:'profile-one',sourceAdId:'1234'};
+    const auth=vm.runInNewContext(actualAuthorize+
+      '\nauthorizeAutomaticPublish;',{
+      URL,
+      readFillSessions:async()=>({'fill-one':fill}),
+      readRenewalSessions:async()=>({'renew-one':renewal}),
+      readArchiveInsertionSessions:async()=>({}),
+      assertSelectedProfileMatchesLiveAccount:async()=>{
+        checks++;
+        if(live!=='profile-one')throw Error('live Kleinanzeigen account changed');
+        return {profileId:live,displayName:'Account One'};
+      },
+      requireAutoPublishIntentJournal:()=>({begin:async()=>{
+        writes++;
+        if(changeAfterJournal)live='profile-two';
+        return {attemptId:'durable-intent-1'};
+      }})
+    });
+    return {call:()=>auth({fillId:'fill-one'},{tab:{id:99},
+      url:'https://www.kleinanzeigen.de/p-anzeige-aufgeben.html'}),
+      get checks(){return checks;},get writes(){return writes;}};
+  }
+  const switched=admissionRig(true);
+  await assert.rejects(switched.call(),undefined,
+    'a changed live account after journal commit must deny click authorization');
+  assert.equal(switched.writes,1,'immutable pre-click receipt remains after denied approval');
+  assert.equal(switched.checks,2,'account binding must be rechecked after receipt readback');
+  pass('account switch during async journal write denies remote click and retains receipt');
+  const stable=admissionRig(false);
+  const allowed=await stable.call();
+  assert.equal(allowed.authorized,true,'stable account may still publish normally');
+  assert.equal(stable.checks,2,'stable account is verified before and after durable receipt');
+  pass('stable account retains legitimate one-shot authorization');
   console.log('PASS KAR99 P6 adversarial '+checks+' checks');
 })().catch(e=>{console.error(e);process.exitCode=1;});
