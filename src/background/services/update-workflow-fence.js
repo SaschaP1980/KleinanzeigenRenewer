@@ -13,7 +13,7 @@
     return e;
   }
   function create(options = {}) {
-    const { storageLocal, policy, getOwnerSnapshot, clock, newToken } = options;
+    const { storageLocal, policy, getOwnerSnapshot, clock, newToken, atomicCoordinator } = options;
     if (typeof storageLocal?.get !== 'function' || typeof storageLocal?.set !== 'function')
       throw new Error('Update fence requires persistent storage.');
     if (typeof clock !== 'function' || typeof newToken !== 'function')
@@ -55,7 +55,7 @@
         typeof input[k] === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(input[k])))
         throw denied('KR_UPDATE_FENCE_OWNERSHIP');
     }
-    async function withAdmission(type, task) {
+    async function singleWorkerAdmission(type, task) {
       if (typeof type !== 'string' || !type || typeof task !== 'function')
         throw denied('KR_UPDATE_FENCE_ADMISSION');
       // Only the admission decision is serialized. Holding the mutex until a
@@ -70,7 +70,7 @@
       });
       return admitted.pending;
     }
-    async function reserve(request = {}) {
+    async function singleWorkerReserve(request = {}) {
       return serialize(async () => {
         ids(request);
         if (typeof getOwnerSnapshot !== 'function' || typeof policy?.evaluate !== 'function')
@@ -105,7 +105,7 @@
         return Object.freeze({ ...record });
       });
     }
-    async function cancel(request = {}) {
+    async function singleWorkerCancel(request = {}) {
       return serialize(async () => {
         const existing = await read();
         if (!existing || existing.schema !== VERSION || existing.state !== 'reserved'
@@ -118,7 +118,7 @@
         return Object.freeze({ state: 'cancelled' });
       });
     }
-    async function recover(request = {}) {
+    async function singleWorkerRecover(request = {}) {
       return serialize(async () => {
         const value = await read();
         if (!value || value.schema !== VERSION || value.state !== 'cancelled'
@@ -134,6 +134,21 @@
         return Object.freeze({ state: entry === null || isReleased(entry) ? 'unlocked' : 'blocked' });
       });
     }
+    // The production worker always injects the same-origin Web Locks backed
+    // coordinator. The legacy per-instance path is retained only for the
+    // historical isolated unit harness; it cannot create a production lease.
+    const withAdmission=(type,task)=>atomicCoordinator
+      ? atomicCoordinator.withAdmission(type,()=>singleWorkerAdmission(type,task))
+      : singleWorkerAdmission(type,task);
+    const reserve=request=>atomicCoordinator
+      ? atomicCoordinator.guardReserve(()=>singleWorkerReserve(request))
+      : singleWorkerReserve(request);
+    const cancel=request=>atomicCoordinator
+      ? atomicCoordinator.guardReserve(()=>singleWorkerCancel(request))
+      : singleWorkerCancel(request);
+    const recover=request=>atomicCoordinator
+      ? atomicCoordinator.guardReserve(()=>singleWorkerRecover(request))
+      : singleWorkerRecover(request);
     return Object.freeze({ withAdmission, reserve, cancel, recover, status });
   }
   const API = Object.freeze({ create, STORAGE_KEY });
