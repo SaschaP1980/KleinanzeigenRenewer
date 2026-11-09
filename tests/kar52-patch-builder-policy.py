@@ -83,7 +83,7 @@ changed = set([*m.META, old_path])
 def fake_git(*args):
     if args == ("log","-1","--format=%H",test_sha,"--",old_path): return sealed_sha
     if args == ("show","-s","--format=%s",sealed_sha): return "build(KAR-132): atomic PATCH 1.23.38 plus ZIP"
-    if args == ("diff-tree","--no-commit-id","--name-only","-r",sealed_sha): return "\\n".join(sorted(changed))
+    if args == ("diff-tree","--no-commit-id","--name-only","-r",sealed_sha): return "\n".join(sorted(changed))
     if args == ("merge-base","--is-ancestor",main_sha,sealed_sha): return ""
     raise AssertionError("Unexpected Git command: "+repr(args))
 def fake_run(*args, **kwargs):
@@ -97,7 +97,7 @@ with patch.object(m, "git", side_effect=fake_git), patch.object(m, "run", side_e
     assert m.sealed_prior_archive(132, main_sha, test_sha, old_path, "1.23.38") == (sealed_zip, "work")
     with patch.object(m, "git", side_effect=lambda *args: "build(KAR-OTHER): atomic PATCH 1.23.38 plus ZIP" if args[:3] == ("show","-s","--format=%s") else fake_git(*args)):
         reject("foreign previous Work PATCH seal",lambda:m.sealed_prior_archive(132,main_sha,test_sha,old_path,"1.23.38"));rejects+=1
-    with patch.object(m, "git", side_effect=lambda *args: "\\n".join(sorted(changed | {"src/background/background.js"})) if args[0]=="diff-tree" else fake_git(*args)):
+    with patch.object(m, "git", side_effect=lambda *args: "\n".join(sorted(changed | {"src/background/background.js"})) if args[0]=="diff-tree" else fake_git(*args)):
         reject("previous PATCH extra mutated path",lambda:m.sealed_prior_archive(132,main_sha,test_sha,old_path,"1.23.38"));rejects+=1
     with patch.object(m, "run", side_effect=lambda *args,**kwargs: b"ALTERED ZIP" if kwargs.get("binary") else fake_run(*args,**kwargs)):
         assert m.sealed_prior_archive(132,main_sha,test_sha,old_path,"1.23.38")[0] != sealed_zip, "mutated previous ZIP fixture detected downstream"
