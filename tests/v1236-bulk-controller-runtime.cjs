@@ -4,7 +4,7 @@ const BulkReconciliationService=require('../src/background/services/bulk-reconci
 let API=null;
 const ctx={console,Date,Promise,Set,Map,Object,Array,String,Number,Boolean,RegExp,Error,URL,setTimeout,clearTimeout,KRDeps:{register(n,a){if(n==='KRBulkInventoryController')API=a;}}};ctx.globalThis=ctx;
 vm.createContext(ctx);vm.runInContext(fs.readFileSync('bulk-inventory-controller.js','utf8'),ctx,{filename:'bulk-inventory-controller.js'});assert.ok(API?.create);
-let state={runId:'r1',bulkRunId:'r1',operationId:'o1',status:'running',sourceTabId:10,profileId:'p1',profileName:'Alice',verificationMode:'safe',processedIds:[],successCount:0,failedCount:0,failures:[],issues:[],remoteRosterPages:{},reconciliationRosterPages:{},workerTabId:null,metadataTabId:null};
+let state={runId:'r1',bulkRunId:'r1',operationId:'o1',status:'running',sourceTabId:10,profileId:'p1',profileName:'Alice',expectedTotal:2,verificationMode:'safe',processedIds:[],successCount:0,failedCount:0,failures:[],issues:[],remoteRosterPages:{},reconciliationRosterPages:{},workerTabId:null,metadataTabId:null};
 const writes=[],diags=[];
 const invRec={normalizeRosterIds:v=>Array.from(new Set((v||[]).map(String).filter(x=>/^\d+$/.test(x)))),rosterEvidence:pages=>{const all=Object.values(pages||{}).flat().map(String);const seen=new Set(),dups=[];for(const id of all){if(seen.has(id)&&!dups.includes(id))dups.push(id);seen.add(id)}return {ids:[...seen],duplicates:dups}},sameIdSet:(a,b)=>JSON.stringify([...a].sort())===JSON.stringify([...b].sort()),completeRoster:(r,e,invalid)=>!invalid&&r.ids.length===e,selectAbsentCandidates:()=>[]};
 const ctl=API.create({
@@ -17,7 +17,7 @@ let n=0;const pass=l=>{n++;console.log('PASS '+l)};
 (async()=>{
  const ready=ctl.classifyBulkEditWorkerNavigation({status:'complete',url:'https://www.kleinanzeigen.de/p-anzeige-bearbeiten.html?adId=123'},'123');assert.equal(ready.state,'ready');const redirected=ctl.classifyBulkEditWorkerNavigation({status:'complete',url:'https://www.kleinanzeigen.de/s-anzeige/x/123-1-2'},'123');assert.equal(redirected.navigationReason,'redirected-to-public-ad');pass('worker navigation classification');
  const lifecycle=await ctl.resolveBulkWorkerLifecycle({...state,workerTabId:20,currentAdId:'123'},20,'123');assert.equal(lifecycle.state,'active');pass('worker lifecycle');
- await ctl.recordBulkRosterPage({page:1,ids:['1','2']},{tab:{id:10}});assert.deepEqual(JSON.parse(JSON.stringify(state.remoteRosterIds)),['1','2']);pass('bulk roster recording');
+ await ctl.recordBulkRosterPage({page:1,ids:['1','2'],profileName:'Alice',onlineCount:2},{tab:{id:10}});assert.deepEqual(JSON.parse(JSON.stringify(state.remoteRosterIds)),['1','2']);pass('bulk roster recording');
  assert.equal(ctl.requireBulkSource(state,{tab:{id:10}}),10);assert.throws(()=>ctl.requireBulkSource(state,{tab:{id:99}}),/anderen/);pass('source authority');
  const stop=await ctl.requestBulkInventoryStopAfterCurrent({runId:'r1'});assert.equal(stop.stopAfterCurrentRequested,true);pass('stop-after-current ownership');
  console.log(`${n}/5 PASS v1.23.6 bulk controller runtime`);

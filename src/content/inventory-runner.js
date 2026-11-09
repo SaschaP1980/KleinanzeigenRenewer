@@ -80,6 +80,7 @@
   const runLoop = InventoryRunLoop.create({
     RUN_POLL_MS, WORKER_TIMEOUT_MS, WORKER_REQUEST_TIMEOUT_MS, sleep, runtimeMessage, runtimeMessageWithTimeout, diagnostic, MyAdsReadiness,
     isMyAdsUrl: roster.isMyAdsUrl, currentPageNumber: roster.currentPageNumber, scanListings: roster.scanListings,
+    parseOnlineCount: roster.parseOnlineCount, detectedProfileName: roster.detectedProfileName, normalizeKey,
     nextPageButton: roster.nextPageButton, isDisabledControl: roster.isDisabledControl, pageFingerprint: roster.pageFingerprint,
     waitForPageChange: roster.waitForPageChange, waitForListings: roster.waitForListings,
     waitForMyAdsReady: readiness.waitForMyAdsReady, validateFreshBulkSnapshot: readiness.validateFreshBulkSnapshot,

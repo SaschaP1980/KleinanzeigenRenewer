@@ -6,7 +6,7 @@
 
   function create(options = {}) {
     const {
-      RUN_POLL_MS, WORKER_TIMEOUT_MS, WORKER_REQUEST_TIMEOUT_MS, sleep, runtimeMessage, runtimeMessageWithTimeout, diagnostic, MyAdsReadiness, isMyAdsUrl, currentPageNumber, scanListings, nextPageButton, isDisabledControl, pageFingerprint, waitForPageChange, waitForListings, waitForMyAdsReady, validateFreshBulkSnapshot, readinessError, renderOverlay, refreshFailureHighlights
+      RUN_POLL_MS, WORKER_TIMEOUT_MS, WORKER_REQUEST_TIMEOUT_MS, sleep, runtimeMessage, runtimeMessageWithTimeout, diagnostic, MyAdsReadiness, isMyAdsUrl, currentPageNumber, scanListings, parseOnlineCount, detectedProfileName, normalizeKey, nextPageButton, isDisabledControl, pageFingerprint, waitForPageChange, waitForListings, waitForMyAdsReady, validateFreshBulkSnapshot, readinessError, renderOverlay, refreshFailureHighlights
     } = options;
     let loopRunning = false;
 
@@ -138,6 +138,14 @@
 
       while (state?.status === 'running' && isMyAdsUrl()) {
         const page = currentPageNumber();
+        const pageProfile = detectedProfileName(document);
+        const pageOnline = parseOnlineCount(document.body?.innerText || '')?.online;
+        if (!pageProfile || normalizeKey(pageProfile) !== normalizeKey(state.profileName)) {
+          throw new Error('Kleinanzeigen-Konto hat sich während der Erfassung geändert.');
+        }
+        if (!Number.isInteger(pageOnline) || pageOnline !== Number(state.expectedTotal)) {
+          throw new Error('Der Online-Zähler hat sich während der Erfassung geändert; Bestandsabgleich wird nicht ausgeführt.');
+        }
         if (state.stopAfterCurrentRequested === true && !state.currentAdId && !state.workerTabId) {
           await finishControlledStop(state);
           return;
@@ -156,7 +164,7 @@
           await runtimeMessage({ type: 'BULK_RUN_UPDATE', patch: { stage: 'page-empty', currentPage: page } });
           throw new Error(`Auf Seite ${page} wurden keine Bearbeiten-Aktionen erkannt.`);
         }
-        state = await runtimeMessage({ type: 'BULK_RECORD_ROSTER_PAGE', page, ids: listings.map(item => item.adId) });
+        state = await runtimeMessage({ type: 'BULK_RECORD_ROSTER_PAGE', page, ids: listings.map(item => item.adId), profileName: pageProfile, onlineCount: pageOnline });
         state = await runtimeMessage({ type: 'BULK_RUN_UPDATE', patch: { stage: 'scanning-page', currentPage: page, pageFingerprint: listings.map(item => item.adId).join(',') } });
         const processed = new Set(state.processedIds || []);
         for (const listing of listings) {
@@ -191,7 +199,25 @@
         }
         const next = nextPageButton();
         if (!next || isDisabledControl(next)) {
-          state = await runtimeMessage({ type: 'BULK_FINISH_RUN', lastPage: page });
+          // A terminal button can temporarily be disabled while the page hydrates.
+          // Require a second stable reading of this same final page before permitting
+          // any local inventory trash reconciliation.
+          await sleep(Math.max(500, Number(MyAdsReadiness?.SAFETY_RECHECK_MS || 1000)));
+          const terminalAdIds = scanListings().map(item => String(item.adId));
+          const pageIds = listings.map(item => String(item.adId));
+          const checkedProfile = detectedProfileName(document);
+          const checkedOnline = parseOnlineCount(document.body?.innerText || '')?.online;
+          if (currentPageNumber() !== page ||
+              !isDisabledControl(nextPageButton()) ||
+              normalizeKey(checkedProfile) !== normalizeKey(pageProfile) ||
+              checkedOnline !== pageOnline ||
+              JSON.stringify(terminalAdIds) !== JSON.stringify(pageIds)) {
+            throw new Error('Die letzte Anzeigenseite ist nicht stabil; keine lokale Inventarbereinigung.');
+          }
+          state = await runtimeMessage({
+            type: 'BULK_FINISH_RUN', lastPage: page, terminalPageVerified: true,
+            terminalAdIds, terminalProfileName: checkedProfile, terminalOnlineCount: checkedOnline
+          });
           if (state?.status === 'running' && String(state?.stage || '').startsWith('reconciliation-')) {
             renderOverlay(state, 'Bestand erneut prüfen');
             return;
