@@ -199,7 +199,9 @@ function requireRemoteDeleteReplacementService() {
     renewalPhaseAttemptAvailable, renewalAttemptState, delay, renewalPhaseRetryDelayMs, logRenewalPhaseAttemptStarted,
     logRenewalPhaseAttemptFailed, isNonRetryableRenewalSafetyError, renewalAttemptDetails, setAppNotice, markMassRenewalItemSucceeded,
     IDBKeyRangeCtor: globalThis.IDBKeyRange, captureEmergencyResetGeneration, assertEmergencyResetGeneration,
-    beginPhase4Attempt: current => requirePhase4UncertaintyJournal().begin(current)
+    beginPhase4Attempt: current => requirePhase4UncertaintyJournal().begin(current),
+    observePhase4Attempts: renewalId => requirePhase4UncertaintyJournal().observe(renewalId),
+    resolvePhase4Attempt: request => requirePhase4UncertaintyJournal().resolveVerified(request)
   });
   return remoteDeleteReplacementService;
 }
@@ -2538,7 +2540,8 @@ function requirePhase4UncertaintyJournal() {
   if (!phase4Journal) {
     phase4Journal = Phase4UncertaintyJournal.create({
       storageLocal: chrome.storage.local, clock: () => Date.now(),
-      newToken: () => crypto.randomUUID(), workerInstanceId: crypto.randomUUID()
+      newToken: () => crypto.randomUUID(), workerInstanceId: crypto.randomUUID(),
+      verifyRemoteOutcome: receipt => requireRemoteDeleteReplacementService().verifyPhase4RemoteOutcomeFresh(receipt)
     });
   }
   return phase4Journal;
