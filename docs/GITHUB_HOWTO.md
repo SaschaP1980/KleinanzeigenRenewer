@@ -32,17 +32,20 @@ Closed Issues must remain searchable and readable because regressions may requir
 
 For a concrete task, read its Issue body and all comments in full. For an Epic step, also read the parent Epic and relevant predecessor Issue(s).
 
-## Timeboxed Issues and independent Waves
+## One Issue per outcome; timeboxed internal Waves
 
-**Operational goal:** Complete a single implementation Issue in **less than 20 minutes of active ChatGPT work whenever practicable**. This is an observed stream-continuity planning target, **not** a guaranteed session or execution limit. Before starting, estimate the end-to-end scope, GitHub calls, validation and expected CI cost. Plan no more than **15 minutes of focused active work** and leave approximately **5 minutes for verification, GitHub latency, recovery and unexpected delays**. Do not report a time target as achieved without measured evidence.
+**One coherent technical/product outcome = one Issue.** Use one numbered Issue as the active execution, scope, dependency and acceptance record for its coherent feature, defect or technical/security objective. The Issue may carry many **internal** phases/Waves, sessions, commits, tests and PRs. The former `one new GitHub Issue for each <=15-minute Wave` pattern is **retired**; timeboxing does not grant reason to create child Issues.
 
-- If the expected active work or validation cannot reasonably fit this budget, **split the implementation into separately tracked, independently acceptable Wave Issues before coding**. Keep the parent Issue/Epic as an outcome/dependency index rather than one continuous implementation run.
-- Every Wave must specify its own `[KAR-N]` Issue, small bounded scope, dependencies, acceptance criteria, estimated effort, own single canonical Rolling Comment, and a safe stopping point. Sequence dependent Waves explicitly; do not silently implement other Waves while working on one.
-- Treat the estimate as a decision aid rather than a reason to weaken validation. Full required RED→GREEN, safety, exact-head PR, CI and release authorization checks remain mandatory.
-- If scope expands or the time budget becomes unrealistic, stop at a **verified and read-backed GitHub checkpoint**, record current branch/commit/PR/CI state, failures and next action, then create or request the next bounded Wave as authorized. Never force completion, skip tests, claim unexecuted checks passed, or leave ambiguous writes.
-- CI and external service waits may exceed the target; record actual status and continue active heartbeats while the agent is running. An inactive ChatGPT conversation cannot guarantee periodic execution or notifications. A scheduled or hosted runner must be explicitly supported and authorized before claiming unattended coverage.
+- **Work chunk budget:** plan a bounded implementation/checkpoint of up to approximately **15 minutes** of active work and about **5 minutes** for verification, CI latency and safe recovery. These are continuity planning targets, **not** an Issue duration limit, deadline, achievement claim or permission to omit mandatory tests.
+- **Internal Wave contract:** inside the **same Issue**, record each phase's scope, specific dependencies, checklist/acceptance, exact tested SHA, previous RED/GREEN, observed CI status, risk/unknowns and next action. Reuse its single `<!-- KAR-ROLLING-COMMENT -->` recovery record; keep that record updated/read back after meaningful steps and at least every three minutes while actively executing.
+- **Safe interruption:** if the session, CI or scope exceeds the chunk budget, checkpoint the live branch/ref/PR and all actual results, mark `STOPPED` or `BLOCKED`, and resume another chunk **within the same Issue**. Never manufacture GREEN, force incomplete work through CI, or create a new Issue as a timeout workaround.
+- **Multiple PRs:** for genuinely distinct reviewable checkpoints inside one Issue, retain the issue-bound `work/KAR-N` branch and one canonical comment. Use `Refs #N` for **nonfinal** PRs; it must not imply Issue closure. `Closes #N`, `Fixes #N` and `Resolves #N` are reserved for a final PR whose merge is eligible to close the Issue. Each PR still requires real exact-head Work PR CI and distinct readback; do not imply that a successful intermediate PR satisfies final acceptance.
+- **New Issue decision:** only create an Issue for an independently valuable feature, reproducible defect, materially separate ownership/lifecycle/priority/scope or a specific owner request. A new chat, longer estimate, internal Wave or test failure **alone** never justifies a new Issue. An Epic may coordinate distinct independent product deliverables, but a single technical goal should not be represented as a chain of timebox child Issues.
+- **Historical projects:** old multi-Issue graphs (for example KAR-24 and its old KAR-25–37 Waves) are preserved as searchable evidence, not new policy. Do not automatically close, merge, retitle or delete unrelated historical work. Only an expressly authorized, lossless migration may consolidate a named legacy stack; KAR-141 governs KAR-99's 19 specifically named children.
+- **CI/recovery waits:** CI and service waits can exceed the estimate. Record actual status, keep active heartbeats while working, and do not promise unattended continuation without separately supported and authorized automation.
 
-**Example:** [KAR-24](https://github.com/SaschaP1980/KleinanzeigenRenewer/issues/24) tracks separately authorized, independently accepted Waves [KAR-25](https://github.com/SaschaP1980/KleinanzeigenRenewer/issues/25) through [KAR-37](https://github.com/SaschaP1980/KleinanzeigenRenewer/issues/37). The parent closes only after verified child outcomes; it is not a single 20-minute work package.
+No timebox overrides account/Ad-ID safety, the test-first RED→GREEN contract, exact Work PR/main CI, the approved ZIP/version contract, genuine native acceptance or release authorization.
+
 
 ## English-only GitHub and Issue identity
 
@@ -153,7 +156,7 @@ Before merge verify:
 - PR belongs to the matching `work/KAR-N`;
 - Issue is correct;
 - Rolling Comment contains exact current PR HEAD;
-- PR body links/closes the Issue;
+- PR body references the exact Issue with `Refs #N` for an intermediate nonclosing checkpoint or `Closes #N` / `Fixes #N` / `Resolves #N` only for a final accepted result;
 - complete diff is expected;
 - `KAR Work PR` is genuinely GREEN;
 - no unresolved review/CI blocker remains;

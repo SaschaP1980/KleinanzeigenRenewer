@@ -109,9 +109,14 @@ There is **no Candidate layer**.
 
 Never create `work/KAR-*` before the Issue's canonical Rolling Comment has been created and read back.
 
-### General Issue work budget and Wave split
+### Issue ownership and timeboxed internal Waves
 
-Before implementation, estimate whether the full scoped Issue, including verification, can be completed in **less than 20 minutes of active ChatGPT work**. This is an observed continuity target, **not** a technical guarantee. Plan **at most 15 minutes of active work** and reserve approximately 5 minutes for verification, recovery and unexpected GitHub/CI latency. If the expected work is larger, first create/identify **independently acceptable, separately scoped Wave Issues** with dependencies and their own recovery checkpoint; keep the parent open as the coordination index. If a Wave overruns its estimate, checkpoint and read back the actual safe GitHub state, then split the remainder. Do not sacrifice tests, safety gates or exact-SHA CI to meet a time estimate. See the authoritative policy in `docs/GITHUB_HOWTO.md`.
+**One coherent technical/product outcome = one Issue.** Use the existing Issue as the persistent owner of a feature, technical safety outcome or confirmed defect across as many phases, internal Waves, checkpoints, commits, development sessions and (when necessary) pull requests as it takes. An Issue is not a 15-minute container. Do **not** create another Issue solely because a Wave, validation or ChatGPT session exceeded a time budget.
+
+Plan each **active work chunk**, including recovery and relevant checks, for approximately 15 minutes with approximately 5 minutes of validation/recovery buffer (a continuity target, not a time guarantee). Break larger work into independently reviewable **internal phases/Waves listed inside the same Issue** with requirements, dependencies, acceptance, exact SHA/CI and next action in its **one** canonical Rolling Comment. On interruption, write/read back a durable safe checkpoint and resume the **same Issue and Work branch** where feasible, without skipping required tests or release gates.
+
+A separate Issue is justified only for an independently useful feature, separately reproducible defect, materially distinct ownership/lifecycle/priority, or the owner's explicit request; neither an additional session nor a PR creates a new Issue by itself. Intermediate PR descriptions use `Refs #N` to retain the Issue open; use `Closes #N` (or `Fixes`/`Resolves`) only when the Issue's complete acceptance can be satisfied. Every PR still uses the exact issue-bound branch and canonical Rolling Comment checks. Historical multi-Issue programs remain readable as history; migrate or close them only after a separately authorized lossless scope/source/evidence audit (see KAR-141).
+
 
 ### GitHub language, identifiers and agent ownership
 

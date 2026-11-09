@@ -29,8 +29,10 @@ function validateContract({ issue, comments, headRef, headSha, prBody, repositor
     /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repositoryFullName), 'invalid repository identity');
   requireCondition(headRef === 'work/KAR-' + number, 'PR head must be work/KAR-' + number);
   requireCondition(typeof headSha === 'string' && /^[a-f0-9]{40}$/.test(headSha), 'invalid PR HEAD SHA');
-  const closure = new RegExp('(?:Closes|Fixes|Resolves)\\s+#' + number + '(?!\\d)', 'i');
-  requireCondition(closure.test(String(prBody || '')), 'PR body must close exact KAR issue #' + number);
+  // Refs #N keeps a multi-checkpoint Issue open; closing keywords belong to the final accepted PR.
+  const issueReference = new RegExp('(?:Closes|Fixes|Resolves|Refs)\\s+#' + number + '(?!\\d)', 'i');
+  requireCondition(issueReference.test(String(prBody || '')),
+    'PR body must reference exact KAR issue #' + number + ' (Refs for intermediate, Closes/Fixes/Resolves for final)');
 
   requireCondition(Array.isArray(comments), 'issue comments must be supplied');
   const marked = comments.filter(c => typeof c?.body === 'string' && c.body.includes(MARKER));

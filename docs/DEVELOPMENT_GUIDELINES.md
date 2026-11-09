@@ -72,11 +72,15 @@ Sequence:
 
 There is no Candidate branch/layer.
 
-### Timebox and Wave planning
+### Issue ownership and timeboxed internal Waves
 
-Before beginning any Issue, estimate the **entire active work and required validation**. Aim to complete each bounded implementation Issue in **under 20 minutes of active work** (an observed stream-continuity target, **not a guaranteed limit**). Allocate **at most 15 minutes of planned work** and reserve approximately 5 minutes for validation, latency, recovery and unforeseen delays. The authoritative rule and safe-split procedure are in `docs/GITHUB_HOWTO.md`.
+**One coherent technical/product outcome = one Issue.** Keep the original GitHub Issue OPEN as the source of truth for a coherent feature, architecture/security outcome or reproducible defect, even across many sessions, commits, internal Waves and separately verified checkpoints. The Issue's life cycle is controlled by real acceptance, **not** the time taken to complete an individual chunk.
 
-When an Issue is expected to exceed the budget, divide it **before implementation** into independently acceptable Wave Issues: each has an assigned `[KAR-N]`, scope, dependencies, estimate, acceptance criteria and recovery checkpoint. Keep any parent Epic/Issue open as the coordination index until all dependent Waves are verified. If a Wave unexpectedly grows, checkpoint/read back safe GitHub state and split the remainder rather than skipping tests, safety gates, CI, verification or owner approvals. Do not assert an elapsed-time SLA or an unobserved success. Hosted CI may take longer than the time target.
+Before each active implementation chunk, estimate the focused work and tests; target **at most 15 minutes planned active work**, leaving about **5 minutes** for CI/recovery and interruptions. This is an observed continuity target, not a guaranteed deadline or a reason to weaken test, safety, exact-head CI, release or owner-approval gates. An Issue may remain active for days or multiple sessions without generating another Issue.
+
+If the work is larger, split it into **internal Phase/Wave checklists within the same Issue**. Each internal Wave has its own independently reviewable scope, dependency/stop gate, acceptance and exact commit/CI result, all recovered through the **same existing canonical Rolling Comment** and the existing `work/KAR-N` branch/PR when feasible. Stop safely, update/read back the Rolling Comment and resume the same Issue; do **not** auto-create a Wave Issue because a chunk exceeded the estimate.
+
+Create a separate Issue **only** for a separately valuable feature, independently reproducible defect, materially distinct scope/ownership/lifecycle/priority, or the owner's explicit request. When a Work Issue spans intermediate PRs, use `Refs #N` (nonclosing) rather than `Closes #N` until final Issue acceptance; every PR must still pass exact issue/branch/HEAD and quality gates. Historical multiple-Issue projects are legitimate provenance, **not** a template to copy: do not mass-close, rewrite, reassign or auto-migrate them without an independently approved no-loss evidence plan (KAR-141 covers only the named KAR-99 descendants).
 
 
 ## 3. Canonical Rolling Comment
