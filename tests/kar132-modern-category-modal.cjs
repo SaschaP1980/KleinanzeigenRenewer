@@ -13,7 +13,7 @@ const asyncNoop = async () => ({});
 let passed = 0;
 
 function fixture({ committedId = '154', disableConfirmation = false, duplicateLeaf = false,
-  activePath = categoryPath, formSuggestions = [] } = {}) {
+  activePath = categoryPath, formSuggestions = [], misleadingWearablesBranch = false } = {}) {
   const formRadio = ({ id, path }) => '<label><input type="radio" name="category-suggestions" value="' +
     id + '">' + path.join(' → ') + '</label>';
   const formSuggestionHtml = '<fieldset id="ad-category-picker" aria-label="Kategorienvorschläge">' +
@@ -29,10 +29,16 @@ function fixture({ committedId = '154', disableConfirmation = false, duplicateLe
   const activity = { opens: 0, confirms: 0, clicked: [], selected: null };
   let level = 0;
 
-  const button = (name, kind, pressed = false) => '<li><button data-kind="' + kind + '" data-name="' + name + '" type="button"' +
-    (kind === 'leaf' ? ' aria-pressed="' + pressed + '"' : '') + '><span class="flex-1">' + name + '</span>' +
-    (kind === 'branch' ? '<svg data-title="arrowRight"></svg><span class="sr-only">, öffnet Unterkategorien</span>' : '') +
-    (pressed ? '<svg data-title="checkmark"></svg>' : '') + '</button></li>';
+  // Real 2026-11-09 UI can navigate into child choices from an apparent
+  // selectable parent: aria-pressed exists but the click opens another level.
+  const button = (name, kind, pressed = false) => {
+    const deceptive = misleadingWearablesBranch && kind === 'branch' && name === 'Wearables';
+    return '<li><button data-kind="' + kind + '" data-name="' + name + '" type="button"' +
+      (kind === 'leaf' || deceptive ? ' aria-pressed="' + pressed + '"' : '') +
+      '><span class="flex-1">' + name + '</span>' +
+      (kind === 'branch' && !deceptive ? '<svg data-title="arrowRight"></svg><span class="sr-only">, öffnet Unterkategorien</span>' : '') +
+      (pressed ? '<svg data-title="checkmark"></svg>' : '') + '</button></li>';
+  };
   function breadcrumb() {
     if (!level) return '<p>Alle Kategorien</p>';
     const parts = ['Alle Kategorien', ...activePath.slice(0, level)];
@@ -179,5 +185,26 @@ function makeFlow() {
     assert.equal(activity.confirms, 0, 'duplicate ID with different leaves must fail closed');
     passed++;
   }
-  console.log(passed + '/9 PASS KAR-132 modern same-page category modal safety');
+  // v1.23.39 real-world regression: Wearables was clicked and the UI
+  // navigated into the Smartwatches children, but the adapter kept awaiting
+  // aria-pressed=true on the parent and timed out.
+  {
+    const { activity } = fixture({ committedId: String(wearableId), activePath: wearablePath,
+      formSuggestions: [{ id: wearableId, path: wearablePath }, { id: 157, path: ['Mode & Beauty', 'Uhren', 'Uhren'] }],
+      misleadingWearablesBranch: true });
+    assert.deepEqual(await makeFlow().setCategory({ categoryId: wearableId, categoryPath: wearablePrefix },
+      'kar132-native-wearables-parent-misleading'), { confirmed: true, pendingNavigation: false });
+    assert.deepEqual(activity.clicked, wearablePath, 'must select actual Smartwatches terminal leaf');
+    assert.equal(activity.confirms, 1);
+    passed++;
+  }
+  {
+    const { activity } = fixture({ committedId: String(wearableId), activePath: wearablePath,
+      formSuggestions: [{ id: 777, path: wearablePath }], misleadingWearablesBranch: true });
+    await assert.rejects(makeFlow().setCategory({ categoryId: wearableId, categoryPath: wearablePrefix },
+      'kar132-native-no-matching-suggestion'), /Endkategorie|Wearables|Kategorie|category/i);
+    assert.equal(activity.confirms, 0, 'no numeric-ID proof: never confirm even if parent click opens sublevel');
+    passed++;
+  }
+  console.log(passed + '/11 PASS KAR-132 modern same-page category modal safety');
 })().catch(error => { console.error(error); process.exitCode = 1; });
