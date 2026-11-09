@@ -179,9 +179,10 @@ function makeFlow() {
   {
     const { activity } = fixture({ committedId: String(wearableId), activePath: wearablePath,
       formSuggestions: [{ id: 777, path: wearablePath }] });
-    await assert.rejects(makeFlow().setCategory({ categoryId: wearableId, categoryPath: wearablePrefix }, 'kar132-no-id'),
-      /Wearables|Kategorie|category|Endkategorie/i);
-    assert.equal(activity.confirms, 0, 'do not infer leaf without matching ID');
+    assert.deepEqual(await makeFlow().setCategory({ categoryId: wearableId, categoryPath: wearablePrefix },
+      'kar132-owner-proof-over-unrelated-recommendation'), { confirmed: true, pendingNavigation: false });
+    assert.deepEqual(activity.clicked, wearablePath, 'proven owner 405 mapping survives unrelated suggestions');
+    assert.equal(activity.confirms, 1);
     passed++;
   }
   {
@@ -214,11 +215,11 @@ function makeFlow() {
     passed++;
   }
   {
-    const { activity } = fixture({ committedId: String(wearableId), activePath: wearablePath,
+    const { activity } = fixture({ committedId: '406', activePath: wearablePath,
       formSuggestions: [{ id: 777, path: wearablePath }], misleadingWearablesBranch: true });
-    await assert.rejects(makeFlow().setCategory({ categoryId: wearableId, categoryPath: wearablePrefix },
-      'kar132-native-no-matching-suggestion'), /Endkategorie|Wearables|Kategorie|category/i);
-    assert.equal(activity.confirms, 0, 'no numeric-ID proof: never confirm even if parent click opens sublevel');
+    await assert.rejects(makeFlow().setCategory({ categoryId: 406, categoryPath: wearablePrefix },
+      'kar132-native-unknown-406-no-matching-suggestion'), /Endkategorie|Wearables|Kategorie|category/i);
+    assert.equal(activity.confirms, 0, 'never extrapolate owner-proven category 405 to 406');
     passed++;
   }
   // Real v1.23.40 diagnostic has no CATEGORY_MODAL_PATH_EXTENDED_BY_ID
