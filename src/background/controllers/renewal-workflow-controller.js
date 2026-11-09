@@ -22,6 +22,7 @@
         evaluateCheckoutRecoveryProof,
         finishRenewalReplacement,
         withAutonomousAdmission,
+        resolvePublishIntent,
         flushDiagnosticBuffer,
         getInventory,
         isCheckoutAbortedRecoveryCandidate,
@@ -374,6 +375,9 @@ async function markRenewalPublishClicked(message, sender) {
 async function confirmPublishedRenewal(fill, detected) {
   const newAdId = String(detected?.adId || '');
   if (!/^\d+$/.test(newAdId) || newAdId === String(fill.sourceAdId || '')) return null;
+  if (typeof resolvePublishIntent !== 'function') throw new Error('KR_PUBLISH_INTENT_UNVERIFIED');
+  // Also used by Worker restart/resume: navigation is not remote proof.
+  await resolvePublishIntent(fill, detected);
   const fillSessions = await readFillSessions();
   const currentFill = fillSessions[fill.fillId];
   if (!currentFill || currentFill.stage === 'new-id-confirmed') return null;
