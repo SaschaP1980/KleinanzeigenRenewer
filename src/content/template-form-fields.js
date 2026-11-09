@@ -358,30 +358,93 @@
   }
 
 
+  // KAR-132 native Smartwatches 405: the site renamed this technical field.
+  // Only use owner-observed aliases when the committed category is exactly 405.
+  function resolvedAttributeName(attribute) {
+    const original = String(attribute.key);
+    const direct = 'attributeMap[' + original + ']';
+    if ([...document.querySelectorAll('[name^="attributeMap["]')]
+      .some(element => element.name === direct)) return direct;
+    const category = document.querySelector('form input[name="categoryId"]');
+    const aliases = {
+      'wearables.gehausegrosse': 'wearables.case_size',
+      'wearables.ringgrosse': 'wearables.ring_size'
+    };
+    const replacement = String(category?.value) === '405' ? aliases[original] : null;
+    return replacement ? 'attributeMap[' + replacement + ']' : direct;
+  }
+
+  function exactDynamicInput(name) {
+    const candidates = [...document.querySelectorAll('input[name^="attributeMap["]')]
+      .filter(input => input.name === name &&
+        (input.type === 'hidden' || input.type === 'checkbox'));
+    if (candidates.length > 1) throw new Error('Technisches Merkmal „' + name + '“ ist nicht eindeutig.');
+    return candidates[0] || null;
+  }
+
+  function expectedCheckboxState(value) {
+    if (typeof value === 'boolean') return value;
+    if (value === 1 || value === 0) return Boolean(value);
+    if (typeof value !== 'string') return null;
+    const normalized = value.toLowerCase().trim();
+    if (normalized === 'true' || normalized === '1') return true;
+    if (normalized === 'false' || normalized === '0') return false;
+    return null; // never infer a boolean from display text or a truthy string
+  }
+
   async function fillDynamicAttributeWithRetries(attribute, fillId) {
-    const escapedName = `attributeMap[${attribute.key}]`;
-    const initialHidden = await waitFor(() => [...document.querySelectorAll('input[type="hidden"][name^="attributeMap["]')]
-      .find(input => input.name === escapedName), {
-      timeout: 10000,
-      description: `Merkmal „${attribute.label || attribute.key}“`
+    const name = resolvedAttributeName(attribute);
+    const isSmartwatches = String(document.querySelector('form input[name="categoryId"]')?.value) === '405';
+    // The modern posting page may re-render after category commit. Wait once
+    // for an exact known technical control, but do not spend 10 seconds on each
+    // missing Wearables checkbox (18 x 10s in owner's 1.23.41 diagnostics).
+    const initial = await waitFor(() => exactDynamicInput(name), {
+      timeout: isSmartwatches || attribute.controlType === 'checkbox' ? 1200 : 10000,
+      interval: 60,
+      description: 'Merkmal „' + (attribute.label || attribute.key) + '“'
     });
     const technicalValue = String(attribute.technicalValue);
     const displayValue = attribute.displayValue || technicalValue;
     let lastError = null;
 
     for (let attempt = 1; attempt <= LOCAL_ATTRIBUTE_SELECTION_ATTEMPTS; attempt += 1) {
-      const hidden = [...document.querySelectorAll('input[type="hidden"][name^="attributeMap["]')]
-        .find(input => input.name === escapedName) || (initialHidden?.isConnected ? initialHidden : null);
-      if (!hidden) {
-        lastError = new Error(`Technisches Merkmal „${attribute.label || attribute.key}“ ist nicht mehr verfügbar.`);
-      } else if (String(hidden.value) === technicalValue) {
-        return { attempt, alreadySet: true };
+      const input = exactDynamicInput(name) || (initial?.isConnected ? initial : null);
+      if (!input) {
+        lastError = new Error('Technisches Merkmal „' + (attribute.label || attribute.key) + '“ ist nicht mehr verfügbar.');
+      } else if (input.type === 'checkbox') {
+        const desired = expectedCheckboxState(attribute.technicalValue);
+        if (desired === null) {
+          throw new Error('Checkbox-Wert für „' + (attribute.label || attribute.key) + '“ ist nicht eindeutig.');
+        }
+        if (input.disabled || input.getAttribute('aria-disabled') === 'true') {
+          throw new Error('Checkbox „' + (attribute.label || attribute.key) + '“ ist deaktiviert.');
+        }
+        if (input.checked === desired) return { attempt, alreadySet: true, controlType: 'checkbox', technicalName: name };
+        input.click(); // React-owned native change; never write a synthetic hidden value
+        try {
+          await waitFor(() => {
+            const active = exactDynamicInput(name);
+            return active?.type === 'checkbox' && active.checked === desired ? true : null;
+          }, {
+            timeout: 1200, interval: 60,
+            description: 'Checkbox „' + (attribute.label || attribute.key) + '“ wurde nicht bestätigt.'
+          });
+          return { attempt, alreadySet: false, controlType: 'checkbox', technicalName: name };
+        } catch (error) {
+          lastError = error;
+        }
+      } else if (String(input.value) === technicalValue) {
+        return { attempt, alreadySet: true, controlType: 'hidden', technicalName: name };
       } else {
         try {
-          const control = findAttributeControl(hidden, attribute);
-          await chooseExactOption(control, displayValue, hidden, technicalValue);
-          if (String(hidden.value) !== technicalValue) throw new Error(`Technischer Wert „${technicalValue}“ wurde nicht bestätigt.`);
-          return { attempt, alreadySet: false };
+          const effectiveKey = name.slice('attributeMap['.length, -1);
+          const control = findAttributeControl(input, { ...attribute, key: effectiveKey,
+            controlId: effectiveKey !== attribute.key ? effectiveKey : attribute.controlId });
+          await chooseExactOption(control, displayValue, input, technicalValue);
+          const active = exactDynamicInput(name);
+          if (String(active?.value) !== technicalValue)
+            throw new Error('Technischer Wert „' + technicalValue + '“ wurde nicht bestätigt.');
+          return { attempt, alreadySet: false, controlType: 'hidden', technicalName: name };
         } catch (error) {
           lastError = error;
         }
@@ -389,19 +452,15 @@
 
       if (attempt < LOCAL_ATTRIBUTE_SELECTION_ATTEMPTS) {
         void diagnostic(fillId, 'TEMPLATE_ATTRIBUTE_LOCAL_RETRY', {
-          key: attribute.key,
-          label: attribute.label || attribute.key,
-          controlType: attribute.controlType || null,
-          attempt,
-          nextAttempt: attempt + 1,
-          maxAttempts: LOCAL_ATTRIBUTE_SELECTION_ATTEMPTS,
+          key: attribute.key, label: attribute.label || attribute.key,
+          controlType: attribute.controlType || null, attempt,
+          nextAttempt: attempt + 1, maxAttempts: LOCAL_ATTRIBUTE_SELECTION_ATTEMPTS,
           message: String(lastError?.message || lastError || '').slice(0, 400)
         });
         await sleep(LOCAL_ATTRIBUTE_RETRY_DELAY_MS);
       }
     }
-
-    throw lastError || new Error(`Merkmal „${attribute.label || attribute.key}“ konnte nicht gesetzt werden.`);
+    throw lastError || new Error('Merkmal „' + (attribute.label || attribute.key) + '“ konnte nicht gesetzt werden.');
   }
 
   async function fillDynamicAttributes(template, fillId) {
@@ -417,7 +476,9 @@
           technicalValue: String(attribute.technicalValue),
           attempt: result.attempt,
           maxAttempts: LOCAL_ATTRIBUTE_SELECTION_ATTEMPTS,
-          localRetryRecovered: result.attempt > 1
+          localRetryRecovered: result.attempt > 1,
+          actualControlType: result.controlType || null,
+          actualTechnicalName: result.technicalName || null
         });
       } catch (error) {
         void diagnostic(fillId, 'TEMPLATE_ATTRIBUTE_FAILED', {
