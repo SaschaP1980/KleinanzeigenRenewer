@@ -241,6 +241,47 @@ async function withAttempt(env,kind='renewal'){
   assert.equal(dispatch('submit',b).defaultPrevented,true,
     'a second form submit with prior submitter must not reuse approval');
   pass('second form submit cannot reuse prior authorization');
+
+  // Direct post-fill/recovery entrypoint must intercept the managed manual
+  // publish action even when multiple final buttons prevent auto-publish.
+  // A missing capture listener here would let a real Kleinanzeigen click
+  // bypass all before-remote journal authorization.
+  const preexistingLocation=globalThis.location;
+  globalThis.location={pathname:'/p-anzeige-aufgeben.html'};
+  const ambiguousControls=[new Button(),new Button()];
+  const ambiguousListeners=Object.create(null);
+  let ambiguousRemoteClicks=0;
+  for(const control of ambiguousControls)control.click=()=>{ambiguousRemoteClicks++};
+  globalThis.document={
+    querySelectorAll:()=>ambiguousControls,
+    addEventListener:(type,fn)=>{ambiguousListeners[type]=fn;}
+  };
+  const directPostFill=flow.create({
+    clean:x=>String(x||'').trim(),
+    visible:()=>true,visibleText:x=>String(x.textContent||''),
+    runtimeMessage:async msg=>msg.type==='AUTHORIZE_AUTOMATIC_PUBLISH'
+      ? {authorized:false} : {},
+    diagnostic:()=>{},updatePanel:()=>{},sleep:async()=>{},
+    PaidInsertionGuard:{detect:()=>({required:false})}
+  });
+  const ambiguousResult=await directPostFill.autoPublishVerifiedRenewal({
+    fillId:'p6-direct-post-fill-two-buttons',renewalId:'renewal-direct',
+    result:{complete:true,issues:[]}
+  });
+  assert.equal(ambiguousResult.awaitingPublish,true,
+    'multiple publish buttons must pause auto publication');
+  assert.equal(typeof ambiguousListeners.click,'function',
+    'direct post-fill with ambiguous buttons must arm manual before-click journal guard');
+  pass('direct post-fill arms publication capture even with ambiguous buttons');
+  const ambiguousClick={target:ambiguousControls[0],defaultPrevented:false,
+    preventDefault(){this.defaultPrevented=true;},
+    stopImmediatePropagation(){}};
+  ambiguousListeners.click(ambiguousClick);
+  assert.equal(ambiguousClick.defaultPrevented,true);
+  for(let k=0;k<8;k++)await Promise.resolve();
+  assert.equal(ambiguousRemoteClicks,0);
+  pass('manual publish is blocked without background receipt on ambiguous post-fill');
+  globalThis.location=preexistingLocation;
   Object.assign(globalThis,original);
   // Admission can take several awaited storage/lock steps after first live
   // account check. Switching the account between that check and the durable
