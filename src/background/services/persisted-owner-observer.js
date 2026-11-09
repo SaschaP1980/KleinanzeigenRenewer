@@ -181,39 +181,66 @@
         for (const name of ['renewal', 'insertionLock'])
           if (result[name].state !== 'active') set(name, unknown(reason));
       }
-      // Every publish intent is a durable BEFORE-click uncertainty boundary.
-      // No exact independently verified remote outcome pairing exists yet:
-      // even a terminal local fill is never evidence of no external publish.
-      const publishPrefix = 'karAutoPublishIntentV1_';
-      let publishEvidence = 'missing';
-      let publishKinds = new Set();
-      if (journalRead.status !== 'fulfilled' || !isRecord(journalRead.value)) {
-        publishEvidence = 'unavailable';
-      } else {
-        const records = Object.entries(journalRead.value).filter(([key]) => key.startsWith(publishPrefix));
-        const id = value => typeof value === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(value);
-        const valid = ([key, row]) => isRecord(row) && row.schema === 1
-          && row.state === 'outcome-unverified' && id(row.fillId)
-          && id(row.workflowId) && id(row.attemptId) && id(row.workerInstanceId)
-          && ['archive','renewal'].includes(row.kind)
-          && typeof row.profileId === 'string' && Boolean(row.profileId.trim())
-          && row.profileId.length <= 256 && Number.isSafeInteger(row.targetTabId)
-          && row.targetTabId > 0 && (typeof row.sourceAdId === 'string')
-          && (/^\d+$/.test(row.sourceAdId) || (row.kind === 'archive' && row.sourceAdId === ''))
-          && Number.isSafeInteger(row.createdAtMs) && row.createdAtMs >= 0
-          && key === publishPrefix + row.fillId + '_' + row.attemptId;
-        publishEvidence = records.every(valid) ? (records.length ? 'unresolved' : 'missing') : 'corrupt';
-        if (publishEvidence === 'unresolved') publishKinds = new Set(records.map(([,row]) => row.kind));
+      // Only an immutable independently verified outcome can resolve a
+      // previously recorded publication attempt. Unknown/corrupt stays UNKNOWN.
+      const publishPrefix='karAutoPublishIntentV1_';
+      const publishResolutionPrefix='karAutoPublishVerifiedResolutionV1_';
+      let publishEvidence='missing';
+      let publishKinds=new Set();
+      if(journalRead.status!=='fulfilled'||!isRecord(journalRead.value)){
+        publishEvidence='unavailable';
+      }else{
+        const rows=journalRead.value;
+        const attempts=Object.entries(rows).filter(([key])=>key.startsWith(publishPrefix));
+        const resolutions=Object.entries(rows).filter(([key])=>key.startsWith(publishResolutionPrefix));
+        const id=v=>typeof v==='string'&&/^[A-Za-z0-9_-]{1,128}$/.test(v);
+        const ad=v=>typeof v==='string'&&/^\d+$/.test(v);
+        const validIntent=([key,row])=>isRecord(row)&&row.schema===1
+          &&row.state==='outcome-unverified'&&id(row.fillId)&&id(row.workflowId)
+          &&id(row.attemptId)&&id(row.workerInstanceId)
+          &&['renewal','archive'].includes(row.kind)
+          &&typeof row.profileId==='string'&&Boolean(row.profileId.trim())
+          &&row.profileId.length<=256&&Number.isSafeInteger(row.targetTabId)&&row.targetTabId>0
+          &&(ad(row.sourceAdId)||(row.kind==='archive'&&row.sourceAdId===''))
+          &&Number.isSafeInteger(row.createdAtMs)&&row.createdAtMs>=0
+          &&key===publishPrefix+row.fillId+'_'+row.attemptId;
+        const validResolution=([key,row])=>{
+          if(!isRecord(row)||row.schema!==1||row.state!=='resolved-confirmed'
+             ||!id(row.fillId)||!id(row.attemptId)
+             ||key!==publishResolutionPrefix+row.fillId+'_'+row.attemptId
+             ||!ad(row.newAdId)||row.targetPresent!==true
+             ||row.targetEvidence!=='found-in-my-ads-full-pagination-scan'
+             ||!Number.isSafeInteger(row.targetPagesScanned)||row.targetPagesScanned<1
+             ||!Number.isSafeInteger(row.targetFoundPage)||row.targetFoundPage<1
+             ||!Number.isSafeInteger(row.verifiedAtMs))return false;
+          const intentKey=publishPrefix+row.fillId+'_'+row.attemptId;
+          const original=rows[intentKey];
+          return validIntent([intentKey,original])
+            &&row.workflowId===original.workflowId&&row.kind===original.kind
+            &&row.profileId===original.profileId&&row.sourceAdId===original.sourceAdId
+            &&row.targetTabId===original.targetTabId&&row.newAdId!==original.sourceAdId
+            &&row.verifiedAtMs>=original.createdAtMs;
+        };
+        const unresolved=attempts.filter(([key])=>
+          !Object.prototype.hasOwnProperty.call(rows,
+            publishResolutionPrefix+key.slice(publishPrefix.length)));
+        if(!attempts.every(validIntent)||!resolutions.every(validResolution)
+           ||new Set(attempts.map(([,row])=>row.fillId)).size!==attempts.length)
+          publishEvidence='corrupt';
+        else if(unresolved.length){
+          publishEvidence='unresolved';
+          publishKinds=new Set(unresolved.map(([,row])=>row.kind));
+        }else publishEvidence=attempts.length?'resolved':'missing';
       }
-      if (publishEvidence === 'unresolved') {
-        if (publishKinds.has('renewal')) set('renewal', active('PUBLISH_INTENT_UNRESOLVED'));
-        if (publishKinds.has('archive')) set('archiveInsertion', active('PUBLISH_INTENT_UNRESOLVED'));
-        set('templateFill', active('PUBLISH_INTENT_UNRESOLVED'));
-        set('insertionLock', active('PUBLISH_INTENT_UNRESOLVED'));
-      } else if (['corrupt','unavailable'].includes(publishEvidence)) {
-        for (const name of ['renewal','archiveInsertion','templateFill','insertionLock'])
-          if (result[name].state !== 'active') set(name, unknown(
-            publishEvidence === 'corrupt' ? 'PUBLISH_INTENT_CORRUPT' : 'PUBLISH_INTENT_STORAGE_UNAVAILABLE'));
+      if(publishEvidence==='unresolved'){
+        if(publishKinds.has('renewal'))set('renewal',active('PUBLISH_INTENT_UNRESOLVED'));
+        if(publishKinds.has('archive'))set('archiveInsertion',active('PUBLISH_INTENT_UNRESOLVED'));
+        set('templateFill',active('PUBLISH_INTENT_UNRESOLVED'));
+        set('insertionLock',active('PUBLISH_INTENT_UNRESOLVED'));
+      }else if(['corrupt','unavailable'].includes(publishEvidence)){
+        for(const name of ['renewal','archiveInsertion','templateFill','insertionLock'])
+          if(result[name].state!=='active')set(name,unknown(
+            publishEvidence==='corrupt'?'PUBLISH_INTENT_CORRUPT':'PUBLISH_INTENT_STORAGE_UNAVAILABLE'));
       }
       const validProfile = value => isRecord(value) && typeof value.profileId === 'string'
         && PROFILE_ID.test(value.profileId);
