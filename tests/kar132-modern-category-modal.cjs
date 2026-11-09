@@ -334,5 +334,88 @@ function makeFlow() {
     assert.equal(activity.confirms, 1, 'type of a valid category must not become another category level');
     passed++;
   }
-  console.log(passed + '/22 PASS KAR-132/KAR-143 modern same-page category modal safety');
+
+  // KAR-143 native Gazelle diagnosis: `Art`, not `Typ`, contains the exact
+  // captured terminal choice. This is untrusted until the live modal exposes
+  // one matching selectable child and the form commits categoryId=159.
+  const gazellePath = ['Mode & Beauty', 'Damenschuhe', 'Sneaker & Sportschuhe'];
+  const gazelleTemplate = {
+    categoryId: 159, categoryPath: gazellePath.slice(0, 2),
+    dynamicAttributes: [{ key: 'shoes.art', label: 'Art',
+      technicalValue: 'sneaker', displayValue: 'Sneaker & Sportschuhe' }]
+  };
+  {
+    const { activity } = fixture({ activePath: gazellePath, committedId: '159',
+      misleadingBranchName: 'Damenschuhe', formSuggestions: [] });
+    assert.deepEqual(await makeFlow().setCategory(gazelleTemplate, 'kar143-gazelle-art-pressed-parent'),
+      { confirmed: true, pendingNavigation: false });
+    assert.deepEqual(activity.clicked, gazellePath);
+    assert.equal(activity.confirms, 1);
+    passed++;
+  }
+  {
+    const { activity } = fixture({ activePath: gazellePath, committedId: '159', formSuggestions: [] });
+    assert.deepEqual(await makeFlow().setCategory(gazelleTemplate, 'kar143-gazelle-art-arrow-parent'),
+      { confirmed: true, pendingNavigation: false });
+    assert.deepEqual(activity.clicked, gazellePath);
+    assert.equal(activity.confirms, 1);
+    passed++;
+  }
+  {
+    const { activity } = fixture({ activePath: gazellePath, committedId: '999',
+      misleadingBranchName: 'Damenschuhe', formSuggestions: [] });
+    await assert.rejects(makeFlow().setCategory(gazelleTemplate, 'kar143-gazelle-wrong-id'), /Kategorie-ID|159|999/);
+    assert.equal(activity.confirms, 1, 'real numeric ID must still be checked even after exact Art candidate');
+    passed++;
+  }
+  {
+    const { activity } = fixture({ activePath: [...gazellePath.slice(0, 2), 'Stiefel'],
+      committedId: '159', misleadingBranchName: 'Damenschuhe', formSuggestions: [] });
+    await assert.rejects(makeFlow().setCategory(gazelleTemplate, 'kar143-gazelle-art-not-in-live-modal'),
+      /Kategorie|eindeutig|Sneaker|Endkategorie/i);
+    assert.equal(activity.confirms, 0, 'a captured Art is never enough without a live exact choice');
+    passed++;
+  }
+  {
+    const { activity } = fixture({ activePath: gazellePath, committedId: '159',
+      misleadingBranchName: 'Damenschuhe', duplicateLeaf: true, formSuggestions: [] });
+    await assert.rejects(makeFlow().setCategory(gazelleTemplate, 'kar143-gazelle-art-ambiguous-leaf'),
+      /Kategorie|eindeutig|Sneaker|Endkategorie/i);
+    assert.equal(activity.confirms, 0);
+    passed++;
+  }
+  {
+    const conflictingPath = ['Mode & Beauty', 'Damenschuhe', 'Stiefel'];
+    const conflictingTemplate = {
+      ...gazelleTemplate,
+      dynamicAttributes: [{ label: 'Typ', displayValue: 'Stiefel', technicalValue: 'boots' },
+        { label: 'Art', displayValue: 'Sneaker & Sportschuhe', technicalValue: 'sneaker' }]
+    };
+    const { activity } = fixture({ activePath: conflictingPath, committedId: '159',
+      misleadingBranchName: 'Damenschuhe', formSuggestions: [] });
+    await assert.rejects(makeFlow().setCategory(conflictingTemplate, 'kar143-conflicting-typ-art'),
+      /Kategorie|eindeutig|Typ|Art|Unterkategorie/i);
+    assert.equal(activity.confirms, 0, 'conflicting explicit terminal attributes must fail closed');
+    passed++;
+  }
+  {
+    const { activity } = fixture({ activePath: gazellePath, committedId: '159',
+      misleadingBranchName: 'Damenschuhe', formSuggestions: [] });
+    await assert.rejects(makeFlow().setCategory({
+      ...gazelleTemplate, dynamicAttributes: [{ label: 'Marke', displayValue: 'Sneaker & Sportschuhe' }]
+    }, 'kar143-untrusted-other-attribute'), /Kategorie|Typ|Art|Endkategorie/i);
+    assert.equal(activity.confirms, 0, 'non-allowlisted attributes must never infer category');
+    passed++;
+  }
+  {
+    const { activity } = fixture();
+    const valid = { categoryId: 154, categoryPath,
+      dynamicAttributes: [{ label: 'Art', displayValue: 'Sneaker & Sportschuhe' }] };
+    assert.deepEqual(await makeFlow().setCategory(valid, 'kar143-art-is-not-unconditionally-child'),
+      { confirmed: true, pendingNavigation: false });
+    assert.deepEqual(activity.clicked, categoryPath);
+    assert.equal(activity.confirms, 1);
+    passed++;
+  }
+  console.log(passed + '/30 PASS KAR-132/KAR-143 modern same-page category modal safety');
 })().catch(error => { console.error(error); process.exitCode = 1; });
