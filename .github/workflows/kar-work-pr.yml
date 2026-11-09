@@ -113,6 +113,7 @@ jobs:
           test -x "$KR_CHROME_BINARY"
           export KR_E2E_BROWSER_CHANNEL=chromium
           python3 tests/e2e/kar99_atomic_mv3_probe.py --report "$RUNNER_TEMP/kar99-atomic-mv3-probe.json"
+          python3 tests/e2e/kar99_publish_mv3_probe.py --report "$RUNNER_TEMP/kar99-p6-publish-mv3-probe.json"
 
       - name: Build installable package once
         shell: bash
