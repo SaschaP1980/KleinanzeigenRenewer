@@ -6,6 +6,7 @@ const vm = require('node:vm');
 const fs = require('node:fs');
 const Router = require('../src/background/background-message-router.js');
 const Observer = require('../src/background/services/persisted-owner-observer.js');
+const Additional = require('../src/background/services/additional-owner-observer.js');
 const Fence = require('../src/background/services/update-workflow-fence.js');
 const bg = fs.readFileSync('src/background/background.js','utf8');
 let checks = 0;
@@ -26,14 +27,16 @@ async function main() {
   check(Boolean(match),'background defines an independently inspectable routed admission bridge');
   check(/withWorkflowAdmission:\s*\(type, task\)\s*=>\s*withRoutedAdmission\(type, task\)/.test(bg),
     'every non-exempt routed message uses the bridge');
-  check(/requireUpdateWorkflowFence\(\)\.withAdmission\(type,\s*\(\)\s*=>\s*requirePersistedOwnerObserver\(\)\.track\(PersistedOwnerObserver\.OWNERS, task\)\)/.test(match[0]),
-    'existing central fence contains all-seven tracking inside one admitted callback');
+  check(/requireUpdateWorkflowFence\(\)\.withAdmission\(type,\s*\(\)\s*=>\s*requirePersistedOwnerObserver\(\)\.track\(PersistedOwnerObserver\.OWNERS,\s*\(\)\s*=>\s*requireAdditionalOwnerObserver\(\)\.track\(AdditionalOwnerObserver\.OWNERS,\s*task\)\)\)/.test(match[0]),
+    'central fence nests seven persisted and eight supplemental owner lifetimes in one admission');
   check(Observer.OWNERS.length===7 && new Set(Observer.OWNERS).size===7,
     'all seven persisted workflow owners are counted without duplicate names');
   const local=store(),session=store();
   const observer=Observer.create({storageLocal:local,storageSession:session,clock:()=>12000});
+  const supplemental=Additional.create({storageLocal:local,storageSession:session,clock:()=>12000,workerInstanceId:'worker-test'});
   const fence=Fence.create({storageLocal:local,clock:()=>12000,newToken:()=> '12345678901234567890'});
-  let bridge=vm.runInNewContext('('+match[0]+')',{requireUpdateWorkflowFence:()=>fence,requirePersistedOwnerObserver:()=>observer,PersistedOwnerObserver:Observer});
+  let bridge=vm.runInNewContext('('+match[0]+')',{requireUpdateWorkflowFence:()=>fence,requirePersistedOwnerObserver:()=>observer,PersistedOwnerObserver:Observer,
+    requireAdditionalOwnerObserver:()=>supplemental,AdditionalOwnerObserver:Additional});
   function createRouter(handler,type) {
     return Router.create({
       MessageContractRegistry:{route:()=>({action:'accept'}),errorFor:()=>new Error('contract')},
@@ -53,17 +56,26 @@ async function main() {
     check(entered,route+' entered only through routed admission');
     check(Observer.OWNERS.every(name=>observer.snapshotInFlight()[name]===1),
       route+' holds all seven owner counters until handler settles');
+    check(Additional.OWNERS.every(name=>supplemental.snapshotInFlight()[name]===1),
+      route+' holds all eight supplemental counters during actual routed work');
     const observed=await observer.observe();
     check(Observer.OWNERS.every(name=>observed.observations[name].state==='active'),
       route+' remains positively active even with no persisted session');
+    const observedAdditional=await supplemental.observe();
+    check(Additional.OWNERS.every(name=>observedAdditional.observations[name].state==='active'),
+      route+' is conservatively active in all eight additional owners');
     release('done'); assert.equal(await pending,'done');
     check(Observer.OWNERS.every(name=>observer.snapshotInFlight()[name]===0),
       route+' releases counters in finally');
+    check(Additional.OWNERS.every(name=>supplemental.snapshotInFlight()[name]===0),
+      route+' releases all eight supplemental counters in finally');
   }
   const rejected=createRouter(async()=>{throw Error('handler rejected');},'START_TEMPLATE_FILL');
   await assert.rejects(rejected.dispatch({type:'START_TEMPLATE_FILL'},{}),/handler rejected/);
   check(Observer.OWNERS.every(name=>observer.snapshotInFlight()[name]===0),
-    'failing routed handler releases every counter');
+    'failing routed handler releases every persisted counter');
+  check(Additional.OWNERS.every(name=>supplemental.snapshotInFlight()[name]===0),
+    'failing routed handler releases every supplemental counter');
   local.put(Fence.STORAGE_KEY,{schema:1,state:'reserved',workerGeneration:'generation-A',profileId:'profile-A',
     transactionId:'transaction-A',token:'0123456789abcdef',createdAtMs:100,expiresAtMs:60000});
   let executed=false;
@@ -77,7 +89,8 @@ async function main() {
   check(readInvoked===1 && Observer.OWNERS.every(name=>observer.snapshotInFlight()[name]===0),
     'existing unfenced harmless diagnostic route remains permitted');
   const absent=vm.runInNewContext('('+match[0]+')',{requireUpdateWorkflowFence:()=>Fence.create({storageLocal:store(),clock:()=>12000,newToken:()=> '12345678901234567890'}),
-    requirePersistedOwnerObserver:()=>{throw Error('KR_UPDATE_OWNER_OBSERVER_UNAVAILABLE');},PersistedOwnerObserver:Observer});
+    requirePersistedOwnerObserver:()=>{throw Error('KR_UPDATE_OWNER_OBSERVER_UNAVAILABLE');},PersistedOwnerObserver:Observer,
+    requireAdditionalOwnerObserver:()=>supplemental,AdditionalOwnerObserver:Additional});
   await assert.rejects(absent('START_TEMPLATE_FILL',()=>{throw Error('must not run');}),/KR_UPDATE_OWNER_OBSERVER_UNAVAILABLE/);
   check(true,'missing tracker fails closed rather than running routed work unobserved');
   check(!bg.includes('getOwnerSnapshot: () => requirePersistedOwnerObserver()'),
