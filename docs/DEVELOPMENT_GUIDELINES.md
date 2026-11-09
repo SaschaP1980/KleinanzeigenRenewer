@@ -17,6 +17,16 @@ Do **not** refactor by file size alone.
 
 Prefer narrow explicit dependencies and small public interfaces. Apply DRY to duplicated rules/knowledge/responsibility, not merely similar syntax. Limited duplication is preferable to a false abstraction that couples unrelated lifecycles or safety domains.
 
+## 1a. Risk-based intake for reconstructible local inventory
+
+The owner explicitly decided in [KAR-140](https://github.com/SaschaP1980/KleinanzeigenRenewer/issues/140) (closed as **not planned**, 2026-11-09) that **local inventory records are a reconstructible cache of listings hosted on Kleinanzeigen**. When a local inventory becomes inconsistent or a user interrupts or damages its state, **running inventory capture again is an accepted recovery path**.
+
+Do not proactively create Issues, add implementation scope, or hold an otherwise accepted bug fix open for merely hypothetical hardening of this reconstructible local inventory. In particular, do not invent standalone work for speculative IndexedDB race windows, MV3-worker interruption/recovery, repeated completeness stress tests, or extra inventory-summary UX after the real-world workflow has passed its agreed acceptance. Do not insist on further proof against every theoretical case where a new inventory capture restores the state.
+
+Prioritize **observed and reproducible defects**, direct owner-requested functionality, and demonstrated meaningful risks. Open follow-up Issues for local-inventory resilience only upon a new explicit owner request or concrete defect evidence; otherwise accept re-inventory as the recovery mechanism and close the completed Issue.
+
+This is **not** permission to remove existing validated guards, delete remote Kleinanzeigen listings, weaken controls around irreversible remote account mutations, ignore demonstrated security/privacy risks, or bypass mandatory test/CI/release checks on code actually changed. Keep the distinction between a reconstructible **local cache** and **real remotely hosted advertisement data**.
+
 ## 2. Two development paths only
 
 ### Fast Path — Patch / Hotfix
