@@ -20,25 +20,75 @@
   function armPublishDetection(fillId) {
     const key = `krRenewalPublishArmed_${fillId}`;
     if (globalThis[key]) return;
-    globalThis[key] = true;
-    let signalling = false;
-    const signal = () => {
-      if (signalling) return;
-      signalling = true;
-      updatePanel('Veröffentlichung wird übergeben', 'Kleinanzeigen verarbeitet die neue Anzeige. Anschließend wird die neue Anzeigen-ID ermittelt.', [], { safetyText: false });
-      void runtimeMessage({ type: 'RENEWAL_PUBLISH_CLICKED', fillId })
-        .catch(() => {})
-        .finally(() => { setTimeout(() => { signalling = false; }, 750); });
+    let submitted = false;
+    let authorizing = false;
+    let permitted = null;
+    let acceptedSubmitter = null;
+    const isPublishControl = element => {
+      if (!(element instanceof Element) || !visible(element) || element.disabled) return false;
+      const value = element instanceof HTMLInputElement ? element.value : element.textContent;
+      return /^anzeige aufgeben$/i.test(clean(value));
     };
+    const detector = Object.freeze({
+      // One permission only. Synthetic clicks without a durable, account-bound
+      // Background authorization are intercepted just like manual clicks.
+      permitOnce(control) {
+        if (submitted || authorizing || permitted || !isPublishControl(control)) return false;
+        permitted = control;
+        return true;
+      }
+    });
+    globalThis[key] = detector;
+    function signal() {
+      updatePanel('Veröffentlichung wird übergeben',
+        'Kleinanzeigen verarbeitet die neue Anzeige. Anschließend wird die neue Anzeigen-ID ermittelt.',
+        [], { safetyText: false });
+      void runtimeMessage({ type: 'RENEWAL_PUBLISH_CLICKED', fillId }).catch(() => {});
+    }
+    async function authorizeManual(control) {
+      if (submitted || authorizing) return;
+      authorizing = true;
+      try {
+        const approval = await runtimeMessage({ type: 'AUTHORIZE_AUTOMATIC_PUBLISH', fillId });
+        if (approval?.authorized !== true || !isPublishControl(control) || !control.isConnected)
+          throw new Error('KR_PUBLISH_INTENT_UNVERIFIED');
+        authorizing = false;
+        if (!detector.permitOnce(control)) throw new Error('KR_PUBLISH_INTENT_UNVERIFIED');
+        control.click(); // Guarded native UI action; do not form.submit/requestSubmit.
+      } catch (error) {
+        void diagnostic(fillId, 'MANUAL_PUBLISH_INTENT_BLOCKED',
+          { reason: String(error?.message || error).slice(0,180) }, 'warning');
+        updatePanel('Veröffentlichung gesperrt',
+          'Der Klick wurde vor der Übergabe an Kleinanzeigen angehalten. Bitte den Anzeigenstatus prüfen.',
+          [String(error?.message || error).slice(0,200)],
+          { safetyText: 'Ohne dauerhaften Vorabbeleg wird keine Veröffentlichung übergeben.' });
+      } finally {
+        authorizing = false;
+      }
+    }
     document.addEventListener('click', event => {
-      const button = event.target instanceof Element ? event.target.closest('button') : null;
-      if (!button || clean(button.textContent) !== 'Anzeige aufgeben' || !visible(button)) return;
-      signal();
+      const control = event.target instanceof Element
+        ? event.target.closest('button,input[type="submit"]') : null;
+      if (!isPublishControl(control)) return;
+      if (permitted === control && !submitted) {
+        permitted = null;
+        acceptedSubmitter = control;
+        submitted = true;
+        signal();
+        return;
+      }
+      // Capture phase prevents the actual React handler/browser default.
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      if (!submitted) void authorizeManual(control);
     }, true);
     document.addEventListener('submit', event => {
       const submitter = event.submitter;
-      if (!(submitter instanceof Element) || clean(submitter.textContent) !== 'Anzeige aufgeben') return;
-      signal();
+      if (submitted && acceptedSubmitter === submitter) return;
+      if (!isPublishControl(submitter)) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      if (!submitted) void authorizeManual(submitter);
     }, true);
   }
 
@@ -132,7 +182,7 @@
       return { publishSubmitted: true, awaitingPublishedId: session.stage !== 'new-id-confirmed' };
     }
     if (!fillId || !verifiedPublishGate(session)) {
-      return await prepareAwaitingPublish(fillId, 'Die automatische Veröffentlichung ist nicht freigegeben. Bitte alle Angaben prüfen und „Anzeige aufgeben“ selbst anklicken.');
+      return await prepareAwaitingPublish(fillId, 'Die automatische Veröffentlichung ist nicht freigegeben. Bitte alle Angaben prüfen und „Anzeige aufgeben“ selbst anklicken.', session);
     }
 
     const paidBeforePublish = paidInsertionDetection();
@@ -171,6 +221,8 @@
       const authorization = await runtimeMessage({ type: 'AUTHORIZE_AUTOMATIC_PUBLISH', fillId });
       if (authorization?.authorized !== true) throw new Error('KR_PUBLISH_INTENT_UNVERIFIED');
       if (!button.isConnected || button.disabled || !visible(button)) throw new Error('KR_PUBLISH_BUTTON_STALE');
+      const detector = globalThis[`krRenewalPublishArmed_${fillId}`];
+      if (!detector?.permitOnce?.(button)) throw new Error('KR_PUBLISH_INTENT_UNVERIFIED');
     } catch (error) {
       updatePanel('Automatische Veröffentlichung gesperrt',
         'Der Veröffentlichungsversuch wurde nicht automatisch gestartet. Bitte den aktuellen Anzeigenstatus prüfen und keine automatische Wiederholung auslösen.',
@@ -196,16 +248,19 @@
     });
   }
 
-  async function prepareAwaitingPublish(fillId, message = 'Bitte alle Angaben prüfen und „Anzeige aufgeben“ selbst anklicken.') {
+  async function prepareAwaitingPublish(fillId, message = 'Bitte alle Angaben prüfen und „Anzeige aufgeben“ selbst anklicken.', session = null) {
     armPublishDetection(fillId);
     await runtimeMessage({
       type: 'UPDATE_TEMPLATE_FILL_SESSION',
       fillId,
       status: 'running',
       stage: 'awaiting-publish',
-      result: { complete: true, issues: [] }
+      result: verifiedPublishGate(session)
+        ? { complete: true, issues: [] }
+        : { complete: false, issues: Array.isArray(session?.result?.issues) && session.result.issues.length
+          ? session.result.issues : ['Veröffentlichungsprüfung nicht vollständig.'] }
     });
-    updatePanel('Vorlage vollständig übernommen', message, [], { safetyText: 'Automatischer Ablauf pausiert – bitte den finalen Schritt prüfen.' });
+    updatePanel('Veröffentlichung wartet auf Prüfung', message, [], { safetyText: 'Automatischer Ablauf pausiert – bitte den finalen Schritt prüfen.' });
     await sleep(180);
     try {
       const found = scrollToPublishButton();
