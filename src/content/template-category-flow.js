@@ -92,6 +92,37 @@
       throw new Error('Kategorie „' + name + '“ ist deaktiviert.');
     return button;
   }
+
+  // KAR-132 native regression: some archived templates store a parent path
+  // ("Elektronik › Wearables") although their numeric categoryId belongs to a
+  // more specific leaf ("Smartwatches"). Only the site's own, exact-ID
+  // suggestion can supply missing path levels. Never infer a leaf from item
+  // title, attributes, similar text, ordering or an arbitrary suggested ID.
+  function resolveModernCategoryPathById(categoryId, storedPrefix) {
+    const forms = [...document.querySelectorAll('form')]
+      .filter(form => form.querySelector('input[name="categoryId"]'));
+    if (forms.length !== 1) {
+      throw new Error('Anzeigenformular für die Endkategorie ist nicht eindeutig.');
+    }
+    const candidates = [...forms[0].querySelectorAll('#ad-category-picker input[name="category-suggestions"][type="radio"]')]
+      .filter(input => String(input.value) === String(categoryId));
+    if (candidates.length === 0) return null;
+    if (candidates.length !== 1) {
+      throw new Error('Kategorie-ID ' + categoryId + ' ist in den Kategorienvorschlägen mehrdeutig.');
+    }
+    const label = candidates[0].closest('label');
+    if (!label) throw new Error('Vollständiger Kategorienpfad der Kategorie-ID ' + categoryId + ' fehlt.');
+    const fullPath = clean(visibleText(label)).split(/\s*[→›]\s*/u).map(clean).filter(Boolean);
+    if (fullPath.length <= storedPrefix.length) return null;
+    if (!storedPrefix.every((name, i) => modernLabel(name) === modernLabel(fullPath[i]))) {
+      throw new Error('Kategorienvorschlag für ID ' + categoryId + ' stimmt nicht mit dem gespeicherten Kategoriepfad überein.');
+    }
+    if (fullPath.length > 8 || fullPath.some(name => name.length > 150)) {
+      throw new Error('Kategorienvorschlag für ID ' + categoryId + ' hat einen unerwarteten Pfad.');
+    }
+    return fullPath;
+  }
+
   async function selectModernCategory(template, fillId, path) {
     const wanted = String(template.categoryId);
     for (let i = 0; i < path.length; i += 1) {
@@ -101,9 +132,29 @@
         return current && sameModernPath(current.path, prior) ? current : null;
       }, { timeout: 10000, description: 'Kategorieebene „' + prior.join(' › ') + '“' });
       const button = exactModernChoice(state, name);
-      const leaf = i === path.length - 1;
+      let leaf = i === path.length - 1;
       const branch = Boolean(button.querySelector('svg[data-title="arrowRight"]'));
       const selectable = button.hasAttribute('aria-pressed');
+
+      // A stored parent cannot be clicked as a leaf. The posting form may
+      // expose a unique full hierarchy for the *same immutable categoryId*.
+      // Extend only when the hierarchy is an exact prefix and the last stored
+      // choice is demonstrably a branch. Otherwise fail closed.
+      if (leaf && branch && !selectable) {
+        const extended = await waitFor(
+          () => resolveModernCategoryPathById(wanted, path),
+          { timeout: 4000, description: 'Endkategorie nach „' + name + '“ für Kategorie-ID ' + wanted }
+        );
+        if (!extended || !sameModernPath(extended.slice(0, path.length), path) ||
+            extended.length <= path.length) {
+          throw new Error('Endkategorie nach „' + name + '“ für Kategorie-ID ' + wanted + ' nicht nachgewiesen.');
+        }
+        void diagnostic(fillId, 'CATEGORY_MODAL_PATH_EXTENDED_BY_ID', {
+          categoryId: wanted, storedDepth: path.length, resolvedDepth: extended.length
+        });
+        path = extended;
+        leaf = false;
+      }
       if (!leaf) {
         if (!branch || selectable) throw new Error('Kategorie „' + name + '“ ist keine Unterkategorie.');
         button.click();
