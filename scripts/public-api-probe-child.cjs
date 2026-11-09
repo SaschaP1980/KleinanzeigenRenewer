@@ -105,6 +105,12 @@ if(typeof api.create==='function') {
          lockManager:{request:async(_name,_options,callback)=>callback(null)},
          clock:()=>123456,newToken:()=> 'coverage-probe-atomic-12345',
          workerInstanceId:'coverage-probe-worker'}
+      : rel.endsWith('/auto-publish-intent-journal.js')
+      ? {storageLocal:{get:async()=>({}),set:async()=>{}},
+         lockManager:{request:async(_name,_options,callback)=>callback(null)},
+         lockName:'kar-updater-global-admission-v1',clock:()=>123456,
+         newToken:()=> 'coverage-probe-publish-12345',
+         workerInstanceId:'coverage-probe-worker'}
       : options;
     instance=api.create(sourceOptions);
   } catch(e) { createError=String(e?.message||e); }
