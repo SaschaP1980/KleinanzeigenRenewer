@@ -134,10 +134,32 @@
       ? captured : null;
   }
 
+  // KAR-143: the captured edit-form "Typ" may be the terminal choice
+  // under a stored parent category. Treat it only as a *candidate*, never
+  // as an independently proven category ID or a title-based inference.
+  // It becomes usable only after the live dialog actually drills down
+  // from that exact stored parent, exposes one exact terminal choice,
+  // and the resulting form independently confirms the saved numeric ID.
+  function capturedTypeTerminalPath(template, storedPath) {
+    if (!Array.isArray(template?.dynamicAttributes) ||
+        storedPath.length < 2 || storedPath.length >= 8) return null;
+    const types = template.dynamicAttributes.filter(attribute =>
+      modernLabel(attribute?.label) === 'typ' &&
+      typeof attribute?.displayValue === 'string' &&
+      clean(attribute.displayValue));
+    if (types.length !== 1) return null;
+    const terminal = clean(types[0].displayValue);
+    if (terminal.length > 150 ||
+        storedPath.some(name => modernLabel(name) === modernLabel(terminal))) return null;
+    return [...storedPath, terminal];
+  }
+
   async function selectModernCategory(template, fillId, path) {
     const wanted = String(template.categoryId);
     const storedDepth = path.length;
     let idProvenExtension = false;
+    let typeBackedExtension = false;
+    const capturedTypePath = capturedTypeTerminalPath(template, path);
 
     // First prefer current site's own unique numeric-ID suggestion. It can be
     // populated asynchronously AFTER the title/chooser changes, so a single
@@ -193,7 +215,12 @@
       // Extend only when the hierarchy is an exact prefix and the last stored
       // choice is demonstrably a branch. Otherwise fail closed.
       if (leaf && branch && !selectable) {
-        const extended = await waitFor(
+        // A true branch cannot be the terminal selection. Prefer a
+        // uniquely ID-bound site suggestion; in its absence the captured
+        // explicit Typ choice is permitted as a candidate only.
+        const byType = capturedTypePath && sameModernPath(capturedTypePath.slice(0, path.length), path)
+          ? capturedTypePath : null;
+        const extended = byType || await waitFor(
           () => resolveModernCategoryPathById(wanted, path),
           { timeout: 4000, description: 'Endkategorie nach „' + name + '“ für Kategorie-ID ' + wanted }
         );
@@ -201,11 +228,13 @@
             extended.length <= path.length) {
           throw new Error('Endkategorie nach „' + name + '“ für Kategorie-ID ' + wanted + ' nicht nachgewiesen.');
         }
-        void diagnostic(fillId, 'CATEGORY_MODAL_PATH_EXTENDED_BY_ID', {
-          categoryId: wanted, storedDepth: path.length, resolvedDepth: extended.length
+        void diagnostic(fillId, byType ? 'CATEGORY_MODAL_PATH_EXTENDED_BY_TYPE' : 'CATEGORY_MODAL_PATH_EXTENDED_BY_ID', {
+          categoryId: wanted, storedDepth: path.length, resolvedDepth: extended.length,
+          source: byType ? 'captured-explicit-typ-unverified-until-commit' : 'live-numeric-id-suggestion'
         });
         path = extended;
-        idProvenExtension = true;
+        if (byType) typeBackedExtension = true;
+        else idProvenExtension = true;
         leaf = false;
       }
       if (!leaf) {
@@ -213,7 +242,7 @@
         // complete descendant path, a misleading parent affordance is not
         // authoritative. Still require exact breadcrumb transition after
         // clicking; a true leaf can never masquerade as a successful branch.
-        const provenDescendant = idProvenExtension && i >= storedDepth - 1;
+        const provenDescendant = (idProvenExtension || typeBackedExtension) && i >= storedDepth - 1;
         if ((!branch || selectable) && !provenDescendant)
           throw new Error('Kategorie „' + name + '“ ist keine Unterkategorie.');
         button.click();
@@ -225,13 +254,31 @@
       } else {
         if (branch || !selectable) throw new Error('Kategorie „' + name + '“ ist keine Endkategorie.');
         button.click();
-        await waitFor(() => {
+        const outcome = await waitFor(() => {
           const current = modernState();
-          if (!current || !sameModernPath(current.path, prior)) return null;
+          if (!current) return null;
+          // Some category parents expose aria-pressed and no arrow, yet a click
+          // opens a child level (real KAR-143 modal). Observe the resulting
+          // breadcrumb rather than treating the stale pressed state as a leaf.
+          if (sameModernPath(current.path, [...prior, name])) return 'drilldown';
+          if (!sameModernPath(current.path, prior)) return null;
           const selected = modernChoices(current).filter(item => item.button.getAttribute('aria-pressed') === 'true');
-          return selected.length === 1 && modernLabel(selected[0].label) === modernLabel(name) ? current : null;
-        }, { timeout: 10000, description: 'Endkategorie „' + name + '“' });
-        void diagnostic(fillId, 'CATEGORY_MODAL_LEAF_CONFIRMED', { label: name, level: i });
+          return selected.length === 1 && modernLabel(selected[0].label) === modernLabel(name) ? 'leaf' : null;
+        }, { timeout: 10000, description: 'Endkategorie oder Unterkategorie „' + name + '“' });
+        if (outcome === 'drilldown') {
+          if (!capturedTypePath || !sameModernPath(capturedTypePath.slice(0, path.length), path)) {
+            throw new Error('Endkategorie nach „' + name + '“ ohne eindeutig erfassten Typ nicht nachgewiesen.');
+          }
+          void diagnostic(fillId, 'CATEGORY_MODAL_PATH_EXTENDED_BY_TYPE', {
+            categoryId: wanted, storedDepth: path.length, resolvedDepth: capturedTypePath.length,
+            source: 'captured-explicit-typ-unverified-until-commit'
+          });
+          path = capturedTypePath;
+          typeBackedExtension = true;
+          void diagnostic(fillId, 'CATEGORY_MODAL_BRANCH_CONFIRMED', { label: name, level: i });
+        } else {
+          void diagnostic(fillId, 'CATEGORY_MODAL_LEAF_CONFIRMED', { label: name, level: i });
+        }
       }
     }
     const ready = modernState();
