@@ -417,8 +417,74 @@
         state.currentAdId = ''; state.currentTitle = ''; state.currentThumbnailUrl = ''; state.currentEndDateDisplay = ''; state.currentEndDateIso = ''; state.currentPublicUrl = ''; state.currentReadOnlyMeta = null; state.workerTabId = null; state.metadataTabId = null; state.metadataOpenedAt = null;
         const firstRoster = bulkRosterEvidence(state.remoteRosterPages || {});
         const firstRosterComplete = InventoryReconciliation.completeRoster(firstRoster, expected, state.remoteRosterInvalid);
+        const terminalPage = Number(message.lastPage || 0);
+        const lastPageIds = state.remoteRosterPages?.[terminalPage];
+        const terminalIds = Array.isArray(message.terminalAdIds) ? message.terminalAdIds.map(String) : null;
+        const sameTerminalIds = Array.isArray(lastPageIds) && Array.isArray(terminalIds) &&
+          JSON.stringify(lastPageIds.map(String)) === JSON.stringify(terminalIds);
+        const sameTerminalProfile = normalizeProfileName(message.terminalProfileName || '').toLocaleLowerCase('de-DE') ===
+          normalizeProfileName(state.profileName || '').toLocaleLowerCase('de-DE');
+        const terminalPageVerified = message.terminalPageVerified === true &&
+          terminalPage > 0 && terminalPage === firstRoster.lastPage &&
+          sameTerminalIds && sameTerminalProfile &&
+          Number.isInteger(message.terminalOnlineCount) &&
+          Number(message.terminalOnlineCount) === expected;
+        const firstAdmission = InventoryReconciliation.assessFirstRosterForIndependentScan({
+          rosterPages: state.remoteRosterPages || {},
+          expectedTotal: expected,
+          processedIds: state.processedIds,
+          terminalPageVerified,
+          invalidReason: state.remoteRosterInvalid || null
+        });
 
-        if (processed === expected && state.failedCount === 0 && firstRosterComplete) {
+        // A fully enumerated, stable, authenticated online ID set is authoritative.
+        // A lagging header count (e.g. 60 vs 61 IDs) is not deletion authority or
+        // a reason to keep 22 demonstrably absent local records forever.
+        // If the header is ahead of the seen IDs, retain all records for review.
+        if (firstAdmission.canStartIndependentScan &&
+            firstRoster.ids.length >= expected && state.failedCount === 0) {
+          state.stage = 'reconciliation-preparing'; // MV3 recovery must not retry a write in an unknown state
+          state.reconciliationStatus = 'committing';
+          state.reconciliationStartedAt = new Date().toISOString();
+          await writeBulkRunState(state);
+          await logDiagnostic('info', 'BULK_RECONCILIATION_FIRST_ROSTER_CONFIRMED', {
+            runId: state.runId, expectedTotal: expected, onlineIds: firstRoster.ids.length,
+            pageCount: firstRoster.pageCount, terminalPage, countMismatch: firstAdmission.countMismatch,
+            strategy: 'verified-terminal-roster'
+          }, { module: 'background', operation: 'bulk-reconciliation', context: sessionCorrelationContext(state) }).catch(() => {});
+          const moved = await moveReconciliationCandidatesToTrash(state, firstRoster.ids);
+          state.status = 'complete';
+          state.stage = 'finished';
+          state.completedAt = new Date().toISOString();
+          state.reconciliationStatus = 'confirmed';
+          state.reconciliationSummary = {
+            expected, firstCount: firstRoster.ids.length, secondCount: 0, terminalPage,
+            pageCount: firstRoster.pageCount, countMismatch: firstAdmission.countMismatch,
+            strategy: 'verified-terminal-roster', movedToTrash: moved.moved,
+            protectedCount: moved.protectedCount, movedInventoryIds: moved.inventoryIds.slice(0, 200)
+          };
+          await writeBulkRunState(state);
+          await logDiagnostic('info', 'BULK_RECONCILIATION_MOVED_TO_TRASH', state.reconciliationSummary,
+            { module: 'background', operation: 'bulk-reconciliation', context: sessionCorrelationContext(state) }).catch(() => {});
+          if (moved.moved) broadcastInventoryChanged('bulk-reconciliation-to-trash', { runId: state.runId, count: moved.moved });
+          await releaseBulkSourceOwnership(state, 'bulk-finished').catch(() => {});
+          await logDiagnostic('info', 'BULK_INVENTORY_FINISHED', {
+            operationId: state.operationId || null, bulkRunId: state.bulkRunId || state.runId || null,
+            runId: state.runId, status: state.status, expectedTotal: expected,
+            processed, successCount: state.successCount, failedCount: state.failedCount,
+            reconciliationStatus: state.reconciliationStatus, movedToTrash: moved.moved
+          }, { module: 'background', operation: 'bulk-inventory', context: sessionCorrelationContext(state) }).catch(() => {});
+          broadcastInventoryChanged('bulk-finished', {
+            runId: state.runId, status: state.status, processed, successCount: state.successCount,
+            failedCount: state.failedCount, reconciliation: state.reconciliationSummary
+          });
+          scheduleAutoBulkSourceClose(state, 'bulk-auto-source-finished');
+          return state;
+        }
+
+        // For legacy or ambiguous first passes retain the existing read-only
+        // independent verification path, never a speculative local trash write.
+        if (!firstAdmission.canStartIndependentScan && processed === expected && state.failedCount === 0 && firstRosterComplete) {
           state.status = 'running';
           state.stage = 'reconciliation-preparing';
           state.reconciliationStatus = 'pending';
