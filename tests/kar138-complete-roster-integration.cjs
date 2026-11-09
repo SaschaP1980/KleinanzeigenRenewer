@@ -33,6 +33,12 @@ check('each scanned page is bound to the same profile and stable online-count ob
   assert.match(loop, /BULK_RECORD_ROSTER_PAGE'[^}]*onlineCount:/);
   assert.match(recon, /Anzeigenkonto|Kleinanzeigen-Konto|Konto.*gewechselt/i);
 });
+check('unknown renewal/fill/mass reservation state fails closed before local trash', () => {
+  assert.match(recon, /readRenewalSessions\(\),/);
+  assert.match(recon, /readFillSessions\(\),/);
+  assert.match(recon, /readMassRenewalBatch\(\)/);
+  assert.doesNotMatch(recon, /readRenewalSessions\(\)\.catch\(/);
+});
 check('strict negative first roster evidence never authorizes local trash', () => {
   for (const v of [
     {rosterPages:{1:ids.slice(0,25),3:ids.slice(50)},terminalPageVerified:true,invalidReason:null},
