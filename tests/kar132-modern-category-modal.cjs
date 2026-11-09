@@ -13,7 +13,8 @@ const asyncNoop = async () => ({});
 let passed = 0;
 
 function fixture({ committedId = '154', disableConfirmation = false, duplicateLeaf = false,
-  activePath = categoryPath, formSuggestions = [], misleadingWearablesBranch = false } = {}) {
+  activePath = categoryPath, formSuggestions = [], misleadingWearablesBranch = false,
+  delayedWearablesSuggestionAtQuery = 0 } = {}) {
   const formRadio = ({ id, path }) => '<label><input type="radio" name="category-suggestions" value="' +
     id + '">' + path.join(' → ') + '</label>';
   const formSuggestionHtml = '<fieldset id="ad-category-picker" aria-label="Kategorienvorschläge">' +
@@ -79,6 +80,20 @@ function fixture({ committedId = '154', disableConfirmation = false, duplicateLe
     };
   }
   chooser.click = () => { activity.opens += 1; render(); };
+  if (delayedWearablesSuggestionAtQuery > 0) {
+    const rawQuery = form.querySelectorAll.bind(form);
+    let probeCount = 0;
+    form.querySelectorAll = selector => {
+      if (selector.includes('input[name="category-suggestions"]') &&
+          ++probeCount === delayedWearablesSuggestionAtQuery) {
+        const label = document.createElement('label');
+        label.innerHTML = '<input type="radio" name="category-suggestions" value="405">' +
+          'Elektronik → Wearables → Smartwatches';
+        form.querySelector('#ad-category-picker').appendChild(label);
+      }
+      return rawQuery(selector);
+    };
+  }
   return { document, form, activity };
 }
 
@@ -206,5 +221,45 @@ function makeFlow() {
     assert.equal(activity.confirms, 0, 'no numeric-ID proof: never confirm even if parent click opens sublevel');
     passed++;
   }
-  console.log(passed + '/11 PASS KAR-132 modern same-page category modal safety');
+  // Real v1.23.40 diagnostic has no CATEGORY_MODAL_PATH_EXTENDED_BY_ID
+  // even though the owner previously captured categoryId=405 -> Smartwatches.
+  // Model suggestions that have not rendered yet at first category probe.
+  {
+    const { activity } = fixture({ committedId: String(wearableId), activePath: wearablePath,
+      misleadingWearablesBranch: true, delayedWearablesSuggestionAtQuery: 3 });
+    assert.deepEqual(await makeFlow().setCategory({ categoryId: wearableId, categoryPath: wearablePrefix },
+      'kar132-late-id-suggestion'), { confirmed: true, pendingNavigation: false });
+    assert.deepEqual(activity.clicked, wearablePath);
+    assert.equal(activity.confirms, 1);
+    passed++;
+  }
+  // The owner-supplied real form HTML confirms exactly 405 -> Smartwatches;
+  // support that narrow known hierarchy even if the *new* empty form renders
+  // no recommendation, then independently verify the committed numeric ID.
+  {
+    const { activity } = fixture({ committedId: String(wearableId), activePath: wearablePath,
+      misleadingWearablesBranch: true, formSuggestions: [] });
+    assert.deepEqual(await makeFlow().setCategory({ categoryId: wearableId, categoryPath: wearablePrefix },
+      'kar132-405-no-suggestions'), { confirmed: true, pendingNavigation: false });
+    assert.deepEqual(activity.clicked, wearablePath);
+    assert.equal(activity.confirms, 1);
+    passed++;
+  }
+  {
+    const { activity } = fixture({ committedId: '999', activePath: wearablePath,
+      misleadingWearablesBranch: true, formSuggestions: [] });
+    await assert.rejects(makeFlow().setCategory({ categoryId: wearableId, categoryPath: wearablePrefix },
+      'kar132-fallback-wrong-postcommit-id'), /Kategorie-ID|405|999/);
+    assert.equal(activity.confirms, 1, 'numeric postcommit rejection is mandatory before any publication');
+    passed++;
+  }
+  {
+    const { activity } = fixture({ committedId: '406', activePath: wearablePath,
+      misleadingWearablesBranch: true, formSuggestions: [] });
+    await assert.rejects(makeFlow().setCategory({ categoryId: 406, categoryPath: wearablePrefix },
+      'kar132-unverified-other-id'), /Wearables|Endkategorie|Kategorie|category/i);
+    assert.equal(activity.confirms, 0, 'known 405 proof must not be used for another ID');
+    passed++;
+  }
+  console.log(passed + '/15 PASS KAR-132 modern same-page category modal safety');
 })().catch(error => { console.error(error); process.exitCode = 1; });
