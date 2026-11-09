@@ -100,6 +100,11 @@ if(typeof api.create==='function') {
       ? {storageLocal:{get:async()=>({}),set:async()=>{}},
          clock:()=>123456,newToken:()=> 'coverage-probe-attempt-12345',
          workerInstanceId:'coverage-probe-worker'}
+      : rel.endsWith('/cross-worker-atomic-admission.js')
+      ? {storageLocal:{get:async()=>({}),set:async()=>{}},
+         lockManager:{request:async(_name,_options,callback)=>callback(null)},
+         clock:()=>123456,newToken:()=> 'coverage-probe-atomic-12345',
+         workerInstanceId:'coverage-probe-worker'}
       : options;
     instance=api.create(sourceOptions);
   } catch(e) { createError=String(e?.message||e); }
