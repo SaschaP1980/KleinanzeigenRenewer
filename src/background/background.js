@@ -158,7 +158,7 @@ function requireTemplateFillController() {
     isRecoverableTrashTemplateSession: session => requireTemplateFillService().isRecoverableTrashTemplateSession(session),
     resolvePublishedInventory: input => requirePublishedInventoryResolver().resolve(input),
     broadcastInventoryChanged, getInventory, isTrashRecord, assertTemplateSourceReady,
-    createAutomationTab, registerShadowTab, updateAutomationTab, logDiagnostic, correlationContext, sessionCorrelationContext,
+    createAutomationTab, deleteInventoryStorageRecord, delay, registerShadowTab, updateAutomationTab, logDiagnostic, correlationContext, sessionCorrelationContext,
     assertSelectedProfileMatchesLiveAccount, getInsertionLockState, assertInsertionStartAvailable, withInsertionStartGate,
     getRenewalConfiguration, normalizeRenewalMode, normalizeRenewalPhaseAttempts,
     readRenewalSessions, writeRenewalSessions, createRenewalSkeleton, persistRenewalSession,
@@ -2255,6 +2255,71 @@ async function checkInventoryOnlineStatus(message) {
   return { online: false, pending: true, record: existing, verificationClass };
 }
 
+// KAR-143: the public detail page can omit the expiration shown on the
+// seller's own listing card. Reuse the existing exact-ID read-only scan of
+// "Meine Anzeigen". Require account continuity before and after pagination;
+// never copy another account's or another Ad-ID's expiration into inventory.
+async function readInventoryRefreshOwnAdsEndDate(adId, expectedProfileName, windowId = null) {
+  const wanted = String(adId || '');
+  const expected = normalizeProfileName(expectedProfileName || '');
+  if (!/^\d+$/.test(wanted)) throw new Error('Anzeigen-ID der Ablaufdatumprüfung ist ungültig.');
+  if (!expected) throw new Error('Konto für Ablaufdatumprüfung nicht eindeutig erfasst.');
+  let ownerTabId = null;
+  try {
+    const created = await createAutomationTab({
+      ...(windowId ? { windowId } : {}),
+      url: MY_ADS_PROJECTS_URL,
+      active: false
+    });
+    if (!created?.id) throw new Error('„Meine Anzeigen“-Prüftab konnte nicht geöffnet werden.');
+    ownerTabId = created.id;
+    await waitForTabComplete(ownerTabId, {
+      timeoutMs: TAB_LOAD_TIMEOUT_RENEWAL_MS,
+      purpose: 'inventory-refresh-own-ads',
+      label: 'Ablaufdatum-Prüftab',
+      operation: 'inventory-refresh-own-ads',
+      context: { adId: wanted, workerTabId: ownerTabId }
+    });
+    await ensureContentConnection({ tabId: ownerTabId });
+
+    const assertOwnerProfile = status => {
+      const observed = normalizeProfileName(status?.profileName || '');
+      if (!status?.isMyAdsPage || !status?.isProjectsTab || !observed ||
+          observed.toLocaleLowerCase('de-DE') !== expected.toLocaleLowerCase('de-DE')) {
+        throw new Error('Konto für Ablaufdatumprüfung stimmt nicht eindeutig mit dem Inventarprofil überein.');
+      }
+    };
+    assertOwnerProfile(await sendTabRequestWithBootstrap(ownerTabId, { type: 'MY_ADS_STATUS' }));
+    const card = await sendTabRequestWithBootstrap(ownerTabId, { type: 'FIND_OWN_AD_BY_ID', adId: wanted });
+    assertOwnerProfile(await sendTabRequestWithBootstrap(ownerTabId, { type: 'MY_ADS_STATUS' }));
+    if (!card?.found) throw new Error('Anzeigenkarte für Ablaufdatumprüfung nicht gefunden.');
+    if (String(card.adId || '') !== wanted) throw new Error('Anzeigen-ID der gefundenen Anzeigenkarte stimmt nicht überein.');
+
+    const endDateDisplay = String(card.endDateDisplay || '').trim();
+    const endDateIso = String(card.endDateIso || '').trim();
+    const displayParts = endDateDisplay.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+    const isoParts = endDateIso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!displayParts || !isoParts ||
+        [displayParts[3], displayParts[2], displayParts[1]].join('-') !== endDateIso) {
+      throw new Error('Ablaufdatum der Anzeigenkarte fehlt oder ist widersprüchlich.');
+    }
+    const year = Number(isoParts[1]), month = Number(isoParts[2]), day = Number(isoParts[3]);
+    const parsed = new Date(Date.UTC(year, month - 1, day));
+    if (!Number.isFinite(parsed.getTime()) || parsed.getUTCFullYear() !== year ||
+        parsed.getUTCMonth() !== month - 1 || parsed.getUTCDate() !== day) {
+      throw new Error('Ablaufdatum der Anzeigenkarte ist ungültig.');
+    }
+    return {
+      adId: wanted, endDateDisplay, endDateIso,
+      pagesScanned: card.pagesScanned ?? null, evidence: 'my-ads-exact-id-owner-verified'
+    };
+  } finally {
+    if (ownerTabId) {
+      await closeRegistryTabs([ownerTabId], 'inventory-refresh-own-ads-finished', 'Ablaufdatum-Prüftab').catch(() => {});
+    }
+  }
+}
+
 async function refreshInventoryRecord(message) {
   const inventoryId = String(message?.inventoryId || message?.adId || '');
   const existing = await getInventory(inventoryId);
@@ -2308,6 +2373,25 @@ async function refreshInventoryRecord(message) {
     if (!extracted) throw new Error(lastReason || 'Anzeige wurde nicht rechtzeitig inventarisierbar.');
 
     const readOnlyResult = await readOnlyPromise;
+    let ownerCardEndDate = null;
+    // The public listing can have a posting date but no expiry. Only when
+    // the expiry is missing do we read the owner's exact card and reuse the
+    // existing bounded multi-page FIND_OWN_AD_BY_ID parser.
+    if (!readOnlyResult.ok || !readOnlyResult.metadata?.endDateDisplay) {
+      try {
+        ownerCardEndDate = await readInventoryRefreshOwnAdsEndDate(adId, existing.profileName || '', windowId);
+        await logDiagnostic('info', 'INVENTORY_REFRESH_OWN_AD_END_DATE_CONFIRMED', {
+          adId, source: ownerCardEndDate.evidence, pagesScanned: ownerCardEndDate.pagesScanned,
+          endDateDisplay: ownerCardEndDate.endDateDisplay
+        }, { module: 'background', operation: 'inventory-refresh-own-ads', context: { adId } }).catch(() => {});
+      } catch (error) {
+        // Read-only enrichment must never corrupt a complete edit snapshot or
+        // replace a known date with a guess on a wrong-account/absent card.
+        await logDiagnostic('warning', 'INVENTORY_REFRESH_OWN_AD_END_DATE_UNAVAILABLE', {
+          adId, message: String(error?.message || error).slice(0, 400)
+        }, { module: 'background', operation: 'inventory-refresh-own-ads', context: { adId } }).catch(() => {});
+      }
+    }
     if (!readOnlyResult.ok) {
       await logDiagnostic('warning', 'INVENTORY_REFRESH_READONLY_UNAVAILABLE', { adId, durationMs: readOnlyResult.durationMs, message: readOnlyResult.error }, { module: 'background', operation: 'inventory-refresh-readonly', context: { adId, metadataTabId } }).catch(() => {});
     } else {
@@ -2320,11 +2404,12 @@ async function refreshInventoryRecord(message) {
       extracted.renewal = existing.renewal ? { ...existing.renewal, updatedAt: new Date().toISOString() } : null;
     }
     extracted.listingMeta = mergeListingMetadata(extracted, existing.listingMeta || {}, readOnlyResult, {
-      endDateDisplay: existing.listingMeta?.endDateDisplay || existing.endDateDisplay || null,
-      endDateIso: existing.listingMeta?.endDateIso || null,
+      endDateDisplay: ownerCardEndDate?.endDateDisplay || existing.listingMeta?.endDateDisplay || existing.endDateDisplay || null,
+      endDateIso: ownerCardEndDate?.endDateIso || existing.listingMeta?.endDateIso || null,
       publicUrl,
       source: 'manual-inventory-refresh'
     });
+    if (ownerCardEndDate) extracted.listingMeta.endDateSource = ownerCardEndDate.evidence;
     let saved = await saveInventory(extracted, { inventoryIdOverride: inventoryId });
     if (existing?.renewal?.renewalId) {
       const sessions = await readRenewalSessions();

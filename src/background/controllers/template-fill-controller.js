@@ -8,7 +8,7 @@
         readFillSessions, writeFillSessions, withTemplateFillMutation,
                 isRecoverableTrashTemplateSession, resolvePublishedInventory,
                 broadcastInventoryChanged, getInventory, isTrashRecord, assertTemplateSourceReady,
-                createAutomationTab, registerShadowTab, updateAutomationTab, logDiagnostic, correlationContext, sessionCorrelationContext,
+                createAutomationTab, deleteInventoryStorageRecord, delay, registerShadowTab, updateAutomationTab, logDiagnostic, correlationContext, sessionCorrelationContext,
                 assertSelectedProfileMatchesLiveAccount, getInsertionLockState, assertInsertionStartAvailable, withInsertionStartGate,
                 getRenewalConfiguration, normalizeRenewalMode, normalizeRenewalPhaseAttempts,
                 readRenewalSessions, writeRenewalSessions, createRenewalSkeleton, persistRenewalSession,
@@ -265,6 +265,72 @@ async function startTrashTemplateFillUnlocked(inventoryId) {
   return { operationId, parentOperationId: null, fillId, templateOnly: true, tabId: tab.id, url: TEMPLATE_TARGET_URL };
 }
 
+// KAR-143 native QA: Chrome can briefly refuse local tab creation while its
+// tab strip is being edited. Retry ONLY that specific, rejected local API call.
+// Never retry an uncertain remote publish, a platform restriction or tab update.
+function chromeTabCreationTemporarilyBlocked(error) {
+  return /^Tabs cannot be edited right now(?:[ (.]|$)/i.test(String(error?.message || error || ''));
+}
+
+async function createRenewalTargetTab(renewal) {
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      const tab = await createAutomationTab({ url: 'about:blank', active: false });
+      if (!tab?.id) throw new Error('Neuer Kleinanzeigen-Tab konnte nicht geöffnet werden.');
+      return tab;
+    } catch (error) {
+      if (!chromeTabCreationTemporarilyBlocked(error) || attempt === 3) throw error;
+      await logDiagnostic('info', 'RENEWAL_TAB_CREATE_RETRY', {
+        renewalId: renewal.renewalId, sourceAdId: renewal.sourceAdId,
+        attempt, maxAttempts: 3, reason: 'chrome-tab-strip-busy'
+      }, { module: 'background', operation: 'renewal-start', context: sessionCorrelationContext(renewal, { adId: renewal.sourceAdId }) }).catch(() => {});
+      if (typeof delay !== 'function') throw new Error('Wartefunktion für Renewal-Tab-Retry nicht verfügbar.');
+      await delay(250 * attempt);
+    }
+  }
+  throw new Error('Neuer Kleinanzeigen-Tab konnte nicht geöffnet werden.');
+}
+
+// This point precedes any fill session or publish action. On terminal failure
+// release ONLY the exact unstarted renewal and its generated local skeleton.
+// Keep the original inventory ad and all remote Kleinanzeigen data untouched.
+// First cancel to release the lock even if the local skeleton deletion fails.
+async function rollbackUnopenedRenewal(renewal, error) {
+  const renewals = await readRenewalSessions();
+  const current = renewals[renewal.renewalId];
+  const skeletonId = 'renewal:' + renewal.renewalId;
+  const fills = await readFillSessions();
+  if (!current || current.operationId !== renewal.operationId ||
+      String(current.sourceInventoryId || '') !== String(renewal.sourceInventoryId) ||
+      String(current.skeletonInventoryId || '') !== skeletonId ||
+      current.status !== 'draft' || current.stage !== 'draft-created' ||
+      current.targetTabId || current.newAdId || current.publishClickedAt ||
+      current.newIdConfirmedAt || current.newPublicUrl || current.emergencyResetAt ||
+      Object.values(fills).some(fill => String(fill?.renewalId || '') === renewal.renewalId)) {
+    throw new Error('Abbruchzustand ist nicht eindeutig unveröffentlicht; die Renewal-Sitzung wurde aus Sicherheitsgründen nicht automatisch freigegeben.');
+  }
+  current.status = 'cancelled';
+  current.stage = 'target-tab-create-failed';
+  current.lastError = String(error?.message || error).slice(0, 400);
+  current.updatedAt = new Date().toISOString();
+  if (current.massBatchId) current.massBatchTerminal = true;
+  await writeRenewalSessions(renewals);
+  if (typeof deleteInventoryStorageRecord !== 'function')
+    throw new Error('Lokaler Renewal-Entwurf konnte nicht sicher entfernt werden: Bereinigungsfunktion fehlt.');
+  await deleteInventoryStorageRecord(skeletonId);
+  delete renewals[renewal.renewalId];
+  await writeRenewalSessions(renewals);
+  broadcastInventoryChanged('insertion-lock-released', {
+    kind: 'renewal', ownerId: renewal.renewalId,
+    inventoryId: renewal.sourceInventoryId, status: 'cancelled', stage: 'target-tab-create-failed'
+  });
+  await logDiagnostic('warning', 'RENEWAL_TAB_CREATE_FAILED_CLEAN', {
+    renewalId: renewal.renewalId, sourceAdId: renewal.sourceAdId,
+    reason: String(error?.message || error).slice(0, 400),
+    localSkeletonDeleted: true, remoteActionAttempted: false
+  }, { module: 'background', operation: 'renewal-start', context: sessionCorrelationContext(renewal, { adId: renewal.sourceAdId }) }).catch(() => {});
+}
+
 async function startTemplateFillUnlocked(inventoryId, { autoReplacementAllowed = false, startConfirmationVersion = null, renewalModeOverride = null, maxPhaseAttemptsOverride = null, massBatchId = null, massBatchItemIndex = null, parentOperationId = null } = {}) {
   const record = await getInventory(inventoryId);
   if (!record) throw new Error("Inventar wurde nicht gefunden.");
@@ -321,13 +387,15 @@ async function startTemplateFillUnlocked(inventoryId, { autoReplacementAllowed =
   broadcastInventoryChanged('insertion-lock-acquired', { kind: 'renewal', ownerId: renewalId, inventoryId: String(record.inventoryId), adId: String(record.adId || '') || null });
   await logDiagnostic('info', 'RENEWAL_DRAFT_CREATED', { operationId, parentOperationId: renewal.parentOperationId, renewalId, sourceInventoryId: record.inventoryId, sourceAdId: String(record.adId || ''), skeletonInventoryId: skeleton.inventoryId }, { module: 'background', operation: 'renewal-start', context: sessionCorrelationContext(renewal, { adId: String(record.adId || '') }) }).catch(() => {});
 
-  const tab = await createAutomationTab({ url: "about:blank", active: false });
-  if (!tab?.id) {
-    renewal.status = 'verification-failed';
-    renewal.stage = 'target-tab-failed';
-    renewal.lastError = 'Neuer Kleinanzeigen-Tab konnte nicht geöffnet werden.';
-    await persistRenewalSession(renewal);
-    throw new Error("Neuer Kleinanzeigen-Tab konnte nicht geöffnet werden.");
+  let tab;
+  try {
+    tab = await createRenewalTargetTab(renewal);
+  } catch (error) {
+    // A missing/denied tab is a prepublish local failure, not a live draft.
+    // On any cleanup failure preserve the fail-closed tombstone/diagnostics
+    // rather than falsely declaring the source ready for a new attempt.
+    await rollbackUnopenedRenewal(renewal, error);
+    throw error;
   }
   renewal.targetTabId = tab.id;
   await registerShadowTab(tab.id, TAB_ROLES.RENEWAL_TARGET, { ...correlationContext(renewal), ownerType: 'renewal', ownerId: renewalId, inventoryId: String(record.inventoryId), adId: String(record.adId || '') });

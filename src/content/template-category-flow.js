@@ -134,10 +134,56 @@
       ? captured : null;
   }
 
+  // KAR-143 owner-native Fahrradschlauch: both "Art" and "Typ" may be
+  // captured, while only one of their display values is a real terminal
+  // category on the *currently opened* exact-parent dialog level.
+  // A captured attribute is NEVER independent proof of category identity.
+  // Match by complete normalized label against one unique, visible, enabled,
+  // selectable live leaf, then verify the form's numeric category ID later.
+  function capturedTerminalAttributePath(template, storedPath, liveState) {
+    if (!Array.isArray(template?.dynamicAttributes) || !liveState ||
+        !sameModernPath(liveState.path, storedPath) ||
+        storedPath.length < 2 || storedPath.length >= 8) return null;
+    const candidates = template.dynamicAttributes.filter(attribute =>
+      ['typ', 'art'].includes(modernLabel(attribute?.label)) &&
+      typeof attribute?.displayValue === 'string' &&
+      clean(attribute.displayValue));
+    const options = modernChoices(liveState);
+    const matching = new Map();
+    for (const attribute of candidates) {
+      const terminal = clean(attribute.displayValue);
+      if (terminal.length > 150 ||
+          storedPath.some(name => modernLabel(name) === modernLabel(terminal))) continue;
+      const exact = options.filter(item => modernLabel(item.label) === modernLabel(terminal));
+      if (exact.length > 1) {
+        throw new Error('Endkategorie „' + terminal + '“ ist im aktuellen Dialog nicht eindeutig.');
+      }
+      if (exact.length !== 1) continue;
+      const button = exact[0].button;
+      if (button.disabled || button.getAttribute('aria-disabled') === 'true') {
+        throw new Error('Endkategorie „' + terminal + '“ ist deaktiviert.');
+      }
+      if (!button.hasAttribute('aria-pressed') ||
+          button.querySelector('svg[data-title="arrowRight"]')) continue;
+      const key = modernLabel(exact[0].label);
+      if (!matching.has(key)) {
+        matching.set(key, {
+          path: [...storedPath, exact[0].label],
+          label: modernLabel(attribute.label)
+        });
+      }
+    }
+    if (matching.size > 1) {
+      throw new Error('Endkategorie ist nicht eindeutig: Mehrere gespeicherte Merkmale entsprechen auswählbaren Kategorien.');
+    }
+    return matching.size === 1 ? [...matching.values()][0] : null;
+  }
+
   async function selectModernCategory(template, fillId, path) {
     const wanted = String(template.categoryId);
     const storedDepth = path.length;
     let idProvenExtension = false;
+    let attributeBackedExtension = false;
 
     // First prefer current site's own unique numeric-ID suggestion. It can be
     // populated asynchronously AFTER the title/chooser changes, so a single
@@ -188,32 +234,41 @@
       const branch = Boolean(button.querySelector('svg[data-title="arrowRight"]'));
       const selectable = button.hasAttribute('aria-pressed');
 
-      // A stored parent cannot be clicked as a leaf. The posting form may
-      // expose a unique full hierarchy for the *same immutable categoryId*.
-      // Extend only when the hierarchy is an exact prefix and the last stored
-      // choice is demonstrably a branch. Otherwise fail closed.
+      // A saved parent can expose a real child level. A branch with an arrow
+      // must be clicked first: only THEN is the live list of terminal options
+      // available for exact Typ/Art matching. Never infer a leaf in advance.
       if (leaf && branch && !selectable) {
-        const extended = await waitFor(
-          () => resolveModernCategoryPathById(wanted, path),
-          { timeout: 4000, description: 'Endkategorie nach „' + name + '“ für Kategorie-ID ' + wanted }
-        );
+        button.click();
+        const childState = await waitFor(() => {
+          const current = modernState();
+          return current && sameModernPath(current.path, [...prior, name]) ? current : null;
+        }, { timeout: 10000, description: 'Unterkategorien nach „' + name + '“' });
+        const byId = resolveModernCategoryPathById(wanted, path);
+        const byAttribute = byId ? null : capturedTerminalAttributePath(template, path, childState);
+        const extended = byId || byAttribute?.path;
         if (!extended || !sameModernPath(extended.slice(0, path.length), path) ||
             extended.length <= path.length) {
-          throw new Error('Endkategorie nach „' + name + '“ für Kategorie-ID ' + wanted + ' nicht nachgewiesen.');
+          throw new Error('Endkategorie nach „' + name + '“ nicht eindeutig aus den verfügbaren Unterkategorien nachgewiesen.');
         }
-        void diagnostic(fillId, 'CATEGORY_MODAL_PATH_EXTENDED_BY_ID', {
-          categoryId: wanted, storedDepth: path.length, resolvedDepth: extended.length
+        void diagnostic(fillId, byAttribute
+          ? (byAttribute.label === 'typ' ? 'CATEGORY_MODAL_PATH_EXTENDED_BY_TYPE' : 'CATEGORY_MODAL_PATH_EXTENDED_BY_ART')
+          : 'CATEGORY_MODAL_PATH_EXTENDED_BY_ID', {
+          categoryId: wanted, storedDepth: path.length, resolvedDepth: extended.length,
+          source: byAttribute ? 'live-exact-' + byAttribute.label + '-candidate-unverified-until-commit'
+            : 'live-numeric-id-suggestion'
         });
         path = extended;
-        idProvenExtension = true;
-        leaf = false;
+        if (byAttribute) attributeBackedExtension = true;
+        else idProvenExtension = true;
+        void diagnostic(fillId, 'CATEGORY_MODAL_BRANCH_CONFIRMED', { label: name, level: i });
+        continue;
       }
       if (!leaf) {
         // When the site's unique matching numeric-ID suggestion proves the
         // complete descendant path, a misleading parent affordance is not
         // authoritative. Still require exact breadcrumb transition after
         // clicking; a true leaf can never masquerade as a successful branch.
-        const provenDescendant = idProvenExtension && i >= storedDepth - 1;
+        const provenDescendant = (idProvenExtension || attributeBackedExtension) && i >= storedDepth - 1;
         if ((!branch || selectable) && !provenDescendant)
           throw new Error('Kategorie „' + name + '“ ist keine Unterkategorie.');
         button.click();
@@ -225,13 +280,40 @@
       } else {
         if (branch || !selectable) throw new Error('Kategorie „' + name + '“ ist keine Endkategorie.');
         button.click();
-        await waitFor(() => {
+        const outcome = await waitFor(() => {
           const current = modernState();
-          if (!current || !sameModernPath(current.path, prior)) return null;
+          if (!current) return null;
+          // Some category parents expose aria-pressed and no arrow, yet a click
+          // opens a child level (real KAR-143 modal). Observe the resulting
+          // breadcrumb rather than treating the stale pressed state as a leaf.
+          if (sameModernPath(current.path, [...prior, name])) return 'drilldown';
+          if (!sameModernPath(current.path, prior)) return null;
           const selected = modernChoices(current).filter(item => item.button.getAttribute('aria-pressed') === 'true');
-          return selected.length === 1 && modernLabel(selected[0].label) === modernLabel(name) ? current : null;
-        }, { timeout: 10000, description: 'Endkategorie „' + name + '“' });
-        void diagnostic(fillId, 'CATEGORY_MODAL_LEAF_CONFIRMED', { label: name, level: i });
+          return selected.length === 1 && modernLabel(selected[0].label) === modernLabel(name) ? 'leaf' : null;
+        }, { timeout: 10000, description: 'Endkategorie oder Unterkategorie „' + name + '“' });
+        if (outcome === 'drilldown') {
+          const current = modernState();
+          const byId = resolveModernCategoryPathById(wanted, path);
+          const byAttribute = byId ? null : capturedTerminalAttributePath(template, path, current);
+          const extended = byId || byAttribute?.path;
+          if (!extended || !sameModernPath(extended.slice(0, path.length), path) ||
+              extended.length <= path.length) {
+            throw new Error('Endkategorie nach „' + name + '“ nicht eindeutig aus den verfügbaren Unterkategorien nachgewiesen.');
+          }
+          void diagnostic(fillId, byAttribute
+            ? (byAttribute.label === 'typ' ? 'CATEGORY_MODAL_PATH_EXTENDED_BY_TYPE' : 'CATEGORY_MODAL_PATH_EXTENDED_BY_ART')
+            : 'CATEGORY_MODAL_PATH_EXTENDED_BY_ID', {
+            categoryId: wanted, storedDepth: path.length, resolvedDepth: extended.length,
+            source: byAttribute ? 'live-exact-' + byAttribute.label + '-candidate-unverified-until-commit'
+              : 'live-numeric-id-suggestion'
+          });
+          path = extended;
+          if (byAttribute) attributeBackedExtension = true;
+          else idProvenExtension = true;
+          void diagnostic(fillId, 'CATEGORY_MODAL_BRANCH_CONFIRMED', { label: name, level: i });
+        } else {
+          void diagnostic(fillId, 'CATEGORY_MODAL_LEAF_CONFIRMED', { label: name, level: i });
+        }
       }
     }
     const ready = modernState();

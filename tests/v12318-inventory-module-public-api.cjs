@@ -50,6 +50,7 @@ global.chrome={runtime:{sendMessage(){},lastError:null},storage:{onChanged:{addL
   const pageRoot={querySelector:()=>({textContent:'2'})};assert.equal(roster.currentPageNumber(pageRoot),2);
   const next={getAttribute:()=>null};const navRoot={querySelector:()=>next};assert.equal(roster.nextPageButton(navRoot),next);assert.equal(roster.isDisabledControl(next),false);
   assert.deepEqual(roster.endDateFromRoot({innerText:'Endet am 31.12.2026'}),{endDateDisplay:'31.12.2026',endDateIso:'2026-12-31'});
+  assert.deepEqual(roster.endDateFromRoot({innerText:'Besuche 2 Endet am: 11.11.2026'}),{endDateDisplay:'11.11.2026',endDateIso:'2026-11-11'}); // owner-observed colon variant
   const emptyRoot={querySelectorAll:()=>[],querySelector:()=>null};assert.deepEqual(roster.scanListings(emptyRoot),[]);assert.equal(roster.pageFingerprint(emptyRoot),'');
   assert.equal(await roster.waitForPageChange(1,''),false);assert.deepEqual(await roster.waitForListings(),[]);
   pass('all fifteen roster/parser public methods execute through their public API');

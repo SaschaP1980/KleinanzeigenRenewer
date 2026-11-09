@@ -166,7 +166,7 @@
 
   function endDateFromRoot(root) {
     const text = normalize(root?.innerText || root?.textContent || '');
-    const match = text.match(/\bEndet\s+am\s+(\d{2}\.\d{2}\.\d{4})\b/i);
+    const match = text.match(/\bEndet\s+am\s*:?\s*(\d{2}\.\d{2}\.\d{4})\b/i);
     if (!match) return { endDateDisplay: '', endDateIso: '' };
     const [day, month, year] = match[1].split('.');
     return { endDateDisplay: match[1], endDateIso: `${year}-${month}-${day}` };
