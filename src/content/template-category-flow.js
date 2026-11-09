@@ -125,6 +125,21 @@
 
   async function selectModernCategory(template, fillId, path) {
     const wanted = String(template.categoryId);
+    const storedDepth = path.length;
+    let idProvenExtension = false;
+
+    // KAR-132: resolve the last leaf BEFORE the first category click. The real
+    // Wearables parent may expose aria-pressed yet open another navigation
+    // level, so inferring branch/leaf solely from its button shape is unsafe.
+    // Use only the unique categoryId-matched full path provided by the form.
+    const resolved = resolveModernCategoryPathById(wanted, path);
+    if (resolved) {
+      path = resolved;
+      idProvenExtension = true;
+      void diagnostic(fillId, 'CATEGORY_MODAL_PATH_EXTENDED_BY_ID', {
+        categoryId: wanted, storedDepth, resolvedDepth: path.length, timing: 'before-navigation'
+      });
+    }
     for (let i = 0; i < path.length; i += 1) {
       const prior = path.slice(0, i), name = path[i];
       const state = await waitFor(() => {
@@ -153,10 +168,17 @@
           categoryId: wanted, storedDepth: path.length, resolvedDepth: extended.length
         });
         path = extended;
+        idProvenExtension = true;
         leaf = false;
       }
       if (!leaf) {
-        if (!branch || selectable) throw new Error('Kategorie „' + name + '“ ist keine Unterkategorie.');
+        // When the site's unique matching numeric-ID suggestion proves the
+        // complete descendant path, a misleading parent affordance is not
+        // authoritative. Still require exact breadcrumb transition after
+        // clicking; a true leaf can never masquerade as a successful branch.
+        const provenDescendant = idProvenExtension && i >= storedDepth - 1;
+        if ((!branch || selectable) && !provenDescendant)
+          throw new Error('Kategorie „' + name + '“ ist keine Unterkategorie.');
         button.click();
         await waitFor(() => {
           const current = modernState();
