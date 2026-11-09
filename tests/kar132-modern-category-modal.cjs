@@ -12,8 +12,15 @@ const noop = () => {};
 const asyncNoop = async () => ({});
 let passed = 0;
 
-function fixture({ committedId = '154', disableConfirmation = false, duplicateLeaf = false } = {}) {
-  const { document } = parseHTML('<html><body><form><input name="categoryId" value="0"><a href="/p-anzeige-aufgeben-schritt2.html">Wähle deine Kategorie</a></form><main id="mount"></main></body></html>');
+function fixture({ committedId = '154', disableConfirmation = false, duplicateLeaf = false,
+  activePath = categoryPath, formSuggestions = [] } = {}) {
+  const formRadio = ({ id, path }) => '<label><input type="radio" name="category-suggestions" value="' +
+    id + '">' + path.join(' → ') + '</label>';
+  const formSuggestionHtml = '<fieldset id="ad-category-picker" aria-label="Kategorienvorschläge">' +
+    formSuggestions.map(formRadio).join('') + '</fieldset>';
+  const { document } = parseHTML('<html><body><form><input name="categoryId" value="0">' +
+    formSuggestionHtml + '<a href="/p-anzeige-aufgeben-schritt2.html">Wähle deine Kategorie</a>' +
+    '</form><main id="mount"></main></body></html>');
   global.document = document;
   global.location = { pathname: target, href: 'https://www.kleinanzeigen.de' + target };
   const mount = document.querySelector('#mount');
@@ -28,17 +35,18 @@ function fixture({ committedId = '154', disableConfirmation = false, duplicateLe
     (pressed ? '<svg data-title="checkmark"></svg>' : '') + '</button></li>';
   function breadcrumb() {
     if (!level) return '<p>Alle Kategorien</p>';
-    const parts = ['Alle Kategorien', ...categoryPath.slice(0, level)];
+    const parts = ['Alle Kategorien', ...activePath.slice(0, level)];
     return '<nav aria-label="Kategoriennavigation"><ol>' + parts.map((part, index) =>
       '<li>' + (index === parts.length - 1 ? '<span aria-current="page">' + part + '</span>' :
         '<button type="button">' + part + '</button>') + '</li>').join('') + '</ol></nav>';
   }
   function choices() {
-    if (!level) return button('Mode & Beauty', 'branch') + button('Elektronik', 'branch');
-    if (level === 1) return button('Damenbekleidung', 'branch') + button('Herrenbekleidung', 'branch') +
-      button('Weiteres Mode & Beauty', 'leaf');
-    return button('Jeans', 'leaf', activity.selected === 'Jeans') +
-      (duplicateLeaf ? button('Jeans', 'leaf') : '') + button('Hosen', 'leaf');
+    if (level < activePath.length - 1) {
+      return button(activePath[level], 'branch') + button('Andere Kategorie', 'branch');
+    }
+    const leaf = activePath[activePath.length - 1];
+    return button(leaf, 'leaf', activity.selected === leaf) +
+      (duplicateLeaf ? button(leaf, 'leaf') : '') + button('Andere Endkategorie', 'leaf');
   }
   function render() {
     const ready = Boolean(activity.selected) && !disableConfirmation;
@@ -132,5 +140,44 @@ function makeFlow() {
     assert.equal(activity.opens, 0, 'pre-matched category should preserve existing shortcut');
     passed++;
   }
-  console.log(passed + '/5 PASS KAR-132 modern same-page category modal safety');
+  // Native user evidence 2026-11-09: legacy inventory path stops at Wearables,
+  // but the real form suggests categoryId=405 with full Smartwatches leaf.
+  const wearablePath = ['Elektronik', 'Wearables', 'Smartwatches'];
+  const wearableId = 405;
+  const wearablePrefix = wearablePath.slice(0, 2);
+  {
+    const { activity } = fixture({ committedId: String(wearableId), activePath: wearablePath,
+      formSuggestions: [{ id: 405, path: wearablePath }, { id: 157, path: ['Mode & Beauty', 'Uhren & Schmuck', 'Uhren'] }] });
+    assert.deepEqual(await makeFlow().setCategory({ categoryId: wearableId, categoryPath: wearablePrefix }, 'kar132-wearables-405'), {
+      confirmed: true, pendingNavigation: false
+    });
+    assert.deepEqual(activity.clicked, wearablePath, 'must navigate through ID-proven leaf, not stop at Wearables');
+    assert.equal(activity.confirms, 1);
+    passed++;
+  }
+  {
+    const { activity } = fixture({ committedId: String(wearableId), activePath: wearablePath,
+      formSuggestions: [{ id: 777, path: wearablePath }] });
+    await assert.rejects(makeFlow().setCategory({ categoryId: wearableId, categoryPath: wearablePrefix }, 'kar132-no-id'),
+      /Wearables|Kategorie|category|Endkategorie/i);
+    assert.equal(activity.confirms, 0, 'do not infer leaf without matching ID');
+    passed++;
+  }
+  {
+    const { activity } = fixture({ committedId: String(wearableId), activePath: wearablePath,
+      formSuggestions: [{ id: wearableId, path: ['Elektronik', 'Smartphones', 'Smartwatches'] }] });
+    await assert.rejects(makeFlow().setCategory({ categoryId: wearableId, categoryPath: wearablePrefix }, 'kar132-mismatch-prefix'),
+      /Wearables|Kategorie|category|Endkategorie/i);
+    assert.equal(activity.confirms, 0, 'do not accept a category whose ancestry differs');
+    passed++;
+  }
+  {
+    const { activity } = fixture({ committedId: String(wearableId), activePath: wearablePath,
+      formSuggestions: [{ id: wearableId, path: wearablePath }, { id: wearableId, path: ['Elektronik', 'Wearables', 'Fitness-Tracker'] }] });
+    await assert.rejects(makeFlow().setCategory({ categoryId: wearableId, categoryPath: wearablePrefix }, 'kar132-ambiguous-id'),
+      /mehrdeutig|eindeutig|Kategorie|category|Wearables/i);
+    assert.equal(activity.confirms, 0, 'duplicate ID with different leaves must fail closed');
+    passed++;
+  }
+  console.log(passed + '/9 PASS KAR-132 modern same-page category modal safety');
 })().catch(error => { console.error(error); process.exitCode = 1; });
