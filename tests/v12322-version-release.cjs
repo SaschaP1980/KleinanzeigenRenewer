@@ -50,7 +50,22 @@ if (categoryFiller.includes('if (categoryState?.confirmed) form = resolveActiveP
 } else {
   assert.equal(sha('src/content/template-filler.js'), arch.runtime.templateFillerSha256);
 }
-assert.equal(sha('src/content/template-verification.js'), arch.runtime.templateVerificationSha256);
+// The 2026 KAR-132 native Smartwatches form uses real checkbox inputs rather
+// than hidden technical fields. Preserve the exact historic verifier SHA for
+// earlier sources; when the new field adapter is present require the gated
+// checked-state contract and its independent RED/GREEN runtime tests.
+const verifier = fs.readFileSync('src/content/template-verification.js', 'utf8');
+if (verifier.includes("matching[0].type === 'checkbox'")) {
+  assert.match(pkg.scripts.test, /kar132-wearables-attributes\.cjs/);
+  assert.match(verifier, /expectValue\('input\[name="categoryId"\]', template\.categoryId, 'Kategorie'\)/);
+  assert.match(verifier, /matching\.length === 1 && matching\[0\]\.type === 'checkbox'/);
+  assert.match(verifier, /matching\[0\]\.checked === wantedChecked/);
+  assert.match(verifier, /wantedChecked !== null/);
+  assert.match(verifier, /attribute\.technicalValue === ''\) continue/);
+  assert.match(verifier, /if \(!matches\) issues\.push/);
+  assert.match(fs.readFileSync('src/content/template-form-fields.js', 'utf8'),
+    /input\.click\(\); \/\/ React-owned native change/);
+} else assert.equal(sha('src/content/template-verification.js'), arch.runtime.templateVerificationSha256);
 assert.equal(spec.performanceGoldlines.length, 2);
 assert.deepEqual(spec.performanceGoldlines.map(x => [x.totalSeconds, x.averageSeconds]), [[61.277,20.426],[110.34,36.771]]);
 assert.match(fs.readFileSync('scripts/release_finalize.py','utf8'), /Goldlinien-Performance-Matrix/);
