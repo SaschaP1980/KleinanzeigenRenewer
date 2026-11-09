@@ -105,12 +105,12 @@
     const pageNumbers = pages.map(([key]) => Number(key));
     if (pageNumbers.some((number, index) =>
       !Number.isInteger(number) || number < 1 || number > 100 ||
-      !/^[1-9]\\d*$/.test(pages[index][0])
+      !/^[1-9]\d*$/.test(pages[index][0])
     ) || new Set(pageNumbers).size !== pageNumbers.length) return result('invalid-page');
     if (!pages.every(([, ids]) => Array.isArray(ids))) return result('invalid-roster-evidence');
 
     const rosterIds = pages.flatMap(([, ids]) => ids.map(id => String(id ?? '').trim()));
-    if (rosterIds.some(id => !/^\\d+$/.test(id))) return result('invalid-ad-id');
+    if (rosterIds.some(id => !/^\d+$/.test(id))) return result('invalid-ad-id');
     if (new Set(rosterIds).size !== rosterIds.length) return result('duplicate-ad-id', rosterIds.length);
     const evidence = rosterEvidence(rosterPages);
     if (!evidence.pagesContiguous) return result('missing-page', evidence.ids.length);
@@ -118,7 +118,7 @@
 
     if (!Array.isArray(processedIds)) return result('processed-roster-mismatch', evidence.ids.length);
     const processed = processedIds.map(id => String(id ?? '').trim());
-    if (processed.some(id => !/^\\d+$/.test(id)) ||
+    if (processed.some(id => !/^\d+$/.test(id)) ||
         new Set(processed).size !== processed.length ||
         !sameIdSet(evidence.ids, processed)) return result('processed-roster-mismatch', evidence.ids.length);
 
