@@ -19,7 +19,7 @@ function element() {
     removeAttribute(k) { delete attrs[k]; } };
 }
 async function main() {
-  const serviceApi = load('diagnostics-service.js');
+  const serviceApi = load('src/background/services/diagnostics-service.js');
   const state = {};
   const service = serviceApi.create({
     storageLocal: {
@@ -40,7 +40,7 @@ async function main() {
   await service.reset();
   assert.equal((await service.occupancy()).current, 1, 'reset marker itself is a retained event');
 
-  const ctrlApi = load('diagnostics-controls-controller.js');
+  const ctrlApi = load('src/app/diagnostics-controls-controller.js');
   const occupancy = element(), fill = element(), text = element(), accordion = element();
   const reset = element(), zip = element(), emergency = element();
   let response = { current: 0, maximum: 2500 }, requests = 0, logs = 0;
@@ -84,10 +84,10 @@ async function main() {
   assert.ok(requests > 0);
 
   const html = fs.readFileSync('app.html', 'utf8');
-  const section = html.match(/id="diagnosticOccupancy"[\\s\\S]*?id="diagnosticZipButton"/)?.[0] || '';
+  const section = html.match(/id="diagnosticOccupancy"[\s\S]*?id="diagnosticZipButton"/)?.[0] || '';
   assert.match(section, /role="progressbar"/);
   assert.match(section, /diagnosticOccupancyText/);
-  assert.doesNotMatch(section, /frei|free|Prozent|%|Diagnosespeicher<\\//i);
+  assert.doesNotMatch(section, /frei|free|Prozent|%|Diagnosespeicher<\//i);
   console.log('KAR-147 occupancy service, controller, lifecycle, accessibility and markup PASS');
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });
