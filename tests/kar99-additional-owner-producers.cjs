@@ -129,16 +129,18 @@ function create(data, ports={}){return Additional.create({storageLocal:data.loca
     queryBrowserTabsReadOnly:async()=>structuredClone(myAdsTabs),
     readAccountPageStatusReadOnly:async id=>{statusCalls++;assert.equal(id,77);return statusFor();}
   }).observe();
-  ok(statusCalls===2&&labelMatch.context.profile.state==='unverified'
-    &&labelMatch.context.profile.reason==='LIVE_ACCOUNT_NAME_MATCH_STABLE_ID_UNVERIFIED'
+  ok(statusCalls===2&&labelMatch.context.profile.state==='matched'
+    &&labelMatch.context.profile.reason==='LIVE_ACCOUNT_PROFILE_MATCH'
+    &&labelMatch.context.profile.profileId==='profile-A'
     &&labelMatch.eligibleForLease===false,
-    'matching site display name is a hint, NEVER a verified stable account ID');
+    'existing logged-in Kleinanzeigen account/profile match is recognized without a second site ID or update lease');
   const whitespace=await create(db(accountLocal),{
     queryBrowserTabsReadOnly:async()=>structuredClone(myAdsTabs),
     readAccountPageStatusReadOnly:async()=>statusFor('Fixture   account')
   }).observe();
-  ok(whitespace.context.profile.reason==='LIVE_ACCOUNT_NAME_MATCH_STABLE_ID_UNVERIFIED',
-    'site account display whitespace is normalized before comparing saved labels');
+  ok(whitespace.context.profile.reason==='LIVE_ACCOUNT_PROFILE_MATCH'
+    &&whitespace.context.profile.state==='matched',
+    'existing account/profile name comparison normalizes whitespace and needs no email syntax check');
   const switched=await create(db(accountLocal),{
     queryBrowserTabsReadOnly:async()=>structuredClone(myAdsTabs),
     readAccountPageStatusReadOnly:async()=>statusFor('Other logged in account')
@@ -256,22 +258,21 @@ function create(data, ports={}){return Additional.create({storageLocal:data.loca
     '/s-bestandsliste.html?userId=not-numeric',
     '/s-anzeige/123-111-222'
   ]);
-  ok(profileLinks.siteSellerIdHints?.verified===false
-    &&profileLinks.siteSellerIdHints?.source==='first-party-public-profile-links'
-    &&JSON.stringify(profileLinks.siteSellerIdHints?.ids)===JSON.stringify(['445566','789'])
-    &&profileLinks.siteSellerIdHints?.truncated===false,
-    'actual PAGE_STATUS extracts only strict first-party numeric public seller-link candidates');
+  ok(profileLinks.auth.loggedIn===true
+    &&profileLinks.profileName==='Fixture account'
+    &&!Object.hasOwn(profileLinks,'siteSellerIdHints'),
+    'actual PAGE_STATUS reuses only existing account status and never infers account identity from public seller links');
   const publicLinks=Array.from({length:36},(_,i)=>
     '/s-bestandsliste.html?userId='+String(10000+i));
   const overflow=actualPageStatus(publicLinks);
-  ok(overflow.siteSellerIdHints?.ids.length===32
-    &&overflow.siteSellerIdHints?.truncated===true
-    &&overflow.siteSellerIdHints?.verified===false,
-    'candidate overflow is explicit and cannot turn incomplete enumeration into one ID');
+  ok(overflow.profileName==='Fixture account'
+    &&!Object.hasOwn(overflow,'siteSellerIdHints'),
+    'unrelated seller links are not scanned or processed as account identity evidence');
   const loggedOut=actualPageStatus(['/s-bestandsliste.html?userId=445566'],
     {loggedIn:false});
-  ok(loggedOut.auth.loggedIn===false&&loggedOut.siteSellerIdHints===null,
-    'logged-out PAGE_STATUS cannot attribute a public seller link to authenticated account');
+  ok(loggedOut.auth.loggedIn===false
+    &&!Object.hasOwn(loggedOut,'siteSellerIdHints'),
+    'logged-out PAGE_STATUS provides no spurious seller ID evidence');
   const hints=ids=>({source:'first-party-public-profile-links',
     verified:false,truncated:false,ids});
   const firstSeller=await create(db(accountLocal),{
@@ -279,10 +280,10 @@ function create(data, ports={}){return Additional.create({storageLocal:data.loca
     readAccountPageStatusReadOnly:async()=>({...statusFor(),
       siteSellerIdHints:hints(['445566'])})
   }).observe();
-  ok(firstSeller.context.profile.state==='unverified'
-    &&firstSeller.context.profile.reason==='LIVE_ACCOUNT_NAME_MATCH_STABLE_ID_UNVERIFIED'
+  ok(firstSeller.context.profile.state==='matched'
+    &&firstSeller.context.profile.reason==='LIVE_ACCOUNT_PROFILE_MATCH'
     &&firstSeller.eligibleForLease===false,
-    'unchanged public seller ID remains a clue, never independently authenticated identity');
+    'account/profile match is based only on existing authenticated PAGE_STATUS, not public seller links');
   let sellerRead=0;
   const sellerChanged=await create(db(accountLocal),{
     queryBrowserTabsReadOnly:async()=>structuredClone(myAdsTabs),
@@ -290,25 +291,38 @@ function create(data, ports={}){return Additional.create({storageLocal:data.loca
       siteSellerIdHints:hints([++sellerRead===1?'445566':'778899'])})
   }).observe();
   ok(sellerRead===2&&sellerChanged.context.profile.reason===
-    'LIVE_ACCOUNT_SELLER_HINT_CHANGED_DURING_READ'
+    'LIVE_ACCOUNT_PROFILE_MATCH'
+    &&sellerChanged.context.profile.state==='matched'
     &&sellerChanged.eligibleForLease===false,
-    'same account display name cannot conceal changing public seller ID link candidates');
+    'unrelated seller link changes do not override the stable existing account/profile match');
   const sellerContradiction=await create(db(accountLocal),{
     queryBrowserTabsReadOnly:async()=>[...myAdsTabs,{id:78,url:adPageUrl}],
     readAccountPageStatusReadOnly:async id=>({...statusFor(),
       siteSellerIdHints:hints([id===77?'445566':'778899'])})
   }).observe();
-  ok(sellerContradiction.context.profile.reason==='LIVE_ACCOUNT_SELLER_HINT_TABS_DISAGREE'
+  ok(sellerContradiction.context.profile.reason==='LIVE_ACCOUNT_PROFILE_MATCH'
+    &&sellerContradiction.context.profile.state==='matched'
     &&sellerContradiction.eligibleForLease===false,
-    'contradictory public seller links across two same-name My Ads tabs remain UNKNOWN');
+    'contradictory public seller links cannot block a consistent logged-in account/profile match');
   const forgedProof=await create(db(accountLocal),{
     queryBrowserTabsReadOnly:async()=>structuredClone(myAdsTabs),
     readAccountPageStatusReadOnly:async()=>({...statusFor(),
       siteSellerIdHints:{...hints(['445566']),verified:true}})
   }).observe();
-  ok(forgedProof.context.profile.reason==='LIVE_ACCOUNT_SELLER_HINT_INVALID'
+  ok(forgedProof.context.profile.reason==='LIVE_ACCOUNT_PROFILE_MATCH'
+    &&forgedProof.context.profile.state==='matched'
     &&forgedProof.eligibleForLease===false,
-    'forged verified:true claim from website status cannot grant account identity');
+    'forged seller verified:true is ignored and cannot grant any updater authority');
+  const emailProfileLocal=structuredClone(accountLocal);
+  emailProfileLocal.profilesV1[0].displayName='user+label@Example.invalid';
+  const emailLikeAccount=await create(db(emailProfileLocal),{
+    queryBrowserTabsReadOnly:async()=>structuredClone(myAdsTabs),
+    readAccountPageStatusReadOnly:async()=>statusFor('User+Label@example.INVALID')
+  }).observe();
+  ok(emailLikeAccount.context.profile.state==='matched'
+    &&emailLikeAccount.context.profile.reason==='LIVE_ACCOUNT_PROFILE_MATCH'
+    &&emailLikeAccount.eligibleForLease===false,
+    'existing case-insensitive account match works without requiring or validating an email format');
   const missingReader=await create(db(accountLocal),{
     queryBrowserTabsReadOnly:async()=>structuredClone(myAdsTabs)
   }).observe();
