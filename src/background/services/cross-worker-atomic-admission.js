@@ -95,11 +95,28 @@
         throw denied('KR_UPDATE_FENCE_ATOMIC_UNAVAILABLE');
       }
     }
+    // A momentary journal/lock overlap must not reject legitimate routed
+    // UI/profile messages. Retry ONLY Web Locks contention, never a held update
+    // lease, corrupt storage, missing browser primitive, wrong profile or
+    // unverified remote outcome. Every accepted start and finish is still
+    // inside the exact exclusive Web Lock and durable journal readback.
+    async function workflowExclusive(task) {
+      const attempts=16;
+      for(let i=0;i<attempts;i++){
+        try {return await exclusive(task);}
+        catch(error){
+          if(error?.code!=='KR_UPDATE_FENCE_ATOMIC_BUSY'||i===attempts-1)
+            throw error;
+          await new Promise(resolve=>setTimeout(resolve,Math.min(20+i*10,100)));
+        }
+      }
+      throw denied('KR_UPDATE_FENCE_ATOMIC_BUSY');
+    }
     async function withAdmission(operationType,task) {
       if(typeof operationType!=='string'||!operationType||operationType.length>128
         ||typeof task!=='function')throw denied('KR_UPDATE_FENCE_ATOMIC_UNAVAILABLE');
       let entry;
-      await exclusive(async()=>{
+      await workflowExclusive(async()=>{
         const {starts,finishes}=await scan();
         let token;
         try {token=newToken();}catch{throw denied('KR_UPDATE_FENCE_ATOMIC_STORAGE');}
@@ -115,7 +132,7 @@
       finally {
         // An interrupted worker never runs finally. Leave the start receipt
         // unresolved; an independent result probe is needed before clearance.
-        await exclusive(async()=>{
+        await workflowExclusive(async()=>{
           const {starts,finishes}=await scan();
           if(!same(starts.get(entry.token),entry)||finishes.has(entry.token))
             throw denied('KR_UPDATE_FENCE_ATOMIC_STORAGE');
