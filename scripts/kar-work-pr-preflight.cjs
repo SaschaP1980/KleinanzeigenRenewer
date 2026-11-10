@@ -32,6 +32,22 @@ function nextBody(body, issueNumber, previous, next) {
   lines[indices[0]]=prefix+' '+tick+'work/KAR-'+issueNumber+tick+' / '+tick+next+tick;
   return lines.join('\n');
 }
+// GitHub Issue comments can be hundreds of kilobytes. An OS exec argv entry
+// is limited (Linux MAX_ARG_STRLEN ~128 KiB): pass the complete PATCH JSON as
+// stdin rather than as an oversized gh '-f body=...' argument.
+function buildRollingCommentPatch(repo,commentId,changed) {
+  if(!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repo||'')
+    || !Number.isSafeInteger(Number(commentId)) || Number(commentId)<=0
+    || typeof changed!=='string' || !changed.includes(MARKER))
+    fail('invalid canonical comment PATCH data');
+  return {
+    command:'gh',
+    args:['api','--method','PATCH','--input','-',
+      'repos/'+repo+'/issues/comments/'+commentId],
+    options:{encoding:'utf8',timeout:30000,input:JSON.stringify({body:changed})}
+  };
+}
+
 function parse(args) {
   const flags={};
   for(let i=0;i<args.length;i++){
@@ -78,8 +94,8 @@ function main() {
   const c=matches[0];
   const changed=nextBody(c.body,n,previous,target);
   // One narrowly scoped field update. No PR creation, no merge or tag.
-  execFileSync('gh',['api','--method','PATCH','-f','body='+changed,
-    'repos/'+repo+'/issues/comments/'+c.id],{encoding:'utf8',timeout:30000});
+  const patch=buildRollingCommentPatch(repo,c.id,changed);
+  execFileSync(patch.command,patch.args,patch.options);
   const {issue:again,comments:after}=getData(repo,n);
   const checked=assertReady(again,after,n,target,repo);
   if(checked.commentId!==oldReady.commentId) fail('comment owner changed during readback');
@@ -90,4 +106,4 @@ if(require.main===module){
   try{main();}catch(error){console.error('KAR52_PR_PREFLIGHT_FAILED: '+error.message);
     process.exitCode=1;}
 }
-module.exports={assertReady,nextBody,parse};
+module.exports={assertReady,nextBody,buildRollingCommentPatch,parse};
