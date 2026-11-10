@@ -156,8 +156,8 @@ function request(options = {}) {
 // owner contract exists. They prevent any fake candidate from becoming a lease.
 test('P1.3-B / baseline: a synthetic all-idle policy candidate is NOT updater authorization', async () => {
   assert.equal(Policy.requiredOwners.length, 15);
-  assert.deepEqual([...Persisted.OWNERS, ...Additional.OWNERS], Policy.requiredOwners
-    .filter(owner => [...Persisted.OWNERS, ...Additional.OWNERS].includes(owner)));
+  assert.deepEqual([...Persisted.OWNERS, ...Additional.OWNERS].sort(),
+    [...Policy.requiredOwners].sort(), 'exactly the canonical 15 owner names');
   const candidate = idleSnapshot();
   assert.equal(Policy.evaluate(candidate, {nowMs: NOW}).status, 'candidate-idle');
   const local = storage({nativeUpdateWorkflowFenceV1: null});
