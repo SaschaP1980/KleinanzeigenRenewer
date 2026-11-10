@@ -23,7 +23,16 @@ function memory(){
 }
 const init=(storage,overrides={})=>Fence.create({
   storageLocal:storage, policy:Policy, getOwnerSnapshot:async()=>snapshot(), clock,
-  newToken:()=>('nonce-one-'+Math.random().toString(36).slice(2)), ...overrides
+  newToken:()=>('nonce-one-'+Math.random().toString(36).slice(2)),
+  // Local fixture simulates independently read/verified host transaction state.
+  // This callback is deliberately ABSENT from the production update fence.
+  verifyCancelledTransaction:async record => ({
+    schema:1,source:'independent-native-transaction-inspection',
+    state:'no-pending-update-or-rollback',profileId:record.profileId,
+    workerGeneration:record.workerGeneration,transactionId:record.transactionId,
+    token:record.token,noPendingApply:true,noPendingRollback:true,
+    extensionSourceIntact:true,verifiedAtMs:100000
+  }), ...overrides
 });
 const reject=async(p,code,label)=>{await assert.rejects(p,e=>e.code===code,label);pass(label)};
 (async()=>{
@@ -54,8 +63,19 @@ const reject=async(p,code,label)=>{await assert.rejects(p,e=>e.code===code,label
   const cancellation=await rebooted.cancel({token:one.token,workerGeneration:generation,profileId:profile});
   assert.equal(cancellation.state,'cancelled');pass('matching owner cancels reservation to explicit tombstone');
   await reject(rebooted.withAdmission('START_TEMPLATE_FILL',async()=>true),'KR_UPDATE_FENCE_HELD','cancel tombstone still fenced awaiting recovery');
-  await reject(rebooted.recover({profileId:'other',confirmed:true}),'KR_UPDATE_FENCE_OWNERSHIP','wrong profile cannot recover');
-  assert.equal((await rebooted.recover({profileId:profile,confirmed:true})).state,'released');pass('explicit matching reviewed recovery releases fence');
+  const ownedRecovery={profileId:profile,token:one.token,transactionId:'tx1',workerGeneration:generation};
+  await reject(rebooted.recover({...ownedRecovery,profileId:'other',confirmed:true}),
+    'KR_UPDATE_FENCE_OWNERSHIP','wrong profile cannot recover even with forged confirmed:true');
+  await reject(init(storage,{verifyCancelledTransaction:null}).recover({...ownedRecovery,confirmed:true}),
+    'KR_UPDATE_FENCE_RECOVERY_UNVERIFIED','caller confirmed:true is not independent native proof');
+  await reject(init(storage,{verifyCancelledTransaction:async()=>({confirmed:true})}).recover(ownedRecovery),
+    'KR_UPDATE_FENCE_RECOVERY_UNVERIFIED','malformed positive host proof cannot release tombstone');
+  assert.equal((await rebooted.recover(ownedRecovery)).state,'released');
+  pass('exact transaction, nonce, generation and independent host proof releases fence');
+  storage.records[Fence.STORAGE_KEY].releasedAtMs='corrupt';
+  await reject(rebooted.withAdmission('START_TEMPLATE_FILL',async()=>true),
+    'KR_UPDATE_FENCE_HELD','corrupt released tombstone cannot unlock workflow');
+  storage.records[Fence.STORAGE_KEY].releasedAtMs=100000;
   assert.equal(await rebooted.withAdmission('START_TEMPLATE_FILL',async()=>43),43);pass('normal route resumes only after confirmed recovery');
   const racing=memory();let startResolve;const waiting=new Promise(resolve=>startResolve=resolve);
   const rGate=init(racing);let began=false;
