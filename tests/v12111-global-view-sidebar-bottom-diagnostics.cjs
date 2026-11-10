@@ -55,4 +55,74 @@ check('legacy broad sticky diagnostics stay removed and actions diagnostics stay
   assert.match(actionCode, /UI_ACTIONS_STATE_SNAPSHOT/);
   assert.match(actionCode, /UI_ACTION_ATTEMPT/);
 });
-console.log(`${pass}/8 PASS`);
+
+check('KAR-16 sidebar bottom emits only genuine oscillation and never routine scroll logs', () => {
+  const vm = require('node:vm');
+  const registered = new Map();
+  const context = { KRDeps: { register(name, api) { registered.set(name, api); } } };
+  context.globalThis = context;
+  vm.runInNewContext(fs.readFileSync(path.join(root, 'app-layout-controller.js'), 'utf8'), context);
+  const Layout = registered.get('KRAppLayoutController');
+  assert.ok(Layout?.create, 'app layout API must be available');
+
+  for (const activeTab of ['inventory', 'trash']) {
+    for (const viewMode of ['detailed', 'compact']) {
+      const events = [];
+      let top = 70;
+      const rootElement = { clientHeight: 600, scrollHeight: 1800, clientWidth: 800 };
+      const doc = {
+        documentElement: rootElement,
+        body: { scrollHeight: 1800 },
+        scrollingElement: { scrollTop: 1198 },
+        querySelector() { return null; }
+      };
+      const win = {
+        scrollY: 1198,
+        innerHeight: 600,
+        innerWidth: 800,
+        getComputedStyle() {
+          return {
+            position: 'sticky', top: '90px', transform: 'none',
+            marginTop: '0px', paddingTop: '0px', overflowAnchor: 'auto',
+            getPropertyValue() { return '90px'; }
+          };
+        }
+      };
+      const layout = Layout.create({
+        document: doc, window: win,
+        elements: { controlPanel: { getBoundingClientRect() {
+          return { top, bottom: top + 600, height: 600, left: 0, width: 350 };
+        } } },
+        getCurrentView: () => activeTab, getViewMode: () => viewMode,
+        logEvent: (...args) => { events.push(args); }
+      });
+      layout.noteWheel(1);
+      layout.recordSidebarDiagnostics('startup');
+      layout.recordSidebarDiagnostics('scroll');
+      layout.recordSidebarDiagnostics('resize');
+      assert.equal(events.length, 0, `${activeTab}/${viewMode}: routine bottom snapshots must be silent`);
+
+      for (const nextTop of [70.5, 71, 71.5, 72, 72.5]) {
+        top = nextTop;
+        layout.recordSidebarDiagnostics('scroll');
+      }
+      assert.equal(events.length, 0, `${activeTab}/${viewMode}: monotonic release of sticky panel is not oscillation`);
+
+      for (const nextTop of [71, 72, 71, 72, 71]) {
+        top = nextTop;
+        layout.recordSidebarDiagnostics('scroll');
+      }
+      assert.equal(events.length, 1, `${activeTab}/${viewMode}: genuine alternating jitter must emit exactly one anomaly`);
+      assert.equal(events[0][0], 'UI_SIDEBAR_BOTTOM_OSCILLATION_DETECTED');
+      assert.equal(events[0][1].activeTab, activeTab);
+      assert.equal(events[0][1].viewMode, viewMode);
+
+      win.scrollY = 100;
+      doc.scrollingElement.scrollTop = 100;
+      layout.recordSidebarDiagnostics('scroll');
+      assert.equal(events.length, 1, 'far-away scrolling must remain silent');
+    }
+  }
+});
+
+console.log(`${pass}/9 PASS`);
