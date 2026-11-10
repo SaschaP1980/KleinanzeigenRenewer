@@ -130,7 +130,13 @@ def sealed_prior_archive(issue, base, head, relative, current):
     changed = set(git("diff-tree", "--no-commit-id", "--name-only", "-r", seal).splitlines())
     require(changed == set([*META, relative]),
             "previous Work ZIP commit did not change exactly the five atomic paths")
-    git("merge-base", "--is-ancestor", base, seal)
+    # The previous Work ZIP may have been sealed before a later main merge.
+    # Require both immutable ancestry facts on the *current exact Work head*:
+    # the approved main basis is now integrated AND the original Work seal is
+    # still present, while collect() checks the old ZIP bytes match that seal.
+    # Do not require the later main SHA to precede the earlier Work ZIP seal.
+    git("merge-base", "--is-ancestor", base, head)
+    git("merge-base", "--is-ancestor", seal, head)
     for item in META:
         old_meta = json.loads(run("git", "show", seal + ":" + item))
         require(old_meta.get("version") == current,
