@@ -7,8 +7,22 @@ const runtime=files(SRC).sort(); const rel=f=>path.relative(ROOT,f).replace(/\\/
 const texts=new Map(runtime.map(f=>[rel(f),fs.readFileSync(f,'utf8')]));
 const provider=new Map();
 for(const [r,s] of texts){for(const line of s.split(/\r?\n/)){if(!/register/.test(line))continue;const m=line.match(/register[^('\"]*\(\s*['\"](KR[A-Za-z0-9_]+)['\"]/);if(m)provider.set(m[1],r);}}
+// The pure KAR97 idle-candidate policy intentionally lives under lib/,
+// outside src/. Treat this ONE explicitly imported and packaged file as an
+// externally provided dependency ONLY after checking its actual registration,
+// exact importScripts path and Chrome ZIP runtime list. Never broadly allow
+// missing dependencies; absence of any one source remains a failing gate.
+const outsidePolicyPath=path.join(ROOT,'lib','update-idle-policy.js');
+const policySource=fs.existsSync(outsidePolicyPath)?fs.readFileSync(outsidePolicyPath,'utf8'):'';
+const backgroundSource=texts.get('src/background/background.js')||'';
+const packageSource=fs.readFileSync(path.join(ROOT,'scripts','package.py'),'utf8');
+const externalIdlePolicyGrounded=/KRDeps\.register\('KRUpdateIdlePolicy'/.test(policySource)
+  && backgroundSource.includes('importScripts("../../lib/update-idle-policy.js",')
+  && packageSource.includes("'lib/update-idle-policy.js'");
 const graph=new Map(rels.map(r=>[r,new Set()])); const missingDeps=[];
-for(const [r,s] of texts){for(const m of s.matchAll(/KRDeps\.(?:require|optional)\(\s*['"](KR[A-Za-z0-9_]+)['"]\s*\)/g)){const p=provider.get(m[1]);if(p){if(p!==r)graph.get(r).add(p);}else if(m[1]!=='KRMessageContractRegistry')missingDeps.push({module:r,dependency:m[1]});}}
+for(const [r,s] of texts){for(const m of s.matchAll(/KRDeps\.(?:require|optional)\(\s*['"](KR[A-Za-z0-9_]+)['"]\s*\)/g)){const p=provider.get(m[1]);if(p){if(p!==r)graph.get(r).add(p);}else if(m[1]!=='KRMessageContractRegistry'
+  && !(m[1]==='KRUpdateIdlePolicy'&&r==='src/background/background.js'&&externalIdlePolicyGrounded))
+  missingDeps.push({module:r,dependency:m[1]});}}
 const roots=new Set();
 const manifest=JSON.parse(fs.readFileSync(path.join(ROOT,'manifest.json'),'utf8'));
 if(manifest.background?.service_worker){const b=byBase.get(path.basename(manifest.background.service_worker));if(b)roots.add(b);}
