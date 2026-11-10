@@ -16,7 +16,7 @@ function storage() {
   async set(r){Object.assign(map,structuredClone(r));}
  };
 }
-function harness(beginPort, switchProfileAfterReceipt=false) {
+function harness(beginPort, switchProfileAfterReceipt=false, switchProfileDuringDiagnostic=false) {
  let deleteCalls=0,receiptStateAtDelete=null;
  let liveProfile='Source Profile';
  const db=storage();let i=0;
@@ -40,7 +40,10 @@ function harness(beginPort, switchProfileAfterReceipt=false) {
     throw Error('unexpected remote request '+request.type);
   },
   normalizeProfileName:s=>String(s||'').trim(),
-  logDiagnostic:async()=>{},
+  logDiagnostic:async (_severity,event)=>{
+    if(switchProfileDuringDiagnostic&&event==='RENEWAL_PHASE4_ATOMIC_PREVERIFY_DELETE_STARTED')
+      liveProfile='Switched Account';
+  },
   closeManagedWorkerTab:async()=>{},
   sessionCorrelationContext:()=>({}),
   correlationContext:()=>({}),
@@ -82,6 +85,15 @@ async function main(){
    'postreceipt account switch denies remote source delete before a side effect');
  ok(Object.values(changed.db.map).length===1&&Object.values(changed.db.map)[0].state==='outcome-unverified',
    'account switch after durable write preserves unresolved immutable Phase-4 attempt');
+ // A diagnostic write is asynchronous and must not separate the last
+ // account readback from the actual remote DELETE request.
+ const late=harness(null,false,true);
+ await assert.rejects(late.api.preverifyAndTriggerRenewalSourceDeleteAttempt(session,'Source Profile',null,{attempt:1},0),
+   /KR_PHASE4_JOURNAL_ACCOUNT_CHANGED/);
+ ok(late.deleteCalls===0,
+   'account switch during postreceipt diagnostic awaits is denied before DELETE');
+ ok(Object.values(late.db.map).length===1&&Object.values(late.db.map)[0].state==='outcome-unverified',
+   'late account switch retains irreversible uncertainty receipt');
  const mismatch=harness();
  await assert.rejects(mismatch.api.preverifyAndTriggerRenewalSourceDeleteAttempt(session,'Other Profile',null,{attempt:1},0),/Kleinanzeigen-Konto entspricht nicht/);
  ok(mismatch.deleteCalls===0&&Object.keys(mismatch.db.map).length===0,
