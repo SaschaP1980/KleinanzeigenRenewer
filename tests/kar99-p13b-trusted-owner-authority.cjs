@@ -346,3 +346,22 @@ test('P1.3-B / RED: production cannot expose a content/API/native updater apply 
   assert.equal(typeof gate.nativeApply, 'undefined');
   assert.equal(typeof gate.installExtension, 'undefined');
 });
+
+test('P1.3-D / RED: a raw Chrome tab with no ownership classification cannot prove no managed tab', async () => {
+  const {gate} = fixture({tabs:[{id:42,url:'https://www.kleinanzeigen.de/m-meine-anzeigen.html'}]});
+  await denied(() => gate.captureForReserve(request()), 'unclassified Chrome tab');
+});
+test('P1.3-D / RED: ambiguous managed-tab classification cannot be considered idle', async () => {
+  const {gate} = fixture({tabs:[{id:43,managed:'unknown',url:'https://www.kleinanzeigen.de'}]});
+  await denied(() => gate.captureForReserve(request()), 'ambiguous tab ownership');
+});
+test('P1.3-D / RED: an unverified unmanaged assertion is not independent registry evidence', async () => {
+  const {gate} = fixture({tabs:[{id:44,managed:false,url:'https://www.kleinanzeigen.de'}]});
+  await denied(() => gate.captureForReserve(request()), 'unverified false tab ownership');
+});
+test('P1.3-D / source-proof fixture: a verified non-managed tab may be considered by the private test gate', async () => {
+  const {gate} = fixture({tabs:[{
+    id:45,managed:false,ownershipVerified:true,sourceRevision:'tab-registry-checked-v1'
+  }]});
+  assert.equal((await gate.captureForReserve(request())).status,'candidate-idle');
+});
