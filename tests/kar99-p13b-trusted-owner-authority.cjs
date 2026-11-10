@@ -183,7 +183,7 @@ test('P1.3-B / baseline: actual 7+8 observers never invent IDLE from empty stora
     clock: () => NOW, workerInstanceId: WORKER});
   const all = await b.observeAll(a);
   assert.equal(all.eligibleForLease, false);
-  assert.deepEqual(Object.keys(all.observations), Policy.requiredOwners);
+  assert.deepEqual(Object.keys(all.observations).sort(), [...Policy.requiredOwners].sort());
   assert.ok(Object.values(all.observations).every(x => x.state === 'unknown' || x.state === 'active'));
   assert.equal(all.context.profile.state, 'unverified');
 });
