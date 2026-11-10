@@ -3332,7 +3332,8 @@ const privateOwnerUpdateAuthority = typeof TrustedOwnerAuthority?.create === 'fu
   ownerPolicy: UpdateIdlePolicy, lockManager: globalThis.navigator?.locks,
   // This function is invoked only inside a later private capture under the
   // existing Web Lock. The observer independently rechecks PAGE_STATUS.
-  readLiveAccountReadOnly: () => requireAdditionalOwnerObserver().observe()
+  readLiveAccountReadOnly: () => requireAdditionalOwnerObserver().observe(),
+  readBrowserTabsReadOnly: () => requireAdditionalOwnerObserver().readVerifiedUnmanagedTabsReadOnly()
 }) : null;
 // In older VM fixture harnesses this module is intentionally absent; that
 // keeps only the optional *positive* updater authority disabled. Ordinary

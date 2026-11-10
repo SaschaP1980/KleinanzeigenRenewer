@@ -306,6 +306,91 @@
         })
       });
     }
+    // P1.3-F1: read-only, independently corroborated CURRENT Chrome tab
+    // ownership. This proves only that enumerated tabs are not managed. It
+    // does not certify that a prior worker completed all its callbacks, and
+    // never grants a 15-owner IDLE snapshot or updater lease by itself.
+    async function readVerifiedUnmanagedTabsReadOnly() {
+      const fail = () => {
+        const error = new Error('KR_OWNER_TABS_UNVERIFIED');
+        error.code = 'KR_OWNER_TABS_UNVERIFIED';
+        throw error;
+      };
+      if (typeof queryBrowserTabsReadOnly !== 'function') fail();
+      const keys = ['tabRegistryV1', 'managedWorkerTabsV1'];
+      // Read twice on BOTH sides: a GONE tombstone alone is not Chrome
+      // evidence, while a single live tab list can race a new tab creation.
+      let first, liveOne, second, liveTwo;
+      try {
+        first = await storageSession.get(keys);
+        liveOne = await queryBrowserTabsReadOnly();
+        second = await storageSession.get(keys);
+        liveTwo = await queryBrowserTabsReadOnly();
+      } catch { fail(); }
+      if (!record(first) || !record(second) ||
+          !record(first.tabRegistryV1) || !record(second.tabRegistryV1) ||
+          !record(first.managedWorkerTabsV1) ||
+          !record(second.managedWorkerTabsV1) ||
+          JSON.stringify(first) !== JSON.stringify(second)) fail();
+
+      function checkTabList(rows) {
+        if (!Array.isArray(rows) || !rows.every(tab =>
+            record(tab) && Number.isSafeInteger(tab.id) && tab.id > 0 &&
+            typeof tab.url === 'string' && tab.url.length > 0)) fail();
+        const byId = new Map(rows.map(tab => [tab.id, tab]));
+        if (byId.size !== rows.length) fail();
+        return byId;
+      }
+      const one = checkTabList(liveOne);
+      const two = checkTabList(liveTwo);
+      const fingerprint = rows => JSON.stringify([...rows.values()]
+        .map(tab => [tab.id, tab.url, tab.windowId ?? null])
+        .sort((a,b) => a[0] - b[0]));
+      if (fingerprint(one) !== fingerprint(two)) fail();
+
+      const registry = first.tabRegistryV1;
+      for (const [key,entry] of Object.entries(registry)) {
+        const id = Number(key);
+        if (!/^[1-9]\d*$/.test(key) || !Number.isSafeInteger(id) ||
+            !record(entry) || entry.tabId !== id ||
+            typeof entry.managed !== 'boolean' ||
+            !['active','discarded','gone'].includes(entry.lifecycleState))
+          fail();
+        const live = one.has(id);
+        // Any live or not-yet-acknowledged managed tab blocks. For a GONE
+        // managed tab require a real close timestamp AND Chrome absence.
+        if (entry.managed === true &&
+            (entry.lifecycleState !== 'gone' || live ||
+             typeof entry.closedAt !== 'string' ||
+             !Number.isFinite(Date.parse(entry.closedAt)))) fail();
+        if (entry.lifecycleState === 'gone' && live) fail();
+        // A stored active user tab missing in the live browser is ambiguous
+        // until the normal tab lifecycle observer reconciles it.
+        if (entry.lifecycleState !== 'gone' && !live) fail();
+      }
+      const legacy = first.managedWorkerTabsV1;
+      for (const [key,entry] of Object.entries(legacy)) {
+        const id = Number(key);
+        if (!/^[1-9]\d*$/.test(key) || !Number.isSafeInteger(id) ||
+            !record(entry) || typeof entry.closedAt !== 'string' ||
+            !Number.isFinite(Date.parse(entry.closedAt)) || one.has(id))
+          fail();
+      }
+      // Any unregistered tab, browser-owned managed tab, or incomplete
+      // lifecycle row remains UNKNOWN. Never trust the page URL or a
+      // caller-supplied "managed:false" as a proof of ownership.
+      for (const [id] of one) {
+        const entry = registry[String(id)];
+        if (!record(entry) || entry.managed !== false ||
+            !['user','source'].includes(entry.role) ||
+            !['active','discarded'].includes(entry.lifecycleState) ||
+            entry.closeIntentAt || entry.closeIntentReason)
+          fail();
+      }
+      return Object.freeze([...one.keys()].sort((a,b) => a-b).map(id =>
+        Object.freeze({id, managed:false, ownershipVerified:true,
+          sourceRevision:'chrome-tabs-session-registry-two-read-v1'})));
+    }
     async function observeAll(persistedObserver){
       // Read both actual observers independently: one broken source must
       // not hide a positively observed ACTIVE operation from the other.
@@ -342,7 +427,7 @@
         })
       });
     }
-    return Object.freeze({observe,observeAll,track,snapshotInFlight});
+    return Object.freeze({observe,observeAll,track,snapshotInFlight,readVerifiedUnmanagedTabsReadOnly});
   }
   const API=Object.freeze({create,OWNERS,ownersForOperation});
   globalThis.KRDeps?.register?.('KRAdditionalOwnerObserver',API);
