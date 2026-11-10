@@ -111,6 +111,18 @@ if(typeof api.create==='function') {
          lockName:'kar-updater-global-admission-v1',clock:()=>123456,
          newToken:()=> 'coverage-probe-publish-12345',
          workerInstanceId:'coverage-probe-worker'}
+      : rel.endsWith('/trusted-owner-authority.js')
+      ? {storageLocal:{get:async()=>({}),set:async()=>{}},
+         storageSession:{get:async()=>({})},
+         lockManager:{request:async(_name,_options,callback)=>callback(null)},
+         ownerPolicy:{requiredOwners:[
+           'bulkInventory','bulkReconciliation','singleInventory','renewal',
+           'massRenewal','templateFill','archiveInsertion','trashMutation',
+           'insertionLock','managedTabs','profileTransition','accountTransition',
+           'emergencyRecovery','diagnosticExport','nativeUpdateTransaction'
+         ],evaluate:()=>({status:'blocked'})},
+         clock:()=>123456,newToken:()=> 'coverage-probe-authority-12345',
+         workerInstanceId:'coverage-probe-worker'}
       : options;
     instance=api.create(sourceOptions);
   } catch(e) { createError=String(e?.message||e); }
