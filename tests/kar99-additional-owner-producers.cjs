@@ -201,6 +201,113 @@ function create(data, ports={}){return Additional.create({storageLocal:data.loca
   ok(statusReadFailures===2&&statusLostMidRead.context.profile.reason===
     'LIVE_ACCOUNT_STATUS_CHANGED_DURING_READ',
     'failed second content readback must remain UNKNOWN, never a positive identity');
+
+  // E3B: execute the actual MV3 content PAGE_STATUS handler in an isolated
+  // read-only DOM fixture; no network, storage, navigation or account access.
+  const vm=require('node:vm');
+  const actualContent=fs.readFileSync('src/content/content.js','utf8');
+  function actualPageStatus(hrefs,{loggedIn=true}={}){
+    const calls={external:0,listener:null};
+    const anchors=hrefs.map(href=>({
+      textContent:'',getAttribute:key=>key==='href'?href:null
+    }));
+    const account={textContent:'Meins',getAttribute:key=>
+      key==='href'?'/m-meine-anzeigen.html':null};
+    const document={
+      title:'Meine Anzeigen',body:{innerText:'',textContent:''},
+      querySelectorAll:selector=>selector==='a[href]'?anchors:
+        selector==='a,button'?(loggedIn?[account]:[]):[],
+      querySelector:()=>null
+    };
+    const context={
+      document,URL,
+      location:{href:adPageUrl,pathname:'/m-meine-anzeigen.html',
+        origin:'https://www.kleinanzeigen.de'},
+      KRDeps:{require:name=>{
+        if(name==='KRMessageContractRegistry')
+          return {route:()=>({action:'allow'})};
+        if(name==='KRPlatformHardening')
+          return {detectAccessRestriction:()=>null};
+        if(name==='KRInventoryRun')
+          return {isMyAdsUrl:()=>true,detectedProfileName:()=>'Fixture account'};
+        return {};
+      }},
+      chrome:{runtime:{
+        lastError:null,onMessage:{addListener:fn=>{calls.listener=fn;}},
+        sendMessage:()=>{calls.external++;}
+      }}
+    };
+    vm.runInNewContext(actualContent,context,{timeout:2000});
+    assert.equal(typeof calls.listener,'function');
+    let response;
+    calls.listener({type:'PAGE_STATUS'},{},value=>{response=value;});
+    assert.equal(response?.ok,true);
+    assert.equal(calls.external,1,'only existing platform safety status request');
+    return JSON.parse(JSON.stringify(response.result));
+  }
+  const profileLinks=actualPageStatus([
+    '/s-bestandsliste.html?userId=445566',
+    'https://kleinanzeigen.de/s-bestandsliste.html?userId=789',
+    'https://attacker.example/s-bestandsliste.html?userId=999',
+    'https://www.kleinanzeigen.de.evil.example/s-bestandsliste.html?userId=999',
+    'javascript:alert(1)',
+    'https://www.kleinanzeigen.de/s-bestandsliste.html?userId=987&userId=765',
+    '/s-bestandsliste.html?userId=not-numeric',
+    '/s-anzeige/123-111-222'
+  ]);
+  ok(profileLinks.siteSellerIdHints?.verified===false
+    &&profileLinks.siteSellerIdHints?.source==='first-party-public-profile-links'
+    &&JSON.stringify(profileLinks.siteSellerIdHints?.ids)===JSON.stringify(['445566','789'])
+    &&profileLinks.siteSellerIdHints?.truncated===false,
+    'actual PAGE_STATUS extracts only strict first-party numeric public seller-link candidates');
+  const publicLinks=Array.from({length:36},(_,i)=>
+    '/s-bestandsliste.html?userId='+String(10000+i));
+  const overflow=actualPageStatus(publicLinks);
+  ok(overflow.siteSellerIdHints?.ids.length===32
+    &&overflow.siteSellerIdHints?.truncated===true
+    &&overflow.siteSellerIdHints?.verified===false,
+    'candidate overflow is explicit and cannot turn incomplete enumeration into one ID');
+  const loggedOut=actualPageStatus(['/s-bestandsliste.html?userId=445566'],
+    {loggedIn:false});
+  ok(loggedOut.auth.loggedIn===false&&loggedOut.siteSellerIdHints===null,
+    'logged-out PAGE_STATUS cannot attribute a public seller link to authenticated account');
+  const hints=ids=>({source:'first-party-public-profile-links',
+    verified:false,truncated:false,ids});
+  const firstSeller=await create(db(accountLocal),{
+    queryBrowserTabsReadOnly:async()=>structuredClone(myAdsTabs),
+    readAccountPageStatusReadOnly:async()=>({...statusFor(),
+      siteSellerIdHints:hints(['445566'])})
+  }).observe();
+  ok(firstSeller.context.profile.state==='unverified'
+    &&firstSeller.context.profile.reason==='LIVE_ACCOUNT_NAME_MATCH_STABLE_ID_UNVERIFIED'
+    &&firstSeller.eligibleForLease===false,
+    'unchanged public seller ID remains a clue, never independently authenticated identity');
+  let sellerRead=0;
+  const sellerChanged=await create(db(accountLocal),{
+    queryBrowserTabsReadOnly:async()=>structuredClone(myAdsTabs),
+    readAccountPageStatusReadOnly:async()=>({...statusFor(),
+      siteSellerIdHints:hints([++sellerRead===1?'445566':'778899'])})
+  }).observe();
+  ok(sellerRead===2&&sellerChanged.context.profile.reason===
+    'LIVE_ACCOUNT_SELLER_HINT_CHANGED_DURING_READ'
+    &&sellerChanged.eligibleForLease===false,
+    'same account display name cannot conceal changing public seller ID link candidates');
+  const sellerContradiction=await create(db(accountLocal),{
+    queryBrowserTabsReadOnly:async()=>[...myAdsTabs,{id:78,url:adPageUrl}],
+    readAccountPageStatusReadOnly:async id=>({...statusFor(),
+      siteSellerIdHints:hints([id===77?'445566':'778899'])})
+  }).observe();
+  ok(sellerContradiction.context.profile.reason==='LIVE_ACCOUNT_SELLER_HINT_TABS_DISAGREE'
+    &&sellerContradiction.eligibleForLease===false,
+    'contradictory public seller links across two same-name My Ads tabs remain UNKNOWN');
+  const forgedProof=await create(db(accountLocal),{
+    queryBrowserTabsReadOnly:async()=>structuredClone(myAdsTabs),
+    readAccountPageStatusReadOnly:async()=>({...statusFor(),
+      siteSellerIdHints:{...hints(['445566']),verified:true}})
+  }).observe();
+  ok(forgedProof.context.profile.reason==='LIVE_ACCOUNT_SELLER_HINT_INVALID'
+    &&forgedProof.eligibleForLease===false,
+    'forged verified:true claim from website status cannot grant account identity');
   const missingReader=await create(db(accountLocal),{
     queryBrowserTabsReadOnly:async()=>structuredClone(myAdsTabs)
   }).observe();
