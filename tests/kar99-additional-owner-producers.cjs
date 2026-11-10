@@ -165,6 +165,42 @@ function create(data, ports={}){return Additional.create({storageLocal:data.loca
   }).observe();
   ok(calls>=2&&tabsGone.context.profile.reason==='LIVE_ACCOUNT_TABS_CHANGED',
     'My Ads tab disappearing across fresh query prevents account attribution');
+  // P1.3-E3A RED-first: same URL/tab and unchanged stored profile do NOT
+  // prove account continuity while PAGE_STATUS itself can switch logins.
+  let midReadCalls=0;
+  const accountSwitchedMidRead=await create(db(accountLocal),{
+    queryBrowserTabsReadOnly:async()=>structuredClone(myAdsTabs),
+    readAccountPageStatusReadOnly:async()=>
+      statusFor(++midReadCalls===1?'Fixture account':'Other logged in account')
+  }).observe();
+  ok(midReadCalls===2&&accountSwitchedMidRead.context.profile.reason===
+    'LIVE_ACCOUNT_STATUS_CHANGED_DURING_READ'
+    &&accountSwitchedMidRead.observations.accountTransition.state==='unknown'
+    &&accountSwitchedMidRead.eligibleForLease===false,
+    'unchanged My Ads tab and profile hints cannot hide account switch between content readbacks');
+  let logoutReads=0;
+  const logoutMidRead=await create(db(accountLocal),{
+    queryBrowserTabsReadOnly:async()=>structuredClone(myAdsTabs),
+    readAccountPageStatusReadOnly:async()=>{
+      const result=statusFor();
+      if(++logoutReads===2)result.auth.loggedIn=false;
+      return result;
+    }
+  }).observe();
+  ok(logoutReads===2&&logoutMidRead.context.profile.reason===
+    'LIVE_ACCOUNT_STATUS_CHANGED_DURING_READ',
+    'same displayed name after logout never proves authenticated session continuity');
+  let statusReadFailures=0;
+  const statusLostMidRead=await create(db(accountLocal),{
+    queryBrowserTabsReadOnly:async()=>structuredClone(myAdsTabs),
+    readAccountPageStatusReadOnly:async()=>{
+      if(++statusReadFailures===2)throw Error('content script disconnected');
+      return statusFor();
+    }
+  }).observe();
+  ok(statusReadFailures===2&&statusLostMidRead.context.profile.reason===
+    'LIVE_ACCOUNT_STATUS_CHANGED_DURING_READ',
+    'failed second content readback must remain UNKNOWN, never a positive identity');
   const missingReader=await create(db(accountLocal),{
     queryBrowserTabsReadOnly:async()=>structuredClone(myAdsTabs)
   }).observe();
