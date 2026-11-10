@@ -14,9 +14,10 @@
       const getBulkState = typeof options.getBulkState === 'function' ? options.getBulkState : () => ({ startInFlight: false, state: null });
       const singleInventoryBusy = typeof options.singleInventoryBusy === 'function' ? options.singleInventoryBusy : () => false;
       const onEmergencyReset = typeof options.onEmergencyReset === 'function' ? options.onEmergencyReset : async () => {};
-      const occupancy = elements.occupancy;
-      const occupancyFill = elements.occupancyFill;
-      const occupancyText = elements.occupancyText;
+      const occupancy = elements.occupancy || doc?.getElementById?.('diagnosticOccupancy');
+      const occupancyFill = elements.occupancyFill || doc?.getElementById?.('diagnosticOccupancyFill');
+      const occupancyText = elements.occupancyText || doc?.getElementById?.('diagnosticOccupancyText');
+      const accordion = elements.accordion || doc?.getElementById?.('diagnosticsAccordion');
       let occupancyMaximum = null;
       let occupancyRevision = 0;
 
@@ -205,8 +206,12 @@
         }
       }
 
-      elements.accordion?.addEventListener('toggle', () => { if (elements.accordion.open) void refreshOccupancy(); });
-      if (elements.accordion?.open) void refreshOccupancy();
+      accordion?.addEventListener('toggle', () => { if (accordion.open) void refreshOccupancy(); });
+      const storageOnChanged = options.storageOnChanged || globalThis.chrome?.storage?.onChanged;
+      storageOnChanged?.addListener?.((changes, areaName) => {
+        if (areaName === 'local') onDiagnosticStorageChanged(changes);
+      });
+      if (accordion?.open) void refreshOccupancy();
       elements.zipButton?.addEventListener('click', () => { void exportZip(); });
       elements.resetButton?.addEventListener('click', () => { void resetDiagnostics(); });
       elements.emergencyButton?.addEventListener('click', () => { void emergencyReset(); });
