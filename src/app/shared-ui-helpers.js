@@ -55,8 +55,38 @@
       }
 
       function artLabel(record) {
-        const item = (record.dynamicAttributes || []).find(attribute => String(attribute.label || '').trim().toLocaleLowerCase('de-DE') === 'art');
-        return item?.displayValue || item?.technicalValue || '–';
+        // KAR-148: read-only article-type display resolver. Keep the public
+        // artLabel API for existing consumers; never modify stored attributes.
+        const values = { art: new Set(), typ: new Set() };
+        const attributes = Array.isArray(record?.dynamicAttributes) ? record.dynamicAttributes : [];
+        for (const attribute of attributes) {
+          const label = String(attribute?.label || '').trim().toLocaleLowerCase('de-DE');
+          if (label !== 'art' && label !== 'typ') continue;
+          const saved = [attribute.displayValue, attribute.technicalValue].find(value =>
+            (typeof value === 'string' || typeof value === 'number') &&
+            String(value).trim() !== '' && String(value).trim() !== '–');
+          if (saved !== undefined) values[label].add(String(saved));
+        }
+
+        const art = values.art;
+        const typ = values.typ;
+        if (!art.size && !typ.size) return '–';
+        if (art.size && !typ.size) return art.size === 1 ? [...art][0] : '–';
+        if (typ.size && !art.size) return typ.size === 1 ? [...typ][0] : '–';
+
+        // Both fields exist: only two owner-observed, full category paths
+        // establish which of Art/Typ is the category-specific type. Do not
+        // infer a preference from the listing title, category substrings or
+        // the order of saved attributes (e.g. bicycle tube Art/Typ conflict).
+        const path = Array.isArray(record?.category?.path) && record.category.path.length
+          ? record.category.path : record?.categoryPath;
+        const fullPath = Array.isArray(path)
+          ? path.map(part => String(part ?? '').trim()).join(' › ') : '';
+        const provenTypeField = fullPath === 'Mode & Beauty › Damenschuhe'
+          ? 'art'
+          : fullPath === 'Familie, Kind & Baby › Baby- & Kinderkleidung' ? 'typ' : null;
+        if (!provenTypeField || values[provenTypeField].size !== 1) return '–';
+        return [...values[provenTypeField]][0];
       }
 
       function endDateLabel(record) {

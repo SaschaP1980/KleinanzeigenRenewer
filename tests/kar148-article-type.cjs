@@ -43,6 +43,20 @@ assert.equal(helpers.artLabel(record('Two fields, empty Typ', [], [field('Art', 
 assert.equal(helpers.artLabel(record('Two agreeing but unproven keys', [], [field('Art', 'Schuhe'), field('Typ', 'Schuhe')])), '–',
   'two fields require authoritative category-key provenance, not guesswork even if values match');
 
+const scopedShoeWithTwoFields = record('This title must not determine type',
+  ['Mode & Beauty', 'Damenschuhe'], [field('Typ', 'Unrelated subfield'), field('Art', 'Sneaker & Sportschuhe')]);
+assert.equal(helpers.artLabel(scopedShoeWithTwoFields), 'Sneaker & Sportschuhe',
+  'exact owner-observed Damenschuhe category proves Art field despite an unrelated Typ');
+const scopedBathrobeWithTwoFields = record('No title inference',
+  ['Familie, Kind & Baby', 'Baby- & Kinderkleidung'], [field('Art', 'Other attribute'), field('Typ', 'Unterwäsche')]);
+assert.equal(helpers.artLabel(scopedBathrobeWithTwoFields), 'Unterwäsche',
+  'exact owner-observed Kinderkleidung category proves Typ field despite another Art');
+assert.equal(helpers.artLabel({ ...scopedShoeWithTwoFields, category: { path: ['Mode & Beauty', 'Herrenschuhe'] } }), '–',
+  'a related but unverified category must not inherit the Damenschuhe resolution');
+assert.equal(helpers.artLabel({ ...scopedBathrobeWithTwoFields, category: null,
+  categoryPath: ['Familie, Kind & Baby', 'Baby- & Kinderkleidung'] }), 'Unterwäsche',
+  'verified full category path fallback may resolve the preserved recorded Typ');
+
 const before = JSON.stringify(bathrobe);
 assert.equal(helpers.artLabel(bathrobe), 'Unterwäsche');
 assert.equal(JSON.stringify(bathrobe), before, 'resolver must be read-only');
