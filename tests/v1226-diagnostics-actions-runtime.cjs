@@ -121,7 +121,7 @@ async function testActionsDiagnosticRetirement() {
   const doc={...on('document'),elementFromPoint:()=>hitTarget,elementsFromPoint:()=>[hitTarget],getElementById:()=>button};
   const inventory={...on('inventory'),contains:node=>node===button};
   const card={};
-  button.closest=selector=>selector==='.inventory-card'?card:null;
+  button.closest=selector=>selector==='button'?button:(selector==='.inventory-card'?card:null);
   const controller=ctx.KRActionsDiagnosticsController.create({
     document:doc,window:{getComputedStyle:()=>({display:'block',visibility:'visible',opacity:'1',pointerEvents:'auto'})},
     primaryActions:primary,actionsAccordion:accordion,inventorySection:inventory,
