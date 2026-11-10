@@ -89,7 +89,8 @@
   const record=x=>x!==null&&typeof x==='object'&&!Array.isArray(x);
   const active=reason=>Object.freeze({state:'active',reason});
   const unknown=reason=>Object.freeze({state:'unknown',reason});
-  function create({storageLocal,storageSession,workerInstanceId=null,clock=()=>Date.now()}={}) {
+  function create({storageLocal,storageSession,workerInstanceId=null,clock=()=>Date.now(),
+    queryBrowserTabsReadOnly=null}={}) {
     if(typeof storageLocal?.get!=='function'||typeof storageSession?.get!=='function'
        ||typeof clock!=='function')throw Error('supplemental owner observer requires read-only storage and clock');
     const pending=new Map(OWNERS.map(n=>[n,0]));
@@ -134,6 +135,48 @@
           else if(values.some(x=>!x.closedAt))set('managedTabs',active('LEGACY_MANAGED_TAB_PRESENT'));
         }
       } else set('managedTabs',unknown('SESSION_STORAGE_UNAVAILABLE'));
+      // P1.3-E1: A persisted GONE tab is not necessarily closed in Chrome.
+      // Compare the *real* read-only browser snapshot to the raw registry,
+      // then re-read the registry to detect a concurrent lifecycle update.
+      // No writable TabRegistry getter, recovery, tab creation or navigation.
+      const [browserRead, sessionRecheck] = await Promise.allSettled([
+        Promise.resolve().then(() => {
+          if (typeof queryBrowserTabsReadOnly !== 'function')
+            throw Error('no trusted browser enumeration source');
+          return queryBrowserTabsReadOnly();
+        }),
+        storageSession.get(['tabRegistryV1','managedWorkerTabsV1'])
+      ]);
+      const rechecked = sessionRecheck.status === 'fulfilled'
+        && record(sessionRecheck.value) ? sessionRecheck.value : null;
+      if (session && o.managedTabs.state !== 'active'
+          && !['TAB_REGISTRY_CORRUPT','LEGACY_TABS_CORRUPT']
+            .includes(o.managedTabs.reason)) {
+        if (!rechecked ||
+            JSON.stringify(session.tabRegistryV1 ?? null) !==
+              JSON.stringify(rechecked.tabRegistryV1 ?? null) ||
+            JSON.stringify(session.managedWorkerTabsV1 ?? null) !==
+              JSON.stringify(rechecked.managedWorkerTabsV1 ?? null))
+          set('managedTabs',unknown('TAB_REGISTRY_CHANGED_DURING_READ'));
+        else if (browserRead.status !== 'fulfilled')
+          set('managedTabs',unknown('LIVE_TABS_QUERY_FAILED'));
+        else {
+          const tabs = browserRead.value;
+          const valid = Array.isArray(tabs) && tabs.every(tab => record(tab)
+            && Number.isSafeInteger(tab.id) && tab.id > 0);
+          const liveIds = valid ? new Set(tabs.map(tab => tab.id)) : null;
+          if (!valid || liveIds.size !== tabs.length)
+            set('managedTabs',unknown('LIVE_TABS_INVALID'));
+          else if (record(session.tabRegistryV1) &&
+              Object.values(session.tabRegistryV1).some(tab =>
+                record(tab) && tab.managed === true &&
+                tab.lifecycleState === 'gone' && liveIds.has(tab.tabId)))
+            set('managedTabs',unknown('GONE_MANAGED_TAB_STILL_OPEN'));
+          // No positive IDLE even when browser and storage agree:
+          // old Worker generations, pending tab creation and account identity
+          // still lack independently authoritative completion receipts.
+        }
+      }
       if(local){
         const txn=local.nativeUpdateWorkflowFenceV1;
         if(txn!==undefined&&txn!==null){

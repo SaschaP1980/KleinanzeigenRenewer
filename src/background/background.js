@@ -3342,7 +3342,8 @@ function requireAdditionalOwnerObserver() {
       throw new Error('KR_ADDITIONAL_OWNER_OBSERVER_UNAVAILABLE');
     additionalOwnerObserver = AdditionalOwnerObserver.create({
       storageLocal:chrome.storage.local,storageSession:chrome.storage.session,
-      clock:()=>Date.now(),workerInstanceId:ownerWorkerInstanceId
+      clock:()=>Date.now(),workerInstanceId:ownerWorkerInstanceId,
+      queryBrowserTabsReadOnly:()=>chrome.tabs.query({})
     });
   }
   return additionalOwnerObserver;
