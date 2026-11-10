@@ -108,6 +108,10 @@
           <summary><span class="control-accordion-title">Diagnose</span></summary>
           <div class="control-accordion-panel">
           <div class="control-accordion-body diagnostics-body">
+          <div id="diagnosticOccupancy" class="diagnostic-occupancy" role="progressbar" aria-label="Diagnosespeicher belegt" aria-valuemin="0" aria-valuetext="Diagnosespeicher nicht verfügbar">
+            <div id="diagnosticOccupancyFill" class="diagnostic-occupancy-fill" aria-hidden="true"></div>
+            <span id="diagnosticOccupancyText" class="diagnostic-occupancy-text">— / — Einträge</span>
+          </div>
           <div class="diagnostic-actions">
             <button id="diagnosticZipButton" type="button" class="secondary diagnostic-primary">Diagnosedaten herunterladen</button>
             <button id="diagnosticResetButton" type="button" class="secondary diagnostic-reset">Diagnose zurücksetzen</button>
