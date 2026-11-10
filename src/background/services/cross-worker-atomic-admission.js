@@ -68,11 +68,28 @@
     async function exclusive(task) {
       if(typeof lockManager?.request!=='function')
         throw denied('KR_UPDATE_FENCE_ATOMIC_UNAVAILABLE');
+      let entered=false,completed=false;
       try {
-        return await lockManager.request(LOCK_NAME,{mode:'exclusive',ifAvailable:true},async lock=>{
-          if(!lock)throw denied('KR_UPDATE_FENCE_ATOMIC_BUSY');
-          return task();
-        });
+        const result=await lockManager.request(
+          LOCK_NAME,{mode:'exclusive',ifAvailable:true},async lock=>{
+            // A missing or nonconforming Web Locks implementation must not
+            // resolve the critical section without invoking its callback.
+            // Otherwise withAdmission could execute remote work with no
+            // durable receipt (and outside the requested exclusive lock).
+            if(entered)throw denied('KR_UPDATE_FENCE_ATOMIC_UNAVAILABLE');
+            entered=true;
+            if(!lock)throw denied('KR_UPDATE_FENCE_ATOMIC_BUSY');
+            if(lock.name!==LOCK_NAME||lock.mode!=='exclusive')
+              throw denied('KR_UPDATE_FENCE_ATOMIC_UNAVAILABLE');
+            const value=await task();
+            completed=true;
+            return value;
+          }
+        );
+        // Also reject a provider that resolves *before* the awaited callback
+        // finishes: the lock must span journal writes and readback.
+        if(!entered||!completed)throw denied('KR_UPDATE_FENCE_ATOMIC_UNAVAILABLE');
+        return result;
       }catch(error){
         if(typeof error?.code==='string'&&error.code.startsWith('KR_UPDATE_FENCE_'))throw error;
         throw denied('KR_UPDATE_FENCE_ATOMIC_UNAVAILABLE');
