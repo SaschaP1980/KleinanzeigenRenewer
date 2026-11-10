@@ -27,8 +27,10 @@ async function main() {
   check(Boolean(match),'background defines an independently inspectable routed admission bridge');
   check(/withWorkflowAdmission:\s*\(type, task\)\s*=>\s*withRoutedAdmission\(type, task\)/.test(bg),
     'every non-exempt routed message uses the bridge');
-  check(/requireUpdateWorkflowFence\(\)\.withAdmission\(type,\s*\(\)\s*=>\s*requirePersistedOwnerObserver\(\)\.track\(PersistedOwnerObserver\.OWNERS,\s*\(\)\s*=>\s*requireAdditionalOwnerObserver\(\)\.track\(AdditionalOwnerObserver\.OWNERS,\s*task\)\)\)/.test(match[0]),
-    'central fence nests seven persisted and eight supplemental owner lifetimes in one admission');
+  check(match[0].includes("AdditionalOwnerObserver.ownersForOperation(type, 'routed')")
+    && match[0].includes('requirePersistedOwnerObserver().track(PersistedOwnerObserver.OWNERS')
+    && match[0].includes('requireAdditionalOwnerObserver().track(namesForType, task)'),
+    'central fence nests all seven persisted owners and source-specific supplemental owner lifetimes');
   check(Observer.OWNERS.length===7 && new Set(Observer.OWNERS).size===7,
     'all seven persisted workflow owners are counted without duplicate names');
   const local=store(),session=store();
@@ -56,19 +58,20 @@ async function main() {
     check(entered,route+' entered only through routed admission');
     check(Observer.OWNERS.every(name=>observer.snapshotInFlight()[name]===1),
       route+' holds all seven owner counters until handler settles');
-    check(Additional.OWNERS.every(name=>supplemental.snapshotInFlight()[name]===1),
-      route+' holds all eight supplemental counters during actual routed work');
+    const expectedAdditional=Additional.ownersForOperation(route,'routed');
+    check(Additional.OWNERS.every(name=>supplemental.snapshotInFlight()[name]===(expectedAdditional.includes(name)?1:0)),
+      route+' holds only confirmed mapped supplemental owners, or all eight for unclassified routes');
     const observed=await observer.observe();
     check(Observer.OWNERS.every(name=>observed.observations[name].state==='active'),
       route+' remains positively active even with no persisted session');
     const observedAdditional=await supplemental.observe();
-    check(Additional.OWNERS.every(name=>observedAdditional.observations[name].state==='active'),
-      route+' is conservatively active in all eight additional owners');
+    check(Additional.OWNERS.every(name=>observedAdditional.observations[name].state===(expectedAdditional.includes(name)?'active':'unknown')),
+      route+' proves its grounded owner(s) ACTIVE; unrelated owners stay UNKNOWN');
     release('done'); assert.equal(await pending,'done');
     check(Observer.OWNERS.every(name=>observer.snapshotInFlight()[name]===0),
       route+' releases counters in finally');
     check(Additional.OWNERS.every(name=>supplemental.snapshotInFlight()[name]===0),
-      route+' releases all eight supplemental counters in finally');
+      route+' releases all tracked supplemental counters in finally');
   }
   const rejected=createRouter(async()=>{throw Error('handler rejected');},'START_TEMPLATE_FILL');
   await assert.rejects(rejected.dispatch({type:'START_TEMPLATE_FILL'},{}),/handler rejected/);
