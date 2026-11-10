@@ -76,6 +76,66 @@ async function waitUntil(predicate){for(let i=0;i<250&&!predicate();i++)await Pr
   ok(after.observations.singleInventory.state==='unknown'
     &&after.observations.managedTabs.state==='unknown',
     'completed in-process task does not claim cross-worker idle');
+  // Independently attribute EVERY supplemental owner, rather than testing
+  // only a sample or assigning all eight to an unrelated async request.
+  for(const name of EXTRA){
+    const individual=Additional.create({storageLocal:data.local,storageSession:data.session,
+      workerInstanceId:worker,clock:()=>123000});
+    let finishIndividual;
+    const operation=individual.track(name,()=>new Promise(r=>{finishIndividual=r;}));
+    await waitUntil(()=>typeof finishIndividual==='function');
+    const activeSnapshot=await individual.observeAll(persisted);
+    ok(activeSnapshot.observations[name].state==='active'
+      &&EXTRA.filter(x=>x!==name).every(x=>activeSnapshot.observations[x].state==='unknown'),
+      'each owner individually marks only '+name+' ACTIVE during its asynchronous operation');
+    finishIndividual(name);
+    assert.equal(await operation,name);
+    const released=await individual.observeAll(persisted);
+    ok(released.observations[name].state==='unknown',
+      name+' returns to UNKNOWN, not an invented cross-worker IDLE after completion');
+  }
+  // Positive managed-tab evidence must disappear safely on exact tab GONE,
+  // while separate pending tabs.onRemoved handlers remain tracked.
+  const tabRows={'41':{tabId:41,managed:true,lifecycleState:'active'}};
+  const tabStorage=db({}, {tabRegistryV1:tabRows});
+  const tabObserver=Additional.create({storageLocal:tabStorage.local,storageSession:tabStorage.session,
+    workerInstanceId:worker,clock:()=>123000});
+  const tabPersisted=Persisted.create({storageLocal:tabStorage.local,storageSession:tabStorage.session,
+    workerInstanceId:worker,clock:()=>123000});
+  ok((await tabObserver.observeAll(tabPersisted)).observations.managedTabs.state==='active',
+    'persisted newly created managed tab is positive ACTIVE evidence');
+  tabRows['41'].lifecycleState='gone';
+  ok((await tabObserver.observeAll(tabPersisted)).observations.managedTabs.state==='unknown',
+    'removed managed tab alone never certifies all managed tabs IDLE');
+  let tabFinish;
+  const tabRemoved=tabObserver.track(Additional.ownersForOperation('tab-removed','autonomous'),
+    ()=>new Promise(resolve=>{tabFinish=resolve;}));
+  await waitUntil(()=>typeof tabFinish==='function');
+  ok((await tabObserver.observeAll(tabPersisted)).observations.managedTabs.state==='active',
+    'pending tab removal callback remains ACTIVE even after persisted GONE');
+  tabFinish();await tabRemoved;
+  // NativeHost applies are not implemented; a recorded in-flight reservation
+  // is BUSY, while a released marker never fabricates evidence of no apply.
+  const txnRows={nativeUpdateWorkflowFenceV1:{schema:1,state:'reserved',profileId:'p'}};
+  const nativeStorage=db(txnRows,{});
+  const nativeObserver=Additional.create({storageLocal:nativeStorage.local,storageSession:nativeStorage.session,
+    workerInstanceId:worker,clock:()=>123000});
+  const nativePersisted=Persisted.create({storageLocal:nativeStorage.local,storageSession:nativeStorage.session,
+    workerInstanceId:worker,clock:()=>123000});
+  ok((await nativeObserver.observeAll(nativePersisted)).observations.nativeUpdateTransaction.state==='active',
+    'durable reserved native update transaction blocks candidate idle');
+  txnRows.nativeUpdateWorkflowFenceV1.state='released';
+  ok((await nativeObserver.observeAll(nativePersisted)).observations.nativeUpdateTransaction.state==='unknown',
+    'released native transaction alone does not attest no outstanding host activity');
+  // Even a malformed or forged positive IDLE from one producer must not
+  // leak into the combined non-authorizing P7 evidence.
+  const fakeIdle=await additional.observeAll({observe:async()=>({
+    schema:1,observations:{renewal:{state:'idle',reason:'FAKE_PROOF'}}
+  })});
+  ok(fakeIdle.observations.renewal.state==='unknown'
+    &&fakeIdle.observations.renewal.reason==='UNVERIFIED_IDLE_ATTESTATION'
+    &&fakeIdle.eligibleForLease===false,
+    'spoofed persisted IDLE is demoted to UNKNOWN before all-15 composition');
   const beforeCrash=Additional.create({storageLocal:data.local,storageSession:data.session,workerInstanceId:'older',clock:()=>122999});
   const restart=await beforeCrash.observeAll(persisted);
   ok(restart.context.worker.state==='unverified'
