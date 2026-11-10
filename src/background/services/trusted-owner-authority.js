@@ -217,9 +217,16 @@
         throw denied('KR_OWNER_SOURCE_UNVERIFIED');
     }
     function ensureTabs(tabs) {
+      // A raw chrome.tabs.query() row has no ownership attestation. Missing,
+      // ambiguous, or merely asserted unmanaged status is not proof that the
+      // registry and actual browser state were independently reconciled.
+      // Production adapters are still absent; these fields are a PRIVATE
+      // source-proof contract, not permission to rely on caller-supplied data.
       if (!Array.isArray(tabs) ||
           tabs.some(tab => !RECORD(tab) || !Number.isSafeInteger(tab.id) ||
-            tab.id <= 0 || tab.managed === true))
+            tab.id <= 0 || tab.managed !== false ||
+            tab.ownershipVerified !== true ||
+            typeof tab.sourceRevision !== 'string' || !tab.sourceRevision.trim()))
         throw denied('KR_OWNER_TABS_UNVERIFIED');
     }
     async function captureLocked(req) {
