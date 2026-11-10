@@ -97,18 +97,6 @@
     const worker=typeof workerInstanceId==='string'&&PROFILE.test(workerInstanceId)?workerInstanceId:null;
     function snapshotInFlight(){return Object.freeze(Object.fromEntries(OWNERS.map(n=>[n,pending.get(n)])));}
     const label=value=>typeof value==='string'?value.replace(/\s+/g,' ').trim().toLocaleLowerCase('de-DE'):'';
-    // Untrusted public seller links may only CONTRADICT a profile hint.
-    // Even a consistent seller-ID candidate never proves site-account ownership.
-    function sellerHintSignature(value){
-      if(value===undefined)return 'not-exposed'; // older script, remains UNKNOWN
-      if(!record(value)||value.source!=='first-party-public-profile-links'
-        ||value.verified!==false||typeof value.truncated!=='boolean'
-        ||!Array.isArray(value.ids)||value.ids.length>32
-        ||value.ids.some(id=>typeof id!=='string'||!/^\d{1,20}$/.test(id))
-        ||new Set(value.ids).size!==value.ids.length)
-        return null;
-      return JSON.stringify([value.ids.slice().sort(),value.truncated]);
-    }
     function isMyAdsTab(tab){
       if(!record(tab)||typeof tab.url!=='string')return false;
       try{
@@ -233,7 +221,7 @@
           else if(typeof readAccountPageStatusReadOnly!=='function')
             reason='LIVE_ACCOUNT_SOURCE_UNAVAILABLE';
           else {
-            let initialNames=null,initialSellerHints=null;
+            let initialNames=null;
             const pageResults=await Promise.allSettled(candidates.map(tab=>
               Promise.resolve().then(()=>readAccountPageStatusReadOnly(tab.id))));
             if(pageResults.some(r=>r.status!=='fulfilled'||!record(r.value)))
@@ -247,19 +235,15 @@
                 reason='LIVE_ACCOUNT_TABS_DISAGREE';
               else {
                 initialNames=pages.map(p=>label(p.profileName));
-                initialSellerHints=pages.map(p=>sellerHintSignature(p.siteSellerIdHints));
-                if(initialSellerHints.some(signature=>signature===null))
-                  reason='LIVE_ACCOUNT_SELLER_HINT_INVALID';
-                else if(initialSellerHints.some(signature=>signature!==initialSellerHints[0]))
-                  reason='LIVE_ACCOUNT_SELLER_HINT_TABS_DISAGREE';
-                else {
-                  const profile=Array.isArray(local.profilesV1)
-                    ?local.profilesV1.find(p=>record(p)&&p.profileId===id):null;
-                  reason=!label(profile?.displayName)||
-                    label(profile.displayName)!==label(pages[0].profileName)
-                    ?'LIVE_ACCOUNT_PROFILE_NAME_MISMATCH'
-                    :'LIVE_ACCOUNT_NAME_MATCH_STABLE_ID_UNVERIFIED';
-                }
+                // Reuse the live account/profile comparison used by the
+                // existing application gate. Kleinanzeigen owns account
+                // authentication; no extra seller ID or email syntax check.
+                const profile=Array.isArray(local.profilesV1)
+                  ?local.profilesV1.find(p=>record(p)&&p.profileId===id):null;
+                reason=!label(profile?.displayName)||
+                  label(profile.displayName)!==label(pages[0].profileName)
+                  ?'LIVE_ACCOUNT_PROFILE_NAME_MISMATCH'
+                  :'LIVE_ACCOUNT_PROFILE_MATCH';
               }
             }
             // Re-evaluate presence and identity of the same live tabs, plus
@@ -288,8 +272,9 @@
             // The stored profile and tab URL can stay unchanged while the
             // authenticated web session switches accounts or logs out.
             // Re-read PAGE_STATUS from the same existing content scripts.
-            // A second matching *name* is still NOT a stable site account ID.
-            if(reason==='LIVE_ACCOUNT_NAME_MATCH_STABLE_ID_UNVERIFIED'){
+            // This is the existing application account/profile match.
+            // Other owner workflows still require separate durable IDLE proof.
+            if(reason==='LIVE_ACCOUNT_PROFILE_MATCH'){
               const secondPages=await Promise.allSettled(candidates.map(tab=>
                 Promise.resolve().then(()=>readAccountPageStatusReadOnly(tab.id))));
               if(!initialNames||secondPages.some((r,i)=>r.status!=='fulfilled'
@@ -298,9 +283,6 @@
                   ||r.value.auth?.loggedIn!==true
                   ||label(r.value.profileName)!==initialNames[i]))
                 reason='LIVE_ACCOUNT_STATUS_CHANGED_DURING_READ';
-              else if(!initialSellerHints||secondPages.some((r,i)=>
-                  sellerHintSignature(r.value.siteSellerIdHints)!==initialSellerHints[i]))
-                reason='LIVE_ACCOUNT_SELLER_HINT_CHANGED_DURING_READ';
             }
           }
         }
@@ -315,7 +297,10 @@
         schema:1,eligibleForLease:false,observedAtMs:Number.isSafeInteger(tick)&&tick>=0?tick:null,
         observations:Object.freeze(o),
         context:Object.freeze({
-          profile:Object.freeze({state:'unverified',reason,profileId:id}),
+          // Matched account/profile is a distinct fact from 15-owner IDLE.
+          // This observation NEVER grants an updater lease by itself.
+          profile:Object.freeze({state:reason==='LIVE_ACCOUNT_PROFILE_MATCH'
+            ?'matched':'unverified',reason,profileId:id}),
           worker:Object.freeze({state:'unverified',reason:'NO_CROSS_WORKER_GENERATION_PROOF',
             workerInstanceId:worker})
         })

@@ -143,39 +143,6 @@
     };
   }
 
-  // KAR-99 P1.3-E3B: PUBLIC seller links are identity candidates only.
-  // A visible link does NOT establish the currently authenticated account.
-  // No navigation, fetch, storage, side effects or updater permission.
-  function publicSellerLinkHintsReadOnly() {
-    const result = {source:'first-party-public-profile-links',
-      verified:false,ids:[],truncated:false};
-    try {
-      const links=document.querySelectorAll('a[href]');
-      if (!links || !Number.isSafeInteger(links.length)) {
-        result.truncated=true;return result;
-      }
-      const limit=Math.min(links.length,2048),ids=new Set();
-      result.truncated=links.length>limit;
-      for(let i=0;i<limit;i++) {
-        try {
-          const raw=links[i]?.getAttribute?.('href');
-          if(typeof raw!=='string'||!raw)continue;
-          const url=new URL(raw,location.href);
-          if(url.protocol!=='https:'||
-            !['www.kleinanzeigen.de','kleinanzeigen.de'].includes(url.hostname)||
-            url.username||url.password||
-            url.pathname!=='/s-bestandsliste.html')continue;
-          const values=url.searchParams.getAll('userId');
-          if(values.length!==1||!/^\d{1,20}$/.test(values[0]))continue;
-          if(!ids.has(values[0])&&ids.size>=32){result.truncated=true;break;}
-          ids.add(values[0]);
-        }catch{/* malformed/public link: ignore; never infer identity */}
-      }
-      result.ids=[...ids].sort();
-    }catch{result.truncated=true;result.ids=[];}
-    return result;
-  }
-
   function loginAndOwnership() {
     const edit = KRForm?.locate(document,location.href);
     if (edit?.eligible) return {loggedIn:true,ownAd:true,evidence:"existing-edit-form",viewMode:"edit"};
@@ -587,10 +554,9 @@
             return url.pathname.match(/\/(\d+)-\d+-\d+(?:\/|$)/)?.[1] || null;
           } catch { return null; }
         })(),
-        profileName: auth.loggedIn ? (InventoryRun?.detectedProfileName?.(document) || null) : null,
-        // Unverified public seller-link candidates; NEVER a site-account ID.
-        siteSellerIdHints: auth.loggedIn && InventoryRun?.isMyAdsUrl(location.href)
-          ? publicSellerLinkHintsReadOnly() : null
+        // Existing Kleinanzeigen account/profile identity used by the app.
+        // The website owns authentication; no email/seller-ID inference here.
+        profileName: auth.loggedIn ? (InventoryRun?.detectedProfileName?.(document) || null) : null
       } });
       return;
     }

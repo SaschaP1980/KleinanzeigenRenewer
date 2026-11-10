@@ -85,3 +85,10 @@
 **Wave A acceptance decision: inventory complete, implementation prerequisite open.** All 15 candidate sources, their consumers, async lifetimes, read/absence hazards and proposed independent positive IDLE criteria are documented. The actual ability to emit trustworthy positive owner records is **blocked**, which is the precise handoff to P1.3-B design/test RED. This document must not be used to check P1.3 itself, P9's first prerequisite, or authorize an update/release.
 
 **No runtime mutation / live-account operation:** This file is documentation only. `main` (v1.23.49), the Work v1.23.51 ZIP, extension ID, native permissions, scripts, tests and runtime source remain unchanged by this Wave.
+
+
+## P1.3-E3C identity requirement clarification (owner decision 2026-11-10)
+
+The actual Kleinanzeigen Manager already enforces live logged-in site account to selected inventory-profile matching through its existing `PAGE_STATUS.profileName` / `detectedProfileName`, `AccountProbeService`, `AccountSessionController.assertSelectedProfileMatchesLiveAccount`, and application `AccountGate`. The owner explicitly selected **reuse of this existing match**: do not introduce a second vendor seller-id lookup or validate email address syntax. Kleinanzeigen handles its own account authentication; the manager compares the identity label made available to its existing gate.
+
+The additional owner observer now classifies only a *consistent* read-only, twice-read, logged-in `PAGE_STATUS.profileName` matching a stable selected/local profile as `context.profile.state='matched'`. Site logout, two differing tab identities, profile changes, missing scripts or a changed second site status remain `unverified`. This matching assertion does **not** prove IDLE for any of the 15 owners, a cross-worker-complete remote operation, or native transaction recovery. The observer's `eligibleForLease` remains `false` and the production updater-fence lacks a trusted all-owner provider; no positive reserve is authorized. Other relevant P1.3-C/D, P9 and P10 acceptance conditions remain.
