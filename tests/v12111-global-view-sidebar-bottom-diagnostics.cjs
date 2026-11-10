@@ -40,13 +40,12 @@ check('global view mode drives both inventory and trash render paths', () => {
   assert.match(js, /trashList\?\.classList\.toggle\('view-compact',\s*globalListViewMode\s*===\s*'compact'\)/);
   assert.match(js, /if \(globalListViewMode === 'compact'\)/g);
 });
-check('bottom-of-page sidebar diagnostics are present and targeted', () => {
+check('KAR-16 routine sidebar diagnostics are retired, anomaly evidence remains', () => {
   for (const eventName of ['UI_SIDEBAR_SCROLL_SAMPLE','UI_SIDEBAR_BOTTOM_REACHED','UI_SIDEBAR_GEOMETRY_CHANGED','UI_SIDEBAR_STICKY_STATE_CHANGED']) {
-    assert.match(js, new RegExp(eventName));
+    assert.doesNotMatch(js, new RegExp(eventName));
   }
+  assert.match(js, /UI_SIDEBAR_BOTTOM_OSCILLATION_DETECTED/);
   assert.match(js, /distanceToBottom/);
-  assert.match(js, /maxScrollY/);
-  assert.match(js, /visualViewport/);
   assert.match(js, /controlPanel\.getBoundingClientRect/);
   assert.match(js, /scrollHeight/);
 });
