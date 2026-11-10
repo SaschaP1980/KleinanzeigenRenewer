@@ -188,14 +188,24 @@
       }
     }
     function account(row, profile, now) {
-      // A stored profile label is never enough. Only a separate no-mutation
-      // site-identity reader with a stable account identifier is eligible.
-      if (!RECORD(row) || row.profileId !== profile ||
-          row.loggedIn !== true || row.current !== true ||
-          !validId(row.accountId) || !stable(row) ||
-          row.observedAtMs > now || now - row.observedAtMs > MAX_AGE_MS)
+      // Kleinanzeigen authenticates its own session. The established
+      // PAGE_STATUS/profile match is read twice by KRAdditionalOwnerObserver;
+      // no second vendor userId or email-format validation is appropriate.
+      // This is an account/profile match only, NEVER all-15 owner IDLE.
+      const matched = row?.context?.profile;
+      const worker = row?.context?.worker;
+      if (!RECORD(row) || row.schema !== 1 ||
+          row.eligibleForLease !== false || !RECORD(row.observations) ||
+          !RECORD(matched) || matched.state !== 'matched' ||
+          matched.reason !== 'LIVE_ACCOUNT_PROFILE_MATCH' ||
+          matched.profileId !== profile ||
+          !RECORD(worker) || worker.workerInstanceId !== workerInstanceId ||
+          worker.state !== 'unverified' ||
+          worker.reason !== 'NO_CROSS_WORKER_GENERATION_PROOF' ||
+          !stable(row) || row.observedAtMs > now ||
+          now - row.observedAtMs > MAX_AGE_MS)
         throw denied('KR_OWNER_LIVE_ACCOUNT_UNVERIFIED');
-      return row.accountId;
+      return profile;
     }
     function sourceProof(record, name, profile, time) {
       // These fields are a source-producer contract, not permission to trust

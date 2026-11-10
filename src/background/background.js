@@ -3316,11 +3316,12 @@ function requirePersistedOwnerObserver() {
   }
   return persistedOwnerObserver;
 }
-// A real private authority component is instantiated behind the *same* origin
-// Web Lock. It remains in FAIL-CLOSED mode: the current app has no independently
-// attestable nonmutating live site account ID, 15 durable owner-completion
-// producers or NativeHost transaction outcome. Supplying the existing 7+8
-// ACTIVE/UNKNOWN observers as confirmed IDLE would be a security regression.
+// The private gate uses the existing, read-only authenticated Kleinanzeigen
+// account/profile match from KRAdditionalOwnerObserver (without an extra
+// seller userId or email syntax check). It remains FAIL-CLOSED for updater
+// reserve: 15 crash-durable owner-completion producers and independent
+// NativeHost transaction recovery are still absent. A matched account
+// is never equivalent to all-15 owner IDLE.
 // Do not add an app/content route to captureForReserve/reserveThroughFence.
 const privateOwnerUpdateAuthority = typeof TrustedOwnerAuthority?.create === 'function'
   && typeof UpdateIdlePolicy?.evaluate === 'function'
@@ -3328,7 +3329,10 @@ const privateOwnerUpdateAuthority = typeof TrustedOwnerAuthority?.create === 'fu
   storageLocal: chrome.storage.local, storageSession: chrome.storage.session,
   clock: () => Date.now(), newToken: () => crypto.randomUUID(),
   workerInstanceId: ownerWorkerInstanceId,
-  ownerPolicy: UpdateIdlePolicy, lockManager: globalThis.navigator?.locks
+  ownerPolicy: UpdateIdlePolicy, lockManager: globalThis.navigator?.locks,
+  // This function is invoked only inside a later private capture under the
+  // existing Web Lock. The observer independently rechecks PAGE_STATUS.
+  readLiveAccountReadOnly: () => requireAdditionalOwnerObserver().observe()
 }) : null;
 // In older VM fixture harnesses this module is intentionally absent; that
 // keeps only the optional *positive* updater authority disabled. Ordinary
