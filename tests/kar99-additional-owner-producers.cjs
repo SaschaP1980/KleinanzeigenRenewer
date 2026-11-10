@@ -111,6 +111,82 @@ function create(data, ports={}){return Additional.create({storageLocal:data.loca
   const native=db({nativeUpdateWorkflowFenceV1:{schema:1,state:'reserved',profileId:'p',transactionId:'tx'}});
   ok((await create(native).observe()).observations.nativeUpdateTransaction.state==='active',
     'persisted reserved NativeHost update transaction is positive busy evidence');
+  // KAR-99 P1.3-E2 / RED: observe already-open My Ads content read-only,
+  // without claiming a stable, authenticated account ID or an updater lease.
+  const accountLocal={
+    profilesV1:[{profileId:'profile-A',displayName:'Fixture account'}],
+    activeDetectedProfileV1:{profileId:'profile-A'},
+    selectedInventoryProfileV1:{profileId:'profile-A'}
+  };
+  const adPageUrl='https://www.kleinanzeigen.de/m-meine-anzeigen.html?tab=PROJECTS';
+  const myAdsTabs=[{id:77,url:adPageUrl}];
+  const statusFor=(name='Fixture account',url=adPageUrl)=>({
+    pageType:'my-ads',url,auth:{loggedIn:true},profileName:name,
+    accountId:'forged-account-id-must-not-be-trusted'
+  });
+  let statusCalls=0;
+  const labelMatch=await create(db(accountLocal),{
+    queryBrowserTabsReadOnly:async()=>structuredClone(myAdsTabs),
+    readAccountPageStatusReadOnly:async id=>{statusCalls++;assert.equal(id,77);return statusFor();}
+  }).observe();
+  ok(statusCalls===1&&labelMatch.context.profile.state==='unverified'
+    &&labelMatch.context.profile.reason==='LIVE_ACCOUNT_NAME_MATCH_STABLE_ID_UNVERIFIED'
+    &&labelMatch.eligibleForLease===false,
+    'matching site display name is a hint, NEVER a verified stable account ID');
+  const switched=await create(db(accountLocal),{
+    queryBrowserTabsReadOnly:async()=>structuredClone(myAdsTabs),
+    readAccountPageStatusReadOnly:async()=>statusFor('Other logged in account')
+  }).observe();
+  ok(switched.context.profile.reason==='LIVE_ACCOUNT_PROFILE_NAME_MISMATCH'
+    &&switched.observations.accountTransition.state==='unknown',
+    'live account switch contradicting selected profile remains unverified');
+  const conflicting=await create(db(accountLocal),{
+    queryBrowserTabsReadOnly:async()=>[...myAdsTabs,{id:78,url:adPageUrl}],
+    readAccountPageStatusReadOnly:async id=>statusFor(id===77?'Fixture account':'Another account')
+  }).observe();
+  ok(conflicting.context.profile.reason==='LIVE_ACCOUNT_TABS_DISAGREE',
+    'two already-open My Ads tabs reporting different logins cannot attest identity');
+  const missingScript=await create(db(accountLocal),{
+    queryBrowserTabsReadOnly:async()=>structuredClone(myAdsTabs),
+    readAccountPageStatusReadOnly:async()=>{throw Error('Receiving end does not exist');}
+  }).observe();
+  ok(missingScript.context.profile.reason==='LIVE_ACCOUNT_STATUS_UNAVAILABLE',
+    'absent content script is UNKNOWN; observation must not bootstrap/navigate');
+  let calls=0;
+  const tabsGone=await create(db(accountLocal),{
+    queryBrowserTabsReadOnly:async()=>++calls===1?structuredClone(myAdsTabs):[],
+    readAccountPageStatusReadOnly:async()=>statusFor()
+  }).observe();
+  ok(calls>=2&&tabsGone.context.profile.reason==='LIVE_ACCOUNT_TABS_CHANGED',
+    'My Ads tab disappearing across fresh query prevents account attribution');
+  const missingReader=await create(db(accountLocal),{
+    queryBrowserTabsReadOnly:async()=>structuredClone(myAdsTabs)
+  }).observe();
+  ok(missingReader.context.profile.reason==='LIVE_ACCOUNT_SOURCE_UNAVAILABLE',
+    'missing read-only page reader is explicitly unverified');
+  const noTab=await create(db(accountLocal),{
+    queryBrowserTabsReadOnly:async()=>[]
+  }).observe();
+  ok(noTab.context.profile.reason==='LIVE_ACCOUNT_MY_ADS_TAB_ABSENT',
+    'no already-open My Ads tab never triggers a navigation-based probe');
+  const changedLocal=db(structuredClone(accountLocal));
+  const firstGet=changedLocal.local.get.bind(changedLocal.local);
+  let reads=0;
+  changedLocal.local.get=async keys=>{
+    const result=await firstGet(keys);
+    if (++reads===2) changedLocal.localData.selectedInventoryProfileV1.profileId='another-profile';
+    return result;
+  };
+  const rechecked=await create(changedLocal,{
+    queryBrowserTabsReadOnly:async()=>structuredClone(myAdsTabs),
+    readAccountPageStatusReadOnly:async()=>statusFor()
+  }).observe();
+  ok(rechecked.context.profile.reason==='LIVE_ACCOUNT_PROFILE_CHANGED_DURING_READ',
+    'profile storage change during site observation invalidates attribution');
+  ok(bg.includes("readAccountPageStatusReadOnly:tabId=>sendTabRequest(tabId,{type:'PAGE_STATUS'})"),
+    'production probe is non-bootstrapping existing PAGE_STATUS message');
+  ok(changedLocal.writes===0,
+    'live account verification never writes account or profile storage');
   const mismatched=db({activeDetectedProfileV1:{profileId:'p1'},selectedInventoryProfileV1:{profileId:'p2'}});
   const mismatch=await create(mismatched).observe();
   ok(mismatch.context.profile.state==='unverified','different selected/live profile hints never prove current account');
