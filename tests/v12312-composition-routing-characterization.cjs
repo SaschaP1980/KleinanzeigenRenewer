@@ -14,7 +14,9 @@ function ok(cond,msg){assert.ok(cond,msg);pass++;console.log('PASS',msg)}
 const directSelectorMatches = [...app.matchAll(/const\s+([A-Za-z_$][\w$]*)\s*=\s*document\.querySelector\((['"])(.*?)\2\)/g)].map(m=>[m[1],m[3]]);
 const registrySelectorMatches = [...elements.matchAll(/^\s{6}([A-Za-z_$][\w$]*):\s*(["'])(.*?)\2,?$/gm)].map(m=>[m[1],m[3]]);
 const selectors = new Map([...directSelectorMatches, ...registrySelectorMatches]);
-ok(selectors.size===235, `DOM binding contract remains 235 selectors including trash target-loss recovery (got ${selectors.size})`);
+const diagnosticOccupancySelectors = ['diagnosticOccupancy', 'diagnosticOccupancyFill', 'diagnosticOccupancyText'];
+const addedOccupancy = diagnosticOccupancySelectors.every(key => selectors.get(key) === '#' + key) ? 3 : 0;
+ok(selectors.size === 235 + addedOccupancy, `DOM binding contract retains 235 historical selectors plus ${addedOccupancy} occupancy bindings (got ${selectors.size})`);
 const routeSource=bg+'\n'+router;
 const routeTypes=[...routeSource.matchAll(/(?:message\?\.type\s*===\s*|['"])(['"])?([A-Z][A-Z0-9_]+)(?:\1)?/g)].map(m=>m[2]);
 const required=['PLATFORM_ACCESS_RESTRICTED','GET_PLATFORM_ACCESS_RESTRICTION','CLEAR_PLATFORM_ACCESS_RESTRICTION','OPEN_APP_WINDOW','GET_RENEWAL_CONFIGURATION','SET_RENEWAL_MODE','SET_RENEWAL_PHASE_ATTEMPTS','RECOGNIZE_PROFILE','GET_PROFILE_STATE','SET_SELECTED_PROFILE','DELETE_PROFILE','LIST_INVENTORIES','LIST_TRASH','START_BULK_INVENTORY_OPERATION','START_MASS_RENEWAL_BATCH','START_TEMPLATE_FILL','START_ARCHIVE_INSERTION','GET_DIAGNOSTICS'];
