@@ -84,7 +84,8 @@ def fake_git(*args):
     if args == ("log","-1","--format=%H",test_sha,"--",old_path): return sealed_sha
     if args == ("show","-s","--format=%s",sealed_sha): return "build(KAR-132): atomic PATCH 1.23.38 plus ZIP"
     if args == ("diff-tree","--no-commit-id","--name-only","-r",sealed_sha): return "\n".join(sorted(changed))
-    if args == ("merge-base","--is-ancestor",main_sha,sealed_sha): return ""
+    if args == ("merge-base","--is-ancestor",main_sha,test_sha): return ""
+    if args == ("merge-base","--is-ancestor",sealed_sha,test_sha): return ""
     raise AssertionError("Unexpected Git command: "+repr(args))
 def fake_run(*args, **kwargs):
     if args == ("git","show",sealed_sha+":"+old_path) and kwargs.get("binary"): return sealed_zip
@@ -95,6 +96,10 @@ def fake_run(*args, **kwargs):
     raise AssertionError("Unexpected external call: "+repr((args,kwargs)))
 with patch.object(m, "git", side_effect=fake_git), patch.object(m, "run", side_effect=fake_run), patch.object(m.subprocess, "run", return_value=SimpleNamespace(returncode=1)):
     assert m.sealed_prior_archive(132, main_sha, test_sha, old_path, "1.23.38") == (sealed_zip, "work")
+    with patch.object(m, "git", side_effect=lambda *args: (_ for _ in ()).throw(ValueError("KAR52_PATCH_FAILED: Work seal is not an ancestor of exact HEAD")) if args == ("merge-base","--is-ancestor",sealed_sha,test_sha) else fake_git(*args)):
+        reject("previous Work ZIP seal outside the current Work ancestry",lambda:m.sealed_prior_archive(132,main_sha,test_sha,old_path,"1.23.38"));rejects+=1
+    with patch.object(m, "git", side_effect=lambda *args: (_ for _ in ()).throw(ValueError("KAR52_PATCH_FAILED: main not integrated into Work HEAD")) if args == ("merge-base","--is-ancestor",main_sha,test_sha) else fake_git(*args)):
+        reject("main basis not integrated into Work HEAD",lambda:m.sealed_prior_archive(132,main_sha,test_sha,old_path,"1.23.38"));rejects+=1
     with patch.object(m, "git", side_effect=lambda *args: "build(KAR-OTHER): atomic PATCH 1.23.38 plus ZIP" if args[:3] == ("show","-s","--format=%s") else fake_git(*args)):
         reject("foreign previous Work PATCH seal",lambda:m.sealed_prior_archive(132,main_sha,test_sha,old_path,"1.23.38"));rejects+=1
     with patch.object(m, "git", side_effect=lambda *args: "\n".join(sorted(changed | {"src/background/background.js"})) if args[0]=="diff-tree" else fake_git(*args)):
