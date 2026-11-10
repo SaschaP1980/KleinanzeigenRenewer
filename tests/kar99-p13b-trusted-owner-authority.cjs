@@ -59,6 +59,21 @@ function idleSnapshot(worker = WORKER, profile = PROFILE, time = NOW) {
       observedAtMs: time
     }]))};
 }
+function liveSiteObservation(profileId = PROFILE, workerId = WORKER,
+                             observedAtMs = NOW, matched = true) {
+  // PRIVATE source-contract fixture. Real production must inject the actual
+  // read-only KRAdditionalOwnerObserver, never accept caller-provided facts.
+  return {schema: 1, eligibleForLease: false, observedAtMs,
+    observations: {},
+    context: {
+      profile: {state: matched ? 'matched' : 'unverified',
+        reason: matched ? 'LIVE_ACCOUNT_PROFILE_MATCH' : 'LIVE_ACCOUNT_STATUS_UNVERIFIED',
+        profileId},
+      worker: {state: 'unverified', reason: 'NO_CROSS_WORKER_GENERATION_PROOF',
+        workerInstanceId: workerId}
+    }
+  };
+}
 function fixture(options = {}) {
   // The future module must obtain owner proofs from *private, actual-source*
   // adapters. Each adapter's evidence represents a distinct completed source;
@@ -97,7 +112,22 @@ function fixture(options = {}) {
   if (options.owner) {
     sourceProofs[options.owner] = async () => options.ownerEvidence;
   }
-  const live = options.live || [{profileId: PROFILE, accountId: 'fixture-account-001', loggedIn: true, current: true, observedAtMs: NOW}];
+  const live = options.live || [liveSiteObservation(PROFILE, options.workerId || WORKER)];
+  const myAdsUrl = 'https://www.kleinanzeigen.de/m-meine-anzeigen.html';
+  let siteReads = 0;
+  const siteObserver = options.site ? Additional.create({
+    storageLocal: local, storageSession: session, clock: () => NOW,
+    workerInstanceId: options.siteWorker || options.workerId || WORKER,
+    queryBrowserTabsReadOnly: async () => options.site.tabs === false ? []
+      : [{id: 77, url: myAdsUrl}],
+    readAccountPageStatusReadOnly: async () => {
+      const index = siteReads++;
+      return {pageType: 'my-ads', url: myAdsUrl,
+        auth: {loggedIn: options.site.loggedIn !== false},
+        profileName: (options.site.names || ['Fixture account'])[
+          Math.min(index, (options.site.names || ['Fixture account']).length - 1)]};
+    }
+  }) : null;
   let accountCalls = 0;
   let tabCalls = 0;
   let proofCalls = 0;
@@ -105,6 +135,7 @@ function fixture(options = {}) {
     async readLiveAccountReadOnly() {
       const answer = live[Math.min(accountCalls++, live.length - 1)];
       if (answer instanceof Error) throw answer;
+      if (siteObserver) return siteObserver.observe();
       return clone(answer);
     },
     async readBrowserTabsReadOnly() {
@@ -133,7 +164,7 @@ function fixture(options = {}) {
   assert.equal(typeof gate.captureForReserve, 'function',
     'private read-only 15-owner captureForReserve is required');
   return {gate, local, session,
-    calls: () => ({accountCalls, tabCalls, proofCalls})};
+    calls: () => ({accountCalls, tabCalls, proofCalls, siteReads})};
 }
 async function denied(work, reason) {
   let output;
@@ -212,6 +243,34 @@ test('P1.3-B / baseline: durable unfinished admission survives a different worke
   assert.equal(invoked, false, 'no reservation callback runs after lost worker');
 });
 
+// P1.3-E3D: exercise the ACTUAL established first-party account/profile
+// observer, rather than inventing an independent accountId or email parser.
+// Positive test owner receipts remain deliberately test-controlled: these
+// tests prove only site identity plumbing, NOT production updater permission.
+test('P1.3-E3D / RED: private gate accepts real existing site account/profile observation without seller ID', async () => {
+  const {gate, calls} = fixture({site: {names: ['Fixture account']}});
+  const answer = await gate.captureForReserve(request());
+  assert.equal(answer.status, 'candidate-idle');
+  assert.equal(answer.snapshot.profileId, PROFILE);
+  assert.equal(calls().siteReads, 4, 'two actual PAGE_STATUS reads on each of two snapshots');
+});
+test('P1.3-E3D / RED: private gate denies changed site login during PAGE_STATUS verification', async () => {
+  const {gate} = fixture({site: {names: ['Fixture account', 'Different account']}});
+  await denied(() => gate.captureForReserve(request()), 'account changes during live read');
+});
+test('P1.3-E3D / RED: private gate denies different logged-in site profile', async () => {
+  const {gate} = fixture({site: {names: ['Other account']}});
+  await denied(() => gate.captureForReserve(request()), 'selected profile disagrees with Kleinanzeigen account');
+});
+test('P1.3-E3D / RED: private gate denies missing authenticated My Ads tab', async () => {
+  const {gate} = fixture({site: {tabs: false}});
+  await denied(() => gate.captureForReserve(request()), 'no authenticated My Ads view');
+});
+test('P1.3-E3D / RED: private gate denies prior worker generation site observation', async () => {
+  const {gate} = fixture({site: {names: ['Fixture account']}, siteWorker: 'worker-older'});
+  await denied(() => gate.captureForReserve(request()), 'old worker account observation');
+});
+
 // RED-first future production authority contract. A single policy-shaped
 // asserted snapshot or source "idle" answer must never bypass provenance.
 test('P1.3-B / RED: a fully independently reconciled source set yields all 15 *private* candidate records', async () => {
@@ -245,10 +304,10 @@ const negativeCases = [
   ['wrong selected profile', {local: {selectedInventoryProfileV1: {profileId: 'other'}}}],
   ['missing selected profile', {local: {selectedInventoryProfileV1: null}}],
   ['changed live account during double-read', {live: [
-    {profileId: PROFILE, accountId: 'fixture-account-001', loggedIn: true, current: true, observedAtMs: NOW},
-    {profileId: 'other', accountId: 'fixture-account-002', loggedIn: true, current: true, observedAtMs: NOW}
+    liveSiteObservation(PROFILE),
+    liveSiteObservation('other')
   ]}],
-  ['logged-out current account', {live: [{profileId: null, loggedIn: false}]}],
+  ['logged-out current account', {live: [liveSiteObservation(PROFILE, WORKER, NOW, false)]}],
   ['live-account probe failure', {live: [Error('LIVE_ACCOUNT_UNAVAILABLE')]}],
   ['missing owner evidence', {owner: 'templateFill', ownerEvidence: null}],
   ['unverified owner state', {owner: 'diagnosticExport', ownerEvidence: {state: 'unknown'}}],
@@ -322,9 +381,9 @@ test('P1.3-B / RED: no two workers can reserve over an existing transaction', as
 });
 test('P1.3-B / RED: live identity changes between capture and reservation', async () => {
   const {gate} = fixture({live: [
-    {profileId: PROFILE, accountId: 'fixture-account-001', loggedIn: true, current: true, observedAtMs: NOW},
-    {profileId: PROFILE, accountId: 'fixture-account-001', loggedIn: true, current: true, observedAtMs: NOW},
-    {profileId: 'other', accountId: 'fixture-account-002', loggedIn: true, current: true, observedAtMs: NOW}
+    liveSiteObservation(PROFILE),
+    liveSiteObservation(PROFILE),
+    liveSiteObservation('other')
   ]});
   const first = await gate.captureForReserve(request());
   assert.equal(first.status, 'candidate-idle');
