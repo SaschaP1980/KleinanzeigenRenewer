@@ -422,6 +422,12 @@
     };
     panelTemplateOnly = Boolean(session.templateOnly);
     panelArchiveInsertion = Boolean(session.archiveInsertionId);
+    // A final publish button may already be visible during a managed fill.
+    // Intercept before any asynchronous form, recovery or navigation work;
+    // user-owned template-only publishing remains deliberately unmodified.
+    if (session.fillId && !session.templateOnly && (session.renewalId || session.archiveInsertionId)) {
+      armPublishDetection(session.fillId);
+    }
     try {
       if (kind === 'paid-insertion-checkout') {
         const detection = paidInsertionDetection();

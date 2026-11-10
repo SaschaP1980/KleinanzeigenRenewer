@@ -91,4 +91,43 @@ for (const name of modules) {
   }
 }
 ok(callers.length === 0, 'no direct form.submit()/requestSubmit() bypass in any content runtime module: ' + callers.join(', '));
-console.log('PASS KAR99 P6 ingress closure ' + checks + ' assertions');
+// Execute the actual runPendingFill orchestration in a sandbox, not a
+// reimplementation of its branch decisions. Capture must precede the
+// asynchronous fill/reentry entrypoints for both managed owner kinds.
+const vm = require('node:vm');
+async function runRealIngress(session, kind) {
+  const events=[];
+  const run = vm.runInNewContext(
+    section(filler, 'async function runPendingFill()', 'const API = Object.freeze(')
+      + '\nrunPendingFill;', {
+      armMassRenewalHeartbeat:()=>{},
+      pageKind:()=>kind,
+      runtimeMessage:async msg=>{
+        assert.equal(msg.type,'GET_TEMPLATE_FILL_SESSION');
+        return session;
+      },
+      activeCorrelationContext:{}, panelTemplateOnly:false,panelArchiveInsertion:false,
+      armPublishDetection:id=>{events.push('armed:'+id);},
+      runFillSession:async()=>{events.push('fill');return {};},
+      runPostFillSession:async()=>{events.push('postfill');return {};},
+      runLegacyCategorySelection:async()=>{events.push('category');return {};}
+    });
+  await run();
+  return events;
+}
+(async()=>{
+  const fillId='bound-managed-fill';
+  const renewal=await runRealIngress({fillId,renewalId:'renew-one',templateOnly:false,stage:'form-ready'},'target');
+  ok(renewal.join(',')==='armed:'+fillId+',fill',
+    'actual managed renewal arms before initial async template fill');
+  const archive=await runRealIngress({fillId,archiveInsertionId:'archive-one',templateOnly:false,stage:'form-ready'},'target');
+  ok(archive.join(',')==='armed:'+fillId+',fill',
+    'actual managed archive import arms before initial async template fill');
+  const reentry=await runRealIngress({fillId,renewalId:'renew-one',templateOnly:false,stage:'auto-publish-ready'},'post-fill');
+  ok(reentry.join(',')==='armed:'+fillId+',postfill',
+    'actual post-fill reentry arms before recovery publication');
+  const userOwned=await runRealIngress({fillId,templateOnly:true,stage:'form-ready'},'target');
+  ok(userOwned.join(',')==='fill',
+    'actual user-owned template-only fill is not intercepted');
+  console.log('PASS KAR99 P6 ingress closure ' + checks + ' assertions');
+})().catch(e=>{console.error(e);process.exitCode=1});

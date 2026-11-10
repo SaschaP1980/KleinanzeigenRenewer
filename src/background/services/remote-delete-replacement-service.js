@@ -423,6 +423,26 @@ async function preverifyAndTriggerRenewalSourceDeleteAttempt(session, expectedPr
       newAdId: String(session.newAdId || '')
     });
 
+    // The logged-in account can change while the durable intent is written
+    // and read back. Recheck the SAME actual My Ads worker before any remote
+    // DELETE, leaving the immutable attempt unresolved on uncertainty.
+    let postReceiptStatus;
+    try {
+      postReceiptStatus = await sendTabRequestWithBootstrap(deleteTabId, { type: 'MY_ADS_STATUS' });
+    } catch {
+      const code = 'KR_PHASE4_JOURNAL_ACCOUNT_UNVERIFIED';
+      throw Object.assign(new Error(code), { code });
+    }
+    const postReceiptProfile = normalizeProfileName(postReceiptStatus?.profileName || '');
+    if (postReceiptStatus?.isMyAdsPage !== true || postReceiptStatus?.isProjectsTab !== true || !postReceiptProfile) {
+      const code = 'KR_PHASE4_JOURNAL_ACCOUNT_UNVERIFIED';
+      throw Object.assign(new Error(code), { code });
+    }
+    if (postReceiptProfile.toLocaleLowerCase('de-DE') !== actualProfile.toLocaleLowerCase('de-DE')) {
+      const code = 'KR_PHASE4_JOURNAL_ACCOUNT_CHANGED';
+      throw Object.assign(new Error(code), { code });
+    }
+
     await logDiagnostic('info', 'RENEWAL_PHASE4_ATOMIC_PREVERIFY_DELETE_STARTED', {
       renewalId: session.renewalId,
       sourceAdId: session.sourceAdId,
