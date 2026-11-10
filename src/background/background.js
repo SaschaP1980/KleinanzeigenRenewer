@@ -1,4 +1,7 @@
 importScripts("../shared/runtime-deps.js", "../shared/message-contract-registry.js", "../shared/renewal-policy.js", "background-message-router.js", "services/native-update-status-gateway.js", "services/native-status-bridge.js", "services/update-workflow-fence.js", "repositories/profile-repository.js", "repositories/inventory-repository.js", "repositories/inventory-image-store.js", "services/trash-service.js", "services/diagnostics-service.js", "services/tab-registry.js", "services/managed-tab-worker-service.js", "services/content-connection-manager.js", "services/account-probe-service.js", "controllers/profile-management-controller.js", "controllers/account-session-controller.js", "controllers/platform-safety-controller.js", "controllers/tab-lifecycle-observer.js", "controllers/workflow-emergency-reset-controller.js", "lib/bulk-run-guard.js", "controllers/single-inventory-controller.js", "services/bulk-worker-service.js", "services/bulk-reconciliation-service.js", "controllers/bulk-inventory-controller.js", "controllers/mass-renewal-controller.js", "services/mass-renewal-watchdog-service.js", "controllers/mass-renewal-workflow-controller.js", "services/renewal-verification-flow.js", "services/renewal-reinventory-flow.js", "services/paid-checkout-recovery-service.js", "controllers/renewal-workflow-controller.js", "services/renewal-verification-service.js", "repositories/renewal-state-repository.js", "services/template-fill-service.js", "services/insertion-lock-service.js", "controllers/template-fill-controller.js", "services/archive-insertion-service.js", "services/archive-insertion-verification-service.js", "services/archive-insertion-recovery-service.js", "controllers/archive-insertion-controller.js", "services/remote-delete-replacement-service.js", "services/published-inventory-resolver.js", "services/diagnostic-export-service.js", "services/public-listing-evidence-service.js", "../shared/managed-navigation.js", "lib/inventory-reconciliation.js", "../shared/my-ads-readiness.js", "lib/inventory-scope.js", "../shared/platform-hardening.js", "services/tab-load-coordinator.js", "services/persisted-owner-observer.js", "services/additional-owner-observer.js", "services/phase4-uncertainty-journal.js", "services/cross-worker-atomic-admission.js", "services/auto-publish-intent-journal.js");
+// Private updater policy/authority: no content/app IPC route; production proof
+// sources remain intentionally absent until each of 15 owners is grounded.
+importScripts("../../lib/update-idle-policy.js", "services/trusted-owner-authority.js");
 
 const KRDeps = globalThis.KRDeps;
 if (!KRDeps) throw new Error('runtime-deps.js must load before background.js');
@@ -8,6 +11,8 @@ const BackgroundMessageRouter = KRDeps.require('KRBackgroundMessageRouter');
 const NativeUpdateStatusGateway = KRDeps.require('KRNativeUpdateStatusGateway');
 const NativeStatusBridge = KRDeps.require('KRNativeStatusBridge');
 const UpdateWorkflowFence = KRDeps.require('KRUpdateWorkflowFence');
+const UpdateIdlePolicy = KRDeps.require('KRUpdateIdlePolicy');
+const TrustedOwnerAuthority = KRDeps.require('KRTrustedOwnerAuthority');
 const AtomicMV3Admission = KRDeps.require('KRAtomicMV3Admission');
 const AutoPublishIntentJournal = KRDeps.require('KRAutoPublishIntentJournal');
 const PersistedOwnerObserver = KRDeps.require('KRPersistedOwnerObserver');
@@ -3311,6 +3316,19 @@ function requirePersistedOwnerObserver() {
   }
   return persistedOwnerObserver;
 }
+// A real private authority component is instantiated behind the *same* origin
+// Web Lock. It remains in FAIL-CLOSED mode: the current app has no independently
+// attestable nonmutating live site account ID, 15 durable owner-completion
+// producers or NativeHost transaction outcome. Supplying the existing 7+8
+// ACTIVE/UNKNOWN observers as confirmed IDLE would be a security regression.
+// Do not add an app/content route to captureForReserve/reserveThroughFence.
+const privateOwnerUpdateAuthority = TrustedOwnerAuthority.create({
+  storageLocal: chrome.storage.local, storageSession: chrome.storage.session,
+  clock: () => Date.now(), newToken: () => crypto.randomUUID(),
+  workerInstanceId: ownerWorkerInstanceId,
+  ownerPolicy: UpdateIdlePolicy, lockManager: globalThis.navigator?.locks
+});
+void privateOwnerUpdateAuthority;
 // Additional owner observation is ACTIVE/UNKNOWN only and cannot grant a lease.
 let additionalOwnerObserver = null;
 function requireAdditionalOwnerObserver() {
