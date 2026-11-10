@@ -1,0 +1,48 @@
+# One-shot KAR-16 ZIP staging, scoped to Work ref only. Deletes itself before final commit.
+name: KAR-16 temporary exact-source ZIP staging
+
+on:
+  push:
+    branches:
+      - work/KAR-16
+
+permissions:
+  contents: write
+
+jobs:
+  stage:
+    name: Stage exact 1.23.50 Chrome ZIP without Release
+    if: github.repository == 'SaschaP1980/KleinanzeigenRenewer'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Validate and stage exactly one ZIP, retire this temporary workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/work/KAR-16"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(node -p "require('./manifest.json').version")" = "1.23.50"
+          test "$(node -p "require('./package.json').version")" = "1.23.50"
+          test "$(node -p "require('./package.json').displayVersion")" = "1.23.50"
+          test ! -e release/kleinanzeigen-renewal-chrome-v1.23.50.zip
+          python3 scripts/package.py "$RUNNER_TEMP/kar16-build"
+          ZIP="$RUNNER_TEMP/kar16-build/kleinanzeigen-renewal-chrome-v1.23.50.zip"
+          test -s "$ZIP"
+          unzip -t "$ZIP" >/dev/null
+          cp "$ZIP" release/kleinanzeigen-renewal-chrome-v1.23.50.zip
+          python3 scripts/verify_committed_chrome_zip.py --base-sha 529dd7f8b0786af3d54486f659363b6fa236ed6f
+          git rm .github/workflows/kar-16-stage-zip.yml
+          git add -f release/kleinanzeigen-renewal-chrome-v1.23.50.zip
+          DIFF="$(git diff --cached --name-only)"
+          EXPECTED="$(printf '.github/workflows/kar-16-stage-zip.yml\nrelease/kleinanzeigen-renewal-chrome-v1.23.50.zip')"
+          test "$DIFF" = "$EXPECTED"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "build(KAR-16): stage exact v1.23.50 ZIP and retire one-shot workflow"
+          git push origin HEAD:refs/heads/work/KAR-16
