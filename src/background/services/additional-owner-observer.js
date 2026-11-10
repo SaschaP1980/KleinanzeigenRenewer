@@ -221,6 +221,7 @@
           else if(typeof readAccountPageStatusReadOnly!=='function')
             reason='LIVE_ACCOUNT_SOURCE_UNAVAILABLE';
           else {
+            let initialNames=null;
             const pageResults=await Promise.allSettled(candidates.map(tab=>
               Promise.resolve().then(()=>readAccountPageStatusReadOnly(tab.id))));
             if(pageResults.some(r=>r.status!=='fulfilled'||!record(r.value)))
@@ -233,6 +234,7 @@
               else if(pages.some(p=>label(p.profileName)!==label(pages[0].profileName)))
                 reason='LIVE_ACCOUNT_TABS_DISAGREE';
               else {
+                initialNames=pages.map(p=>label(p.profileName));
                 const profile=Array.isArray(local.profilesV1)
                   ?local.profilesV1.find(p=>record(p)&&p.profileId===id):null;
                 reason=!label(profile?.displayName)||
@@ -264,6 +266,20 @@
               ||stableProfile(local)!==stableProfile(later)
               ||stableProfile(local)!==stableProfile(newProfiles.value))
               reason='LIVE_ACCOUNT_PROFILE_CHANGED_DURING_READ';
+            // The stored profile and tab URL can stay unchanged while the
+            // authenticated web session switches accounts or logs out.
+            // Re-read PAGE_STATUS from the same existing content scripts.
+            // A second matching *name* is still NOT a stable site account ID.
+            if(reason==='LIVE_ACCOUNT_NAME_MATCH_STABLE_ID_UNVERIFIED'){
+              const secondPages=await Promise.allSettled(candidates.map(tab=>
+                Promise.resolve().then(()=>readAccountPageStatusReadOnly(tab.id))));
+              if(!initialNames||secondPages.some((r,i)=>r.status!=='fulfilled'
+                  ||!record(r.value)||r.value.pageType!=='my-ads'
+                  ||r.value.url!==candidates[i].url
+                  ||r.value.auth?.loggedIn!==true
+                  ||label(r.value.profileName)!==initialNames[i]))
+                reason='LIVE_ACCOUNT_STATUS_CHANGED_DURING_READ';
+            }
           }
         }
       }

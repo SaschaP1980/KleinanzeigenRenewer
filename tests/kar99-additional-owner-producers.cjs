@@ -129,7 +129,7 @@ function create(data, ports={}){return Additional.create({storageLocal:data.loca
     queryBrowserTabsReadOnly:async()=>structuredClone(myAdsTabs),
     readAccountPageStatusReadOnly:async id=>{statusCalls++;assert.equal(id,77);return statusFor();}
   }).observe();
-  ok(statusCalls===1&&labelMatch.context.profile.state==='unverified'
+  ok(statusCalls===2&&labelMatch.context.profile.state==='unverified'
     &&labelMatch.context.profile.reason==='LIVE_ACCOUNT_NAME_MATCH_STABLE_ID_UNVERIFIED'
     &&labelMatch.eligibleForLease===false,
     'matching site display name is a hint, NEVER a verified stable account ID');
