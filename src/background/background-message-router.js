@@ -85,6 +85,7 @@
     "GET_TEMPLATE_IMAGE_CHUNK": Object.freeze({ handler: "GET_TEMPLATE_IMAGE_CHUNK", preSafety: false }),
     "UPDATE_TEMPLATE_FILL_SESSION": Object.freeze({ handler: "UPDATE_TEMPLATE_FILL_SESSION", preSafety: false }),
     "GET_DIAGNOSTICS": Object.freeze({ handler: "GET_DIAGNOSTICS", preSafety: false }),
+    "GET_DIAGNOSTIC_OCCUPANCY": Object.freeze({ handler: "GET_DIAGNOSTIC_OCCUPANCY", preSafety: false }),
   });
 
   function create(options = {}) {
