@@ -110,8 +110,13 @@
         });
       }
     }
-    async function guardReserve(task) {
+    async function guardReserve(task, expectedWorkerInstanceId) {
       if(typeof task!=='function')throw denied('KR_UPDATE_FENCE_ATOMIC_UNAVAILABLE');
+      // Fence.reserve supplies the request generation. Do not let a new MV3
+      // worker reuse an old worker's all-idle observation or fake request even
+      // if a test-only snapshot would otherwise pass the candidate policy.
+      if(expectedWorkerInstanceId!==undefined&&expectedWorkerInstanceId!==workerInstanceId)
+        throw denied('KR_UPDATE_FENCE_ATOMIC_GENERATION');
       return exclusive(async()=>{
         const {starts,finishes}=await scan();
         for(const token of starts.keys())

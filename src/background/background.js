@@ -3276,7 +3276,7 @@ function requireAtomicMV3Admission() {
       throw new Error('KR_UPDATE_FENCE_ATOMIC_UNAVAILABLE');
     atomicMV3Admission=AtomicMV3Admission.create({
       storageLocal:chrome.storage.local,lockManager:globalThis.navigator?.locks,
-      workerInstanceId:crypto.randomUUID(),clock:()=>Date.now(),
+      workerInstanceId:ownerWorkerInstanceId,clock:()=>Date.now(),
       newToken:()=>crypto.randomUUID()
     });
   }

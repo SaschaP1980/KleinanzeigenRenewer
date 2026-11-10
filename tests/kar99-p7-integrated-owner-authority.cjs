@@ -159,8 +159,8 @@ async function waitUntil(predicate){for(let i=0;i<250&&!predicate();i++)await Pr
     &&bg.includes('AdditionalOwnerObserver.ownersForOperation(kind, \'autonomous\')'),
     'real background routed and autonomous entrypoints use specific audited operation owners');
   ok(bg.includes('const ownerWorkerInstanceId = crypto.randomUUID();')
-    &&(bg.match(/workerInstanceId:ownerWorkerInstanceId/g)||[]).length===2,
-    'both actual observer sources correlate to one per-worker generation without claiming old-worker completion');
+    &&(bg.match(/workerInstanceId:ownerWorkerInstanceId/g)||[]).length===3,
+    'both real observer sources and atomic arbitration share one current Worker generation without claiming old-worker completion');
   ok(!bg.includes('getOwnerSnapshot: () => requireAdditionalOwnerObserver()'),
     'untrusted all-15 read-only evidence never becomes a positive update lease source');
   console.log('PASS KAR99 P7 integrated owner authority '+checks+' checks');

@@ -84,7 +84,7 @@ function snapshot(){const gen='worker-one',profile='profile-one',now=123000;
  ok(approved.state==='reserved','positive test-only fake owner snapshot serialized');
  await reject(gateTwo.withAdmission('START_ARCHIVE',()=>true),'KR_UPDATE_FENCE_HELD',
    'second worker cannot start during reserved update');
- await reject(gateTwo.reserve(request),'KR_UPDATE_FENCE_HELD',
+ await reject(gateTwo.reserve({...request,workerGeneration:'worker-two'}),'KR_UPDATE_FENCE_HELD',
    'second worker cannot double-reserve');
  ok(bg.includes('atomicCoordinator:')&&bg.includes('navigator?.locks'),
    'real worker passes navigator.locks rather than storage-only pseudo-CAS');

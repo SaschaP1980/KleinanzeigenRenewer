@@ -141,7 +141,7 @@
       ? atomicCoordinator.withAdmission(type,()=>singleWorkerAdmission(type,task))
       : singleWorkerAdmission(type,task);
     const reserve=request=>atomicCoordinator
-      ? atomicCoordinator.guardReserve(()=>singleWorkerReserve(request))
+      ? atomicCoordinator.guardReserve(()=>singleWorkerReserve(request),request?.workerGeneration)
       : singleWorkerReserve(request);
     const cancel=request=>atomicCoordinator
       ? atomicCoordinator.guardReserve(()=>singleWorkerCancel(request))
