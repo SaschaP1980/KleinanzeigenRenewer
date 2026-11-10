@@ -97,6 +97,18 @@
     const worker=typeof workerInstanceId==='string'&&PROFILE.test(workerInstanceId)?workerInstanceId:null;
     function snapshotInFlight(){return Object.freeze(Object.fromEntries(OWNERS.map(n=>[n,pending.get(n)])));}
     const label=value=>typeof value==='string'?value.replace(/\s+/g,' ').trim().toLocaleLowerCase('de-DE'):'';
+    // Untrusted public seller links may only CONTRADICT a profile hint.
+    // Even a consistent seller-ID candidate never proves site-account ownership.
+    function sellerHintSignature(value){
+      if(value===undefined)return 'not-exposed'; // older script, remains UNKNOWN
+      if(!record(value)||value.source!=='first-party-public-profile-links'
+        ||value.verified!==false||typeof value.truncated!=='boolean'
+        ||!Array.isArray(value.ids)||value.ids.length>32
+        ||value.ids.some(id=>typeof id!=='string'||!/^\d{1,20}$/.test(id))
+        ||new Set(value.ids).size!==value.ids.length)
+        return null;
+      return JSON.stringify([value.ids.slice().sort(),value.truncated]);
+    }
     function isMyAdsTab(tab){
       if(!record(tab)||typeof tab.url!=='string')return false;
       try{
@@ -221,7 +233,7 @@
           else if(typeof readAccountPageStatusReadOnly!=='function')
             reason='LIVE_ACCOUNT_SOURCE_UNAVAILABLE';
           else {
-            let initialNames=null;
+            let initialNames=null,initialSellerHints=null;
             const pageResults=await Promise.allSettled(candidates.map(tab=>
               Promise.resolve().then(()=>readAccountPageStatusReadOnly(tab.id))));
             if(pageResults.some(r=>r.status!=='fulfilled'||!record(r.value)))
@@ -235,12 +247,19 @@
                 reason='LIVE_ACCOUNT_TABS_DISAGREE';
               else {
                 initialNames=pages.map(p=>label(p.profileName));
-                const profile=Array.isArray(local.profilesV1)
-                  ?local.profilesV1.find(p=>record(p)&&p.profileId===id):null;
-                reason=!label(profile?.displayName)||
-                  label(profile.displayName)!==label(pages[0].profileName)
-                  ?'LIVE_ACCOUNT_PROFILE_NAME_MISMATCH'
-                  :'LIVE_ACCOUNT_NAME_MATCH_STABLE_ID_UNVERIFIED';
+                initialSellerHints=pages.map(p=>sellerHintSignature(p.siteSellerIdHints));
+                if(initialSellerHints.some(signature=>signature===null))
+                  reason='LIVE_ACCOUNT_SELLER_HINT_INVALID';
+                else if(initialSellerHints.some(signature=>signature!==initialSellerHints[0]))
+                  reason='LIVE_ACCOUNT_SELLER_HINT_TABS_DISAGREE';
+                else {
+                  const profile=Array.isArray(local.profilesV1)
+                    ?local.profilesV1.find(p=>record(p)&&p.profileId===id):null;
+                  reason=!label(profile?.displayName)||
+                    label(profile.displayName)!==label(pages[0].profileName)
+                    ?'LIVE_ACCOUNT_PROFILE_NAME_MISMATCH'
+                    :'LIVE_ACCOUNT_NAME_MATCH_STABLE_ID_UNVERIFIED';
+                }
               }
             }
             // Re-evaluate presence and identity of the same live tabs, plus
@@ -279,6 +298,9 @@
                   ||r.value.auth?.loggedIn!==true
                   ||label(r.value.profileName)!==initialNames[i]))
                 reason='LIVE_ACCOUNT_STATUS_CHANGED_DURING_READ';
+              else if(!initialSellerHints||secondPages.some((r,i)=>
+                  sellerHintSignature(r.value.siteSellerIdHints)!==initialSellerHints[i]))
+                reason='LIVE_ACCOUNT_SELLER_HINT_CHANGED_DURING_READ';
             }
           }
         }
