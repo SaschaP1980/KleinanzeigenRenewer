@@ -228,6 +228,7 @@ function create(data, ports={}){return Additional.create({storageLocal:data.loca
           return {route:()=>({action:'allow'})};
         if(name==='KRPlatformHardening')
           return {detectAccessRestriction:()=>null};
+        if(name==='KRForm')return {locate:()=>({eligible:false})};
         if(name==='KRInventoryRun')
           return {isMyAdsUrl:()=>true,detectedProfileName:()=>'Fixture account'};
         return {};
