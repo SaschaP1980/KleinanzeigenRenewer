@@ -3343,7 +3343,8 @@ function requireAdditionalOwnerObserver() {
     additionalOwnerObserver = AdditionalOwnerObserver.create({
       storageLocal:chrome.storage.local,storageSession:chrome.storage.session,
       clock:()=>Date.now(),workerInstanceId:ownerWorkerInstanceId,
-      queryBrowserTabsReadOnly:()=>chrome.tabs.query({})
+      queryBrowserTabsReadOnly:()=>chrome.tabs.query({}),
+      readAccountPageStatusReadOnly:tabId=>sendTabRequest(tabId,{type:'PAGE_STATUS'})
     });
   }
   return additionalOwnerObserver;

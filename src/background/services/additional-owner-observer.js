@@ -90,12 +90,21 @@
   const active=reason=>Object.freeze({state:'active',reason});
   const unknown=reason=>Object.freeze({state:'unknown',reason});
   function create({storageLocal,storageSession,workerInstanceId=null,clock=()=>Date.now(),
-    queryBrowserTabsReadOnly=null}={}) {
+    queryBrowserTabsReadOnly=null,readAccountPageStatusReadOnly=null}={}) {
     if(typeof storageLocal?.get!=='function'||typeof storageSession?.get!=='function'
        ||typeof clock!=='function')throw Error('supplemental owner observer requires read-only storage and clock');
     const pending=new Map(OWNERS.map(n=>[n,0]));
     const worker=typeof workerInstanceId==='string'&&PROFILE.test(workerInstanceId)?workerInstanceId:null;
     function snapshotInFlight(){return Object.freeze(Object.fromEntries(OWNERS.map(n=>[n,pending.get(n)])));}
+    const label=value=>typeof value==='string'?value.replace(/\\s+/g,' ').trim().toLocaleLowerCase('de-DE'):'';
+    function isMyAdsTab(tab){
+      if(!record(tab)||typeof tab.url!=='string')return false;
+      try{
+        const url=new URL(tab.url);
+        return url.protocol==='https:'&&['www.kleinanzeigen.de','kleinanzeigen.de'].includes(url.hostname)
+          &&url.pathname==='/m-meine-anzeigen.html';
+      }catch{return false;}
+    }
     async function track(owners,task){
       const names=Array.isArray(owners)?owners:[owners];
       if(!names.length||typeof task!=='function'||new Set(names).size!==names.length
@@ -107,9 +116,9 @@
     async function observe(){
       // Do not call TabRegistry.snapshot(): its legacy migration can WRITE.
       const [l,s,l2]=await Promise.allSettled([
-        storageLocal.get([...PROFILE_KEYS,'nativeUpdateWorkflowFenceV1']),
+        storageLocal.get([...PROFILE_KEYS,'profilesV1','nativeUpdateWorkflowFenceV1']),
         storageSession.get(['tabRegistryV1','managedWorkerTabsV1']),
-        storageLocal.get([...PROFILE_KEYS])
+        storageLocal.get([...PROFILE_KEYS,'profilesV1'])
       ]);
       const local=l.status==='fulfilled'&&record(l.value)?l.value:null;
       const session=s.status==='fulfilled'&&record(s.value)?s.value:null;
@@ -197,7 +206,69 @@
         else if(profiles[0].profileId!==profiles[1].profileId)reason='PROFILE_MISMATCH';
         else{reason='STORED_PROFILES_MATCH_BUT_LIVE_UNVERIFIED';id=profiles[0].profileId;}
       }
-      if(reason==='PROFILE_CHANGED_DURING_READ'||reason==='PROFILE_MISMATCH'){
+      // P1.3-E2: observe only already-open My Ads content, never create a tab,
+      // bootstrap a script, navigate the website, or mutate a stored profile.
+      // A matching display name is NOT a stable/authenticated account ID.
+      if(reason==='STORED_PROFILES_MATCH_BUT_LIVE_UNVERIFIED'){
+        const browser=browserRead.status==='fulfilled'?browserRead.value:null;
+        const ids=Array.isArray(browser)?new Set(browser.map(t=>t?.id)):null;
+        if(!Array.isArray(browser)||browser.some(t=>!record(t)
+            ||!Number.isSafeInteger(t.id)||t.id<=0)||ids.size!==browser.length)
+          reason='LIVE_ACCOUNT_TABS_UNAVAILABLE';
+        else {
+          const candidates=browser.filter(isMyAdsTab);
+          if(!candidates.length)reason='LIVE_ACCOUNT_MY_ADS_TAB_ABSENT';
+          else if(typeof readAccountPageStatusReadOnly!=='function')
+            reason='LIVE_ACCOUNT_SOURCE_UNAVAILABLE';
+          else {
+            const pageResults=await Promise.allSettled(candidates.map(tab=>
+              Promise.resolve().then(()=>readAccountPageStatusReadOnly(tab.id))));
+            if(pageResults.some(r=>r.status!=='fulfilled'||!record(r.value)))
+              reason='LIVE_ACCOUNT_STATUS_UNAVAILABLE';
+            else {
+              const pages=pageResults.map(r=>r.value);
+              if(pages.some((p,i)=>p.pageType!=='my-ads'||p.url!==candidates[i].url
+                  ||p.auth?.loggedIn!==true||!label(p.profileName)))
+                reason='LIVE_ACCOUNT_STATUS_UNVERIFIED';
+              else if(pages.some(p=>label(p.profileName)!==label(pages[0].profileName)))
+                reason='LIVE_ACCOUNT_TABS_DISAGREE';
+              else {
+                const profile=Array.isArray(local.profilesV1)
+                  ?local.profilesV1.find(p=>record(p)&&p.profileId===id):null;
+                reason=!label(profile?.displayName)||
+                  label(profile.displayName)!==label(pages[0].profileName)
+                  ?'LIVE_ACCOUNT_PROFILE_NAME_MISMATCH'
+                  :'LIVE_ACCOUNT_NAME_MATCH_STABLE_ID_UNVERIFIED';
+              }
+            }
+            // Re-evaluate presence and identity of the same live tabs, plus
+            // all profile hints after the asynchronous content responses.
+            const [newTabs,newProfiles]=await Promise.allSettled([
+              Promise.resolve().then(()=>queryBrowserTabsReadOnly()),
+              storageLocal.get([...PROFILE_KEYS,'profilesV1'])
+            ]);
+            const stableProfile=v=>JSON.stringify([
+              v?.activeDetectedProfileV1??null,v?.selectedInventoryProfileV1??null,
+              v?.profilesV1??null
+            ]);
+            const tabList=v=>Array.isArray(v)
+              &&v.every(t=>record(t)&&Number.isSafeInteger(t.id)&&t.id>0)
+              &&new Set(v.map(t=>t.id)).size===v.length
+              ?JSON.stringify(v.filter(isMyAdsTab).map(t=>[t.id,t.url]).sort((a,b)=>a[0]-b[0]))
+              :null;
+            const prior=tabList(browser);
+            const current=newTabs.status==='fulfilled'?tabList(newTabs.value):null;
+            if(prior===null||current===null||prior!==current)
+              reason='LIVE_ACCOUNT_TABS_CHANGED';
+            if(newProfiles.status!=='fulfilled'||!record(newProfiles.value)
+              ||stableProfile(local)!==stableProfile(later)
+              ||stableProfile(local)!==stableProfile(newProfiles.value))
+              reason='LIVE_ACCOUNT_PROFILE_CHANGED_DURING_READ';
+          }
+        }
+      }
+      if(reason==='PROFILE_CHANGED_DURING_READ'||reason==='PROFILE_MISMATCH'
+         ||reason.startsWith('LIVE_ACCOUNT_')){
         set('profileTransition',unknown(reason));set('accountTransition',unknown(reason));
       }
       for(const n of OWNERS)if(pending.get(n)>0)o[n]=active('ACTUAL_IN_FLIGHT_OPERATION');
