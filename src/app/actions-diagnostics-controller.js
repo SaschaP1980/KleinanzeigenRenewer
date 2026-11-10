@@ -123,10 +123,13 @@
         const snapshot = stateSnapshot(source);
         const signature = stateSignature(snapshot);
         emitDesyncIfNeeded(snapshot);
-        if (force || signature !== lastSnapshotSignature) {
-          lastSnapshotSignature = signature;
+        // Normal state changes are already handled by the controller. Only
+        // explicit snapshots and anomalies warrant a persistent full payload.
+        const hasDesync = snapshot.actions.some(item => item.disabled !== item.expectedDisabled);
+        if ((force || hasDesync) && (force || signature !== lastSnapshotSignature)) {
           void logEvent('UI_ACTIONS_STATE_SNAPSHOT', snapshot);
         }
+        lastSnapshotSignature = signature;
         return snapshot;
       }
 
@@ -167,6 +170,9 @@
           const rect = button.getBoundingClientRect();
           const style = win.getComputedStyle(button);
           const hitStyle = hitTarget ? win.getComputedStyle(hitTarget) : null;
+          const possibleOverlay = Boolean(hitTarget && hitTarget !== button && !button.contains(hitTarget) && !hitTarget.closest?.(`[data-action-probe-for="${button.id}"]`));
+          // Retain blocked/occluded attempts, not every successful click.
+          if (!button.disabled && !possibleOverlay) return;
           void logEvent('UI_ACTION_ATTEMPT', {
             phase,
             buttonId: button.id || null,
@@ -178,7 +184,7 @@
             display: style.display || null,
             hitTarget: elementDescriptor(hitTarget),
             hitTargetPointerEvents: hitStyle?.pointerEvents || null,
-            possibleOverlay: Boolean(hitTarget && hitTarget !== button && !button.contains(hitTarget) && !hitTarget.closest?.(`[data-action-probe-for="${button.id}"]`)),
+            possibleOverlay,
             msSinceLastSuccessfulSync: lastSyncAt ? Math.max(0, Date.now() - lastSyncAt) : null,
             lastSyncSource: lastSyncSource || null,
             backgroundEpoch: backgroundEpoch || null
@@ -212,12 +218,16 @@
             || pointInsideRect(primaryRect, clientX, clientY)
             || Boolean(expectedButton);
           if (!insideActionsGeometry) return;
+          // This is a recovery operation, not just telemetry: always sanitize
+          // on pointerdown even when ordinary pointer diagnostics are omitted.
+          if (phase === 'pointerdown') sanitizeAccordionAnimations('actions-pointerdown');
           const hitTarget = doc.elementFromPoint(clientX, clientY);
+          const expectedShell = expectedButton?.closest?.('.control-action-attempt-shell') || null;
+          const possibleOverlay = Boolean(expectedButton && hitTarget && hitTarget !== expectedButton && !expectedButton.contains(hitTarget) && !expectedShell?.contains(hitTarget));
+          if (!possibleOverlay) return;
           const hitStack = typeof doc.elementsFromPoint === 'function'
             ? doc.elementsFromPoint(clientX, clientY).slice(0, 8).map(elementDescriptor)
             : [];
-          const expectedShell = expectedButton?.closest?.('.control-action-attempt-shell') || null;
-          const possibleOverlay = Boolean(expectedButton && hitTarget && hitTarget !== expectedButton && !expectedButton.contains(hitTarget) && !expectedShell?.contains(hitTarget));
           const panelStyle = panel ? win.getComputedStyle(panel) : null;
           const summaryStyle = summary ? win.getComputedStyle(summary) : null;
           void logEvent('UI_ACTIONS_POINTER_CAPTURE', {
@@ -240,7 +250,6 @@
             backgroundEpoch: backgroundEpoch || null,
             msSinceLastSuccessfulSync: lastSyncAt ? Math.max(0, Date.now() - lastSyncAt) : null
           });
-          if (phase === 'pointerdown') sanitizeAccordionAnimations('actions-pointerdown');
         };
         doc.addEventListener('pointerdown', record('pointerdown'), true);
         doc.addEventListener('click', record('click'), true);
@@ -269,7 +278,7 @@
         if (resyncInFlight) return resyncInFlight;
         resyncInFlight = (async () => {
           const started = performance.now();
-          const before = recordSnapshot(`resync:${source}:before`, { force: true });
+          const before = recordSnapshot(`resync:${source}:before`);
           void logEvent('UI_ACTIONS_RESYNC_STARTED', { source, backgroundEpoch: backgroundEpoch || null, before });
           try {
             const [epoch, state] = await Promise.all([
@@ -281,7 +290,7 @@
             if (previousEpoch && epoch && previousEpoch !== epoch) void logEvent('UI_ACTIONS_BACKGROUND_EPOCH_CHANGED', { source, previousEpoch, epoch });
             await applyResyncState(state, source);
             markSynced(`resync:${source}`);
-            const after = recordSnapshot(`resync:${source}:after`, { force: true });
+            const after = recordSnapshot(`resync:${source}:after`);
             void logEvent('UI_ACTIONS_RESYNC_COMPLETED', {
               source,
               durationMs: Math.round(performance.now() - started),
@@ -313,7 +322,7 @@
         const recordInteraction = phase => event => {
           const button = event.target?.closest?.('button');
           const card = button?.closest?.('.inventory-card');
-          if (!button || !card || !root.contains(button)) return;
+          if (!button || !card || !root.contains(button) || !button.disabled) return;
           void logEvent('UI_ACTION_INTERACTION', {
             phase,
             scope,
