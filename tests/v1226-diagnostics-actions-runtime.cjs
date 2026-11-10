@@ -105,4 +105,65 @@ async function testActionsController() {
   pass('actions controller preserves background-epoch detection and resync lifecycle');
 }
 
-(async()=>{await testDiagnostics(); await testActionsController(); console.log(`${n}/5 PASS`);})().catch(e=>{console.error(e.stack||e);process.exit(1)});
+
+// KAR-17: normal operations must not flood persistent diagnostics. Anomalies
+// must retain enough context to investigate a genuine UI-Stuck regression.
+async function testActionsDiagnosticRetirement() {
+  const source=fs.readFileSync('actions-diagnostics-controller.js','utf8');
+  const ctx={console,Date,Promise,Object,String,Number,Array,Math,Map,Set,setTimeout,clearTimeout,performance:{now:()=>Date.now()},module:{exports:{}}};
+  ctx.globalThis=ctx; vm.createContext(ctx); vm.runInContext(source,ctx);
+  const button=fakeButton('inventoryButton');
+  const events=[], listeners={primary:{},document:{},inventory:{}};
+  const on=(scope)=>({addEventListener(type,handler){(listeners[scope][type] ||= []).push(handler);}});
+  const primary={...on('primary'),contains:node=>node===button,getBoundingClientRect:()=>({left:0,top:0,right:100,bottom:40})};
+  const accordion={getBoundingClientRect:()=>({left:0,top:0,right:120,bottom:60}),querySelector:()=>null};
+  let hitTarget=button, sanitizeCount=0;
+  const doc={...on('document'),elementFromPoint:()=>hitTarget,elementsFromPoint:()=>[hitTarget],getElementById:()=>button};
+  const inventory={...on('inventory'),contains:node=>node===button};
+  const card={};
+  button.closest=selector=>selector==='.inventory-card'?card:null;
+  const controller=ctx.KRActionsDiagnosticsController.create({
+    document:doc,window:{getComputedStyle:()=>({display:'block',visibility:'visible',opacity:'1',pointerEvents:'auto'})},
+    primaryActions:primary,actionsAccordion:accordion,inventorySection:inventory,
+    sidebarActionEntries:()=>[['inventoryButton',button]],
+    actionDisableModel:()=>({disabled:false,reason:'ready'}),
+    accordionHeader:()=>null,accordionSnapshot:()=>null,
+    sanitizeAccordionAnimations:()=>{sanitizeCount++;},
+    snapshotContext:()=>({gateKind:'ready',gateAllowed:true}),
+    logEvent:async (...args)=>events.push(args)
+  });
+  controller.install();
+  controller.recordSnapshot('routine-state');
+  assert.equal(events.length,0,'routine state snapshots must not be persisted');
+  pass('normal state changes do not produce diagnostic snapshot floods');
+
+  const pointer={target:button,clientX:10,clientY:10};
+  listeners.primary.pointerdown[0](pointer);
+  listeners.primary.click[0](pointer);
+  listeners.document.pointerdown[0](pointer);
+  listeners.document.click[0](pointer);
+  listeners.inventory.pointerdown[0](pointer);
+  listeners.inventory.click[0](pointer);
+  assert.equal(events.length,0,'ordinary clicks and hit-tests must not fill diagnostics');
+  assert.equal(sanitizeCount,1,'normal pointerdown must still sanitize stale accordion animations');
+  pass('routine UI interactions remain functional without verbose diagnostics');
+
+  hitTarget={tagName:'DIV',id:'occluder',className:'overlay',dataset:{},getAttribute:()=>null,closest:()=>null};
+  listeners.document.pointerdown[0](pointer);
+  const overlay=events.find(x=>x[0]==='UI_ACTIONS_POINTER_CAPTURE');
+  assert.ok(overlay,'occluding hit-target must retain pointer evidence');
+  assert.equal(overlay[1].possibleOverlay,true);
+  assert.ok(Array.isArray(overlay[1].hitStack));
+  pass('overlay anomaly retains full hit-test evidence');
+
+  events.length=0;hitTarget=button;button.disabled=true;
+  listeners.primary.pointerdown[0](pointer);
+  assert.ok(events.some(x=>x[0]==='UI_ACTION_ATTEMPT'),'disabled action attempts remain diagnosable');
+  assert.ok(events.some(x=>x[0]==='UI_ACTION_STATE_DESYNC_DETECTED'),'disable-model drift remains warn-level');
+  assert.ok(events.some(x=>x[0]==='UI_ACTIONS_STATE_SNAPSHOT'),'anomaly retains a full forced snapshot');
+  listeners.inventory.pointerdown[0](pointer);
+  assert.ok(events.some(x=>x[0]==='UI_ACTION_INTERACTION'),'blocked inventory action retains evidence');
+  pass('disabled actions and state desynchronization stay observable');
+}
+
+(async()=>{await testDiagnostics(); await testActionsController(); await testActionsDiagnosticRetirement(); console.log(`${n}/9 PASS`);})().catch(e=>{console.error(e.stack||e);process.exit(1)});
