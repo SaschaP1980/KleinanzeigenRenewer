@@ -133,6 +133,12 @@ function create(data, ports={}){return Additional.create({storageLocal:data.loca
     &&labelMatch.context.profile.reason==='LIVE_ACCOUNT_NAME_MATCH_STABLE_ID_UNVERIFIED'
     &&labelMatch.eligibleForLease===false,
     'matching site display name is a hint, NEVER a verified stable account ID');
+  const whitespace=await create(db(accountLocal),{
+    queryBrowserTabsReadOnly:async()=>structuredClone(myAdsTabs),
+    readAccountPageStatusReadOnly:async()=>statusFor('Fixture   account')
+  }).observe();
+  ok(whitespace.context.profile.reason==='LIVE_ACCOUNT_NAME_MATCH_STABLE_ID_UNVERIFIED',
+    'site account display whitespace is normalized before comparing saved labels');
   const switched=await create(db(accountLocal),{
     queryBrowserTabsReadOnly:async()=>structuredClone(myAdsTabs),
     readAccountPageStatusReadOnly:async()=>statusFor('Other logged in account')

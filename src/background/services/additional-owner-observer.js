@@ -96,7 +96,7 @@
     const pending=new Map(OWNERS.map(n=>[n,0]));
     const worker=typeof workerInstanceId==='string'&&PROFILE.test(workerInstanceId)?workerInstanceId:null;
     function snapshotInFlight(){return Object.freeze(Object.fromEntries(OWNERS.map(n=>[n,pending.get(n)])));}
-    const label=value=>typeof value==='string'?value.replace(/\\s+/g,' ').trim().toLocaleLowerCase('de-DE'):'';
+    const label=value=>typeof value==='string'?value.replace(/\s+/g,' ').trim().toLocaleLowerCase('de-DE'):'';
     function isMyAdsTab(tab){
       if(!record(tab)||typeof tab.url!=='string')return false;
       try{
