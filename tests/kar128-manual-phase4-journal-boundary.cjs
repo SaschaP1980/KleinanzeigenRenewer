@@ -16,18 +16,23 @@ function storage() {
   async set(r){Object.assign(map,structuredClone(r));}
  };
 }
-function harness(beginPort) {
+function harness(beginPort, switchProfileAfterReceipt=false) {
  let deleteCalls=0,receiptStateAtDelete=null;
+ let liveProfile='Source Profile';
  const db=storage();let i=0;
  const journal=Journal.create({storageLocal:db,newToken:()=> 'attempt-'+(++i),
    workerInstanceId:'worker-test',clock:()=>1337,...require('./helpers/phase4-locks.cjs')()});
  const opts={
-  beginPhase4Attempt:beginPort?req=>beginPort(req,journal):req=>journal.begin(req),
+  beginPhase4Attempt:async req=>{
+    const receipt=await (beginPort?beginPort(req,journal):journal.begin(req));
+    if(switchProfileAfterReceipt)liveProfile='Switched Account';
+    return receipt;
+  },
   createManagedWorkerTab:async()=>({id:42}),
   waitForTabComplete:async()=>true,
   ensureContentConnection:async()=>true,
   sendTabRequestWithBootstrap:async(_tab,request)=>{
-    if(request.type==='MY_ADS_STATUS')return {isMyAdsPage:true,isProjectsTab:true,profileName:'Source Profile'};
+    if(request.type==='MY_ADS_STATUS')return {isMyAdsPage:true,isProjectsTab:true,profileName:liveProfile};
     if(request.type==='DELETE_OWN_AD_BY_ID'){
       deleteCalls++;receiptStateAtDelete=Object.values(db.map).map(x=>x.state);
       return {actionTriggered:true};
@@ -68,6 +73,15 @@ async function main(){
  const blocked=harness(()=>{throw Object.assign(new Error('KR_PHASE4_JOURNAL_STORAGE'),{code:'KR_PHASE4_JOURNAL_STORAGE'});});
  await assert.rejects(blocked.api.preverifyAndTriggerRenewalSourceDeleteAttempt(session,'Source Profile',null,{attempt:1},0),/KR_PHASE4_JOURNAL_STORAGE/);
  ok(blocked.deleteCalls===0,'storage or journal failure cannot start remote deletion');
+ // A live account can switch during the journal's asynchronous storage write.
+ // A durable receipt must remain unresolved, and no DELETE may be dispatched.
+ const changed=harness(null,true);
+ await assert.rejects(changed.api.preverifyAndTriggerRenewalSourceDeleteAttempt(session,'Source Profile',null,{attempt:1},0),
+   /KR_PHASE4_JOURNAL_ACCOUNT_CHANGED/);
+ ok(changed.deleteCalls===0,
+   'postreceipt account switch denies remote source delete before a side effect');
+ ok(Object.values(changed.db.map).length===1&&Object.values(changed.db.map)[0].state==='outcome-unverified',
+   'account switch after durable write preserves unresolved immutable Phase-4 attempt');
  const mismatch=harness();
  await assert.rejects(mismatch.api.preverifyAndTriggerRenewalSourceDeleteAttempt(session,'Other Profile',null,{attempt:1},0),/Kleinanzeigen-Konto entspricht nicht/);
  ok(mismatch.deleteCalls===0&&Object.keys(mismatch.db.map).length===0,
