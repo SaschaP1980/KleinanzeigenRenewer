@@ -29,7 +29,7 @@ assert.equal(helpers.artLabel(shoe), 'Sneaker & Sportschuhe',
 assert.equal(helpers.artLabel(bathrobe), 'Unterwäsche',
   'owner-proven bathrobe displays saved Typ, never infers from title');
 assert.equal(helpers.artLabel(bicycleTube), 'Zubehör',
-  'owner's Kleinanzeigen form and saved inventory details place Art Zubehör BEFORE Typ Cityräder');
+  "owner's Kleinanzeigen form and saved inventory details place Art Zubehör BEFORE Typ Cityräder");
 const bicycleTubeReverse = record('Fahrradschlauch reversed', ['Auto, Rad & Boot', 'Fahrräder & Zubehör'], [
   field('Typ', 'Cityräder', 'city'), field('Art', 'Zubehör', 'accessories')]);
 assert.equal(helpers.artLabel(bicycleTubeReverse), 'Cityräder',
