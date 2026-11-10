@@ -3322,12 +3322,17 @@ function requirePersistedOwnerObserver() {
 // producers or NativeHost transaction outcome. Supplying the existing 7+8
 // ACTIVE/UNKNOWN observers as confirmed IDLE would be a security regression.
 // Do not add an app/content route to captureForReserve/reserveThroughFence.
-const privateOwnerUpdateAuthority = TrustedOwnerAuthority.create({
+const privateOwnerUpdateAuthority = typeof TrustedOwnerAuthority?.create === 'function'
+  && typeof UpdateIdlePolicy?.evaluate === 'function'
+  ? TrustedOwnerAuthority.create({
   storageLocal: chrome.storage.local, storageSession: chrome.storage.session,
   clock: () => Date.now(), newToken: () => crypto.randomUUID(),
   workerInstanceId: ownerWorkerInstanceId,
   ownerPolicy: UpdateIdlePolicy, lockManager: globalThis.navigator?.locks
-});
+}) : null;
+// In older VM fixture harnesses this module is intentionally absent; that
+// keeps only the optional *positive* updater authority disabled. Ordinary
+// routed safety remains enforced by the existing P8 admission gate.
 void privateOwnerUpdateAuthority;
 // Additional owner observation is ACTIVE/UNKNOWN only and cannot grant a lease.
 let additionalOwnerObserver = null;
