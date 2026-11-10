@@ -13,7 +13,8 @@
     return e;
   }
   function create(options = {}) {
-    const { storageLocal, policy, getOwnerSnapshot, clock, newToken, atomicCoordinator } = options;
+    const { storageLocal, policy, getOwnerSnapshot, clock, newToken, atomicCoordinator,
+      verifyCancelledTransaction } = options;
     if (typeof storageLocal?.get !== 'function' || typeof storageLocal?.set !== 'function')
       throw new Error('Update fence requires persistent storage.');
     if (typeof clock !== 'function' || typeof newToken !== 'function')
@@ -38,9 +39,19 @@
       catch { throw denied('KR_UPDATE_FENCE_STORAGE'); }
     }
     function isReleased(record) {
-      return record && record.schema === VERSION && record.state === 'released'
-        && typeof record.transactionId === 'string' && typeof record.profileId === 'string'
-        && typeof record.workerGeneration === 'string' && typeof record.token === 'string';
+      const id = value => typeof value === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(value);
+      return record && typeof record === 'object' && !Array.isArray(record)
+        && record.schema === VERSION && record.state === 'released'
+        && id(record.transactionId) && id(record.profileId)
+        && id(record.workerGeneration) && id(record.token)
+        && Number.isSafeInteger(record.createdAtMs) && record.createdAtMs >= 0
+        && Number.isSafeInteger(record.expiresAtMs)
+        && record.expiresAtMs >= record.createdAtMs
+        && Number.isSafeInteger(record.cancelledAtMs)
+        && record.cancelledAtMs >= record.createdAtMs
+        && Number.isSafeInteger(record.releasedAtMs)
+        && record.releasedAtMs >= record.cancelledAtMs
+        && Object.keys(record).length === 10;
     }
     function ensureFree(record) {
       if (record !== null && !isReleased(record)) throw denied('KR_UPDATE_FENCE_HELD');
@@ -115,17 +126,53 @@
           throw denied('KR_UPDATE_FENCE_OWNERSHIP');
         const replacement = { ...existing, state: 'cancelled', cancelledAtMs: now() };
         await write(replacement);
+        const acknowledged = await read();
+        if (!acknowledged || Object.keys(replacement).some(k =>
+          acknowledged[k] !== replacement[k]))
+          throw denied('KR_UPDATE_FENCE_STORAGE');
         return Object.freeze({ state: 'cancelled' });
       });
     }
-    async function singleWorkerRecover(request = {}) {
+    function matchesCancelled(record, request) {
+      return record && record.schema === VERSION && record.state === 'cancelled'
+        && request?.token === record.token
+        && request?.transactionId === record.transactionId
+        && request?.profileId === record.profileId
+        && typeof record.workerGeneration === 'string'
+        && Number.isSafeInteger(record.cancelledAtMs);
+    }
+    function matchesProof(record, proof, tick) {
+      // A caller's confirmed:true is not a host observation. Production does
+      // not inject this verifier while NativeHost only supports health/check.
+      return proof && typeof proof === 'object' && !Array.isArray(proof)
+        && proof.schema === 1 && proof.source === 'independent-native-transaction-inspection'
+        && proof.state === 'no-pending-update-or-rollback'
+        && proof.profileId === record.profileId
+        && proof.workerGeneration === record.workerGeneration
+        && proof.transactionId === record.transactionId
+        && proof.token === record.token
+        && proof.noPendingApply === true && proof.noPendingRollback === true
+        && proof.extensionSourceIntact === true
+        && Number.isSafeInteger(proof.verifiedAtMs)
+        && proof.verifiedAtMs >= record.cancelledAtMs
+        && proof.verifiedAtMs <= tick && tick - proof.verifiedAtMs <= 2000;
+    }
+    async function singleWorkerRecover(request, original, proof) {
       return serialize(async () => {
         const value = await read();
-        if (!value || value.schema !== VERSION || value.state !== 'cancelled'
-          || request.confirmed !== true || request.profileId !== value.profileId)
+        if (!matchesCancelled(value, request) || !original ||
+            Object.keys(original).length !== Object.keys(value).length ||
+            Object.keys(original).some(k => original[k] !== value[k]))
           throw denied('KR_UPDATE_FENCE_OWNERSHIP');
-        await write({ ...value, state: 'released', releasedAtMs: now() });
-        return Object.freeze({ state: 'released' });
+        if (!matchesProof(value, proof, now()))
+          throw denied('KR_UPDATE_FENCE_RECOVERY_UNVERIFIED');
+        const released = { ...value, state: 'released', releasedAtMs: now() };
+        await write(released);
+        const acknowledged = await read();
+        if (!acknowledged || !isReleased(acknowledged) ||
+            Object.keys(released).some(k => acknowledged[k] !== released[k]))
+          throw denied('KR_UPDATE_FENCE_STORAGE');
+        return Object.freeze({state:'released'});
       });
     }
     async function status() {
@@ -146,9 +193,29 @@
     const cancel=request=>atomicCoordinator
       ? atomicCoordinator.guardReserve(()=>singleWorkerCancel(request))
       : singleWorkerCancel(request);
-    const recover=request=>atomicCoordinator
-      ? atomicCoordinator.guardReserve(()=>singleWorkerRecover(request))
-      : singleWorkerRecover(request);
+    async function recover(request = {}) {
+      // Obtain a durable cancelled snapshot under the same P8 Web Lock, then
+      // perform independent read-only host verification OUTSIDE the lock.
+      // Reacquire the lock and reread the exact record before release; any
+      // changed state or unfinished cross-worker start keeps it held.
+      const probe = () => serialize(() => read());
+      const original = atomicCoordinator
+        ? await atomicCoordinator.guardReserve(probe, request.workerGeneration)
+        : await probe();
+      if (!matchesCancelled(original, request))
+        throw denied('KR_UPDATE_FENCE_OWNERSHIP');
+      if (typeof verifyCancelledTransaction !== 'function')
+        throw denied('KR_UPDATE_FENCE_RECOVERY_UNVERIFIED');
+      let proof;
+      try { proof = await verifyCancelledTransaction(Object.freeze({...original})); }
+      catch { throw denied('KR_UPDATE_FENCE_RECOVERY_UNVERIFIED'); }
+      if (!matchesProof(original, proof, now()))
+        throw denied('KR_UPDATE_FENCE_RECOVERY_UNVERIFIED');
+      return atomicCoordinator
+        ? atomicCoordinator.guardReserve(
+          () => singleWorkerRecover(request, original, proof), request.workerGeneration)
+        : singleWorkerRecover(request, original, proof);
+    }
     return Object.freeze({ withAdmission, reserve, cancel, recover, status });
   }
   const API = Object.freeze({ create, STORAGE_KEY });
