@@ -20,7 +20,7 @@ function db(local={},session={}) {
     get writes(){return writes;}
   };
 }
-function create(data){return Additional.create({storageLocal:data.local,storageSession:data.session,workerInstanceId:'worker-current',clock:()=>123000});}
+function create(data, ports={}){return Additional.create({storageLocal:data.local,storageSession:data.session,workerInstanceId:'worker-current',clock:()=>123000,...ports});}
 (async()=>{
   const expected=['singleInventory','trashMutation','managedTabs','profileTransition',
     'accountTransition','emergencyRecovery','diagnosticExport','nativeUpdateTransaction'];
@@ -50,6 +50,61 @@ function create(data){return Additional.create({storageLocal:data.local,storageS
   tabbed.sessionData.tabRegistryV1['19'].lifecycleState='gone';
   const gone=await create(tabbed).observe();
   ok(gone.observations.managedTabs.state==='unknown','gone registry entry alone is no proof of idle');
+  // P1.3-E1 test-first source corroboration: a gone registry tombstone
+  // cannot by itself hide a physically present Chrome tab.
+  const goneButLive=db({}, {tabRegistryV1:{
+    '41':{tabId:41,managed:true,lifecycleState:'gone',closedAt:'2026-11-10T00:00:00Z'}
+  }});
+  let queried=0;
+  const contradiction=await create(goneButLive,{queryBrowserTabsReadOnly:async()=>{
+    queried++;return [{id:41,url:'https://www.kleinanzeigen.de/m-meine-anzeigen.html'}];
+  }}).observe();
+  ok(queried===1&&contradiction.observations.managedTabs.state==='unknown'
+    &&contradiction.observations.managedTabs.reason==='GONE_MANAGED_TAB_STILL_OPEN',
+    'real Chrome tab still present after managed GONE blocks any positive idle assertion');
+  const queryUnavailable=await create(db(),{queryBrowserTabsReadOnly:async()=>{
+    throw Error('CHROME_QUERY_REJECTED');
+  }}).observe();
+  ok(queryUnavailable.observations.managedTabs.state==='unknown'
+    &&queryUnavailable.observations.managedTabs.reason==='LIVE_TABS_QUERY_FAILED',
+    'Chrome tab enumeration failure is explicitly UNKNOWN, never IDLE');
+  const malformedTabs=await create(db(),{queryBrowserTabsReadOnly:async()=>[
+    {id:9},{id:9}
+  ]}).observe();
+  ok(malformedTabs.observations.managedTabs.state==='unknown'
+    &&malformedTabs.observations.managedTabs.reason==='LIVE_TABS_INVALID',
+    'duplicate or malformed real tab IDs cannot be treated as complete enumeration');
+  const torn=db({}, {tabRegistryV1:{
+    '51':{tabId:51,managed:true,lifecycleState:'gone'}
+  }});
+  let sessionReads=0;
+  const rawSessionGet=torn.session.get.bind(torn.session);
+  torn.session.get=async keys=>{
+    const result=await rawSessionGet(keys);
+    if(++sessionReads===1) torn.sessionData.tabRegistryV1['51'].lifecycleState='active';
+    return result;
+  };
+  const changed=await create(torn,{queryBrowserTabsReadOnly:async()=>[]}).observe();
+  ok(sessionReads>=2&&changed.observations.managedTabs.state==='unknown'
+    &&changed.observations.managedTabs.reason==='TAB_REGISTRY_CHANGED_DURING_READ',
+    'torn registry snapshot during Chrome query blocks unverified idle');
+  const stillActive=await create(tabbed,{queryBrowserTabsReadOnly:async()=>{
+    throw Error('CHROME_QUERY_REJECTED');
+  }}).observe();
+  ok(stillActive.observations.managedTabs.state==='unknown',
+    'previously closed tab without live query cannot be promoted to idle');
+  const ongoing=db({}, {tabRegistryV1:{
+    '61':{tabId:61,managed:true,lifecycleState:'active'}
+  }});
+  const persistedActive=await create(ongoing,{queryBrowserTabsReadOnly:async()=>{
+    throw Error('CHROME_QUERY_REJECTED');
+  }}).observe();
+  ok(persistedActive.observations.managedTabs.state==='active',
+    'positive busy registry evidence remains ACTIVE even if Chrome API fails');
+  ok(goneButLive.writes===0&&torn.writes===0,
+    'live Chrome/registry corroboration remains strictly read-only');
+  ok(bg.includes('queryBrowserTabsReadOnly:()=>chrome.tabs.query({})'),
+    'actual production background injects real read-only Chrome tab enumeration');
   const legacy=db({}, {managedWorkerTabsV1:{'22':{kind:'worker'}}});
   ok((await create(legacy).observe()).observations.managedTabs.state==='active',
     'live legacy managed worker registry also blocks optimistic owner idle');
