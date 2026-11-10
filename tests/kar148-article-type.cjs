@@ -21,15 +21,22 @@ const shoe = record('adidas Gazelle blue', ['Mode & Beauty', 'Damenschuhe'], [
   field('Art', 'Sneaker & Sportschuhe', 'sneaker')]);
 const bathrobe = record('Bademantel grau/weiß', ['Familie, Kind & Baby', 'Baby- & Kinderkleidung'], [
   field('Typ', 'Unterwäsche', 'underwear')]);
-const bicycleTube = record('Fahrradschlauch', ['Freizeit, Hobby & Nachbarschaft', 'Fahrräder & Zubehör'], [
+const bicycleTube = record('Fahrradschlauch', ['Auto, Rad & Boot', 'Fahrräder & Zubehör'], [
   field('Art', 'Zubehör', 'accessories'), field('Typ', 'Cityräder', 'city')]);
 
 assert.equal(helpers.artLabel(shoe), 'Sneaker & Sportschuhe',
   'owner-proven shoe displays saved Art');
 assert.equal(helpers.artLabel(bathrobe), 'Unterwäsche',
   'owner-proven bathrobe displays saved Typ, never infers from title');
-assert.equal(helpers.artLabel(bicycleTube), '–',
-  'conflicting Art and Typ on bike tube are ambiguous without authoritative category evidence');
+assert.equal(helpers.artLabel(bicycleTube), 'Zubehör',
+  "owner's Kleinanzeigen form and saved inventory details place Art Zubehör BEFORE Typ Cityräder");
+const bicycleTubeReverse = record('Fahrradschlauch reversed', ['Auto, Rad & Boot', 'Fahrräder & Zubehör'], [
+  field('Typ', 'Cityräder', 'city'), field('Art', 'Zubehör', 'accessories')]);
+assert.equal(helpers.artLabel(bicycleTubeReverse), 'Cityräder',
+  'reverse saved detail order must select Typ, not a hardcoded Art-first priority');
+assert.equal(helpers.artLabel(record('Other attributes first', [], [
+  field('Zustand', 'Neu'), field('Art', 'Zubehör'), field('Typ', 'Cityräder')])), 'Zubehör',
+  'unrelated Zustand does not prevent the first Art/Typ from being the summary article type');
 assert.equal(helpers.artLabel(record('unrelated', [], [field('Kategorie', 'Beauty')])), '–',
   'do not infer type from a category title or unrelated field');
 assert.equal(helpers.artLabel(record('empty', [], [])), '–');
@@ -40,22 +47,22 @@ assert.equal(helpers.artLabel(record('Duplicate same', [], [field('Art', 'Sneake
 assert.equal(helpers.artLabel(record('Duplicate conflict', [], [field('Art', 'Sneaker'), field('ART', 'Sandalen')])), '–');
 assert.equal(helpers.artLabel(record('Two fields, empty Art', [], [field('Art', ''), field('Typ', 'Unterwäsche')])), 'Unterwäsche');
 assert.equal(helpers.artLabel(record('Two fields, empty Typ', [], [field('Art', 'Zubehör'), field('Typ', '')])), 'Zubehör');
-assert.equal(helpers.artLabel(record('Two agreeing but unproven keys', [], [field('Art', 'Schuhe'), field('Typ', 'Schuhe')])), '–',
-  'two fields require authoritative category-key provenance, not guesswork even if values match');
+assert.equal(helpers.artLabel(record('Two agreeing keys', [], [field('Art', 'Schuhe'), field('Typ', 'Schuhe')])), 'Schuhe',
+  'first saved Art/Typ wins when both values agree');
 
 const scopedShoeWithTwoFields = record('This title must not determine type',
-  ['Mode & Beauty', 'Damenschuhe'], [field('Typ', 'Unrelated subfield'), field('Art', 'Sneaker & Sportschuhe')]);
+  ['Mode & Beauty', 'Damenschuhe'], [field('Art', 'Sneaker & Sportschuhe'), field('Typ', 'Unrelated subfield')]);
 assert.equal(helpers.artLabel(scopedShoeWithTwoFields), 'Sneaker & Sportschuhe',
-  'exact owner-observed Damenschuhe category proves Art field despite an unrelated Typ');
+  'first saved Art field wins regardless of an unrelated later Typ');
 const scopedBathrobeWithTwoFields = record('No title inference',
-  ['Familie, Kind & Baby', 'Baby- & Kinderkleidung'], [field('Art', 'Other attribute'), field('Typ', 'Unterwäsche')]);
+  ['Familie, Kind & Baby', 'Baby- & Kinderkleidung'], [field('Typ', 'Unterwäsche'), field('Art', 'Other attribute')]);
 assert.equal(helpers.artLabel(scopedBathrobeWithTwoFields), 'Unterwäsche',
-  'exact owner-observed Kinderkleidung category proves Typ field despite another Art');
-assert.equal(helpers.artLabel({ ...scopedShoeWithTwoFields, category: { path: ['Mode & Beauty', 'Herrenschuhe'] } }), '–',
-  'a related but unverified category must not inherit the Damenschuhe resolution');
+  'first saved Typ field wins regardless of a later Art field');
+assert.equal(helpers.artLabel({ ...scopedShoeWithTwoFields, category: { path: ['Mode & Beauty', 'Herrenschuhe'] } }), 'Sneaker & Sportschuhe',
+  'exact category path is not relevant when the original saved attribute order is explicit');
 assert.equal(helpers.artLabel({ ...scopedBathrobeWithTwoFields, category: null,
   categoryPath: ['Familie, Kind & Baby', 'Baby- & Kinderkleidung'] }), 'Unterwäsche',
-  'verified full category path fallback may resolve the preserved recorded Typ');
+  'saved field order is sufficient even when category is absent');
 
 const before = JSON.stringify(bathrobe);
 assert.equal(helpers.artLabel(bathrobe), 'Unterwäsche');
@@ -69,4 +76,4 @@ assert.doesNotMatch(renderer, /makeInfoLine\('Art',\s*artLabel\(record\)\)/,
   'remove old hardcoded Art summary heading without changing original detailed Art labels');
 assert.match(renderer, /\['Weitere Angaben',\s*record\.dynamicAttributes\?\.map\(item => \`\$\{item\.label\}:/,
   'expanded details must continue to show untouched original attribute names');
-console.log('PASS KAR-148 category-aware article-type source/data/DOM contract');
+console.log('PASS KAR-148 first saved Art/Typ detail order and rendering contract');
