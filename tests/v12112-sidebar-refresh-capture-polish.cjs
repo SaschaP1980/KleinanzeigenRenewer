@@ -49,9 +49,9 @@ check('candidate dialog renders NEU and PAPIERKORB badges without guessing unkno
   assert.match(js, /badge\.textContent\s*=\s*storageState === 'new' \? 'NEU' : 'PAPIERKORB'/);
   assert.match(js, /if \(selectable && \(storageState === 'new' \|\| storageState === 'trash'\)\)/);
 });
-check('bottom diagnostics remain until sidebar fix is natively verified', () => {
-  assert.match(js, /UI_SIDEBAR_BOTTOM_REACHED/);
-  assert.match(js, /UI_SIDEBAR_GEOMETRY_CHANGED/);
+check('KAR-16 bottom-clamp native acceptance retired routine logging', () => {
+  assert.doesNotMatch(js, /UI_SIDEBAR_BOTTOM_REACHED|UI_SIDEBAR_GEOMETRY_CHANGED|UI_SIDEBAR_SCROLL_SAMPLE/);
+  assert.match(js, /UI_SIDEBAR_BOTTOM_OSCILLATION_DETECTED/);
 });
 check('actions diagnostics remain active', () => {
   assert.match(actionCode, /UI_ACTIONS_STATE_SNAPSHOT/);
