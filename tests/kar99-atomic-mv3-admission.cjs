@@ -70,6 +70,16 @@ function snapshot(){const gen='worker-one',profile='profile-one',now=123000;
    newToken:()=> 'fence_'+(++serial)+'_unique',atomicCoordinator:b,
    policy:Policy,getOwnerSnapshot:async()=>snapshot()});
  const request={profileId:'profile-one',workerGeneration:'worker-one',transactionId:'tx-one'};
+ // P8 RED: a forged/stale all-IDLE observation from worker-one must not
+ // authorize worker-two to reserve under an unrelated worker generation.
+ const staleStore=disk(),staleWorker=make(staleStore,locks,'worker-two');
+ const staleGate=Fence.create({storageLocal:staleStore,clock:()=>123000,
+   newToken:()=> 'fake_stale_generation_987654321',
+   atomicCoordinator:staleWorker,policy:Policy,getOwnerSnapshot:async()=>snapshot()});
+ await reject(staleGate.reserve(request),'KR_UPDATE_FENCE_ATOMIC_GENERATION',
+   'a different MV3 worker cannot reserve using a stale all-idle generation');
+ ok(Object.keys(staleStore.data).length===0,
+   'stale worker denial leaves no durable reserved transaction');
  const approved=await gateOne.reserve(request);
  ok(approved.state==='reserved','positive test-only fake owner snapshot serialized');
  await reject(gateTwo.withAdmission('START_ARCHIVE',()=>true),'KR_UPDATE_FENCE_HELD',
