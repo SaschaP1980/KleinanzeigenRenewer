@@ -3299,13 +3299,14 @@ function requireUpdateWorkflowFence() {
 // This tracker covers positively identified autonomous paths only. Message
 // handlers, detached tasks and previous worker generations still need their
 // own complete proofs before KAR-97 can treat ANY owner as confirmed idle.
+const ownerWorkerInstanceId = crypto.randomUUID();
 let persistedOwnerObserver = null;
 function requirePersistedOwnerObserver() {
   if (!persistedOwnerObserver) {
     if (typeof PersistedOwnerObserver?.create !== 'function') throw new Error('KR_UPDATE_OWNER_OBSERVER_UNAVAILABLE');
     persistedOwnerObserver = PersistedOwnerObserver.create({
       storageLocal: chrome.storage.local, storageSession: chrome.storage.session, clock: () => Date.now(),
-      workerInstanceId: crypto.randomUUID()
+      workerInstanceId:ownerWorkerInstanceId
     });
   }
   return persistedOwnerObserver;
@@ -3318,7 +3319,7 @@ function requireAdditionalOwnerObserver() {
       throw new Error('KR_ADDITIONAL_OWNER_OBSERVER_UNAVAILABLE');
     additionalOwnerObserver = AdditionalOwnerObserver.create({
       storageLocal:chrome.storage.local,storageSession:chrome.storage.session,
-      clock:()=>Date.now(),workerInstanceId:crypto.randomUUID()
+      clock:()=>Date.now(),workerInstanceId:ownerWorkerInstanceId
     });
   }
   return additionalOwnerObserver;
@@ -3356,7 +3357,8 @@ function withAutonomousAdmission(kind, task) {
       task = () => requirePersistedOwnerObserver().track(names, admittedTask);
     }
     const started = task;
-    task = () => requireAdditionalOwnerObserver().track(AdditionalOwnerObserver.OWNERS, started);
+    const namesForKind = AdditionalOwnerObserver.ownersForOperation(kind, 'autonomous');
+    task = () => requireAdditionalOwnerObserver().track(namesForKind, started);
     return requireUpdateWorkflowFence().withAdmission('AUTONOMOUS:' + kind, task);
   } catch (error) { return Promise.reject(error); }
 }
@@ -3365,7 +3367,8 @@ function withAutonomousAdmission(kind, task) {
 // Promise. The same existing fence arbitrates admission. This is in-memory
 // BUSY evidence only, never proof of idle after restart or update permission.
 function withRoutedAdmission(type, task) {
-  return requireUpdateWorkflowFence().withAdmission(type, () => requirePersistedOwnerObserver().track(PersistedOwnerObserver.OWNERS, () => requireAdditionalOwnerObserver().track(AdditionalOwnerObserver.OWNERS, task)));
+  const namesForType = AdditionalOwnerObserver.ownersForOperation(type, 'routed');
+  return requireUpdateWorkflowFence().withAdmission(type, () => requirePersistedOwnerObserver().track(PersistedOwnerObserver.OWNERS, () => namesForType.length ? requireAdditionalOwnerObserver().track(namesForType, task) : task()));
 }
 const backgroundMessageRouter = BackgroundMessageRouter.create({
   withWorkflowAdmission: (type, task) => withRoutedAdmission(type, task),

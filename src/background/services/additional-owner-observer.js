@@ -6,6 +6,84 @@
     'singleInventory','trashMutation','managedTabs','profileTransition',
     'accountTransition','emergencyRecovery','diagnosticExport','nativeUpdateTransaction'
   ]);
+  // Seven pre-existing read-only producers form the other half of the P7 view.
+  // These sightings never create a trusted worker-generation IDLE attestation.
+  const PERSISTED_OWNERS=Object.freeze([
+    'bulkInventory','bulkReconciliation','renewal','massRenewal',
+    'templateFill','archiveInsertion','insertionLock'
+  ]);
+  const ROUTED=Object.freeze({
+    CAPTURE_SINGLE_INVENTORY:['singleInventory','managedTabs'],
+    REFRESH_INVENTORY:['singleInventory','managedTabs'],
+    CHECK_INVENTORY_ONLINE_STATUS:['singleInventory','managedTabs'],
+    SAVE_INVENTORY:['singleInventory'],
+    DELETE_INVENTORY:['trashMutation'],
+    DELETE_TRASH_ENTRY:['trashMutation'],
+    RESET_TRASH_RETENTION:['trashMutation'],
+    CLEAR_INVENTORIES:['trashMutation'],
+    REMOVE_REPLACEMENT_READY_LOCAL:['trashMutation'],
+    DISCARD_RENEWAL_DRAFT:['trashMutation'],
+    FINISH_RENEWAL_REPLACEMENT:['trashMutation','managedTabs'],
+    SET_SELECTED_PROFILE:['profileTransition'],
+    RECOGNIZE_PROFILE:['accountTransition','profileTransition'],
+    PROBE_LIVE_KLEINANZEIGEN_ACCOUNT:['accountTransition','profileTransition'],
+    PREPARE_PROFILE_BACKUP_IMPORT:['profileTransition'],
+    FINALIZE_PROFILE_BACKUP_IMPORT:['profileTransition','trashMutation'],
+    DELETE_PROFILE:['profileTransition','trashMutation'],
+    ASSIGN_UNPROFILED_INVENTORIES:['profileTransition','singleInventory'],
+    RESET_ACTIVE_WORKFLOWS:['emergencyRecovery','managedTabs'],
+    GET_DIAGNOSTIC_EXPORT:['diagnosticExport'],
+    OPEN_EDIT_AD:['managedTabs'],
+    OPEN_READONLY_AD:['managedTabs'],
+    ENSURE_CONTENT_CONNECTION:['managedTabs'],
+    REACTIVATE_DISCARDED_TABS:['managedTabs'],
+    START_BULK_INVENTORY_OPERATION:['managedTabs'],
+    BULK_OPEN_WORKER:['managedTabs'],
+    BULK_EXTRACT_SAVE_WORKER:['managedTabs'],
+    BULK_CLOSE_WORKER:['managedTabs'],
+    START_MASS_RENEWAL_BATCH:['managedTabs'],
+    START_TEMPLATE_FILL:['managedTabs'],
+    START_TRASH_TEMPLATE_FILL:['managedTabs'],
+    START_ARCHIVE_INSERTION:['managedTabs'],
+    RETRY_RENEWAL_VERIFICATION:['managedTabs'],
+    RETRY_MASS_RENEWAL_ITEM:['managedTabs'],
+    RETRY_BULK_FAILURE:['managedTabs'],
+    PREPARE_TRASH_TEMPLATE_INVENTORY_CAPTURE:['managedTabs'],
+    // NativeHost currently offers only health/check and is not a fenced
+    // mutation route. Persistent reserved/cancelled transactions stay BUSY.
+    GET_NATIVE_UPDATE_STATUS:[]
+  });
+  const AUTONOMOUS=Object.freeze({
+    'tab-registry-boot':['managedTabs'],
+    'tab-registry-startup':['managedTabs'],
+    'tab-lifecycle-update':['managedTabs'],
+    'tab-activated':['managedTabs'],
+    'tab-removed':['managedTabs'],
+    'trash-publish-detection':['managedTabs'],
+    'trash-purge-boot':['trashMutation'],
+    'trash-purge-startup':['trashMutation'],
+    'trash-purge-installed':['trashMutation'],
+    'bulk-runtime-recovery':['emergencyRecovery','managedTabs'],
+    'bulk-watchdog':['emergencyRecovery'],
+    'renewal-resume':['emergencyRecovery','managedTabs'],
+    'archive-resume':['emergencyRecovery','managedTabs'],
+    'mass-resume':['emergencyRecovery','managedTabs'],
+    'renewal-phase1-retry':['emergencyRecovery','managedTabs'],
+    'renewal-detached-verify':['managedTabs'],
+    'renewal-detached-retry':['managedTabs'],
+    'renewal-auto-phase4':['managedTabs'],
+    'renewal-publish-detection':['managedTabs'],
+    'archive-postpublish-detached':['managedTabs'],
+    'mass-renewal-next-item':['managedTabs'],
+    'mass-renewal-watchdog-timer':['emergencyRecovery','managedTabs'],
+    'template-error-terminalize':['emergencyRecovery','managedTabs']
+  });
+  function ownersForOperation(kind,source){
+    if(typeof kind!=='string'||!kind)return OWNERS;
+    const table=source==='routed'?ROUTED:source==='autonomous'?AUTONOMOUS:null;
+    if(!table||!Object.hasOwn(table,kind))return OWNERS;
+    return Object.freeze([...table[kind]]);
+  }
   const PROFILE_KEYS=Object.freeze(['activeDetectedProfileV1','selectedInventoryProfileV1']);
   const PROFILE=/^[A-Za-z0-9_-]{1,128}$/;
   const record=x=>x!==null&&typeof x==='object'&&!Array.isArray(x);
@@ -91,9 +169,45 @@
         })
       });
     }
-    return Object.freeze({observe,track,snapshotInFlight});
+    async function observeAll(persistedObserver){
+      // Read both actual observers independently: one broken source must
+      // not hide a positively observed ACTIVE operation from the other.
+      const [p,a]=await Promise.allSettled([
+        Promise.resolve().then(()=>persistedObserver?.observe?.()),
+        Promise.resolve().then(()=>observe())
+      ]);
+      const persisted=p.status==='fulfilled'?p.value:null;
+      const additional=a.status==='fulfilled'?a.value:null;
+      const observations=Object.create(null);
+      for(const name of [...PERSISTED_OWNERS,...OWNERS]){
+        const source=PERSISTED_OWNERS.includes(name)?persisted:additional;
+        const item=source?.schema===1&&record(source?.observations)?source.observations[name]:null;
+        observations[name]=Object.freeze(
+          item?.state==='active'&&typeof item.reason==='string'&&item.reason
+            ? {state:'active',reason:item.reason}
+            : {state:'unknown',reason:item?.state==='idle'?'UNVERIFIED_IDLE_ATTESTATION'
+              :source?'OWNER_NOT_AUTHORITATIVE':'OWNER_SOURCE_UNAVAILABLE'}
+        );
+      }
+      const workerIds=[persisted?.context?.worker?.workerInstanceId,
+        additional?.context?.worker?.workerInstanceId];
+      const workerReason=workerIds.every(x=>typeof x==='string'&&PROFILE.test(x))
+        &&workerIds[0]!==workerIds[1]?'WORKER_GENERATION_MISMATCH'
+        :'NO_CROSS_WORKER_GENERATION_PROOF';
+      const tick=clock();
+      return Object.freeze({
+        schema:1,eligibleForLease:false,
+        observedAtMs:Number.isSafeInteger(tick)&&tick>=0?tick:null,
+        observations:Object.freeze(observations),
+        context:Object.freeze({
+          profile:Object.freeze({state:'unverified',reason:'LIVE_ACCOUNT_NOT_ATOMICALLY_BOUND'}),
+          worker:Object.freeze({state:'unverified',reason:workerReason,workerInstanceId:worker||null})
+        })
+      });
+    }
+    return Object.freeze({observe,observeAll,track,snapshotInFlight});
   }
-  const API=Object.freeze({create,OWNERS});
+  const API=Object.freeze({create,OWNERS,ownersForOperation});
   globalThis.KRDeps?.register?.('KRAdditionalOwnerObserver',API);
   if(typeof module!=='undefined'&&module?.exports)module.exports=API;
 })();
