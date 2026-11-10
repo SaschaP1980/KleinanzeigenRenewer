@@ -52,6 +52,10 @@ const remoteDelete = phase4.indexOf("type: 'DELETE_OWN_AD_BY_ID'");
 ok(intent >= 0 && remoteDelete > intent
    && phase4.indexOf("type: 'MY_ADS_STATUS'") < intent,
   'same-profile My Ads proof and durable Phase-4 intent both precede exact-ID remote DELETE');
+ok(phase4.indexOf("'RENEWAL_PHASE4_ATOMIC_PREVERIFY_DELETE_STARTED'")
+    < phase4.lastIndexOf("type: 'MY_ADS_STATUS'")
+   && phase4.lastIndexOf("type: 'MY_ADS_STATUS'") < remoteDelete,
+  'final independent My Ads account binding follows diagnostic await directly before DELETE');
 const ownDelete = source('src/content/inventory-delete-operations.js');
 const ownDeleteFn = section(ownDelete, 'async function deleteOwnAdById(', 'async function ');
 ok(ownDeleteFn.includes('exactDeleteControls(listing.root)')

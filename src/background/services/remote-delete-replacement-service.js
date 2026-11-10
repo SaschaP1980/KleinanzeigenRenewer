@@ -423,6 +423,20 @@ async function preverifyAndTriggerRenewalSourceDeleteAttempt(session, expectedPr
       newAdId: String(session.newAdId || '')
     });
 
+    await logDiagnostic('info', 'RENEWAL_PHASE4_ATOMIC_PREVERIFY_DELETE_STARTED', {
+      renewalId: session.renewalId,
+      sourceAdId: session.sourceAdId,
+      newAdId: session.newAdId,
+      attempt: attemptState?.attempt || null,
+      maxAttempts: renewalMaxPhaseAttempts(session),
+      attemptId: attemptState?.attemptId || null,
+      safetyModel: 'same-fresh-worker-full-scan-before-delete'
+    }, {
+      module: 'background',
+      operation: 'renewal-phase-4',
+      context: sessionCorrelationContext(session, { renewalId: session.renewalId, adId: session.sourceAdId, workerTabId: deleteTabId })
+    }).catch(() => {});
+
     // The logged-in account can change while the durable intent is written
     // and read back. Recheck the SAME actual My Ads worker before any remote
     // DELETE, leaving the immutable attempt unresolved on uncertainty.
@@ -442,20 +456,6 @@ async function preverifyAndTriggerRenewalSourceDeleteAttempt(session, expectedPr
       const code = 'KR_PHASE4_JOURNAL_ACCOUNT_CHANGED';
       throw Object.assign(new Error(code), { code });
     }
-
-    await logDiagnostic('info', 'RENEWAL_PHASE4_ATOMIC_PREVERIFY_DELETE_STARTED', {
-      renewalId: session.renewalId,
-      sourceAdId: session.sourceAdId,
-      newAdId: session.newAdId,
-      attempt: attemptState?.attempt || null,
-      maxAttempts: renewalMaxPhaseAttempts(session),
-      attemptId: attemptState?.attemptId || null,
-      safetyModel: 'same-fresh-worker-full-scan-before-delete'
-    }, {
-      module: 'background',
-      operation: 'renewal-phase-4',
-      context: sessionCorrelationContext(session, { renewalId: session.renewalId, adId: session.sourceAdId, workerTabId: deleteTabId })
-    }).catch(() => {});
 
     try {
       assertResetGeneration(resetGeneration, 'renewal-phase4-before-delete');
