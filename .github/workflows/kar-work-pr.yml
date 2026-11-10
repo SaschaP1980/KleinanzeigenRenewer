@@ -102,6 +102,9 @@ jobs:
           python3 scripts/kar-atomic-patch.py --mode plan --issue 52 --branch work/KAR-52 --work-sha "$PINNED_WORK_HEAD" --main-sha "$PINNED_MAIN_BASE"
       - name: Mandatory coverage and architecture gate
         run: bash scripts/coverage-gate.sh
+      - name: KAR-99 P1.3-B trusted positive owner authority (intentional RED until P1.3-C)
+        if: github.head_ref == 'work/KAR-99'
+        run: node tests/kar99-p13b-trusted-owner-authority.cjs
       - name: KAR-99 P8 real MV3 Web Locks probe (isolated, no account)
         if: github.head_ref == 'work/KAR-99'
         shell: bash
