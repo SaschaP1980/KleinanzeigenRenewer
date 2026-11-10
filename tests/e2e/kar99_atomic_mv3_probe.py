@@ -7,6 +7,8 @@ navigator.locks or chrome.storage.local. No account/network/NativeHost actions.
 from __future__ import annotations
 
 import argparse
+import base64
+import hashlib
 import json
 import os
 import shutil
@@ -31,9 +33,14 @@ def check(value, description):
 def make_fixture(root: Path):
     check(SOURCE.is_file(), "actual KAR-99 cross-worker atomic module missing")
     shutil.copy2(SOURCE, root / "cross-worker-atomic-admission.js")
+    # Public key pins this disposable fixture to a deterministic Chrome ID.
+    # It grants no permission and runs only in a fresh isolated browser profile.
+    public_key = json.loads((ROOT / "manifest.json").read_text(encoding="utf-8")).get("key")
+    check(isinstance(public_key, str) and bool(public_key),
+          "production public extension key unavailable for isolated MV3 fixture")
     (root / "manifest.json").write_text(json.dumps({
         "manifest_version": 3, "name": "KAR-99 isolated atomic MV3 verification",
-        "version": "0.0.1", "permissions": ["storage"],
+        "version": "0.0.1", "key": public_key, "permissions": ["storage"],
         "background": {"service_worker": "background.js"}
     }), encoding="utf-8")
     (root / "probe.html").write_text(
@@ -74,6 +81,13 @@ def make_fixture(root: Path):
     """, encoding="utf-8")
 
 
+def fixture_extension_id(root: Path):
+    """Derive real Chrome extension ID from the public manifest key (nibbles a-p)."""
+    key = json.loads((root / "manifest.json").read_text(encoding="utf-8"))["key"]
+    digest = hashlib.sha256(base64.b64decode(key, validate=True)).hexdigest()[:32]
+    return "".join(chr(ord("a") + int(nibble, 16)) for nibble in digest)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--report", required=True)
@@ -103,6 +117,18 @@ def main():
                 with tempfile.TemporaryDirectory(prefix="profile-", dir=temp) as profile:
                     context = playwright.chromium.launch_persistent_context(profile, **launch)
                     try:
+                        # Opening a genuine fixture extension page (and sending
+                        # its real message) wakes an otherwise lazy MV3 worker.
+                        # We STILL require the actual worker in Playwright and
+                        # verify its origin below; this never synthesizes PASS.
+                        expected_id = fixture_extension_id(ext)
+                        page = context.new_page()
+                        page.goto("chrome-extension://" + expected_id + "/probe.html",
+                                  wait_until="domcontentloaded", timeout=12000)
+                        page.evaluate("""() => {
+                          chrome.runtime.sendMessage({type:"info"}, () => void chrome.runtime.lastError);
+                          return true;
+                        }""")
                         deadline = time.monotonic() + 20
                         service_worker = None
                         while time.monotonic() < deadline:
@@ -116,9 +142,8 @@ def main():
                         check(service_worker is not None,
                               "real installed MV3 service worker did not start (INFRA, not PASS)")
                         extension_id = service_worker.url.split("/")[2]
-                        page = context.new_page()
-                        page.goto("chrome-extension://" + extension_id + "/probe.html",
-                                  wait_until="domcontentloaded", timeout=12000)
+                        check(extension_id == expected_id,
+                              "actual MV3 worker extension ID differs from pinned fixture ID")
                         info = page.evaluate("async () => ({pageLocks: typeof navigator.locks?.request === 'function', worker: await chrome.runtime.sendMessage({type:'info'})})")
                         check(info["pageLocks"] and info["worker"].get("lockApi"),
                               "Web Locks API unavailable in actual MV3 service-worker or extension page")
