@@ -443,6 +443,13 @@ def scenario_app_reopen_persistence(pw, browser_path, headless):
         env.app.goto(APP_URL, wait_until="domcontentloaded")
         env.app.locator(".app-shell").wait_for(state="visible")
         env.app.wait_for_function("() => document.querySelector('#globalViewCompact')?.getAttribute('aria-pressed') === 'true'")
+        # The view-mode and renewal-settings reads start concurrently; observing
+        # one hydrated control does not prove the other has finished loading.
+        # Require the value in persistent storage *and* the eventually hydrated UI.
+        reopened = env.app.evaluate("() => chrome.storage.local.get('renewalPhaseAttemptsV1')")
+        require(reopened.get("renewalPhaseAttemptsV1") == 4,
+                f"Retry-Konfiguration nach App-Schließen nicht persistiert: {reopened}")
+        env.app.wait_for_function("() => document.querySelector('#renewalRetryRange')?.value === '4'", timeout=10000)
         require(env.app.locator("#renewalRetryRange").input_value() == "4", "Retry-Konfiguration ging nach App-Schließen/-Öffnen verloren")
         return stored
     finally:
