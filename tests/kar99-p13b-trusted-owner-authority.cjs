@@ -424,3 +424,102 @@ test('P1.3-D / source-proof fixture: a verified non-managed tab may be considere
   }]});
   assert.equal((await gate.captureForReserve(request())).status,'candidate-idle');
 });
+
+
+// P1.3-F1: real managed-tab ownership readback source, not an IDLE
+// attestation. This must fail before the strict Chrome/session reader exists.
+function actualTabSource({registry,legacy = {},tabs = [],mutateAfterRead,
+                          browserFailure = false,sessionFailure = false} = {}) {
+  const local = storage({});
+  let sessionReads = 0, browserReads = 0, writes = 0;
+  const session = storage({
+    ...(registry === undefined ? {} : {tabRegistryV1: registry}),
+    managedWorkerTabsV1: legacy
+  }, {
+    afterRead: async () => {
+      sessionReads++;
+      if (typeof mutateAfterRead === 'function') mutateAfterRead(session.rows, sessionReads);
+    }
+  });
+  if (sessionFailure) session.get = async () => { throw Error('SESSION_UNREADABLE'); };
+  session.set = async () => { writes++; throw Error('READ_ONLY_REQUIRED'); };
+  const browser = async () => {
+    browserReads++;
+    if (browserFailure) throw Error('CHROME_TABS_UNAVAILABLE');
+    return clone(typeof tabs === 'function' ? tabs(browserReads) : tabs);
+  };
+  const owner = Additional.create({
+    storageLocal: local, storageSession: session, workerInstanceId: WORKER,
+    clock: () => NOW, queryBrowserTabsReadOnly: browser
+  });
+  return {owner, local, session, browser, stats: () => ({sessionReads,browserReads,writes})};
+}
+function userTab(id, url = 'https://www.kleinanzeigen.de/m-meine-anzeigen.html') {
+  return {id,url};
+}
+function userEntry(id) {
+  return {tabId:id,managed:false,role:'source',lifecycleState:'active'};
+}
+async function tabSourceDenied(config, reason) {
+  const {owner} = actualTabSource(config);
+  await assert.rejects(
+    () => owner.readVerifiedUnmanagedTabsReadOnly(),
+    error => error?.code === 'KR_OWNER_TABS_UNVERIFIED', reason);
+}
+
+test('P1.3-F1 RED: strict live Chrome+session positive unmanaged-tab provenance', async () => {
+  const src=actualTabSource({
+    registry:{'77':userEntry(77),'18':{
+      tabId:18,managed:true,role:'worker',lifecycleState:'gone',
+      closedAt:'2026-11-10T00:00:00.000Z'
+    }},
+    tabs:[userTab(77)]
+  });
+  const rows=await src.owner.readVerifiedUnmanagedTabsReadOnly();
+  assert.equal(rows.length,1);
+  assert.equal(rows[0].id,77);
+  assert.equal(rows[0].managed,false);
+  assert.equal(rows[0].ownershipVerified,true);
+  assert.equal(typeof rows[0].sourceRevision,'string');
+  assert.ok(rows[0].sourceRevision.length > 0);
+  assert.equal(src.stats().sessionReads,2);
+  assert.equal(src.stats().browserReads,2);
+  assert.equal(src.stats().writes,0,'read-only proof never migrates tab registry');
+});
+test('P1.3-F1 RED: a tab with no registry owner remains unverifiable', async () => {
+  await tabSourceDenied({registry:{},tabs:[userTab(77)]},'untracked user-looking tab');
+});
+test('P1.3-F1 RED: a live managed worker blocks verified unmanaged classification', async () => {
+  await tabSourceDenied({registry:{'77':{
+    tabId:77,managed:true,role:'worker',lifecycleState:'active'
+  }},tabs:[userTab(77)]},'managed tab present');
+});
+test('P1.3-F1 RED: gone managed tombstone contradicted by live Chrome tab fails closed', async () => {
+  await tabSourceDenied({registry:{'77':{
+    tabId:77,managed:true,role:'worker',lifecycleState:'gone',
+    closedAt:'2026-11-10T00:00:00.000Z'
+  }},tabs:[userTab(77)]},'tombstone contradicted');
+});
+test('P1.3-F1 RED: missing or malformed registry never yields positive tab provenance', async () => {
+  await tabSourceDenied({tabs:[]},'absent full registry');
+  await tabSourceDenied({registry:{'77':{tabId:77,managed:'false',role:'user',
+    lifecycleState:'active'}},tabs:[userTab(77)]},'string ownership flag');
+});
+test('P1.3-F1 RED: live legacy managed-tab entry remains unsafe', async () => {
+  await tabSourceDenied({registry:{},legacy:{'91':{kind:'worker'}},tabs:[]},
+    'unclosed legacy worker');
+});
+test('P1.3-F1 RED: registry changed during Chrome enumeration remains unsafe', async () => {
+  await tabSourceDenied({registry:{'77':userEntry(77)},tabs:[userTab(77)],
+    mutateAfterRead:(rows,reads)=>{
+      if(reads===1)rows.tabRegistryV1['77'].managed=true;
+    }},'torn session registry');
+});
+test('P1.3-F1 RED: browser tab set changed between readbacks remains unsafe', async () => {
+  await tabSourceDenied({registry:{'77':userEntry(77)},tabs:read=>
+    read===1?[userTab(77)]:[userTab(77),userTab(78)]},'torn browser');
+});
+test('P1.3-F1 RED: unavailable session or Chrome API remains unsafe', async () => {
+  await tabSourceDenied({registry:{},tabs:[],browserFailure:true},'no browser evidence');
+  await tabSourceDenied({registry:{},tabs:[],sessionFailure:true},'no session evidence');
+});
