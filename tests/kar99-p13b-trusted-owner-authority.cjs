@@ -97,7 +97,7 @@ function fixture(options = {}) {
   if (options.owner) {
     sourceProofs[options.owner] = async () => options.ownerEvidence;
   }
-  const live = options.live || [{profileId: PROFILE, loggedIn: true, current: true, observedAtMs: NOW}];
+  const live = options.live || [{profileId: PROFILE, accountId: 'fixture-account-001', loggedIn: true, current: true, observedAtMs: NOW}];
   let accountCalls = 0;
   let tabCalls = 0;
   let proofCalls = 0;
@@ -245,8 +245,8 @@ const negativeCases = [
   ['wrong selected profile', {local: {selectedInventoryProfileV1: {profileId: 'other'}}}],
   ['missing selected profile', {local: {selectedInventoryProfileV1: null}}],
   ['changed live account during double-read', {live: [
-    {profileId: PROFILE, loggedIn: true, current: true, observedAtMs: NOW},
-    {profileId: 'other', loggedIn: true, current: true, observedAtMs: NOW}
+    {profileId: PROFILE, accountId: 'fixture-account-001', loggedIn: true, current: true, observedAtMs: NOW},
+    {profileId: 'other', accountId: 'fixture-account-002', loggedIn: true, current: true, observedAtMs: NOW}
   ]}],
   ['logged-out current account', {live: [{profileId: null, loggedIn: false}]}],
   ['live-account probe failure', {live: [Error('LIVE_ACCOUNT_UNAVAILABLE')]}],
@@ -322,9 +322,9 @@ test('P1.3-B / RED: no two workers can reserve over an existing transaction', as
 });
 test('P1.3-B / RED: live identity changes between capture and reservation', async () => {
   const {gate} = fixture({live: [
-    {profileId: PROFILE, loggedIn: true, current: true, observedAtMs: NOW},
-    {profileId: PROFILE, loggedIn: true, current: true, observedAtMs: NOW},
-    {profileId: 'other', loggedIn: true, current: true, observedAtMs: NOW}
+    {profileId: PROFILE, accountId: 'fixture-account-001', loggedIn: true, current: true, observedAtMs: NOW},
+    {profileId: PROFILE, accountId: 'fixture-account-001', loggedIn: true, current: true, observedAtMs: NOW},
+    {profileId: 'other', accountId: 'fixture-account-002', loggedIn: true, current: true, observedAtMs: NOW}
   ]});
   const first = await gate.captureForReserve(request());
   assert.equal(first.status, 'candidate-idle');
