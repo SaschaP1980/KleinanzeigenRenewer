@@ -420,7 +420,7 @@ function renderInventories(records = currentRecords) {
     facts.className = 'summary-facts';
     const factRows = [
       makeInfoLine('Kategorie', categoryLabel(record)),
-      makeInfoLine('Art', artLabel(record)),
+      makeInfoLine('Artikeltyp', artLabel(record)),
       makeInfoLine('Preis', displayPriceWithType(record)),
       makeInfoLine('Endet am', endDateWithRelativeLabel(record)),
       makeListingDateInfoLine(record)

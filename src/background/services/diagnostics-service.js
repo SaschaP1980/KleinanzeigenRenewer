@@ -205,6 +205,12 @@
         return Promise.resolve();
       }
 
+      async function occupancy() {
+        await flush();
+        const retained = await loadStoredCache();
+        return { current: Math.min(retained.length, config.maxDiagnostics), maximum: config.maxDiagnostics };
+      }
+
       async function read() {
         await flush().catch(() => {});
         const current = await loadStoredCache();
@@ -306,6 +312,7 @@
         redactUrl,
         sanitize,
         representedEventCount,
+        occupancy,
         read,
         flush,
         log,

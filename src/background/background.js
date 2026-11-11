@@ -755,6 +755,7 @@ function flushDiagnosticBuffer() { return requireDiagnosticsService().flush(); }
 function logDiagnostic(level, event, details = {}, meta = {}) { return requireDiagnosticsService().log(level, event, details, meta); }
 function storeGalleryDiagnostic(message, sender) { return requireDiagnosticsService().storeGallery(message, sender); }
 function readRecentGalleryDiagnostics() { return requireDiagnosticsService().readRecentGallery(); }
+function readDiagnosticOccupancy() { return requireDiagnosticsService().occupancy(); }
 function resetDiagnostics() { return requireDiagnosticsService().reset(); }
 
 async function logClientDiagnostic(message, sender) {
@@ -3414,6 +3415,7 @@ const backgroundMessageRouter = BackgroundMessageRouter.create({
   "LOG_DIAGNOSTIC_EVENT": (message, sender) => logClientDiagnostic(message, sender),
   "SET_ACCOUNT_GATE_DIAGNOSTIC_STATE": (message, sender) => setAccountGateDiagnosticState(message),
   "STORE_GALLERY_DIAGNOSTIC": (message, sender) => storeGalleryDiagnostic(message, sender),
+  "GET_DIAGNOSTIC_OCCUPANCY": (message, sender) => readDiagnosticOccupancy(),
   "GET_DIAGNOSTIC_EXPORT": (message, sender) => requireDiagnosticExportService().buildDiagnosticExport(),
   "RESET_DIAGNOSTICS": (message, sender) => resetDiagnostics(),
   "RESET_ACTIVE_WORKFLOWS": (message, sender) => resetActiveWorkflows(),

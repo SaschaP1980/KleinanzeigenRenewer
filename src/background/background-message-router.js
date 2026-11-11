@@ -11,6 +11,7 @@
     "LOG_DIAGNOSTIC_EVENT": Object.freeze({ handler: "LOG_DIAGNOSTIC_EVENT", preSafety: false }),
     "SET_ACCOUNT_GATE_DIAGNOSTIC_STATE": Object.freeze({ handler: "SET_ACCOUNT_GATE_DIAGNOSTIC_STATE", preSafety: false }),
     "STORE_GALLERY_DIAGNOSTIC": Object.freeze({ handler: "STORE_GALLERY_DIAGNOSTIC", preSafety: false }),
+    "GET_DIAGNOSTIC_OCCUPANCY": Object.freeze({ handler: "GET_DIAGNOSTIC_OCCUPANCY", preSafety: false }),
     "GET_DIAGNOSTIC_EXPORT": Object.freeze({ handler: "GET_DIAGNOSTIC_EXPORT", preSafety: false }),
     "RESET_DIAGNOSTICS": Object.freeze({ handler: "RESET_DIAGNOSTICS", preSafety: false }),
     "RESET_ACTIVE_WORKFLOWS": Object.freeze({ handler: "RESET_ACTIVE_WORKFLOWS", preSafety: false }),
