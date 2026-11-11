@@ -48,7 +48,7 @@ const deps = {
   terminalizeTemplateFillForWatchdog: noopAsync,
   persistRenewalSession: noopAsync,
   cryptoApi: { randomUUID: () => `00000000-0000-4000-8000-${String(++uuid).padStart(12,'0')}` },
-  chromeApi: { tabs: { get: async () => null } },
+  chromeApi: { storage: { local: { get: async () => ({}) } }, tabs: { get: async () => null } },
   queueMicrotaskFn: () => {},
   setTimeoutFn: () => 1, clearTimeoutFn: () => {},
   MASS_RENEWAL_MAX_ITEMS: 10,
