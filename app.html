@@ -435,6 +435,14 @@
           <div class="mass-renewal-selection-meta"><strong>Reihenfolge</strong><span>Per Drag-and-drop oder mit den Pfeilen anpassen</span></div>
           <div id="massRenewalOrderList" class="mass-renewal-order-list" aria-label="Reihenfolge der ausgewählten Anzeigen"></div>
           <p class="mass-renewal-hint">Die Anzeigen werden von oben nach unten neu inseriert.</p>
+          <div class="mass-renewal-stop-policy">
+            <label class="mass-renewal-stop-policy-label" for="massRenewalStopOnError">
+              <span>Bei Fehler anhalten</span>
+              <input id="massRenewalStopOnError" type="checkbox" role="switch" aria-describedby="massRenewalStopOnErrorHint" disabled>
+            </label>
+            <small id="massRenewalStopOnErrorHint">Stoppt beim ersten Fehler oder bei erforderlicher manueller Prüfung.</small>
+            <small id="massRenewalStopOnErrorStatus" role="status" aria-live="polite"></small>
+          </div>
         </section>
 
         <section id="massRenewalProgressPanel" class="mass-renewal-panel hidden" aria-live="polite">
