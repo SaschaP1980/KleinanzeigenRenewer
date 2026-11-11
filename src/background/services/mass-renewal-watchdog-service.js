@@ -9,6 +9,7 @@
         MASS_RENEWAL_WATCHDOG_STALE_MS,MASS_RENEWAL_WATCHDOG_TICK_MS}=options;
       const required={readMassRenewalBatch,readRenewalSessions,readFillSessions,findMassRenewalSessionForItem,startNextMassRenewalItem,classifyKleinanzeigenInsertionErrorUrl,terminalizeTemplateFillOnPlatformError,terminalizeTemplateFillForWatchdog,persistRenewalSession,mutateMassRenewalBatch,touchMassRenewalItemProgress,logDiagnostic,sessionCorrelationContext,chromeApi,queueMicrotaskFn,setTimeoutFn,clearTimeoutFn,withAutonomousAdmission};
       for(const [name,value] of Object.entries(required)) if(value==null) throw new Error(`mass renewal watchdog dependency missing: ${name}`);
+      const applyTerminalFailureStop = options.applyTerminalFailureStop || (() => false);
       let massRenewalWatchdogTimer=null;
       let massRenewalWatchdogInFlight=false;
       function resetRuntimeState() {
@@ -79,6 +80,7 @@ async function runMassRenewalWatchdog({ trigger = 'manual', fillId = null } = {}
         const currentItem = current.items?.find(entry => Number(entry.index) === Number(item.index));
         if (!currentItem || !['running', 'retrying'].includes(String(currentItem.status || ''))) return { changed: false };
         currentItem.status = 'needs-review'; currentItem.stage = 'progress-watchdog-timeout'; currentItem.lastError = issue; currentItem.completedAt = new Date().toISOString(); touchMassRenewalItemProgress(currentItem, currentItem.completedAt); current.currentIndex = null;
+        applyTerminalFailureStop(current, currentItem);
         return { changed: true };
       });
       queueMicrotaskFn(() => { void withAutonomousAdmission('mass-renewal-next-item', () => startNextMassRenewalItem(batch.batchId)).catch(() => {}); });

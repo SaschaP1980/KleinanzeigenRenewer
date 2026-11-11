@@ -32,7 +32,17 @@ assert.equal(arch.fix.exactTitleEqualityPreserved, true);
 assert.equal(arch.testFirst.baselineResult, 'RED');
 assert.equal(arch.testFirst.fixedResult, 'GREEN');
 assert.deepEqual(arch.runtime.changedVsV12320c1.sort(), ['src/content/template-filler.js','src/content/template-verification.js'].sort());
-assert.equal(sha('src/app/app.js'), arch.runtime.appJsSha256);
+// KAR-150 extends only the app composition bindings for the new durable
+// stop-on-error control. Preserve a precise SHA pin and executable UI fixture,
+// rather than dropping the historical composition-root integrity invariant.
+const kar150App = fs.readFileSync('src/app/app.js', 'utf8');
+const kar150Ui = fs.readFileSync('src/app/mass-renewal-ui-controller.js', 'utf8');
+if (kar150App.includes('massRenewalOrderList, massRenewalStopOnError, massRenewalStopOnErrorStatus')) {
+  assert.match(pkg.scripts.test, /tests\/kar150-stop-on-error\.cjs/);
+  assert.match(pkg.scripts.test, /tests\/kar150-ui-preference\.cjs/);
+  assert.match(kar150Ui, /massRenewalStopOnErrorPreferenceV1/);
+  assert.equal(sha('src/app/app.js'), '501a26974b107dd27e843dde75b68a2535429da5d86f0bd9f40cbd206a665e08');
+} else assert.equal(sha('src/app/app.js'), arch.runtime.appJsSha256);
 if(!reviewedNative)assert.equal(sha('src/background/background.js'), arch.runtime.backgroundJsSha256);
 else {
   const worker=fs.readFileSync('src/background/background.js','utf8');
