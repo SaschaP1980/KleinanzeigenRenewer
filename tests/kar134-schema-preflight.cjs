@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const { parseHTML } = require('linkedom');
 const { webcrypto } = require('node:crypto');
 globalThis.crypto ||= webcrypto;
+require('../src/shared/runtime-deps.js');
 const Schema = require('../src/shared/template-schema-core.js');
 const Preflight = require('../src/content/template-schema-preflight.js');
 let passed = 0;
@@ -121,7 +122,7 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
     assert.ok(report.issues.some(x=>x.includes('Prüfsumme')));
   });
   await check('unknown saved schema version is rejected',async()=>{
-    const f=fixture();f.template.templateSchema.snapshot.schemaVersion=17;
+    const f=fixture();f.template.templateSchema.snapshot={...f.template.templateSchema.snapshot,schemaVersion:17};
     const obs=f.engine.inspectForm(f.document.querySelector('form'),f.template.categoryId,f.document);
     const report=await f.engine.evaluate(f.template,obs);
     assert.equal(report.complete,false);
