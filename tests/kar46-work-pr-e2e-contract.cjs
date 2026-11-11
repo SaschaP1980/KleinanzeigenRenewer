@@ -24,7 +24,12 @@ assert.match(browser, /python3 scripts\/verify_committed_chrome_zip\.py --base-s
 assert.match(browser, /E2E_CHROME_ZIP="\$PWD\/release\/kleinanzeigen-renewal-chrome-v\$VERSION.zip"/);
 assert.match(browser, /unzip -t "\$ZIP"/);
 assert.match(browser, /unzip -q "\$E2E_CHROME_ZIP"/);
-assert.match(browser, /python3 -m playwright install --with-deps --no-shell chromium/);
+// Hosted Ubuntu apt DNS is not a browser dependency: both Work browser jobs
+// download the pinned Chromium runtime and must still launch it for real tests.
+assert.match(validation, /python3 -m playwright install --no-shell chromium/);
+assert.match(browser, /python3 -m playwright install --no-shell chromium/);
+assert.doesNotMatch(validation, /playwright install --with-deps/);
+assert.doesNotMatch(browser, /playwright install --with-deps/);
 assert.match(browser, /KR_E2E_BROWSER_CHANNEL=chromium/);
 assert.match(browser, /KR_CHROME_BINARY/);
 assert.match(browser, /KR_E2E_EXTENSION_ROOT/);
