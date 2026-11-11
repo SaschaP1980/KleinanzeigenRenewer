@@ -83,7 +83,7 @@ const reinventory = fs.readFileSync(path.join(root,'src/background/services/rene
 assert.match(reinventory, /createManagedWorkerTab\([\s\S]*'renewal-reinventory'/);
 assert.match(reinventory, /closeManagedWorkerTab\(workerTabId\)/);
 assert.match(background, /createFreshRenewalVerificationTab\([\s\S]*registerManagedWorkerTab/);
-const phase4 = background.match(/async function finishRenewalReplacement\(message\) \{[\s\S]*?\n\}\n\nasync function discardRenewalDraft/)?.[0] || '';
+const phase4 = background.match(/async function finishRenewalReplacement\(message(?:, admissionReceipt = null)?\) \{[\s\S]*?\n\}\n\nasync function discardRenewalDraft/)?.[0] || '';
 const phase4Delete = background.match(/async function preverifyAndTriggerRenewalSourceDeleteAttempt[\s\S]*?\n}\n\nasync function finishRenewalReplacement/)?.[0] || '';
 const phase4Verifier = background.match(/async function verifyRenewalSourceAbsenceFresh[\s\S]*?\n}\n\nasync function preverifyAndTriggerRenewalSourceDeleteAttempt/)?.[0] || '';
 assert.match(phase4Delete, /createManagedWorkerTab\([\s\S]*'renewal-phase4-delete'/);
