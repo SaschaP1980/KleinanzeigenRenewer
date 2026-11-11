@@ -27,7 +27,7 @@
   // Preserve KAR-117/KAR-99 immutable attempt/resolution ownership semantics.
   // A received "resolved" text is never proof; the matching independent
   // resolution receipt must have exact workflow, account and Ad-ID evidence.
-  function checkJournals(rows) {
+  function checkJournals(rows, expectedProfileId) {
     const families = [
       {
         prefix: PHASE4, completed: PHASE4_OK,
@@ -84,6 +84,13 @@
       const attempts = Object.entries(rows).filter(([key]) => key.startsWith(family.prefix));
       const resolutions = Object.entries(rows).filter(([key]) => key.startsWith(family.completed));
       const attemptKeys = new Set(attempts.map(([key]) => key.slice(family.prefix.length)));
+      // F2E1: an internally consistent historical remote outcome for a
+      // different profile is not evidence that the current signed-in account
+      // has no unresolved remote work. Bind every original attempt to the
+      // live matched inventory profile before evaluating terminal receipts.
+      if (attempts.some(([, value]) => !RECORD(value) ||
+            value.profileId !== expectedProfileId))
+        throw denied('KR_OWNER_JOURNAL_PROFILE_MISMATCH');
       if (!attempts.every(([key, value]) => family.validIntent(value, key)) ||
           !resolutions.every(([key, value]) => {
             const suffix = key.slice(family.completed.length);
@@ -251,7 +258,7 @@
       const firstLocal = await raw(storageLocal,'STORAGE_LOCAL');
       const firstSession = await raw(storageSession,'STORAGE_SESSION');
       assertProfileState(firstLocal, req.expectedProfileId);
-      checkJournals(firstLocal);
+      checkJournals(firstLocal, req.expectedProfileId);
       const liveOne = await readLiveAccountReadOnly();
       const identity = account(liveOne, req.expectedProfileId, tick);
       const tabs = await readBrowserTabsReadOnly();
@@ -282,7 +289,7 @@
           JSON.stringify(firstSession) !== JSON.stringify(secondSession))
         throw denied('KR_OWNER_STATE_CHANGED');
       assertProfileState(secondLocal,req.expectedProfileId);
-      checkJournals(secondLocal);
+      checkJournals(secondLocal, req.expectedProfileId);
       const completedAt = clock();
       if (!Number.isSafeInteger(completedAt) ||
           completedAt < tick || completedAt - tick > MAX_AGE_MS)
