@@ -375,7 +375,7 @@ async function verifyPhase4RemoteOutcomeFresh(receipt) {
   });
 }
 
-async function preverifyAndTriggerRenewalSourceDeleteAttempt(session, expectedProfile, windowId, attemptState, resetGeneration) {
+async function preverifyAndTriggerRenewalSourceDeleteAttempt(session, expectedProfile, windowId, attemptState, resetGeneration, admissionReceipt = null) {
   let deleteTabId = null;
   let deletion = null;
   let transportInterrupted = false;
@@ -420,7 +420,8 @@ async function preverifyAndTriggerRenewalSourceDeleteAttempt(session, expectedPr
       renewalId: String(session.renewalId || ''),
       profileId: actualProfile,
       sourceAdId: String(session.sourceAdId || ''),
-      newAdId: String(session.newAdId || '')
+      newAdId: String(session.newAdId || ''),
+      admissionReceipt
     });
 
     await logDiagnostic('info', 'RENEWAL_PHASE4_ATOMIC_PREVERIFY_DELETE_STARTED', {
@@ -489,7 +490,7 @@ async function preverifyAndTriggerRenewalSourceDeleteAttempt(session, expectedPr
   }
 }
 
-async function finishRenewalReplacement(message) {
+async function finishRenewalReplacement(message, admissionReceipt = null) {
   const resetGeneration = captureResetGeneration();
   await assertMassRenewalManualActionAllowed(message);
   assertResetGeneration(resetGeneration, 'renewal-phase4-start');
@@ -583,7 +584,7 @@ async function finishRenewalReplacement(message) {
       // worker before it can resolve a delete control. If the source is already
       // absent, it performs no delete action. This makes preverify + delete atomic
       // in one fresh worker while preserving the independent post-delete full scan.
-      const result = await preverifyAndTriggerRenewalSourceDeleteAttempt(session, expectedProfile, windowId, attemptState, resetGeneration);
+      const result = await preverifyAndTriggerRenewalSourceDeleteAttempt(session, expectedProfile, windowId, attemptState, resetGeneration, admissionReceipt);
       assertResetGeneration(resetGeneration, 'renewal-phase4-after-delete');
       deletion = result.deletion || deletion || null;
       deleteTransportInterrupted = deleteTransportInterrupted || Boolean(result.transportInterrupted);

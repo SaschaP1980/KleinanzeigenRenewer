@@ -280,13 +280,13 @@ function scheduleAutomaticRenewalReplacement(renewalId, trigger = 'verification-
   const id = String(renewalId || '');
   if (!id || automaticReplacementInFlight.has(id)) return false;
   automaticReplacementInFlight.add(id);
-  void withAutonomousAdmission('renewal-auto-phase4', async () => {
+  void withAutonomousAdmission('renewal-auto-phase4', async admissionReceipt => {
     const sessions = await readRenewalSessions().catch(() => ({}));
     const current = sessions[id] || { renewalId: id };
     // The shared RemoteDeleteReplacementService records durable intent after
     // fresh live profile verification, before the first remote deletion.
     await logDiagnostic('info', 'RENEWAL_AUTO_REPLACEMENT_STARTED', { renewalId: id, trigger }, { module: 'background', operation: 'renewal-auto-phase-4', context: sessionCorrelationContext(current, { renewalId: id }) }).catch(() => {});
-    await finishRenewalReplacement({ renewalId: id, automatic: true });
+    await finishRenewalReplacement({ renewalId: id, automatic: true }, admissionReceipt);
   }).catch(async error => {
     // A blocked admission is not a remote replacement attempt. Preserve the
     // persisted recovery state and never invent a failed source deletion.
