@@ -397,6 +397,44 @@
     });
   }
 
+  // Wave J: the separate native drift simulation proves a missing saved FIELD,
+  // never that an unknown technical dropdown value is invalid.
+  // The synthetic key is not an observed Kleinanzeigen field removal.
+  const SYNTHETIC_REMOVED_FIELD_KEY = 'wearables.__kar134_removed_field_probe__';
+  const SYNTHETIC_REMOVED_FIELD_LABEL = 'KAR-134 Testmerkmal (synthetisch)';
+  function assessSyntheticRemovedField(observed, report, missingKey, missingLabel) {
+    const fields = Array.isArray(observed?.schema?.fields) ? observed.schema.fields : [];
+    const categoryConfirmed = observed?.categoryId === '405' && observed?.schema?.categoryId === '405';
+    const matches = fields.filter(field => field.key === 'attribute:wearables.case_size');
+    const caseField = matches.length === 1 ? matches[0] : null;
+    const keyAbsent = fields.every(field => field.key !== 'attribute:' + missingKey);
+    const exactIssue = 'Gespeichertes Merkmal „' + missingLabel +
+      '“ ist im neuen Formular nicht vorhanden.';
+    const specificMissingFieldRejectionProven = Boolean(
+      report?.complete === false && report?.comparison?.status === 'schema-changed' &&
+      (report?.issues || []).filter(issue => issue === exactIssue).length === 1);
+    const optionValues = Array.isArray(caseField?.optionValues) ? caseField.optionValues : null;
+    const verdict = Boolean(categoryConfirmed && caseField && keyAbsent &&
+      missingKey === SYNTHETIC_REMOVED_FIELD_KEY &&
+      missingLabel === SYNTHETIC_REMOVED_FIELD_LABEL &&
+      specificMissingFieldRejectionProven);
+    const evidenceState = !categoryConfirmed ? 'category-not-confirmed'
+      : !caseField ? 'case-size-field-missing'
+        : !keyAbsent ? 'synthetic-field-present'
+          : !specificMissingFieldRejectionProven ? 'specific-removed-field-rejection-not-proven'
+            : 'synthetic-removed-field-proven';
+    return Object.freeze({
+      verdict, evidenceState, caseFieldPresent: Boolean(caseField),
+      optionEvidenceComplete: Boolean(optionValues?.length),
+      optionCount: optionValues?.length || 0,
+      technical44Offered: Boolean(optionValues?.includes('44')),
+      ownerVerifiedPair44: false, visible44mmProven: false,
+      mapping44Proven: false, specificInvalidRejectionProven: false,
+      syntheticMissingFieldKeyAbsent: keyAbsent,
+      missingSavedFieldRejectionProven: verdict
+    });
+  }
+
   // KAR-134 field-only native simulation. No listing content, image upload,
   // wizard continuation, submit or source mutation is permitted in this path.
   async function runReadOnlySchemaTest(session) {
@@ -411,49 +449,55 @@
     const categoryState = await setCategory(session.template, fillId, session?.maxPhaseAttempts);
     if (categoryState?.pendingNavigation) return { pending: true, schemaTest: true };
     const live = await SchemaPreflight.afterHydration({ categoryId: '405', dynamicAttributes: [] },
-      { probeReadOnlyCaseSize: true });
+      { probeReadOnlyCaseSize: scenario === 'compatible' });
     if (live.categoryId !== '405') throw new Error('Live-Kategorie 405 wurde nicht bestätigt.');
     const caseField = live.schema.fields.find(field => field.key === 'attribute:wearables.case_size');
     const focused = {
       ...live,
       schema: { ...live.schema, fields: caseField ? [caseField] : [] }
     };
-    // Synthetic historical schema, not an actual saved archive capture.
-    // Never load, modify or persist the source listing values.
+    // Two distinct synthetic tests: owner-proven case-size mapping (positive)
+    // and a saved field absent from the COMPLETE current schema (negative).
+    // Neither reads archived values or claims an actual Kleinanzeigen field deletion.
+    const savedKey = scenario === 'compatible' ? 'wearables.gehausegrosse'
+      : SYNTHETIC_REMOVED_FIELD_KEY;
+    const savedLabel = scenario === 'compatible' ? 'Gehäusegröße (synthetischer Test)'
+      : SYNTHETIC_REMOVED_FIELD_LABEL;
     const snapshot = SchemaCore.buildSchema({ categoryId: '405', dynamicAttributes: [
-      { key: 'wearables.gehausegrosse', controlType: 'number', requiredState: 'unknown' }
+      { key: savedKey, controlType: scenario === 'compatible' ? 'number' : 'text',
+        requiredState: 'unknown' }
     ] });
     const fingerprint = await SchemaCore.fingerprint(snapshot);
-    const knownValues = new Set(caseField?.optionValues || []);
-    let rejectedValue = '__KAR134_UNREPRESENTABLE_CASE_SIZE__';
-    while (knownValues.has(rejectedValue)) rejectedValue += '_';
     const simulated = {
       categoryId: '405',
       templateSchema: { snapshot, fingerprint },
       dynamicAttributes: [{
-        key: 'wearables.gehausegrosse', label: 'Gehäusegröße (synthetischer Test)',
-        technicalValue: scenario === 'compatible' ? '44' : rejectedValue,
-        displayValue: scenario === 'compatible' ? '44mm' : '(absichtlich ungültiger Testwert)',
+        key: savedKey, label: savedLabel,
+        technicalValue: scenario === 'compatible' ? '44' : '__KAR134_SYNTHETIC_SAVED_VALUE__',
+        displayValue: scenario === 'compatible' ? '44mm' : 'Synthetisch gespeicherter Wert',
         status: 'captured'
       }]
     };
-    const report = await SchemaPreflight.evaluate(simulated, focused);
-    const assessment = assessSyntheticCaseSize(scenario, focused, report, rejectedValue);
+    const testedLive = scenario === 'compatible' ? focused : live;
+    const report = await SchemaPreflight.evaluate(simulated, testedLive);
+    const assessment = scenario === 'compatible'
+      ? assessSyntheticCaseSize('compatible', focused, report, null)
+      : assessSyntheticRemovedField(live, report, savedKey, savedLabel);
     const { verdict } = assessment;
     const issues = verdict ? [] : [
       ...report.issues,
-      assessment.optionEvidenceComplete
-        ? (scenario === 'compatible'
-          ? 'Das aktuelle Formular bestätigt 44 / 44mm nicht eindeutig.'
-          : 'Eine gezielte Ablehnung des ungültigen technischen Werts wurde nicht nachgewiesen.')
-        : 'Die angebotenen Gehäusegrößen sind nicht vollständig belegt. Der Test ist nicht aussagekräftig.'
+      scenario === 'compatible'
+        ? 'Die nachgewiesene Zuordnung 44 / 44mm konnte nicht bestätigt werden.'
+        : 'Der Sicherheitsstopp für das fehlende synthetische Testmerkmal wurde nicht eindeutig nachgewiesen.'
     ];
     const actualFullFingerprint = await SchemaCore.fingerprint(live.schema);
     void diagnostic(fillId, 'KAR134_SCHEMA_TEST_RESULT', {
-      scenario, verdict, mode: 'read-only', scope: 'category-405-case-size-only',
+      scenario, verdict, mode: 'read-only',
+      scope: scenario === 'compatible' ? 'category-405-case-size-only' : 'category-405-synthetic-removed-field',
       remotePublishAttempted: false, archivedValuesRead: false,
       syntheticOldFingerprint: fingerprint, actualFullFingerprint,
       focusedCurrentFingerprint: report.currentFingerprint,
+      testedCurrentFingerprint: report.currentFingerprint,
       detectedChangeTypes: (report.comparison?.changes || []).map(item => item.type).slice(0, 30),
       issueCount: report.issues.length, mappedCaseSize44mm: assessment.mapping44Proven,
       caseSizeFieldPresent: assessment.caseFieldPresent,
@@ -464,6 +508,8 @@
       ownerVerifiedPairCount: live.optionProbe?.ownerVerifiedPairCount || 0,
       visible44mmProven: assessment.visible44mmProven,
       invalidValueRejectionProven: assessment.specificInvalidRejectionProven,
+      missingSavedFieldRejectionProven: assessment.missingSavedFieldRejectionProven === true,
+      syntheticMissingFieldKeyAbsent: assessment.syntheticMissingFieldKeyAbsent === true,
       evidenceState: assessment.evidenceState,
       popupProbeAttempted: live.optionProbe?.attempted === true,
       popupProbeFound: live.optionProbe?.popupFound === true,
@@ -483,7 +529,9 @@
         ? (verdict
           ? 'Die manuell nachgewiesene Zuordnung 44mm / 44 ist im aktuellen Auswahlfeld eindeutig sichtbar. Eine Veröffentlichung wurde nicht durchgeführt.'
           : 'Die aktuelle Auswahl 44 / 44mm konnte nicht nachgewiesen werden.')
-        : (verdict ? 'Der absichtlich nicht darstellbare Testwert wurde anhand belegter Auswahlmöglichkeiten sicher abgewiesen.' : 'Die Ablehnung konnte nicht anhand einer vollständigen Optionsliste nachgewiesen werden.'),
+        : (verdict
+          ? 'Ein simuliertes gespeichertes Merkmal fehlt nachweislich im aktuellen Formular. Der Sicherheitsstopp wurde bestätigt. Dies ist kein Nachweis einer echten Kleinanzeigen-Formularänderung.'
+          : 'Der Sicherheitsstopp für das simulierte entfernte Merkmal konnte nicht belegt werden.'),
       verdict ? [] : issues,
       { safetyText: 'TEST ABGESCHLOSSEN – keine Werte übertragen, keine Bilder hochgeladen, keine Anzeige veröffentlicht. Dies ist nur eine Feldsimulation, keine vollständige Abnahme.' }
     );
