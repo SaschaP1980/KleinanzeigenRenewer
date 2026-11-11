@@ -360,6 +360,64 @@ function create(data, ports={}){return Additional.create({storageLocal:data.loca
   const failed=await create(storageFault).observe();
   ok(failed.observations.managedTabs.state==='unknown','session storage failure leaves tab owner UNKNOWN');
   ok(failed.eligibleForLease===false,'broken source must not grant update lease');
+  // P1.3-F2C RED: actual persisted MV3 admission tokens belong to their
+  // mapped owner(s), including across a fresh observer/service-worker instance.
+  const startKey='karAtomicAdmissionStartV1_';
+  const finishKey='karAtomicAdmissionFinishV1_';
+  const receiptToken='crash_durable_previous_worker_12345';
+  function receiptStorage(operation='GET_DIAGNOSTIC_EXPORT'){
+    const v=db();
+    v.localData[startKey+receiptToken]={schema:1,state:'admitted',token:receiptToken,
+      operationType:operation,workerInstanceId:'prior-worker',startedAtMs:100000};
+    return v;
+  }
+  const abandoned=receiptStorage();
+  const prior=await create(abandoned).observe();
+  ok(prior.observations.diagnosticExport.state==='active'
+    &&prior.observations.diagnosticExport.reason==='DURABLE_ADMISSION_UNFINISHED',
+    'real previous-worker diagnostic-export start is attributed ACTIVE after restart');
+  ok(prior.observations.singleInventory.state==='unknown',
+    'unrelated owner is not falsely attributed to a diagnostic export');
+  abandoned.localData[finishKey+receiptToken]={schema:1,state:'completed',
+    token:receiptToken,workerInstanceId:'prior-worker',completedAtMs:100010};
+  const completed=await create(abandoned).observe();
+  ok(completed.observations.diagnosticExport.state==='unknown'
+    &&completed.observations.diagnosticExport.reason==='DURABLE_CALLBACK_SETTLED_REMOTE_UNVERIFIED'
+    &&completed.eligibleForLease===false,
+    'independent completion record is attributed but cannot certify remote outcome or IDLE');
+  const autonomous=receiptStorage('AUTONOMOUS:renewal-detached-verify');
+  const autonomousSeen=await create(autonomous).observe();
+  ok(autonomousSeen.observations.managedTabs.state==='active'
+    &&autonomousSeen.observations.managedTabs.reason==='DURABLE_ADMISSION_UNFINISHED',
+    'autonomous detached worker receipt is bound to actual managedTabs owner');
+  const unknownOperation=receiptStorage('UNREGISTERED_WORKFLOW');
+  const unknownSeen=await create(unknownOperation).observe();
+  ok(Additional.OWNERS.every(name=>unknownSeen.observations[name].state==='active'),
+    'unknown operation provenance conservatively holds all eight supplemental owners ACTIVE');
+  const corruptReceipt=receiptStorage();
+  corruptReceipt.localData[finishKey+receiptToken]={schema:1,state:'completed',
+    token:receiptToken,workerInstanceId:'forged-worker',completedAtMs:100010};
+  const corruptSeen=await create(corruptReceipt).observe();
+  ok(corruptSeen.observations.diagnosticExport.state==='unknown'
+    &&corruptSeen.observations.diagnosticExport.reason==='DURABLE_ADMISSION_UNVERIFIED',
+    'mismatched start/finish worker identity cannot settle owner receipt');
+  const changingReceipts=receiptStorage();
+  const previousRead=changingReceipts.local.get.bind(changingReceipts.local);
+  let fullReads=0;
+  changingReceipts.local.get=async keys=>{
+    const first=await previousRead(keys);
+    if(keys===null&&++fullReads===1){
+      changingReceipts.localData[finishKey+receiptToken]={schema:1,state:'completed',
+        token:receiptToken,workerInstanceId:'prior-worker',completedAtMs:100010};
+    }
+    return first;
+  };
+  const tornReceipts=await create(changingReceipts).observe();
+  ok(fullReads===2&&tornReceipts.observations.diagnosticExport.state==='unknown'
+    &&tornReceipts.observations.diagnosticExport.reason==='DURABLE_ADMISSION_UNVERIFIED',
+    'changing durable completion between independent reads denies owner completion');
+  ok(abandoned.writes===0&&changingReceipts.writes===0,
+    'durable owner receipt attribution is read-only and never mutates stored journals');
   const crash=await create(db()).observe();
   ok(crash.context.worker.state==='unverified','restarted worker cannot inherit positive generation proof');
   ok(data.writes===0&&tabbed.writes===0&&legacy.writes===0,'read-only owner observation never migrates/mutates registry');
