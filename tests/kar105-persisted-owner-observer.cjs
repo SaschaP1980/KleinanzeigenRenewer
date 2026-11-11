@@ -156,6 +156,74 @@ async function test() {
   const expectedMap=vm.runInNewContext('('+persistedMap[1]+')',Object.create(null));
   ok(JSON.stringify(actual)===JSON.stringify(expectedMap),
      'all production autonomous persisted owner mappings equal receipt attribution map');
+  // KAR-99 F2E2: independent readback of the actual existing remote outcome
+  // journals. These are durable source records, not a synthetic IDLE proof.
+  const phaseIntentKey='karPhase4UncertainAttemptV1_renewalA_attemptA';
+  const phaseResolvedKey='karPhase4VerifiedResolutionV1_renewalA_attemptA';
+  const publishIntentKey='karAutoPublishIntentV1_fillA_attemptA';
+  const publishResolvedKey='karAutoPublishVerifiedResolutionV1_fillA_attemptA';
+  function remoteRows(profileId='profile-one') {
+    return {
+      activeDetectedProfileV1:{profileId:'profile-one'},
+      selectedInventoryProfileV1:{profileId:'profile-one'},
+      [phaseIntentKey]:{schema:1,state:'outcome-unverified',renewalId:'renewalA',
+        attemptId:'attemptA',workerInstanceId:'old-worker',profileId,
+        sourceAdId:'123',newAdId:'456',createdAtMs:1000},
+      [phaseResolvedKey]:{schema:1,state:'resolved-confirmed',renewalId:'renewalA',
+        attemptId:'attemptA',workerInstanceId:'old-worker',profileId,
+        sourceAdId:'123',newAdId:'456',
+        sourceEvidence:'not-in-my-ads-full-pagination-scan',
+        targetEvidence:'found-in-my-ads-full-pagination-scan',
+        sourcePagesScanned:2,targetPagesScanned:2,targetFoundPage:1,verifiedAtMs:1500},
+      [publishIntentKey]:{schema:1,state:'outcome-unverified',fillId:'fillA',
+        workflowId:'renewalA',attemptId:'attemptA',workerInstanceId:'old-worker',
+        kind:'renewal',profileId,sourceAdId:'123',targetTabId:10,createdAtMs:1000},
+      [publishResolvedKey]:{schema:1,state:'resolved-confirmed',fillId:'fillA',
+        workflowId:'renewalA',attemptId:'attemptA',kind:'renewal',profileId,
+        sourceAdId:'123',targetTabId:10,newAdId:'456',targetPresent:true,
+        targetEvidence:'found-in-my-ads-full-pagination-scan',
+        targetPagesScanned:2,targetFoundPage:1,verifiedAtMs:1500}
+    };
+  }
+  const sameRemote=await create(storage(remoteRows())).observe();
+  ok(sameRemote.observations.renewal.state==='unknown'
+    &&sameRemote.eligibleForLease===false,
+    'matching old-worker verified remote outcomes never create positive owner IDLE');
+  const foreignRemote=await create(storage(remoteRows('different-profile'))).observe();
+  ok(foreignRemote.observations.renewal.reason==='PHASE4_JOURNAL_PROFILE_MISMATCH'
+    &&foreignRemote.observations.templateFill.reason==='PUBLISH_INTENT_PROFILE_MISMATCH',
+    'independent stored profile reconciliation rejects historical foreign-account outcomes');
+  const tornRows=remoteRows();
+  const tornDb=storage(tornRows);
+  const tornGet=tornDb.local.get.bind(tornDb.local);
+  let remoteReads=0;
+  tornDb.local.get=async keys=>{
+    const snapshot=await tornGet(keys);
+    if(keys===null && ++remoteReads===1)
+      tornRows[publishResolvedKey].newAdId='789';
+    return snapshot;
+  };
+  const changedRemote=await create(tornDb).observe();
+  ok(remoteReads===2
+    &&changedRemote.observations.renewal.reason==='PHASE4_JOURNAL_CHANGED_DURING_READ'
+    &&changedRemote.observations.templateFill.reason==='PUBLISH_INTENT_CHANGED_DURING_READ',
+    'remote resolution changed between two independent snapshots stays UNKNOWN');
+  const profileRows=remoteRows();
+  const changedProfileDb=storage(profileRows);
+  const profileGet=changedProfileDb.local.get.bind(changedProfileDb.local);
+  changedProfileDb.local.get=async keys=>{
+    const rows=await profileGet(keys);
+    if(Array.isArray(keys)&&keys.includes('selectedInventoryProfileV1')&&
+       !keys.includes('renewalSessionsV1'))
+      profileRows.selectedInventoryProfileV1={profileId:'another-profile'};
+    return rows;
+  };
+  const switchedRemote=await create(changedProfileDb).observe();
+  ok(switchedRemote.observations.renewal.reason==='PHASE4_JOURNAL_PROFILE_UNVERIFIED'
+    &&switchedRemote.observations.templateFill.reason==='PUBLISH_INTENT_PROFILE_UNVERIFIED',
+    'stored profile switch during read never certifies old-worker remote resolution');
+  ok(tornDb.mutations.length===0&&changedProfileDb.mutations.length===0,
+    'read-only remote resolution reconciliation never mutates journals or profiles');
   const activity=create(storage());
   let finish;
   const pending=activity.track(['massRenewal','insertionLock'],()=>new Promise(resolve=>{finish=resolve;}));
