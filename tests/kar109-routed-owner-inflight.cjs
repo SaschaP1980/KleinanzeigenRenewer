@@ -29,7 +29,8 @@ async function main() {
     'every non-exempt routed message uses the bridge');
   check(match[0].includes("AdditionalOwnerObserver.ownersForOperation(type, 'routed')")
     && match[0].includes('requirePersistedOwnerObserver().track(PersistedOwnerObserver.OWNERS')
-    && match[0].includes('requireAdditionalOwnerObserver().track(namesForType, task)'),
+    && match[0].includes('requireAdditionalOwnerObserver().track(namesForType, () => task(admissionReceipt))')
+    && match[0].includes('withAdmission(type, admissionReceipt =>'),
     'central fence nests all seven persisted owners and source-specific supplemental owner lifetimes');
   check(Observer.OWNERS.length===7 && new Set(Observer.OWNERS).size===7,
     'all seven persisted workflow owners are counted without duplicate names');
