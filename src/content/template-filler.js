@@ -173,6 +173,9 @@
   });
 
   const { verify, verifyArchiveTemplate } = KRDeps.require('KRTemplateVerification').create({ checkedRadio });
+  const SchemaPreflight = KRDeps.require('KRTemplateSchemaPreflight').create({
+    Schema: KRDeps.require('KRTemplateSchemaCore'), Form, waitFor, documentRoot: () => document
+  });
 
   const {
     armPublishDetection, scrollToPublishButton, paidInsertionDetection, stopForPaidInsertion,
@@ -316,6 +319,29 @@
     throw new Error(`Titelfeld blieb nach ${maxAttempts} Versuchen instabil.`);
   }
 
+  async function stopForSchemaPreflight(session, issues, report = null) {
+    const unique = [...new Set(issues.map(String))];
+    updatePanel('Formular wurde geändert – Neu-Einstellen angehalten',
+      'Nicht alle gespeicherten Merkmale lassen sich sicher übernehmen. Die bisherige Anzeige bleibt erhalten.',
+      unique, { safetyText: 'Nicht veröffentlicht. Bitte Vorlage neu erfassen oder Merkmale manuell prüfen.' });
+    void diagnostic(session.fillId, 'TEMPLATE_SCHEMA_PREFLIGHT_BLOCKED', {
+      status: report?.comparison?.status || 'unresolved',
+      oldFingerprint: report?.sourceFingerprint || null,
+      newFingerprint: report?.currentFingerprint || null,
+      changes: (report?.comparison?.changes || []).map(change => ({
+        type: change.type, key: change.key || null,
+        before: typeof change.before === 'string' ? change.before : null,
+        after: typeof change.after === 'string' ? change.after : null
+      })).slice(0, 80),
+      issueCount: unique.length,
+      issueTypes: unique.map(value => value.slice(0, 220)).slice(0, 30)
+    }, 'warning');
+    await runtimeMessage({ type: 'UPDATE_TEMPLATE_FILL_SESSION', fillId: session.fillId,
+      status: 'needs-review', stage: 'schema-preflight',
+      result: { complete: false, issues: unique.slice(0, 50) } });
+    return { complete: false, issues: unique, schemaPreflightBlocked: true };
+  }
+
   async function runFillSession(session) {
     const { fillId, template } = session;
     const issues = [];
@@ -341,7 +367,29 @@
     const paidAfterCategory = paidInsertionDetection();
     if (paidAfterCategory.required) return await stopForPaidInsertion(session, paidAfterCategory, 'after-category');
 
+    let schemaPreflightReport = null;
     if (String(form.querySelector('input[name="categoryId"]')?.value || '') === String(template.categoryId || '')) {
+      try {
+        const live = await SchemaPreflight.afterHydration(template);
+        schemaPreflightReport = await SchemaPreflight.evaluate(template, live);
+        void diagnostic(fillId, 'TEMPLATE_SCHEMA_PREFLIGHT', {
+          status: schemaPreflightReport.comparison?.status || 'unresolved',
+          oldFingerprint: schemaPreflightReport.sourceFingerprint,
+          newFingerprint: schemaPreflightReport.currentFingerprint,
+          changes: (schemaPreflightReport.comparison?.changes || []).map(change => ({
+            type: change.type, key: change.key || null
+          })).slice(0, 80),
+          mapped: schemaPreflightReport.mappings.map(item => ({ from: item.oldKey, to: item.newKey })),
+          legacy: schemaPreflightReport.comparison?.status === 'legacy-unversioned',
+          issueCount: schemaPreflightReport.issues.length
+        }, schemaPreflightReport.complete ? 'info' : 'warning');
+        if (!schemaPreflightReport.complete)
+          return await stopForSchemaPreflight(session, schemaPreflightReport.issues, schemaPreflightReport);
+      } catch (error) {
+        return await stopForSchemaPreflight(session, [
+          'Kategorieabhängige Felder konnten nicht sicher geprüft werden: ' + String(error.message || error).slice(0, 250)
+        ]);
+      }
       const attributeIssues = await fillDynamicAttributes(template, fillId);
       issues.push(...attributeIssues);
       void diagnostic(fillId, 'TEMPLATE_DYNAMIC_ATTRIBUTES_FINISHED', { configured: (template.dynamicAttributes || []).length, issueCount: attributeIssues.length }, attributeIssues.length ? 'warning' : 'info');
@@ -378,6 +426,16 @@
       }, 'error');
     }
     issues.push(...(session.archiveInsertionId ? verifyArchiveTemplate(template, verificationForm) : verify(template, verificationForm)));
+    if (schemaPreflightReport) {
+      try {
+        const finalObserved = SchemaPreflight.inspectForm(verificationForm, template.categoryId);
+        issues.push(...SchemaPreflight.verifyAfterFill(schemaPreflightReport, finalObserved));
+      } catch (error) {
+        issues.push('Formularschema konnte nach dem Ausfüllen nicht erneut bestätigt werden: ' + String(error.message || error).slice(0, 240));
+      }
+    } else {
+      issues.push('Formularschema-Vorprüfung wurde nicht erfolgreich abgeschlossen.');
+    }
 
     const uniqueIssues = [...new Set(issues)];
     const imagesComplete = imageOutcome.complete === true;
