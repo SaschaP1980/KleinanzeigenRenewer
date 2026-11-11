@@ -267,7 +267,8 @@ async function finalizeMassRenewalBatchIfDone(batchId) {
   const id = String(batchId || '');
   const batch = await readMassRenewalBatch();
   if (batch && String(batch.batchId || '') === id) {
-    if (batch.stopAfterCurrentRequested || batch.stopOnErrorTriggered || batch.retryOnlyIndex != null || typeof batch.stopOnError !== 'boolean') return stopMassRenewalBatchBeforeNext(id);
+    if (batch.stopAfterCurrentRequested) return stopMassRenewalBatchBeforeNext(id);
+    if (batch.stopOnErrorTriggered || batch.retryOnlyIndex != null || typeof batch.stopOnError !== 'boolean') return stopMassRenewalBatchBeforeNext(id);
   }
   let result = null;
   const mutation = await mutateMassRenewalBatch(id, batch => {
