@@ -136,7 +136,7 @@ function makeSchemaTestActions(record, { compact = false, disabled = false } = {
       button.disabled = true;
       try {
         const started = await runtimeMessage({
-          type: 'START_SCHEMA_TEST', inventoryId: record.inventoryId, scenario: spec.scenario
+          type: 'START_TRASH_TEMPLATE_FILL', inventoryId: record.inventoryId, schemaTestScenario: spec.scenario
         });
         void logAppEvent('USER_SCHEMA_TEST_STARTED', { scenario: spec.scenario, tabId: started?.tabId || null });
         setStatus('ready', 'Schema-Prüfmodus gestartet', 'Das Ergebnis erscheint im neuen Kleinanzeigen-Tab und im Diagnoseexport. Keine Veröffentlichung.');

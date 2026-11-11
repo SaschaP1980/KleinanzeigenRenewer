@@ -74,7 +74,6 @@
     "START_ARCHIVE_INSERTION": Object.freeze({ handler: "START_ARCHIVE_INSERTION", preSafety: false }),
     "GET_ARCHIVE_INSERTION_STATUS": Object.freeze({ handler: "GET_ARCHIVE_INSERTION_STATUS", preSafety: false }),
     "START_TRASH_TEMPLATE_FILL": Object.freeze({ handler: "START_TRASH_TEMPLATE_FILL", preSafety: false }),
-    "START_SCHEMA_TEST": Object.freeze({ handler: "START_SCHEMA_TEST", preSafety: false }),
     "GET_TRASH_TEMPLATE_FILL_STATUS": Object.freeze({ handler: "GET_TRASH_TEMPLATE_FILL_STATUS", preSafety: false }),
     "GET_RECOVERABLE_TRASH_TEMPLATE_FILL": Object.freeze({ handler: "GET_RECOVERABLE_TRASH_TEMPLATE_FILL", preSafety: false }),
     "PREPARE_TRASH_TEMPLATE_INVENTORY_CAPTURE": Object.freeze({ handler: "PREPARE_TRASH_TEMPLATE_INVENTORY_CAPTURE", preSafety: false }),
