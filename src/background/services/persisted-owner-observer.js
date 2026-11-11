@@ -357,8 +357,12 @@
           'profile-unverified':'PUBLISH_INTENT_PROFILE_UNVERIFIED'
         };
         for(const name of ['renewal','archiveInsertion','templateFill','insertionLock'])
-          if(result[name].state!=='active')set(name,unknown(
-            reasons[publishEvidence]||'PUBLISH_INTENT_UNVERIFIED'));
+          // Multiple independent unresolved sources may affect one owner.
+          // Never erase an earlier concrete Phase4 denial with a later
+          // publication-journal denial; both remain fail-closed UNKNOWN.
+          if(result[name].state!=='active'
+             &&!String(result[name].reason||'').startsWith('PHASE4_JOURNAL_'))
+            set(name,unknown(reasons[publishEvidence]||'PUBLISH_INTENT_UNVERIFIED'));
       }
       // F2D: independently re-read the actual immutable P8 journal. A
       // callback's stored finish certifies neither a remote result nor IDLE.
