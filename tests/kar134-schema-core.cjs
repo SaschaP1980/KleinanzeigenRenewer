@@ -2,7 +2,7 @@
 // KAR-134 Wave A: synthetic technical form fixtures only (no user archive/PII).
 const assert = require('node:assert/strict');
 const { webcrypto, createHash } = require('node:crypto');
-const Schema = require('../lib/template-schema-core.js');
+const Schema = require('../src/shared/template-schema-core.js');
 let passed = 0;
 const check = async (name, fn) => { await fn(); passed++; console.log('PASS KAR-134: ' + name); };
 const base = () => ({
