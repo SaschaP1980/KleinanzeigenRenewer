@@ -536,6 +536,88 @@
           })];
         })
       ));
+      // F2E2D2A: correlate real remote-journal terminal receipts with actual
+      // P8 start/finish history. The two producers each independently re-read
+      // their immutable rows. Worker generation + chronological overlap are
+      // only NECESSARY evidence, NEVER sufficient to identify an operation:
+      // remote intents do not carry P8 admission tokens. Do not report an
+      // exact link, prior-worker closure, a current live site result, or IDLE.
+      const remote=persisted?.remoteOutcomeEvidence;
+      const validRemote=consistent&&record(remote)&&remote.historicalOnly===true
+        &&remote.liveAccountVerified===false
+        &&record(remote.phase4)&&record(remote.publish)
+        &&Array.isArray(remote.phase4.revisions)
+        &&Array.isArray(remote.publish.revisions);
+      // This is strictly a historical LOCAL selected/detected-profile check.
+      // The source does not certify a live authenticated account at this time.
+      const sourceProfile=persisted?.context?.profile;
+      const sameStoredProfile=record(sourceProfile)
+        &&sourceProfile.reason==='STORED_PROFILES_MATCH_BUT_LIVE_UNVERIFIED'
+        &&typeof sourceProfile.profileId==='string'
+        &&PROFILE.test(sourceProfile.profileId);
+      function lineageFor(owner){
+        const history=admissionHistory[owner];
+        const sources=owner==='renewal'
+          ?[remote?.phase4,remote?.publish]:[remote?.publish];
+        const base={historicalOnly:true,eligibleForLease:false,
+          exactAttemptBound:false,priorGenerationClosed:false,
+          liveRemoteVerified:false};
+        if(!validRemote||!sameStoredProfile||history?.state==='unverified'
+          ||sources.some(source=>!['missing','resolved'].includes(source?.state)))
+          return Object.freeze({...base,state:'unverified',entries:Object.freeze([])});
+        const resolutions=sources.flatMap(source=>source.revisions)
+          .filter(row=>row?.owner===owner);
+        if(!resolutions.length)
+          return Object.freeze({...base,state:'no-evidence',entries:Object.freeze([])});
+        const validRow=row=>record(row)&&row.owner===owner
+          &&typeof row.profileId==='string'&&row.profileId===sourceProfile.profileId
+          &&typeof row.intentWorkerInstanceId==='string'
+          &&PROFILE.test(row.intentWorkerInstanceId)
+          &&typeof row.attemptId==='string'&&PROFILE.test(row.attemptId)
+          &&typeof row.sourceRevision==='string'&&row.sourceRevision.length>0
+          &&Number.isSafeInteger(row.intentCreatedAtMs)&&row.intentCreatedAtMs>=0
+          &&Number.isSafeInteger(row.verifiedAtMs)
+          &&row.verifiedAtMs>=row.intentCreatedAtMs
+          &&typeof row.sourceAdId==='string'
+          &&typeof row.newAdId==='string'&&/^\d+$/.test(row.newAdId)
+          &&(owner==='archiveInsertion'||/^\d+$/.test(row.sourceAdId));
+        if(!resolutions.every(validRow))
+          return Object.freeze({...base,state:'unverified',entries:Object.freeze([])});
+        const entries=resolutions.map(row=>{
+          const candidates=history.entries.filter(receipt=>
+            receipt.workerInstanceId===row.intentWorkerInstanceId
+            &&Number.isSafeInteger(receipt.startedAtMs)
+            &&receipt.startedAtMs<=row.intentCreatedAtMs
+            &&(receipt.completedAtMs===null
+              ||(Number.isSafeInteger(receipt.completedAtMs)
+                &&receipt.completedAtMs>=row.intentCreatedAtMs))
+          );
+          return Object.freeze({
+            owner,attemptId:row.attemptId,profileId:row.profileId,
+            sourceAdId:row.sourceAdId,newAdId:row.newAdId,
+            intentWorkerInstanceId:row.intentWorkerInstanceId,
+            intentCreatedAtMs:row.intentCreatedAtMs,
+            remoteSourceRevision:row.sourceRevision,
+            candidateCount:candidates.length,exactAttemptBound:false,
+            state:candidates.length>1?'ambiguous-generation-overlap'
+              :candidates.length===1?'possible-generation-overlap'
+                :'no-generation-overlap'
+          });
+        });
+        const distinct=new Set(entries.map(entry=>entry.state));
+        return Object.freeze({
+          ...base,
+          state:distinct.size===1?[...distinct][0]:'mixed-unbound',
+          entries:Object.freeze(entries)
+        });
+      }
+      const remoteAdmissionLineage=Object.freeze({
+        historicalOnly:true,eligibleForLease:false,
+        exactAttemptBound:false,priorGenerationClosed:false,
+        liveRemoteVerified:false,
+        renewal:lineageFor('renewal'),
+        archiveInsertion:lineageFor('archiveInsertion')
+      });
       const tick=clock();
       return Object.freeze({
         schema:1,eligibleForLease:false,
@@ -543,6 +625,7 @@
         observations:Object.freeze(observations),
         admissionJournalRevision:consistent?revision:null,
         admissionHistory,
+        remoteAdmissionLineage,
         context:Object.freeze({
           profile:Object.freeze({state:'unverified',reason:'LIVE_ACCOUNT_NOT_ATOMICALLY_BOUND'}),
           worker:Object.freeze({state:'unverified',reason:workerReason,workerInstanceId:worker||null})
