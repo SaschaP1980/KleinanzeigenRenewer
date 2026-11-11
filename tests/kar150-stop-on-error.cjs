@@ -88,7 +88,7 @@ function harness({ preference, failures = [], savedBatch = null } = {}) {
     UNASSIGNED_PROFILE_ID: '__unassigned__',
     massRenewalWatchdogServiceApi: WatchdogService
   });
-  return { workflow, controller, local, key, scheduled, get starts() { return count; } };
+  return { workflow, controller, local, key, scheduled, get starts() { return startCount; } };
 }
 
 async function run() {
