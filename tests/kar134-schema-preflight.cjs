@@ -3,6 +3,16 @@
 const assert = require('node:assert/strict');
 const { parseHTML } = require('linkedom');
 const { webcrypto } = require('node:crypto');
+const fs = require('node:fs');
+const vm = require('node:vm');
+const fillerSource = fs.readFileSync(require.resolve('../src/content/template-filler.js'),'utf8');
+const policyStart = fillerSource.indexOf('  function assessSyntheticCaseSize(');
+const policyEnd = fillerSource.indexOf('  // KAR-134 field-only native simulation.', policyStart);
+assert.ok(policyStart > 0 && policyEnd > policyStart, 'private schema-test policy must be isolated before any page writes');
+const assessSyntheticCaseSize = vm.runInNewContext(
+  fillerSource.slice(policyStart, policyEnd) + '\nassessSyntheticCaseSize;',
+  { Object, Array }, { filename: 'kar134-read-only-policy.js' });
+
 globalThis.crypto ||= webcrypto;
 require('../src/shared/runtime-deps.js');
 const Schema = require('../src/shared/template-schema-core.js');
@@ -196,7 +206,7 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
     assert.equal(report.comparison.status,'schema-changed');
     assert.equal(report.mappings.length,1);
     assert.equal(report.mappings[0].expectedDisplayLabel,'44mm');
-    const assessment=f.engine.assessSyntheticCaseSize('compatible',focused,report,'__KAR134_UNREPRESENTABLE_CASE_SIZE__');
+    const assessment=assessSyntheticCaseSize('compatible',focused,report,'__KAR134_UNREPRESENTABLE_CASE_SIZE__');
     assert.equal(assessment.verdict,true);
     assert.equal(assessment.optionEvidenceComplete,true);
     assert.equal(assessment.mapping44Proven,true);
@@ -211,7 +221,7 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
     const report=await f.engine.evaluate(source,focused);
     assert.equal(report.complete,false);
     assert.ok(report.issues.some(issue=>issue.includes('nicht angeboten')));
-    const assessment=f.engine.assessSyntheticCaseSize('incompatible',focused,report,'__KAR134_UNREPRESENTABLE_CASE_SIZE__');
+    const assessment=assessSyntheticCaseSize('incompatible',focused,report,'__KAR134_UNREPRESENTABLE_CASE_SIZE__');
     assert.equal(assessment.verdict,true);
     assert.equal(assessment.specificInvalidRejectionProven,true);
   });
@@ -240,7 +250,7 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
         dynamicAttributes:[syntheticCaseAttr(technicalValue,'44mm')]};
       const report=await f.engine.evaluate(source,focused);
       assert.equal(report.complete,false);
-      const verdict=f.engine.assessSyntheticCaseSize(scenario,focused,report,'__KAR134_UNREPRESENTABLE_CASE_SIZE__');
+      const verdict=assessSyntheticCaseSize(scenario,focused,report,'__KAR134_UNREPRESENTABLE_CASE_SIZE__');
       assert.equal(verdict.verdict,false,'no option list is not proof of a correct rejection');
       assert.equal(verdict.optionEvidenceComplete,false);
       assert.equal(verdict.evidenceState,'case-size-option-evidence-missing');
@@ -254,7 +264,7 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
       dynamicAttributes:[syntheticCaseAttr('__KAR134_UNREPRESENTABLE_CASE_SIZE__')]};
     const report=await f.engine.evaluate(source,observed);
     assert.equal(report.complete,false);
-    const verdict=f.engine.assessSyntheticCaseSize('incompatible',observed,report,'__KAR134_UNREPRESENTABLE_CASE_SIZE__');
+    const verdict=assessSyntheticCaseSize('incompatible',observed,report,'__KAR134_UNREPRESENTABLE_CASE_SIZE__');
     assert.equal(verdict.verdict,false);
     assert.equal(verdict.caseFieldPresent,false);
     assert.equal(verdict.evidenceState,'case-size-field-missing');
@@ -264,7 +274,7 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
     const observed=f.engine.inspectForm(f.document.querySelector('form'),405,f.document);
     const focused={...observed,schema:{...observed.schema,fields:observed.schema.fields.filter(field=>field.key==='attribute:wearables.case_size')}};
     const generic={complete:false,issues:['Neue Auswahl ist nicht eindeutig bestätigt.'],mappings:[]};
-    const verdict=f.engine.assessSyntheticCaseSize('incompatible',focused,generic,'__KAR134_UNREPRESENTABLE_CASE_SIZE__');
+    const verdict=assessSyntheticCaseSize('incompatible',focused,generic,'__KAR134_UNREPRESENTABLE_CASE_SIZE__');
     assert.equal(verdict.optionEvidenceComplete,true);
     assert.equal(verdict.verdict,false);
     assert.equal(verdict.specificInvalidRejectionProven,false);
@@ -281,7 +291,7 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
     assert.equal(report.complete,true);
     const stale={...focused,optionLabels:{...focused.optionLabels,
       'wearables.case_size':[{value:'44',label:'44 mm'}]}};
-    const verdict=f.engine.assessSyntheticCaseSize('compatible',stale,report,'__KAR134_UNREPRESENTABLE_CASE_SIZE__');
+    const verdict=assessSyntheticCaseSize('compatible',stale,report,'__KAR134_UNREPRESENTABLE_CASE_SIZE__');
     assert.equal(verdict.verdict,false);
     assert.equal(verdict.technical44Offered,true);
     assert.equal(verdict.visible44mmProven,false);

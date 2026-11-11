@@ -196,50 +196,6 @@
         comparison, sourceFingerprint: provided || null,
         currentFingerprint: await Schema.fingerprint(observed.schema), mappings };
     }
-    // KAR-134 native probe: negative tests only pass on a specific, technically
-    // proven invalid option. A missing/unhydrated option catalog is inconclusive,
-    // never a successful rejection. This policy cannot authorize publication.
-    function assessSyntheticCaseSize(scenario, observed, report, rejectedValue) {
-      if (!['compatible', 'incompatible'].includes(scenario))
-        throw new Error('Unbekanntes synthetisches Gehäusegrößen-Prüfszenario.');
-      const candidates = (observed?.schema?.fields || []).filter(field =>
-        field.key === 'attribute:wearables.case_size');
-      const field = candidates.length === 1 ? candidates[0] : null;
-      const values = Array.isArray(field?.optionValues) ? field.optionValues : null;
-      const optionEvidenceComplete = Array.isArray(values) && values.length > 0;
-      const labels = observed?.optionLabels?.['wearables.case_size'];
-      const exact44mmMatches = Array.isArray(labels)
-        ? labels.filter(item => item?.value === '44' && item?.label === '44mm').length : 0;
-      const technical44Offered = optionEvidenceComplete && values.includes('44');
-      const mapped44 = (report?.mappings || []).filter(item =>
-        item.oldKey === 'wearables.gehausegrosse' &&
-        item.newKey === 'wearables.case_size' &&
-        item.technicalValue === '44' &&
-        item.expectedDisplayLabel === '44mm').length === 1;
-      const specificInvalidRejectionProven = Boolean(
-        optionEvidenceComplete && typeof rejectedValue === 'string' &&
-        rejectedValue.length > 0 && !values.includes(rejectedValue) &&
-        (report?.issues || []).some(issue => typeof issue === 'string' &&
-          issue.includes('Gehäusegröße (synthetischer Test)') &&
-          issue.includes('wird im neuen Formular nicht angeboten.')));
-      const mapping44Proven = Boolean(technical44Offered && exact44mmMatches === 1 && mapped44);
-      const verdict = scenario === 'compatible'
-        ? Boolean(report?.complete === true && mapping44Proven)
-        : Boolean(report?.complete === false && specificInvalidRejectionProven);
-      const evidenceState = !field ? 'case-size-field-missing'
-        : !optionEvidenceComplete ? 'case-size-option-evidence-missing'
-          : scenario === 'compatible' && !mapping44Proven ? '44mm-option-not-proven'
-            : scenario === 'incompatible' && !specificInvalidRejectionProven ? 'invalid-value-rejection-not-proven'
-              : 'proven';
-      return Object.freeze({
-        verdict, evidenceState, caseFieldPresent: Boolean(field),
-        optionEvidenceComplete, optionCount: values?.length || 0,
-        technical44Offered: Boolean(technical44Offered),
-        visible44mmProven: exact44mmMatches === 1,
-        mapping44Proven, specificInvalidRejectionProven
-      });
-    }
-
     function verifyAfterFill(report, observed) {
       const issues = [];
       if (!report?.complete) return ['Formularschema-Vorprüfung ist nicht erfolgreich abgeschlossen.'];
@@ -273,7 +229,7 @@
       }
       return [...new Set(issues)];
     }
-    return Object.freeze({ inspectForm, afterHydration, evaluate, assessSyntheticCaseSize, verifyAfterFill });
+    return Object.freeze({ inspectForm, afterHydration, evaluate, verifyAfterFill });
   }
   const API = Object.freeze({ create });
   globalThis.KRDeps?.register?.('KRTemplateSchemaPreflight', API);
