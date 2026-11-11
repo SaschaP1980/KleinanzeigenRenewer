@@ -605,7 +605,7 @@ const PLATFORM_REMOTE_ACTION_TYPES = new Set([
   'START_BULK_INVENTORY_OPERATION', 'BULK_INIT_RUN',
   'BULK_BEGIN_RECONCILIATION', 'BULK_OPEN_WORKER', 'BULK_EXTRACT_SAVE_WORKER',
   'RETRY_BULK_FAILURE', 'START_MASS_RENEWAL_BATCH', 'RETRY_MASS_RENEWAL_ITEM',
-  'START_TEMPLATE_FILL', 'START_ARCHIVE_INSERTION', 'START_TRASH_TEMPLATE_FILL'
+  'START_TEMPLATE_FILL', 'START_ARCHIVE_INSERTION', 'START_TRASH_TEMPLATE_FILL', 'START_SCHEMA_TEST'
 ]);
 
 let platformSafetyController = null;
@@ -3242,6 +3242,11 @@ const backgroundMessageRouter = BackgroundMessageRouter.create({
   "START_ARCHIVE_INSERTION": (message, sender) => startArchiveInsertion(message),
   "GET_ARCHIVE_INSERTION_STATUS": (message, sender) => getArchiveInsertionStatus(message),
   "START_TRASH_TEMPLATE_FILL": (message, sender) => startTrashTemplateFill(message.inventoryId, { supersedeFillId: message.supersedeFillId || null }),
+  "START_SCHEMA_TEST": (message, sender) => {
+    if (!['compatible', 'incompatible'].includes(message.scenario))
+      throw new Error('Unbekanntes Schema-Prüfszenario.');
+    return startTrashTemplateFill(message.inventoryId, { schemaTestScenario: message.scenario });
+  },
   "GET_TRASH_TEMPLATE_FILL_STATUS": (message, sender) => getTrashTemplateFillStatus(message),
   "GET_RECOVERABLE_TRASH_TEMPLATE_FILL": (message, sender) => getRecoverableTrashTemplateFill(),
   "PREPARE_TRASH_TEMPLATE_INVENTORY_CAPTURE": (message, sender) => prepareTrashTemplateInventoryCapture(message),

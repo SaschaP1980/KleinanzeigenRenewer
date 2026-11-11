@@ -179,5 +179,43 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
     const {report}=await f.complete();
     assert.equal(report.complete,true,report.issues.join(';'));
   });
-  console.log(passed+'/22 PASS KAR-134 schema capture/preflight');
+
+  await check('read-only 405 simulation accepts 44/44mm on current select and reports synthetic schema drift',async()=>{
+    const f=fixture();
+    const observed=f.engine.inspectForm(f.document.querySelector('form'),405,f.document);
+    const focused={...observed,schema:{...observed.schema,fields:observed.schema.fields.filter(field=>field.key==='attribute:wearables.case_size')}};
+    const old=Schema.buildSchema({categoryId:'405',dynamicAttributes:[{key:'wearables.gehausegrosse',controlType:'number'}]});
+    const source={categoryId:'405',templateSchema:{snapshot:old,fingerprint:await Schema.fingerprint(old)},
+      dynamicAttributes:[oldAttr('wearables.gehausegrosse','44','44mm')]};
+    const report=await f.engine.evaluate(source,focused);
+    assert.equal(report.complete,true,report.issues.join(';'));
+    assert.equal(report.comparison.status,'schema-changed');
+    assert.equal(report.mappings.length,1);
+    assert.equal(report.mappings[0].expectedDisplayLabel,'44mm');
+  });
+  await check('read-only 405 simulation blocks guaranteed absent technical option',async()=>{
+    const f=fixture();
+    const observed=f.engine.inspectForm(f.document.querySelector('form'),405,f.document);
+    const focused={...observed,schema:{...observed.schema,fields:observed.schema.fields.filter(field=>field.key==='attribute:wearables.case_size')}};
+    const old=Schema.buildSchema({categoryId:'405',dynamicAttributes:[{key:'wearables.gehausegrosse',controlType:'number'}]});
+    const source={categoryId:'405',templateSchema:{snapshot:old,fingerprint:await Schema.fingerprint(old)},
+      dynamicAttributes:[oldAttr('wearables.gehausegrosse','__KAR134_UNREPRESENTABLE_CASE_SIZE__','synthetic')]};
+    const report=await f.engine.evaluate(source,focused);
+    assert.equal(report.complete,false);
+    assert.ok(report.issues.some(issue=>issue.includes('nicht angeboten')));
+  });
+  await check('read-only test branch precedes filler/publisher and has no write primitive',async()=>{
+    const fs=require('node:fs');
+    const filler=fs.readFileSync(require.resolve('../src/content/template-filler.js'),'utf8');
+    const background=fs.readFileSync(require.resolve('../src/background/controllers/template-fill-controller.js'),'utf8');
+    const probe=filler.slice(filler.indexOf('async function runReadOnlySchemaTest'),filler.indexOf('async function runFillSession'));
+    assert.ok(probe.includes('SchemaPreflight.afterHydration'));
+    assert.ok(probe.includes('SchemaPreflight.evaluate'));
+    for(const forbidden of ['fillDynamicAttributes(', 'uploadImages(', 'advanceAfterVerifiedFill(', 'autoPublishVerifiedRenewal(', 'button.click(', 'submit(', 'requestSubmit('])
+      assert.ok(!probe.includes(forbidden),'unexpected write path in read-only probe: '+forbidden);
+    assert.ok(filler.indexOf('if (session.schemaTestScenario)')<filler.indexOf("if (kind === 'post-fill' ||"));
+    assert.ok(background.includes('schemaTestScenario: isSchemaTest ? schemaTestScenario : null'));
+    assert.ok(background.includes("if (isSchemaTest) {"));
+  });
+  console.log(passed+'/25 PASS KAR-134 schema capture/preflight');
 })().catch(error=>{console.error(error);process.exitCode=1});

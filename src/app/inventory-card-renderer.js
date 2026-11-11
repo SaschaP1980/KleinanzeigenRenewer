@@ -105,6 +105,50 @@ function makeInventoryExportActionButton(record) {
   return exportButton;
 }
 
+
+function makeSchemaTestActions(record, { compact = false, disabled = false } = {}) {
+  if (String(record?.category?.id ?? record?.categoryIdFromUrl ?? '') !== '405' || record?.renewal) return [];
+  return [
+    { scenario: 'compatible', label: 'Schema OK testen', icon: 'update',
+      help: 'Liest Kategorie 405 und prüft synthetisch den übernommenen Wert 44 / 44mm. Kein Ausfüllen oder Veröffentlichen.' },
+    { scenario: 'incompatible', label: 'Schema-Drift testen', icon: 'retry',
+      help: 'Liest Kategorie 405 und prüft, dass eine absichtlich ungültige Gehäusegröße gesperrt wird. Keine Veröffentlichung.' }
+  ].map(spec => {
+    const button = compact
+      ? makeCompactIconButton({ icon: spec.icon, label: spec.label, title: spec.help })
+      : document.createElement('button');
+    if (!compact) {
+      button.type = 'button';
+      button.className = 'secondary compact-action';
+      button.textContent = spec.label;
+      button.title = spec.help;
+    }
+    button.disabled = disabled;
+    if (compact) rememberCompactButtonDisabled(button);
+    button.addEventListener('click', async () => {
+      if (!requireAccountBoundAction()) return;
+      if (!await confirmAction({
+        title: 'Formularschema nur prüfen?',
+        text: spec.help,
+        detail: 'Die Inventarvorlage bleibt unverändert. Der neue Kleinanzeigen-Tab dient nur zum Lesen des Formularschemas; es werden keine Anzeigenwerte oder Bilder übertragen.',
+        confirmLabel: 'Prüfmodus starten'
+      })) return;
+      button.disabled = true;
+      try {
+        const started = await runtimeMessage({
+          type: 'START_SCHEMA_TEST', inventoryId: record.inventoryId, scenario: spec.scenario
+        });
+        void logAppEvent('USER_SCHEMA_TEST_STARTED', { scenario: spec.scenario, tabId: started?.tabId || null });
+        setStatus('ready', 'Schema-Prüfmodus gestartet', 'Das Ergebnis erscheint im neuen Kleinanzeigen-Tab und im Diagnoseexport. Keine Veröffentlichung.');
+      } catch (error) {
+        button.disabled = false;
+        setFriendlyErrorStatus(error, 'Schema-Prüfmodus konnte nicht gestartet werden');
+      }
+    });
+    return button;
+  });
+}
+
 function makeCompactInventoryExportButton(record) {
   const exportButton = makeCompactIconButton({
     icon: 'zip-export',
@@ -330,7 +374,8 @@ function renderCompactInventoryRow(record) {
       setFriendlyErrorStatus(error, 'Nicht in Papierkorb verschoben');
     }
   });
-  actions.append(createButton, updateButton, exportButton, deleteButton);
+  actions.append(createButton, updateButton, exportButton, ...makeSchemaTestActions(record,
+    { compact: true, disabled: insertionBlocked || !gate.allowed || !profileMatches }), deleteButton);
   return row;
 }
 
@@ -769,7 +814,8 @@ function renderInventories(records = currentRecords) {
         setFriendlyErrorStatus(error, 'Nicht in Papierkorb verschoben');
       }
     });
-    actions.append(createButton, updateButton, exportButton, deleteButton);
+    actions.append(createButton, updateButton, exportButton, ...makeSchemaTestActions(record,
+      { disabled: insertionBlocked || !accountGate.allowed || !recordMatchesSelectedProfile }), deleteButton);
     card.append(actions);
     }
 

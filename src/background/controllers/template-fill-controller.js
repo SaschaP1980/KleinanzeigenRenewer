@@ -116,7 +116,7 @@ async function getTrashTemplateFillStatus(message = {}) {
   if (!fillId) return null;
   const sessions = await readFillSessions();
   const session = sessions[fillId];
-  if (!session?.templateOnly) return null;
+  if (!session?.templateOnly || session.schemaTestScenario) return null;
   return {
     operationId: session.operationId || null,
     fillId: session.fillId,
@@ -217,15 +217,24 @@ async function finalizeLostTrashTemplateSupersede(snapshot, replacementFillId) {
   return changed;
 }
 
-async function startTrashTemplateFillUnlocked(inventoryId) {
+async function startTrashTemplateFillUnlocked(inventoryId, { schemaTestScenario = null } = {}) {
+  const isSchemaTest = ['compatible', 'incompatible'].includes(schemaTestScenario);
   const record = await getInventory(inventoryId);
-  if (!record || !isTrashRecord(record)) throw new Error('Papierkorb-Vorlage wurde nicht gefunden.');
-  assertTemplateSourceReady(record);
+  if (!record || (!isSchemaTest && !isTrashRecord(record))) throw new Error('Papierkorb-Vorlage wurde nicht gefunden.');
+  if (isSchemaTest) {
+    if (String(record.category?.id ?? record.categoryIdFromUrl ?? '') !== '405' || record.renewal ||
+        !Array.isArray(record.category?.path || record.categoryPath) ||
+        (record.category?.path || record.categoryPath).length < 2) {
+      throw new Error('Der read-only Schema-Prüfmodus benötigt einen Inventareintrag der Kategorie 405 mit gesichertem Kategoriepfad.');
+    }
+  } else {
+    assertTemplateSourceReady(record);
+  }
   const fillId = cryptoApi.randomUUID();
   const operationId = cryptoApi.randomUUID();
   const tab = await createAutomationTab({ url: 'about:blank', active: false });
   if (!tab?.id) throw new Error('Neuer Kleinanzeigen-Tab konnte nicht geöffnet werden.');
-  await registerShadowTab(tab.id, TAB_ROLES.TEMPLATE_TARGET, { operationId, fillId, inventoryId: String(record.inventoryId), adId: String(record.adId || ''), ownerType: 'trash-template', ownerId: fillId });
+  await registerShadowTab(tab.id, TAB_ROLES.TEMPLATE_TARGET, { operationId, fillId, inventoryId: String(record.inventoryId), adId: String(record.adId || ''), ownerType: isSchemaTest ? 'schema-test' : 'trash-template', ownerId: fillId });
   const sessions = await readFillSessions();
   sessions[fillId] = {
     operationId,
@@ -233,7 +242,8 @@ async function startTrashTemplateFillUnlocked(inventoryId) {
     fillId,
     renewalId: null,
     templateOnly: true,
-    trashInventoryId: String(record.inventoryId),
+    schemaTestScenario: isSchemaTest ? schemaTestScenario : null,
+    trashInventoryId: isSchemaTest ? null : String(record.inventoryId),
     inventoryId: String(record.inventoryId),
     sourceAdId: String(record.adId || ''),
     targetTabId: tab.id,
@@ -261,7 +271,10 @@ async function startTrashTemplateFillUnlocked(inventoryId) {
     broadcastInventoryChanged('insertion-lock-released', { kind: 'trash-template', ownerId: fillId, inventoryId: String(record.inventoryId), reason: 'target-tab-failed' });
     throw error;
   }
-  await logDiagnostic('info', 'TRASH_TEMPLATE_FILL_STARTED', { operationId, fillId, inventoryId: String(record.inventoryId), sourceAdId: String(record.adId || ''), targetTabId: tab.id, autoPublishAllowed: false }, { module: 'background', operation: 'trash-template-fill', context: sessionCorrelationContext(sessions[fillId], { adId: record.adId || null, targetTabId: tab.id }) }).catch(() => {});
+  await logDiagnostic('info', isSchemaTest ? 'KAR134_SCHEMA_TEST_STARTED' : 'TRASH_TEMPLATE_FILL_STARTED',
+    { operationId, fillId, inventoryId: String(record.inventoryId), sourceAdId: String(record.adId || ''),
+      targetTabId: tab.id, autoPublishAllowed: false, scenario: isSchemaTest ? schemaTestScenario : null,
+      formFieldsWritable: !isSchemaTest }, { module: 'background', operation: 'trash-template-fill', context: sessionCorrelationContext(sessions[fillId], { adId: record.adId || null, targetTabId: tab.id }) }).catch(() => {});
   return { operationId, parentOperationId: null, fillId, templateOnly: true, tabId: tab.id, url: TEMPLATE_TARGET_URL };
 }
 
@@ -438,6 +451,11 @@ async function startTemplateFillUnlocked(inventoryId, { autoReplacementAllowed =
 
 async function startTrashTemplateFill(inventoryId) {
   const options = arguments[1] && typeof arguments[1] === 'object' ? arguments[1] : {};
+  const schemaTestScenario = options.schemaTestScenario == null ? null : String(options.schemaTestScenario);
+  if (schemaTestScenario && !['compatible', 'incompatible'].includes(schemaTestScenario))
+    throw new Error('Unbekanntes Schema-Prüfszenario.');
+  if (schemaTestScenario && options.supersedeFillId)
+    throw new Error('Ein Schema-Prüfmodus darf keinen bestehenden Vorlagenvorgang ersetzen.');
   return withInsertionStartGate(async () => {
     const normalizedInventoryId = String(inventoryId || '');
     await assertInsertionStartAvailable({ kind: 'trash-template', inventoryId: normalizedInventoryId });
@@ -454,7 +472,7 @@ async function startTrashTemplateFill(inventoryId) {
     }
     let result;
     try {
-      result = await startTrashTemplateFillUnlocked(normalizedInventoryId);
+      result = await startTrashTemplateFillUnlocked(normalizedInventoryId, { schemaTestScenario });
     } catch (error) {
       if (supersedeSnapshot) await restoreLostTrashTemplateAfterRestartFailure(supersedeSnapshot).catch(() => false);
       if (supersedeSnapshot) await logDiagnostic('warning', 'TRASH_TEMPLATE_TARGET_LOSS_RESTART_FAILED', {

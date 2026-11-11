@@ -346,6 +346,82 @@
     return { complete: false, issues: unique, schemaPreflightBlocked: true };
   }
 
+
+  // KAR-134 field-only native simulation. No listing content, image upload,
+  // wizard continuation, submit or source mutation is permitted in this path.
+  async function runReadOnlySchemaTest(session) {
+    const scenario = session.schemaTestScenario;
+    if (!['compatible', 'incompatible'].includes(scenario) ||
+        String(session.template?.categoryId || '') !== '405' || !SchemaCore || !SchemaPreflight)
+      throw new Error('Schema-Prüfmodus ist nicht verfügbar oder die Kategorie stimmt nicht.');
+    const fillId = session.fillId;
+    updatePanel('Schema-Prüfmodus (nur Lesen)', 'Kategorie 405 wird für den Vergleich vorbereitet. Es werden keine Anzeigenwerte eingetragen und keine Anzeigen veröffentlicht.', [],
+      { safetyText: 'TESTMODUS – Formular ausschließlich prüfen, nicht veröffentlichen.' });
+    await runtimeMessage({ type: 'UPDATE_TEMPLATE_FILL_SESSION', fillId, status: 'running', stage: 'schema-test-category' });
+    const categoryState = await setCategory(session.template, fillId, session?.maxPhaseAttempts);
+    if (categoryState?.pendingNavigation) return { pending: true, schemaTest: true };
+    const live = await SchemaPreflight.afterHydration({ categoryId: '405', dynamicAttributes: [] });
+    if (live.categoryId !== '405') throw new Error('Live-Kategorie 405 wurde nicht bestätigt.');
+    const caseField = live.schema.fields.find(field => field.key === 'attribute:wearables.case_size');
+    const focused = {
+      ...live,
+      schema: { ...live.schema, fields: caseField ? [caseField] : [] }
+    };
+    // Synthetic historical schema, not an actual saved archive capture.
+    // Never load, modify or persist the source listing values.
+    const snapshot = SchemaCore.buildSchema({ categoryId: '405', dynamicAttributes: [
+      { key: 'wearables.gehausegrosse', controlType: 'number', requiredState: 'unknown' }
+    ] });
+    const fingerprint = await SchemaCore.fingerprint(snapshot);
+    const knownValues = new Set(caseField?.optionValues || []);
+    let rejectedValue = '__KAR134_UNREPRESENTABLE_CASE_SIZE__';
+    while (knownValues.has(rejectedValue)) rejectedValue += '_';
+    const simulated = {
+      categoryId: '405',
+      templateSchema: { snapshot, fingerprint },
+      dynamicAttributes: [{
+        key: 'wearables.gehausegrosse', label: 'Gehäusegröße (synthetischer Test)',
+        technicalValue: scenario === 'compatible' ? '44' : rejectedValue,
+        displayValue: scenario === 'compatible' ? '44mm' : '(absichtlich ungültiger Testwert)',
+        status: 'captured'
+      }]
+    };
+    const report = await SchemaPreflight.evaluate(simulated, focused);
+    const label44Proven = report.mappings.some(item =>
+      item.oldKey === 'wearables.gehausegrosse' &&
+      item.newKey === 'wearables.case_size' &&
+      item.technicalValue === '44' && item.expectedDisplayLabel === '44mm');
+    const compatible = report.complete && label44Proven;
+    const verdict = scenario === 'compatible' ? compatible : !report.complete;
+    const issues = verdict ? [] : (scenario === 'compatible'
+      ? [...report.issues, 'Das aktuelle Formular bestätigt 44 / 44mm nicht eindeutig.']
+      : ['Der absichtlich ungültige Testwert wurde nicht erwartungsgemäß gesperrt.']);
+    const actualFullFingerprint = await SchemaCore.fingerprint(live.schema);
+    void diagnostic(fillId, 'KAR134_SCHEMA_TEST_RESULT', {
+      scenario, verdict, mode: 'read-only', scope: 'category-405-case-size-only',
+      remotePublishAttempted: false, archivedValuesRead: false,
+      syntheticOldFingerprint: fingerprint, actualFullFingerprint,
+      focusedCurrentFingerprint: report.currentFingerprint,
+      detectedChangeTypes: (report.comparison?.changes || []).map(item => item.type).slice(0, 30),
+      issueCount: report.issues.length, mappedCaseSize44mm: label44Proven
+    }, verdict ? 'info' : 'warning');
+    await runtimeMessage({
+      type: 'UPDATE_TEMPLATE_FILL_SESSION', fillId,
+      status: verdict ? 'complete' : 'needs-review',
+      stage: verdict ? 'schema-test-' + scenario : 'schema-test-unexpected',
+      result: { complete: verdict, issues: issues.slice(0, 50) }
+    });
+    updatePanel(
+      verdict ? 'Schema-Prüfmodus: Test bestanden' : 'Schema-Prüfmodus: Prüfung fehlgeschlagen',
+      scenario === 'compatible'
+        ? (verdict ? 'Das aktuelle Formular bietet den technischen Wert 44 mit der sichtbaren Auswahl 44mm eindeutig an.' : 'Die aktuelle Auswahl 44 / 44mm konnte nicht nachgewiesen werden.')
+        : (verdict ? 'Der absichtlich nicht darstellbare Testwert wurde sicher abgewiesen.' : 'Der Testfall wurde nicht erwartungsgemäß abgewiesen.'),
+      verdict ? [] : issues,
+      { safetyText: 'TEST ABGESCHLOSSEN – keine Werte übertragen, keine Bilder hochgeladen, keine Anzeige veröffentlicht. Dies ist nur eine Feldsimulation, keine vollständige Abnahme.' }
+    );
+    return { schemaTest: true, scenario, verdict, publishTriggered: false, issues };
+  }
+
   async function runFillSession(session) {
     const { fillId, template } = session;
     const issues = [];
@@ -492,6 +568,12 @@
     panelTemplateOnly = Boolean(session.templateOnly);
     panelArchiveInsertion = Boolean(session.archiveInsertionId);
     try {
+      // Test mode runs before all filling, continuation and publication branches.
+      if (session.schemaTestScenario) {
+        if (kind === 'category') return await runLegacyCategorySelection(session);
+        if (kind !== 'target') throw new Error('Schema-Test: unerwartete Formularseite.');
+        return await runReadOnlySchemaTest(session);
+      }
       if (kind === 'paid-insertion-checkout') {
         const detection = paidInsertionDetection();
         if (detection.required) return await stopForPaidInsertion(session, detection, 'checkout-page');

@@ -107,7 +107,7 @@
       function templateFillHoldsInsertionLock(session) { return Boolean(session?.templateOnly) && ['waiting', 'running'].includes(String(session.status || '')); }
 
       function isRecoverableTrashTemplateSession(session) {
-        if (!session?.templateOnly) return false;
+        if (!session?.templateOnly || session.schemaTestScenario) return false;
         const status = String(session.status || '');
         const stage = String(session.stage || '');
         if (['waiting', 'running'].includes(status)) return true;
@@ -140,11 +140,15 @@
         return {
           operationId: session.operationId || null, parentOperationId: session.parentOperationId || null, fillId: session.fillId,
           renewalId: session.renewalId || null, archiveInsertionId: session.archiveInsertionId || null, templateOnly: Boolean(session.templateOnly),
+          schemaTestScenario: session.schemaTestScenario || null,
           autoReplacementAllowed: Boolean(session.autoReplacementAllowed), trashInventoryId: session.trashInventoryId || null,
           status: session.status || null, stage: session.stage || null,
           result: session.result ? { complete: Boolean(session.result.complete), issues: Array.isArray(session.result.issues) ? session.result.issues.slice(0, 50) : [],
             schemaPreflight: session.result.schemaPreflight?.verified === true ? { ...session.result.schemaPreflight } : null } : null,
-          template: templatePayload(record)
+          template: session.schemaTestScenario
+            ? { categoryId: record.category?.id ?? record.categoryIdFromUrl ?? null,
+                categoryPath: record.category?.path || record.categoryPath || [], dynamicAttributes: [] }
+            : templatePayload(record)
         };
       }
 
