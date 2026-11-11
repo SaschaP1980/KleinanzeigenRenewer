@@ -136,6 +136,6 @@
       compatible: changes.length ? null : true, changes };
   }
   const API = Object.freeze({ buildSchema, fingerprint, diff });
+  // The runtime registration is deliberately deferred until the capture/preflight integration Wave.
   if (typeof module !== 'undefined' && module?.exports) module.exports = API;
-  else globalThis.KRTemplateSchemaCore = API;
 })();
