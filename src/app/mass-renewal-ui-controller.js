@@ -10,13 +10,14 @@
         massRenewalKicker, massRenewalIntro, massRenewalSelectionPanel, massRenewalOrderPanel,
         massRenewalOrderList, massRenewalStopOnError, massRenewalStopOnErrorStatus,
         massRenewalProgressPanel, massRenewalSummaryPanel, massRenewalSelectionBody,
-        massRenewalSelectionCount, massRenewalProgressTitle, massRenewalProgressCount,
+        massRenewalSelectionCount, massRenewalSearchInput, massRenewalSearchClear, massRenewalProgressTitle, massRenewalProgressCount,
         massRenewalProgressList, massRenewalSummaryCount, massRenewalSummaryList
       } = elements;
       const MASS_RENEWAL_MAX_ITEMS = Number(options.maxItems || 10);
       const RENEWAL_MODE_FAST = String(options.fastMode || 'fast');
       const normalizeRenewalMode = options.normalizeRenewalMode || (value => String(value || 'safe'));
       const templateReady = options.templateReady || (() => false);
+      const inventoryView = options.inventoryView;
       const displayPrice = options.displayPrice || (() => '');
       const endDateWithRelativeLabel = options.endDateWithRelativeLabel || (() => '');
       const loadLocalPreview = options.loadLocalPreview || (async () => {});
@@ -64,7 +65,10 @@ function massRenewalEndTimestamp(record) {
 function eligibleMassRenewalRecords() {
   return currentRecords
     .filter(record => templateReady(record))
-    .sort((a, b) => massRenewalEndTimestamp(a) - massRenewalEndTimestamp(b) || String(a.title || '').localeCompare(String(b.title || ''), 'de'));
+    .sort((a, b) => massRenewalEndTimestamp(a) - massRenewalEndTimestamp(b)
+      || String(a.title || '').localeCompare(String(b.title || ''), 'de')
+      || String(a.adId || '').localeCompare(String(b.adId || ''), 'de')
+      || String(a.inventoryId || '').localeCompare(String(b.inventoryId || ''), 'de'));
 }
 
 function setMassRenewalStep(step, { completeCurrent = false } = {}) {
@@ -148,12 +152,20 @@ function renderMassRenewalSelection() {
   if (!massRenewalSelectionBody) return;
   massRenewalSelectionBody.replaceChildren();
   massRenewalSelectedIds = new Set([...massRenewalSelectedIds].filter(id => currentRecords.some(record => String(record.inventoryId) === String(id) && templateReady(record))));
-  const records = eligibleMassRenewalRecords();
-  if (!records.length) {
+  const eligible = eligibleMassRenewalRecords();
+  const query = String(massRenewalSearchInput?.value || '');
+  if (massRenewalSearchClear) massRenewalSearchClear.hidden = query.length === 0;
+  // Reuse the inventory view's NFKD, case, whitespace and multi-term matching semantics.
+  // Keep the Step 1 expiry and identity ordering instead of re-sorting the matches.
+  const matching = query.trim() ? new Set(inventoryView.deriveInventoryView(eligible, { query })) : null;
+  const records = matching ? eligible.filter(record => matching.has(record)) : eligible;
+  if (!eligible.length || !records.length) {
     const row = document.createElement('tr');
     const cell = document.createElement('td');
     cell.colSpan = 5;
-    cell.textContent = 'Für dieses Inventarprofil sind aktuell keine vollständig gespeicherten Vorlagen verfügbar.';
+    cell.textContent = eligible.length
+      ? 'Keine Anzeigen mit diesem Titel gefunden.'
+      : 'Für dieses Inventarprofil sind aktuell keine vollständig gespeicherten Vorlagen verfügbar.';
     row.append(cell);
     massRenewalSelectionBody.append(row);
     updateMassRenewalSelectionState();
@@ -223,10 +235,11 @@ function normalizeMassRenewalOrder() {
     seen.add(value);
     normalized.push(value);
   }
-  const visibleIds = [...(massRenewalSelectionBody?.querySelectorAll('tr[data-mass-inventory-id]') || [])]
-    .map(row => String(row.dataset.massInventoryId || ''))
-    .filter(id => id && validSelected.has(id));
-  for (const id of visibleIds) {
+  // Visible rows are filtered, so they cannot be used as the ordering authority.
+  const eligibleSelectedIds = eligibleMassRenewalRecords()
+    .map(record => String(record.inventoryId))
+    .filter(id => validSelected.has(id));
+  for (const id of eligibleSelectedIds) {
     if (seen.has(id)) continue;
     seen.add(id);
     normalized.push(id);
@@ -815,10 +828,19 @@ function syncMassRenewalUiFromLock() {
       function status() { return Object.freeze({ currentBatch: currentMassRenewalBatch, selectedIds: [...massRenewalSelectedIds], orderedIds: [...massRenewalOrderedIds], draggedId: massRenewalDraggedId }); }
       function resetSelection() {
         currentMassRenewalBatch = null; massRenewalSelectedIds = new Set(); massRenewalOrderedIds = []; massRenewalDraggedId = '';
+        if (massRenewalSearchInput) massRenewalSearchInput.value = '';
+        if (massRenewalSearchClear) massRenewalSearchClear.hidden = true;
         setMassRenewalKicker(currentRenewalConfiguration.renewalMode); setMassRenewalStep(1); updateMassRenewalCloseAccessibility(null); renderMassRenewalSelection();
       }
       function install() {
         if (installed) return; installed = true;
+        massRenewalSearchInput?.addEventListener('input', renderMassRenewalSelection);
+        massRenewalSearchClear?.addEventListener('click', () => {
+          if (!massRenewalSearchInput) return;
+          massRenewalSearchInput.value = '';
+          renderMassRenewalSelection();
+          massRenewalSearchInput.focus();
+        });
         massRenewalButton?.addEventListener('click', async () => {
           if (!requireAccountBoundAction()) return;
           try {
@@ -831,8 +853,9 @@ function syncMassRenewalUiFromLock() {
         });
         massRenewalNext?.addEventListener('click', () => {
           if (!requireAccountBoundAction()) { updateMassRenewalSelectionState(); return; }
-          const visibleIds = [...(massRenewalSelectionBody?.querySelectorAll('tr[data-mass-inventory-id]') || [])].map(row => String(row.dataset.massInventoryId || '')).filter(id => id && massRenewalSelectedIds.has(id));
-          if (!visibleIds.length) return; massRenewalOrderedIds = visibleIds; renderMassRenewalOrder(); setMassRenewalStep(2);
+          normalizeMassRenewalOrder();
+          if (!massRenewalOrderedIds.length) return;
+          renderMassRenewalOrder(); setMassRenewalStep(2);
           void logAppEvent('USER_MASS_RENEWAL_ORDER_OPENED', { itemCount: massRenewalOrderedIds.length, inventoryIds: [...massRenewalOrderedIds] });
         });
         massRenewalBack?.addEventListener('click', () => { setMassRenewalStep(1); updateMassRenewalSelectionState(); });
@@ -842,7 +865,11 @@ function syncMassRenewalUiFromLock() {
           if (!stopOnErrorReady || stopOnErrorSaving || typeof stopOnErrorPreference !== 'boolean') {
             setStatus('error', 'Einstellung nicht verfügbar', 'Bitte prüfe die Einstellung „Bei Fehler anhalten“.'); return;
           }
-          const inventoryIds = [...massRenewalOrderedIds]; if (!inventoryIds.length || inventoryIds.length > MASS_RENEWAL_MAX_ITEMS) return; if (inventoryIds.some(id => !massRenewalSelectedIds.has(String(id)))) return;
+          const inventoryIds = [...massRenewalOrderedIds];
+          if (!inventoryIds.length || inventoryIds.length > MASS_RENEWAL_MAX_ITEMS
+            || inventoryIds.length !== massRenewalSelectedIds.size
+            || new Set(inventoryIds).size !== inventoryIds.length
+            || inventoryIds.some(id => !massRenewalSelectedIds.has(String(id)) || !massRenewalRecordForId(id))) return;
           massRenewalStart.disabled = true; setMassRenewalStep(3); if (massRenewalProgressTitle) massRenewalProgressTitle.textContent = 'Anzeigen werden neu inseriert …';
           try { const batch = await runtimeMessage({ type: 'START_MASS_RENEWAL_BATCH', inventoryIds, stopOnError: stopOnErrorPreference }); currentMassRenewalBatch = batch; renderMassRenewalBatch(batch); setStatus('', 'Neu inserieren gestartet', `${inventoryIds.length} Anzeigen werden nacheinander verarbeitet.`, '', { badgeLabel: 'Info' }); void logAppEvent('USER_MASS_RENEWAL_STARTED', { batchId: batch?.batchId || null, itemCount: inventoryIds.length, inventoryIds, renewalMode: batch?.renewalMode || null }); }
           catch (error) { setMassRenewalStep(2); updateMassRenewalOrderState(); setStatus('error', 'Neu inserieren nicht gestartet', 'Der Vorgang konnte nicht gestartet werden.'); }
