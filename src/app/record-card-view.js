@@ -98,7 +98,7 @@ function createCompactListRow(record, { trash = false } = {}) {
   categoryLine.className = 'compact-list-category-line';
   const categoryPath = String(categoryLabel(record) || '–').trim() || '–';
   const articleType = String(artLabel(record) || '–').trim();
-  const lastCategorySegment = categoryPath.split(/\\s*[›>]\\s*/).pop()?.trim();
+  const lastCategorySegment = categoryPath.split(/\s*[›>]\s*/).pop()?.trim();
   const hasDistinctType = categoryPath !== '–' && articleType && articleType !== '–' && articleType !== lastCategorySegment;
   categoryLine.textContent = hasDistinctType ? `${categoryPath} › ${articleType}` : categoryPath;
   categoryLine.title = categoryLine.textContent;
