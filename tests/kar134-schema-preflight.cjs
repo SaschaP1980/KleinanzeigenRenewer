@@ -162,5 +162,22 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
     const failures=f.engine.verifyAfterFill({...report,complete:true},observation);
     assert.ok(failures.some(issue=>issue.includes('wearables.bluetooth')),failures.join(';'));
   });
-  console.log(passed+'/20 PASS KAR-134 schema capture/preflight');
+  await check('legacy previously visible selection with no technical value blocks instead of being discarded',async()=>{
+    const f=fixture({legacy:true});
+    f.template.dynamicAttributes[0].technicalValue=null;
+    f.template.dynamicAttributes[0].displayValue='44mm';
+    f.template.dynamicAttributes[0].status='captured';
+    const {report}=await f.complete();
+    assert.equal(report.complete,false);
+    assert.ok(report.issues.some(issue=>issue.includes('ohne eindeutig gespeicherten technischen Wert')));
+  });
+  await check('truly empty optional selection with no saved value never blocks',async()=>{
+    const f=fixture({legacy:true});
+    f.template.dynamicAttributes[0].technicalValue='';
+    f.template.dynamicAttributes[0].displayValue='Bitte auswählen';
+    f.template.dynamicAttributes[0].status='empty';
+    const {report}=await f.complete();
+    assert.equal(report.complete,true,report.issues.join(';'));
+  });
+  console.log(passed+'/22 PASS KAR-134 schema capture/preflight');
 })().catch(error=>{console.error(error);process.exitCode=1});
