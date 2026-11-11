@@ -10,6 +10,10 @@ const Preflight = require('../src/content/template-schema-preflight.js');
 let passed = 0;
 const check = async (label, run) => { await run(); passed++; console.log('PASS KAR-134 preflight: '+label); };
 const oldAttr = (key,value,display='') => ({ key, technicalValue:value, displayValue:display, label:key, controlType:'text' });
+const syntheticCaseAttr = (value, display='synthetic') => ({
+  ...oldAttr('wearables.gehausegrosse', value, display),
+  label: 'Gehäusegröße (synthetischer Test)', status: 'captured'
+});
 function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
   options=true, checkbox=true, bluetoothRequired=false, requiredNew=false, busy=false, duplicate=false, legacy=false,
   savedKey='wearables.gehausegrosse', savedValue='44' } = {}) {
@@ -203,7 +207,7 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
     const focused={...observed,schema:{...observed.schema,fields:observed.schema.fields.filter(field=>field.key==='attribute:wearables.case_size')}};
     const old=Schema.buildSchema({categoryId:'405',dynamicAttributes:[{key:'wearables.gehausegrosse',controlType:'number'}]});
     const source={categoryId:'405',templateSchema:{snapshot:old,fingerprint:await Schema.fingerprint(old)},
-      dynamicAttributes:[oldAttr('wearables.gehausegrosse','__KAR134_UNREPRESENTABLE_CASE_SIZE__','synthetic')]};
+      dynamicAttributes:[syntheticCaseAttr('__KAR134_UNREPRESENTABLE_CASE_SIZE__')]};
     const report=await f.engine.evaluate(source,focused);
     assert.equal(report.complete,false);
     assert.ok(report.issues.some(issue=>issue.includes('nicht angeboten')));
@@ -233,7 +237,7 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
     for(const scenario of ['compatible','incompatible']){
       const technicalValue=scenario==='compatible'?'44':'__KAR134_UNREPRESENTABLE_CASE_SIZE__';
       const source={categoryId:'405',templateSchema:{snapshot:old,fingerprint:await Schema.fingerprint(old)},
-        dynamicAttributes:[oldAttr('wearables.gehausegrosse',technicalValue,'44mm')]};
+        dynamicAttributes:[syntheticCaseAttr(technicalValue,'44mm')]};
       const report=await f.engine.evaluate(source,focused);
       assert.equal(report.complete,false);
       const verdict=f.engine.assessSyntheticCaseSize(scenario,focused,report,'__KAR134_UNREPRESENTABLE_CASE_SIZE__');
@@ -247,7 +251,7 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
     const observed=f.engine.inspectForm(f.document.querySelector('form'),405,f.document);
     const old=Schema.buildSchema({categoryId:'405',dynamicAttributes:[{key:'wearables.gehausegrosse',controlType:'number'}]});
     const source={categoryId:'405',templateSchema:{snapshot:old,fingerprint:await Schema.fingerprint(old)},
-      dynamicAttributes:[oldAttr('wearables.gehausegrosse','__KAR134_UNREPRESENTABLE_CASE_SIZE__','synthetic')]};
+      dynamicAttributes:[syntheticCaseAttr('__KAR134_UNREPRESENTABLE_CASE_SIZE__')]};
     const report=await f.engine.evaluate(source,observed);
     assert.equal(report.complete,false);
     const verdict=f.engine.assessSyntheticCaseSize('incompatible',observed,report,'__KAR134_UNREPRESENTABLE_CASE_SIZE__');
