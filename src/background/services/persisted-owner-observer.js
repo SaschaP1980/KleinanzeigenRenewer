@@ -13,6 +13,76 @@
     'templateFillSessions', 'archiveInsertionSessionsV1'
   ]);
   const SESSION_KEYS = Object.freeze(['bulkRunRuntimeLeaseV1', 'runtimeEpochV1']);
+
+  // KAR-99 P1.3-F2D: this table MUST match the actual background autonomous
+  // admission owner mapping. A routed admission holds all seven owners.
+  // Treat any new/unknown autonomous operation as all-seven until audited.
+  const AUTONOMOUS_RECEIPT_OWNERS = Object.freeze({
+  'bulk-runtime-recovery': ['bulkInventory', 'bulkReconciliation'],
+  'bulk-watchdog': ['bulkInventory'],
+  'renewal-resume': ['renewal', 'insertionLock'],
+  'renewal-detached-verify': ['renewal', 'insertionLock'],
+  'renewal-detached-retry': ['renewal', 'insertionLock'],
+  'renewal-auto-phase4': ['renewal', 'insertionLock'],
+  'renewal-publish-detection': ['renewal', 'templateFill', 'archiveInsertion', 'insertionLock'],
+  'mass-resume': ['massRenewal', 'insertionLock'],
+  'mass-renewal-next-item': ['massRenewal', 'insertionLock'],
+  'mass-renewal-watchdog-timer': ['massRenewal', 'insertionLock'],
+  'renewal-phase1-retry': ['renewal', 'templateFill', 'insertionLock'],
+  'archive-resume': ['archiveInsertion', 'templateFill', 'insertionLock'],
+  'archive-postpublish-detached': ['archiveInsertion', 'templateFill', 'insertionLock'],
+  'template-error-terminalize': ['renewal', 'templateFill', 'archiveInsertion', 'insertionLock'],
+  // Tab-driven paths can update several persisted sessions or reload a managed
+  // worker; conservatively hold every candidate owner until the handler settles.
+  'trash-publish-detection': ['templateFill', 'insertionLock'],
+  'tab-removed': ['bulkInventory', 'bulkReconciliation', 'renewal', 'templateFill', 'archiveInsertion', 'insertionLock'],
+  'tab-lifecycle-update': ['bulkInventory', 'bulkReconciliation', 'renewal', 'massRenewal', 'templateFill', 'archiveInsertion', 'insertionLock']
+});
+  const ADMISSION_START = 'karAtomicAdmissionStartV1_';
+  const ADMISSION_FINISH = 'karAtomicAdmissionFinishV1_';
+  const RECEIPT_ID = /^[A-Za-z0-9_-]{1,128}$/;
+  function immutableOwnerReceipts(first, second) {
+    if (!isRecord(first) || !isRecord(second)) return null;
+    const pick = rows => Object.entries(rows)
+      .filter(([key]) => key.startsWith(ADMISSION_START) || key.startsWith(ADMISSION_FINISH))
+      .sort(([a],[b]) => a.localeCompare(b));
+    const a = pick(first), b = pick(second);
+    // No storage write, expiry or migration. A torn/altered journal is UNKNOWN.
+    if (JSON.stringify(a) !== JSON.stringify(b)) return null;
+    const starts = new Map(), finishes = new Map();
+    const valid = v => typeof v === 'string' && RECEIPT_ID.test(v);
+    for (const [key, row] of b) {
+      if (!isRecord(row) || row.schema !== 1 || !valid(row.token)
+        || !valid(row.workerInstanceId)) return null;
+      if (key.startsWith(ADMISSION_START)) {
+        if (key !== ADMISSION_START + row.token || row.state !== 'admitted'
+          || typeof row.operationType !== 'string' || !row.operationType
+          || row.operationType.length > 128
+          || !Number.isSafeInteger(row.startedAtMs) || row.startedAtMs < 0)
+          return null;
+        starts.set(row.token, row);
+      } else {
+        if (key !== ADMISSION_FINISH + row.token || row.state !== 'completed'
+          || !Number.isSafeInteger(row.completedAtMs) || row.completedAtMs < 0)
+          return null;
+        finishes.set(row.token, row);
+      }
+    }
+    for (const [token, row] of finishes) {
+      const start = starts.get(token);
+      if (!start || row.workerInstanceId !== start.workerInstanceId
+        || row.completedAtMs < start.startedAtMs) return null;
+    }
+    const pending = new Set(), completed = new Set();
+    for (const [token, start] of starts) {
+      const autonomous = start.operationType.startsWith('AUTONOMOUS:');
+      const kind = autonomous ? start.operationType.slice('AUTONOMOUS:'.length) : '';
+      const names = autonomous && Object.hasOwn(AUTONOMOUS_RECEIPT_OWNERS, kind)
+        ? AUTONOMOUS_RECEIPT_OWNERS[kind] : OWNERS;
+      for (const name of names) (finishes.has(token) ? completed : pending).add(name);
+    }
+    return {pending, completed};
+  }
   const PROFILE_KEYS = Object.freeze(['activeDetectedProfileV1', 'selectedInventoryProfileV1']);
   const PROFILE_ID = /^[A-Za-z0-9_-]{1,128}$/;
   const isRecord = v => v !== null && typeof v === 'object' && !Array.isArray(v);
@@ -241,6 +311,25 @@
         for(const name of ['renewal','archiveInsertion','templateFill','insertionLock'])
           if(result[name].state!=='active')set(name,unknown(
             publishEvidence==='corrupt'?'PUBLISH_INTENT_CORRUPT':'PUBLISH_INTENT_STORAGE_UNAVAILABLE'));
+      }
+      // F2D: independently re-read the actual immutable P8 journal. A
+      // callback's stored finish certifies neither a remote result nor IDLE.
+      let receiptProof = null;
+      try {
+        const rechecked = await storageLocal.get(null);
+        receiptProof = immutableOwnerReceipts(
+          journalRead.status === 'fulfilled' ? journalRead.value : null, rechecked);
+      } catch { /* storage unavailable is UNKNOWN, never idle */ }
+      if (!receiptProof) {
+        for (const name of OWNERS) {
+          if (result[name].state !== 'active') set(name, unknown('DURABLE_ADMISSION_UNVERIFIED'));
+        }
+      } else {
+        for (const name of receiptProof.pending) set(name, active('DURABLE_ADMISSION_UNFINISHED'));
+        for (const name of receiptProof.completed) {
+          if (result[name].state !== 'active')
+            set(name, unknown('DURABLE_CALLBACK_SETTLED_REMOTE_UNVERIFIED'));
+        }
       }
       const validProfile = value => isRecord(value) && typeof value.profileId === 'string'
         && PROFILE_ID.test(value.profileId);
