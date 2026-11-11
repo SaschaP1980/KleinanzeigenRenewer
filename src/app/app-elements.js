@@ -181,6 +181,8 @@
       massRenewalSelectionPanel: "#massRenewalSelectPanel",
       massRenewalOrderPanel: "#massRenewalOrderPanel",
       massRenewalOrderList: "#massRenewalOrderList",
+      massRenewalStopOnError: "#massRenewalStopOnError",
+      massRenewalStopOnErrorStatus: "#massRenewalStopOnErrorStatus",
       massRenewalProgressPanel: "#massRenewalProgressPanel",
       massRenewalSummaryPanel: "#massRenewalSummaryPanel",
       massRenewalSelectionBody: "#massRenewalSelectionBody",
