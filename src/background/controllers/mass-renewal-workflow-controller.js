@@ -62,7 +62,7 @@ function applyTerminalFailureStop(batch, item) {
       batch.stopOnErrorAt = item.completedAt || new Date().toISOString();
     }
   }
-  if (batch.stopOnErrorTriggered || batch.retryOnlyIndex != null) {
+  if (batch.stopAfterCurrentRequested || batch.stopOnErrorTriggered || batch.retryOnlyIndex != null) {
     applyMassRenewalStopState(batch);
     return true;
   }
