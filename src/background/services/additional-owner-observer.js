@@ -647,7 +647,52 @@
         })
       });
     }
-    return Object.freeze({observe,observeAll,track,snapshotInFlight,readVerifiedUnmanagedTabsReadOnly});
+    // KAR-99 P1.3: narrowly scoped, non-authorizing local completion evidence.
+    // GET_DIAGNOSTIC_EXPORT is an awaited routed handler. Its P8 finish is
+    // proof of callback settlement, never of consumer delivery or 15-owner
+    // IDLE. Re-read the real durable P8 journal and local in-flight tracker;
+    // missing/altered history must remain unverified across worker restarts.
+    async function inspectDiagnosticExportClosureReadOnly() {
+      const denied=reason=>Object.freeze({schema:1,owner:'diagnosticExport',
+        status:'unverified',reason,eligibleForLease:false,sourceRevision:null});
+      if(pending.get('diagnosticExport')!==0)
+        return denied('ACTUAL_IN_FLIGHT_OPERATION');
+      let first,second;
+      try {first=await observe();second=await observe();}
+      catch {return denied('SOURCE_UNAVAILABLE');}
+      if(pending.get('diagnosticExport')!==0)
+        return denied('ACTUAL_IN_FLIGHT_OPERATION');
+      const a=first?.admissionHistory?.diagnosticExport;
+      const b=second?.admissionHistory?.diagnosticExport;
+      if(!record(a)||!record(b)||!first.admissionJournalRevision
+        ||first.admissionJournalRevision!==second.admissionJournalRevision
+        ||typeof a.sourceRevision!=='string'||!a.sourceRevision
+        ||a.sourceRevision!==b.sourceRevision)
+        return denied('DURABLE_ADMISSION_UNVERIFIED');
+      if(first.observations?.diagnosticExport?.state==='active'
+        ||second.observations?.diagnosticExport?.state==='active')
+        return denied('ACTUAL_IN_FLIGHT_OPERATION');
+      if(a.state!=='callback-finished'||b.state!=='callback-finished'
+        ||!Array.isArray(a.entries)||a.entries.length===0
+        ||!Array.isArray(b.entries)||b.entries.length!==a.entries.length)
+        return denied(a.state==='unfinished'||b.state==='unfinished'
+          ?'DURABLE_ADMISSION_UNFINISHED':'NO_COMPLETION_RECEIPT');
+      // The generic/unknown operation fallback maps to all eight owners.
+      // Do not misattribute its callback-finish receipt to an export.
+      if(!a.entries.every(row=>record(row)&&row.operationType==='GET_DIAGNOSTIC_EXPORT'
+        &&row.state==='callback-finished'
+        &&typeof row.workerInstanceId==='string'&&PROFILE.test(row.workerInstanceId)
+        &&Number.isSafeInteger(row.startedAtMs)&&row.startedAtMs>=0
+        &&Number.isSafeInteger(row.completedAtMs)
+        &&row.completedAtMs>=row.startedAtMs))
+        return denied('OWNER_PROVENANCE_UNVERIFIED');
+      return Object.freeze({schema:1,owner:'diagnosticExport',
+        status:'callback-settled',reason:'DURABLE_P8_CALLBACK_FINISHED',
+        eligibleForLease:false,sourceRevision:a.sourceRevision,
+        completedReceiptCount:a.entries.length,
+        priorGenerationClosed:false,consumerDeliveryVerified:false});
+    }
+    return Object.freeze({observe,observeAll,track,snapshotInFlight,readVerifiedUnmanagedTabsReadOnly,inspectDiagnosticExportClosureReadOnly});
   }
   const API=Object.freeze({create,OWNERS,ownersForOperation});
   globalThis.KRDeps?.register?.('KRAdditionalOwnerObserver',API);
