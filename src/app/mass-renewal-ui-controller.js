@@ -17,7 +17,7 @@
       const RENEWAL_MODE_FAST = String(options.fastMode || 'fast');
       const normalizeRenewalMode = options.normalizeRenewalMode || (value => String(value || 'safe'));
       const templateReady = options.templateReady || (() => false);
-      const inventoryView = options.inventoryView || globalThis.KRDeps?.require?.('KRInventoryView');
+      const inventoryView = options.inventoryView;
       const displayPrice = options.displayPrice || (() => '');
       const endDateWithRelativeLabel = options.endDateWithRelativeLabel || (() => '');
       const loadLocalPreview = options.loadLocalPreview || (async () => {});
