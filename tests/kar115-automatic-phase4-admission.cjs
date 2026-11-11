@@ -38,7 +38,7 @@ async function main(){
     'Phase 4 controller requires shared autonomous admission dependency');
   ok(bg.includes("'renewal-auto-phase4': ['renewal', 'insertionLock']"),
     'Phase 4 mapped to renewal and insertion lock');
-  ok(controllerText.includes("withAutonomousAdmission('renewal-auto-phase4', async () =>"),
+  ok(/withAutonomousAdmission\\('renewal-auto-phase4', async (?:\\(\\)|admissionReceipt) =>/.test(controllerText),
     'Phase 4 task begins inside central admission, not a bare detached async IIFE');
   const denied=harness(async()=>{const e=new Error('KR_UPDATE_FENCE_HELD');e.code='KR_UPDATE_FENCE_HELD';throw e;});
   ok(denied.ctrl.scheduleAutomaticRenewalReplacement('rid')===true,'denied attempt starts pending admission');
