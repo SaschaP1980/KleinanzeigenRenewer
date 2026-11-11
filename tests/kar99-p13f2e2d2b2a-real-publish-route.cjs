@@ -57,6 +57,30 @@ function setup(){
  const sender={tab:{id:77},url:'https://www.kleinanzeigen.de/p-anzeige-aufgeben'};
  return {route,storageLocal,sender,get safety(){return safety;}};
 }
+test('B2A: exact message contract denies wrong-target and unknown publish requests',()=>{
+ const accepted=Contract.route('AUTHORIZE_AUTOMATIC_PUBLISH','background');
+ assert.equal(accepted.action,'accept');
+ assert.equal(accepted.targetRegistered,true);
+ assert.equal(Contract.has('AUTHORIZE_AUTOMATIC_PUBLISH','background'),true);
+ const wrong=Contract.route('AUTHORIZE_AUTOMATIC_PUBLISH','content');
+ assert.equal(wrong.action,'ignore');
+ assert.equal(wrong.targetRegistered,false);
+ const wrongError=Contract.errorFor(wrong);
+ assert.equal(wrongError.code,'KR_MESSAGE_CONTRACT_TARGET_MISMATCH');
+ assert.equal(wrongError.details.type,'AUTHORIZE_AUTOMATIC_PUBLISH');
+ assert.equal(wrongError.details.target,'content');
+ assert.ok(Object.isFrozen(wrongError.details));
+ const unknown=Contract.route('INJECTED_PUBLISH_AUTHORITY','background');
+ assert.equal(unknown.action,'reject');
+ assert.equal(unknown.registered,false);
+ const unknownError=Contract.errorFor(unknown);
+ assert.equal(unknownError.code,'KR_MESSAGE_CONTRACT_UNKNOWN');
+ assert.equal(unknownError.details.registered,false);
+ assert.equal(Contract.errorFor().code,'KR_MESSAGE_CONTRACT_UNKNOWN');
+ assert.equal(Contract.inspect('AUTHORIZE_AUTOMATIC_PUBLISH','background').registered,true);
+ assert.equal(Contract.snapshot().enforcement,true);
+ assert.equal(Contract.contractsForTarget('unrecognized-target').length,0);
+});
 test('B2A RED: registered publish route reaches genuine P8 callback and binds immutable journal token',async()=>{
  const e=setup();
  assert.equal(Contract.route('AUTHORIZE_AUTOMATIC_PUBLISH','background').action,'accept');
