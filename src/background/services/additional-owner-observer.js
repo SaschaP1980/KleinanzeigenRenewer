@@ -669,14 +669,14 @@
         ||typeof a.sourceRevision!=='string'||!a.sourceRevision
         ||a.sourceRevision!==b.sourceRevision)
         return denied('DURABLE_ADMISSION_UNVERIFIED');
-      if(first.observations?.diagnosticExport?.state==='active'
-        ||second.observations?.diagnosticExport?.state==='active')
-        return denied('ACTUAL_IN_FLIGHT_OPERATION');
       if(a.state!=='callback-finished'||b.state!=='callback-finished'
         ||!Array.isArray(a.entries)||a.entries.length===0
         ||!Array.isArray(b.entries)||b.entries.length!==a.entries.length)
         return denied(a.state==='unfinished'||b.state==='unfinished'
           ?'DURABLE_ADMISSION_UNFINISHED':'NO_COMPLETION_RECEIPT');
+      if(first.observations?.diagnosticExport?.state==='active'
+        ||second.observations?.diagnosticExport?.state==='active')
+        return denied('ACTUAL_IN_FLIGHT_OPERATION');
       // The generic/unknown operation fallback maps to all eight owners.
       // Do not misattribute its callback-finish receipt to an export.
       if(!a.entries.every(row=>record(row)&&row.operationType==='GET_DIAGNOSTIC_EXPORT'
