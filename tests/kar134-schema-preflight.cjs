@@ -535,5 +535,6 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
     assert.equal(deny.complete,false);
     assert.equal(assessSyntheticCaseSize('incompatible',focused,deny,'__KAR134_UNREPRESENTABLE_CASE_SIZE__').verdict,false);
   });
-  console.log(passed+'/38 PASS KAR-134 schema capture/preflight');
+  assert.equal(passed,41,'KAR-134 preflight regression count must remain complete');
+  console.log(passed+'/41 PASS KAR-134 schema capture/preflight');
 })().catch(error=>{console.error(error);process.exitCode=1});
