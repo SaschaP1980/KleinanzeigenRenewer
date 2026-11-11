@@ -502,6 +502,7 @@ button { font: inherit; }
 .mass-renewal-search input:focus-visible,.mass-renewal-search button:focus-visible { outline:2px solid #4de0b7; outline-offset:2px; }
 .mass-renewal-search button { display:inline-flex; align-items:center; justify-content:center; height:32px; width:32px; flex:0 0 32px; padding:0; border:1px solid #344044; border-radius:8px; background:#192225; color:#c7d0d2; cursor:pointer; font-size:19px; }
 .mass-renewal-search button[hidden] { display:none; }
+.mass-renewal-search input::-webkit-search-cancel-button { display:none; }
 .mass-renewal-table-wrap { max-height:clamp(160px,calc(100dvh - 350px),420px); overflow:auto; overscroll-behavior:contain; border:1px solid #303a3f; border-radius:11px; background:#111719; }
 .mass-renewal-table { width:100%; border-collapse:collapse; table-layout:fixed; }
 .mass-renewal-table thead th { position:sticky; top:0; z-index:2; padding:8px 9px; text-align:left; background:#1a2225; color:#93a1a4; border-bottom:1px solid #344044; font-size:10px; letter-spacing:.03em; }

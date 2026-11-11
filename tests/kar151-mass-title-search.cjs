@@ -1,5 +1,7 @@
 'use strict';
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 const InventoryView = require('../src/app/inventory-view.js');
 const Ui = require('../src/app/mass-renewal-ui-controller.js');
 
@@ -179,7 +181,12 @@ async function run() {
   await filter(c, '');
   assert.equal(checkbox(rows(c).find(row => row.dataset.massInventoryId === 'early')).checked, true);
   assert.equal(checkbox(rows(c).find(row => row.dataset.massInventoryId === 'middle')).checked, true);
-  pass('hidden selections persist, counter and Next use the global selection');
+  const keyboardRow = rows(c).find(row => row.dataset.massInventoryId === 'middle');
+  await keyboardRow.emit('keydown', { target: keyboardRow, key: ' ' });
+  assert.equal(c.massRenewalSelectionCount.textContent, '1 von 10 ausgewählt');
+  await keyboardRow.emit('keydown', { target: keyboardRow, key: 'Enter' });
+  assert.equal(c.massRenewalSelectionCount.textContent, '2 von 10 ausgewählt');
+  pass('hidden selections persist, keyboard toggling works, and Next uses global selection');
 
   await filter(c, 'schone');
   await c.massRenewalNext.emit('click');
@@ -237,6 +244,14 @@ async function run() {
   assert.equal(blocked.controller.status().selectedIds.length, 0);
   assert.equal(blocked.controls.massRenewalNext.disabled, true);
   pass('account gate remains fail closed');
+
+  const html = fs.readFileSync(path.join(__dirname, '..', 'app.html'), 'utf8');
+  const css = fs.readFileSync(path.join(__dirname, '..', 'app.css'), 'utf8');
+  assert.match(html, /id="massRenewalSearchInput"[^>]*aria-label="Anzeigen nach Titel suchen"/);
+  assert.match(html, /id="massRenewalSearchClear"[^>]*aria-label="Titelsuche zurücksetzen"/);
+  assert.match(css, /\.mass-renewal-table-wrap \{ max-height:clamp\(160px,calc\(100dvh - 350px\),420px\)/);
+  assert.match(css, /\.mass-renewal-actions \{ position:sticky; bottom:-20px/);
+  pass('search controls remain accessible and the list/footer have bounded viewport styles');
 
   console.log(checks + ' KAR-151 DOM and selection assertions PASS');
 }
