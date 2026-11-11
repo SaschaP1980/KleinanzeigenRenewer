@@ -2669,12 +2669,9 @@ async function resolveManagedPublishIntent(fill,detected) {
   return result;
 }
 async function authorizeAutomaticPublish(message, sender, admissionReceipt) {
-  // This is a worker-only capability from the actual routed P8 callback.
-  // Never permit an unbound journal to authorize a remote publish click.
-  if (!Object.isFrozen(admissionReceipt)
-      || admissionReceipt?.operationType !== 'AUTHORIZE_AUTOMATIC_PUBLISH')
-    throw Object.assign(new Error('KR_PUBLISH_INTENT_ADMISSION_UNVERIFIED'),
-      {code:'KR_PUBLISH_INTENT_ADMISSION_UNVERIFIED'});
+  if (!admissionReceipt || !Object.isFrozen(admissionReceipt)
+      || admissionReceipt.operationType !== 'AUTHORIZE_AUTOMATIC_PUBLISH')
+    throw Object.assign(new Error('KR_PUBLISH_INTENT_ADMISSION_UNVERIFIED'), {code:'KR_PUBLISH_INTENT_ADMISSION_UNVERIFIED'});
   const fillId = String(message?.fillId || '');
   const tabId = Number(sender?.tab?.id || 0);
   if (!/^[A-Za-z0-9_-]{1,128}$/.test(fillId) || !Number.isSafeInteger(tabId) || tabId <= 0)
@@ -3382,22 +3379,17 @@ const AUTONOMOUS_PERSISTED_OWNER_KINDS = Object.freeze({
   'tab-removed': ['bulkInventory', 'bulkReconciliation', 'renewal', 'templateFill', 'archiveInsertion', 'insertionLock'],
   'tab-lifecycle-update': ['bulkInventory', 'bulkReconciliation', 'renewal', 'massRenewal', 'templateFill', 'archiveInsertion', 'insertionLock']
 });
-// A single Work-fence service protects both routed and autonomous entrypoints.
-// Track actual admitted asynchronous starts, not mere intentions; missing
-// tracker/fence must fail closed. Preserve the legacy admission call signature
-// to avoid weakening existing message-router and KAR-101 safety contracts.
+// Routed/autonomous callbacks share P8 fence and owner trackers; missing sources fail closed.
 function withAutonomousAdmission(kind, task) {
   try {
     const names = AUTONOMOUS_PERSISTED_OWNER_KINDS[kind];
     if (names) {
       const admittedTask = task;
-      task = admissionReceipt => requirePersistedOwnerObserver().track(
-        names, () => admittedTask(admissionReceipt));
+      task = admissionReceipt => requirePersistedOwnerObserver().track(names, () => admittedTask(admissionReceipt));
     }
     const started = task;
     const namesForKind = AdditionalOwnerObserver.ownersForOperation(kind, 'autonomous');
-    task = admissionReceipt => requireAdditionalOwnerObserver().track(
-      namesForKind, () => started(admissionReceipt));
+    task = admissionReceipt => requireAdditionalOwnerObserver().track(namesForKind, () => started(admissionReceipt));
     return requireUpdateWorkflowFence().withAdmission('AUTONOMOUS:' + kind, task);
   } catch (error) { return Promise.reject(error); }
 }
@@ -3407,13 +3399,7 @@ function withAutonomousAdmission(kind, task) {
 // BUSY evidence only, never proof of idle after restart or update permission.
 function withRoutedAdmission(type, task) {
   const namesForType = AdditionalOwnerObserver.ownersForOperation(type, 'routed');
-  // Keep P8 provenance on this ONE admitted async chain, including nested
-  // owner trackers; never use a global current-token across concurrent routes.
-  return requireUpdateWorkflowFence().withAdmission(type, admissionReceipt =>
-    requirePersistedOwnerObserver().track(PersistedOwnerObserver.OWNERS, () =>
-      namesForType.length
-        ? requireAdditionalOwnerObserver().track(namesForType, () => task(admissionReceipt))
-        : task(admissionReceipt)));
+  return requireUpdateWorkflowFence().withAdmission(type, admissionReceipt => requirePersistedOwnerObserver().track(PersistedOwnerObserver.OWNERS, () => namesForType.length ? requireAdditionalOwnerObserver().track(namesForType, () => task(admissionReceipt)) : task(admissionReceipt)));
 }
 const backgroundMessageRouter = BackgroundMessageRouter.create({
   withWorkflowAdmission: (type, task) => withRoutedAdmission(type, task),
@@ -3500,8 +3486,7 @@ const backgroundMessageRouter = BackgroundMessageRouter.create({
   "GET_APP_NOTICE": (message, sender) => getAppNotice(),
   "DISMISS_APP_NOTICE": (message, sender) => dismissAppNotice(message),
   "RENEWAL_PUBLISH_CLICKED": (message, sender) => markRenewalPublishClicked(message, sender),
-  "AUTHORIZE_AUTOMATIC_PUBLISH": (message, sender, admissionReceipt) =>
-    authorizeAutomaticPublish(message, sender, admissionReceipt),
+  "AUTHORIZE_AUTOMATIC_PUBLISH": (message, sender, admissionReceipt) => authorizeAutomaticPublish(message, sender, admissionReceipt),
   "GET_TEMPLATE_FILL_SESSION": (message, sender) => getTemplateFillSession(sender),
   "GET_TEMPLATE_IMAGE_CHUNK": (message, sender) => templateImageChunk(message, sender),
   "UPDATE_TEMPLATE_FILL_SESSION": (message, sender) => updateTemplateFillSession(message, sender),
