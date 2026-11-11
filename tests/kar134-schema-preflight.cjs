@@ -382,5 +382,103 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
     assert.equal(report.complete,false);
     assert.equal(assessSyntheticCaseSize('compatible',focused,report,'__KAR134_UNREPRESENTABLE_CASE_SIZE__').verdict,false);
   });
-  console.log(passed+'/33 PASS KAR-134 schema capture/preflight');
+
+  // KAR-134 Wave I: these exact pairs were independently measured by the owner
+  // after manual selection on the unpublished category-405 site form.
+  function attachOwnerCaseSizePopup(f, labels=['Bitte wählen','38mm','44mm','45mm','Andere Größe']) {
+    const control=f.document.getElementById('wearables.case_size');
+    control.setAttribute('aria-controls','wearables.case_size-menu');
+    let opens=0;
+    control.addEventListener('click',()=>{
+      opens++;
+      const popup=f.document.createElement('ul');
+      popup.id='wearables.case_size-menu';
+      popup.setAttribute('role','listbox');
+      popup.getClientRects=()=>[{}];
+      popup.innerHTML=labels.map(label=>'<li role="option"><div>'+label+'</div></li>').join('');
+      f.document.body.append(popup);
+    });
+    return {control,get opens(){return opens;}};
+  }
+  await check('owner-confirmed 405 pairs 44mm/44 and 38mm/38 map with label-only popup but no invented complete option schema',async()=>{
+    for(const [technical,label] of [['44','44mm'],['38','38mm']]){
+      const f=fixture({options:false,caseValue:'',savedValue:technical});
+      const pop=attachOwnerCaseSizePopup(f);
+      f.template.templateSchema.fingerprint=await Schema.fingerprint(f.template.templateSchema.snapshot);
+      const observed=await f.engine.afterHydration(f.template);
+      assert.equal(pop.opens,1);
+      assert.equal(observed.optionProbe.reason,'owner-confirmed-case-size-pairs');
+      assert.equal(observed.optionProbe.ownerVerifiedPairCount,2);
+      assert.equal(observed.optionProbe.verified,false,'subset cannot be marked as a complete technical catalog');
+      assert.equal(observed.schema.fields.find(x=>x.key==='attribute:wearables.case_size').optionValues,null);
+      assert.deepEqual(observed.optionLabels['wearables.case_size'],[
+        {value:'38',label:'38mm'},{value:'44',label:'44mm'}]);
+      const report=await f.engine.evaluate(f.template,observed);
+      assert.equal(report.complete,true,report.issues.join(';'));
+      assert.deepEqual(report.mappings,[{oldKey:'wearables.gehausegrosse',
+        newKey:'wearables.case_size',technicalValue:technical,expectedDisplayLabel:label}]);
+      const hidden=f.document.querySelector('input[name="attributeMap[wearables.case_size]"]');
+      hidden.value=technical;pop.control.textContent=label;
+      const after=f.engine.inspectForm(f.document.querySelector('form'),405,f.document);
+      assert.deepEqual(f.engine.verifyAfterFill(report,after),[]);
+    }
+  });
+  await check('owner-confirmed pairs never bypass post-fill technical and displayed label readback',async()=>{
+    const f=fixture({options:false,caseValue:'',savedValue:'44'});
+    const pop=attachOwnerCaseSizePopup(f);
+    f.template.templateSchema.fingerprint=await Schema.fingerprint(f.template.templateSchema.snapshot);
+    const observed=await f.engine.afterHydration(f.template);
+    const report=await f.engine.evaluate(f.template,observed);
+    assert.equal(report.complete,true);
+    const technical=f.document.querySelector('input[name="attributeMap[wearables.case_size]"]');
+    technical.value='38';pop.control.textContent='44mm';
+    let after=f.engine.inspectForm(f.document.querySelector('form'),405,f.document);
+    assert.ok(f.engine.verifyAfterFill(report,after).some(x=>x.includes('technischer Wert')));
+    technical.value='44';pop.control.textContent='38mm';
+    after=f.engine.inspectForm(f.document.querySelector('form'),405,f.document);
+    assert.ok(f.engine.verifyAfterFill(report,after).some(x=>x.includes('sichtbarer Auswahlwert')));
+  });
+  await check('other displayed case sizes remain blocked without owner-proven technical mapping',async()=>{
+    const f=fixture({options:false,caseValue:'',savedValue:'45'});
+    const pop=attachOwnerCaseSizePopup(f);
+    f.template.templateSchema.fingerprint=await Schema.fingerprint(f.template.templateSchema.snapshot);
+    const observed=await f.engine.afterHydration(f.template,{probeReadOnlyCaseSize:true});
+    assert.equal(pop.opens,1);
+    assert.equal(observed.optionProbe.ownerVerifiedPairCount,2);
+    const report=await f.engine.evaluate(f.template,observed);
+    assert.equal(report.complete,false);
+    assert.ok(report.issues.some(x=>x.includes('nicht eindeutig')));
+    assert.equal(observed.schema.fields.find(x=>x.key==='attribute:wearables.case_size').optionValues,null);
+  });
+  await check('duplicate visible 44mm options cannot gain owner-pair authority',async()=>{
+    const f=fixture({options:false,caseValue:'',savedValue:'44'});
+    attachOwnerCaseSizePopup(f,['Bitte wählen','44mm','44mm','Andere Größe']);
+    f.template.templateSchema.fingerprint=await Schema.fingerprint(f.template.templateSchema.snapshot);
+    const observed=await f.engine.afterHydration(f.template);
+    assert.notEqual(observed.optionProbe.reason,'owner-confirmed-case-size-pairs');
+    assert.equal(observed.optionProbe.ownerVerifiedPairCount||0,0);
+    const report=await f.engine.evaluate(f.template,observed);
+    assert.equal(report.complete,false);
+  });
+  await check('positive read-only 405 simulation recognizes owner-proven pair while negative remains inconclusive',async()=>{
+    const f=fixture({options:false,caseValue:''});
+    attachOwnerCaseSizePopup(f);
+    const observed=await f.engine.afterHydration({categoryId:'405',dynamicAttributes:[]},{probeReadOnlyCaseSize:true});
+    const focused={...observed,schema:{...observed.schema,fields:observed.schema.fields.filter(x=>x.key==='attribute:wearables.case_size')}};
+    const old=Schema.buildSchema({categoryId:'405',dynamicAttributes:[{key:'wearables.gehausegrosse',controlType:'number'}]});
+    const fp=await Schema.fingerprint(old);
+    const positive={categoryId:'405',templateSchema:{snapshot:old,fingerprint:fp},
+      dynamicAttributes:[syntheticCaseAttr('44','44mm')]};
+    const pass=await f.engine.evaluate(positive,focused);
+    assert.equal(pass.complete,true);
+    const positiveAssessment=assessSyntheticCaseSize('compatible',focused,pass,'__KAR134_UNREPRESENTABLE_CASE_SIZE__');
+    assert.equal(positiveAssessment.verdict,true);
+    assert.equal(positiveAssessment.optionEvidenceComplete,false);
+    assert.equal(positiveAssessment.ownerVerifiedPair44,true);
+    const negative={...positive,dynamicAttributes:[syntheticCaseAttr('__KAR134_UNREPRESENTABLE_CASE_SIZE__')]};
+    const deny=await f.engine.evaluate(negative,focused);
+    assert.equal(deny.complete,false);
+    assert.equal(assessSyntheticCaseSize('incompatible',focused,deny,'__KAR134_UNREPRESENTABLE_CASE_SIZE__').verdict,false);
+  });
+  console.log(passed+'/38 PASS KAR-134 schema capture/preflight');
 })().catch(error=>{console.error(error);process.exitCode=1});
