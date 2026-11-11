@@ -511,7 +511,7 @@ button { font: inherit; }
 .mass-renewal-table th:nth-child(2),.mass-renewal-table td:nth-child(2) { width:58px; }
 .mass-renewal-table th:nth-child(4),.mass-renewal-table td:nth-child(4) { width:110px; white-space:nowrap; }
 .mass-renewal-table th:nth-child(5),.mass-renewal-table td:nth-child(5) { width:150px; white-space:nowrap; }
-.mass-renewal-order-list { display:grid; gap:8px; max-height:390px; overflow:auto; overscroll-behavior:contain; padding:1px; }
+.mass-renewal-order-list { display:grid; gap:8px; max-height:414px; overflow:auto; overscroll-behavior:contain; padding:1px; }
 .mass-renewal-order-row { display:grid; grid-template-columns:36px 48px minmax(0,1fr) auto; gap:10px; align-items:center; min-height:62px; padding:8px 10px; border:1px solid #303a3f; border-radius:10px; background:#111719; transition:border-color .12s ease,background .12s ease,box-shadow .12s ease,opacity .12s ease; }
 .mass-renewal-order-row:hover { border-color:#47625c; background:#151f1d; }
 .mass-renewal-order-row.dragging { opacity:.58; border-color:#4de0b7; box-shadow:0 0 0 1px rgba(77,224,183,.12) inset; }
@@ -532,7 +532,7 @@ button { font: inherit; }
 .mass-renewal-row-title { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:700; color:#eef4f3; }
 .mass-renewal-row-sub { display:block; margin-top:2px; color:#778689; font-size:9px; }
 .mass-renewal-hint { margin:8px 2px 0; color:#7f8d90; font-size:10px; }
-.mass-renewal-stop-policy { display:flex; flex-direction:column; align-items:flex-end; gap:4px; margin:12px 2px 0; text-align:right; }
+.mass-renewal-stop-policy { position:relative; display:flex; justify-content:flex-end; align-items:center; gap:0; margin:7px 2px 0; text-align:right; }
 .mass-renewal-stop-policy-label { display:inline-flex; align-items:center; gap:10px; color:#dce8e5; font-size:12px; font-weight:700; cursor:pointer; }
 .mass-renewal-stop-policy-label input { appearance:none; position:relative; width:36px; height:20px; margin:0; border:1px solid #526662; border-radius:999px; background:#303d3c; cursor:pointer; transition:background .15s ease; }
 .mass-renewal-stop-policy-label input::after { content:''; position:absolute; width:14px; height:14px; top:2px; left:2px; border-radius:50%; background:#e1e9e6; transition:transform .15s ease; }
@@ -540,8 +540,8 @@ button { font: inherit; }
 .mass-renewal-stop-policy-label input:checked::after { transform:translateX(16px); }
 .mass-renewal-stop-policy-label input:focus-visible { outline:2px solid #4de0b7; outline-offset:3px; }
 .mass-renewal-stop-policy-label input:disabled { opacity:.45; cursor:not-allowed; }
-.mass-renewal-stop-policy small { color:#9aaead; font-size:10px; }
-#massRenewalStopOnErrorStatus:not(:empty) { color:#f1ce8d; }
+.mass-renewal-stop-policy small { display:none; }
+#massRenewalStopOnErrorStatus:not(:empty) { display:block; position:absolute; right:0; bottom:calc(100% + 6px); z-index:1; max-width:320px; padding:5px 8px; border:1px solid #8b6a31; border-radius:7px; background:#2c291e; color:#f1ce8d; font-size:10px; box-shadow:0 2px 10px rgba(0,0,0,.3); }
 @media (prefers-reduced-motion:reduce) { .mass-renewal-stop-policy-label input,.mass-renewal-stop-policy-label input::after { transition:none; } }
 .mass-renewal-actions { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-top:14px; padding-top:14px; border-top:1px solid #2d373a; }
 .mass-renewal-actions button { width:auto; min-width:88px; min-height:36px; padding:8px 12px; }
