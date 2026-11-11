@@ -6,6 +6,8 @@
       const Element = options.Element || globalThis.Element;
       const formatting = options.formatting || {};
       const compactCategoryLabel = formatting.compactCategoryLabel || (() => '');
+      const categoryLabel = formatting.categoryLabel || compactCategoryLabel;
+      const artLabel = formatting.artLabel || (() => '–');
       const displayPriceWithType = formatting.displayPriceWithType || (() => '');
       const endDateWithRelativeLabel = formatting.endDateWithRelativeLabel || (() => '');
       const trashRetentionPresentation = formatting.trashRetentionPresentation || (() => '');
@@ -94,7 +96,12 @@ function createCompactListRow(record, { trash = false } = {}) {
 
   const categoryLine = document.createElement('div');
   categoryLine.className = 'compact-list-category-line';
-  categoryLine.textContent = compactCategoryLabel(record);
+  const categoryPath = String(categoryLabel(record) || '–').trim() || '–';
+  const articleType = String(artLabel(record) || '–').trim();
+  const lastCategorySegment = categoryPath.split(/\\s*[›>]\\s*/).pop()?.trim();
+  const hasDistinctType = categoryPath !== '–' && articleType && articleType !== '–' && articleType !== lastCategorySegment;
+  categoryLine.textContent = hasDistinctType ? `${categoryPath} › ${articleType}` : categoryPath;
+  categoryLine.title = categoryLine.textContent;
 
   const title = document.createElement('h3');
   title.className = 'compact-list-title-line';
