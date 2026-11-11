@@ -565,7 +565,12 @@ async function updateTemplateFillSession(message, sender) {
         renewal.stage = session.stage;
       } else if (session.status === 'needs-review' || session.status === 'error') {
         const issue = session.result?.issues?.[0] || null;
-        if (session.stage === 'paid-insertion-required') {
+        if (session.stage === 'schema-preflight' || session.stage === 'schema-preflight-missing') {
+          // A structural incompatibility must never trigger another automated Phase-1 attempt.
+          renewal.status = 'verification-failed';
+          renewal.stage = session.stage;
+          renewal.lastError = issue || 'Formularschema-Vorprüfung konnte nicht bestätigt werden.';
+        } else if (session.stage === 'paid-insertion-required') {
           renewal.status = 'verification-failed';
           renewal.stage = 'paid-insertion-required';
           renewal.paidInsertion = session.paidInsertion ? { ...session.paidInsertion } : null;
