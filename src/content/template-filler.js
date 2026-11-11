@@ -446,15 +446,21 @@
       uniqueIssues
     );
     void diagnostic(fillId, 'TEMPLATE_FILL_VERIFIED', { complete, issueCount: uniqueIssues.length, imagesComplete, imageStates: imageOutcome.states?.map(state => ({ index: state.index, status: state.status })) || [] }, complete ? 'info' : 'warning');
+    const schemaPreflight = complete && schemaPreflightReport
+      ? { verified: true, categoryId: String(template.categoryId),
+          sourceFingerprint: schemaPreflightReport.sourceFingerprint,
+          currentFingerprint: schemaPreflightReport.currentFingerprint }
+      : null;
+    const verifiedResult = { complete, issues: uniqueIssues.slice(0, 50), schemaPreflight };
     await runtimeMessage({
       type: 'UPDATE_TEMPLATE_FILL_SESSION',
       fillId,
       status: complete ? 'running' : 'needs-review',
       stage: complete ? 'form-verified' : 'verified',
-      result: { complete, issues: uniqueIssues.slice(0, 50) }
+      result: verifiedResult
     });
     if (complete) {
-      const continuation = await advanceAfterVerifiedFill({ fillId, renewalId: session.renewalId || null, templateOnly: Boolean(session.templateOnly), archiveInsertionId: session.archiveInsertionId || null, trashInventoryId: session.trashInventoryId || null, stage: 'form-verified', result: { complete: true, issues: [] } });
+      const continuation = await advanceAfterVerifiedFill({ fillId, renewalId: session.renewalId || null, templateOnly: Boolean(session.templateOnly), archiveInsertionId: session.archiveInsertionId || null, trashInventoryId: session.trashInventoryId || null, stage: 'form-verified', result: verifiedResult });
       return { complete, issues: uniqueIssues, ...continuation };
     }
     return { complete, issues: uniqueIssues };
