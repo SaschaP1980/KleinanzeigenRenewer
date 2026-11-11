@@ -217,7 +217,8 @@ async function finalizeLostTrashTemplateSupersede(snapshot, replacementFillId) {
   return changed;
 }
 
-async function startTrashTemplateFillUnlocked(inventoryId, { schemaTestScenario = null } = {}) {
+async function startTrashTemplateFillUnlocked(inventoryId) {
+  const schemaTestScenario = arguments[1]?.schemaTestScenario ?? null;
   const isSchemaTest = ['compatible', 'incompatible'].includes(schemaTestScenario);
   const record = await getInventory(inventoryId);
   if (!record || (!isSchemaTest && !isTrashRecord(record))) throw new Error('Papierkorb-Vorlage wurde nicht gefunden.');
