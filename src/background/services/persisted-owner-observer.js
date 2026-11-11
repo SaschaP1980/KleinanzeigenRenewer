@@ -81,7 +81,26 @@
         ? AUTONOMOUS_RECEIPT_OWNERS[kind] : OWNERS;
       for (const name of names) (finishes.has(token) ? completed : pending).add(name);
     }
-    return {pending, completed};
+    // F2E2D1: the real double-read P8 journal supplies historic start/finish
+    // provenance, not a certificate that an old worker or remote job is idle.
+    const entries = [...starts].sort(([a],[b])=>a.localeCompare(b))
+      .map(([token, start]) => {
+        const autonomous = start.operationType.startsWith('AUTONOMOUS:');
+        const kind = autonomous ? start.operationType.slice('AUTONOMOUS:'.length) : '';
+        const owners = autonomous && Object.hasOwn(AUTONOMOUS_RECEIPT_OWNERS,kind)
+          ? AUTONOMOUS_RECEIPT_OWNERS[kind] : OWNERS;
+        const finish = finishes.get(token);
+        return Object.freeze({
+          token, operationType:start.operationType,
+          workerInstanceId:start.workerInstanceId,
+          startedAtMs:start.startedAtMs,
+          completedAtMs:finish?.completedAtMs ?? null,
+          state:finish?'callback-finished':'unfinished',
+          owners:Object.freeze([...owners])
+        });
+      });
+    return {pending, completed, entries:Object.freeze(entries),
+      journalRevision:JSON.stringify(b)};
   }
   const PROFILE_KEYS = Object.freeze(['activeDetectedProfileV1', 'selectedInventoryProfileV1']);
   const PROFILE_ID = /^[A-Za-z0-9_-]{1,128}$/;
@@ -419,6 +438,21 @@
             set(name, unknown('DURABLE_CALLBACK_SETTLED_REMOTE_UNVERIFIED'));
         }
       }
+      // This is an independently double-read, read-only witness for the
+      // SEVEN persisted owner classes. Even callback-finished only proves
+      // P8 finally() wrote its row; it cannot prove remote success, all
+      // historical ingress coverage or absence of prior Worker callbacks.
+      const admissionHistory = Object.freeze(Object.fromEntries(OWNERS.map(name => {
+        const entries = receiptProof?.entries.filter(row=>row.owners.includes(name)) || [];
+        return [name,Object.freeze({
+          state:!receiptProof?'unverified':entries.some(e=>e.state==='unfinished')
+            ?'unfinished':entries.length?'callback-finished':'no-records',
+          historicalOnly:true,generationAuthority:'unverified',
+          remoteOutcome:'unverified',
+          sourceRevision:receiptProof?JSON.stringify(entries):null,
+          entries:Object.freeze(entries)
+        })];
+      })));
       const validProfile = value => isRecord(value) && typeof value.profileId === 'string'
         && PROFILE_ID.test(value.profileId);
       const priorActive = local?.activeDetectedProfileV1;
@@ -452,6 +486,8 @@
         eligibleForLease: false,
         observedAtMs: Number.isSafeInteger(observedAtMs) ? observedAtMs : null,
         observations: Object.freeze({...result}),
+        admissionJournalRevision:receiptProof?.journalRevision ?? null,
+        admissionHistory,
         // Same-profile locally persisted remote settlement is historical
         // evidence only: it does not prove a current live Kleinanzeigen login,
         // a finished previous Worker, or any of the 15 positive IDLE sources.
