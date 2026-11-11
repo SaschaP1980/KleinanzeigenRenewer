@@ -5,6 +5,7 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const Remote=require('../src/background/services/remote-delete-replacement-service.js');
 const Journal=require('../src/background/services/phase4-uncertainty-journal.js');
+const Atomic=require('../src/background/services/cross-worker-atomic-admission.js');
 const remoteSrc=fs.readFileSync('src/background/services/remote-delete-replacement-service.js','utf8');
 const ctrlSrc=fs.readFileSync('src/background/controllers/renewal-workflow-controller.js','utf8');
 const bg=fs.readFileSync('src/background/background.js','utf8');
@@ -20,8 +21,12 @@ function harness(beginPort, switchProfileAfterReceipt=false, switchProfileDuring
  let deleteCalls=0,receiptStateAtDelete=null;
  let liveProfile='Source Profile';
  const db=storage();let i=0;
+ const sharedLock=require('./helpers/phase4-locks.cjs')();
  const journal=Journal.create({storageLocal:db,newToken:()=> 'attempt-'+(++i),
-   workerInstanceId:'worker-test',clock:()=>1337,...require('./helpers/phase4-locks.cjs')()});
+   workerInstanceId:'worker-test',clock:()=>1337,...sharedLock});
+ const atomic=Atomic.create({storageLocal:db,lockManager:sharedLock.lockManager,
+   workerInstanceId:'worker-test',clock:()=>1337,
+   newToken:()=> 'p8-verified-token-'+(++i)+'-long'});
  const opts={
   beginPhase4Attempt:async req=>{
     const receipt=await (beginPort?beginPort(req,journal):journal.begin(req));
@@ -52,7 +57,7 @@ function harness(beginPort, switchProfileAfterReceipt=false, switchProfileDuring
   isPhase4DeleteTransportInterruption:()=>false
  };
  const api=Remote.create(opts);
- return {api,db,journal,get deleteCalls(){return deleteCalls;},get receiptStateAtDelete(){return receiptStateAtDelete}};
+ return {api,db,journal,atomic,get deleteCalls(){return deleteCalls;},get receiptStateAtDelete(){return receiptStateAtDelete}};
 }
 const session={renewalId:'renewal-1',sourceAdId:'12345',newAdId:'67890'};
 async function main(){
@@ -63,6 +68,32 @@ async function main(){
    'automatic caller does not duplicate the receipt before verified live profile');
  ok(bg.includes('beginPhase4Attempt: current => requirePhase4UncertaintyJournal().begin(current)'),
    'actual RemoteDeleteReplacementService receives shared journal implementation');
+ // B2B: real shared P8 Web Lock start receipt must be the source of truth,
+ // not an arbitrary caller-provided "admission" object or callback completion.
+ const linked=harness();
+ let acceptedReceipt=null;
+ await linked.atomic.withAdmission('AUTONOMOUS:renewal-auto-phase4',async receipt=>{
+   acceptedReceipt=receipt;
+   await linked.api.preverifyAndTriggerRenewalSourceDeleteAttempt(
+     session,'Source Profile',null,{attempt:1,attemptId:'p8'},0,receipt);
+ });
+ const linkedIntent=Object.values(linked.db.map).find(row=>row.state==='outcome-unverified');
+ ok(linked.deleteCalls===1 && linkedIntent?.admissionToken===acceptedReceipt?.token,
+    'real P8 receipt survives automatic Phase-4 and is persisted before remote DELETE');
+ const correspondingStart=linked.db.map[Atomic.START_PREFIX+acceptedReceipt.token];
+ const correspondingFinish=linked.db.map[Atomic.FINISH_PREFIX+acceptedReceipt.token];
+ ok(correspondingStart?.operationType==='AUTONOMOUS:renewal-auto-phase4'
+    && correspondingFinish?.state==='completed',
+    'P8 durable start/finish attest exact automatic Phase-4 callback lifetime');
+ const forged=harness();
+ const forgedReceipt=Object.freeze({schema:1,state:'admitted',
+    token:'p8-fake-token-no-source',operationType:'AUTONOMOUS:renewal-auto-phase4',
+    workerInstanceId:'worker-test',startedAtMs:1337});
+ await assert.rejects(forged.api.preverifyAndTriggerRenewalSourceDeleteAttempt(
+    session,'Source Profile',null,{attempt:1},0,forgedReceipt),
+    /KR_PHASE4_JOURNAL_ADMISSION_UNVERIFIED/);
+ ok(forged.deleteCalls===0 && Object.values(forged.db.map).length===0,
+    'forged receipt cannot create durable intent or trigger remote DELETE');
  const positive=harness();
  await positive.api.preverifyAndTriggerRenewalSourceDeleteAttempt(session,'Source Profile',null,{attempt:1,attemptId:'a'},0);
  ok(positive.deleteCalls===1,'verified manual/shared path makes exactly one delete request');
