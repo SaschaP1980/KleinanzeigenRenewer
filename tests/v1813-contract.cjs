@@ -58,7 +58,7 @@ pass('explicit full-run consent is persisted in renewal and fill state');
 
 assert.match(background, /function scheduleAutomaticRenewalReplacement/);
 assert.match(background, /RENEWAL_AUTO_REPLACEMENT_STARTED/);
-assert.match(background, /finishRenewalReplacement\(\{ renewalId: id, automatic: true \}\)/);
+assert.match(background, /finishRenewalReplacement\(\{ renewalId: id, automatic: true \}(?:, admissionReceipt)?\)/);
 assert.match(background, /RENEWAL_AUTO_REPLACEMENT_FAILED/);
 pass('verified consented renewals have a dedicated automatic phase-4 scheduler');
 
@@ -79,7 +79,7 @@ assert.doesNotMatch(trashStart, /startConfirmationVersion/);
 assert.match(filler, /if \(session\?\.templateOnly\) return await prepareTemplateOnlyComplete\(session\)/);
 pass('trash recovery remains template-only and cannot inherit full-renewal authorization');
 
-const phase4 = background.match(/async function finishRenewalReplacement\(message\) \{[\s\S]*?\n\}\n\nasync function discardRenewalDraft/)?.[0] || '';
+const phase4 = background.match(/async function finishRenewalReplacement\(message(?:, admissionReceipt = null)?\) \{[\s\S]*?\n\}\n\nasync function discardRenewalDraft/)?.[0] || '';
 const phase4Verifier = background.match(/async function verifyRenewalSourceAbsenceFresh[\s\S]*?\n}\n\nasync function preverifyAndTriggerRenewalSourceDeleteAttempt/)?.[0] || '';
 assert.match(phase4Verifier, /VERIFY_OWN_AD_ABSENT_BY_ID/);
 assert.match(phase4, /verifyRenewalSourceAbsenceFresh\(session/);

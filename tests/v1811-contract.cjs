@@ -18,7 +18,7 @@ assert.match(classifier, /message channel closed/);
 assert.match(classifier, /message port closed/);
 pass('Phase-4 classifier recognizes observed post-confirmation channel loss');
 
-const phase4 = background.match(/async function finishRenewalReplacement\(message\) \{[\s\S]*?\n\}\n\nasync function discardRenewalDraft/)?.[0] || '';
+const phase4 = background.match(/async function finishRenewalReplacement\(message(?:, admissionReceipt = null)?\) \{[\s\S]*?\n\}\n\nasync function discardRenewalDraft/)?.[0] || '';
 const phase4Verifier = background.match(/async function verifyRenewalSourceAbsenceFresh[\s\S]*?\n}\n\nasync function preverifyAndTriggerRenewalSourceDeleteAttempt/)?.[0] || '';
 const phase4Delete = background.match(/async function preverifyAndTriggerRenewalSourceDeleteAttempt[\s\S]*?\n}\n\nasync function finishRenewalReplacement/)?.[0] || '';
 assert.ok(phase4, 'finishRenewalReplacement must exist');

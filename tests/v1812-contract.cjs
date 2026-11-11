@@ -35,7 +35,7 @@ assert.match(promote, /inventories\.put\(promoted\)/);
 assert.doesNotMatch(promote, /sourceImageCursor/);
 pass('phase 4 atomically keeps the old source and its images in trash while promoting the new record');
 
-const phase4 = background.match(/async function finishRenewalReplacement\(message\) \{[\s\S]*?\n\}\n\nasync function discardRenewalDraft/)?.[0] || '';
+const phase4 = background.match(/async function finishRenewalReplacement\(message(?:, admissionReceipt = null)?\) \{[\s\S]*?\n\}\n\nasync function discardRenewalDraft/)?.[0] || '';
 assert.match(phase4, /setAppNotice/);
 assert.match(phase4, /Austausch erfolgreich abgeschlossen|Neu inseriert/);
 assert.match(phase4, /closeCompletedRenewalTargetTab\(session\)/);
