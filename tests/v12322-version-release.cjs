@@ -34,7 +34,11 @@ if (kar150App.includes('massRenewalOrderList, massRenewalStopOnError, massRenewa
   assert.match(pkg.scripts.test, /tests\/kar150-stop-on-error\.cjs/);
   assert.match(pkg.scripts.test, /tests\/kar150-ui-preference\.cjs/);
   assert.match(kar150Ui, /massRenewalStopOnErrorPreferenceV1/);
-  assert.equal(sha('src/app/app.js'), '501a26974b107dd27e843dde75b68a2535429da5d86f0bd9f40cbd206a665e08');
+  if (kar150App.includes('massRenewalSearchInput, massRenewalSearchClear')) {
+    assert.ok(pkg.scripts.test.includes('tests/kar151-mass-title-search.cjs'));
+    assert.ok(kar150Ui.includes('inventoryView.deriveInventoryView(eligible'));
+    assert.equal(sha('src/app/app.js'), '893a7b5c5ed5188dc8ff96f6fdb85fd31b6c2c7ed3c1c79eda022ee2cff1311d');
+  } else assert.equal(sha('src/app/app.js'), '501a26974b107dd27e843dde75b68a2535429da5d86f0bd9f40cbd206a665e08');
 } else assert.equal(sha('src/app/app.js'), arch.runtime.appJsSha256);
 if(!reviewedNative)assert.equal(sha('src/background/background.js'), arch.runtime.backgroundJsSha256);
 else {

@@ -8,9 +8,11 @@ const occupancyKeys = ['diagnosticOccupancy', 'diagnosticOccupancyFill', 'diagno
 const occupancyExtra = occupancyKeys.every(key => result.flat[key]?.sel === '#' + key) ? 3 : 0;
 const errorStopKeys = ['massRenewalStopOnError', 'massRenewalStopOnErrorStatus'];
 const errorStopExtra = errorStopKeys.every(key => result.flat[key]?.sel === '#' + key) ? 2 : 0;
-const expected = 235 + occupancyExtra + errorStopExtra;
-ok(errorStopExtra === 2, 'new mass-renewal stop-on-error bindings remain present');
-ok(Object.keys(result.flat).length===expected,'collects historical DOM bindings plus three occupancy and two stop-on-error bindings');
+const massSearchKeys = ['massRenewalSearchInput', 'massRenewalSearchClear'];
+const massSearchExtra = massSearchKeys.every(key => result.flat[key]?.sel === '#' + key) ? 2 : 0;
+const expected = 235 + occupancyExtra + errorStopExtra + massSearchExtra;
+ok(errorStopExtra === 2 && massSearchExtra === 2, 'mass-renewal stop-on-error and two title-search bindings remain present');
+ok(Object.keys(result.flat).length===expected,'collects historical DOM bindings plus occupancy, stop-on-error and mass-search bindings');
 ok(seen.length===expected && new Set(seen).size===expected,'queries each selector exactly once');
 ok(Object.keys(result.groups).length>=8,'exposes structured element groups');
 ok(result.flat.profileSelect?.sel==='#profileSelect' && result.flat.inventoryCaptureDone?.sel==='#inventoryCaptureDone' && result.flat.trashTemplateRestart?.sel==='#trashTemplateRestart' && result.flat.trashTemplateTarget?.sel==='#trashTemplateTarget','preserves canonical selector mapping including target-loss and explicit target-open recovery');

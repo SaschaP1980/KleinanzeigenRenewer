@@ -18,8 +18,10 @@ const diagnosticOccupancySelectors = ['diagnosticOccupancy', 'diagnosticOccupanc
 const addedOccupancy = diagnosticOccupancySelectors.every(key => selectors.get(key) === '#' + key) ? 3 : 0;
 const stopOnErrorSelectors = ['massRenewalStopOnError', 'massRenewalStopOnErrorStatus'];
 const addedStopOnError = stopOnErrorSelectors.every(key => selectors.get(key) === '#' + key) ? 2 : 0;
-ok(addedStopOnError === 2 && selectors.size === 235 + addedOccupancy + addedStopOnError,
-  `DOM binding contract retains 235 historical selectors plus ${addedOccupancy} occupancy and ${addedStopOnError} stop-on-error bindings (got ${selectors.size})`);
+const massSearchSelectors = ['massRenewalSearchInput', 'massRenewalSearchClear'];
+const addedMassSearch = massSearchSelectors.every(key => selectors.get(key) === '#' + key) ? 2 : 0;
+ok(addedStopOnError === 2 && addedMassSearch === 2 && selectors.size === 235 + addedOccupancy + addedStopOnError + addedMassSearch,
+  `DOM binding contract retains 235 historical selectors plus ${addedOccupancy} occupancy, ${addedStopOnError} stop-on-error and ${addedMassSearch} mass-search bindings (got ${selectors.size})`);
 const routeSource=bg+'\n'+router;
 const routeTypes=[...routeSource.matchAll(/(?:message\?\.type\s*===\s*|['"])(['"])?([A-Z][A-Z0-9_]+)(?:\1)?/g)].map(m=>m[2]);
 const required=['PLATFORM_ACCESS_RESTRICTED','GET_PLATFORM_ACCESS_RESTRICTION','CLEAR_PLATFORM_ACCESS_RESTRICTION','OPEN_APP_WINDOW','GET_RENEWAL_CONFIGURATION','SET_RENEWAL_MODE','SET_RENEWAL_PHASE_ATTEMPTS','RECOGNIZE_PROFILE','GET_PROFILE_STATE','SET_SELECTED_PROFILE','DELETE_PROFILE','LIST_INVENTORIES','LIST_TRASH','START_BULK_INVENTORY_OPERATION','START_MASS_RENEWAL_BATCH','START_TEMPLATE_FILL','START_ARCHIVE_INSERTION','GET_DIAGNOSTICS'];

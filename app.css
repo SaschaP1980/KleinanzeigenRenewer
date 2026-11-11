@@ -497,7 +497,13 @@ button { font: inherit; }
 .mass-renewal-panel { min-height:360px; }
 .mass-renewal-selection-meta,.mass-renewal-progress-head { display:flex; justify-content:space-between; gap:12px; align-items:center; margin:0 0 8px; color:#9ca9ac; font-size:11px; }
 .mass-renewal-selection-meta strong,.mass-renewal-progress-head strong { color:#dbe4e3; font-size:12px; }
-.mass-renewal-table-wrap { max-height:390px; overflow:auto; overscroll-behavior:contain; border:1px solid #303a3f; border-radius:11px; background:#111719; }
+.mass-renewal-search { display:flex; align-items:center; gap:6px; margin:0 0 8px; }
+.mass-renewal-search input { flex:1; min-width:0; height:32px; padding:5px 11px; border:1px solid #344044; border-radius:8px; background:#111719; color:#edf3f2; font:inherit; font-size:12px; }
+.mass-renewal-search input:focus-visible,.mass-renewal-search button:focus-visible { outline:2px solid #4de0b7; outline-offset:2px; }
+.mass-renewal-search button { display:inline-flex; align-items:center; justify-content:center; height:32px; width:32px; flex:0 0 32px; padding:0; border:1px solid #344044; border-radius:8px; background:#192225; color:#c7d0d2; cursor:pointer; font-size:19px; }
+.mass-renewal-search button[hidden] { display:none; }
+.mass-renewal-search input::-webkit-search-cancel-button { display:none; }
+.mass-renewal-table-wrap { max-height:clamp(160px,calc(100dvh - 350px),420px); overflow:auto; overscroll-behavior:contain; border:1px solid #303a3f; border-radius:11px; background:#111719; }
 .mass-renewal-table { width:100%; border-collapse:collapse; table-layout:fixed; }
 .mass-renewal-table thead th { position:sticky; top:0; z-index:2; padding:8px 9px; text-align:left; background:#1a2225; color:#93a1a4; border-bottom:1px solid #344044; font-size:10px; letter-spacing:.03em; }
 .mass-renewal-table tbody td { height:48px; padding:5px 9px; border-bottom:1px solid #252e31; color:#d8e0e0; font-size:11px; vertical-align:middle; }
@@ -543,7 +549,7 @@ button { font: inherit; }
 .mass-renewal-stop-policy small { display:none; }
 #massRenewalStopOnErrorStatus:not(:empty) { display:block; position:absolute; right:0; bottom:calc(100% + 6px); z-index:1; max-width:320px; padding:5px 8px; border:1px solid #8b6a31; border-radius:7px; background:#2c291e; color:#f1ce8d; font-size:10px; box-shadow:0 2px 10px rgba(0,0,0,.3); }
 @media (prefers-reduced-motion:reduce) { .mass-renewal-stop-policy-label input,.mass-renewal-stop-policy-label input::after { transition:none; } }
-.mass-renewal-actions { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-top:14px; padding-top:14px; border-top:1px solid #2d373a; }
+.mass-renewal-actions { position:sticky; bottom:-20px; z-index:3; display:flex; justify-content:space-between; align-items:center; gap:12px; margin-top:14px; padding:14px 0 2px; border-top:1px solid #2d373a; background:#141b1d; }
 .mass-renewal-actions button { width:auto; min-width:88px; min-height:36px; padding:8px 12px; }
 .mass-renewal-actions #massRenewalStart,.mass-renewal-actions #massRenewalStopAfterCurrent,.mass-renewal-actions #massRenewalDone { margin-left:auto; }
 .mass-renewal-result-list { display:grid; gap:7px; max-height:410px; overflow:auto; overscroll-behavior:contain; padding-right:2px; }
@@ -578,7 +584,7 @@ button { font: inherit; }
 .mass-renewal-result-actions button { min-height:30px; padding:5px 9px; font-size:9px; }
 @media (max-width:760px) {
   .mass-renewal-dialog { width:calc(100vw - 16px); }
-  .mass-renewal-stepper { grid-template-columns:1fr; }
+  .mass-renewal-stepper { grid-template-columns:repeat(2,minmax(0,1fr)); }
   .mass-renewal-table th:nth-child(4),.mass-renewal-table td:nth-child(4) { width:92px; }
   .mass-renewal-table th:nth-child(5),.mass-renewal-table td:nth-child(5) { width:124px; }
   .mass-renewal-result-row { grid-template-columns:28px 38px minmax(0,1fr); }

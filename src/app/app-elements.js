@@ -187,6 +187,8 @@
       massRenewalSummaryPanel: "#massRenewalSummaryPanel",
       massRenewalSelectionBody: "#massRenewalSelectionBody",
       massRenewalSelectionCount: "#massRenewalSelectionCount",
+      massRenewalSearchInput: "#massRenewalSearchInput",
+      massRenewalSearchClear: "#massRenewalSearchClear",
       massRenewalProgressTitle: "#massRenewalProgressTitle",
       massRenewalProgressCount: "#massRenewalProgressCount",
       massRenewalProgressList: "#massRenewalProgressList",
