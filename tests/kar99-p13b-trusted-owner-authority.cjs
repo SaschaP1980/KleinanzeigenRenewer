@@ -300,6 +300,62 @@ test('P1.3-B / RED: a caller-provided all-idle snapshot or nonce never becomes t
   })), 'caller-forged owner snapshot');
   await denied(() => gate.captureForReserve(request()), 'unproven renewal owner');
 });
+// P1.3-F2E1: a valid historical remote outcome receipt is NOT permission to
+// cross the current authenticated Kleinanzeigen inventory profile boundary.
+// These PRIVATE positive fixtures still have test-controlled owner adapters;
+// production must supply all 15 independent positive completion producers.
+function remoteReceipts(profileId, kind) {
+  if(kind==='phase4') {
+    const attempt={schema:1,state:'outcome-unverified',renewalId:'renewalA',
+      attemptId:'attemptA',workerInstanceId:'previous-worker',profileId,
+      sourceAdId:'123',newAdId:'456',createdAtMs:NOW-900};
+    return {
+      karPhase4UncertainAttemptV1_renewalA_attemptA:attempt,
+      karPhase4VerifiedResolutionV1_renewalA_attemptA:{
+        schema:1,state:'resolved-confirmed',renewalId:'renewalA',
+        attemptId:'attemptA',workerInstanceId:'previous-worker',profileId,
+        sourceAdId:'123',newAdId:'456',
+        sourceEvidence:'not-in-my-ads-full-pagination-scan',
+        targetEvidence:'found-in-my-ads-full-pagination-scan',
+        sourcePagesScanned:2,targetPagesScanned:2,targetFoundPage:1,
+        verifiedAtMs:NOW-800
+      }
+    };
+  }
+  const attempt={schema:1,state:'outcome-unverified',fillId:'fillA',
+    workflowId:'renewalA',attemptId:'attemptA',workerInstanceId:'previous-worker',
+    kind:'renewal',profileId,sourceAdId:'123',targetTabId:10,
+    createdAtMs:NOW-900};
+  return {
+    karAutoPublishIntentV1_fillA_attemptA:attempt,
+    karAutoPublishVerifiedResolutionV1_fillA_attemptA:{
+      schema:1,state:'resolved-confirmed',fillId:'fillA',workflowId:'renewalA',
+      attemptId:'attemptA',kind:'renewal',profileId,sourceAdId:'123',
+      targetTabId:10,newAdId:'456',targetPresent:true,
+      targetEvidence:'found-in-my-ads-full-pagination-scan',
+      targetPagesScanned:2,targetFoundPage:1,verifiedAtMs:NOW-800
+    }
+  };
+}
+for(const kind of ['phase4','publish']) {
+  test('P1.3-F2E1: independently structured '+kind+' resolution matches current selected profile',async()=>{
+    const {gate}=fixture({local:remoteReceipts(PROFILE,kind)});
+    const answer=await gate.captureForReserve(request());
+    assert.equal(answer.status,'candidate-idle',
+      'only the fixture-controlled 15-owner sources can produce this candidate');
+  });
+  test('P1.3-F2E1 RED: historical '+kind+' resolution for a different account profile blocks capture',async()=>{
+    const {gate}=fixture({local:remoteReceipts('other-profile',kind)});
+    await assert.rejects(gate.captureForReserve(request()),e=>
+      e?.code==='KR_OWNER_JOURNAL_PROFILE_MISMATCH');
+  });
+  test('P1.3-F2E1 RED: foreign '+kind+' receipt cannot be inherited by matching session after worker restart',async()=>{
+    const other=remoteReceipts('prior-profile',kind);
+    const {gate}=fixture({local:other,workerId:'fresh-worker'});
+    await assert.rejects(gate.captureForReserve(request()),e=>
+      e?.code==='KR_OWNER_JOURNAL_PROFILE_MISMATCH');
+  });
+}
 const negativeCases = [
   ['wrong selected profile', {local: {selectedInventoryProfileV1: {profileId: 'other'}}}],
   ['missing selected profile', {local: {selectedInventoryProfileV1: null}}],
