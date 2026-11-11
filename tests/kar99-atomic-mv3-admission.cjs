@@ -63,6 +63,39 @@ function snapshot(){const gen='worker-one',profile='profile-one',now=123000;
  await reject(make(unwritable,locks).withAdmission('START',()=>{action=true}),
    'KR_UPDATE_FENCE_ATOMIC_STORAGE','storage write fails before operation');
  ok(!action,'failed durability cannot trigger operation');
+ // P1.3-F2B: a durable finish receipt is a settled-callback record, not
+ // independent proof of remote outcomes or a positive 15-owner IDLE lease.
+ const receiptToken='prior_generation_receipt_1234567890';
+ function receiptDisk(onSecondRead){
+   const d=disk(),started={schema:1,state:'admitted',token:receiptToken,
+     operationType:'ROUTED:GET_DIAGNOSTICS',workerInstanceId:'prior-worker',startedAtMs:122900};
+   const finished={schema:1,state:'completed',token:receiptToken,
+     workerInstanceId:'prior-worker',completedAtMs:122950};
+   d.data[Atomic.START_PREFIX+receiptToken]=started;
+   d.data[Atomic.FINISH_PREFIX+receiptToken]=finished;
+   const original=d.get.bind(d);let reads=0;
+   d.get=async keys=>{
+     if(keys===null && ++reads===2 && onSecondRead)onSecondRead(d.data);
+     return original(keys);
+   };
+   return {d,reads:()=>reads};
+ }
+ const stablePrior=receiptDisk();
+ ok(await make(stablePrior.d,locks,'new-worker').guardReserve(()=>73)===73,
+   'prior worker complete receipt is structurally validated (not remote IDLE)');
+ ok(stablePrior.reads()===2,
+   'F2B performs two independent complete admission-journal reads under reserve lock');
+ const injected=receiptDisk(data=>{data[Atomic.START_PREFIX+'late_receipt_1234567890']={
+   schema:1,state:'admitted',token:'late_receipt_1234567890',
+   operationType:'START_REMOTE',workerInstanceId:'late-worker',startedAtMs:122980};});
+ await reject(make(injected.d,locks,'new-worker').guardReserve(()=>true),
+   'KR_UPDATE_FENCE_ATOMIC_STORAGE','new cross-worker unresolved start between reads blocks reserve');
+ const deleted=receiptDisk(data=>{delete data[Atomic.FINISH_PREFIX+receiptToken];});
+ await reject(make(deleted.d,locks,'new-worker').guardReserve(()=>true),
+   'KR_UPDATE_FENCE_ATOMIC_STORAGE','disappearing prior completion receipt cannot prove idle');
+ const changed=receiptDisk(data=>{data[Atomic.FINISH_PREFIX+receiptToken].completedAtMs=122951;});
+ await reject(make(changed.d,locks,'new-worker').guardReserve(()=>true),
+   'KR_UPDATE_FENCE_ATOMIC_STORAGE','mutated prior-generation finish receipt denies reserve');
  const gateOne=Fence.create({storageLocal:store,clock:()=>123000,
    newToken:()=> 'fence_'+(++serial)+'_unique',atomicCoordinator:a,
    policy:Policy,getOwnerSnapshot:async()=>snapshot()});
