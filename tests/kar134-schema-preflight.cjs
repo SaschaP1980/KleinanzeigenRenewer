@@ -25,6 +25,8 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
     (requiredNew ? '<input type="hidden" name="attributeMap[wearables.must_have]" value="">' : '') +
     '</form><astro-island component-url="PostListingForm" props="stub"></astro-island></body></html>';
   const { document } = parseHTML(dom);
+  const checkedBluetooth = document.querySelector('input[name="attributeMap[wearables.bluetooth]"]');
+  if (checkedBluetooth) checkedBluetooth.checked = true; // linkedom does not hydrate HTML checked property like a browser
   const definitions = {};
   if (caseSize) definitions['wearables.case_size']={ required: false,
     ...(options ? { localizedOptions: [{ value:'44', localizedValue:'44mm' },{ value:'46', localizedValue:'46mm' }] } : {}) };
