@@ -147,6 +147,12 @@ function fixture(options = {}) {
       proofCalls++;
       const result = {};
       for (const name of Policy.requiredOwners) result[name] = await sourceProofs[name]();
+      const override=typeof options.ownerProofs==='function'
+        ?options.ownerProofs(proofCalls):null;
+      if(override)for(const [name,changes] of Object.entries(override)){
+        if(changes===null)delete result[name];
+        else result[name]={...result[name],...changes};
+      }
       return result;
     }
   };
@@ -299,6 +305,40 @@ test('P1.3-B / RED: a caller-provided all-idle snapshot or nonce never becomes t
     nonce: 'user_selected_nonce'
   })), 'caller-forged owner snapshot');
   await denied(() => gate.captureForReserve(request()), 'unproven renewal owner');
+});
+// P1.3-F2E2B: a first snapshot of source-completion claims cannot outlive
+// a changed source revision during remote/Chrome/account verification.
+test('P1.3-F2E2B: re-read all fifteen owner source revisions at end of capture',async()=>{
+  const {gate,calls}=fixture();
+  const result=await gate.captureForReserve(request());
+  assert.equal(result.status,'candidate-idle');
+  assert.equal(calls().proofCalls,2,
+    'first and final independently obtained owner-source snapshots required');
+});
+test('P1.3-F2E2B RED: a new source revision while reading remote state denies reserve',async()=>{
+  let ownerReads=0;
+  const {gate}=fixture({ownerProofs:read=>{
+    ownerReads=read;
+    return {renewal:{sourceRevision:read===1?'remote-proof-rev-1':'remote-proof-rev-2'}};
+  }});
+  await denied(()=>gate.captureForReserve(request()),'changed owner source revision');
+  assert.equal(ownerReads,2);
+});
+test('P1.3-F2E2B RED: a source provenance change with same revision still denies',async()=>{
+  const {gate}=fixture({ownerProofs:read=>({
+    archiveInsertion:{sourceRevision:'same-revision',noPriorGenerationTask:read===1}
+  })});
+  await denied(()=>gate.captureForReserve(request()),'changed prior-generation source status');
+});
+test('P1.3-F2E2B RED: disappearance of an independently verified owner source denies',async()=>{
+  const {gate}=fixture({ownerProofs:read=>read===2?{templateFill:null}:{}});
+  await denied(()=>gate.captureForReserve(request()),'owner source disappeared');
+});
+test('P1.3-F2E2B RED: changed source profile after worker restart denies',async()=>{
+  const {gate}=fixture({workerId:'fresh-worker',ownerProofs:read=>({
+    renewal:{profileId:read===1?PROFILE:'other-profile'}
+  })});
+  await denied(()=>gate.captureForReserve(request()),'historical source profile changed');
 });
 // P1.3-F2E1: a valid historical remote outcome receipt is NOT permission to
 // cross the current authenticated Kleinanzeigen inventory profile boundary.
