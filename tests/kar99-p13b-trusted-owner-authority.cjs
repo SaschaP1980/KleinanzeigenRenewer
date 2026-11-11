@@ -141,7 +141,7 @@ function fixture(options = {}) {
     async readBrowserTabsReadOnly() {
       tabCalls++;
       if (options.tabs instanceof Error) throw options.tabs;
-      return clone(options.tabs || []);
+      return clone(typeof options.tabs === 'function' ? options.tabs(tabCalls) : (options.tabs || []));
     },
     async readOwnerSourceProofsReadOnly() {
       proofCalls++;
@@ -522,4 +522,25 @@ test('P1.3-F1 RED: browser tab set changed between readbacks remains unsafe', as
 test('P1.3-F1 RED: unavailable session or Chrome API remains unsafe', async () => {
   await tabSourceDenied({registry:{},tabs:[],browserFailure:true},'no browser evidence');
   await tabSourceDenied({registry:{},tabs:[],sessionFailure:true},'no session evidence');
+});
+
+// P1.3-F2A: verified tab ownership must remain stable for the entire
+// origin-locked candidate capture, not only during its first browser read.
+test('P1.3-F2A RED: final browser source readback must occur', async () => {
+  const {gate,calls} = fixture({tabs:[{id:71,managed:false,
+    ownershipVerified:true,sourceRevision:'chrome-tabs-session-registry-two-read-v1'}]});
+  assert.equal((await gate.captureForReserve(request())).status,'candidate-idle');
+  assert.equal(calls().tabCalls,2,'initial and final independent ownership checks');
+});
+test('P1.3-F2A RED: a newly opened tab between owner proofs and final capture blocks', async () => {
+  const good={id:71,managed:false,ownershipVerified:true,
+    sourceRevision:'chrome-tabs-session-registry-two-read-v1'};
+  const {gate}=fixture({tabs:call=>call===1?[good]:[good,{...good,id:72}]});
+  await denied(()=>gate.captureForReserve(request()),'browser changed before snapshot');
+});
+test('P1.3-F2A RED: duplicate supposedly verified Chrome tab IDs never prove ownership', async () => {
+  const good={id:71,managed:false,ownershipVerified:true,
+    sourceRevision:'chrome-tabs-session-registry-two-read-v1'};
+  const {gate}=fixture({tabs:[good,{...good}]});
+  await denied(()=>gate.captureForReserve(request()),'duplicate Chrome tab ID');
 });
