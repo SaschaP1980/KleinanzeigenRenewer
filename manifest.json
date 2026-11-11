@@ -36,6 +36,7 @@
       ],
       "js": [
         "src/shared/runtime-deps.js",
+        "src/shared/template-schema-core.js",
         "src/shared/message-contract-registry.js",
         "src/shared/managed-navigation.js",
         "src/shared/platform-hardening.js",
