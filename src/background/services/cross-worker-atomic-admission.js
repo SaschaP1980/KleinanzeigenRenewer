@@ -152,9 +152,20 @@
       if(expectedWorkerInstanceId!==undefined&&expectedWorkerInstanceId!==workerInstanceId)
         throw denied('KR_UPDATE_FENCE_ATOMIC_GENERATION');
       return exclusive(async()=>{
-        const {starts,finishes}=await scan();
-        for(const token of starts.keys())
-          if(!finishes.has(token))throw denied('KR_UPDATE_FENCE_BUSY');
+        // P1.3-F2B: the raw crash-durable receipts must agree across two
+        // complete independent reads while this origin Web Lock is held.
+        // A new/removed/rewritten start or finish is UNKNOWN, never IDLE.
+        // Structural receipt closure proves callback settlement only; it is
+        // not independent remote-outcome or all-owner completion evidence.
+        const first=await scan();
+        const second=await scan();
+        const signature=rows=>JSON.stringify([...rows.entries()]
+          .sort(([a],[b])=>a.localeCompare(b)));
+        if(signature(first.starts)!==signature(second.starts)
+          ||signature(first.finishes)!==signature(second.finishes))
+          throw denied('KR_UPDATE_FENCE_ATOMIC_STORAGE');
+        for(const token of second.starts.keys())
+          if(!second.finishes.has(token))throw denied('KR_UPDATE_FENCE_BUSY');
         return task();
       });
     }
