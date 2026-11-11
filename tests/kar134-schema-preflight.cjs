@@ -12,6 +12,10 @@ assert.ok(policyStart > 0 && policyEnd > policyStart, 'private schema-test polic
 const assessSyntheticCaseSize = vm.runInNewContext(
   fillerSource.slice(policyStart, policyEnd) + '\nassessSyntheticCaseSize;',
   { Object, Array }, { filename: 'kar134-read-only-policy.js' });
+const assessSyntheticRemovedField = vm.runInNewContext(
+  fillerSource.slice(policyStart, policyEnd) +
+    '\n(typeof assessSyntheticRemovedField === "function" ? assessSyntheticRemovedField : null);',
+  { Object, Array }, { filename: 'kar134-removed-field-policy.js' });
 
 globalThis.crypto ||= webcrypto;
 require('../src/shared/runtime-deps.js');
@@ -459,6 +463,57 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
     assert.equal(observed.optionProbe.ownerVerifiedPairCount||0,0);
     const report=await f.engine.evaluate(f.template,observed);
     assert.equal(report.complete,false);
+  });
+  // Wave J: a missing archived technical field is provable from the full live
+  // schema even when technical dropdown options are unknown. It does not
+  // prove that any real Kleinanzeigen field was actually removed.
+  await check('native synthetic removed-field drift proves specific preflight rejection without a technical option catalog',async()=>{
+    const f=fixture({options:false,caseValue:''});
+    const observed=f.engine.inspectForm(f.document.querySelector('form'),405,f.document);
+    const key='wearables.__kar134_removed_field_probe__';
+    const label='KAR-134 Testmerkmal (synthetisch)';
+    const snapshot=Schema.buildSchema({categoryId:'405',dynamicAttributes:[
+      {key,controlType:'text',requiredState:'optional'}]});
+    const template={categoryId:'405',templateSchema:{snapshot,fingerprint:await Schema.fingerprint(snapshot)},
+      dynamicAttributes:[{...oldAttr(key,'SAVED_TEST_VALUE','synthetisch'),label,status:'captured'}]};
+    const report=await f.engine.evaluate(template,observed);
+    assert.equal(report.complete,false);
+    assert.equal(observed.schema.fields.find(x=>x.key==='attribute:wearables.case_size').optionValues,null);
+    assert.ok(report.issues.some(x=>x.includes(label) && x.includes('nicht vorhanden')));
+    assert.equal(typeof assessSyntheticRemovedField,'function','native removed-field policy not implemented');
+    const result=assessSyntheticRemovedField(observed,report,key,label);
+    assert.equal(result.verdict,true);
+    assert.equal(result.evidenceState,'synthetic-removed-field-proven');
+    assert.equal(result.missingSavedFieldRejectionProven,true);
+    assert.equal(result.caseFieldPresent,true);
+  });
+  await check('native removed-field negative cannot pass if synthetic key is offered by live form',async()=>{
+    const f=fixture({options:false});
+    const key='wearables.__kar134_removed_field_probe__',label='KAR-134 Testmerkmal (synthetisch)';
+    const input=f.document.createElement('input');
+    input.name='attributeMap['+key+']';input.type='text';input.value='';
+    f.document.querySelector('form').append(input);
+    const observed=f.engine.inspectForm(f.document.querySelector('form'),405,f.document);
+    const snapshot=Schema.buildSchema({categoryId:'405',dynamicAttributes:[{key,controlType:'text'}]});
+    const template={categoryId:'405',templateSchema:{snapshot,fingerprint:await Schema.fingerprint(snapshot)},
+      dynamicAttributes:[{...oldAttr(key,'SAVED_TEST_VALUE'),label,status:'captured'}]};
+    const report=await f.engine.evaluate(template,observed);
+    assert.equal(typeof assessSyntheticRemovedField,'function');
+    const result=assessSyntheticRemovedField(observed,report,key,label);
+    assert.equal(result.verdict,false);
+    assert.equal(result.evidenceState,'synthetic-field-present');
+  });
+  await check('native removed-field negative rejects generic error or unverified category',async()=>{
+    const f=fixture({options:false});
+    const observed=f.engine.inspectForm(f.document.querySelector('form'),405,f.document);
+    const key='wearables.__kar134_removed_field_probe__',label='KAR-134 Testmerkmal (synthetisch)';
+    assert.equal(typeof assessSyntheticRemovedField,'function');
+    const unrelated={complete:false,comparison:{status:'schema-changed'},
+      issues:['Ein neues Pflichtmerkmal ist nicht gesetzt.']};
+    assert.equal(assessSyntheticRemovedField(observed,unrelated,key,label).verdict,false);
+    assert.equal(assessSyntheticRemovedField({...observed,categoryId:'406'},unrelated,key,label).verdict,false);
+    const misleading={...unrelated,issues:['Gespeichertes Merkmal „'+label+'“ ist im neuen Formular nicht vorhanden.']};
+    assert.equal(assessSyntheticRemovedField({...observed,categoryId:'406'},misleading,key,label).verdict,false);
   });
   await check('positive read-only 405 simulation recognizes owner-proven pair while negative remains inconclusive',async()=>{
     const f=fixture({options:false,caseValue:''});
