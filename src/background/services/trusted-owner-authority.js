@@ -283,6 +283,26 @@
         .sort((a,b) => a[0]-b[0]));
       if (signature(tabs) !== signature(finalTabs))
         throw denied('KR_OWNER_TABS_CHANGED');
+      // F2E2B: completion evidence must still describe the SAME 15 actual
+      // source revisions at the end of authenticated account/tab verification.
+      // Read the private producer again. Mere test-provided "verified: true"
+      // remains insufficient without real production adapters.
+      const finalProofs = await readOwnerSourceProofsReadOnly();
+      if (!RECORD(finalProofs) || Object.keys(finalProofs).length !== owners.length ||
+          !owners.every(name => Object.hasOwn(finalProofs,name)))
+        throw denied('KR_OWNER_SOURCE_UNAVAILABLE');
+      for (const name of owners)
+        sourceProof(finalProofs[name], name, req.expectedProfileId, tick);
+      const evidenceSignature = set => JSON.stringify(owners.map(name => {
+        const proof = set[name];
+        return [name, proof.owner, proof.type, proof.verified, proof.workerGeneration,
+          proof.profileId, proof.observedAtMs, proof.unfinishedOperationCount,
+          proof.durableCompletionVerified, proof.noUnresolvedRemoteMutation,
+          proof.noPriorGenerationTask, proof.sourceRevision];
+      }));
+      if (evidenceSignature(proofs) !== evidenceSignature(finalProofs))
+        throw denied('KR_OWNER_SOURCE_CHANGED');
+
       const secondLocal = await raw(storageLocal,'STORAGE_LOCAL');
       const secondSession = await raw(storageSession,'STORAGE_SESSION');
       if (JSON.stringify(firstLocal) !== JSON.stringify(secondLocal) ||
