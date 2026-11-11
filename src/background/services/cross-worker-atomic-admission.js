@@ -91,6 +91,10 @@
         if(!entered||!completed)throw denied('KR_UPDATE_FENCE_ATOMIC_UNAVAILABLE');
         return result;
       }catch(error){
+        // F2E1: preserve this one exact, private, fail-closed remote journal
+        // profile mismatch. Rewriting it to a generic lock outage hides the
+        // actual account-bound evidence rejection after worker restart.
+        if(error?.code==='KR_OWNER_JOURNAL_PROFILE_MISMATCH')throw error;
         if(typeof error?.code==='string'&&error.code.startsWith('KR_UPDATE_FENCE_'))throw error;
         throw denied('KR_UPDATE_FENCE_ATOMIC_UNAVAILABLE');
       }
