@@ -362,6 +362,8 @@
     const exact44mmMatches = Array.isArray(labels)
       ? labels.filter(item => item?.value === '44' && item?.label === '44mm').length : 0;
     const technical44Offered = optionEvidenceComplete && values.includes('44');
+    const ownerVerifiedPair44 = observed?.optionProbe?.reason === 'owner-confirmed-case-size-pairs' &&
+      observed.optionProbe.ownerVerifiedPairCount === 2 && exact44mmMatches === 1;
     const mapped44 = (report?.mappings || []).filter(item =>
       item.oldKey === 'wearables.gehausegrosse' &&
       item.newKey === 'wearables.case_size' &&
@@ -373,12 +375,15 @@
       (report?.issues || []).some(issue => typeof issue === 'string' &&
         issue.includes('Gehäusegröße (synthetischer Test)') &&
         issue.includes('wird im neuen Formular nicht angeboten.')));
-    const mapping44Proven = Boolean(technical44Offered && exact44mmMatches === 1 && mapped44);
+    const mapping44Proven = Boolean((technical44Offered || ownerVerifiedPair44) &&
+      exact44mmMatches === 1 && mapped44);
     const verdict = scenario === 'compatible'
       ? Boolean(report?.complete === true && mapping44Proven)
       : Boolean(report?.complete === false && specificInvalidRejectionProven);
     const evidenceState = !field ? 'case-size-field-missing'
-      : !optionEvidenceComplete ? 'case-size-option-evidence-missing'
+      : !optionEvidenceComplete && scenario === 'compatible' && mapping44Proven
+        ? 'owner-confirmed-case-size-pair'
+        : !optionEvidenceComplete ? 'case-size-option-evidence-missing'
         : scenario === 'compatible' && !mapping44Proven ? '44mm-option-not-proven'
           : scenario === 'incompatible' && !specificInvalidRejectionProven ? 'invalid-value-rejection-not-proven'
             : 'proven';
@@ -386,6 +391,7 @@
       verdict, evidenceState, caseFieldPresent: Boolean(field),
       optionEvidenceComplete, optionCount: values?.length || 0,
       technical44Offered: Boolean(technical44Offered),
+      ownerVerifiedPair44: Boolean(ownerVerifiedPair44),
       visible44mmProven: exact44mmMatches === 1,
       mapping44Proven, specificInvalidRejectionProven
     });
@@ -454,6 +460,8 @@
       caseSizeOptionEvidenceComplete: assessment.optionEvidenceComplete,
       caseSizeOptionCount: assessment.optionCount,
       technical44Offered: assessment.technical44Offered,
+      ownerVerifiedPair44: assessment.ownerVerifiedPair44,
+      ownerVerifiedPairCount: live.optionProbe?.ownerVerifiedPairCount || 0,
       visible44mmProven: assessment.visible44mmProven,
       invalidValueRejectionProven: assessment.specificInvalidRejectionProven,
       evidenceState: assessment.evidenceState,
@@ -472,7 +480,9 @@
     updatePanel(
       verdict ? 'Schema-Prüfmodus: Test bestanden' : 'Schema-Prüfmodus: Prüfung fehlgeschlagen',
       scenario === 'compatible'
-        ? (verdict ? 'Das aktuelle Formular bietet den technischen Wert 44 mit der sichtbaren Auswahl 44mm eindeutig an.' : 'Die aktuelle Auswahl 44 / 44mm konnte nicht nachgewiesen werden.')
+        ? (verdict
+          ? 'Die manuell nachgewiesene Zuordnung 44mm / 44 ist im aktuellen Auswahlfeld eindeutig sichtbar. Eine Veröffentlichung wurde nicht durchgeführt.'
+          : 'Die aktuelle Auswahl 44 / 44mm konnte nicht nachgewiesen werden.')
         : (verdict ? 'Der absichtlich nicht darstellbare Testwert wurde anhand belegter Auswahlmöglichkeiten sicher abgewiesen.' : 'Die Ablehnung konnte nicht anhand einer vollständigen Optionsliste nachgewiesen werden.'),
       verdict ? [] : issues,
       { safetyText: 'TEST ABGESCHLOSSEN – keine Werte übertragen, keine Bilder hochgeladen, keine Anzeige veröffentlicht. Dies ist nur eine Feldsimulation, keine vollständige Abnahme.' }
@@ -520,7 +530,9 @@
           })).slice(0, 80),
           mapped: schemaPreflightReport.mappings.map(item => ({ from: item.oldKey, to: item.newKey })),
           legacy: schemaPreflightReport.comparison?.status === 'legacy-unversioned',
-          issueCount: schemaPreflightReport.issues.length
+          issueCount: schemaPreflightReport.issues.length,
+          ownerVerifiedCaseSizePairs: live.optionProbe?.ownerVerifiedPairCount || 0,
+          ownerCaseSizeEvidence: live.optionProbe?.reason || null
         }, schemaPreflightReport.complete ? 'info' : 'warning');
         if (!schemaPreflightReport.complete)
           return await stopForSchemaPreflight(session, schemaPreflightReport.issues, schemaPreflightReport);
@@ -529,7 +541,18 @@
           'Kategorieabhängige Felder konnten nicht sicher geprüft werden: ' + String(error.message || error).slice(0, 250)
         ]);
       }
-      const attributeIssues = await fillDynamicAttributes(template, fillId);
+      // The legacy numeric-input label ("44") differs from the current
+      // dropdown label ("44mm"). Only the preflight-proven mapping may
+      // override the transient *fill* label. Never rewrite archived values.
+      const mappedFillTemplate = schemaPreflightReport.mappings.length
+        ? { ...template, dynamicAttributes: (template.dynamicAttributes || []).map(attribute => {
+          const approved = schemaPreflightReport.mappings.find(item =>
+            item.oldKey === attribute.key &&
+            item.technicalValue === String(attribute.technicalValue));
+          return approved ? { ...attribute, displayValue: approved.expectedDisplayLabel } : attribute;
+        }) }
+        : template;
+      const attributeIssues = await fillDynamicAttributes(mappedFillTemplate, fillId);
       issues.push(...attributeIssues);
       void diagnostic(fillId, 'TEMPLATE_DYNAMIC_ATTRIBUTES_FINISHED', { configured: (template.dynamicAttributes || []).length, issueCount: attributeIssues.length }, attributeIssues.length ? 'warning' : 'info');
       const shippingIssues = await fillShipping(template);

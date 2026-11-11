@@ -25,6 +25,20 @@
       });
       return verified[oldKey] || null;
     };
+    // Owner-verified in the live, unpublished category-405 form (2026-11-11).
+    // Evidence is exactly two manual selections, NOT an inference that every
+    // displayed size follows the same rule or a full technical option catalog.
+    const ownerConfirmedCaseSizePairs = Object.freeze([
+      Object.freeze({ value: '38', label: '38mm' }),
+      Object.freeze({ value: '44', label: '44mm' })
+    ]);
+    const isOwnerConfirmedLegacyCaseSize = template => {
+      if (String(template?.categoryId || '') !== '405') return false;
+      const originals = (template.dynamicAttributes || []).filter(item =>
+        item?.key === 'wearables.gehausegrosse' && item.technicalValue != null);
+      return originals.length === 1 && ownerConfirmedCaseSizePairs.some(pair =>
+        pair.value === String(originals[0].technicalValue));
+    };
     function inspectForm(form, expectedCategory, sourceDoc = documentRoot()) {
       if (!form?.querySelectorAll) throw new Error('Aktuelles Anzeigenformular fehlt.');
       const categoryControls = [...form.querySelectorAll('input[name="categoryId"]')];
@@ -104,7 +118,8 @@
       const doc = documentRoot(), form = observed.form;
       const field = observed.schema.fields.find(entry => entry.key === fieldKey);
       const audit = { attempted: false, popupFound: false, renderedOptionCount: 0,
-        explicitTechnicalOptionCount: 0, verified: false, reason: 'no-verified-popup' };
+        explicitTechnicalOptionCount: 0, ownerVerifiedPairCount: 0,
+        verified: false, reason: 'no-verified-popup' };
       if (observed.categoryId !== '405' || !field) {
         return { ...observed, optionProbe: { ...audit, reason: 'field-or-category-missing' } };
       }
@@ -115,7 +130,7 @@
       const control = doc?.getElementById?.(key);
       if (hidden.length !== 1 || !control || !form.contains(control) ||
           control.tagName !== 'BUTTON' || control.getAttribute('role') !== 'combobox' ||
-          control.getAttribute('disabled') !== null) {
+          control.getAttribute('disabled') !== null || control.getAttribute('aria-disabled') === 'true') {
         return { ...observed, optionProbe: { ...audit, reason: 'exact-combobox-not-confirmed' } };
       }
       const initial = String(hidden[0].value ?? '');
@@ -168,6 +183,24 @@
           .filter(n => Number.isSafeInteger(n) && n > 0);
         const truncated = sizeMarkers.some(n => n > rows.length) ||
           Boolean(popup.querySelector('[data-virtualizer], [data-virtual]'));
+        // Current Kleinanzeigen renders li[role=option] labels with NO explicit
+        // per-item technical IDs. Admit ONLY the two independently selected
+        // owner-confirmed pairs, and only if the exact linked live menu displays
+        // BOTH labels uniquely. Do not set field.optionValues: the remaining
+        // technical options are unknown and must stay unknown in the fingerprint.
+        const allLabelOnly = tagged.length >= 4 && tagged.every(item =>
+          item.value === null && item.label.length > 0);
+        const linkedPopup = popup.id && popup.id === control.getAttribute('aria-controls');
+        const uniqueLabels = new Set(tagged.map(item => item.label)).size === tagged.length;
+        if (initial === '' && !truncated && linkedPopup && allLabelOnly && uniqueLabels &&
+            ownerConfirmedCaseSizePairs.every(pair =>
+              tagged.filter(item => item.label === pair.label).length === 1)) {
+          audit.ownerVerifiedPairCount = ownerConfirmedCaseSizePairs.length;
+          audit.reason = 'owner-confirmed-case-size-pairs';
+          const optionLabels = { ...observed.optionLabels,
+            [key]: ownerConfirmedCaseSizePairs.map(pair => ({ ...pair })) };
+          return { ...observed, optionLabels, optionProbe: audit };
+        }
         if (!rows.length || tagged.some(item => item.value === null ||
             item.value === '' || !item.label) || new Set(ids).size !== ids.length || truncated) {
           audit.reason = truncated ? 'popup-incomplete-or-virtualized' : 'popup-technical-ids-not-proven';
@@ -208,7 +241,12 @@
       }, { timeout: 2500, interval: 120, description: 'Kategorieabhängiges Formularschema' });
       if ((template.dynamicAttributes || []).some(attr => hasValue(attr?.technicalValue)) && observed.dynamicCount === 0)
         throw new Error('Kategorieabhängige Merkmale fehlen im aktuellen Formular.');
-      return probeReadOnlyCaseSize ? probeCaseSizeOptions(observed) : observed;
+      // Only old category-405 templates whose saved technical value was
+      // directly measured by the owner may invoke the narrowly scoped
+      // popup check in the productive preflight. All other cases stay read-only
+      // and fail closed exactly as before.
+      return probeReadOnlyCaseSize || isOwnerConfirmedLegacyCaseSize(template)
+        ? probeCaseSizeOptions(observed) : observed;
     }
     async function evaluate(template, observed) {
       const issues = [], warnings = [], mappings = [];
