@@ -129,7 +129,24 @@
       const target=finishes.has(token)?completed:pending;
       for(const owner of names)target.add(owner);
     }
-    return {pending,completed};
+    // F2E2D1: preserve exact, immutable P8 callback history for the eight
+    // supplemental owners. No callback receipt is remote-outcome authority.
+    const entries=[...starts].sort(([a],[b])=>a.localeCompare(b)).map(([token,start])=>{
+      const autonomous=start.operationType.startsWith('AUTONOMOUS:');
+      const kind=autonomous?start.operationType.slice('AUTONOMOUS:'.length)
+        :start.operationType;
+      const names=ownersForOperation(kind,autonomous?'autonomous':'routed');
+      const finish=finishes.get(token);
+      return Object.freeze({
+        token,operationType:start.operationType,
+        workerInstanceId:start.workerInstanceId,startedAtMs:start.startedAtMs,
+        completedAtMs:finish?.completedAtMs ?? null,
+        state:finish?'callback-finished':'unfinished',
+        owners:Object.freeze([...names])
+      });
+    });
+    return {pending,completed,entries:Object.freeze(entries),
+      journalRevision:JSON.stringify(two)};
   }
   const PROFILE_KEYS=Object.freeze(['activeDetectedProfileV1','selectedInventoryProfileV1']);
   const PROFILE=/^[A-Za-z0-9_-]{1,128}$/;
@@ -358,10 +375,23 @@
         }
       }
       for(const n of OWNERS)if(pending.get(n)>0)o[n]=active('ACTUAL_IN_FLIGHT_OPERATION');
+      const admissionHistory=Object.freeze(Object.fromEntries(OWNERS.map(name=>{
+        const entries=receiptProof?.entries.filter(row=>row.owners.includes(name))||[];
+        return [name,Object.freeze({
+          state:!receiptProof?'unverified':entries.some(x=>x.state==='unfinished')
+            ?'unfinished':entries.length?'callback-finished':'no-records',
+          historicalOnly:true,generationAuthority:'unverified',
+          remoteOutcome:'unverified',
+          sourceRevision:receiptProof?JSON.stringify(entries):null,
+          entries:Object.freeze(entries)
+        })];
+      })));
       const tick=clock();
       return Object.freeze({
         schema:1,eligibleForLease:false,observedAtMs:Number.isSafeInteger(tick)&&tick>=0?tick:null,
         observations:Object.freeze(o),
+        admissionJournalRevision:receiptProof?.journalRevision ?? null,
+        admissionHistory,
         context:Object.freeze({
           // Matched account/profile is a distinct fact from 15-owner IDLE.
           // This observation NEVER grants an updater lease by itself.
@@ -482,11 +512,37 @@
       const workerReason=workerIds.every(x=>typeof x==='string'&&PROFILE.test(x))
         &&workerIds[0]!==workerIds[1]?'WORKER_GENERATION_MISMATCH'
         :'NO_CROSS_WORKER_GENERATION_PROOF';
+      // Two read-only owner observers must independently see the SAME
+      // immutable P8 ledger; neither one can attest completeness alone.
+      // A drift, missing producer or malformed source destroys ALL positive
+      // historical callback claims, while ACTIVE observations remain intact.
+      const revision=persisted?.admissionJournalRevision;
+      const consistent=typeof revision==='string'
+        &&revision===additional?.admissionJournalRevision;
+      const admissionHistory=Object.freeze(Object.fromEntries(
+        [...PERSISTED_OWNERS,...OWNERS].map(name=>{
+          const source=PERSISTED_OWNERS.includes(name)?persisted:additional;
+          const item=source?.admissionHistory?.[name];
+          const valid=consistent&&record(item)&&item.historicalOnly===true
+            &&item.generationAuthority==='unverified'
+            &&item.remoteOutcome==='unverified'
+            &&Array.isArray(item.entries)
+            &&['callback-finished','unfinished','no-records'].includes(item.state)
+            &&typeof item.sourceRevision==='string';
+          return [name,valid?item:Object.freeze({
+            state:'unverified',historicalOnly:true,
+            generationAuthority:'unverified',remoteOutcome:'unverified',
+            sourceRevision:null,entries:Object.freeze([])
+          })];
+        })
+      ));
       const tick=clock();
       return Object.freeze({
         schema:1,eligibleForLease:false,
         observedAtMs:Number.isSafeInteger(tick)&&tick>=0?tick:null,
         observations:Object.freeze(observations),
+        admissionJournalRevision:consistent?revision:null,
+        admissionHistory,
         context:Object.freeze({
           profile:Object.freeze({state:'unverified',reason:'LIVE_ACCOUNT_NOT_ATOMICALLY_BOUND'}),
           worker:Object.freeze({state:'unverified',reason:workerReason,workerInstanceId:worker||null})
