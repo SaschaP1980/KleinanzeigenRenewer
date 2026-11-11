@@ -84,6 +84,53 @@
     if(!table||!Object.hasOwn(table,kind))return OWNERS;
     return Object.freeze([...table[kind]]);
   }
+  // P1.3-F2C: independently map EXISTING immutable P8 journal records to
+  // the eight real supplemental owner classes. Completing a JavaScript
+  // callback is NOT independent confirmation of a remote Kleinanzeigen result.
+  const ADMISSION_START='karAtomicAdmissionStartV1_';
+  const ADMISSION_FINISH='karAtomicAdmissionFinishV1_';
+  const RECEIPT_ID=/^[A-Za-z0-9_-]{1,128}$/;
+  const validReceiptId=x=>typeof x==='string'&&RECEIPT_ID.test(x);
+  function ownerReceiptEvidence(first,second){
+    if(!first||!second||typeof first!=='object'||typeof second!=='object'
+      ||Array.isArray(first)||Array.isArray(second))return null;
+    const select=rows=>Object.entries(rows).filter(([key])=>
+      key.startsWith(ADMISSION_START)||key.startsWith(ADMISSION_FINISH))
+      .sort(([a],[b])=>a.localeCompare(b));
+    const one=select(first),two=select(second);
+    if(JSON.stringify(one)!==JSON.stringify(two))return null;
+    const starts=new Map(),finishes=new Map();
+    for(const [key,row] of two){
+      if(!row||typeof row!=='object'||Array.isArray(row)||row.schema!==1
+        ||!validReceiptId(row.token)||!validReceiptId(row.workerInstanceId))return null;
+      if(key.startsWith(ADMISSION_START)){
+        if(key!==ADMISSION_START+row.token||row.state!=='admitted'
+          ||typeof row.operationType!=='string'||!row.operationType
+          ||row.operationType.length>128
+          ||!Number.isSafeInteger(row.startedAtMs)||row.startedAtMs<0)return null;
+        starts.set(row.token,row);
+      }else{
+        if(key!==ADMISSION_FINISH+row.token||row.state!=='completed'
+          ||!Number.isSafeInteger(row.completedAtMs)||row.completedAtMs<0)return null;
+        finishes.set(row.token,row);
+      }
+    }
+    for(const [token,finish] of finishes){
+      const start=starts.get(token);
+      if(!start||finish.workerInstanceId!==start.workerInstanceId
+        ||finish.completedAtMs<start.startedAtMs)return null;
+    }
+    const pending=new Set(),completed=new Set();
+    for(const [token,start] of starts){
+      const kind=start.operationType;
+      const autonomous=kind.startsWith('AUTONOMOUS:');
+      const operation=autonomous?kind.slice('AUTONOMOUS:'.length):kind;
+      const names=ownersForOperation(operation,autonomous?'autonomous':'routed');
+      const target=finishes.has(token)?completed:pending;
+      for(const owner of names)target.add(owner);
+    }
+    return {pending,completed};
+  }
   const PROFILE_KEYS=Object.freeze(['activeDetectedProfileV1','selectedInventoryProfileV1']);
   const PROFILE=/^[A-Za-z0-9_-]{1,128}$/;
   const record=x=>x!==null&&typeof x==='object'&&!Array.isArray(x);
@@ -290,6 +337,25 @@
       if(reason==='PROFILE_CHANGED_DURING_READ'||reason==='PROFILE_MISMATCH'
          ||reason.startsWith('LIVE_ACCOUNT_')){
         set('profileTransition',unknown(reason));set('accountTransition',unknown(reason));
+      }
+      // Historical prior-worker starts are actual durable evidence: a current
+      // in-memory Map cannot see tasks abandoned by a terminated MV3 worker.
+      // Double-read the raw journal; malformed/torn/unavailable stays UNKNOWN.
+      let receiptProof=null;
+      try {
+        const firstReceipts=await storageLocal.get(null);
+        const secondReceipts=await storageLocal.get(null);
+        receiptProof=ownerReceiptEvidence(firstReceipts,secondReceipts);
+      }catch { /* no positive receipt authority from an unavailable source */ }
+      if(!receiptProof){
+        for(const n of OWNERS)if(o[n].state!=='active')
+          o[n]=unknown('DURABLE_ADMISSION_UNVERIFIED');
+      }else{
+        for(const n of receiptProof.pending)o[n]=active('DURABLE_ADMISSION_UNFINISHED');
+        for(const n of receiptProof.completed){
+          if(o[n].state!=='active'&&o[n].reason==='NO_AUTHORITATIVE_IDLE_PROOF')
+            o[n]=unknown('DURABLE_CALLBACK_SETTLED_REMOTE_UNVERIFIED');
+        }
       }
       for(const n of OWNERS)if(pending.get(n)>0)o[n]=active('ACTUAL_IN_FLIGHT_OPERATION');
       const tick=clock();
