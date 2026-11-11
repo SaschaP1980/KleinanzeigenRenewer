@@ -7,6 +7,8 @@ This is a SOURCE-fixture MV3 E2E, NOT production ZIP / account acceptance.
 """
 from __future__ import annotations
 import argparse
+import base64
+import hashlib
 import json
 import os
 import shutil
@@ -28,9 +30,13 @@ def fixture(directory):
                  directory/"auto-publish-intent-journal.js")
     shutil.copy2(ROOT/"src/content/template-publish-flow.js",
                  directory/"template-publish-flow.js")
+    # Reuse the already-proven P8 pinned fixture ID / real MV3 wakeup.
+    public_key=json.loads((ROOT/"manifest.json").read_text(encoding="utf-8")).get("key")
+    require(isinstance(public_key,str) and bool(public_key),
+            "public extension key unavailable for isolated MV3 fixture")
     (directory/"manifest.json").write_text(json.dumps({
         "manifest_version":3,"name":"KAR-99 isolated publish recovery",
-        "version":"0.0.1","permissions":["storage"],
+        "version":"0.0.1","key":public_key,"permissions":["storage"],
         "background":{"service_worker":"background.js"}
     }),encoding="utf-8")
     (directory/"background.js").write_text(r"""
@@ -115,6 +121,12 @@ def fixture(directory):
       flow.armPublishDetection(fillId);
     """,encoding="utf-8")
 
+def fixture_extension_id(directory):
+    key=json.loads((directory/"manifest.json").read_text(encoding="utf-8"))["key"]
+    digest=hashlib.sha256(base64.b64decode(key,validate=True)).hexdigest()[:32]
+    return "".join(chr(ord("a")+int(nibble,16)) for nibble in digest)
+
+
 def main():
     parser=argparse.ArgumentParser()
     parser.add_argument("--report",required=True)
@@ -144,6 +156,17 @@ def main():
                 with tempfile.TemporaryDirectory(prefix="profile-",dir=root) as profile:
                     context=pw.chromium.launch_persistent_context(profile,**launch)
                     try:
+                        # Wake the genuine pinned-ID MV3 worker through its
+                        # installed extension page, never a mocked worker.
+                        expected_id=fixture_extension_id(ext)
+                        page=context.new_page()
+                        page.goto("chrome-extension://"+expected_id+"/probe.html",
+                                  wait_until="domcontentloaded",timeout=12000)
+                        page.evaluate("""() => {
+                          chrome.runtime.sendMessage({type:'info'},
+                            () => void chrome.runtime.lastError);
+                          return true;
+                        }""")
                         deadline=time.monotonic()+20
                         worker=None
                         while time.monotonic()<deadline:
@@ -156,9 +179,8 @@ def main():
                             time.sleep(.1)
                         checked(worker is not None,"real_mv3_service_worker_started")
                         extension_id=worker.url.split("/")[2]
-                        page=context.new_page()
-                        page.goto("chrome-extension://"+extension_id+"/probe.html",
-                                  wait_until="domcontentloaded",timeout=12000)
+                        checked(extension_id==expected_id,
+                                "real_mv3_worker_id_matches_pinned_fixture")
                         original=page.evaluate("async()=>await chrome.runtime.sendMessage({type:'info'})")
                         checked(original.get("ok") and original["result"]["lockApi"],
                                 "real_worker_has_origin_web_locks")
