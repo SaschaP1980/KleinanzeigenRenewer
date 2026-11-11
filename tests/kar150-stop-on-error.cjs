@@ -35,6 +35,7 @@ function harness({ preference, failures = [], savedBatch = null } = {}) {
     logDiagnostic: async () => {}
   });
   let count = 0;
+  let startCount = 0;
   const scheduled = [];
   let sessions = {};
   const workflow = WorkflowApi.create({
