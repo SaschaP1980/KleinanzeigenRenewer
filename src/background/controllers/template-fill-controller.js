@@ -519,9 +519,24 @@ async function updateTemplateFillSession(message, sender) {
   if (message.status && allowedStatuses.has(message.status)) session.status = message.status;
   if (requestedStage) session.stage = requestedStage;
   if (message.result && typeof message.result === "object") {
+    // KAR-134: a successful fill is not a publish authorization without a persisted
+    // exact-category live-schema attestation. Retain it over the post-fill wizard.
+    const incomingProof = message.result.schemaPreflight;
+    const validProof = incomingProof?.verified === true &&
+      /^[a-f0-9]{64}$/.test(String(incomingProof.currentFingerprint || '')) &&
+      (incomingProof.sourceFingerprint == null || /^[a-f0-9]{64}$/.test(String(incomingProof.sourceFingerprint))) &&
+      /^\\d+$/.test(String(incomingProof.categoryId || ''));
+    const existingProof = session.result?.schemaPreflight?.verified === true
+      ? session.result.schemaPreflight : null;
+    const proof = validProof && requestedStage === 'form-verified'
+      ? { verified: true, categoryId: String(incomingProof.categoryId),
+          currentFingerprint: String(incomingProof.currentFingerprint),
+          sourceFingerprint: incomingProof.sourceFingerprint || null, checkedAt: new Date().toISOString() }
+      : existingProof;
     session.result = {
       complete: Boolean(message.result.complete),
-      issues: Array.isArray(message.result.issues) ? message.result.issues.slice(0, 50).map(value => String(value).slice(0, 300)) : []
+      issues: Array.isArray(message.result.issues) ? message.result.issues.slice(0, 50).map(value => String(value).slice(0, 300)) : [],
+      schemaPreflight: Boolean(message.result.complete) ? proof : null
     };
   }
   if (session.stage === 'paid-insertion-required' && message.paidInsertion && typeof message.paidInsertion === 'object') {
