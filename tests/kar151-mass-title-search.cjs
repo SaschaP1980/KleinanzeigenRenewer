@@ -149,7 +149,7 @@ async function run() {
   assert.equal(c.massRenewalSearchClear.hidden, true);
   pass('only eligible rows appear and their initial expiry ordering is stable');
 
-  await filter(c, '   BLAUE   SCHONE   ');
+  await filter(c, '   SCHUHE   SCHONE   ');
   assert.deepEqual(ids(c), ['middle']);
   await filter(c, 'schone schuhe');
   assert.deepEqual(ids(c), ['middle']);
@@ -233,6 +233,7 @@ async function run() {
 
   const blocked = ui(records, { allowed: false });
   await blocked.controls.massRenewalButton.emit('click');
+  blocked.controller.renderSelection();
   assert.equal(blocked.controller.status().selectedIds.length, 0);
   assert.equal(blocked.controls.massRenewalNext.disabled, true);
   pass('account gate remains fail closed');
