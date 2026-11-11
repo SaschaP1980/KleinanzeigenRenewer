@@ -190,6 +190,37 @@
           ? active('PERSISTED_INSERTION_OWNER_ACTIVE')
           : unknown('INSERTION_LOCK_NO_AUTHORITATIVE_IDLE_PROOF'));
       }
+      // F2E2: independently re-read the actual immutable remote intent and
+      // verified-resolution journals. The first and second complete snapshots
+      // must agree on EVERY remote journal row, including old-worker entries.
+      // These durable receipts are read-only historical evidence, not a fresh
+      // authenticated Kleinanzeigen outcome or permission to mark an owner IDLE.
+      let remoteRecheck = null;
+      try {
+        const value = await storageLocal.get(null);
+        if (isRecord(value)) remoteRecheck = value;
+      } catch { /* no positive remote proof when storage is unavailable */ }
+      const remotePrefixes = [
+        'karPhase4UncertainAttemptV1_', 'karPhase4VerifiedResolutionV1_',
+        'karAutoPublishIntentV1_', 'karAutoPublishVerifiedResolutionV1_'
+      ];
+      const remoteEntries = rows => Object.entries(rows)
+        .filter(([key]) => remotePrefixes.some(prefix => key.startsWith(prefix)))
+        .sort(([a],[b]) => a.localeCompare(b));
+      const firstRemote = journalRead.status === 'fulfilled' && isRecord(journalRead.value)
+        ? journalRead.value : null;
+      const remoteState = !firstRemote || !remoteRecheck ? 'unavailable'
+        : JSON.stringify(remoteEntries(firstRemote)) ===
+          JSON.stringify(remoteEntries(remoteRecheck)) ? 'stable' : 'changed';
+      const sourceProfile = value => isRecord(value) && typeof value.profileId === 'string'
+        && PROFILE_ID.test(value.profileId) ? value.profileId : null;
+      const firstActive = sourceProfile(local?.activeDetectedProfileV1);
+      const firstSelected = sourceProfile(local?.selectedInventoryProfileV1);
+      const laterActive = sourceProfile(laterProfiles?.activeDetectedProfileV1);
+      const laterSelected = sourceProfile(laterProfiles?.selectedInventoryProfileV1);
+      const stableProfile = firstActive && firstActive === firstSelected
+        && firstActive === laterActive && firstActive === laterSelected
+        ? firstActive : null;
       // A receipt from an earlier Worker generation is positive BUSY evidence
       // even if the renewal session no longer appears in this process.
       // Corruption and read failure must never masquerade as an empty journal.
@@ -198,8 +229,8 @@
       const prefix = 'karPhase4UncertainAttemptV1_';
       const resolutionPrefix = 'karPhase4VerifiedResolutionV1_';
       let journalEvidence = 'missing';
-      if (journalRead.status !== 'fulfilled' || !isRecord(journalRead.value)) {
-        journalEvidence = 'unavailable';
+      if (remoteState !== 'stable') {
+        journalEvidence = remoteState;
       } else {
         const rows = journalRead.value;
         const original = Object.entries(rows).filter(([key]) => key.startsWith(prefix));
@@ -239,14 +270,22 @@
           !Object.prototype.hasOwnProperty.call(rows,
             resolutionPrefix + key.slice(prefix.length))))
           journalEvidence = 'unresolved';
+        else if (original.some(([, row]) => row.profileId !== stableProfile))
+          journalEvidence = stableProfile ? 'profile-mismatch' : 'profile-unverified';
         else journalEvidence = original.length > 0 ? 'resolved' : 'missing';
       }
       if (journalEvidence === 'unresolved') {
         set('renewal', active('PHASE4_JOURNAL_UNRESOLVED'));
         set('insertionLock', active('PHASE4_JOURNAL_UNRESOLVED'));
-      } else if (journalEvidence === 'corrupt' || journalEvidence === 'unavailable') {
-        const reason = journalEvidence === 'corrupt'
-          ? 'PHASE4_JOURNAL_CORRUPT' : 'PHASE4_JOURNAL_STORAGE_UNAVAILABLE';
+      } else if (journalEvidence !== 'missing' && journalEvidence !== 'resolved') {
+        const reasons = {
+          corrupt: 'PHASE4_JOURNAL_CORRUPT',
+          unavailable: 'PHASE4_JOURNAL_STORAGE_UNAVAILABLE',
+          changed: 'PHASE4_JOURNAL_CHANGED_DURING_READ',
+          'profile-mismatch': 'PHASE4_JOURNAL_PROFILE_MISMATCH',
+          'profile-unverified': 'PHASE4_JOURNAL_PROFILE_UNVERIFIED'
+        };
+        const reason = reasons[journalEvidence] || 'PHASE4_JOURNAL_UNVERIFIED';
         // Independent positive BUSY evidence always takes precedence.
         for (const name of ['renewal', 'insertionLock'])
           if (result[name].state !== 'active') set(name, unknown(reason));
@@ -257,8 +296,8 @@
       const publishResolutionPrefix='karAutoPublishVerifiedResolutionV1_';
       let publishEvidence='missing';
       let publishKinds=new Set();
-      if(journalRead.status!=='fulfilled'||!isRecord(journalRead.value)){
-        publishEvidence='unavailable';
+      if(remoteState!=='stable'){
+        publishEvidence=remoteState;
       }else{
         const rows=journalRead.value;
         const attempts=Object.entries(rows).filter(([key])=>key.startsWith(publishPrefix));
@@ -300,26 +339,30 @@
         else if(unresolved.length){
           publishEvidence='unresolved';
           publishKinds=new Set(unresolved.map(([,row])=>row.kind));
-        }else publishEvidence=attempts.length?'resolved':'missing';
+        }else if(attempts.some(([,row])=>row.profileId!==stableProfile))
+          publishEvidence=stableProfile?'profile-mismatch':'profile-unverified';
+        else publishEvidence=attempts.length?'resolved':'missing';
       }
       if(publishEvidence==='unresolved'){
         if(publishKinds.has('renewal'))set('renewal',active('PUBLISH_INTENT_UNRESOLVED'));
         if(publishKinds.has('archive'))set('archiveInsertion',active('PUBLISH_INTENT_UNRESOLVED'));
         set('templateFill',active('PUBLISH_INTENT_UNRESOLVED'));
         set('insertionLock',active('PUBLISH_INTENT_UNRESOLVED'));
-      }else if(['corrupt','unavailable'].includes(publishEvidence)){
+      }else if(publishEvidence!=='missing'&&publishEvidence!=='resolved'){
+        const reasons={
+          corrupt:'PUBLISH_INTENT_CORRUPT',
+          unavailable:'PUBLISH_INTENT_STORAGE_UNAVAILABLE',
+          changed:'PUBLISH_INTENT_CHANGED_DURING_READ',
+          'profile-mismatch':'PUBLISH_INTENT_PROFILE_MISMATCH',
+          'profile-unverified':'PUBLISH_INTENT_PROFILE_UNVERIFIED'
+        };
         for(const name of ['renewal','archiveInsertion','templateFill','insertionLock'])
           if(result[name].state!=='active')set(name,unknown(
-            publishEvidence==='corrupt'?'PUBLISH_INTENT_CORRUPT':'PUBLISH_INTENT_STORAGE_UNAVAILABLE'));
+            reasons[publishEvidence]||'PUBLISH_INTENT_UNVERIFIED'));
       }
       // F2D: independently re-read the actual immutable P8 journal. A
       // callback's stored finish certifies neither a remote result nor IDLE.
-      let receiptProof = null;
-      try {
-        const rechecked = await storageLocal.get(null);
-        receiptProof = immutableOwnerReceipts(
-          journalRead.status === 'fulfilled' ? journalRead.value : null, rechecked);
-      } catch { /* storage unavailable is UNKNOWN, never idle */ }
+      const receiptProof = immutableOwnerReceipts(firstRemote, remoteRecheck);
       if (!receiptProof) {
         for (const name of OWNERS) {
           if (result[name].state !== 'active') set(name, unknown('DURABLE_ADMISSION_UNVERIFIED'));
