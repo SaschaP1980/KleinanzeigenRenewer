@@ -32,8 +32,9 @@ for(const [label,re] of [['Fast',/\bvoid\s+runFastRenewalVerification\(/],
 }
 ok(bg.includes("return requireUpdateWorkflowFence().withAdmission('AUTONOMOUS:' + kind, task)"),
   "detached paths use the same KAR-99 update-fence admission, not a second mutex");
-ok(bg.includes("task = () => requirePersistedOwnerObserver().track(names, admittedTask)"),
-  "admitted detached tasks are counted for their actual asynchronous lifetime");
+ok(bg.includes("task = admissionReceipt => requirePersistedOwnerObserver().track(names, () => admittedTask(admissionReceipt))")
+    && bg.includes("task = admissionReceipt => requireAdditionalOwnerObserver().track(namesForKind, () => started(admissionReceipt))"),
+  "admitted detached tasks preserve their own P8 receipt through both owner trackers for their full asynchronous lifetime");
 ok(!bg.includes("getOwnerSnapshot: () => requirePersistedOwnerObserver()"),
   "source tracking does not grant false all-idle permission");
 console.log('PASS KAR113 total '+n);
