@@ -14,6 +14,56 @@
       const getBulkState = typeof options.getBulkState === 'function' ? options.getBulkState : () => ({ startInFlight: false, state: null });
       const singleInventoryBusy = typeof options.singleInventoryBusy === 'function' ? options.singleInventoryBusy : () => false;
       const onEmergencyReset = typeof options.onEmergencyReset === 'function' ? options.onEmergencyReset : async () => {};
+      const occupancy = elements.occupancy || doc?.getElementById?.('diagnosticOccupancy');
+      const occupancyFill = elements.occupancyFill || doc?.getElementById?.('diagnosticOccupancyFill');
+      const occupancyText = elements.occupancyText || doc?.getElementById?.('diagnosticOccupancyText');
+      const accordion = elements.accordion || doc?.getElementById?.('diagnosticsAccordion');
+      let occupancyMaximum = null;
+      let occupancyRevision = 0;
+
+      function displayOccupancy(current, maximum) {
+        const valid = Number.isSafeInteger(current) && Number.isSafeInteger(maximum) && maximum > 0 && current >= 0;
+        occupancyMaximum = valid ? maximum : null;
+        const used = valid ? Math.min(current, maximum) : null;
+        if (occupancyText) occupancyText.textContent = valid
+          ? `${used.toLocaleString('de-DE')} / ${maximum.toLocaleString('de-DE')} Einträge`
+          : '— / — Einträge';
+        if (occupancyFill) occupancyFill.style.width = valid ? `${(used / maximum) * 100}%` : '0%';
+        if (occupancy) {
+          if (valid) {
+            occupancy.setAttribute('aria-valuenow', String(used));
+            occupancy.setAttribute('aria-valuemax', String(maximum));
+            occupancy.setAttribute('aria-valuetext', `${used} von ${maximum} Diagnoseeinträgen belegt`);
+          } else {
+            occupancy.removeAttribute('aria-valuenow');
+            occupancy.removeAttribute('aria-valuemax');
+            occupancy.setAttribute('aria-valuetext', 'Diagnosespeicher nicht verfügbar');
+          }
+        }
+      }
+
+      async function refreshOccupancy() {
+        if (!occupancy) return;
+        const revision = ++occupancyRevision;
+        try {
+          const result = await runtimeMessage({ type: 'GET_DIAGNOSTIC_OCCUPANCY' });
+          if (revision === occupancyRevision) displayOccupancy(result?.current, result?.maximum);
+        } catch {
+          if (revision === occupancyRevision) displayOccupancy(null, null);
+        }
+      }
+
+      function onDiagnosticStorageChanged(changes) {
+        if (!Object.prototype.hasOwnProperty.call(changes || {}, 'diagnosticsV2')) return;
+        const next = changes.diagnosticsV2?.newValue;
+        if (!Array.isArray(next) || !Number.isSafeInteger(occupancyMaximum)) {
+          void refreshOccupancy();
+          return;
+        }
+        occupancyRevision += 1;
+        displayOccupancy(next.length, occupancyMaximum);
+      }
+
       let resetInFlight = false;
       let emergencyConfirmUntil = 0;
       let emergencyConfirmationRevision = 0;
@@ -111,6 +161,7 @@
           await runtimeMessage({ type: 'RESET_DIAGNOSTICS' });
           if (elements.status) elements.status.textContent = 'Diagnose zurückgesetzt. Der nächste Export enthält nur Daten ab jetzt.';
           void logEvent('USER_DIAGNOSTIC_RESET_SUCCEEDED', {});
+          void refreshOccupancy();
         } catch (error) {
           if (elements.status) elements.status.textContent = String(error?.message || 'Diagnose konnte nicht zurückgesetzt werden.');
           void logEvent('USER_DIAGNOSTIC_RESET_FAILED', { message: error?.message || String(error) }, 'error');
@@ -155,12 +206,18 @@
         }
       }
 
+      accordion?.addEventListener('toggle', () => { if (accordion.open) void refreshOccupancy(); });
+      const storageOnChanged = options.storageOnChanged || globalThis.chrome?.storage?.onChanged;
+      storageOnChanged?.addListener?.((changes, areaName) => {
+        if (areaName === 'local') onDiagnosticStorageChanged(changes);
+      });
+      if (accordion?.open) void refreshOccupancy();
       elements.zipButton?.addEventListener('click', () => { void exportZip(); });
       elements.resetButton?.addEventListener('click', () => { void resetDiagnostics(); });
       elements.emergencyButton?.addEventListener('click', () => { void emergencyReset(); });
       syncEmergencyUi();
       syncResetUi();
-      return Object.freeze({ resetBlockReason, syncResetUi, resetDiagnostics });
+      return Object.freeze({ resetBlockReason, syncResetUi, resetDiagnostics, refreshOccupancy, onDiagnosticStorageChanged });
     }
   });
 

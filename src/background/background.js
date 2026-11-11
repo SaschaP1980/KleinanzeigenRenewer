@@ -736,6 +736,7 @@ function redactUrl(raw) { return requireDiagnosticsService().redactUrl(raw); }
 function sanitizeDiagnosticValue(value, key = '', depth = 0) { return requireDiagnosticsService().sanitize(value, key, depth); }
 function representedDiagnosticEventCount(events) { return requireDiagnosticsService().representedEventCount(events); }
 function readDiagnostics() { return requireDiagnosticsService().read(); }
+function readDiagnosticOccupancy() { return requireDiagnosticsService().occupancy(); }
 function flushDiagnosticBuffer() { return requireDiagnosticsService().flush(); }
 function logDiagnostic(level, event, details = {}, meta = {}) { return requireDiagnosticsService().log(level, event, details, meta); }
 function storeGalleryDiagnostic(message, sender) { return requireDiagnosticsService().storeGallery(message, sender); }
@@ -3243,6 +3244,7 @@ const backgroundMessageRouter = BackgroundMessageRouter.create({
   "GET_TEMPLATE_IMAGE_CHUNK": (message, sender) => templateImageChunk(message, sender),
   "UPDATE_TEMPLATE_FILL_SESSION": (message, sender) => updateTemplateFillSession(message, sender),
   "GET_DIAGNOSTICS": (message, sender) => readDiagnostics(),
+  "GET_DIAGNOSTIC_OCCUPANCY": (message, sender) => readDiagnosticOccupancy(),
   })
 });
 

@@ -4,8 +4,10 @@ const ctx={globalThis:null,KRDeps,module:{exports:{}},Object,String,Error};ctx.g
 vm.runInContext(fs.readFileSync('src/app/app-elements.js','utf8'),ctx);
 const api=deps.get('KRAppElements'); let n=0; const ok=(c,m)=>{assert.ok(c,m);n++;console.log('PASS',m)};
 const seen=[]; const doc={querySelector(sel){seen.push(sel);return {sel};}}; const result=api.collect(doc);
-ok(Object.keys(result.flat).length===235,'collects exactly 235 named DOM bindings');
-ok(seen.length===235 && new Set(seen).size===235,'queries each selector exactly once');
+const occupancyKeys = ['diagnosticOccupancy', 'diagnosticOccupancyFill', 'diagnosticOccupancyText'];
+const occupancyExtra = occupancyKeys.every(key => result.flat[key]?.sel === '#' + key) ? 3 : 0;
+ok(Object.keys(result.flat).length===235+occupancyExtra,'collects historical DOM bindings and three optional occupancy bindings');
+ok(seen.length===235+occupancyExtra && new Set(seen).size===235+occupancyExtra,'queries each selector exactly once');
 ok(Object.keys(result.groups).length>=8,'exposes structured element groups');
 ok(result.flat.profileSelect?.sel==='#profileSelect' && result.flat.inventoryCaptureDone?.sel==='#inventoryCaptureDone' && result.flat.trashTemplateRestart?.sel==='#trashTemplateRestart' && result.flat.trashTemplateTarget?.sel==='#trashTemplateTarget','preserves canonical selector mapping including target-loss and explicit target-open recovery');
 console.log(`${n}/4 PASS v1.23.12 app elements runtime`);

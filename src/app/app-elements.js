@@ -89,6 +89,9 @@
       renewalProgressShortcutText: "#renewalProgressShortcutText",
     }),
     diagnostics: Object.freeze({
+      diagnosticOccupancy: "#diagnosticOccupancy",
+      diagnosticOccupancyFill: "#diagnosticOccupancyFill",
+      diagnosticOccupancyText: "#diagnosticOccupancyText",
       diagnosticZipButton: "#diagnosticZipButton",
       diagnosticResetButton: "#diagnosticResetButton",
       emergencyWorkflowResetButton: "#emergencyWorkflowResetButton",
