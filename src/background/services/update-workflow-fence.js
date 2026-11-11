@@ -66,7 +66,7 @@
         typeof input[k] === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(input[k])))
         throw denied('KR_UPDATE_FENCE_OWNERSHIP');
     }
-    async function singleWorkerAdmission(type, task) {
+    async function singleWorkerAdmission(type, task, admissionReceipt = undefined) {
       if (typeof type !== 'string' || !type || typeof task !== 'function')
         throw denied('KR_UPDATE_FENCE_ADMISSION');
       // Only the admission decision is serialized. Holding the mutex until a
@@ -75,7 +75,7 @@
         ensureFree(await read());
         inFlight++;
         let pending;
-        try { pending = Promise.resolve(task()); }
+        try { pending = Promise.resolve(task(admissionReceipt)); }
         catch (error) { inFlight--; throw error; }
         return { pending: pending.finally(() => { inFlight--; }) };
       });
@@ -185,7 +185,7 @@
     // coordinator. The legacy per-instance path is retained only for the
     // historical isolated unit harness; it cannot create a production lease.
     const withAdmission=(type,task)=>atomicCoordinator
-      ? atomicCoordinator.withAdmission(type,()=>singleWorkerAdmission(type,task))
+      ? atomicCoordinator.withAdmission(type,receipt=>singleWorkerAdmission(type,task,receipt))
       : singleWorkerAdmission(type,task);
     const reserve=request=>atomicCoordinator
       ? atomicCoordinator.guardReserve(()=>singleWorkerReserve(request),request?.workerGeneration)

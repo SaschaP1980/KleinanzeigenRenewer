@@ -132,7 +132,10 @@
         });
         await durable(START_PREFIX+token,entry);
       });
-      try {return await task();}
+      // Only the admitted closure receives this frozen, storage-acknowledged
+      // origin-Web-Lock receipt. No global mutable current token: concurrent
+      // MV3 handlers must never borrow each other's operation provenance.
+      try {return await task(entry);}
       finally {
         // An interrupted worker never runs finally. Leave the start receipt
         // unresolved; an independent result probe is needed before clearance.

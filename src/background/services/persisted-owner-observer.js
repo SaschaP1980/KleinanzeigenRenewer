@@ -306,6 +306,7 @@
                 attemptId: intent.attemptId, profileId: intent.profileId,
                 sourceAdId: intent.sourceAdId, newAdId: intent.newAdId,
                 intentWorkerInstanceId: intent.workerInstanceId,
+                admissionToken: intent.admissionToken ?? null,
                 intentCreatedAtMs: intent.createdAtMs,
                 resolverWorkerInstanceId: resolution.workerInstanceId,
                 verifiedAtMs: resolution.verifiedAtMs,
@@ -394,6 +395,7 @@
                 attemptId:intent.attemptId,profileId:intent.profileId,
                 sourceAdId:intent.sourceAdId,newAdId:resolution.newAdId,
                 intentWorkerInstanceId:intent.workerInstanceId,
+                admissionToken:intent.admissionToken??null,
                 intentCreatedAtMs:intent.createdAtMs,
                 // This historical publication resolution schema does not
                 // record the resolving worker. Do not fabricate provenance.

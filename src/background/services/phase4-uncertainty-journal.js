@@ -7,6 +7,15 @@
   const SCHEMA = 1;
   // Must match KRAtomicMV3Admission.LOCK_NAME. No storage-only CAS fallback.
   const SHARED_LOCK_NAME = 'kar-updater-global-admission-v1';
+  const P8_START = 'karAtomicAdmissionStartV1_';
+  const P8_FINISH = 'karAtomicAdmissionFinishV1_';
+  // Only admitted renewal execution paths can own a Phase-4 delete boundary.
+  const P8_ALLOWED = new Set([
+    'AUTONOMOUS:renewal-auto-phase4','AUTONOMOUS:renewal-resume',
+    'AUTONOMOUS:renewal-detached-retry','AUTONOMOUS:renewal-detached-verify',
+    'AUTONOMOUS:mass-renewal-next-item','RETRY_RENEWAL_VERIFICATION',
+    'RETRY_MASS_RENEWAL_ITEM'
+  ]);
   const isRecord = v => v !== null && typeof v === 'object' && !Array.isArray(v);
   const denied = code => Object.assign(new Error(code), {code});
   const safeId = value => typeof value === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(value);
@@ -49,7 +58,10 @@
         && typeof row.profileId === 'string' && row.profileId.trim().length > 0
         && row.profileId.length <= 256 && adId(row.sourceAdId) && adId(row.newAdId)
         && row.sourceAdId !== row.newAdId && Number.isSafeInteger(row.createdAtMs)
-        && row.createdAtMs >= 0 && key === PREFIX + row.renewalId + '_' + row.attemptId;
+        && row.createdAtMs >= 0
+        && (row.admissionToken === undefined ||
+          (safeId(row.admissionToken) && row.admissionToken.length >= 12))
+        && key === PREFIX + row.renewalId + '_' + row.attemptId;
     }
     function validateResolution(row, key) {
       return isRecord(row) && row.schema === SCHEMA && row.state === 'resolved-confirmed'
@@ -93,7 +105,27 @@
         ? 'resolved' : 'unverified',
         attempts: Object.freeze(attempts), resolutions: Object.freeze(resolutions)});
     }
-    async function begin({renewalId, profileId, sourceAdId, newAdId} = {}) {
+    async function verifiedAdmissionToken(reference, createdAtMs) {
+      if (!isRecord(reference) || !Object.isFrozen(reference)
+        || reference.schema !== 1 || reference.state !== 'admitted'
+        || !safeId(reference.token) || reference.token.length < 12
+        || reference.workerInstanceId !== workerInstanceId
+        || !P8_ALLOWED.has(reference.operationType)
+        || !Number.isSafeInteger(reference.startedAtMs)
+        || reference.startedAtMs < 0 || reference.startedAtMs > createdAtMs)
+        throw denied('KR_PHASE4_JOURNAL_ADMISSION_UNVERIFIED');
+      // Read the original P8 source under the SAME shared exclusive Web Lock.
+      // A captured token, fabricated object or finished older callback alone
+      // may not authorize a new irreversible remote-intent entry.
+      const rows = await read([P8_START + reference.token, P8_FINISH + reference.token]);
+      const original = rows[P8_START + reference.token];
+      if (!isRecord(original) || !exactlySame(original, reference)
+        || rows[P8_FINISH + reference.token] !== undefined)
+        throw denied('KR_PHASE4_JOURNAL_ADMISSION_UNVERIFIED');
+      return reference.token;
+    }
+    async function begin({renewalId, profileId, sourceAdId, newAdId,
+      admissionReceipt = null} = {}) {
       if (!safeId(renewalId) || typeof profileId !== 'string' || !profileId.trim()
           || profileId.length > 256 || !adId(String(sourceAdId || ''))
           || !adId(String(newAdId || '')) || String(sourceAdId) === String(newAdId))
@@ -108,10 +140,13 @@
       const key = PREFIX + renewalId + '_' + attemptId;
       const time = clock();
       if (!Number.isSafeInteger(time) || time < 0) throw denied('KR_PHASE4_JOURNAL_IDENTITY');
+      const admissionToken = admissionReceipt === null ? null
+        : await verifiedAdmissionToken(admissionReceipt, time);
       const entry = Object.freeze({
         schema: SCHEMA, state: 'outcome-unverified', renewalId, attemptId,
         profileId, sourceAdId: String(sourceAdId), newAdId: String(newAdId),
-        workerInstanceId, createdAtMs: time
+        workerInstanceId, createdAtMs: time,
+        ...(admissionToken ? {admissionToken} : {})
       });
       try { await storageLocal.set({[key]: entry}); }
       catch { throw denied('KR_PHASE4_JOURNAL_STORAGE'); }

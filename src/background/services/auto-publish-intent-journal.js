@@ -5,6 +5,14 @@
   const PREFIX='karAutoPublishIntentV1_';
   const RESOLUTION_PREFIX='karAutoPublishVerifiedResolutionV1_';
   const SHARED_LOCK_NAME='kar-updater-global-admission-v1';
+  const P8_START='karAtomicAdmissionStartV1_';
+  const P8_FINISH='karAtomicAdmissionFinishV1_';
+  const P8_ALLOWED=new Set([
+    'AUTONOMOUS:renewal-publish-detection',
+    'AUTONOMOUS:trash-publish-detection',
+    'AUTONOMOUS:archive-postpublish-detached',
+    'AUTHORIZE_AUTOMATIC_PUBLISH'
+  ]);
   const denied=code=>Object.assign(new Error(code),{code});
   const object=v=>v!==null&&typeof v==='object'&&!Array.isArray(v);
   const id=v=>typeof v==='string'&&/^[A-Za-z0-9_-]{1,128}$/.test(v);
@@ -19,6 +27,8 @@
       &&Number.isSafeInteger(row.targetTabId)&&row.targetTabId>0
       &&(adId(row.sourceAdId)||(row.kind==='archive'&&row.sourceAdId===''))
       &&Number.isSafeInteger(row.createdAtMs)&&row.createdAtMs>=0
+      &&(row.admissionToken===undefined||
+        (id(row.admissionToken)&&row.admissionToken.length>=12))
       &&key===PREFIX+row.fillId+'_'+row.attemptId;
   }
   function validResolution(key,row,intent){
@@ -88,7 +98,25 @@
       catch{throw denied('KR_PUBLISH_INTENT_STORAGE');}
       if(!same((await read([key]))[key],entry))throw denied('KR_PUBLISH_INTENT_STORAGE');
     }
-    async function begin({fillId,workflowId,kind,profileId,sourceAdId,targetTabId}={}){
+    async function verifiedAdmissionToken(reference,createdAtMs){
+      if(!object(reference)||!Object.isFrozen(reference)
+         ||reference.schema!==1||reference.state!=='admitted'
+         ||!id(reference.token)||reference.token.length<12
+         ||reference.workerInstanceId!==workerInstanceId
+         ||!P8_ALLOWED.has(reference.operationType)
+         ||!Number.isSafeInteger(reference.startedAtMs)
+         ||reference.startedAtMs<0||reference.startedAtMs>createdAtMs)
+        throw denied('KR_PUBLISH_INTENT_ADMISSION_UNVERIFIED');
+      // Same origin lock as P8 start/finish; no user-supplied or stale
+      // token can substitute for a storage-acknowledged live admission.
+      const rows=await read([P8_START+reference.token,P8_FINISH+reference.token]);
+      if(!same(rows[P8_START+reference.token],reference)
+        ||rows[P8_FINISH+reference.token]!==undefined)
+        throw denied('KR_PUBLISH_INTENT_ADMISSION_UNVERIFIED');
+      return reference.token;
+    }
+    async function begin({fillId,workflowId,kind,profileId,sourceAdId,targetTabId,
+      admissionReceipt=null}={}){
       if(!id(fillId)||!id(workflowId)||!['renewal','archive'].includes(kind)
          ||typeof profileId!=='string'||!profileId.trim()||profileId.length>256
          ||!Number.isSafeInteger(targetTabId)||targetTabId<=0
@@ -104,8 +132,11 @@
           throw denied('KR_PUBLISH_INTENT_IDENTITY');
         const key=PREFIX+fillId+'_'+attemptId;
         if(Object.hasOwn(rows,key))throw denied('KR_PUBLISH_INTENT_UNRESOLVED');
+        const admissionToken=admissionReceipt===null?null
+          :await verifiedAdmissionToken(admissionReceipt,createdAtMs);
         const entry=Object.freeze({schema:1,state:'outcome-unverified',fillId,workflowId,
-          kind,profileId,sourceAdId,targetTabId,attemptId,workerInstanceId,createdAtMs});
+          kind,profileId,sourceAdId,targetTabId,attemptId,workerInstanceId,createdAtMs,
+          ...(admissionToken?{admissionToken}:{})});
         await durable(key,entry);
         const after=await observe(fillId);
         if(after.attempts.length!==1||!same(after.attempts[0],entry))

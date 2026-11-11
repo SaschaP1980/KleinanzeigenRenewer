@@ -2571,7 +2571,7 @@ function requirePhase4UncertaintyJournal() {
   if (!phase4Journal) {
     phase4Journal = Phase4UncertaintyJournal.create({
       storageLocal: chrome.storage.local, clock: () => Date.now(),
-      newToken: () => crypto.randomUUID(), workerInstanceId: crypto.randomUUID(),
+      newToken: () => crypto.randomUUID(), workerInstanceId: ownerWorkerInstanceId,
       verifyRemoteOutcome: receipt => requireRemoteDeleteReplacementService().verifyPhase4RemoteOutcomeFresh(receipt),
       lockName: AtomicMV3Admission.LOCK_NAME,
       lockManager: globalThis.navigator?.locks
@@ -2584,7 +2584,7 @@ function requireAutoPublishIntentJournal() {
   if (!autoPublishIntentJournal) {
     autoPublishIntentJournal = AutoPublishIntentJournal.create({
       storageLocal: chrome.storage.local, clock: () => Date.now(),
-      newToken: () => crypto.randomUUID(), workerInstanceId: crypto.randomUUID(),
+      newToken: () => crypto.randomUUID(), workerInstanceId: ownerWorkerInstanceId,
       lockName: AtomicMV3Admission.LOCK_NAME,
       lockManager: globalThis.navigator?.locks,
       verifyRemoteOutcome: (intent, newAdId) => verifyAutoPublishRemoteOutcomeFresh(intent, newAdId)

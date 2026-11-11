@@ -574,6 +574,10 @@
           &&typeof row.intentWorkerInstanceId==='string'
           &&PROFILE.test(row.intentWorkerInstanceId)
           &&typeof row.attemptId==='string'&&PROFILE.test(row.attemptId)
+          &&(row.admissionToken===null
+            ||(typeof row.admissionToken==='string'
+              &&PROFILE.test(row.admissionToken)
+              &&row.admissionToken.length>=12))
           &&typeof row.sourceRevision==='string'&&row.sourceRevision.length>0
           &&Number.isSafeInteger(row.intentCreatedAtMs)&&row.intentCreatedAtMs>=0
           &&Number.isSafeInteger(row.verifiedAtMs)
@@ -586,6 +590,7 @@
         const entries=resolutions.map(row=>{
           const candidates=history.entries.filter(receipt=>
             receipt.workerInstanceId===row.intentWorkerInstanceId
+            &&(row.admissionToken===null||receipt.token===row.admissionToken)
             &&Number.isSafeInteger(receipt.startedAtMs)
             &&receipt.startedAtMs<=row.intentCreatedAtMs
             &&(receipt.completedAtMs===null
@@ -598,12 +603,22 @@
             intentWorkerInstanceId:row.intentWorkerInstanceId,
             intentCreatedAtMs:row.intentCreatedAtMs,
             remoteSourceRevision:row.sourceRevision,
-            candidateCount:candidates.length,exactAttemptBound:false,
-            state:candidates.length>1?'ambiguous-generation-overlap'
-              :candidates.length===1?'possible-generation-overlap'
-                :'no-generation-overlap'
+            admissionToken:row.admissionToken,
+            candidateCount:candidates.length,
+            // This is an exact HISTORIC original token readback only. No
+            // current account / prior-generation-closure / updater authority.
+            exactAttemptBound:row.admissionToken!==null&&candidates.length===1,
+            state:row.admissionToken!==null
+              ?(candidates.length===1?'token-bound-historical':'unverified')
+              :candidates.length>1?'ambiguous-generation-overlap'
+                :candidates.length===1?'possible-generation-overlap'
+                  :'no-generation-overlap'
           });
         });
+        // An unmatched explicit token is a hard contradiction, not permission
+        // to fall back to generation/time overlap or to present partial proof.
+        if(entries.some(entry=>entry.admissionToken!==null&&entry.state==='unverified'))
+          return Object.freeze({...base,state:'unverified',entries:Object.freeze([])});
         const distinct=new Set(entries.map(entry=>entry.state));
         return Object.freeze({
           ...base,
