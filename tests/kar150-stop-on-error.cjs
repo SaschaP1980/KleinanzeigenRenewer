@@ -16,7 +16,7 @@ vm.runInContext(fs.readFileSync(path.join(root, 'src/background/controllers/mass
 assert.equal(typeof WorkflowApi?.create, 'function');
 
 function harness({ preference, failures = [], savedBatch = null } = {}) {
-  const items = ['one', 'two', 'three'].map((id, index) => ({
+  const items = ['one', 'two', 'three', 'four', 'five', 'six'].map((id, index) => ({
     inventoryId: id, adId: String(index + 101), profileId: 'p1', title: id,
     price: { displayed: '10 €' }, listingMeta: { endDateDisplay: 'morgen' }
   }));
@@ -151,6 +151,28 @@ async function run() {
   }
 
   {
+    const h = harness({ preference: true, failures: ['four'] });
+    const ids = ['one', 'two', 'three', 'four', 'five', 'six'];
+    const created = await h.workflow.startMassRenewalBatch({ inventoryIds: ids });
+    for (let index = 0; index < 3; index += 1) {
+      await h.workflow.startNextMassRenewalItem(created.batchId);
+      await h.workflow.markMassRenewalItemSucceeded({
+        massBatchId: created.batchId, massBatchItemIndex: index,
+        renewalId: 'renewal-' + ids[index], newAdId: String(200 + index)
+      }, { inventoryId: 'saved-' + ids[index] });
+    }
+    await h.workflow.startNextMassRenewalItem(created.batchId);
+    const six = await h.controller.readMassRenewalBatch();
+    check('six ordered items: three successes, category error at position 4, two skipped', () => {
+      assert.deepEqual(six.items.map(x => x.status), ['success', 'success', 'success', 'error', 'cancelled', 'cancelled']);
+      assert.equal(six.stopOnErrorFailureIndex, 3);
+      assert.equal(six.status, 'stopped-with-attention');
+      assert.equal(six.items[3].inventoryId, 'four');
+      assert.equal(h.starts, 4);
+    });
+  }
+
+  {
     const h = harness({ preference: true });
     const created = await h.workflow.startMassRenewalBatch({ inventoryIds: ['one', 'two', 'three'] });
     await h.workflow.startNextMassRenewalItem(created.batchId);
@@ -204,6 +226,55 @@ async function run() {
       assert.equal(after.items[0].status, 'needs-review');
       assert.equal(after.items[1].status, 'cancelled');
       assert.equal(after.status, 'stopped-with-attention');
+    });
+  }
+
+  {
+    const h = harness({ preference: true });
+    const created = await h.workflow.startMassRenewalBatch({ inventoryIds: ['one', 'two'] });
+    await h.workflow.startNextMassRenewalItem(created.batchId);
+    await h.workflow.reconcileMassRenewalBatchSession({
+      massBatchId: created.batchId, massBatchItemIndex: 0, renewalId: 'renewal-one',
+      stage: 'replacement-ready', status: 'verified', newAdId: '999999',
+      autoReplacementFailedAt: '2026-11-11T00:00:00Z', lastError: 'Phase 4 remote result uncertain'
+    });
+    const after = await h.controller.readMassRenewalBatch();
+    check('uncertain Phase-4 replacement stops and never starts next listing', () => {
+      assert.equal(after.items[0].status, 'needs-review');
+      assert.equal(after.items[1].status, 'cancelled');
+      assert.equal(after.stopOnErrorReason, 'Phase 4 remote result uncertain');
+    });
+  }
+
+  {
+    const h = harness({ preference: true });
+    const created = await h.workflow.startMassRenewalBatch({ inventoryIds: ['one', 'two'] });
+    await h.workflow.startNextMassRenewalItem(created.batchId);
+    await h.controller.mutateMassRenewalBatch(created.batchId, batch => {
+      batch.items[0].startedAt = '2025-01-01T00:00:00Z';
+      batch.items[0].lastProgressAt = '2025-01-01T00:00:00Z';
+      return { changed: true };
+    });
+    assert.equal(await h.workflow.runMassRenewalWatchdog({ trigger: 'test' }), true);
+    const after = await h.controller.readMassRenewalBatch();
+    check('watchdog terminalization persists error-stop before next-item callback', () => {
+      assert.equal(after.status, 'stopped-with-attention');
+      assert.deepEqual(after.items.map(x => x.status), ['needs-review', 'cancelled']);
+      assert.equal(after.stopOnErrorFailureIndex, 0);
+      assert.equal(h.starts, 1);
+    });
+  }
+
+  {
+    const h = harness({ preference: false });
+    const created = await h.workflow.startMassRenewalBatch({ inventoryIds: ['one', 'two'] });
+    await h.controller.mutateMassRenewalBatch(created.batchId, batch => { delete batch.stopOnError; return { changed: true }; });
+    await Promise.all([h.workflow.startNextMassRenewalItem(created.batchId), h.workflow.startNextMassRenewalItem(created.batchId)]);
+    const after = await h.controller.readMassRenewalBatch();
+    check('missing legacy batch policy conservatively refuses any new ad start', () => {
+      assert.equal(after.status, 'stopped');
+      assert.deepEqual(after.items.map(x => x.status), ['cancelled', 'cancelled']);
+      assert.equal(h.starts, 0);
     });
   }
 
