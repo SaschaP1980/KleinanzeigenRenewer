@@ -55,7 +55,7 @@ function harness({ preference, failures = [], savedBatch = null } = {}) {
     sessionCorrelationContext: (s, extra = {}) => ({ ...extra }),
     normalizeRenewalPhaseAttempts: n => Number(n || 3),
     startTemplateFillUnlocked: async id => {
-      count += 1;
+      startCount += 1;
       if (failures.includes(id)) throw Error('Failed to start ' + id);
       return { renewalId: 'renewal-' + id, operationId: 'op-' + id };
     },
