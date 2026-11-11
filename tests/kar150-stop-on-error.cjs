@@ -109,7 +109,7 @@ async function run() {
       assert.match(batch.stopOnErrorReason, /Failed to start one/);
     });
     await h.workflow.startNextMassRenewalItem(created.batchId);
-    check('repeated next-item admission cannot restart a stopped batch', () => assert.equal(h.starts, 2));
+    check('repeated next-item admission cannot restart a stopped batch', () => assert.equal(h.starts, 1));
     await h.local.set({ [h.key]: false });
     check('a preference change does not change a frozen running or stopped batch', () => assert.equal(batch.stopOnError, true));
   }
