@@ -525,7 +525,7 @@ async function updateTemplateFillSession(message, sender) {
     const validProof = incomingProof?.verified === true &&
       /^[a-f0-9]{64}$/.test(String(incomingProof.currentFingerprint || '')) &&
       (incomingProof.sourceFingerprint == null || /^[a-f0-9]{64}$/.test(String(incomingProof.sourceFingerprint))) &&
-      /^\\d+$/.test(String(incomingProof.categoryId || ''));
+      /^\d+$/.test(String(incomingProof.categoryId || ''));
     const existingProof = session.result?.schemaPreflight?.verified === true
       ? session.result.schemaPreflight : null;
     const proof = validProof && requestedStage === 'form-verified'
