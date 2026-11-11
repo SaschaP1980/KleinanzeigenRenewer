@@ -105,6 +105,13 @@ jobs:
       - name: KAR-99 P1.3-B trusted positive owner authority (intentional RED until P1.3-C)
         if: github.head_ref == 'work/KAR-99'
         run: node tests/kar99-p13b-trusted-owner-authority.cjs
+      - name: KAR-99 P1.3 B2B real Phase-4 private admission and journal (isolated)
+        if: github.head_ref == 'work/KAR-99'
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tests/kar99-p13b2b-auto-phase4-receipt.cjs
+          node tests/kar99-p13b2b-phase4-journal-receipt.cjs
       - name: KAR-99 P8 real MV3 Web Locks probe (isolated, no account)
         if: github.head_ref == 'work/KAR-99'
         shell: bash
