@@ -236,7 +236,8 @@
           tabs.some(tab => !RECORD(tab) || !Number.isSafeInteger(tab.id) ||
             tab.id <= 0 || tab.managed !== false ||
             tab.ownershipVerified !== true ||
-            typeof tab.sourceRevision !== 'string' || !tab.sourceRevision.trim()))
+            typeof tab.sourceRevision !== 'string' || !tab.sourceRevision.trim()) ||
+          new Set(tabs.map(tab => tab.id)).size !== tabs.length)
         throw denied('KR_OWNER_TABS_UNVERIFIED');
     }
     async function captureLocked(req) {
@@ -264,6 +265,17 @@
       const liveTwo = await readLiveAccountReadOnly();
       if (account(liveTwo,req.expectedProfileId,tick) !== identity)
         throw denied('KR_OWNER_LIVE_ACCOUNT_CHANGED');
+      // F2A: owner proofs may take time even within the origin admission
+      // lock. Recheck the *actual* Chrome/session tab producer at the end:
+      // a tab opened, closed or reclassified during that interval is UNKNOWN.
+      // Compare the verified identity/provenance set, not just tab count.
+      const finalTabs = await readBrowserTabsReadOnly();
+      ensureTabs(finalTabs);
+      const signature = list => JSON.stringify(list.map(tab =>
+        [tab.id, tab.managed, tab.ownershipVerified, tab.sourceRevision])
+        .sort((a,b) => a[0]-b[0]));
+      if (signature(tabs) !== signature(finalTabs))
+        throw denied('KR_OWNER_TABS_CHANGED');
       const secondLocal = await raw(storageLocal,'STORAGE_LOCAL');
       const secondSession = await raw(storageSession,'STORAGE_SESSION');
       if (JSON.stringify(firstLocal) !== JSON.stringify(secondLocal) ||
