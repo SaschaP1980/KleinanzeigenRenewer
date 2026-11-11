@@ -192,6 +192,10 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
     assert.equal(report.comparison.status,'schema-changed');
     assert.equal(report.mappings.length,1);
     assert.equal(report.mappings[0].expectedDisplayLabel,'44mm');
+    const assessment=f.engine.assessSyntheticCaseSize('compatible',focused,report,'__KAR134_UNREPRESENTABLE_CASE_SIZE__');
+    assert.equal(assessment.verdict,true);
+    assert.equal(assessment.optionEvidenceComplete,true);
+    assert.equal(assessment.mapping44Proven,true);
   });
   await check('read-only 405 simulation blocks guaranteed absent technical option',async()=>{
     const f=fixture();
@@ -203,6 +207,9 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
     const report=await f.engine.evaluate(source,focused);
     assert.equal(report.complete,false);
     assert.ok(report.issues.some(issue=>issue.includes('nicht angeboten')));
+    const assessment=f.engine.assessSyntheticCaseSize('incompatible',focused,report,'__KAR134_UNREPRESENTABLE_CASE_SIZE__');
+    assert.equal(assessment.verdict,true);
+    assert.equal(assessment.specificInvalidRejectionProven,true);
   });
   await check('read-only test branch precedes filler/publisher and has no write primitive',async()=>{
     const fs=require('node:fs');
@@ -217,5 +224,63 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
     assert.ok(background.includes('schemaTestScenario: isSchemaTest ? schemaTestScenario : null'));
     assert.ok(background.includes("if (isSchemaTest) {"));
   });
-  console.log(passed+'/25 PASS KAR-134 schema capture/preflight');
+
+  await check('unproven live options make both native scenarios inconclusive, not falsely green',async()=>{
+    const f=fixture({options:false});
+    const observed=f.engine.inspectForm(f.document.querySelector('form'),405,f.document);
+    const focused={...observed,schema:{...observed.schema,fields:observed.schema.fields.filter(field=>field.key==='attribute:wearables.case_size')}};
+    const old=Schema.buildSchema({categoryId:'405',dynamicAttributes:[{key:'wearables.gehausegrosse',controlType:'number'}]});
+    for(const scenario of ['compatible','incompatible']){
+      const technicalValue=scenario==='compatible'?'44':'__KAR134_UNREPRESENTABLE_CASE_SIZE__';
+      const source={categoryId:'405',templateSchema:{snapshot:old,fingerprint:await Schema.fingerprint(old)},
+        dynamicAttributes:[oldAttr('wearables.gehausegrosse',technicalValue,'44mm')]};
+      const report=await f.engine.evaluate(source,focused);
+      assert.equal(report.complete,false);
+      const verdict=f.engine.assessSyntheticCaseSize(scenario,focused,report,'__KAR134_UNREPRESENTABLE_CASE_SIZE__');
+      assert.equal(verdict.verdict,false,'no option list is not proof of a correct rejection');
+      assert.equal(verdict.optionEvidenceComplete,false);
+      assert.equal(verdict.evidenceState,'case-size-option-evidence-missing');
+    }
+  });
+  await check('missing case-size technical field cannot produce false-positive negative test',async()=>{
+    const f=fixture({caseSize:false});
+    const observed=f.engine.inspectForm(f.document.querySelector('form'),405,f.document);
+    const old=Schema.buildSchema({categoryId:'405',dynamicAttributes:[{key:'wearables.gehausegrosse',controlType:'number'}]});
+    const source={categoryId:'405',templateSchema:{snapshot:old,fingerprint:await Schema.fingerprint(old)},
+      dynamicAttributes:[oldAttr('wearables.gehausegrosse','__KAR134_UNREPRESENTABLE_CASE_SIZE__','synthetic')]};
+    const report=await f.engine.evaluate(source,observed);
+    assert.equal(report.complete,false);
+    const verdict=f.engine.assessSyntheticCaseSize('incompatible',observed,report,'__KAR134_UNREPRESENTABLE_CASE_SIZE__');
+    assert.equal(verdict.verdict,false);
+    assert.equal(verdict.caseFieldPresent,false);
+    assert.equal(verdict.evidenceState,'case-size-field-missing');
+  });
+  await check('generic form mismatch alone is never proof that invalid technical ID was rejected',async()=>{
+    const f=fixture();
+    const observed=f.engine.inspectForm(f.document.querySelector('form'),405,f.document);
+    const focused={...observed,schema:{...observed.schema,fields:observed.schema.fields.filter(field=>field.key==='attribute:wearables.case_size')}};
+    const generic={complete:false,issues:['Neue Auswahl ist nicht eindeutig bestätigt.'],mappings:[]};
+    const verdict=f.engine.assessSyntheticCaseSize('incompatible',focused,generic,'__KAR134_UNREPRESENTABLE_CASE_SIZE__');
+    assert.equal(verdict.optionEvidenceComplete,true);
+    assert.equal(verdict.verdict,false);
+    assert.equal(verdict.specificInvalidRejectionProven,false);
+    assert.equal(verdict.evidenceState,'invalid-value-rejection-not-proven');
+  });
+  await check('visible 44mm label remains required even with valid technical option 44',async()=>{
+    const f=fixture();
+    const observed=f.engine.inspectForm(f.document.querySelector('form'),405,f.document);
+    const focused={...observed,schema:{...observed.schema,fields:observed.schema.fields.filter(field=>field.key==='attribute:wearables.case_size')}};
+    const old=Schema.buildSchema({categoryId:'405',dynamicAttributes:[{key:'wearables.gehausegrosse',controlType:'number'}]});
+    const source={categoryId:'405',templateSchema:{snapshot:old,fingerprint:await Schema.fingerprint(old)},
+      dynamicAttributes:[oldAttr('wearables.gehausegrosse','44','44mm')]};
+    const report=await f.engine.evaluate(source,focused);
+    assert.equal(report.complete,true);
+    const stale={...focused,optionLabels:{...focused.optionLabels,
+      'wearables.case_size':[{value:'44',label:'44 mm'}]}};
+    const verdict=f.engine.assessSyntheticCaseSize('compatible',stale,report,'__KAR134_UNREPRESENTABLE_CASE_SIZE__');
+    assert.equal(verdict.verdict,false);
+    assert.equal(verdict.technical44Offered,true);
+    assert.equal(verdict.visible44mmProven,false);
+  });
+  console.log(passed+'/29 PASS KAR-134 schema capture/preflight');
 })().catch(error=>{console.error(error);process.exitCode=1});

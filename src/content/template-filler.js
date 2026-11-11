@@ -387,15 +387,16 @@
       }]
     };
     const report = await SchemaPreflight.evaluate(simulated, focused);
-    const label44Proven = report.mappings.some(item =>
-      item.oldKey === 'wearables.gehausegrosse' &&
-      item.newKey === 'wearables.case_size' &&
-      item.technicalValue === '44' && item.expectedDisplayLabel === '44mm');
-    const compatible = report.complete && label44Proven;
-    const verdict = scenario === 'compatible' ? compatible : !report.complete;
-    const issues = verdict ? [] : (scenario === 'compatible'
-      ? [...report.issues, 'Das aktuelle Formular bestätigt 44 / 44mm nicht eindeutig.']
-      : ['Der absichtlich ungültige Testwert wurde nicht erwartungsgemäß gesperrt.']);
+    const assessment = SchemaPreflight.assessSyntheticCaseSize(scenario, focused, report, rejectedValue);
+    const { verdict } = assessment;
+    const issues = verdict ? [] : [
+      ...report.issues,
+      assessment.optionEvidenceComplete
+        ? (scenario === 'compatible'
+          ? 'Das aktuelle Formular bestätigt 44 / 44mm nicht eindeutig.'
+          : 'Eine gezielte Ablehnung des ungültigen technischen Werts wurde nicht nachgewiesen.')
+        : 'Die angebotenen Gehäusegrößen sind nicht vollständig belegt. Der Test ist nicht aussagekräftig.'
+    ];
     const actualFullFingerprint = await SchemaCore.fingerprint(live.schema);
     void diagnostic(fillId, 'KAR134_SCHEMA_TEST_RESULT', {
       scenario, verdict, mode: 'read-only', scope: 'category-405-case-size-only',
@@ -403,7 +404,14 @@
       syntheticOldFingerprint: fingerprint, actualFullFingerprint,
       focusedCurrentFingerprint: report.currentFingerprint,
       detectedChangeTypes: (report.comparison?.changes || []).map(item => item.type).slice(0, 30),
-      issueCount: report.issues.length, mappedCaseSize44mm: label44Proven
+      issueCount: report.issues.length, mappedCaseSize44mm: assessment.mapping44Proven,
+      caseSizeFieldPresent: assessment.caseFieldPresent,
+      caseSizeOptionEvidenceComplete: assessment.optionEvidenceComplete,
+      caseSizeOptionCount: assessment.optionCount,
+      technical44Offered: assessment.technical44Offered,
+      visible44mmProven: assessment.visible44mmProven,
+      invalidValueRejectionProven: assessment.specificInvalidRejectionProven,
+      evidenceState: assessment.evidenceState
     }, verdict ? 'info' : 'warning');
     await runtimeMessage({
       type: 'UPDATE_TEMPLATE_FILL_SESSION', fillId,
@@ -415,7 +423,7 @@
       verdict ? 'Schema-Prüfmodus: Test bestanden' : 'Schema-Prüfmodus: Prüfung fehlgeschlagen',
       scenario === 'compatible'
         ? (verdict ? 'Das aktuelle Formular bietet den technischen Wert 44 mit der sichtbaren Auswahl 44mm eindeutig an.' : 'Die aktuelle Auswahl 44 / 44mm konnte nicht nachgewiesen werden.')
-        : (verdict ? 'Der absichtlich nicht darstellbare Testwert wurde sicher abgewiesen.' : 'Der Testfall wurde nicht erwartungsgemäß abgewiesen.'),
+        : (verdict ? 'Der absichtlich nicht darstellbare Testwert wurde anhand belegter Auswahlmöglichkeiten sicher abgewiesen.' : 'Die Ablehnung konnte nicht anhand einer vollständigen Optionsliste nachgewiesen werden.'),
       verdict ? [] : issues,
       { safetyText: 'TEST ABGESCHLOSSEN – keine Werte übertragen, keine Bilder hochgeladen, keine Anzeige veröffentlicht. Dies ist nur eine Feldsimulation, keine vollständige Abnahme.' }
     );
