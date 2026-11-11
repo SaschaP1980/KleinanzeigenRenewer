@@ -48,6 +48,7 @@
         "src/content/template-form-fields.js",
         "src/content/template-image-upload.js",
         "src/content/template-verification.js",
+        "src/content/template-schema-preflight.js",
         "src/content/template-publish-flow.js",
         "src/content/template-filler.js",
         "src/shared/my-ads-readiness.js",
