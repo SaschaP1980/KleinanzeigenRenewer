@@ -11,7 +11,7 @@ let passed = 0;
 const check = async (label, run) => { await run(); passed++; console.log('PASS KAR-134 preflight: '+label); };
 const oldAttr = (key,value,display='') => ({ key, technicalValue:value, displayValue:display, label:key, controlType:'text' });
 function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
-  options=true, checkbox=true, requiredNew=false, busy=false, duplicate=false, legacy=false,
+  options=true, checkbox=true, bluetoothRequired=false, requiredNew=false, busy=false, duplicate=false, legacy=false,
   savedKey='wearables.gehausegrosse', savedValue='44' } = {}) {
   const dom = '<html><body><form>' +
     '<input type="hidden" name="categoryId" value="'+category+'">' +
@@ -30,7 +30,7 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
   const definitions = {};
   if (caseSize) definitions['wearables.case_size']={ required: false,
     ...(options ? { localizedOptions: [{ value:'44', localizedValue:'44mm' },{ value:'46', localizedValue:'46mm' }] } : {}) };
-  if (checkbox) definitions['wearables.bluetooth'] = { required: false };
+  if (checkbox) definitions['wearables.bluetooth'] = { required: bluetoothRequired };
   if (requiredNew) definitions['wearables.must_have'] = { required: true };
   const engine = Preflight.create({
     Schema,
@@ -154,5 +154,13 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
     assert.equal(obs.readbacks['wearables.bluetooth'],true);
     assert.equal(obs.schema.fields.find(x=>x.key==='attribute:wearables.bluetooth').kind,'checkbox');
   });
-  console.log(passed+'/19 PASS KAR-134 schema capture/preflight');
+  await check('required checkbox must be checked at final readback, not just present as boolean false',async()=>{
+    const f=fixture({bluetoothRequired:true});
+    const {report,observation}=await f.complete();
+    const control=f.document.querySelector('input[name="attributeMap[wearables.bluetooth]"]');
+    control.checked=false;
+    const failures=f.engine.verifyAfterFill({...report,complete:true},observation);
+    assert.ok(failures.some(issue=>issue.includes('wearables.bluetooth')),failures.join(';'));
+  });
+  console.log(passed+'/20 PASS KAR-134 schema capture/preflight');
 })().catch(error=>{console.error(error);process.exitCode=1});
