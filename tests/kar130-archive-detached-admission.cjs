@@ -50,8 +50,9 @@ async function main(){
    'no archive post-publish detached task launches directly');
  ok(bg.includes("return requireUpdateWorkflowFence().withAdmission('AUTONOMOUS:' + kind, task)"),
    'uses same KAR-99 workflow fence');
- ok(bg.includes('requirePersistedOwnerObserver().track(names, admittedTask)'),
-   'admitted archive Promise counted for complete in-process lifetime');
+ ok(bg.includes('task = admissionReceipt => requirePersistedOwnerObserver().track(names, () => admittedTask(admissionReceipt))')
+    && bg.includes('task = admissionReceipt => requireAdditionalOwnerObserver().track(namesForKind, () => started(admissionReceipt))'),
+   'admitted archive Promise carries its own P8 receipt through both tracked asynchronous owner lifetimes');
  assert.throws(()=>make(undefined,{archiveInsertionId:'abc',status:'published',newAdId:'123'}),/dependency withAutonomousAdmission/);
  ok(true,'missing admission dependency fails closed');
  let admitted=0;
