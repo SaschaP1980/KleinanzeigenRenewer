@@ -228,6 +228,11 @@
       // verified, exact-identity immutable receipt can classify it as resolved.
       const prefix = 'karPhase4UncertainAttemptV1_';
       const resolutionPrefix = 'karPhase4VerifiedResolutionV1_';
+      // F2E2C: expose concrete historical independently verified terminal
+      // source revisions, NEVER an all-owner IDLE or current-account proof.
+      // A revision covers the complete immutable intent and remote resolution
+      // record; one callback-finish record cannot enter this collection.
+      let phase4Revisions = [];
       let journalEvidence = 'missing';
       if (remoteState !== 'stable') {
         journalEvidence = remoteState;
@@ -272,7 +277,23 @@
           journalEvidence = 'unresolved';
         else if (original.some(([, row]) => row.profileId !== stableProfile))
           journalEvidence = stableProfile ? 'profile-mismatch' : 'profile-unverified';
-        else journalEvidence = original.length > 0 ? 'resolved' : 'missing';
+        else {
+          journalEvidence = original.length > 0 ? 'resolved' : 'missing';
+          if (journalEvidence === 'resolved') {
+            phase4Revisions = original.map(([key, intent]) => {
+              const resolution = rows[resolutionPrefix + key.slice(prefix.length)];
+              return Object.freeze({
+                owner: 'renewal', renewalId: intent.renewalId,
+                attemptId: intent.attemptId, profileId: intent.profileId,
+                sourceAdId: intent.sourceAdId, newAdId: intent.newAdId,
+                intentWorkerInstanceId: intent.workerInstanceId,
+                resolverWorkerInstanceId: resolution.workerInstanceId,
+                verifiedAtMs: resolution.verifiedAtMs,
+                sourceRevision: JSON.stringify([key, intent, resolution])
+              });
+            });
+          }
+        }
       }
       if (journalEvidence === 'unresolved') {
         set('renewal', active('PHASE4_JOURNAL_UNRESOLVED'));
@@ -294,6 +315,7 @@
       // previously recorded publication attempt. Unknown/corrupt stays UNKNOWN.
       const publishPrefix='karAutoPublishIntentV1_';
       const publishResolutionPrefix='karAutoPublishVerifiedResolutionV1_';
+      let publishRevisions=[];
       let publishEvidence='missing';
       let publishKinds=new Set();
       if(remoteState!=='stable'){
@@ -341,7 +363,26 @@
           publishKinds=new Set(unresolved.map(([,row])=>row.kind));
         }else if(attempts.some(([,row])=>row.profileId!==stableProfile))
           publishEvidence=stableProfile?'profile-mismatch':'profile-unverified';
-        else publishEvidence=attempts.length?'resolved':'missing';
+        else {
+          publishEvidence=attempts.length?'resolved':'missing';
+          if(publishEvidence==='resolved') {
+            publishRevisions=attempts.map(([key,intent])=>{
+              const resolution=rows[publishResolutionPrefix+key.slice(publishPrefix.length)];
+              return Object.freeze({
+                owner:intent.kind==='renewal'?'renewal':'archiveInsertion',
+                kind:intent.kind,fillId:intent.fillId,workflowId:intent.workflowId,
+                attemptId:intent.attemptId,profileId:intent.profileId,
+                sourceAdId:intent.sourceAdId,newAdId:resolution.newAdId,
+                intentWorkerInstanceId:intent.workerInstanceId,
+                // This historical publication resolution schema does not
+                // record the resolving worker. Do not fabricate provenance.
+                resolverWorkerInstanceId:null,
+                verifiedAtMs:resolution.verifiedAtMs,
+                sourceRevision:JSON.stringify([key,intent,resolution])
+              });
+            });
+          }
+        }
       }
       if(publishEvidence==='unresolved'){
         if(publishKinds.has('renewal'))set('renewal',active('PUBLISH_INTENT_UNRESOLVED'));
@@ -411,6 +452,18 @@
         eligibleForLease: false,
         observedAtMs: Number.isSafeInteger(observedAtMs) ? observedAtMs : null,
         observations: Object.freeze({...result}),
+        // Same-profile locally persisted remote settlement is historical
+        // evidence only: it does not prove a current live Kleinanzeigen login,
+        // a finished previous Worker, or any of the 15 positive IDLE sources.
+        remoteOutcomeEvidence: Object.freeze({
+          historicalOnly:true,liveAccountVerified:false,
+          phase4:Object.freeze({
+            state:journalEvidence,revisions:Object.freeze(phase4Revisions)
+          }),
+          publish:Object.freeze({
+            state:publishEvidence,revisions:Object.freeze(publishRevisions)
+          })
+        }),
         context
       });
     }
