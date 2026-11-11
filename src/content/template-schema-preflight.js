@@ -207,10 +207,10 @@
         const controls = [...observed.form.querySelectorAll('[name^="attributeMap["]')].filter(control =>
           control.getAttribute('name') === 'attributeMap[' + key + ']');
         const control = controls.length === 1 ? controls[0] : null;
-        const valid = control && (control.type === 'checkbox'
-          ? control.checked === true
-          : control.type === 'radio' ? controls.some(item => item.checked === true)
-            : hasValue(control.value));
+        const allRadio = controls.length > 0 && controls.every(item => item.type === 'radio');
+        const valid = allRadio ? controls.some(item => item.checked === true)
+          : Boolean(control && (control.type === 'checkbox'
+            ? control.checked === true : hasValue(control.value)));
         if (!valid) {
           issues.push('Pflichtmerkmal „' + key + '“ wurde nicht bestätigt.');
         }
