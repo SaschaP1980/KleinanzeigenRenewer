@@ -234,11 +234,24 @@ function normalizeMassRenewalOrder() {
   massRenewalOrderedIds = normalized;
 }
 
+function updateStopOnErrorTooltip(value) {
+  if (!massRenewalStopOnError) return;
+  const description = value === true
+    ? 'Stoppt beim ersten Fehler oder bei erforderlicher manueller Prüfung.'
+    : value === false
+      ? 'Setzt nach gewöhnlichen Fehlern mit der nächsten Anzeige fort. Sicherheitsstopps bleiben aktiv.'
+      : '';
+  massRenewalStopOnError.title = description;
+  massRenewalStopOnError.setAttribute('aria-description', description);
+  if (massRenewalStopOnError.parentElement) massRenewalStopOnError.parentElement.title = description;
+}
+
 async function restoreStopOnErrorPreference() {
   stopOnErrorReady = false;
   stopOnErrorPreference = null;
   if (massRenewalStopOnError) massRenewalStopOnError.disabled = true;
-  if (massRenewalStopOnErrorStatus) massRenewalStopOnErrorStatus.textContent = 'Einstellung wird geladen …';
+  updateStopOnErrorTooltip(null);
+  if (massRenewalStopOnErrorStatus) massRenewalStopOnErrorStatus.textContent = '';
   updateMassRenewalOrderState();
   try {
     if (!storageLocal?.get) throw new Error('Lokaler Einstellungsspeicher nicht verfügbar.');
@@ -250,6 +263,7 @@ async function restoreStopOnErrorPreference() {
     if (massRenewalStopOnError) {
       massRenewalStopOnError.checked = stopOnErrorPreference;
       massRenewalStopOnError.disabled = false;
+      updateStopOnErrorTooltip(stopOnErrorPreference);
     }
     if (massRenewalStopOnErrorStatus) massRenewalStopOnErrorStatus.textContent = '';
   } catch (error) {
@@ -265,7 +279,8 @@ async function saveStopOnErrorPreference(value) {
   stopOnErrorSaving = true;
   stopOnErrorReady = false;
   if (massRenewalStopOnError) massRenewalStopOnError.disabled = true;
-  if (massRenewalStopOnErrorStatus) massRenewalStopOnErrorStatus.textContent = 'Einstellung wird gespeichert …';
+  updateStopOnErrorTooltip(value);
+  if (massRenewalStopOnErrorStatus) massRenewalStopOnErrorStatus.textContent = '';
   updateMassRenewalOrderState();
   try {
     if (!storageLocal?.set || !storageLocal?.get) throw new Error('Lokaler Einstellungsspeicher nicht verfügbar.');
@@ -283,6 +298,7 @@ async function saveStopOnErrorPreference(value) {
     if (massRenewalStopOnError) {
       if (typeof stopOnErrorPreference === 'boolean') massRenewalStopOnError.checked = stopOnErrorPreference;
       massRenewalStopOnError.disabled = !storageLocal?.set;
+      updateStopOnErrorTooltip(stopOnErrorPreference);
     }
     updateMassRenewalOrderState();
   }
