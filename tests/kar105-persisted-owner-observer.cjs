@@ -214,7 +214,7 @@ async function test() {
   changedProfileDb.local.get=async keys=>{
     const rows=await profileGet(keys);
     if(Array.isArray(keys)&&keys.includes('selectedInventoryProfileV1')&&
-       !keys.includes('renewalSessionsV1'))
+       keys.includes('renewalSessionsV1'))
       profileRows.selectedInventoryProfileV1={profileId:'another-profile'};
     return rows;
   };
