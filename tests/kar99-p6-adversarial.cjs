@@ -298,6 +298,14 @@ async function withAttempt(env,kind='renewal'){
       result:{complete:true,issues:[]}};
     const renewal={fillId:'fill-one',targetTabId:99,
       profileId:'profile-one',sourceAdId:'1234'};
+    // The real router owns this frozen P8 proof; the message body never does.
+    // This isolated test exercises the production handler under the genuine
+    // private third-argument contract without browser/account I/O.
+    const admissionReceipt=Object.freeze({
+      schema:1,state:'admitted',token:'test-origin-web-lock-token-0123',
+      operationType:'AUTHORIZE_AUTOMATIC_PUBLISH',
+      workerInstanceId:'test-worker-one',startedAtMs:100
+    });
     const auth=vm.runInNewContext(actualAuthorize+
       '\nauthorizeAutomaticPublish;',{
       URL,
@@ -309,16 +317,28 @@ async function withAttempt(env,kind='renewal'){
         if(live!=='profile-one')throw Error('live Kleinanzeigen account changed');
         return {profileId:live,displayName:'Account One'};
       },
-      requireAutoPublishIntentJournal:()=>({begin:async()=>{
+      requireAutoPublishIntentJournal:()=>({begin:async request=>{
+        assert.equal(request.admissionReceipt,admissionReceipt,
+          'P8 worker-owned in-band receipt must reach immutable publish journal');
         writes++;
         if(changeAfterJournal)live='profile-two';
         return {attemptId:'durable-intent-1'};
       }})
     });
-    return {call:()=>auth({fillId:'fill-one'},{tab:{id:99},
-      url:'https://www.kleinanzeigen.de/p-anzeige-aufgeben.html'}),
+    const message={fillId:'fill-one'};
+    const sender={tab:{id:99},
+      url:'https://www.kleinanzeigen.de/p-anzeige-aufgeben.html'};
+    return {call:()=>auth(message,sender,admissionReceipt),
+      callWithoutAdmission:()=>auth(message,sender),
       get checks(){return checks;},get writes(){return writes;}};
   }
+  const missing=admissionRig(false);
+  await assert.rejects(missing.callWithoutAdmission(),
+    error=>error?.code==='KR_PUBLISH_INTENT_ADMISSION_UNVERIFIED',
+    'direct publish without original in-band P8 admission fails closed');
+  assert.equal(missing.writes,0,'missing admission never writes remote intent');
+  assert.equal(missing.checks,0,'missing admission denied before account/session reads');
+  pass('missing genuine in-band P8 receipt denies publish before remote intent');
   const switched=admissionRig(true);
   await assert.rejects(switched.call(),undefined,
     'a changed live account after journal commit must deny click authorization');
