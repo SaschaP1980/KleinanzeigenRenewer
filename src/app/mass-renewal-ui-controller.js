@@ -8,7 +8,8 @@
         massRenewalButton, massRenewalDialog, massRenewalClose, massRenewalCancel, massRenewalBack,
         massRenewalNext, massRenewalStart, massRenewalStopAfterCurrent, massRenewalDone,
         massRenewalKicker, massRenewalIntro, massRenewalSelectionPanel, massRenewalOrderPanel,
-        massRenewalOrderList, massRenewalProgressPanel, massRenewalSummaryPanel, massRenewalSelectionBody,
+        massRenewalOrderList, massRenewalStopOnError, massRenewalStopOnErrorStatus,
+        massRenewalProgressPanel, massRenewalSummaryPanel, massRenewalSelectionBody,
         massRenewalSelectionCount, massRenewalProgressTitle, massRenewalProgressCount,
         massRenewalProgressList, massRenewalSummaryCount, massRenewalSummaryList
       } = elements;
@@ -42,6 +43,11 @@
       let massRenewalSelectedIds = new Set();
       let massRenewalOrderedIds = [];
       let massRenewalDraggedId = '';
+      const stopOnErrorPreferenceKey = 'massRenewalStopOnErrorPreferenceV1';
+      const storageLocal = options.storageLocal || globalThis.chrome?.storage?.local;
+      let stopOnErrorPreference = null;
+      let stopOnErrorReady = false;
+      let stopOnErrorSaving = false;
       let installed = false;
 function massRenewalEndTimestamp(record) {
   const iso = String(record?.listingMeta?.endDateIso || '').trim();
@@ -228,11 +234,65 @@ function normalizeMassRenewalOrder() {
   massRenewalOrderedIds = normalized;
 }
 
+async function restoreStopOnErrorPreference() {
+  stopOnErrorReady = false;
+  stopOnErrorPreference = null;
+  if (massRenewalStopOnError) massRenewalStopOnError.disabled = true;
+  if (massRenewalStopOnErrorStatus) massRenewalStopOnErrorStatus.textContent = 'Einstellung wird geladen …';
+  updateMassRenewalOrderState();
+  try {
+    if (!storageLocal?.get) throw new Error('Lokaler Einstellungsspeicher nicht verfügbar.');
+    const stored = await storageLocal.get(stopOnErrorPreferenceKey);
+    const value = stored?.[stopOnErrorPreferenceKey];
+    if (value !== undefined && typeof value !== 'boolean') throw new Error('Ungültiger gespeicherter Wert.');
+    stopOnErrorPreference = value === undefined ? true : value;
+    stopOnErrorReady = true;
+    if (massRenewalStopOnError) {
+      massRenewalStopOnError.checked = stopOnErrorPreference;
+      massRenewalStopOnError.disabled = false;
+    }
+    if (massRenewalStopOnErrorStatus) massRenewalStopOnErrorStatus.textContent = '';
+  } catch (error) {
+    if (massRenewalStopOnErrorStatus) massRenewalStopOnErrorStatus.textContent = 'Einstellung nicht verfügbar. Start gesperrt.';
+    setStatus('error', 'Einstellung konnte nicht gelesen werden', friendlyErrorMessage(error));
+  }
+  updateMassRenewalOrderState();
+  return stopOnErrorReady;
+}
+
+async function saveStopOnErrorPreference(value) {
+  if (stopOnErrorSaving) return;
+  stopOnErrorSaving = true;
+  stopOnErrorReady = false;
+  if (massRenewalStopOnError) massRenewalStopOnError.disabled = true;
+  if (massRenewalStopOnErrorStatus) massRenewalStopOnErrorStatus.textContent = 'Einstellung wird gespeichert …';
+  updateMassRenewalOrderState();
+  try {
+    if (!storageLocal?.set || !storageLocal?.get) throw new Error('Lokaler Einstellungsspeicher nicht verfügbar.');
+    await storageLocal.set({ [stopOnErrorPreferenceKey]: value });
+    const readback = await storageLocal.get(stopOnErrorPreferenceKey);
+    if (readback?.[stopOnErrorPreferenceKey] !== value) throw new Error('Gespeicherte Einstellung konnte nicht bestätigt werden.');
+    stopOnErrorPreference = value;
+    stopOnErrorReady = true;
+    if (massRenewalStopOnErrorStatus) massRenewalStopOnErrorStatus.textContent = '';
+  } catch (error) {
+    if (massRenewalStopOnErrorStatus) massRenewalStopOnErrorStatus.textContent = 'Speichern fehlgeschlagen. Start gesperrt.';
+    setStatus('error', 'Einstellung konnte nicht gespeichert werden', friendlyErrorMessage(error));
+  } finally {
+    stopOnErrorSaving = false;
+    if (massRenewalStopOnError) {
+      if (typeof stopOnErrorPreference === 'boolean') massRenewalStopOnError.checked = stopOnErrorPreference;
+      massRenewalStopOnError.disabled = !storageLocal?.set;
+    }
+    updateMassRenewalOrderState();
+  }
+}
+
 function updateMassRenewalOrderState() {
   normalizeMassRenewalOrder();
   const gate = accountGateModel();
   if (massRenewalStart) {
-    massRenewalStart.disabled = !gate.allowed || massRenewalOrderedIds.length === 0 || insertionLockActive();
+    massRenewalStart.disabled = !gate.allowed || massRenewalOrderedIds.length === 0 || insertionLockActive() || !stopOnErrorReady || stopOnErrorSaving;
     massRenewalStart.title = !gate.allowed ? gate.tooltip : insertionLockActive() ? insertionLockUiText() : '';
   }
 }
@@ -450,7 +510,7 @@ function massRenewalActivePhase(phaseModel) {
 function massRenewalItemDetail(item, batch, phaseModel = massRenewalPhaseModel(item, batch)) {
   const status = String(item?.status || 'queued');
   if (String(item?.stage || '') === 'paid-insertion-required') return 'Kleinanzeigen verlangt eine kostenpflichtige Einstellung – manuelle Entscheidung erforderlich.';
-  if (['needs-review', 'error'].includes(status)) return 'Weitere Prüfung erforderlich.';
+  if (['needs-review', 'error'].includes(status)) return String(item?.lastError || 'Weitere Prüfung erforderlich.');
   if (status === 'success' && item?.newAdId) return `Neue Anzeigen-ID ${item.newAdId}`;
   if (status === 'queued') return 'Wartet auf Start';
   if (status === 'cancelled') return 'Nicht ausgeführt – der Vorgang wurde vorher beendet.';
@@ -628,9 +688,14 @@ function renderMassRenewalBatch(batch) {
     const stopped = String(batch.status || '').startsWith('stopped');
     const attention = Number(counts.attention || 0);
     if (stopped) {
+      const errorStopped = batch.stopOnErrorTriggered === true;
+      const stopIndex = Number.isInteger(batch.stopOnErrorFailureIndex) ? batch.stopOnErrorFailureIndex : null;
+      const stopMessage = errorStopped && stopIndex != null
+        ? `Bei Anzeige ${stopIndex + 1} angehalten – ${String(batch.stopOnErrorReason || 'Manuelle Prüfung erforderlich.')}`
+        : null;
       const paidRequired = (batch.items || []).some(item => String(item?.stage || '') === 'paid-insertion-required');
-      setStatus(paidRequired ? 'waiting' : 'ready', paidRequired ? 'Kostenpflichtiges Inserieren erkannt – Lauf angehalten' : 'Neu inserieren beendet', paidRequired ? 'Kleinanzeigen verlangt für mindestens eine Anzeige eine Gebühr. Es wurde keine Zahlung ausgelöst.' : `${Number(counts.success || 0) + attention} von ${Number(counts.total || 0)} abgeschlossen`, '', { badgeLabel: paidRequired ? 'Prüfen' : 'Beendet' });
-      if (massRenewalIntro) massRenewalIntro.textContent = paidRequired ? '„Mehrere neu inserieren“ wurde vor weiteren Anzeigen angehalten. Entscheide manuell, ob du die kostenpflichtige Einstellung durchführen möchtest.' : 'Der Vorgang wurde wie gewünscht beendet. Prüfe die Ergebnisse und starte erforderliche Schritte bei Bedarf erneut.';
+      setStatus(paidRequired || errorStopped ? 'waiting' : 'ready', paidRequired ? 'Kostenpflichtiges Inserieren erkannt – Lauf angehalten' : stopMessage || 'Neu inserieren beendet', paidRequired ? 'Kleinanzeigen verlangt für mindestens eine Anzeige eine Gebühr. Es wurde keine Zahlung ausgelöst.' : `${Number(counts.success || 0)} erfolgreich · ${attention} prüfen · ${Number(counts.cancelled || 0)} nicht ausgeführt`, '', { badgeLabel: paidRequired || errorStopped ? 'Prüfen' : 'Beendet' });
+      if (massRenewalIntro) massRenewalIntro.textContent = paidRequired ? '„Mehrere neu inserieren“ wurde vor weiteren Anzeigen angehalten. Entscheide manuell, ob du die kostenpflichtige Einstellung durchführen möchtest.' : stopMessage || 'Der Vorgang wurde wie gewünscht beendet. Prüfe die Ergebnisse und starte erforderliche Schritte bei Bedarf erneut.';
     } else if (attention > 0) {
       setStatus('waiting', 'Teilweise abgeschlossen', 'Einige Anzeigen benötigen weitere Prüfung.', '', { facts: `${Number(counts.success || 0)} erfolgreich · ${attention} prüfen`, badgeLabel: 'Prüfen' });
     } else if (baldOnlineCount > 0) {
@@ -742,7 +807,8 @@ function syncMassRenewalUiFromLock() {
           if (!requireAccountBoundAction()) return;
           try {
             const existing = await runtimeMessage({ type: 'GET_MASS_RENEWAL_BATCH_STATUS' }).catch(() => null);
-            if (existing && String(existing.status || '') === 'running') { currentMassRenewalBatch = existing; setMassRenewalKicker(existing.renewalMode); renderMassRenewalBatch(existing); } else resetSelection();
+            if (existing && String(existing.status || '') === 'running') { currentMassRenewalBatch = existing; setMassRenewalKicker(existing.renewalMode); renderMassRenewalBatch(existing); }
+            else { resetSelection(); await restoreStopOnErrorPreference(); }
             if (massRenewalDialog && !massRenewalDialog.open) massRenewalDialog.showModal();
             void logAppEvent('USER_MASS_RENEWAL_OPENED', { existingBatchId: existing?.batchId || null, status: existing?.status || null, renewalMode: normalizeRenewalMode(existing?.renewalMode || currentRenewalConfiguration.renewalMode) });
           } catch (error) { setStatus('error', 'Neu inserieren nicht geöffnet', friendlyErrorMessage(error)); }
@@ -754,11 +820,15 @@ function syncMassRenewalUiFromLock() {
           void logAppEvent('USER_MASS_RENEWAL_ORDER_OPENED', { itemCount: massRenewalOrderedIds.length, inventoryIds: [...massRenewalOrderedIds] });
         });
         massRenewalBack?.addEventListener('click', () => { setMassRenewalStep(1); updateMassRenewalSelectionState(); });
+        massRenewalStopOnError?.addEventListener('change', () => { void saveStopOnErrorPreference(massRenewalStopOnError.checked); });
         massRenewalStart?.addEventListener('click', async () => {
           if (!requireAccountBoundAction()) { updateMassRenewalOrderState(); return; }
+          if (!stopOnErrorReady || stopOnErrorSaving || typeof stopOnErrorPreference !== 'boolean') {
+            setStatus('error', 'Einstellung nicht verfügbar', 'Bitte prüfe die Einstellung „Bei Fehler anhalten“.'); return;
+          }
           const inventoryIds = [...massRenewalOrderedIds]; if (!inventoryIds.length || inventoryIds.length > MASS_RENEWAL_MAX_ITEMS) return; if (inventoryIds.some(id => !massRenewalSelectedIds.has(String(id)))) return;
           massRenewalStart.disabled = true; setMassRenewalStep(3); if (massRenewalProgressTitle) massRenewalProgressTitle.textContent = 'Anzeigen werden neu inseriert …';
-          try { const batch = await runtimeMessage({ type: 'START_MASS_RENEWAL_BATCH', inventoryIds }); currentMassRenewalBatch = batch; renderMassRenewalBatch(batch); setStatus('', 'Neu inserieren gestartet', `${inventoryIds.length} Anzeigen werden nacheinander verarbeitet.`, '', { badgeLabel: 'Info' }); void logAppEvent('USER_MASS_RENEWAL_STARTED', { batchId: batch?.batchId || null, itemCount: inventoryIds.length, inventoryIds, renewalMode: batch?.renewalMode || null }); }
+          try { const batch = await runtimeMessage({ type: 'START_MASS_RENEWAL_BATCH', inventoryIds, stopOnError: stopOnErrorPreference }); currentMassRenewalBatch = batch; renderMassRenewalBatch(batch); setStatus('', 'Neu inserieren gestartet', `${inventoryIds.length} Anzeigen werden nacheinander verarbeitet.`, '', { badgeLabel: 'Info' }); void logAppEvent('USER_MASS_RENEWAL_STARTED', { batchId: batch?.batchId || null, itemCount: inventoryIds.length, inventoryIds, renewalMode: batch?.renewalMode || null }); }
           catch (error) { setMassRenewalStep(2); updateMassRenewalOrderState(); setStatus('error', 'Neu inserieren nicht gestartet', 'Der Vorgang konnte nicht gestartet werden.'); }
         });
         massRenewalStopAfterCurrent?.addEventListener('click', async () => {
