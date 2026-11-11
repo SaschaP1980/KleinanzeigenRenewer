@@ -133,7 +133,19 @@
       const fields = new Map(observed.schema.fields.map(field => [field.key, field]));
       const represented = new Set();
       for (const attribute of template.dynamicAttributes || []) {
-        if (!attribute?.key || !hasValue(attribute.technicalValue)) continue;
+        if (!attribute?.key) continue;
+        // A formerly visible saved selection with no recoverable technical ID
+        // is NOT an empty optional field. Otherwise a legacy archive can
+        // silently lose that selection even with an unchanged live schema.
+        if (!hasValue(attribute.technicalValue)) {
+          const capturedVisibleValue = clean(attribute.displayValue || '').length > 0 &&
+            attribute.status !== 'empty';
+          if (capturedVisibleValue || ['captured', 'technical-only'].includes(attribute.status)) {
+            issues.push('Gespeichertes Merkmal „' + clean(attribute.label || attribute.key) +
+              '“ hat einen sichtbaren Auswahlwert ohne eindeutig gespeicherten technischen Wert. Bitte Vorlage neu erfassen oder manuell prüfen.');
+          }
+          continue;
+        }
         const oldKey = 'attribute:' + attribute.key;
         let liveKey = oldKey, liveField = fields.get(liveKey), mapped = false;
         if (!liveField) {
