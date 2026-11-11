@@ -173,9 +173,13 @@
   });
 
   const { verify, verifyArchiveTemplate } = KRDeps.require('KRTemplateVerification').create({ checkedRadio });
-  const SchemaPreflight = KRDeps.require('KRTemplateSchemaPreflight').create({
-    Schema: KRDeps.require('KRTemplateSchemaCore'), Form, waitFor, documentRoot: () => document
-  });
+  // Legacy test harnesses may not load the new runtime modules. Runtime behavior
+  // remains fail-closed: the filler will not proceed if this gate is unavailable.
+  const SchemaCore = KRDeps?.optional?.('KRTemplateSchemaCore');
+  const PreflightFactory = KRDeps?.optional?.('KRTemplateSchemaPreflight');
+  const SchemaPreflight = SchemaCore && PreflightFactory?.create
+    ? PreflightFactory.create({ Schema: SchemaCore, Form, waitFor, documentRoot: () => document })
+    : null;
 
   const {
     armPublishDetection, scrollToPublishButton, paidInsertionDetection, stopForPaidInsertion,
@@ -370,6 +374,7 @@
     let schemaPreflightReport = null;
     if (String(form.querySelector('input[name="categoryId"]')?.value || '') === String(template.categoryId || '')) {
       try {
+        if (!SchemaPreflight) throw new Error('Die Formularschema-Sicherheitsprüfung ist nicht verfügbar.');
         const live = await SchemaPreflight.afterHydration(template);
         schemaPreflightReport = await SchemaPreflight.evaluate(template, live);
         void diagnostic(fillId, 'TEMPLATE_SCHEMA_PREFLIGHT', {
