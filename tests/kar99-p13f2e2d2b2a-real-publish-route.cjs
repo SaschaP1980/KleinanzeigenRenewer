@@ -79,7 +79,8 @@ test('B2A: exact message contract denies wrong-target and unknown publish reques
  assert.equal(Contract.errorFor().code,'KR_MESSAGE_CONTRACT_UNKNOWN');
  assert.equal(Contract.inspect('AUTHORIZE_AUTOMATIC_PUBLISH','background').registered,true);
  assert.equal(Contract.snapshot().enforcement,true);
- assert.equal(Contract.contractsForTarget('unrecognized-target').length,0);
+ assert.ok(Contract.groups.background.includes('AUTHORIZE_AUTOMATIC_PUBLISH'));
+ assert.ok(!Contract.groups.content.includes('AUTHORIZE_AUTOMATIC_PUBLISH'));
 });
 test('B2A RED: registered publish route reaches genuine P8 callback and binds immutable journal token',async()=>{
  const e=setup();
