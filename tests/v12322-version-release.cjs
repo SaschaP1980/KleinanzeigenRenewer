@@ -91,7 +91,8 @@ const files=[];
 files.sort();
 const tree=crypto.createHash('sha256');
 for(const p of files){ tree.update(p); tree.update('\0'); tree.update(Buffer.from(sha(p),'hex')); }
-assert.equal(files.length, reviewedNative ? 103 : 100);
+const kar134SchemaRuntime = files.includes('src/shared/template-schema-core.js') && files.includes('src/content/template-schema-preflight.js') ? 2 : 0;
+assert.equal(files.length, (reviewedNative ? 103 : 100) + kar134SchemaRuntime);
 if(reviewedNative) {
   const allowedAdditions=['src/app/native-update-check-ui.js','src/background/services/native-status-bridge.js','src/background/services/native-update-status-gateway.js'];
   for(const name of allowedAdditions)assert.ok(files.includes(name),name);
