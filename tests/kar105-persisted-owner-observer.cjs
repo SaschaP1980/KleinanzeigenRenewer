@@ -15,8 +15,9 @@ function storage(localValue = {}, sessionValue = {}) {
     local: {
       async get(keys) {
         if (localFailure) throw Error('unavailable local storage');
-        assert.equal(Array.isArray(keys), true);
-        return Object.fromEntries(keys.filter(k=>Object.prototype.hasOwnProperty.call(localValue,k)).map(k=>[k,structuredClone(localValue[k])]));
+        assert.ok(keys===null || Array.isArray(keys));
+        const names=keys===null?Object.keys(localValue):keys;
+        return Object.fromEntries(names.filter(k=>Object.prototype.hasOwnProperty.call(localValue,k)).map(k=>[k,structuredClone(localValue[k])]));
       },
       async set(...a) { mutations.push(['local-set',a]); throw Error('observer must be read only'); },
       async remove(...a) { mutations.push(['local-remove',a]); throw Error('observer must be read only'); }
@@ -72,6 +73,89 @@ async function test() {
   failedSession.failSession();
   const sessionUnknown=await create(failedSession).observe();
   ok(sessionUnknown.observations.bulkInventory.state==='unknown', 'session lease read failure blocks bulk authority');
+  // P1.3-F2D: real immutable P8 admission receipts survive MV3 worker restart.
+  // The production routed bridge tracks all seven persisted owners, whereas
+  // autonomous work has specific names in AUTONOMOUS_PERSISTED_OWNER_KINDS.
+  const startPrefix='karAtomicAdmissionStartV1_';
+  const finishPrefix='karAtomicAdmissionFinishV1_';
+  const token='prior_worker_persisted_123456789';
+  function receiptDb(operationType) {
+    const values={
+      [startPrefix+token]:{schema:1,state:'admitted',token,
+        operationType,workerInstanceId:'prior-worker',startedAtMs:11000}
+    };
+    const db=storage(values);
+    return {db,values};
+  }
+  const cases={
+    'AUTONOMOUS:bulk-runtime-recovery':['bulkInventory','bulkReconciliation'],
+    'AUTONOMOUS:renewal-detached-verify':['renewal','insertionLock'],
+    'AUTONOMOUS:mass-renewal-next-item':['massRenewal','insertionLock'],
+    'AUTONOMOUS:archive-resume':['archiveInsertion','templateFill','insertionLock'],
+    'AUTONOMOUS:renewal-publish-detection':['renewal','templateFill','archiveInsertion','insertionLock'],
+    'AUTONOMOUS:tab-lifecycle-update':expected
+  };
+  for(const [kind,owners] of Object.entries(cases)) {
+    const probe=receiptDb(kind);
+    const observed=await create(probe.db).observe();
+    ok(owners.every(name=>observed.observations[name].state==='active'
+       &&observed.observations[name].reason==='DURABLE_ADMISSION_UNFINISHED'),
+       'prior-worker '+kind+' attributes durable ACTIVE to exact persisted owners');
+    ok(expected.filter(name=>!owners.includes(name)).every(name=>observed.observations[name].state==='unknown'),
+       kind+' does not manufacture unrelated owner activity');
+    ok(observed.eligibleForLease===false,'actual durable receipt does not grant updater reserve for '+kind);
+  }
+  const routedReceipt=receiptDb('START_TEMPLATE_FILL');
+  const routedObserved=await create(routedReceipt.db).observe();
+  ok(expected.every(name=>routedObserved.observations[name].state==='active'
+       &&routedObserved.observations[name].reason==='DURABLE_ADMISSION_UNFINISHED'),
+     'real routed admission persists all seven owner lifetimes across restart');
+  routedReceipt.values[finishPrefix+token]={schema:1,state:'completed',token,
+    workerInstanceId:'prior-worker',completedAtMs:11002};
+  const finished=await create(routedReceipt.db).observe();
+  ok(expected.every(name=>finished.observations[name].state==='unknown'
+       &&finished.observations[name].reason==='DURABLE_CALLBACK_SETTLED_REMOTE_UNVERIFIED'),
+     'valid finished callback remains UNKNOWN, not independently verified remote completion');
+  const unknownReceipt=receiptDb('AUTONOMOUS:new-unclassified-worker');
+  const unknownObserved=await create(unknownReceipt.db).observe();
+  ok(expected.every(name=>unknownObserved.observations[name].state==='active'),
+     'unclassified autonomous operation holds all seven owners ACTIVE');
+  const forgedReceipt=receiptDb('AUTONOMOUS:bulk-watchdog');
+  forgedReceipt.values[finishPrefix+token]={schema:1,state:'completed',token,
+    workerInstanceId:'forged-worker',completedAtMs:11002};
+  const forged=await create(forgedReceipt.db).observe();
+  ok(expected.every(name=>forged.observations[name].state!=='idle')
+     &&forged.observations.bulkInventory.reason==='DURABLE_ADMISSION_UNVERIFIED',
+     'mismatched worker completion is never a verified settled receipt');
+  const tornReceipt=receiptDb('AUTONOMOUS:mass-renewal-next-item');
+  const originalGet=tornReceipt.db.local.get.bind(tornReceipt.db.local);
+  let journalReads=0;
+  tornReceipt.db.local.get=async keys=>{
+    const returned=await originalGet(keys);
+    if(keys===null&&++journalReads===1) {
+      tornReceipt.values[finishPrefix+token]={schema:1,state:'completed',token,
+        workerInstanceId:'prior-worker',completedAtMs:11002};
+    }
+    return returned;
+  };
+  const torn=await create(tornReceipt.db).observe();
+  ok(journalReads===2&&torn.observations.massRenewal.state==='unknown'
+     &&torn.observations.massRenewal.reason==='DURABLE_ADMISSION_UNVERIFIED',
+     'changed full journal between independent reads fails closed');
+  ok(tornReceipt.db.mutations.length===0&&routedReceipt.db.mutations.length===0,
+     'persisted completion attribution is strictly read-only');
+  // Cross-check every production autonomous mapping instead of relying only on
+  // a second hand-maintained candidate table.
+  const vm=require('node:vm');
+  const declaration=worker.match(/const AUTONOMOUS_PERSISTED_OWNER_KINDS = Object\.freeze\((\{[\s\S]*?\})\);/);
+  ok(Boolean(declaration),'real production autonomous owner map is auditable');
+  const actual=vm.runInNewContext('('+declaration[1]+')',Object.create(null));
+  const source=fs.readFileSync('src/background/services/persisted-owner-observer.js','utf8');
+  const persistedMap=source.match(/const AUTONOMOUS_RECEIPT_OWNERS = Object\.freeze\((\{[\s\S]*?\})\);/);
+  ok(Boolean(persistedMap),'persisted observer declares exact auditable journal operation map');
+  const expectedMap=vm.runInNewContext('('+persistedMap[1]+')',Object.create(null));
+  ok(JSON.stringify(actual)===JSON.stringify(expectedMap),
+     'all production autonomous persisted owner mappings equal receipt attribution map');
   const activity=create(storage());
   let finish;
   const pending=activity.track(['massRenewal','insertionLock'],()=>new Promise(resolve=>{finish=resolve;}));
