@@ -404,7 +404,8 @@
     await runtimeMessage({ type: 'UPDATE_TEMPLATE_FILL_SESSION', fillId, status: 'running', stage: 'schema-test-category' });
     const categoryState = await setCategory(session.template, fillId, session?.maxPhaseAttempts);
     if (categoryState?.pendingNavigation) return { pending: true, schemaTest: true };
-    const live = await SchemaPreflight.afterHydration({ categoryId: '405', dynamicAttributes: [] });
+    const live = await SchemaPreflight.afterHydration({ categoryId: '405', dynamicAttributes: [] },
+      { probeReadOnlyCaseSize: true });
     if (live.categoryId !== '405') throw new Error('Live-Kategorie 405 wurde nicht bestätigt.');
     const caseField = live.schema.fields.find(field => field.key === 'attribute:wearables.case_size');
     const focused = {
@@ -455,7 +456,12 @@
       technical44Offered: assessment.technical44Offered,
       visible44mmProven: assessment.visible44mmProven,
       invalidValueRejectionProven: assessment.specificInvalidRejectionProven,
-      evidenceState: assessment.evidenceState
+      evidenceState: assessment.evidenceState,
+      popupProbeAttempted: live.optionProbe?.attempted === true,
+      popupProbeFound: live.optionProbe?.popupFound === true,
+      popupRenderedOptions: live.optionProbe?.renderedOptionCount || 0,
+      popupExplicitTechnicalOptions: live.optionProbe?.explicitTechnicalOptionCount || 0,
+      popupEvidenceReason: live.optionProbe?.reason || 'none'
     }, verdict ? 'info' : 'warning');
     await runtimeMessage({
       type: 'UPDATE_TEMPLATE_FILL_SESSION', fillId,

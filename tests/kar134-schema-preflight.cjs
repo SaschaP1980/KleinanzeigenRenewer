@@ -296,5 +296,91 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
     assert.equal(verdict.technical44Offered,true);
     assert.equal(verdict.visible44mmProven,false);
   });
-  console.log(passed+'/29 PASS KAR-134 schema capture/preflight');
+
+  await check('read-only 405 probe opens an exact linked popup and proves explicit technical IDs without selection', async()=>{
+    const f=fixture({options:false});
+    const control=f.document.getElementById('wearables.case_size');
+    const technical=f.document.querySelector('input[name="attributeMap[wearables.case_size]"]');
+    control.setAttribute('aria-controls','case-size-test-popup');
+    let clicks=0;
+    control.addEventListener('click',()=>{
+      clicks++;
+      const popup=f.document.createElement('div');
+      popup.id='case-size-test-popup';
+      popup.setAttribute('role','listbox');
+      popup.getClientRects=()=>[{}];
+      popup.innerHTML='<div role="option" data-value="44">44mm</div><div role="option" data-value="46">46mm</div>';
+      f.document.body.append(popup);
+    });
+    const original=technical.value;
+    const observed=await f.engine.afterHydration(
+      {categoryId:'405',dynamicAttributes:[]}, {probeReadOnlyCaseSize:true});
+    assert.equal(clicks,1);
+    assert.equal(technical.value,original,'opening a dropdown cannot set a form value');
+    assert.equal(observed.optionProbe.verified,true);
+    assert.equal(observed.optionProbe.explicitTechnicalOptionCount,2);
+    assert.deepEqual(observed.schema.fields.find(x=>x.key==='attribute:wearables.case_size').optionValues,['44','46']);
+    assert.deepEqual(observed.optionLabels['wearables.case_size'],[
+      {value:'44',label:'44mm'},{value:'46',label:'46mm'}]);
+    const old=Schema.buildSchema({categoryId:'405',dynamicAttributes:[{key:'wearables.gehausegrosse',controlType:'number'}]});
+    const source={categoryId:'405',templateSchema:{snapshot:old,fingerprint:await Schema.fingerprint(old)},
+      dynamicAttributes:[syntheticCaseAttr('44','44mm')]};
+    const focused={...observed,schema:{...observed.schema,fields:observed.schema.fields.filter(x=>x.key==='attribute:wearables.case_size')}};
+    const report=await f.engine.evaluate(source,focused);
+    assert.equal(assessSyntheticCaseSize('compatible',focused,report,'__KAR134_UNREPRESENTABLE_CASE_SIZE__').verdict,true);
+  });
+  await check('unlinked custom popup without technical ID cannot be mislabeled as a verified selection',async()=>{
+    const f=fixture({options:false});
+    const control=f.document.getElementById('wearables.case_size');
+    control.setAttribute('aria-controls','case-size-missing-ids');
+    control.addEventListener('click',()=>{
+      const popup=f.document.createElement('div');
+      popup.id='case-size-missing-ids';
+      popup.setAttribute('role','listbox');
+      popup.getClientRects=()=>[{}];
+      popup.innerHTML='<div role="option">44mm</div><div role="option">46mm</div>';
+      f.document.body.append(popup);
+    });
+    const observed=await f.engine.afterHydration(
+      {categoryId:'405',dynamicAttributes:[]},{probeReadOnlyCaseSize:true});
+    assert.equal(observed.optionProbe.popupFound,true);
+    assert.equal(observed.optionProbe.renderedOptionCount,2);
+    assert.equal(observed.optionProbe.explicitTechnicalOptionCount,0);
+    assert.equal(observed.optionProbe.verified,false);
+    assert.equal(observed.optionProbe.reason,'popup-technical-ids-not-proven');
+    assert.equal(observed.schema.fields.find(x=>x.key==='attribute:wearables.case_size').optionValues,null);
+  });
+  await check('normal production hydration never opens a dropdown as side effect',async()=>{
+    const f=fixture({options:false});
+    const control=f.document.getElementById('wearables.case_size');
+    let clicks=0;
+    control.addEventListener('click',()=>{clicks++;});
+    const observed=await f.engine.afterHydration({categoryId:'405',dynamicAttributes:[]});
+    assert.equal(clicks,0);
+    assert.equal(observed.optionProbe,undefined);
+  });
+  await check('case-size option probe never infers technical IDs from labels alone',async()=>{
+    const f=fixture({options:false});
+    const control=f.document.getElementById('wearables.case_size');
+    control.setAttribute('aria-controls','case-size-unexpected-value');
+    control.addEventListener('click',()=>{
+      const popup=f.document.createElement('div');
+      popup.id='case-size-unexpected-value';
+      popup.setAttribute('role','listbox');
+      popup.getClientRects=()=>[{}];
+      popup.innerHTML='<div role="option" data-value="size-44">44mm</div>';
+      f.document.body.append(popup);
+    });
+    const observed=await f.engine.afterHydration({categoryId:'405',dynamicAttributes:[]},
+      {probeReadOnlyCaseSize:true});
+    assert.equal(observed.optionProbe.verified,true);
+    const focused={...observed,schema:{...observed.schema,fields:observed.schema.fields.filter(x=>x.key==='attribute:wearables.case_size')}};
+    const old=Schema.buildSchema({categoryId:'405',dynamicAttributes:[{key:'wearables.gehausegrosse',controlType:'number'}]});
+    const source={categoryId:'405',templateSchema:{snapshot:old,fingerprint:await Schema.fingerprint(old)},
+      dynamicAttributes:[syntheticCaseAttr('44','44mm')]};
+    const report=await f.engine.evaluate(source,focused);
+    assert.equal(report.complete,false);
+    assert.equal(assessSyntheticCaseSize('compatible',focused,report,'__KAR134_UNREPRESENTABLE_CASE_SIZE__').verdict,false);
+  });
+  console.log(passed+'/33 PASS KAR-134 schema capture/preflight');
 })().catch(error=>{console.error(error);process.exitCode=1});

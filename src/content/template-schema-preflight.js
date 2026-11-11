@@ -96,7 +96,105 @@
       return { schema: Schema.buildSchema({ categoryId, fields, dynamicAttributes }),
         readbacks, optionLabels, categoryId, dynamicCount: dynamicAttributes.length, form };
     }
-    async function afterHydration(template) {
+    // KAR-134 owner-only read-only probe: a custom 405 combobox may render
+    // its options only AFTER opening a popup. Only inspect the exact case-size
+    // button, never click an option, never infer numeric IDs from text.
+    async function probeCaseSizeOptions(observed) {
+      const key = 'wearables.case_size', fieldKey = 'attribute:' + key;
+      const doc = documentRoot(), form = observed.form;
+      const field = observed.schema.fields.find(entry => entry.key === fieldKey);
+      const audit = { attempted: false, popupFound: false, renderedOptionCount: 0,
+        explicitTechnicalOptionCount: 0, verified: false, reason: 'no-verified-popup' };
+      if (observed.categoryId !== '405' || !field) {
+        return { ...observed, optionProbe: { ...audit, reason: 'field-or-category-missing' } };
+      }
+      if (Array.isArray(field.optionValues) && field.optionValues.length > 0) {
+        return { ...observed, optionProbe: { ...audit, verified: true, reason: 'structured-catalog' } };
+      }
+      const hidden = [...form.querySelectorAll('input[name="attributeMap[wearables.case_size]"]')];
+      const control = doc?.getElementById?.(key);
+      if (hidden.length !== 1 || !control || !form.contains(control) ||
+          control.tagName !== 'BUTTON' || control.getAttribute('role') !== 'combobox' ||
+          control.getAttribute('disabled') !== null) {
+        return { ...observed, optionProbe: { ...audit, reason: 'exact-combobox-not-confirmed' } };
+      }
+      const initial = String(hidden[0].value ?? '');
+      const visibleRoot = element => Boolean(element &&
+        !element.hasAttribute('hidden') && element.getAttribute('aria-hidden') !== 'true' &&
+        (!element.getClientRects || element.getClientRects().length > 0));
+      const popupRoots = () => [...doc.querySelectorAll('[role="listbox"],[role="menu"]')]
+        .filter(visibleRoot);
+      const before = new Set(popupRoots());
+      const originallyExpanded = control.getAttribute('aria-expanded') === 'true';
+      audit.attempted = true;
+      const findPopup = () => {
+        const linkedIds = String(control.getAttribute('aria-controls') ||
+          control.getAttribute('aria-owns') || '').split(/\s+/).filter(Boolean);
+        const linked = linkedIds.map(id => doc.getElementById(id)).filter(visibleRoot);
+        const linkedRoots = linked.map(node => node.matches('[role="listbox"],[role="menu"]')
+          ? node : node.querySelector('[role="listbox"],[role="menu"]') || node)
+          .filter(node => visibleRoot(node) && node.querySelectorAll('[role="option"],[role="menuitem"]').length);
+        if (linkedRoots.length === 1) return linkedRoots[0];
+        if (linkedRoots.length > 1) return null;
+        const opened = popupRoots().filter(root => !before.has(root) ||
+          (originallyExpanded && root.querySelectorAll('[role="option"],[role="menuitem"]').length));
+        return opened.length === 1 ? opened[0] : null;
+      };
+      let popup = null;
+      try {
+        if (!originallyExpanded) control.click(); // opens the menu, never selects an option
+        popup = await waitFor(() => {
+          const candidate = findPopup();
+          return candidate?.querySelectorAll('[role="option"],[role="menuitem"]').length
+            ? candidate : null;
+        }, { timeout: 1800, interval: 70, description: 'Read-only Gehäusegrößen-Auswahl' })
+          .catch(() => null);
+        audit.popupFound = Boolean(popup);
+        if (!popup) {
+          audit.reason = 'popup-options-not-accessible';
+          return { ...observed, optionProbe: audit };
+        }
+        const rows = [...popup.querySelectorAll('[role="option"],[role="menuitem"]')]
+          .filter(node => node.getAttribute('aria-disabled') !== 'true');
+        audit.renderedOptionCount = rows.length;
+        const tagged = rows.map(row => ({
+          value: row.getAttribute('data-value') ?? row.getAttribute('value'),
+          label: clean(row.textContent)
+        }));
+        audit.explicitTechnicalOptionCount = tagged.filter(row =>
+          row.value !== null && row.value !== '' && row.label).length;
+        const ids = tagged.map(item => item.value);
+        const sizeMarkers = rows.map(row => Number(row.getAttribute('aria-setsize')))
+          .filter(n => Number.isSafeInteger(n) && n > 0);
+        const truncated = sizeMarkers.some(n => n > rows.length) ||
+          Boolean(popup.querySelector('[data-virtualizer], [data-virtual]'));
+        if (!rows.length || tagged.some(item => item.value === null ||
+            item.value === '' || !item.label) || new Set(ids).size !== ids.length || truncated) {
+          audit.reason = truncated ? 'popup-incomplete-or-virtualized' : 'popup-technical-ids-not-proven';
+          return { ...observed, optionProbe: audit };
+        }
+        audit.verified = true;
+        audit.reason = 'linked-popup-technical-catalog';
+        const optionValues = ids.map(String).sort();
+        const schema = { ...observed.schema, fields: observed.schema.fields.map(entry =>
+          entry.key === fieldKey ? { ...entry, optionValues } : entry) };
+        const optionLabels = { ...observed.optionLabels, [key]:
+          tagged.map(item => ({ value: String(item.value), label: item.label })) };
+        return { ...observed, schema, optionLabels, optionProbe: audit };
+      } finally {
+        // Escape only; never activate a choice. Closing the menu is cosmetic.
+        if (!originallyExpanded && control.isConnected &&
+            typeof globalThis.KeyboardEvent === 'function') {
+          control.dispatchEvent(new globalThis.KeyboardEvent('keydown',
+            { key: 'Escape', bubbles: true, cancelable: true }));
+        }
+        if (String(hidden[0].value ?? '') !== initial) {
+          throw new Error('Read-only Schema-Prüfmodus: Technischer Formularwert wurde unerwartet verändert.');
+        }
+      }
+    }
+
+    async function afterHydration(template, { probeReadOnlyCaseSize = false } = {}) {
       const doc = documentRoot();
       let last = null, repetitions = 0;
       const observed = await waitFor(() => {
@@ -110,7 +208,7 @@
       }, { timeout: 2500, interval: 120, description: 'Kategorieabhängiges Formularschema' });
       if ((template.dynamicAttributes || []).some(attr => hasValue(attr?.technicalValue)) && observed.dynamicCount === 0)
         throw new Error('Kategorieabhängige Merkmale fehlen im aktuellen Formular.');
-      return observed;
+      return probeReadOnlyCaseSize ? probeCaseSizeOptions(observed) : observed;
     }
     async function evaluate(template, observed) {
       const issues = [], warnings = [], mappings = [];
