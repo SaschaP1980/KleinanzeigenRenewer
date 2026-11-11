@@ -206,7 +206,12 @@
         const key = field.key.slice('attribute:'.length);
         const controls = [...observed.form.querySelectorAll('[name^="attributeMap["]')].filter(control =>
           control.getAttribute('name') === 'attributeMap[' + key + ']');
-        if (controls.length === 0 || !hasValue(controls[0].type === 'checkbox' ? controls[0].checked : controls[0].value)) {
+        const control = controls.length === 1 ? controls[0] : null;
+        const valid = control && (control.type === 'checkbox'
+          ? control.checked === true
+          : control.type === 'radio' ? controls.some(item => item.checked === true)
+            : hasValue(control.value));
+        if (!valid) {
           issues.push('Pflichtmerkmal „' + key + '“ wurde nicht bestätigt.');
         }
       }
