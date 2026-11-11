@@ -71,8 +71,12 @@ async function run() {
   ok(restarted.context.worker.workerInstanceId!=='worker-current',
     'two worker instances sharing stale bulk epoch do not share instance identity');
   ok(restarted.context.worker.state==='unverified','new worker still lacks cross-worker authority');
-  ok(bg.includes('workerInstanceId: crypto.randomUUID()'),
-    'live background assigns fresh worker-instance identity on observer creation');
+  // B1: the P8 coordinator, observer and both irreversible journal writers
+  // must share the SAME newly minted MV3-worker generation.
+  ok(bg.includes('const ownerWorkerInstanceId = crypto.randomUUID()')
+    &&bg.includes('workerInstanceId: ownerWorkerInstanceId')
+    &&!bg.includes('workerInstanceId: crypto.randomUUID()'),
+    'live background mints one new MV3 worker identity shared by the remote writers');
   ok(!bg.includes('getOwnerSnapshot: () => requirePersistedOwnerObserver()'),
     'identity observations cannot be mistaken for an authoritative owner snapshot');
   console.log('PASS KAR111 total '+count);
