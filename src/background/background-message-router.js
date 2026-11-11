@@ -82,6 +82,9 @@
     "GET_APP_NOTICE": Object.freeze({ handler: "GET_APP_NOTICE", preSafety: false }),
     "DISMISS_APP_NOTICE": Object.freeze({ handler: "DISMISS_APP_NOTICE", preSafety: false }),
     "RENEWAL_PUBLISH_CLICKED": Object.freeze({ handler: "RENEWAL_PUBLISH_CLICKED", preSafety: false }),
+    // Genuine pre-click permit is a routed, fenced operation. A content message
+    // never provides its own P8 admission token: only the admitted callback does.
+    "AUTHORIZE_AUTOMATIC_PUBLISH": Object.freeze({ handler: "AUTHORIZE_AUTOMATIC_PUBLISH", preSafety: false }),
     "GET_TEMPLATE_FILL_SESSION": Object.freeze({ handler: "GET_TEMPLATE_FILL_SESSION", preSafety: false }),
     "GET_TEMPLATE_IMAGE_CHUNK": Object.freeze({ handler: "GET_TEMPLATE_IMAGE_CHUNK", preSafety: false }),
     "UPDATE_TEMPLATE_FILL_SESSION": Object.freeze({ handler: "UPDATE_TEMPLATE_FILL_SESSION", preSafety: false }),
@@ -114,7 +117,10 @@
       if (typeof handler !== 'function') throw new Error(`Background handler fehlt: ${descriptor.handler}`);
       if (!descriptor.preSafety) await assertPlatformAccessAllowedForRequest(message);
       if (typeof withWorkflowAdmission === 'function' && !UNFENCED_ROUTES.has(descriptor.handler))
-        return withWorkflowAdmission(descriptor.handler, () => handler(message, sender));
+        // Keep the private source-issued P8 receipt in-band for this exact
+        // admitted handler; never copy provenance from message or sender.
+        return withWorkflowAdmission(descriptor.handler,
+          admissionReceipt => handler(message, sender, admissionReceipt));
       return handler(message, sender);
     }
 

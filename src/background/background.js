@@ -2668,7 +2668,13 @@ async function resolveManagedPublishIntent(fill,detected) {
     throw Object.assign(new Error('KR_PUBLISH_INTENT_UNVERIFIED'),{code:'KR_PUBLISH_INTENT_UNVERIFIED'});
   return result;
 }
-async function authorizeAutomaticPublish(message, sender) {
+async function authorizeAutomaticPublish(message, sender, admissionReceipt) {
+  // This is a worker-only capability from the actual routed P8 callback.
+  // Never permit an unbound journal to authorize a remote publish click.
+  if (!Object.isFrozen(admissionReceipt)
+      || admissionReceipt?.operationType !== 'AUTHORIZE_AUTOMATIC_PUBLISH')
+    throw Object.assign(new Error('KR_PUBLISH_INTENT_ADMISSION_UNVERIFIED'),
+      {code:'KR_PUBLISH_INTENT_ADMISSION_UNVERIFIED'});
   const fillId = String(message?.fillId || '');
   const tabId = Number(sender?.tab?.id || 0);
   if (!/^[A-Za-z0-9_-]{1,128}$/.test(fillId) || !Number.isSafeInteger(tabId) || tabId <= 0)
@@ -2709,7 +2715,7 @@ async function authorizeAutomaticPublish(message, sender) {
     throw new Error('KR_PUBLISH_INTENT_ACCOUNT_UNVERIFIED');
   const entry = await requireAutoPublishIntentJournal().begin({
     fillId, workflowId, kind: archive ? 'archive' : 'renewal',
-    profileId, sourceAdId, targetTabId: tabId
+    profileId, sourceAdId, targetTabId: tabId, admissionReceipt
   });
   // Web Locks serialize journal operations, but cannot freeze the external
   // login while storage I/O is pending. Rebind immediately AFTER the durable
@@ -3385,11 +3391,13 @@ function withAutonomousAdmission(kind, task) {
     const names = AUTONOMOUS_PERSISTED_OWNER_KINDS[kind];
     if (names) {
       const admittedTask = task;
-      task = () => requirePersistedOwnerObserver().track(names, admittedTask);
+      task = admissionReceipt => requirePersistedOwnerObserver().track(
+        names, () => admittedTask(admissionReceipt));
     }
     const started = task;
     const namesForKind = AdditionalOwnerObserver.ownersForOperation(kind, 'autonomous');
-    task = () => requireAdditionalOwnerObserver().track(namesForKind, started);
+    task = admissionReceipt => requireAdditionalOwnerObserver().track(
+      namesForKind, () => started(admissionReceipt));
     return requireUpdateWorkflowFence().withAdmission('AUTONOMOUS:' + kind, task);
   } catch (error) { return Promise.reject(error); }
 }
@@ -3399,7 +3407,13 @@ function withAutonomousAdmission(kind, task) {
 // BUSY evidence only, never proof of idle after restart or update permission.
 function withRoutedAdmission(type, task) {
   const namesForType = AdditionalOwnerObserver.ownersForOperation(type, 'routed');
-  return requireUpdateWorkflowFence().withAdmission(type, () => requirePersistedOwnerObserver().track(PersistedOwnerObserver.OWNERS, () => namesForType.length ? requireAdditionalOwnerObserver().track(namesForType, task) : task()));
+  // Keep P8 provenance on this ONE admitted async chain, including nested
+  // owner trackers; never use a global current-token across concurrent routes.
+  return requireUpdateWorkflowFence().withAdmission(type, admissionReceipt =>
+    requirePersistedOwnerObserver().track(PersistedOwnerObserver.OWNERS, () =>
+      namesForType.length
+        ? requireAdditionalOwnerObserver().track(namesForType, () => task(admissionReceipt))
+        : task(admissionReceipt)));
 }
 const backgroundMessageRouter = BackgroundMessageRouter.create({
   withWorkflowAdmission: (type, task) => withRoutedAdmission(type, task),
@@ -3486,7 +3500,8 @@ const backgroundMessageRouter = BackgroundMessageRouter.create({
   "GET_APP_NOTICE": (message, sender) => getAppNotice(),
   "DISMISS_APP_NOTICE": (message, sender) => dismissAppNotice(message),
   "RENEWAL_PUBLISH_CLICKED": (message, sender) => markRenewalPublishClicked(message, sender),
-  "AUTHORIZE_AUTOMATIC_PUBLISH": (message, sender) => authorizeAutomaticPublish(message, sender),
+  "AUTHORIZE_AUTOMATIC_PUBLISH": (message, sender, admissionReceipt) =>
+    authorizeAutomaticPublish(message, sender, admissionReceipt),
   "GET_TEMPLATE_FILL_SESSION": (message, sender) => getTemplateFillSession(sender),
   "GET_TEMPLATE_IMAGE_CHUNK": (message, sender) => templateImageChunk(message, sender),
   "UPDATE_TEMPLATE_FILL_SESSION": (message, sender) => updateTemplateFillSession(message, sender),
