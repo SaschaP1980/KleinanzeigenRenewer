@@ -374,8 +374,9 @@ function renderCompactInventoryRow(record) {
       setFriendlyErrorStatus(error, 'Nicht in Papierkorb verschoben');
     }
   });
-  actions.append(createButton, updateButton, exportButton, ...makeSchemaTestActions(record,
-    { compact: true, disabled: insertionBlocked || !gate.allowed || !profileMatches }), deleteButton);
+  actions.append(createButton, updateButton, exportButton, deleteButton);
+  for (const button of makeSchemaTestActions(record,
+    { compact: true, disabled: insertionBlocked || !gate.allowed || !profileMatches })) actions.insertBefore(button, deleteButton);
   return row;
 }
 
@@ -814,8 +815,9 @@ function renderInventories(records = currentRecords) {
         setFriendlyErrorStatus(error, 'Nicht in Papierkorb verschoben');
       }
     });
-    actions.append(createButton, updateButton, exportButton, ...makeSchemaTestActions(record,
-      { disabled: insertionBlocked || !accountGate.allowed || !recordMatchesSelectedProfile }), deleteButton);
+    actions.append(createButton, updateButton, exportButton, deleteButton);
+    for (const button of makeSchemaTestActions(record,
+      { disabled: insertionBlocked || !accountGate.allowed || !recordMatchesSelectedProfile })) actions.insertBefore(button, deleteButton);
     card.append(actions);
     }
 
