@@ -729,7 +729,7 @@
 
   // KAR-134 L2 change review. Only normalized structural diff data enters
   // this view. Acknowledgement explicitly is NOT reference acceptance.
-  function buildStageChangeReview(results = {}, { categoryEvidence = null } = {}) {
+  function buildStageChangeReview(results = {}, { categoryEvidence = null, simulationOnly = false } = {}) {
     const order = [
       ['base', 'F1 – Basisformular'],
       ['category', 'F2 – Kategoriehierarchie'],
@@ -810,13 +810,17 @@
     return {
       hasProvenChange: sections.some(section => section.verified),
       hasUncertainty: sections.some(section => section.uncertain),
+      simulationOnly,
       sections,
-      safetyText: 'Dies ist nur eine Bestätigung, dass du die Unterschiede gesehen hast. Gespeicherte Referenzen werden nicht verändert oder übernommen. Es wird nichts veröffentlicht.'
+      safetyText: simulationOnly
+        ? 'NUR TEST / SIMULATION: Alle Änderungen stammen aus künstlichen Referenzen im isolierten Testspeicher. Produktive Fingerprints und Anzeigen bleiben unverändert.'
+        : 'Dies ist nur eine Bestätigung, dass du die Unterschiede gesehen hast. Gespeicherte Referenzen werden nicht verändert oder übernommen. Es wird nichts veröffentlicht.'
     };
   }
 
   function showStageChangeReviewDialog(review, {
-    documentRoot = document, onAcknowledge = () => {}, onDefer = () => {}
+    documentRoot = document, onAcknowledge = () => {}, onDefer = () => {},
+    simulationOnly = false, onTestApprove = null
   } = {}) {
     if (!review?.hasProvenChange) return null;
     documentRoot.getElementById('kr134-change-review-overlay')?.remove();
@@ -830,10 +834,12 @@
     dialog.style.cssText = 'width:min(620px,100%);max-height:90vh;overflow:auto;background:#141b1e;color:#f0f6f5;border:1px solid #536267;border-radius:12px;padding:20px;font:14px/1.5 system-ui,sans-serif;box-shadow:0 16px 52px #0009';
     const title = documentRoot.createElement('h2');
     title.id = 'kr134-change-review-title';
-    title.textContent = 'Änderungen an der Formularstruktur';
+    title.textContent = simulationOnly ? 'TEST – Künstliche Strukturänderungen' : 'Änderungen an der Formularstruktur';
     title.style.cssText = 'font-size:19px;margin:0 0 8px';
     const intro = documentRoot.createElement('p');
-    intro.textContent = 'Kleinanzeigen hat mindestens eine technische Strukturänderung bestätigt. Bitte prüfe die folgenden Unterschiede.';
+    intro.textContent = simulationOnly
+      ? 'Diese Unterschiede sind synthetisch. Kleinanzeigen wurde nicht verändert. Alle Freigaben wirken ausschließlich im temporären Testspeicher.'
+      : 'Kleinanzeigen hat mindestens eine technische Strukturänderung bestätigt. Bitte prüfe die folgenden Unterschiede.';
     dialog.append(title,intro);
     for (const section of review.sections) {
       const group = documentRoot.createElement('section');
@@ -875,6 +881,14 @@
     defer.addEventListener('click',()=>{overlay.remove();onDefer();});
     acknowledge.addEventListener('click',()=>{overlay.remove();onAcknowledge();});
     controls.append(defer,acknowledge);
+    if (simulationOnly && typeof onTestApprove === 'function') {
+      const approve = documentRoot.createElement('button');
+      approve.type = 'button';
+      approve.textContent = 'Testreferenzen übernehmen (nur Testspeicher)';
+      approve.style.cssText='padding:9px 12px;border:1px solid #77e8ca;border-radius:7px;background:#1e5447;color:white;cursor:pointer';
+      approve.addEventListener('click',()=>{overlay.remove();void onTestApprove();});
+      controls.append(approve);
+    }
     dialog.append(safety,controls);
     overlay.append(dialog);
     documentRoot.documentElement.append(overlay);
