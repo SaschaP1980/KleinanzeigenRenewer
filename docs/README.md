@@ -47,6 +47,8 @@ Historical QA and Windows documents now have **one canonical location** in `docs
 - [T1 tests/coverage audit](maintenance/TEST_COVERAGE_AUDIT.md) — original test ownership, independent Gold and generated coverage boundaries
 - [T1 506-file test provenance](maintenance/TEST_COVERAGE_INVENTORY.json) — machine-readable original test path, Git blob SHA and KEEP disposition
 - [Test runner/fixture index](../tests/README.md) — tests, Chromium, Windows and safety-critical evidence
+- [R1 final repository disposition audit](maintenance/REPOSITORY_FINAL_AUDIT.md) — exact release/src/Windows consumer review, archive retention and tracked file/byte deltas
+- [R1 798-file Git-tree disposition matrix](maintenance/REPOSITORY_FINAL_INVENTORY.json) — complete per-file SHA, byte size, KEEP/UNKNOWN reason and old→new map
 - [File-hygiene audit and decisions](maintenance/FILE_HYGIENE_AUDIT.md) — root/docs decisions, historical tooling and safety rationale
 - [Complete baseline file inventory](maintenance/FILE_INVENTORY_MAIN_A1F7878.json) — all tracked source-tree files and conservative per-file dispositions
 
