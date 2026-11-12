@@ -981,6 +981,14 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
     assert.match(model.sections[2].items.join(' '),/case_size/);
     assert.match(model.sections[2].items.join(' '),/checkbox|Kontrollkästchen/);
     assert.match(model.safetyText,/nicht|keine/i);
+    const partiallyKnownDrift=buildStageChangeReview({
+      base:{status:'unchanged'},
+      category:{status:'changed',changes:[{type:'category-depth-changed',before:2,after:3}]},
+      attributes:{status:'unchanged'}
+    },{categoryEvidence:'partial-ids'});
+    assert.equal(partiallyKnownDrift.hasProvenChange,true,'category depth change is independently proven');
+    assert.equal(partiallyKnownDrift.hasUncertainty,true,'unverified ancestor IDs must remain visible');
+    assert.match(partiallyKnownDrift.sections[1].note,/nicht vollständig belegt/i);
   });
   await check('step-2 review does not invent drift from uncertain F2 ancestor or option evidence',()=>{
     const {buildStageChangeReview}=reviewHelpers();
