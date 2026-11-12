@@ -2,7 +2,7 @@
 const { includesActivePatch } = require('./current-patch-policy.cjs');
 const fs=require('node:fs'),assert=require('node:assert/strict'),crypto=require('node:crypto'),path=require('node:path');
 const j=p=>JSON.parse(fs.readFileSync(p,'utf8'));
-const manifest=j('manifest.json'),pkg=j('package.json'),lock=j('package-lock.json'),spec=j('release/release-spec.json'),arch=j('architecture-progress-v1.23.20.json'),sum=j('coverage/coverage-summary.json'),baseline=j('coverage/coverage-baseline-v1.23.19.json'),audit=j('coverage/architecture-audit.json');
+const manifest=j('manifest.json'),pkg=j('package.json'),lock=j('package-lock.json'),spec=j('release/release-spec.json'),arch=j('docs/history/architecture/architecture-progress-v1.23.20.json'),sum=j('coverage/coverage-summary.json'),baseline=j('coverage/coverage-baseline-v1.23.19.json'),audit=j('coverage/architecture-audit.json');
 let n=0;const pass=(m,f)=>{f();n++;console.log('PASS '+m)};
 const sha=p=>crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');
 const reviewedNative=/^1\.23\.(?:3\d|[4-9]\d|[1-9]\d{2,})$/.test(manifest.version);
