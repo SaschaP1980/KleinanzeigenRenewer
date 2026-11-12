@@ -121,4 +121,4 @@ Native/product QA items are tracked as Issues as well. Always read the live Issu
 
 The current repository contains extensive version-specific characterization/regression tests and architecture progress files. Do not remove or rewrite historical contracts merely to make a new refactor easier. When a historical test is structure-coupled rather than behaviour-coupled, first prove that and replace/version the contract deliberately.
 
-The README and CHANGELOG contain extensive historical detail, but normative process rules live under `docs/`.
+Root `README.md` is a stable product overview, root `CHANGELOG.md` is the canonical version history, and normative process rules live under `docs/`. Older non-version README excerpts are preserved as explicitly non-current evidence under `docs/history/README_GUIDANCE_PRE_KAR170.md`.
