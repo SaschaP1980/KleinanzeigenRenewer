@@ -100,7 +100,7 @@ function fixture({ committedId = '154', disableConfirmation = false, duplicateLe
   return { document, form, activity };
 }
 
-function makeFlow() {
+function makeFlow(extraOptions = {}) {
   return Category.create({
     CATEGORY_PATH: '/p-kategorie-aendern.html', LEGACY_ACTION_DELAY_MS: 1,
     INTERACTION_SETTLE_MS: 1, CATEGORY_OPEN_LOCAL_CONFIRM_MS: 1,
@@ -117,7 +117,8 @@ function makeFlow() {
       for (let n = 0; n < 4; n++) { const found = getter(); if (found) return found; }
       throw new Error(config.description || 'wait timed out');
     },
-    updatePanel: noop
+    updatePanel: noop,
+    ...extraOptions
   });
 }
 (async () => {
@@ -492,5 +493,40 @@ function makeFlow() {
     assert.equal(activity.confirms, 0, 'disabled matching terminal must reject');
     passed++;
   }
-  console.log(passed + '/37 PASS KAR-132/KAR-143 modern same-page category modal safety');
+
+  // KAR-134 F2: authenticated category-path observations must be emitted only
+  // after the live committed leaf ID readback, never from a guessed prefix.
+  {
+    fixture();
+    let evidence = null;
+    const result = await makeFlow({onCategoryPathConfirmed: value => {evidence = value;}})
+      .setCategory({categoryId:'154',categoryPath},'kar134-verified-F2-trail');
+    assert.deepEqual(result,{confirmed:true,pendingNavigation:false},'existing navigation contract is unchanged');
+    assert.equal(evidence.categoryId,'154');
+    assert.equal(evidence.observedPath,true);
+    assert.equal(evidence.leafConfirmed,true);
+    assert.deepEqual(evidence.levels.map(x=>x.label),categoryPath);
+    assert.deepEqual(evidence.levels.map(x=>x.technicalId),[null,null,'154'],
+      'unpublished ancestor numeric IDs must NEVER be inferred');
+    assert.deepEqual(evidence.levels.map(x=>x.kind),['branch','branch','leaf']);
+    passed++;
+  }
+  {
+    fixture({committedId:'999'});
+    let fired = false;
+    await assert.rejects(makeFlow({onCategoryPathConfirmed:()=>{fired=true;}})
+      .setCategory({categoryId:'154',categoryPath},'kar134-bad-leaf'),/Kategorie-ID/);
+    assert.equal(fired,false,'wrong platform leaf ID cannot establish an F2 reference');
+    passed++;
+  }
+  {
+    const f=fixture();f.form.querySelector('input[name="categoryId"]').value='154';
+    let fired = false;
+    assert.deepEqual(await makeFlow({onCategoryPathConfirmed:()=>{fired=true;}})
+      .setCategory({categoryId:'154',categoryPath},'kar134-already-selected'),{
+        confirmed:true,pendingNavigation:false});
+    assert.equal(fired,false,'preselected category cannot be passed off as observed category navigation');
+    passed++;
+  }
+  console.log(passed + '/40 PASS KAR-132/KAR-143/KAR-134 modern same-page category modal safety');
 })().catch(error => { console.error(error); process.exitCode = 1; });
