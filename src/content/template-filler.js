@@ -525,7 +525,7 @@
   // fingerprint remains available until an explicit future review action.
   async function monitorSchemaStage(stage, snapshot, fillId, {
     storage = chrome.storage?.local, onWarning = registerSchemaMonitorWarning,
-    log = diagnostic
+    log = diagnostic, isolatedTest = false
   } = {}) {
     const hashFn = stage === 'base' ? SchemaCore.baseFingerprint
       : stage === 'category' ? SchemaCore.categoryFingerprint
@@ -539,7 +539,10 @@
       throw new Error('Kategorie für den Schema-Monitor nicht eindeutig');
     if (stage === 'category' && (!snapshot.leafConfirmed || !snapshot.observedPath))
       return { status: 'not-observed', currentFingerprint: null };
-    const key = 'kr134:stage-monitor:v1:' + stage + ':' +
+    const namespace = isolatedTest
+      ? 'kr134:isolated-stage-monitor:v1:' + String(fillId) + ':'
+      : 'kr134:stage-monitor:v1:';
+    const key = namespace + stage + ':' +
       (stage === 'base' ? String(snapshot.formMode || '') : categoryId);
     const notices = {
       base: 'Basisformular',
@@ -558,6 +561,10 @@
     };
     try {
       currentFingerprint = await hashFn(snapshot);
+      // A synthetic monitor MUST use the explicitly injected, ephemeral
+      // storage facade. chrome.storage.local cannot satisfy this contract.
+      if (isolatedTest && storage?.kind !== 'kr134-isolated-reference-store')
+        throw new Error('Isolierter Schema-Testspeicher fehlt.');
       if (!storage?.get || !storage?.set) throw new Error('Schema reference store unavailable');
       const loaded = await storage.get(key);
       const saved = loaded?.[key];
@@ -594,6 +601,130 @@
       notify(label + ': Schema-Referenz konnte nicht geprüft werden (Speicherzugriff fehlgeschlagen).');
       return audit('monitor-unavailable');
     }
+  }
+
+  // KAR-134 L3: A per-run, memory-only reference store. Its keys have a
+  // disjoint prefix and its get/set implementations cannot access extension
+  // storage. The synthetic "old" fields/parent level are TEST FIXTURES.
+  // All three real observations must be complete before creating this store.
+  async function createIsolatedStageReview(fillId, observed) {
+    const id = String(fillId || '');
+    if (!/^[A-Za-z0-9_-]{1,80}$/.test(id))
+      throw new Error('Isolierter Test benötigt eine eindeutige Vorgangs-ID.');
+    const { base, category, attributes } = observed || {};
+    if (!base || base.stage !== 'base' || base.formMode !== 'posting-create' ||
+        !Array.isArray(base.fields) || base.fields.length === 0 ||
+        !category || category.stage !== 'category' ||
+        category.leafConfirmed !== true || category.observedPath !== true ||
+        !Array.isArray(category.levels) || category.levels.length < 2 ||
+        category.levels.length >= 12 ||
+        !/^[1-9][0-9]*$/.test(String(category.categoryId || '')) ||
+        category.levels.at(-1)?.technicalId !== category.categoryId ||
+        !attributes || attributes.categoryId !== category.categoryId ||
+        !Array.isArray(attributes.fields) || !attributes.fields.some(field =>
+          field?.key?.startsWith('attribute:')))
+      throw new Error('F1/F2/F3 sind für einen isolierten Test nicht vollständig erfasst.');
+    const baseProbe = 'field:kr134_synthetic_previous_base_field';
+    const attrProbe = 'attribute:kr134.synthetic_previous_attribute';
+    if (base.fields.some(field => field.key === baseProbe) ||
+        attributes.fields.some(field => field.key === attrProbe))
+      throw new Error('Kollision mit synthetischem Testschema.');
+    // Only technical structure, never real ad content, is copied or hashed.
+    const clone = value => JSON.parse(JSON.stringify(value));
+    const current = { base: clone(base), category: clone(category), attributes: clone(attributes) };
+    const prior = {
+      base: { ...clone(base), fields: [...clone(base.fields), {
+        key: baseProbe, kind: 'text', requiredState: 'unknown', optionValues: null
+      }] },
+      category: SchemaCore.buildCategorySchema({
+        categoryId: category.categoryId, leafConfirmed: true, observedPath: true,
+        levels: [{ label: 'KAR-134 TEST: zusätzliche frühere Ebene',
+          technicalId: null, kind: 'branch' },
+          ...clone(category.levels)]
+      }),
+      attributes: { ...clone(attributes), fields: [...clone(attributes.fields), {
+        key: attrProbe, kind: 'text', requiredState: 'unknown', optionValues: null
+      }] }
+    };
+    const namespace = 'kr134:isolated-stage-monitor:v1:' + id + ':';
+    const keyOf = (stage, snapshot) => namespace + stage + ':' +
+      (stage === 'base' ? snapshot.formMode : snapshot.categoryId);
+    const keys = Object.fromEntries(['base','category','attributes'].map(stage =>
+      [stage, keyOf(stage, current[stage])]));
+    const data = new Map();
+    let referenceWrites = 0, decision = 'pending';
+    const storage = Object.freeze({
+      kind: 'kr134-isolated-reference-store',
+      async get(key) {
+        if (!Object.values(keys).includes(key)) throw new Error('Testreferenz außerhalb des isolierten Bereichs.');
+        return { [key]: data.has(key) ? clone(data.get(key)) : undefined };
+      },
+      async set(values) {
+        const entries = Object.entries(values || {});
+        if (!entries.length || entries.some(([key]) => !Object.values(keys).includes(key)))
+          throw new Error('Ungültige Referenz im isolierten Testspeicher.');
+        for (const [key,value] of entries) data.set(key,clone(value));
+        referenceWrites += entries.length;
+      }
+    });
+    const hash = { base: SchemaCore.baseFingerprint,
+      category: SchemaCore.categoryFingerprint, attributes: SchemaCore.fingerprint };
+    const baseline = {};
+    for (const stage of Object.keys(keys)) {
+      const fingerprint = await hash[stage](prior[stage]);
+      baseline[keys[stage]] = { schemaVersion: 1, snapshot: prior[stage], fingerprint };
+    }
+    await storage.set(baseline);
+    const compare = async () => {
+      const results = {};
+      for (const stage of Object.keys(keys))
+        results[stage] = await monitorSchemaStage(stage, current[stage], id, {
+          storage, isolatedTest: true,
+          onWarning: () => {}, log: () => Promise.resolve()
+        });
+      return results;
+    };
+    const results = await compare();
+    if (Object.values(results).some(result => result.status !== 'changed'))
+      throw new Error('Synthetische Strukturänderung konnte nicht vollständig nachgewiesen werden.');
+    const state = () => ({
+      namespace, referenceWrites, decision,
+      accepted: decision === 'approved', realReferenceReads: 0, realReferenceWrites: 0
+    });
+    return Object.freeze({
+      observed: current, results, state,
+      defer() {
+        if (decision !== 'pending') throw new Error('Testentscheidung bereits abgeschlossen.');
+        decision = 'deferred';
+        return state();
+      },
+      async approve({ confirmed = false } = {}) {
+        if (confirmed !== true) throw new Error('Explizite Test-Bestätigung fehlt.');
+        if (decision !== 'pending') throw new Error('Testentscheidung bereits abgeschlossen.');
+        // Validate all three stored fixtures before any isolated adoption.
+        const accepted = {};
+        for (const stage of Object.keys(keys)) {
+          const saved = (await storage.get(keys[stage]))[keys[stage]];
+          if (!saved || saved.schemaVersion !== 1 ||
+              saved.fingerprint !== baseline[keys[stage]].fingerprint ||
+              await hash[stage](saved.snapshot) !== saved.fingerprint ||
+              await hash[stage](current[stage]) === saved.fingerprint)
+            throw new Error('Testreferenz ist ungültig oder bereits angenommen.');
+          accepted[keys[stage]] = {
+            schemaVersion: 1, snapshot: current[stage],
+            fingerprint: await hash[stage](current[stage])
+          };
+        }
+        await storage.set(accepted); // in-memory atomic three-reference update
+        const checked = await compare();
+        if (checked.base.status !== 'unchanged' ||
+            !['unchanged','not-fully-verified'].includes(checked.category.status) ||
+            checked.attributes.status !== 'unchanged')
+          throw new Error('Isolierte Referenzübernahme konnte nicht erneut verifiziert werden.');
+        decision = 'approved';
+        return { accepted: true, results: checked, ...state() };
+      }
+    });
   }
 
   // KAR-134 L2 change review. Only normalized structural diff data enters
