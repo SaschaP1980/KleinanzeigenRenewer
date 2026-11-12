@@ -84,7 +84,9 @@ def fake_git(*args):
     if args == ("log","-1","--format=%H",test_sha,"--",old_path): return sealed_sha
     if args == ("show","-s","--format=%s",sealed_sha): return "build(KAR-132): atomic PATCH 1.23.38 plus ZIP"
     if args == ("diff-tree","--no-commit-id","--name-only","-r",sealed_sha): return "\n".join(sorted(changed))
-    # A prior sealed ZIP can predate a later main merge. Require proof it remains\n    # an ancestor of the exact current Work source, not retroactive main ancestry.\n    if args == ("merge-base","--is-ancestor",sealed_sha,test_sha): return ""
+    # A prior sealed ZIP can predate a later main merge. Require proof it remains
+    # an ancestor of the exact current Work source, not retroactive main ancestry.
+    if args == ("merge-base","--is-ancestor",sealed_sha,test_sha): return ""
     raise AssertionError("Unexpected Git command: "+repr(args))
 def fake_run(*args, **kwargs):
     if args == ("git","show",sealed_sha+":"+old_path) and kwargs.get("binary"): return sealed_zip
