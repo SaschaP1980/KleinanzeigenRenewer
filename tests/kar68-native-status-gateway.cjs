@@ -18,6 +18,20 @@ async function run() {
   const health=await good.request('health');
   check(health.ok===true&&health.operation==='health','valid health response');
   check(calls===1,'single one-shot transport request');
+  const okHealthWithInspection = id => ({...okHealth(id),
+    capabilities:['health','check','inspect_transaction']});
+  const modern=await create((_,p)=>okHealthWithInspection(p.requestId)).request('health');
+  check(modern.ok===true && modern.capabilities.length===3
+    && modern.capabilities.includes('inspect_transaction'),'new host truthful read-only capabilities');
+  check((await create(()=>{throw Error('forbidden host transport')}).request('inspect_transaction')).error==='OPERATION_DENIED',
+    'native inspector stays unavailable through extension-side gateway');
+  check((await create((_,p)=>({...okHealthWithInspection(p.requestId),
+    capabilities:['health','check','inspect_transaction','apply_update']})).request('health')).error==='INVALID_RESPONSE',
+    'unexpected mutating native capability refused');
+  check((await create((_,p)=>({...okHealthWithInspection(p.requestId),
+    capabilities:['health','check','inspect_transaction','inspect_transaction']})).request('health')).error==='INVALID_RESPONSE',
+    'duplicate extra native capability refused');
+
   check((await good.request('apply_update')).error==='OPERATION_DENIED','no update/apply operation');
   check((await good.request('rollback')).error==='OPERATION_DENIED','no rollback operation');
   check(calls===1,'unknown operations never reach transport');

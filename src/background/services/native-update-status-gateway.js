@@ -31,10 +31,16 @@
     if (operation === 'health') {
       if (!sameKeys(message, ['protocol', 'requestId', 'ok', 'operation', 'hostVersion', 'capabilities'])
         || message.operation !== 'health' || message.hostVersion !== '1'
-        || !Array.isArray(message.capabilities) || message.capabilities.length !== 2
+        || !Array.isArray(message.capabilities)
+        || ![2, 3].includes(message.capabilities.length)
         || !message.capabilities.includes('health') || !message.capabilities.includes('check')
-        || new Set(message.capabilities).size !== 2) return failure('INVALID_RESPONSE');
-      return Object.freeze({ ok: true, operation: 'health', hostVersion: '1', capabilities: Object.freeze(['health', 'check']) });
+        || (message.capabilities.length === 3 && !message.capabilities.includes('inspect_transaction'))
+        || new Set(message.capabilities).size !== message.capabilities.length) return failure('INVALID_RESPONSE');
+      // Legacy hosts still advertise health/check. The new third native-only
+      // negative witness is observable via health but NOT an extension-gateway
+      // request: only health/check stay allowlisted until native completion is proven.
+      return Object.freeze({ ok: true, operation: 'health', hostVersion: '1',
+        capabilities: Object.freeze([...message.capabilities]) });
     }
     if (!sameKeys(message, ['protocol', 'requestId', 'ok', 'operation', 'installed', 'approved', 'sha256', 'sourceCommit'])
       || message.operation !== 'check' || typeof message.installed !== 'string'

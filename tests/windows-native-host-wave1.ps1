@@ -107,7 +107,7 @@ try {
  $id='0123456789abcdef'
  $reply=Run-Host (Frame ('{"protocol":1,"requestId":"'+$id+'","operation":"health"}'))
  Check ($reply.ok -eq $true -and $reply.requestId -ceq $id -and $reply.operation -ceq 'health') 'valid local read-only health message'
- Check (@($reply.capabilities).Count -eq 2 -and @($reply.capabilities) -contains 'health' -and @($reply.capabilities) -contains 'check') 'only health/check exposed'
+ Check (@($reply.capabilities).Count -eq 3 -and @($reply.capabilities) -contains 'health' -and @($reply.capabilities) -contains 'check' -and @($reply.capabilities) -contains 'inspect_transaction') 'health advertises only the three read-only host capabilities'
  $origin='chrome-extension://hafahjhhgiipdegfkgacchmnacgblnah/'
  $health=Frame ('{"protocol":1,"requestId":"'+$id+'","operation":"health"}')
  $nonSlash=Run-Host $health @('chrome-extension://hafahjhhgiipdegfkgacchmnacgblnah','--parent-window=0')
