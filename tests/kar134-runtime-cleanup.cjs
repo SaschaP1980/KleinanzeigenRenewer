@@ -35,6 +35,10 @@ assert.match(controller, /schemaTestScenario\s*===\s*'category-check'/,
   'controller must only admit the real category check');
 assert.match(controller, /session\?\.schemaTestScenario\s*!==\s*'category-check'/,
   'genuine F3 approval must stay restricted to category checks');
+assert.match(service, /session\.schemaTestScenario\s*!==\s*'category-check'/,
+  'persisted unsupported probe sessions must fail before delivery');
+assert.match(content, /session\.schemaTestScenario\s*!==\s*'category-check'/,
+  'content must reject unsupported probes before legacy category navigation');
 assert.match(content, /runReadOnlySchemaTest/);
 assert.match(content, /monitorSchemaStage\('attributes'/);
 assert.match(content, /buildRealSchemaAdoptionPlan/);
