@@ -1213,6 +1213,8 @@
     try {
       // Test mode runs before all filling, continuation and publication branches.
       if (session.schemaTestScenario) {
+        if (session.schemaTestScenario !== 'category-check')
+          throw new Error('Veralteter Schema-Testvorgang kann nicht ausgeführt werden.');
         if (kind === 'category') return await runLegacyCategorySelection(session);
         if (kind !== 'target') throw new Error('Schema-Test: unerwartete Formularseite.');
         return await runReadOnlySchemaTest(session);
