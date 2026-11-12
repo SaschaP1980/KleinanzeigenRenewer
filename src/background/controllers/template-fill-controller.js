@@ -516,8 +516,8 @@ async function adoptVerifiedSchemaReference(message, session, sessions, sender) 
       sender?.tab?.id !== session?.targetTabId ||
       Boolean(session?.schemaTestScenario) ||
       !Boolean(session?.templateOnly || session?.renewalId || session?.archiveInsertionId) ||
-      session?.status !== 'needs-review' ||
-      session?.stage !== 'schema-reference-review-required' ||
+      session?.status !== 'running' ||
+      session?.stage !== 'schema-reference-review-pending' ||
       !session.fillId || !session.inventoryId ||
       !/^[A-Za-z0-9_-]{1,80}$/.test(String(session.fillId)) ||
       Date.now() - Date.parse(session.createdAt || 0) > 15 * 60 * 1000)
@@ -623,8 +623,8 @@ async function updateTemplateFillSession(message, sender) {
   const sessions = await readFillSessions();
   const session = sessions[message.fillId];
   if (!session || session.targetTabId !== tabId) throw new Error("Vorlagen-Sitzung gehört nicht zu diesem Tab.");
-  // Real F3 consent is an explicit, authenticated mutation on a paused
-  // production posting preflight, never an invisible or test-mode update.
+  // Real F3 consent is an authenticated mutation on a pending production
+  // posting review; only explicit UI decision may resume or terminate it.
   if (message?.referenceAdoption)
     return adoptVerifiedSchemaReference(message, session, sessions, sender);
   const previousStatus = session.status;
