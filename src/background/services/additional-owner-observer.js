@@ -954,7 +954,99 @@
         detachedWorkVerified:false,remoteWorkVerified:false
       });
     }
-    return Object.freeze({observe,observeAll,track,snapshotInFlight,readVerifiedUnmanagedTabsReadOnly,inspectDiagnosticExportClosureReadOnly,inspectTrashMutationClosureReadOnly,inspectSingleInventoryClosureReadOnly,inspectProfileTransitionClosureReadOnly,inspectAccountTransitionClosureReadOnly,inspectEmergencyRecoveryClosureReadOnly,inspectManagedTabsClosureReadOnly});
+    // KAR-99 P1.3: actual persisted local NativeHost update fence lifecycle.
+    // A read-only released tombstone is not an independently inspected
+    // host transaction, rollback completion, or an all-owner IDLE lease.
+    // Production NativeHost only supports health/check. Do not call recover(),
+    // request native transport, write storage, or promote local release to IDLE.
+    async function inspectNativeUpdateTransactionClosureReadOnly() {
+      const owner='nativeUpdateTransaction';
+      const result=(status,reason,more={})=>Object.freeze({
+        schema:1,owner,status,reason,eligibleForLease:false,
+        transactionState:null,sourceRevision:null,localReleaseRecorded:false,
+        nativeHostOutcomeVerified:false,noPendingApplyVerified:false,
+        noPendingRollbackVerified:false,priorGenerationClosed:false,...more
+      });
+      if(pending.get(owner)!==0)
+        return result('blocked','ACTUAL_IN_FLIGHT_OPERATION');
+      const keys=['nativeUpdateWorkflowFenceV1',...PROFILE_KEYS];
+      let initial,prior,following,again,final;
+      try {
+        initial=await storageLocal.get(keys);
+        prior=await observe();
+        following=await storageLocal.get(keys);
+        again=await observe();
+        final=await storageLocal.get(keys);
+      } catch {return result('unverified','NATIVE_FENCE_SOURCE_UNAVAILABLE');}
+      if(pending.get(owner)!==0)
+        return result('blocked','ACTUAL_IN_FLIGHT_OPERATION');
+      if(!record(initial)||!record(following)||!record(final)
+        ||JSON.stringify(initial)!==JSON.stringify(following)
+        ||JSON.stringify(initial)!==JSON.stringify(final))
+        return result('unverified','NATIVE_FENCE_SOURCE_CHANGED_DURING_READ');
+      const fence=initial.nativeUpdateWorkflowFenceV1;
+      if(fence===undefined||fence===null)
+        return result('unverified','NATIVE_FENCE_ABSENT');
+      if(!record(fence)||fence.schema!==1
+        ||!['reserved','cancelled','released'].includes(fence.state))
+        return result('unverified','NATIVE_FENCE_RECORD_CORRUPT');
+      const required=['schema','state','token','profileId','workerGeneration',
+        'transactionId','createdAtMs','expiresAtMs'];
+      if(fence.state!=='reserved')required.push('cancelledAtMs');
+      if(fence.state==='released')required.push('releasedAtMs');
+      const validId=x=>typeof x==='string'&&PROFILE.test(x);
+      const validTime=x=>Number.isSafeInteger(x)&&x>=0;
+      if(Object.keys(fence).length!==required.length
+        ||!required.every(k=>Object.hasOwn(fence,k))
+        ||!validId(fence.token)||fence.token.length<12
+        ||!validId(fence.profileId)||!validId(fence.workerGeneration)
+        ||!validId(fence.transactionId)
+        ||!validTime(fence.createdAtMs)||!validTime(fence.expiresAtMs)
+        ||fence.expiresAtMs<fence.createdAtMs
+        ||(fence.state!=='reserved'
+          &&(!validTime(fence.cancelledAtMs)
+            ||fence.cancelledAtMs<fence.createdAtMs)))
+        return result('unverified','NATIVE_FENCE_RECORD_CORRUPT');
+      if(fence.state==='reserved'||fence.state==='cancelled')
+        return result('blocked','PERSISTED_NATIVE_UPDATE_TRANSACTION',{
+          transactionState:fence.state
+        });
+      let tick;
+      try {tick=clock();}
+      catch {return result('unverified','NATIVE_FENCE_TIME_UNVERIFIED');}
+      if(!validTime(fence.releasedAtMs)
+        ||fence.releasedAtMs<fence.cancelledAtMs
+        ||!validTime(tick)||fence.releasedAtMs>tick)
+        return result('unverified','NATIVE_FENCE_RECORD_CORRUPT');
+      const selected=initial.selectedInventoryProfileV1;
+      const detected=initial.activeDetectedProfileV1;
+      if(!record(selected)||!record(detected)
+        ||!validId(selected.profileId)||!validId(detected.profileId)
+        ||selected.profileId!==fence.profileId
+        ||detected.profileId!==fence.profileId)
+        return result('unverified','NATIVE_FENCE_PROFILE_UNVERIFIED');
+      const previous=prior?.context?.profile;
+      const current=again?.context?.profile;
+      const forbidden=new Set([
+        'PROFILE_MISMATCH','PROFILE_CHANGED_DURING_READ',
+        'LIVE_ACCOUNT_PROFILE_NAME_MISMATCH','LIVE_ACCOUNT_TABS_DISAGREE',
+        'LIVE_ACCOUNT_PROFILE_CHANGED_DURING_READ',
+        'LIVE_ACCOUNT_STATUS_CHANGED_DURING_READ'
+      ]);
+      if(!record(previous)||!record(current)
+        ||previous.reason!==current.reason
+        ||previous.profileId!==current.profileId
+        ||forbidden.has(previous.reason)
+        ||prior?.observations?.nativeUpdateTransaction?.state==='active'
+        ||again?.observations?.nativeUpdateTransaction?.state==='active')
+        return result('unverified','NATIVE_FENCE_CONTEXT_UNVERIFIED');
+      return result('local-release-recorded',
+        'DURABLE_LOCAL_NATIVE_FENCE_RELEASE_TOMBSTONE',{
+          transactionState:'released',localReleaseRecorded:true,
+          sourceRevision:JSON.stringify([fence,detected.profileId,selected.profileId])
+        });
+    }
+    return Object.freeze({observe,observeAll,track,snapshotInFlight,readVerifiedUnmanagedTabsReadOnly,inspectDiagnosticExportClosureReadOnly,inspectTrashMutationClosureReadOnly,inspectSingleInventoryClosureReadOnly,inspectProfileTransitionClosureReadOnly,inspectAccountTransitionClosureReadOnly,inspectEmergencyRecoveryClosureReadOnly,inspectManagedTabsClosureReadOnly,inspectNativeUpdateTransactionClosureReadOnly});
   }
   const API=Object.freeze({create,OWNERS,ownersForOperation});
   globalThis.KRDeps?.register?.('KRAdditionalOwnerObserver',API);
