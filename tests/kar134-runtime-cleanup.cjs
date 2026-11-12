@@ -30,7 +30,7 @@ for (const obsolete of [
   'kr134:isolated-stage-monitor:v1:'
 ]) assert.ok(!runtime.includes(obsolete), 'development-only runtime helper remains: '+obsolete);
 
-assert.match(ui, /scenario:\s*'category-check'/, 'independent category checking must remain');
+assert.match(ui, /schemaTestScenario:\s*'category-check'/, 'independent category checking must remain');
 assert.match(controller, /schemaTestScenario\s*===\s*'category-check'/,
   'controller must only admit the real category check');
 assert.match(controller, /session\?\.schemaTestScenario\s*!==\s*'category-check'/,
