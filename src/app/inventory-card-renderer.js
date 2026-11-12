@@ -106,7 +106,7 @@ function makeInventoryExportActionButton(record) {
 }
 
 
-function makeSchemaTestActions(record, { compact = false, disabled = false } = {}) {
+function makeCategoryCheckActions(record, { compact = false, disabled = false } = {}) {
   const categoryId = String(record?.category?.id ?? record?.categoryIdFromUrl ?? '').trim();
   const path = Array.isArray(record?.category?.path) && record.category.path.length
     ? record.category.path : record?.categoryPath;
@@ -114,54 +114,41 @@ function makeSchemaTestActions(record, { compact = false, disabled = false } = {
     Array.isArray(path) && path.length >= 2 && path.length <= 12 &&
     path.every(label => typeof label === 'string' && label.trim());
   if (record?.renewal || !hasVerifiableCategoryPath) return [];
-  const category405Actions = categoryId === '405' ? [
-    { scenario: 'compatible', label: 'Schema OK testen', icon: 'update',
-      help: 'Liest Kategorie 405 und prüft synthetisch den übernommenen Wert 44 / 44mm. Kein Ausfüllen oder Veröffentlichen.' },
-    { scenario: 'incompatible', label: 'Schema-Drift testen', icon: 'retry',
-      help: 'Liest Kategorie 405 und prüft den Sicherheitsstopp bei einem simulierten gespeicherten Merkmal, das im aktuellen Formular fehlt. Keine Veröffentlichung.' },
-    { scenario: 'stage-drift', label: 'Fingerprint-Warnung testen', icon: 'retry',
-      help: 'Simuliert getrennte Strukturänderungen in F1 (Basisformular), F2 (Kategoriepfad) und F3 (Merkmale). Zeigt gelbe TEST-Warnungen, verändert keine gespeicherten Fingerprints und veröffentlicht nichts.' }
-  ] : [];
-  return [
-    { scenario: 'category-check', label: 'Kategorie prüfen', icon: 'update',
-      help: 'Prüft die Kategorie und das aktuelle Formularschema (F1, F2 und F3). Verwendet bei Bedarf den gespeicherten Artikeltyp (Art/Typ) nur zur Kategorienavigation. Keine übrigen Anzeigenwerte, Bilder oder Veröffentlichung.' },
-    { scenario: 'isolated-review', label: 'Änderungsdialog testen', icon: 'retry',
-      help: 'TEST: Vergleicht die aktuelle Kategorie mit künstlichen F1-/F2-/F3-Referenzen ausschließlich im Arbeitsspeicher. Testübernahme oder Ablehnung verändern niemals echte Fingerprints. Kein Eintragen oder Veröffentlichen.' },
-    ...category405Actions
-  ].map(spec => {
-    const button = compact
-      ? makeCompactIconButton({ icon: spec.icon, label: spec.label, title: spec.help })
-      : document.createElement('button');
-    if (!compact) {
-      button.type = 'button';
-      button.className = 'secondary compact-action';
-      button.textContent = spec.label;
-      button.title = spec.help;
+  const help = 'Prüft die Kategorie und das aktuelle Formularschema (F1, F2 und F3). Verwendet bei Bedarf den gespeicherten Artikeltyp (Art/Typ) nur zur Kategorienavigation. Keine übrigen Anzeigenwerte, Bilder oder Veröffentlichung.';
+  const button = compact
+    ? makeCompactIconButton({ icon: 'update', label: 'Kategorie prüfen', title: help })
+    : document.createElement('button');
+  if (!compact) {
+    button.type = 'button';
+    button.className = 'secondary compact-action';
+    button.textContent = 'Kategorie prüfen';
+    button.title = help;
+  }
+  button.disabled = disabled;
+  if (compact) rememberCompactButtonDisabled(button);
+  button.addEventListener('click', async () => {
+    if (!requireAccountBoundAction()) return;
+    if (!await confirmAction({
+      title: 'Kategorie nur prüfen?',
+      text: help,
+      detail: 'Die Inventarvorlage bleibt unverändert. Zur Kategorienavigation darf der gespeicherte Artikeltyp (Art/Typ) verwendet werden. Es werden keine anderen Anzeigenwerte übertragen oder Anzeigen veröffentlicht.',
+      confirmLabel: 'Kategorieprüfung starten'
+    })) return;
+    button.disabled = true;
+    try {
+      const started = await runtimeMessage({
+        type: 'START_TRASH_TEMPLATE_FILL', inventoryId: record.inventoryId,
+        schemaTestScenario: 'category-check'
+      });
+      void logAppEvent('USER_CATEGORY_CHECK_STARTED', { tabId: started?.tabId || null });
+      setStatus('ready', 'Kategorieprüfung gestartet',
+        'Das Ergebnis erscheint im neuen Kleinanzeigen-Tab und im Diagnoseexport. Keine Veröffentlichung.');
+    } catch (error) {
+      button.disabled = false;
+      setFriendlyErrorStatus(error, 'Kategorieprüfung konnte nicht gestartet werden');
     }
-    button.disabled = disabled;
-    if (compact) rememberCompactButtonDisabled(button);
-    button.addEventListener('click', async () => {
-      if (!requireAccountBoundAction()) return;
-      if (!await confirmAction({
-        title: 'Formularschema nur prüfen?',
-        text: spec.help,
-        detail: 'Die Inventarvorlage bleibt unverändert. Zur Kategorienavigation darf bei „Kategorie prüfen“ und „Änderungsdialog testen“ die Angabe Art/Typ verwendet werden. Der Test nutzt ausschließlich einen isolierten Arbeitsspeicher; echte Referenzen bleiben unverändert.',
-        confirmLabel: 'Prüfmodus starten'
-      })) return;
-      button.disabled = true;
-      try {
-        const started = await runtimeMessage({
-          type: 'START_TRASH_TEMPLATE_FILL', inventoryId: record.inventoryId, schemaTestScenario: spec.scenario
-        });
-        void logAppEvent('USER_SCHEMA_TEST_STARTED', { scenario: spec.scenario, tabId: started?.tabId || null });
-        setStatus('ready', 'Schema-Prüfmodus gestartet', 'Das Ergebnis erscheint im neuen Kleinanzeigen-Tab und im Diagnoseexport. Keine Veröffentlichung.');
-      } catch (error) {
-        button.disabled = false;
-        setFriendlyErrorStatus(error, 'Schema-Prüfmodus konnte nicht gestartet werden');
-      }
-    });
-    return button;
   });
+  return [button];
 }
 
 function makeCompactInventoryExportButton(record) {
@@ -390,7 +377,7 @@ function renderCompactInventoryRow(record) {
     }
   });
   actions.append(createButton, updateButton, exportButton, deleteButton);
-  for (const button of makeSchemaTestActions(record,
+  for (const button of makeCategoryCheckActions(record,
     { compact: true, disabled: insertionBlocked || !gate.allowed || !profileMatches })) actions.insertBefore(button, deleteButton);
   return row;
 }
@@ -831,7 +818,7 @@ function renderInventories(records = currentRecords) {
       }
     });
     actions.append(createButton, updateButton, exportButton, deleteButton);
-    for (const button of makeSchemaTestActions(record,
+    for (const button of makeCategoryCheckActions(record,
       { disabled: insertionBlocked || !accountGate.allowed || !recordMatchesSelectedProfile })) actions.insertBefore(button, deleteButton);
     card.append(actions);
     }
