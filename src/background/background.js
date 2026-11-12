@@ -3487,10 +3487,13 @@ const backgroundMessageRouter = BackgroundMessageRouter.create({
   "START_TEMPLATE_FILL": (message, sender) => startTemplateFill(message.inventoryId, { autoReplacementAllowed: message.autoReplacementAllowed === true, startConfirmationVersion: message.startConfirmationVersion }),
   "START_ARCHIVE_INSERTION": (message, sender) => startArchiveInsertion(message),
   "GET_ARCHIVE_INSERTION_STATUS": (message, sender) => getArchiveInsertionStatus(message),
-  "START_TRASH_TEMPLATE_FILL": (message, sender) => startTrashTemplateFill(message.inventoryId, {
-    supersedeFillId: message.supersedeFillId || null,
-    schemaTestScenario: message.schemaTestScenario || null
-  }),
+  "START_TRASH_TEMPLATE_FILL": (message, sender) => {
+    // L15: the old manual schema-test payload must not start an insertion tab.
+    if (message?.schemaTestScenario != null) throw new Error('Manueller Schema-Prüfmodus wurde entfernt.');
+    return startTrashTemplateFill(message.inventoryId, {
+      supersedeFillId: message.supersedeFillId || null
+    });
+  },
   "GET_TRASH_TEMPLATE_FILL_STATUS": (message, sender) => getTrashTemplateFillStatus(message),
   "GET_RECOVERABLE_TRASH_TEMPLATE_FILL": (message, sender) => getRecoverableTrashTemplateFill(),
   "PREPARE_TRASH_TEMPLATE_INVENTORY_CAPTURE": (message, sender) => prepareTrashTemplateInventoryCapture(message),
