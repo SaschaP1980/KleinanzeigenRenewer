@@ -38,6 +38,8 @@ Historical QA and Windows documents now have **one canonical location** in `docs
 
 - [Historical v1.23.x architecture evidence](history/architecture/README.md) — immutable versioned progress/baseline JSON records formerly in the repository root
 - [Documentation relocation evidence](maintenance/DOCS_RELOCATION_MATRIX.md) — full-text canonical paths, compatibility stubs and link decisions
+- [Scripts and workflows S1 audit](maintenance/SCRIPTS_WORKFLOWS_AUDIT.md) — individual owner/usage decisions and safe legacy retirement
+- [Scripts/workflows machine inventory](maintenance/SCRIPT_WORKFLOW_INVENTORY.json) — verified 24 retained scripts and 5 workflows
 - [File-hygiene audit and decisions](maintenance/FILE_HYGIENE_AUDIT.md) — root/docs decisions, historical tooling and safety rationale
 - [Complete baseline file inventory](maintenance/FILE_INVENTORY_MAIN_A1F7878.json) — all tracked source-tree files and conservative per-file dispositions
 

@@ -70,3 +70,10 @@ References checked in main's `package.json`, `scripts/build.sh`, sampled KAR-50 
 - `docs/README.md` now links directly to new canonical locations, with focused subsection indexes at `docs/history/qa/README.md` and `docs/windows/README.md`.
 - Preserve `docs/DEV_OPS.md` at its stable path because normative docs link to it; its text is explicitly labeled historical configuration evidence. Preserve all normative bootstrap/policy paths and the German user manual.
 - D1 requires the executable old→new compatibility guard and complete Markdown link check to pass in exact-head hosted CI before it can be considered accepted. No merge, release or account operation is implied.
+
+## S1 — Scripts and GitHub Actions workflow consumer audit
+
+- Reviewed the **25 scripts** present after the earlier KAR-50 deletion and the **5 current GitHub workflows**. All 30 starting files have individually recorded roles in [SCRIPTS_WORKFLOWS_AUDIT.md](SCRIPTS_WORKFLOWS_AUDIT.md) and the [S1 machine inventory](SCRIPT_WORKFLOW_INVENTORY.json).
+- Retire only `scripts/coverage-analyze.cjs`, a previous stdout-only coverage diagnostic superseded by the mandatory `v12319-coverage-report.cjs` + `coverage-no-regression.cjs`. Its original blob SHA is `2844df747a127bbb227c496993e5ec7d902decfb`; history remains available. Executable-scan tests forbid dangling invocations.
+- Preserve `scripts/source-layout.json` because it has live **release-finalizer and historical test consumers**; preserve every `v12319-*` mandatory coverage/architecture tool despite the old version prefix. Preserve all standalone supported release/Windows helpers as well as all five generic CI workflows.
+- An executable S1 audit gate runs in the existing mandatory coverage pipeline; any future script/workflow replacement requires synchronized consumer evidence. No product runtime code, permissions, release artifact or Chrome ZIP is changed.
