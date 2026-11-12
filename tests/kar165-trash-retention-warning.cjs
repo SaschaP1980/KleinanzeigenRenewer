@@ -85,7 +85,7 @@ function checkCountdown(days, urgency, compact) {
 for (const compact of [false, true]) {
   for (const [days, urgency] of [
     [28, 'neutral'], [8, 'neutral'], [7, 'warning'], [4, 'warning'],
-    [3, 'urgent'], [1, 'urgent'], [0, 'urgent']
+    [3, 'urgent'], [2, 'urgent'], [1, 'urgent'], [0, 'urgent']
   ]) checkCountdown(days, urgency, compact);
 
   const expired = recordWithExpiry(new Date(NOW - DAY).toISOString());
@@ -110,6 +110,11 @@ for (const selector of ['trash-retention-countdown-warning', 'trash-retention-co
   assert.match(css, new RegExp('\\.' + selector + '\\s*\\{[^}]*color\\s*:'), 'warning suffix has independent CSS text color');
 }
 assert.match(css, /\.trash-expiry\s*\{[^}]*color:/, 'existing detailed deadline prefix style remains');
+assert.match(css, /\.trash-expiry strong > \.trash-retention-countdown-urgent/, 'detailed countdown CSS must beat summary-row span specificity');
+assert.match(css, /\.trash-expiry strong > \.trash-retention-countdown-warning/, 'detailed warning must beat summary-row span specificity');
+assert.match(css, /\.trash-expiry strong > \.trash-retention-countdown,[\s\S]*?text-transform:none/, 'do not upper-case the displayed countdown');
+assert.match(css, /\.trash-expiry strong > \.trash-retention-countdown,[\s\S]*?font-size:inherit/, 'do not shrink the displayed countdown');
+
 
 const staleRecord = recordWithExpiry(new Date(NOW + 7 * DAY).toISOString());
 const newRecord = recordWithExpiry(new Date(NOW + 3 * DAY).toISOString(), 'other');
