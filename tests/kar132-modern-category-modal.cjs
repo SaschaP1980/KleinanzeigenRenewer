@@ -370,6 +370,41 @@ function makeFlow(extraOptions = {}) {
     passed++;
   }
 
+  // KAR-134 native v1.23.69: the category-only session stripped all
+  // dynamicAttributes, hiding the saved Art selector needed to reach category
+  // 159. This restricted category-navigation metadata is NOT a field-fill value.
+  {
+    const {activity}=fixture({activePath:['Mode & Beauty','Damenschuhe','Sneaker & Sportschuhe'],
+      committedId:'159',misleadingBranchName:'Damenschuhe',formSuggestions:[]});
+    const hintTemplate={categoryId:'159',categoryPath:['Mode & Beauty','Damenschuhe'],
+      dynamicAttributes:[],categoryNavigationHints:[{label:'Art',displayValue:'Sneaker & Sportschuhe'}]};
+    assert.deepEqual(await makeFlow().setCategory(hintTemplate,'kar134-gazelle-category-hint'),
+      {confirmed:true,pendingNavigation:false});
+    assert.deepEqual(activity.clicked,['Mode & Beauty','Damenschuhe','Sneaker & Sportschuhe']);
+    assert.equal(activity.confirms,1);
+    passed++;
+  }
+  {
+    const {activity}=fixture({activePath:['Mode & Beauty','Damenschuhe','Sneaker & Sportschuhe'],
+      committedId:'999',misleadingBranchName:'Damenschuhe',formSuggestions:[]});
+    const hintTemplate={categoryId:'159',categoryPath:['Mode & Beauty','Damenschuhe'],
+      dynamicAttributes:[],categoryNavigationHints:[{label:'Art',displayValue:'Sneaker & Sportschuhe'}]};
+    await assert.rejects(makeFlow().setCategory(hintTemplate,'kar134-gazelle-hint-wrong-committed-id'),
+      /Kategorie-ID|159|999/);
+    assert.equal(activity.confirms,1,'leaf hint never overrides numeric category readback');
+    passed++;
+  }
+  {
+    const {activity}=fixture({activePath:['Mode & Beauty','Damenschuhe','Stiefel'],
+      committedId:'159',misleadingBranchName:'Damenschuhe',formSuggestions:[]});
+    const hintTemplate={categoryId:'159',categoryPath:['Mode & Beauty','Damenschuhe'],
+      dynamicAttributes:[],categoryNavigationHints:[{label:'Art',displayValue:'Sneaker & Sportschuhe'}]};
+    await assert.rejects(makeFlow().setCategory(hintTemplate,'kar134-gazelle-hint-not-live'),
+      /Endkategorie|Kategorie/);
+    assert.equal(activity.confirms,0,'no matching live choice means no commit');
+    passed++;
+  }
+
   // KAR-143 native Gazelle diagnosis: `Art`, not `Typ`, contains the exact
   // captured terminal choice. This is untrusted until the live modal exposes
   // one matching selectable child and the form commits categoryId=159.
@@ -559,5 +594,5 @@ function makeFlow(extraOptions = {}) {
     assert.equal(fired,false,'preselected category cannot be passed off as observed category navigation');
     passed++;
   }
-  console.log(passed + '/42 PASS KAR-132/KAR-143/KAR-134 modern same-page category modal safety');
+  console.log(passed + '/45 PASS KAR-132/KAR-143/KAR-134 modern same-page category modal safety');
 })().catch(error => { console.error(error); process.exitCode = 1; });
