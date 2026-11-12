@@ -692,7 +692,56 @@
         completedReceiptCount:a.entries.length,
         priorGenerationClosed:false,consumerDeliveryVerified:false});
     }
-    return Object.freeze({observe,observeAll,track,snapshotInFlight,readVerifiedUnmanagedTabsReadOnly,inspectDiagnosticExportClosureReadOnly});
+    // P1.3 trashMutation: classify only already-finished LOCAL P8 callbacks.
+    // A callback finish is not an IndexedDB transaction readback, an account
+    // or prior-worker generation attestation, and NEVER grants updater IDLE.
+    // FINISH_RENEWAL_REPLACEMENT and backup imports share this owner but may
+    // have independent remote/multi-owner effects: deliberately exclude them.
+    async function inspectTrashMutationClosureReadOnly() {
+      const denied=reason=>Object.freeze({schema:1,owner:'trashMutation',
+        status:'unverified',reason,eligibleForLease:false,sourceRevision:null});
+      if(pending.get('trashMutation')!==0)
+        return denied('ACTUAL_IN_FLIGHT_OPERATION');
+      let first,second;
+      try {first=await observe();second=await observe();}
+      catch {return denied('SOURCE_UNAVAILABLE');}
+      if(pending.get('trashMutation')!==0)
+        return denied('ACTUAL_IN_FLIGHT_OPERATION');
+      const a=first?.admissionHistory?.trashMutation;
+      const b=second?.admissionHistory?.trashMutation;
+      if(!record(a)||!record(b)||!first.admissionJournalRevision
+        ||first.admissionJournalRevision!==second.admissionJournalRevision
+        ||typeof a.sourceRevision!=='string'||!a.sourceRevision
+        ||a.sourceRevision!==b.sourceRevision)
+        return denied('DURABLE_ADMISSION_UNVERIFIED');
+      if(a.state!=='callback-finished'||b.state!=='callback-finished'
+        ||!Array.isArray(a.entries)||a.entries.length===0
+        ||!Array.isArray(b.entries)||b.entries.length!==a.entries.length)
+        return denied(a.state==='unfinished'||b.state==='unfinished'
+          ?'DURABLE_ADMISSION_UNFINISHED':'NO_COMPLETION_RECEIPT');
+      if(first.observations?.trashMutation?.state==='active'
+        ||second.observations?.trashMutation?.state==='active')
+        return denied('ACTUAL_IN_FLIGHT_OPERATION');
+      const localOperations=new Set([
+        'DELETE_INVENTORY','DELETE_TRASH_ENTRY','RESET_TRASH_RETENTION',
+        'CLEAR_INVENTORIES','REMOVE_REPLACEMENT_READY_LOCAL',
+        'DISCARD_RENEWAL_DRAFT','AUTONOMOUS:trash-purge-boot',
+        'AUTONOMOUS:trash-purge-startup','AUTONOMOUS:trash-purge-installed'
+      ]);
+      if(!a.entries.every(row=>record(row)&&localOperations.has(row.operationType)
+        &&row.state==='callback-finished'
+        &&typeof row.workerInstanceId==='string'&&PROFILE.test(row.workerInstanceId)
+        &&Number.isSafeInteger(row.startedAtMs)&&row.startedAtMs>=0
+        &&Number.isSafeInteger(row.completedAtMs)
+        &&row.completedAtMs>=row.startedAtMs))
+        return denied('OWNER_PROVENANCE_UNVERIFIED');
+      return Object.freeze({schema:1,owner:'trashMutation',
+        status:'callback-settled',reason:'DURABLE_P8_LOCAL_CALLBACK_FINISHED',
+        eligibleForLease:false,sourceRevision:a.sourceRevision,
+        completedReceiptCount:a.entries.length,
+        indexedDbCommitVerified:false,priorGenerationClosed:false});
+    }
+    return Object.freeze({observe,observeAll,track,snapshotInFlight,readVerifiedUnmanagedTabsReadOnly,inspectDiagnosticExportClosureReadOnly,inspectTrashMutationClosureReadOnly});
   }
   const API=Object.freeze({create,OWNERS,ownersForOperation});
   globalThis.KRDeps?.register?.('KRAdditionalOwnerObserver',API);
