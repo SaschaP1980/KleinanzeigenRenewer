@@ -837,8 +837,7 @@
       categoryStageResult = await monitorSchemaStage('category', observedCategorySchema, fillId);
     } else void diagnostic(fillId, 'KAR134_STAGE_MONITOR_SKIPPED',
       { stage: 'category', reason: 'no-independent-navigation-evidence' });
-    const live = await SchemaPreflight.afterHydration({ categoryId: expectedCategoryId, dynamicAttributes: [] },
-      { probeReadOnlyCaseSize: false });
+    const live = await SchemaPreflight.afterHydration({ categoryId: expectedCategoryId, dynamicAttributes: [] });
     if (live.categoryId !== expectedCategoryId)
       throw new Error('Aktuelle Kategorie stimmt nicht mit der ausgewählten Inventarkategorie überein.');
     if (live.dynamicCount > 0) {
@@ -968,7 +967,7 @@
                   throw new Error('Die aktuelle Endkategorie ist nicht mehr eindeutig bestätigt.');
                 const refreshed = await SchemaPreflight.afterHydration({
                   categoryId: expectedCategoryId, dynamicAttributes: []
-                }, { probeReadOnlyCaseSize: false });
+                });
                 if (refreshed.categoryId !== expectedCategoryId || refreshed.dynamicCount < 1 ||
                     await SchemaCore.fingerprint(refreshed.schema) !== realAdoptionPlan.newFingerprint)
                   throw new Error('Die aktuelle Merkmalsstruktur weicht von der geprüften Änderung ab.');
