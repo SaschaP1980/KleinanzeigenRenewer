@@ -816,6 +816,17 @@
       if(first.observations?.[owner]?.state==='active'
         ||second.observations?.[owner]?.state==='active')
         return denied('ACTUAL_IN_FLIGHT_OPERATION');
+      // Managed tabs have an additional independent physical Chrome source.
+      // Historical callback evidence cannot override a registry/browser
+      // contradiction found during either read-only owner observation.
+      if(owner==='managedTabs'){
+        const accepted=v=>v?.state==='unknown'
+          &&['NO_AUTHORITATIVE_IDLE_PROOF',
+            'DURABLE_CALLBACK_SETTLED_REMOTE_UNVERIFIED'].includes(v.reason);
+        if(!accepted(first.observations?.managedTabs)
+          ||!accepted(second.observations?.managedTabs))
+          return denied('CURRENT_TABS_OBSERVER_UNVERIFIED');
+      }
       // Two source observations must agree about profile context. A known
       // account/profile mismatch must never become positive source evidence.
       const p=first.context?.profile,q=second.context?.profile;
@@ -864,7 +875,64 @@
         eligibleForLease:false,recoveryStateVerified:false,
         priorGenerationClosed:false,detachedWorkVerified:false});
     }
-    return Object.freeze({observe,observeAll,track,snapshotInFlight,readVerifiedUnmanagedTabsReadOnly,inspectDiagnosticExportClosureReadOnly,inspectTrashMutationClosureReadOnly,inspectSingleInventoryClosureReadOnly,inspectProfileTransitionClosureReadOnly,inspectAccountTransitionClosureReadOnly,inspectEmergencyRecoveryClosureReadOnly});
+    // KAR-99 P1.3: two INDEPENDENT real tab sources are necessary even
+    // for classifying historical tab-close callbacks. This method observes
+    // actual Chrome tabs and the raw session registry; it creates no tabs,
+    // navigates no page, performs no recovery and grants no updater authority.
+    // A completed P8 handler is not proof that detached work or any previous
+    // MV3 worker generation has finished all its operations.
+    async function inspectManagedTabsClosureReadOnly() {
+      const owner='managedTabs';
+      const denied=reason=>Object.freeze({schema:1,owner,status:'unverified',
+        reason,eligibleForLease:false,sourceRevision:null,
+        liveTabsReconciled:false,verifiedUnmanagedTabCount:null,
+        priorGenerationClosed:false,detachedWorkVerified:false,
+        remoteWorkVerified:false});
+      if(pending.get(owner)!==0)return denied('ACTUAL_IN_FLIGHT_OPERATION');
+      const history=await inspectTransitionCallbackClosureReadOnly(owner,
+        new Set(['BULK_CLOSE_WORKER','AUTONOMOUS:tab-removed']));
+      if(history.status!=='callback-settled')
+        return denied(history.reason||'DURABLE_ADMISSION_UNVERIFIED');
+      if(pending.get(owner)!==0)return denied('ACTUAL_IN_FLIGHT_OPERATION');
+      let first,second,final,again;
+      try {
+        first=await readVerifiedUnmanagedTabsReadOnly();
+        second=await readVerifiedUnmanagedTabsReadOnly();
+        // Re-read immutable P8 owner journal AFTER Chrome/session checks so
+        // a new admitted callback cannot race a formerly completed receipt.
+        again=await observe();
+        final=await readVerifiedUnmanagedTabsReadOnly();
+      } catch {return denied('CURRENT_TABS_UNVERIFIED');}
+      if(pending.get(owner)!==0)return denied('ACTUAL_IN_FLIGHT_OPERATION');
+      const signature=tabs=>JSON.stringify(tabs.map(tab=>[
+        tab.id,tab.managed,tab.ownershipVerified,tab.sourceRevision]));
+      if(signature(first)!==signature(second)
+        ||signature(first)!==signature(final))
+        return denied('CURRENT_TABS_CHANGED_DURING_READ');
+      const receipt=again?.admissionHistory?.[owner];
+      if(!record(receipt)||receipt.state!=='callback-finished'
+        ||receipt.sourceRevision!==history.sourceRevision
+        ||again.observations?.managedTabs?.state!=='unknown'
+        ||!['NO_AUTHORITATIVE_IDLE_PROOF',
+          'DURABLE_CALLBACK_SETTLED_REMOTE_UNVERIFIED']
+          .includes(again.observations?.managedTabs?.reason))
+        return denied('DURABLE_ADMISSION_CHANGED_DURING_TABS_READ');
+      const profile=again.context?.profile;
+      if(!record(profile)||
+        ['PROFILE_MISMATCH','PROFILE_CHANGED_DURING_READ',
+          'LIVE_ACCOUNT_PROFILE_NAME_MISMATCH',
+          'LIVE_ACCOUNT_TABS_DISAGREE',
+          'LIVE_ACCOUNT_PROFILE_CHANGED_DURING_READ',
+          'LIVE_ACCOUNT_STATUS_CHANGED_DURING_READ'].includes(profile.reason))
+        return denied('ACCOUNT_PROFILE_CONTEXT_UNVERIFIED');
+      return Object.freeze({
+        ...history,reason:'DURABLE_P8_CALLBACK_AND_LIVE_TABS_RECONCILED',
+        eligibleForLease:false,liveTabsReconciled:true,
+        verifiedUnmanagedTabCount:first.length,priorGenerationClosed:false,
+        detachedWorkVerified:false,remoteWorkVerified:false
+      });
+    }
+    return Object.freeze({observe,observeAll,track,snapshotInFlight,readVerifiedUnmanagedTabsReadOnly,inspectDiagnosticExportClosureReadOnly,inspectTrashMutationClosureReadOnly,inspectSingleInventoryClosureReadOnly,inspectProfileTransitionClosureReadOnly,inspectAccountTransitionClosureReadOnly,inspectEmergencyRecoveryClosureReadOnly,inspectManagedTabsClosureReadOnly});
   }
   const API=Object.freeze({create,OWNERS,ownersForOperation});
   globalThis.KRDeps?.register?.('KRAdditionalOwnerObserver',API);
