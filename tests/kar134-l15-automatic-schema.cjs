@@ -22,19 +22,23 @@ assert.match(background,/schemaTestScenario[^\n]{0,150}(?:throw|Unbekannt)/,
 assert.match(service,/session\.schemaTestScenario[^\n]{0,150}(?:throw|Veralteter)/,
   'persisted obsolete category-check sessions must fail closed');
 
+const productionReview = content.slice(content.indexOf('async function reviewLivePostingSchema('),
+  content.indexOf('async function runFillSession('));
 const normalFill = content.slice(content.indexOf('async function runFillSession('),
   content.indexOf('async function runPendingFill('));
 assert.ok(normalFill.length>1000,'normal filling code must remain');
+assert.match(normalFill,/reviewLivePostingSchema\(/,
+  'real preflight must call the built-in production review');
 assert.match(normalFill,/captureCategoryNeutralForm\(/,'F1 remains automatic');
 assert.match(normalFill,/monitorSchemaStage\('category'/,'F2 remains automatic');
 assert.match(normalFill,/monitorSchemaStage\('attributes'/,'F3 remains automatic');
 assert.match(normalFill,/SchemaPreflight\.evaluate\(/,'pre-publication value check remains');
-assert.match(normalFill,/buildStageChangeReview\(/,'real verified structural drift must reach review');
-assert.match(normalFill,/showStageChangeReviewDialog\(/,'normal workflow must show real drift review');
-assert.match(normalFill,/buildRealSchemaAdoptionPlan\(/,'F3 plan must be available in normal workflow');
-assert.match(normalFill,/KAR134_REAL_REFERENCE_ADOPTION_COMMITTED/,
+assert.match(productionReview,/buildStageChangeReview\(/,'real verified structural drift must reach review');
+assert.match(productionReview,/showStageChangeReviewDialog\(/,'normal workflow must show real drift review');
+assert.match(productionReview,/buildRealSchemaAdoptionPlan\(/,'F3 plan must be available in normal workflow');
+assert.match(productionReview,/KAR134_REAL_REFERENCE_ADOPTION_COMMITTED/,
   'real F3 double-consent remains in normal workflow');
-assert.match(normalFill,/status:\s*'needs-review'/,
+assert.match(productionReview,/status:\s*'needs-review'/,
   'genuine reference approval must pause publication');
 assert.match(content,/if \(session\.schemaTestScenario\)\s*throw/,
   'old persisted test sessions cannot resume inside normal flow');
