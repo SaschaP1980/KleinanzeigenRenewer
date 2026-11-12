@@ -379,7 +379,7 @@ function remoteReceipts(profileId, kind) {
 }
 for(const kind of ['phase4','publish']) {
   test('P1.3-F2E1: independently structured '+kind+' resolution matches current selected profile',async()=>{
-    const {gate}=fixture({local:remoteReceipts(PROFILE,kind)});
+    const {gate}=fixture({local:tokenBoundRemote(kind).rows});
     const answer=await gate.captureForReserve(request());
     assert.equal(answer.status,'candidate-idle',
       'only the fixture-controlled 15-owner sources can produce this candidate');
@@ -470,6 +470,35 @@ test('P1.3-F2 RED: one P8 token cannot authorize two remote journal families',as
     e=>e?.code==='KR_OWNER_JOURNAL_ADMISSION_UNVERIFIED');
 });
 
+// P1.3-F2 legacy data is not transaction provenance: a terminal remote
+// scan without an origin/worker-bound P8 token remains historical only.
+for (const kind of ['phase4','publish']) {
+  test('P1.3-F2 LEGACY RED: resolved tokenless '+kind+
+    ' cannot produce a private update candidate',async()=>{
+    const {gate}=fixture({local:remoteReceipts(PROFILE,kind)});
+    await assert.rejects(gate.captureForReserve(request()),
+      e=>e?.code==='KR_OWNER_JOURNAL_ADMISSION_UNVERIFIED');
+  });
+  test('P1.3-F2 LEGACY RED: unrelated finished P8 receipt cannot retroactively '+kind+
+    ' bind a tokenless historical result',async()=>{
+    const {rows,token}=tokenBoundRemote(kind);
+    const intentKey=Object.keys(rows).find(key=>key.startsWith(
+      kind==='phase4'?'karPhase4UncertainAttemptV1_':'karAutoPublishIntentV1_'));
+    delete rows[intentKey].admissionToken;
+    assert.ok(rows['karAtomicAdmissionStartV1_'+token]&&rows['karAtomicAdmissionFinishV1_'+token]);
+    const {gate}=fixture({local:rows});
+    await assert.rejects(gate.captureForReserve(request()),
+      e=>e?.code==='KR_OWNER_JOURNAL_ADMISSION_UNVERIFIED');
+  });
+  test('P1.3-F2 LEGACY RED: one tokenless '+kind+
+    ' remote result blocks otherwise correctly token-bound other family',async()=>{
+    const otherKind=kind==='phase4'?'publish':'phase4';
+    const {gate}=fixture({local:{...tokenBoundRemote(otherKind).rows,
+      ...remoteReceipts(PROFILE,kind)}});
+    await assert.rejects(gate.captureForReserve(request()),
+      e=>e?.code==='KR_OWNER_JOURNAL_ADMISSION_UNVERIFIED');
+  });
+}
 const negativeCases = [
   ['wrong selected profile', {local: {selectedInventoryProfileV1: {profileId: 'other'}}}],
   ['missing selected profile', {local: {selectedInventoryProfileV1: null}}],
