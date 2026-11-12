@@ -39,22 +39,22 @@ The dedicated hosted PowerShell test `tests/kar99-p13-windows-journal-inspection
 ## P1.3 NativeHost journal/lock negative witness (not transaction authority)
 
 The Windows Native Messaging host accepts an additional, fixed-shape, **read-only**
-\`inspect_transaction\` request only from the original allowed extension origin
-and only with the existing protocol/requestId/operation fields. Unlike \`check\`,
+`inspect_transaction` request only from the original allowed extension origin
+and only with the existing protocol/requestId/operation fields. Unlike `check`,
 it never launches PowerShell or another process. It independently checks only
-the fixed local \`State/pending.json\` and \`State/updater.lock\` metadata twice.
+the fixed local `State/pending.json` and `State/updater.lock` metadata twice.
 Any observed artifact blocks. Missing artifacts remain **unverified**, never
-\`idle\`, \`success\`, or a positive native transaction outcome; errors, invalid
+`idle`, `success`, or a positive native transaction outcome; errors, invalid
 test roots and inaccessible metadata remain **unverified/unknown**. Its bounded
 reply has no paths, credentials or transaction contents and permanently states
-\`nativeOutcomeVerified=false\`, \`rollbackVerified=false\`, and
-\`eligibleForLease=false\`. CI-only root overrides require both hosted CI mode
+`nativeOutcomeVerified=false`, `rollbackVerified=false`, and
+`eligibleForLease=false`. CI-only root overrides require both hosted CI mode
 and the existing NativeHost test gate, and are constrained to an OS TEMP child.
 
-NativeHost \`health\` declares the third native read-only capability accurately.
-The extension-side native gateway remains limited to \`health/check\` (including
+NativeHost `health` declares the third native read-only capability accurately.
+The extension-side native gateway remains limited to `health/check` (including
 strict backward compatibility for already-installed legacy hosts with two
-capabilities). The application UI does not invoke \`inspect_transaction\`; there
+capabilities). The application UI does not invoke `inspect_transaction`; there
 is no new Chrome permission, updater file mutation, update action, lease,
 rollback operation, or native installation. Neither the presence nor absence of
 a legacy Windows file establishes a transaction identity, origin-bound nonce,
