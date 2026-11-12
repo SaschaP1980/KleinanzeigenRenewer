@@ -1156,7 +1156,7 @@ async function verifyRenewalSourceAbsenceFresh(session, expectedProfile, windowI
 
 async function preverifyAndTriggerRenewalSourceDeleteAttempt(session, expectedProfile, windowId, attemptState) { return requireRemoteDeleteReplacementService().preverifyAndTriggerRenewalSourceDeleteAttempt(session, expectedProfile, windowId, attemptState); }
 
-async function finishRenewalReplacement(message) { return requireRemoteDeleteReplacementService().finishRenewalReplacement(message); }
+async function finishRenewalReplacement(message, admissionReceipt) { return requireRemoteDeleteReplacementService().finishRenewalReplacement(message, admissionReceipt); }
 
 async function discardRenewalDraft(message) {
   const renewalId = String(message?.renewalId || '');
@@ -3448,7 +3448,7 @@ const backgroundMessageRouter = BackgroundMessageRouter.create({
   "DELETE_TRASH_ENTRY": (message, sender) => deleteTrashEntry(message.inventoryId),
   "RESET_TRASH_RETENTION": (message, sender) => resetTrashRetention(message.inventoryId),
   "REMOVE_REPLACEMENT_READY_LOCAL": (message, sender) => removeReplacementReadyLocal(message),
-  "FINISH_RENEWAL_REPLACEMENT": (message, sender) => finishRenewalReplacement(message),
+  "FINISH_RENEWAL_REPLACEMENT": (message, sender, admissionReceipt) => finishRenewalReplacement(message, admissionReceipt),
   "DISCARD_RENEWAL_DRAFT": (message, sender) => discardRenewalDraft(message),
   "CLEAR_INVENTORIES": (message, sender) => clearInventories(Object.prototype.hasOwnProperty.call(message, 'profileId') ? message.profileId : undefined),
   "START_BULK_INVENTORY_OPERATION": (message, sender) => startBulkInventoryOperation(message),

@@ -22,7 +22,7 @@
     'AUTONOMOUS:renewal-auto-phase4', 'AUTONOMOUS:renewal-resume',
     'AUTONOMOUS:renewal-detached-retry', 'AUTONOMOUS:renewal-detached-verify',
     'AUTONOMOUS:mass-renewal-next-item', 'RETRY_RENEWAL_VERIFICATION',
-    'RETRY_MASS_RENEWAL_ITEM'
+    'RETRY_MASS_RENEWAL_ITEM','FINISH_RENEWAL_REPLACEMENT'
   ]);
   const PUBLISH_ADMISSIONS = new Set([
     'AUTONOMOUS:renewal-publish-detection',

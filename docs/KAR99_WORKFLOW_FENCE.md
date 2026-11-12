@@ -100,3 +100,22 @@ rollback, release, installation, or live Kleinanzeigen mutation. Production
 positive 15-owner proofs and origin-bound native transaction attestation remain
 outstanding acceptance blockers. Six focused genuine RED cases preceded the
 source correction.
+
+## P1.3-F3 — manual Phase-4 routed admission provenance
+
+The existing `FINISH_RENEWAL_REPLACEMENT` route is already protected by
+`KRAtomicMV3Admission` with a source-issued, immutable `admissionReceipt`,
+but its background handler/wrapper previously dropped that third argument.
+Manual Phase-4 source DELETEs could therefore still create historical
+tokenless remote intents, which the P1.3-F2 trusted capture must deny.
+The route handler and background forwarding wrapper now pass the same
+**in-process** receipt to the existing `RemoteDeleteReplacementService`,
+which verifies the original P8 row via the unchanged Phase-4 journal before
+writing the remote uncertainty intent and before `DELETE_OWN_AD_BY_ID`.
+Only the existing `FINISH_RENEWAL_REPLACEMENT` routed operation is added to
+the strict Phase-4 P8 allowlist and private historical journal verifier.
+Wrong-operation, synthetic, expired, missing or already-completed receipt
+continues to fail closed. This is a provenance improvement for newly admitted
+manual Phase-4 operations, not a retroactive proof for old tokenless entries.
+No new app/Chrome/NativeHost IPC path, new permission, update lease, account
+operation in CI, positive all-owner IDLE or update installation is added.
