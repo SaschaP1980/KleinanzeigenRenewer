@@ -1,6 +1,6 @@
 # KAR-59 Phase 1 — Safe Windows local installer and updater
 
-Phase 1 is a **separate, manual Windows updater**, not an in-app button. The updater is standalone PowerShell 5.1 with no Python, native host, administrator rights, token or Chrome extension permission additions. **Phase 2 remains unimplemented.**
+Phase 1 is a **separate, manual Windows updater**, not an in-app button. The updater is standalone PowerShell 5.1 with no Python, native host, administrator rights, token or Chrome extension permission additions. **Later read-only Phase-2 native-status/check integration exists, but in-app automatic apply/installation is not authorized or completed.** See [Native Messaging read-only status](WINDOWS_NATIVE_INAPP_WAVE02B.md) and live [KAR-59](https://github.com/SaschaP1980/KleinanzeigenRenewer/issues/59) for the actual scope.
 
 ## Prerequisites and first-time installation
 

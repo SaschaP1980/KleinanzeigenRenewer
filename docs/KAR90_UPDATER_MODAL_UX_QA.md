@@ -1,5 +1,8 @@
 # KAR-90 – Profile Management parity and Windows Updater UX
 
+> **Historical QA/security evidence (KAR-167 index):** This document records its Issue/Wave-era observations. It is not a live update-authorization contract or current user guide. See [documentation map](README.md), the live owning GitHub Issue and current normative policy before acting.
+
+
 Parent: [#89](https://github.com/SaschaP1980/KleinanzeigenRenewer/issues/89). Work child: [#90](https://github.com/SaschaP1980/KleinanzeigenRenewer/issues/90).
 
 ## Implemented corrective scope

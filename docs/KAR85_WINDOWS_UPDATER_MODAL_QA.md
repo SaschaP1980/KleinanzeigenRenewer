@@ -1,5 +1,8 @@
 # KAR-85 – Windows Updater modal QA
 
+> **Historical QA/security evidence (KAR-167 index):** This document records its Issue/Wave-era observations. It is not a live update-authorization contract or current user guide. See [documentation map](README.md), the live owning GitHub Issue and current normative policy before acting.
+
+
 Owner: [KAR-85](https://github.com/SaschaP1980/KleinanzeigenRenewer/issues/85); parent [KAR-84](https://github.com/SaschaP1980/KleinanzeigenRenewer/issues/84).
 
 This Wave moves the existing read-only Native Messaging update check and independent Windows OneClick fallback instructions from the configuration pane to a dedicated accessible modal. It does not change install operations, channel approval or Chrome host permissions.

@@ -9,7 +9,7 @@ const manifest = j('manifest.json');
 const pkg = j('package.json');
 const lock = j('package-lock.json');
 const spec = j('release/release-spec.json');
-const arch = j('architecture-progress-v1.23.22.json');
+const arch = j('docs/history/architecture/architecture-progress-v1.23.22.json');
 const reviewedNative = /^1\.23\.(?:3\d|[4-9]\d|[1-9]\d{2,})$/.test(manifest.version);
 const { assertCompatibleCurrentPatch } = require('./current-patch-policy.cjs');
 

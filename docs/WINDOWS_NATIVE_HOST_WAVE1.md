@@ -1,6 +1,6 @@
 # KAR-64 — Native Messaging host Wave 01 (read-only)
 
-This is the **Phase 2, Wave 01** standalone per-user Windows host. Current Chrome extension **v1.23.31** has a separately reviewed read-only `nativeMessaging` permission and a user-initiated **Auf Updates prüfen** UI; it **cannot install/apply updates from Chrome**. The helper exposes only `health` (no network) and `check` (delegates to the Phase 1 `-Command check`). Phase 1 Windows program-file updating remains a separately confirmed standalone action.
+This is the **Phase 2, Wave 01** standalone per-user Windows host. At this historical KAR-64 checkpoint, Chrome extension **v1.23.31** has a separately reviewed read-only `nativeMessaging` permission and a user-initiated **Auf Updates prüfen** UI; it **cannot install/apply updates from Chrome**. The helper exposes only `health` (no network) and `check` (delegates to the Phase 1 `-Command check`). Phase 1 Windows program-file updating remains a separately confirmed standalone action.
 
 ## Install and verification (Windows PowerShell 5.1)
 

@@ -1,5 +1,8 @@
 # KAR-91 – English technical OneClick console verification
 
+> **Historical QA/security evidence (KAR-167 index):** This document records its Issue/Wave-era observations. It is not a live update-authorization contract or current user guide. See [documentation map](README.md), the live owning GitHub Issue and current normative policy before acting.
+
+
 Parent [KAR-89](https://github.com/SaschaP1980/KleinanzeigenRenewer/issues/89), Wave [KAR-91](https://github.com/SaschaP1980/KleinanzeigenRenewer/issues/91).
 
 ## Baseline, test first

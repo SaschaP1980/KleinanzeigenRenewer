@@ -6,7 +6,7 @@ let passed = 0;
 const ok = (name, fn) => { try { fn(); passed++; console.log('PASS ' + name); } catch (error) { console.error('FAIL ' + name); throw error; } };
 const manifest = JSON.parse(fs.readFileSync('manifest.json', 'utf8'));
 const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-const baselinePath = 'architecture-baseline-v1.23.0.json';
+const baselinePath = 'docs/history/architecture/architecture-baseline-v1.23.0.json';
 
 ok('release remains within the planned v1.23.x EPIC-REF-002 wave', () => {
   assert.match(manifest.version, /^1\.23\.\d+$/);

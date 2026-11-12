@@ -1,5 +1,8 @@
 # KAR-86 – Approved Windows updater channel status (read-only)
 
+> **Historical QA/security evidence (KAR-167 index):** This document records its Issue/Wave-era observations. It is not a live update-authorization contract or current user guide. See [documentation map](README.md), the live owning GitHub Issue and current normative policy before acting.
+
+
 This Wave is tracked by [KAR-86](https://github.com/SaschaP1980/KleinanzeigenRenewer/issues/86) under [KAR-84](https://github.com/SaschaP1980/KleinanzeigenRenewer/issues/84). It follows the successfully integrated KAR-85 modal in v1.23.33.
 
 ## Trust separation

@@ -5,7 +5,7 @@ const manifest = JSON.parse(fs.readFileSync('manifest.json','utf8'));
 const pkg = JSON.parse(fs.readFileSync('package.json','utf8'));
 const lock = JSON.parse(fs.readFileSync('package-lock.json','utf8'));
 const spec = JSON.parse(fs.readFileSync('release/release-spec.json','utf8'));
-const arch = JSON.parse(fs.readFileSync('architecture-progress-v1.23.20_c1.json','utf8'));
+const arch = JSON.parse(fs.readFileSync('docs/history/architecture/architecture-progress-v1.23.20_c1.json','utf8'));
 function pass(name, fn) { fn(); console.log(`PASS ${name}`); }
 pass('v1.23.20_c1 release evidence remains explicit under later correction builds',()=>{
   assert.equal(arch.packageVersion,'1.23.20_c1');

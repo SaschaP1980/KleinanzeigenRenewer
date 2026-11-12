@@ -2,7 +2,7 @@
 const { includesActivePatch } = require('./current-patch-policy.cjs');
 const fs=require('node:fs'),assert=require('node:assert/strict'),crypto=require('node:crypto');
 const j=p=>JSON.parse(fs.readFileSync(p,'utf8')), r=p=>fs.readFileSync(p,'utf8');
-const manifest=j('manifest.json'),pkg=j('package.json'),spec=j('release/release-spec.json'),arch=j('architecture-progress-v1.23.19.json'),sum=j('coverage/coverage-summary.json'),audit=j('coverage/architecture-audit.json'),baseline=j('coverage/coverage-baseline-v1.23.19.json'),safety=j('coverage/safety-critical-public-apis.json');
+const manifest=j('manifest.json'),pkg=j('package.json'),spec=j('release/release-spec.json'),arch=j('docs/history/architecture/architecture-progress-v1.23.19.json'),sum=j('coverage/coverage-summary.json'),audit=j('coverage/architecture-audit.json'),baseline=j('coverage/coverage-baseline-v1.23.19.json'),safety=j('coverage/safety-critical-public-apis.json');
 let n=0;const pass=(m,f)=>{f();n++;console.log('PASS '+m)};
 const reviewedNative = /^1\.23\.(?:3\d|[4-9]\d|[1-9]\d{2,})$/.test(manifest.version);
 const kar136PolicyPresent = typeof require('../src/background/lib/inventory-reconciliation.js').assessFirstRosterForIndependentScan === 'function';

@@ -1,5 +1,8 @@
 # KAR-97 — Fail-closed update-idle candidate policy (Wave 03A)
 
+> **Historical QA/security evidence (KAR-167 index):** This document records its Issue/Wave-era observations. It is not a live update-authorization contract or current user guide. See [documentation map](README.md), the live owning GitHub Issue and current normative policy before acting.
+
+
 **Status: tested candidate classifier only. Not a permission to install or reload an extension.**
 
 The pure `lib/update-idle-policy.js` module accepts a versioned, strictly shaped observation and an explicit monotonic clock reading in milliseconds. Its only decisions are `{status:"blocked",reason:"..."}` and `{status:"candidate-idle",reason:"ALL_OWNERS_IDLE"}`. The latter means *all mandatory observations appear coherent and idle at one instant*; it is **not** an authorization for a NativeHost or file update.
