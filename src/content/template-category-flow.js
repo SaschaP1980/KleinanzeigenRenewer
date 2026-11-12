@@ -226,11 +226,19 @@
     }
     for (let i = 0; i < path.length; i += 1) {
       const prior = path.slice(0, i), name = path[i];
-      const state = await waitFor(() => {
+      // An open modal and a correct breadcrumb do not prove that its list of
+      // category choices has hydrated. In the native KAR-134 v1.23.68 run,
+      // generic categories 159/22 were checked in that empty intermediate
+      // state, while category 405 happened to receive an unrelated ID delay.
+      // Wait for the exact live option, not for a timer or a hardcoded ID.
+      // Duplicate/disabled matches still fail closed in exactModernChoice.
+      const button = await waitFor(() => {
         const current = modernState();
-        return current && sameModernPath(current.path, prior) ? current : null;
-      }, { timeout: 10000, description: 'Kategorieebene „' + prior.join(' › ') + '“' });
-      const button = exactModernChoice(state, name);
+        if (!current || !sameModernPath(current.path, prior)) return null;
+        const hasExactChoice = modernChoices(current)
+          .some(item => modernLabel(item.label) === modernLabel(name));
+        return hasExactChoice ? exactModernChoice(current, name) : null;
+      }, { timeout: 10000, description: 'Geladene Kategorie „' + name + '“ nach „' + prior.join(' › ') + '“' });
       let leaf = i === path.length - 1;
       const branch = Boolean(button.querySelector('svg[data-title="arrowRight"]'));
       const selectable = button.hasAttribute('aria-pressed');
