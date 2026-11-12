@@ -59,42 +59,31 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
   return {document,engine,template,complete};
 }
 (async()=>{
-  await check('read-only generic category check transports only bounded Art/Typ navigation labels', async()=>{
-    const now = new Date().toISOString();
-    const records = {
-      shoe: {inventoryId:'shoe',category:{id:159,path:['Mode & Beauty','Damenschuhe']},
+  await check('normal edit-form posting session transports saved fields, retired probe sessions fail closed', async()=>{
+    const now=new Date().toISOString();
+    const records={
+      shoe:{inventoryId:'shoe',adId:'15900',category:{id:159,path:['Mode & Beauty','Damenschuhe']},
         title:'PRIVATE TITLE',description:'PRIVATE DESCRIPTION',price:{value:12345},
-        dynamicAttributes:[
-          {key:'shoes.art',label:'Art',displayValue:'Sneaker & Sportschuhe',technicalValue:'secret-art-code'},
-          {key:'shoes.color',label:'Farbe',displayValue:'PRIVATE COLOR',technicalValue:'private'},
-          {key:'shoes.type',label:'Typ',displayValue:'Schuhe',technicalValue:'secret-type-code'}],
-        images:[{imageKey:'PRIVATE-IMAGE'}]},
-      watch: {inventoryId:'watch',category:{id:405,path:['Elektronik','Wearables']},
-        dynamicAttributes:[{label:'Typ',displayValue:'Smartwatches'}]}
+        dynamicAttributes:[{key:'shoes.art',label:'Art',displayValue:'Sneaker & Sportschuhe',
+          technicalValue:'secret-art-code'}],images:[]},
+      watch:{inventoryId:'watch',adId:'40500',category:{id:405,path:['Elektronik','Wearables']}}
     };
     const db={templateFillSessions:{
-      first:{fillId:'first',inventoryId:'shoe',schemaTestScenario:'category-check',
-        targetTabId:71,status:'waiting',createdAt:now},
-      second:{fillId:'second',inventoryId:'watch',schemaTestScenario:'compatible',
+      first:{fillId:'first',inventoryId:'shoe',targetTabId:71,status:'waiting',createdAt:now},
+      second:{fillId:'second',inventoryId:'watch',schemaTestScenario:'category-check',
         targetTabId:72,status:'waiting',createdAt:now}
     }};
     const service=require('../src/background/services/template-fill-service.js').create({
       storageLocal:{get:async()=>db,set:async()=>{}},getInventory:async id=>records[id]
     });
-    const shoe=await service.getTemplateFillSession({tab:{id:71}});
-    assert.equal(shoe.template.categoryId,159);
-    assert.deepEqual(shoe.template.categoryPath,['Mode & Beauty','Damenschuhe']);
-    assert.deepEqual(shoe.template.dynamicAttributes,[]);
-    assert.deepEqual(shoe.template.categoryNavigationHints,[
-      {label:'Art',displayValue:'Sneaker & Sportschuhe'},
-      {label:'Typ',displayValue:'Schuhe'}]);
-    const serialized=JSON.stringify(shoe.template);
-    for(const secret of ['PRIVATE TITLE','PRIVATE DESCRIPTION','PRIVATE COLOR','PRIVATE-IMAGE',
-      'secret-art-code','secret-type-code','12345'])
-      assert.equal(serialized.includes(secret),false,'schema test must not carry content: '+secret);
+    const normal=await service.getTemplateFillSession({tab:{id:71}});
+    assert.equal(normal.template.categoryId,159);
+    assert.equal(normal.template.title,'PRIVATE TITLE');
+    assert.equal(normal.template.description,'PRIVATE DESCRIPTION');
+    assert.equal(normal.template.dynamicAttributes[0].technicalValue,'secret-art-code');
+    assert.equal(normal.schemaTestScenario,undefined);
     await assert.rejects(service.getTemplateFillSession({tab:{id:72}}),
-      /Veralteter Schema-Testvorgang/,
-      'retired development sessions must fail closed before accessing a posting form');
+      /Veralteter Schema-Testvorgang/,'old standalone sessions must fail before any form is read');
   });
   await check('archive-shaped category/technical attributes hash ignores saved data', async()=>{
     const original={category:{id:405,path:['Elektronik','Wearables','Smartwatches']},formFields:[{name:'title',type:'text',value:'PRIVATE'}],
@@ -224,20 +213,19 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
     assert.equal(report.complete,true,report.issues.join(';'));
   });
 
-  await check('read-only test branch precedes filler/publisher and has no write primitive',async()=>{
-    const fs=require('node:fs');
+  await check('normal preflight reviews before filling dynamic values or uploading, and old tests cannot publish',()=>{
     const filler=fs.readFileSync(require.resolve('../src/content/template-filler.js'),'utf8');
-    const background=fs.readFileSync(require.resolve('../src/background/controllers/template-fill-controller.js'),'utf8');
-    const probe=filler.slice(filler.indexOf('async function runReadOnlySchemaTest'),filler.indexOf('async function runFillSession'));
-    assert.ok(probe.includes('SchemaPreflight.afterHydration'));
-    assert.ok(probe.includes("monitorSchemaStage('attributes'"));
-    for(const forbidden of ['fillDynamicAttributes(', 'uploadImages(', 'advanceAfterVerifiedFill(', 'autoPublishVerifiedRenewal(', 'button.click(', 'submit(', 'requestSubmit('])
-      assert.ok(!probe.includes(forbidden),'unexpected write path in read-only probe: '+forbidden);
-    assert.ok(filler.indexOf('if (session.schemaTestScenario)')<filler.indexOf("if (kind === 'post-fill' ||"));
-    assert.ok(background.includes('schemaTestScenario: isSchemaTest ? schemaTestScenario : null'));
-    assert.ok(background.includes("if (isSchemaTest) {"));
+    const controller=fs.readFileSync(require.resolve('../src/background/controllers/template-fill-controller.js'),'utf8');
+    const normal=filler.slice(filler.indexOf('async function runFillSession('),
+      filler.indexOf('async function runPendingFill('));
+    assert.ok(normal.indexOf('SchemaPreflight.afterHydration(')>0);
+    assert.ok(normal.indexOf('SchemaPreflight.evaluate(')>normal.indexOf('SchemaPreflight.afterHydration('));
+    assert.ok(normal.indexOf('await reviewLivePostingSchema(')>normal.indexOf('SchemaPreflight.evaluate('));
+    assert.ok(normal.indexOf('await reviewLivePostingSchema(')<normal.indexOf('fillDynamicAttributes('));
+    assert.match(normal,/SchemaPreflight.verifyAfterFill/);
+    assert.match(filler,/if \(session\.schemaTestScenario\) throw/);
+    assert.match(controller,/if \(options\.schemaTestScenario != null\) throw/);
   });
-
   await check('read-only 405 probe opens an exact linked popup and proves explicit technical IDs without selection', async()=>{
     const f=fixture({options:false});
     const control=f.document.getElementById('wearables.case_size');
@@ -542,8 +530,8 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
     assert.ok(warnings.some(x=>x.includes('nicht geprüft')));
   });
   await check('live monitor is bound before category selection, then category trail and hydrated fields',()=>{
-    const block=fillerSource.slice(fillerSource.indexOf('async function runReadOnlySchemaTest('),
-      fillerSource.indexOf('async function runFillSession('));
+    const block=fillerSource.slice(fillerSource.indexOf('async function runFillSession('),
+      fillerSource.indexOf('async function runPendingFill('));
     assert.ok(block.indexOf("captureCategoryNeutralForm(")>0);
     assert.ok(block.indexOf("monitorSchemaStage('base'")<block.indexOf('await setCategory('));
     assert.ok(block.indexOf("monitorSchemaStage('category'")>block.indexOf('await setCategory('));
@@ -592,13 +580,6 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
   });
   // Wave L1: standalone category monitoring uses no archived listing
   // values and must be valid for more than the fixed Smartwatch category.
-  const independentChecker = () => {
-    const a=fillerSource.indexOf('  // Production category checks require genuine live structural evidence');
-    const b=fillerSource.indexOf('  // Production read-only category schema check.',a);
-    assert.ok(a>0&&b>a,'generic independent category verdict policy not implemented');
-    return vm.runInNewContext(fillerSource.slice(a,b)+'\nassessIndependentCategoryCheck;',
-      {Object,Array,Set}, {filename:'kar134-independent-category-check.js'});
-  };
   const categoryCheckFixture = id => ({
     base:Schema.buildBaseSchema({ready:true,categorySelected:false,formMode:'posting-create',
       categoryChooser:'button',fields:[{name:'title',controlType:'text',visible:true}]}),
@@ -607,44 +588,6 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
       {label:'Category fixture',technicalId:id,kind:'leaf'}]}),
     attributes:Schema.buildSchema({categoryId:id,dynamicAttributes:[
       {key:'fixture.category_field',controlType:'text',requiredState:'optional'}]})
-  });
-  await check('independent category check accepts two different numeric leaf categories without 405 assumptions',()=>{
-    const checker=independentChecker();
-    const stages={base:{status:'reference-created'},category:{status:'reference-created'},
-      attributes:{status:'reference-created'}};
-    for(const id of ['405','2077']){
-      const observed=categoryCheckFixture(id);
-      const verdict=checker(id,observed,stages);
-      assert.equal(verdict.verdict,true,id);
-      assert.equal(verdict.categoryId,id);
-      assert.equal(verdict.partialEvidence,true,'unknown ancestor IDs remain explicit');
-      assert.equal(verdict.status,'checked');
-    }
-    assert.equal(checker('2077',categoryCheckFixture('405'),stages).verdict,false);
-  });
-  await check('independent category check accepts repeated statuses and proven real drift as checked, not identical',()=>{
-    const checker=independentChecker();
-    const observed=categoryCheckFixture('2077');
-    const result=checker('2077',observed,{
-      base:{status:'unchanged'},category:{status:'not-fully-verified'},attributes:{status:'changed'}});
-    assert.equal(result.verdict,true);
-    assert.equal(result.status,'checked-with-change');
-    assert.equal(result.partialEvidence,true);
-    assert.deepEqual(Array.from(result.stageStatuses),['unchanged','not-fully-verified','changed']);
-  });
-  await check('independent category check does not claim success if F1, F2 or F3 is absent or unverified',()=>{
-    const checker=independentChecker(),src=categoryCheckFixture('405');
-    const ok={base:{status:'unchanged'},category:{status:'not-fully-verified'},attributes:{status:'unchanged'}};
-    for(const stage of ['base','category','attributes']){
-      const missing={...src,[stage]:null};
-      assert.equal(checker('405',missing,ok).verdict,false,stage);
-      assert.equal(checker('405',src,{...ok,[stage]:{status:'monitor-unavailable'}}).verdict,false,stage);
-      assert.equal(checker('405',src,{...ok,[stage]:{status:'invalid-reference'}}).verdict,false,stage);
-    }
-    assert.equal(checker('0',src,ok).verdict,false);
-    assert.equal(checker('405',{...src,category:{...src.category,leafConfirmed:false}},ok).verdict,false);
-    assert.equal(checker('405',{...src,category:{...src.category,observedPath:false}},ok).verdict,false);
-    assert.equal(checker('405',{...src,attributes:{...src.attributes,fields:[]}},ok).verdict,false);
   });
   await check('generic category fingerprints persist distinctly for two categories while F1 remains shared',async()=>{
     const monitor=monitoringPolicy(),store=testStorage();
@@ -666,40 +609,26 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
     assert.equal(repeat.status,'unchanged');
     assert.equal(store.writes,5);
   });
-  await check('standalone category check is available on generic inventory, with account gate and no template values',()=>{
+  await check('L15 keeps inventory UI free of manual category checks and refuses standalone starts',()=>{
     const ui=fs.readFileSync(require.resolve('../src/app/inventory-card-renderer.js'),'utf8');
     const bg=fs.readFileSync(require.resolve('../src/background/controllers/template-fill-controller.js'),'utf8');
     const service=fs.readFileSync(require.resolve('../src/background/services/template-fill-service.js'),'utf8');
-    assert.match(ui,/schemaTestScenario:\s*'category-check'/);
-    assert.match(ui,/Kategorie prüfen/);
-    assert.match(ui,/hasVerifiableCategoryPath/);
-    assert.match(ui,/requireAccountBoundAction\(\)/);
-    assert.match(bg,/'category-check'/);
-    assert.match(bg,/category-check[\s\S]*?categoryId/);
-    assert.match(bg,/assertSelectedProfileMatchesLiveAccount/);
-    assert.match(bg,/assertInsertionStartAvailable/);
-    assert.match(service,/session\.schemaTestScenario[\s\S]*?dynamicAttributes: \[\]/);
+    assert.doesNotMatch(ui,/Kategorie prüfen|schemaTestScenario|makeCategoryCheckActions/);
+    assert.doesNotMatch(bg,/ownerType: 'schema-test'|schema-test-category-review-required/);
+    assert.match(bg,/options\.schemaTestScenario != null/);
+    assert.match(service,/if \(session\.schemaTestScenario\) throw/);
   });
-  await check('standalone category-check runs F1 F2 F3 on arbitrary committed leaf without filling or publishing',()=>{
-    const block=fillerSource.slice(fillerSource.indexOf('async function runReadOnlySchemaTest('),
-      fillerSource.indexOf('async function runFillSession('));
-    assert.match(block,/scenario === 'category-check'/);
-    assert.match(block,/KAR134_CATEGORY_CHECK_RESULT/);
-    assert.match(block,/assessIndependentCategoryCheck\(/);
-    assert.match(block,/SchemaPreflight\.afterHydration\(/);
+  await check('L15 natural posting flow observes F1 F2 F3 before saving or publishing',()=>{
+    const block=fillerSource.slice(fillerSource.indexOf('async function runFillSession('),
+      fillerSource.indexOf('async function runPendingFill('));
+    assert.match(block,/captureCategoryNeutralForm/);
     assert.match(block,/monitorSchemaStage\('base'/);
     assert.match(block,/monitorSchemaStage\('category'/);
     assert.match(block,/monitorSchemaStage\('attributes'/);
-    assert.match(block,/schema-test-category-check/);
-    assert.ok(!block.includes('syntheticStageDrift'));
-    assert.ok(!block.includes('const caseField'));
-    for(const forbidden of ['fillDynamicAttributes(', 'uploadImages(', 'advanceAfterVerifiedFill(',
-      'autoPublishVerifiedRenewal(', 'requestSubmit(', '.submit(', 'fillCoreForm(', 'ensureStableTitleValue('])
-      assert.ok(!block.includes(forbidden),'a category check may not fill/post listing: '+forbidden);
-    assert.match(block,/remotePublishAttempted:\s*false/);
-    assert.match(block,/archivedValuesRead:\s*categoryHintRead/);
-    assert.match(block,/categoryNavigationHintsRead:\s*categoryHintRead/);
-    assert.match(block,/archivedNonCategoryValuesRead:\s*false/);
+    assert.match(block,/SchemaPreflight\.afterHydration/);
+    assert.match(block,/reviewLivePostingSchema\(/);
+    assert.ok(block.indexOf('await reviewLivePostingSchema(')<block.indexOf('fillDynamicAttributes('));
+    assert.match(block,/SchemaPreflight\.verifyAfterFill/);
   });
   // Wave L5 step 2: a proven structural change gets a field-level, read-only
   // review. This is NEVER a request to change saved stage references.
