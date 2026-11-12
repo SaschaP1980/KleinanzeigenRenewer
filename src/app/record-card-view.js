@@ -24,7 +24,7 @@ function appendTrashRetentionCountdown(container, value) {
   const text = String(value ?? '');
   // The displayed label is the authority: parse the same whole-day integer that the user sees.
   // Unknown/indefinite deadlines deliberately remain plain neutral text without a guessed date.
-  const match = /^(.*?)(\\((?:noch (\\d+) Tag(?:e)?|Frist abgelaufen)\\))$/.exec(text);
+  const match = /^(.*?)(\((?:noch (\d+) Tag(?:e)?|Frist abgelaufen)\))$/.exec(text);
   if (!match) {
     container.textContent = text;
     return;
