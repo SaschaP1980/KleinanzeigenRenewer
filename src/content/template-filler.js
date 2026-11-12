@@ -1039,14 +1039,15 @@
   async function runReadOnlySchemaTest(session) {
     const scenario = session.schemaTestScenario;
     const expectedCategoryId = String(session.template?.categoryId ?? '').trim();
-    const independentCategoryCheck = scenario === 'category-check';
+    const isolatedReviewTest = scenario === 'isolated-review';
+    const independentCategoryCheck = scenario === 'category-check' || isolatedReviewTest;
     // Generic category checks may inspect only bounded Art/Typ categorization
     // hints. They are saved values, so the diagnostic must report this read.
     // No title, price, description, other attributes, or images are copied.
     const categoryHintRead = independentCategoryCheck &&
       Array.isArray(session.template?.categoryNavigationHints) &&
       session.template.categoryNavigationHints.length > 0;
-    if (!['compatible', 'incompatible', 'stage-drift', 'category-check'].includes(scenario) ||
+    if (!['compatible', 'incompatible', 'stage-drift', 'category-check', 'isolated-review'].includes(scenario) ||
         !/^[1-9][0-9]*$/.test(expectedCategoryId) ||
         (!independentCategoryCheck && expectedCategoryId !== '405') ||
         !SchemaCore || !SchemaPreflight)
@@ -1058,6 +1059,7 @@
     await runtimeMessage({ type: 'UPDATE_TEMPLATE_FILL_SESSION', fillId, status: 'running', stage: 'schema-test-category' });
     const preCategoryForm = await waitFor(() => resolveActivePostingForm(), { description: 'Aktives Schema-Basisformular' });
     const syntheticStageDrift = scenario === 'stage-drift';
+    const syntheticOnly = syntheticStageDrift || isolatedReviewTest;
     let observedBaseSchema = null;
     let observedCategorySchema = null;
     let observedAttributeSchema = null;
@@ -1065,7 +1067,7 @@
     const baseObservation = captureCategoryNeutralForm(preCategoryForm);
     if (baseObservation.status === 'observed') {
       observedBaseSchema = baseObservation.schema;
-      if (!syntheticStageDrift)
+      if (!syntheticOnly)
         baseStageResult = await monitorSchemaStage('base', baseObservation.schema, fillId);
     } else void diagnostic(fillId, 'KAR134_STAGE_MONITOR_SKIPPED',
       { stage: 'base', reason: baseObservation.status });
@@ -1095,7 +1097,7 @@
     if (categoryState?.pendingNavigation) return { pending: true, schemaTest: true };
     if (stagedCategoryPathEvidence) {
       observedCategorySchema = SchemaCore.buildCategorySchema(stagedCategoryPathEvidence);
-      if (!syntheticStageDrift)
+      if (!syntheticOnly)
         categoryStageResult = await monitorSchemaStage('category', observedCategorySchema, fillId);
     } else void diagnostic(fillId, 'KAR134_STAGE_MONITOR_SKIPPED',
       { stage: 'category', reason: 'no-independent-navigation-evidence' });
@@ -1105,10 +1107,122 @@
       throw new Error('Aktuelle Kategorie stimmt nicht mit der ausgewählten Inventarkategorie überein.');
     if (live.dynamicCount > 0) {
       observedAttributeSchema = live.schema;
-      if (!syntheticStageDrift)
+      if (!syntheticOnly)
         attributeStageResult = await monitorSchemaStage('attributes', live.schema, fillId);
     } else void diagnostic(fillId, 'KAR134_STAGE_MONITOR_SKIPPED',
       { stage: 'attributes', reason: 'no-dynamic-field-evidence' });
+
+    if (isolatedReviewTest) {
+      // Only the three actual *structural observations* are read. All
+      // synthetic history and any approval remain in a per-tab in-memory Map.
+      // No production reference get/set is executed in this scenario.
+      let isolated = null;
+      let review = null;
+      try {
+        isolated = await createIsolatedStageReview(fillId, {
+          base: observedBaseSchema, category: observedCategorySchema,
+          attributes: observedAttributeSchema
+        });
+        review = buildStageChangeReview(isolated.results, {
+          categoryEvidence: observedCategorySchema?.evidence || null,
+          simulationOnly: true
+        });
+        if (!review.hasProvenChange || review.sections.some(section => section.status !== 'changed'))
+          throw new Error('Künstliche F1/F2/F3-Strukturunterschiede wurden nicht bestätigt.');
+      } catch (error) {
+        const issues = ['Isolierter Strukturtest nicht vollständig: ' + String(error?.message || error).slice(0, 180)];
+        void diagnostic(fillId, 'KAR134_ISOLATED_REVIEW_BLOCKED', {
+          scenario, simulationOnly: true, categoryId: expectedCategoryId,
+          evidenceState: 'incomplete', realReferenceReads: 0, realReferenceWrites: 0,
+          remotePublishAttempted: false
+        }, 'warning');
+        await runtimeMessage({ type:'UPDATE_TEMPLATE_FILL_SESSION', fillId,
+          status:'needs-review', stage:'schema-test-isolated-incomplete',
+          result:{complete:false,issues} });
+        updatePanel('TEST – Änderungsdialog nicht verfügbar', issues[0],issues,{
+          safetyText:'NUR SIMULATION – keine produktive Referenz verändert, keine Veröffentlichung.'
+        });
+        return { schemaTest:true,scenario,verdict:false,simulationOnly:true,
+          referenceApproved:false,publishTriggered:false,issues };
+      }
+      void diagnostic(fillId, 'KAR134_ISOLATED_REVIEW_STARTED', {
+        scenario, simulationOnly: true, categoryId: expectedCategoryId,
+        stageStatuses: review.sections.map(section => section.status),
+        sandboxReferenceWrites: isolated.state().referenceWrites,
+        realReferenceReads: 0, realReferenceWrites: 0,
+        remotePublishAttempted: false, referenceApproved: false
+      });
+      // This remains needs-review after any sandbox-only choice; a test
+      // acceptance NEVER becomes production schema authorization.
+      const issues=['TEST: Künstliche Strukturänderungen in F1, F2 und F3. Nur der isolierte Testspeicher kann geändert werden.'];
+      await runtimeMessage({ type:'UPDATE_TEMPLATE_FILL_SESSION', fillId,
+        status:'needs-review', stage:'schema-test-isolated-review',
+        result:{complete:false,issues} });
+      updatePanel('TEST – Künstliche Änderungen erkannt',
+        'Kategorie ' + expectedCategoryId + ': F1, F2 und F3 wurden ausschließlich gegen synthetische Referenzen verglichen. Der Änderungsdialog zeigt die Testunterschiede.',
+        issues,{safetyText:'NUR SIMULATION – echte Fingerprints unverändert, keine Anzeige veröffentlicht.'});
+      showStageChangeReviewDialog(review,{
+        simulationOnly: true,
+        onDefer: () => {
+          try {
+            const state = isolated.defer();
+            void diagnostic(fillId,'KAR134_ISOLATED_REVIEW_DEFERRED',{
+              categoryId:expectedCategoryId,simulationOnly:true,
+              sandboxReferenceWrites:state.referenceWrites,referenceApproved:false,
+              realReferenceWrites:0,remotePublishAttempted:false
+            });
+            updatePanel('TEST – Referenzübernahme abgelehnt',
+              'Die synthetischen Referenzen bleiben unverändert im Testspeicher.',
+              [],{safetyText:'Echte Fingerprints unverändert, keine Veröffentlichung.'});
+          } catch(error) {
+            void diagnostic(fillId,'KAR134_ISOLATED_REVIEW_BLOCKED',{
+              categoryId:expectedCategoryId,simulationOnly:true,
+              reason:'defer-failed',realReferenceWrites:0
+            },'warning');
+          }
+        },
+        onAcknowledge: () => {
+          // Acknowledgement is distinct from approval, including in tests.
+          void diagnostic(fillId,'KAR134_ISOLATED_REVIEW_ACKNOWLEDGED',{
+            categoryId:expectedCategoryId,simulationOnly:true,
+            sandboxReferenceWrites:isolated.state().referenceWrites,
+            referenceApproved:false,realReferenceWrites:0,remotePublishAttempted:false
+          });
+          updatePanel('TEST – Änderungen zur Kenntnis genommen',
+            'Die künstlichen Fingerprints wurden NICHT übernommen.',
+            [],{safetyText:'Echte Fingerprints unverändert, keine Veröffentlichung.'});
+        },
+        onTestApprove: () => {
+          void (async()=>{
+            try {
+              const adopted = await isolated.approve({confirmed:true});
+              void diagnostic(fillId,'KAR134_ISOLATED_REVIEW_ACCEPTED',{
+                categoryId:expectedCategoryId,simulationOnly:true,
+                referenceApproved:false,testReferenceAccepted:adopted.accepted,
+                sandboxReferenceWrites:adopted.referenceWrites,
+                repeatedStageStatuses:['base','category','attributes'].map(stage => adopted.results[stage].status),
+                realReferenceWrites:0,remotePublishAttempted:false
+              });
+              updatePanel('TEST – Übernahme nur im Testspeicher erfolgreich',
+                'F1 und F3 wurden im isolierten Speicher erneut als unverändert bestätigt. F2 bleibt bei fehlenden technischen Eltern-IDs teilweise verifiziert. Produktive Fingerprints wurden nicht verändert.',
+                [],{safetyText:'NUR SIMULATION – keine echte Referenzübernahme und keine Veröffentlichung.'});
+            }catch(error){
+              void diagnostic(fillId,'KAR134_ISOLATED_REVIEW_BLOCKED',{
+                categoryId:expectedCategoryId,simulationOnly:true,
+                reason:'test-acceptance-not-verified',realReferenceWrites:0
+              },'warning');
+              updatePanel('TEST – Übernahme nicht bestätigt',
+                'Die isolierte Testübernahme konnte nicht sicher verifiziert werden.',
+                [String(error?.message || error).slice(0,180)],{
+                  safetyText:'Echte Fingerprints unverändert, keine Veröffentlichung.'
+                });
+            }
+          })();
+        }
+      });
+      return { schemaTest:true,scenario,verdict:true,simulationOnly:true,
+        referenceApproved:false,reviewRequired:true,publishTriggered:false,issues };
+    }
 
     if (scenario === 'category-check') {
       // Generic category monitoring: read only the live structure; DO NOT
