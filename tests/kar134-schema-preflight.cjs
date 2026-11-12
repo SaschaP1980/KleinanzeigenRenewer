@@ -1244,8 +1244,112 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
     showStageChangeReviewDialog(review,{documentRoot:document,realAdoptionPlan:{eligible:false}});
     assert.equal(document.querySelectorAll('[role="dialog"] button').length,2);
   });
-  assert.equal(passed,77,'KAR-134 preflight regression count must remain complete');
-  console.log(passed+'/77 PASS KAR-134 schema capture/preflight');
+  // Genuine adoption authority lives in the existing background fill controller,
+  // not in the content script's writable chrome.storage object.
+  const makeRealApprovalAuthority = async (options={}) => {
+    const controllerSource=fs.readFileSync(require.resolve('../src/background/controllers/template-fill-controller.js'),'utf8');
+    const start=controllerSource.indexOf('async function adoptVerifiedSchemaReference(');
+    const end=controllerSource.indexOf('async function updateTemplateFillSession(',start);
+    assert.ok(start>0&&end>start,'guarded background reference authority must exist');
+    const oldSchema=Schema.buildSchema({categoryId:'405',dynamicAttributes:[
+      {key:'wearables.bluetooth',controlType:'checkbox',requiredState:'unknown'}]});
+    const freshSchema=Schema.buildSchema({categoryId:'405',dynamicAttributes:[
+      {key:'wearables.bluetooth',controlType:'checkbox',requiredState:'unknown'},
+      {key:'wearables.new_feature',controlType:'text',requiredState:'unknown'}]});
+    const oldFingerprint=await Schema.fingerprint(oldSchema);
+    const newFingerprint=await Schema.fingerprint(freshSchema);
+    const key='kr134:stage-monitor:v1:attributes:405';
+    const map=new Map([[key,{schemaVersion:1,snapshot:oldSchema,fingerprint:oldFingerprint}]]);
+    let baselineWrites=0,gateCalls=0;
+    const sessions={testSession:{fillId:'testSession',templateOnly:true,inventoryId:'watch',
+      sourceAdId:'123456',targetTabId:42,status:'needs-review',
+      stage:'schema-test-category-review-required',schemaTestScenario:'category-check',
+      createdAt:new Date().toISOString()}};
+    const record={inventoryId:'watch',adId:'123456',profileId:'selected-profile',
+      category:{id:405},categoryPath:['Elektronik','Wearables']};
+    const storage={
+      async get(key){return {[key]:map.get(key)};},
+      async set(values){for(const [key,val] of Object.entries(values)){
+        if(key.startsWith('kr134:stage-monitor:'))baselineWrites++;
+        map.set(key,val);
+      }}
+    };
+    const context={
+      TemplateSchemaCore:Schema,cryptoApi:{randomUUID:()=> 'approval-nonce-1'},
+      chromeApi:{storage:{local:storage}},
+      getInventory:async()=>options.record||record,
+      assertSelectedProfileMatchesLiveAccount:async()=>{gateCalls++;if(options.denyProfile)throw Error('profile mismatch');},
+      writeFillSessions:async()=>{},getInsertionLockState:async()=>null,
+      TEMPLATE_TARGET_URL:'https://www.kleinanzeigen.de/p-anzeige-aufgeben-schritt2.html',
+      logDiagnostic:()=>Promise.resolve(),sessionCorrelationContext:()=>({}),
+      Date,RegExp,Array,Object,Set,Map,Promise
+    };
+    const approve=vm.runInNewContext(controllerSource.slice(start,end)+
+      '\n adoptVerifiedSchemaReference;',context,{filename:'kar134-reference-adoption-guard.js'});
+    const sender={tab:{id:42,url:'https://www.kleinanzeigen.de/p-anzeige-aufgeben-schritt2.html'}};
+    return {
+      approve,session:sessions.testSession,sessions,sender,oldSchema,freshSchema,
+      oldFingerprint,newFingerprint,key,map,
+      get baselineWrites(){return baselineWrites;},
+      get gateCalls(){return gateCalls;}
+    };
+  };
+  await check('real approval must prepare exact category-scoped F3 consent before any storage mutation',async()=>{
+    const a=await makeRealApprovalAuthority();
+    const result=await a.approve({referenceAdoption:{action:'prepare',
+      stage:'attributes',categoryId:'405',
+      oldFingerprint:a.oldFingerprint,newFingerprint:a.newFingerprint}},
+      a.session,a.sessions,a.sender);
+    assert.equal(result.pending,true);
+    assert.equal(result.referenceApproved,false);
+    assert.equal(a.baselineWrites,0);
+    assert.equal(a.session.pendingSchemaReferenceApproval.token,result.token);
+    assert.ok(a.gateCalls>=1);
+  });
+  await check('real approval serializes one F3 reference write, validates fingerprint and is not repeatable',async()=>{
+    const a=await makeRealApprovalAuthority();
+    const prep=await a.approve({referenceAdoption:{action:'prepare',stage:'attributes',
+      categoryId:'405',oldFingerprint:a.oldFingerprint,newFingerprint:a.newFingerprint}},
+      a.session,a.sessions,a.sender);
+    const result=await a.approve({referenceAdoption:{action:'commit',stage:'attributes',
+      categoryId:'405',token:prep.token,oldFingerprint:a.oldFingerprint,
+      newFingerprint:a.newFingerprint,snapshot:a.freshSchema}},
+      a.session,a.sessions,a.sender);
+    assert.equal(result.referenceApproved,true);
+    assert.equal(a.baselineWrites,1,'one production F3 ref is changed at most once');
+    assert.equal(a.map.get(a.key).fingerprint,a.newFingerprint);
+    assert.equal(a.map.get(a.key).priorReference.fingerprint,a.oldFingerprint);
+    assert.ok(a.gateCalls>=2,'profile checked both before prepare and immediately before commit');
+    await assert.rejects(a.approve({referenceAdoption:{action:'commit',stage:'attributes',
+      categoryId:'405',token:prep.token,oldFingerprint:a.oldFingerprint,
+      newFingerprint:a.newFingerprint,snapshot:a.freshSchema}},
+      a.session,a.sessions,a.sender),/benutzt|abgelaufen|Bestätigung|nicht verfügbar/i);
+    assert.equal(a.baselineWrites,1);
+  });
+  await check('real approval fails closed on profile change, tampered payload and stale baseline',async()=>{
+    const a=await makeRealApprovalAuthority();
+    const prep=await a.approve({referenceAdoption:{action:'prepare',stage:'attributes',
+      categoryId:'405',oldFingerprint:a.oldFingerprint,newFingerprint:a.newFingerprint}},
+      a.session,a.sessions,a.sender);
+    const send=(extra={})=>a.approve({referenceAdoption:{action:'commit',stage:'attributes',
+      categoryId:'405',token:prep.token,oldFingerprint:a.oldFingerprint,
+      newFingerprint:a.newFingerprint,snapshot:a.freshSchema,...extra}},
+      a.session,a.sessions,a.sender);
+    await assert.rejects(send({token:'forged'}),/Bestätigung|Token|abgelaufen/i);
+    await assert.rejects(send({categoryId:'159'}),/Kategorie|Identität/i);
+    await assert.rejects(send({snapshot:a.oldSchema}),/Fingerprint|Struktur/i);
+    assert.equal(a.baselineWrites,0);
+    a.map.set(a.key,{schemaVersion:1,snapshot:a.freshSchema,fingerprint:a.newFingerprint});
+    await assert.rejects(send(),/veraltet|geändert|Fingerprint|Referenz/i);
+    assert.equal(a.baselineWrites,0);
+    const wrong=await makeRealApprovalAuthority({denyProfile:true});
+    await assert.rejects(wrong.approve({referenceAdoption:{action:'prepare',
+      stage:'attributes',categoryId:'405',oldFingerprint:wrong.oldFingerprint,
+      newFingerprint:wrong.newFingerprint}},wrong.session,wrong.sessions,wrong.sender),/profile mismatch/);
+    assert.equal(wrong.baselineWrites,0);
+  });
+  assert.equal(passed,80,'KAR-134 preflight regression count must remain complete');
+  console.log(passed+'/80 PASS KAR-134 schema capture/preflight');
 
 
 
