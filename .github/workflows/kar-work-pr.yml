@@ -112,6 +112,9 @@ jobs:
           set -euo pipefail
           node tests/kar99-p13b2b-auto-phase4-receipt.cjs
           node tests/kar99-p13b2b-phase4-journal-receipt.cjs
+      - name: KAR-99 P1.3 seven persisted owner callback closure read-only
+        if: github.head_ref == 'work/KAR-99'
+        run: node --test tests/kar99-p13-persisted-owner-callback-closure.cjs
       - name: KAR-99 P1.3 native transaction persisted release non-authorizing proof
         if: github.head_ref == 'work/KAR-99'
         run: node --test tests/kar99-p13-native-transaction-closure.cjs
