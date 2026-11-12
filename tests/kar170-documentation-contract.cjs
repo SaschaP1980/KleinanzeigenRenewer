@@ -15,7 +15,7 @@ const fnv = str => {
   for(let i=0;i<str.length;i++){ n ^= BigInt(str.charCodeAt(i)); n=BigInt.asUintN(64,n*0x100000001b3n); }
   return n.toString(16).padStart(16,'0');
 };
-const versionHeading = text => /^#{1,6}\s+(?:(?:Patch|Version|Release|Hotfix|Build|Correction)\s*[:#-]?\s*)?v?\d+\.\d+\.\d+(?:_c\d+)?(?:\s|$)/im.test(text);
+const versionHeading = text => /^#{1,6}\s+(?:(?:Patch|Version|Release|Hotfix|Build|Correction)\s*[:#-]?\s*)?v?\d+\.\d+\.\d+(?:_c\d+)?(?=\s|:|[-–—]|$)/im.test(text);
 assert.equal(versionHeading('# Product\n\nCurrent source version v1.23.87.\n## Releases and development\n'),false,'current-version prose must be allowed');
 for(const bad of ['## v1.23.22 — Correction', '### Patch 1.23.21: old CI', '## Version 1.22.11', '# 0.1.2']) {
   assert.equal(versionHeading(bad),true,'release diary heading must be rejected: '+bad);
