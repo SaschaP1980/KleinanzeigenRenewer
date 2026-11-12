@@ -131,8 +131,7 @@
         const session = Object.values(sessions).find(item => item?.targetTabId === tabId && ['waiting', 'running'].includes(item.status));
         if (!session) return null;
         // A persisted session from a retired development probe must never resume.
-        if (session.schemaTestScenario && session.schemaTestScenario !== 'category-check')
-          throw new Error('Veralteter Schema-Testvorgang kann nicht fortgesetzt werden.');
+        if (session.schemaTestScenario) throw new Error('Veralteter Schema-Testvorgang kann nicht fortgesetzt werden.');
         const record = session.archiveInsertionId && session.archiveTemplate ? session.archiveTemplate : await getInventory(session.inventoryId);
         if (!record) throw new Error('Vorlageninventar wurde nach dem Öffnen des Tabs nicht gefunden.');
         session.status = 'running';
@@ -143,27 +142,11 @@
         return {
           operationId: session.operationId || null, parentOperationId: session.parentOperationId || null, fillId: session.fillId,
           renewalId: session.renewalId || null, archiveInsertionId: session.archiveInsertionId || null, templateOnly: Boolean(session.templateOnly),
-          schemaTestScenario: session.schemaTestScenario || null,
           autoReplacementAllowed: Boolean(session.autoReplacementAllowed), trashInventoryId: session.trashInventoryId || null,
           status: session.status || null, stage: session.stage || null,
           result: session.result ? { complete: Boolean(session.result.complete), issues: Array.isArray(session.result.issues) ? session.result.issues.slice(0, 50) : [],
             schemaPreflight: session.result.schemaPreflight?.verified === true ? { ...session.result.schemaPreflight } : null } : null,
-          template: session.schemaTestScenario
-            ? { categoryId: record.category?.id ?? record.categoryIdFromUrl ?? null,
-                categoryPath: record.category?.path || record.categoryPath || [], dynamicAttributes: [],
-                // KAR-134: category-only navigation can require an exact Art/Typ
-                // child after a captured parent. Send only bounded classifier
-                // display labels, never technical values or listing content.
-                // The live selectable leaf AND committed numeric ID must confirm.
-                ...(session.schemaTestScenario === 'category-check' ? {
-                  categoryNavigationHints: (Array.isArray(record.dynamicAttributes) ? record.dynamicAttributes : [])
-                    .filter(a => ['art', 'typ'].includes(String(a?.label || '').trim().toLocaleLowerCase('de-DE')) &&
-                      typeof a.displayValue === 'string' && a.displayValue.trim() &&
-                      a.displayValue.trim().length <= 150)
-                    .slice(0, 4)
-                    .map(a => ({ label: a.label.trim(), displayValue: a.displayValue.trim() }))
-                } : {}) }
-            : templatePayload(record)
+          template: templatePayload(record)
         };
       }
 
