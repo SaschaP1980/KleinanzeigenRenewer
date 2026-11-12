@@ -1064,7 +1064,8 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
     assert.equal(sandbox.state().realReferenceReads,0);
     assert.equal(sandbox.state().realReferenceWrites,0);
     assert.match(sandbox.state().namespace,/kr134:isolated-stage-monitor:/);
-    const model=buildIsolatedReviewModel(sandbox.results,sandbox.observed.category);
+    const {buildStageChangeReview}=reviewHelpers();
+    const model=buildStageChangeReview(sandbox.results,{categoryEvidence:sandbox.observed.category.evidence,simulationOnly:true});
     assert.equal(model.hasProvenChange,true);
     assert.equal(model.simulationOnly,true);
     assert.match(model.safetyText,/SIMULATION|Testspeicher/i);
