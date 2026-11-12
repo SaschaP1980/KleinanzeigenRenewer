@@ -167,7 +167,7 @@ function requireTemplateFillController() {
     readArchiveInsertionSessions, persistArchiveInsertionSession,
     recordRenewalPhaseAttemptError, canRetryRenewalPhase1, restartRenewalPhase1Attempt,
     evictTemplateImageTransfersForFill, classifyKleinanzeigenInsertionErrorUrl,
-    cryptoApi: crypto, chromeApi: chrome, queueMicrotaskFn: queueMicrotask,
+    cryptoApi: crypto, chromeApi: chrome, TemplateSchemaCore, queueMicrotaskFn: queueMicrotask,
     TEMPLATE_TARGET_URL, TAB_ROLES, TERMINAL_TEMPLATE_FILL_STATUSES
   });
   return templateFillController;
