@@ -73,6 +73,18 @@ let verificationRoot = null;
 const diagnostics = [];
 
 const modules = {
+  // KAR-134: this legacy test isolates title controlled-input recovery.
+  // Supply a separately verified preflight fixture; the real gate is exercised
+  // by tests/kar134-schema-preflight.cjs and never bypassed in production.
+  KRTemplateSchemaCore: {},
+  KRTemplateSchemaPreflight: { create: () => ({
+    afterHydration: async () => ({ form }),
+    evaluate: async () => ({ complete: true, issues: [], mappings: [],
+      comparison: { status: 'legacy-unversioned', changes: [] },
+      sourceFingerprint: null, currentFingerprint: 'a'.repeat(64) }),
+    inspectForm: () => ({ form }),
+    verifyAfterFill: () => []
+  }) },
   KRPaidInsertionGuard: {},
   KRTemplateCategoryFlow: { create: () => ({
     resolveCategoryNavigationUrl: () => null,
@@ -127,7 +139,7 @@ const modules = {
 };
 
 global.KRDeps = {
-  optional: () => null,
+  optional(name) { return modules[name] || null; },
   require(name) { if (!(name in modules)) throw new Error(`Missing test dependency ${name}`); return modules[name]; },
   register(name, value) { if (name === 'KRTemplateFill') global.__templateFillApi = value; return value; }
 };
