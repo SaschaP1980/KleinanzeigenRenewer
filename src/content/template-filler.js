@@ -741,6 +741,12 @@
     const scenario = session.schemaTestScenario;
     const expectedCategoryId = String(session.template?.categoryId ?? '').trim();
     const independentCategoryCheck = scenario === 'category-check';
+    // Generic category checks may inspect only bounded Art/Typ categorization
+    // hints. They are saved values, so the diagnostic must report this read.
+    // No title, price, description, other attributes, or images are copied.
+    const categoryHintRead = independentCategoryCheck &&
+      Array.isArray(session.template?.categoryNavigationHints) &&
+      session.template.categoryNavigationHints.length > 0;
     if (!['compatible', 'incompatible', 'stage-drift', 'category-check'].includes(scenario) ||
         !/^[1-9][0-9]*$/.test(expectedCategoryId) ||
         (!independentCategoryCheck && expectedCategoryId !== '405') ||
@@ -777,7 +783,8 @@
       void diagnostic(fillId, 'KAR134_CATEGORY_CHECK_RESULT', {
         categoryId: expectedCategoryId, verdict: false, reason: 'category-selection-failed',
         stageStatuses: [baseStageResult?.status || 'not-observed', 'not-observed', 'not-observed'],
-        remotePublishAttempted: false, archivedValuesRead: false
+        remotePublishAttempted: false, archivedValuesRead: categoryHintRead,
+        categoryNavigationHintsRead: categoryHintRead, archivedNonCategoryValuesRead: false
       }, 'warning');
       await runtimeMessage({ type: 'UPDATE_TEMPLATE_FILL_SESSION', fillId,
         status: 'needs-review', stage: 'schema-test-category-unreachable',
@@ -833,7 +840,8 @@
         status: assessment.status, reason: assessment.reason,
         partialEvidence: assessment.partialEvidence,
         stageStatuses: assessment.stageStatuses,
-        remotePublishAttempted: false, archivedValuesRead: false
+        remotePublishAttempted: false, archivedValuesRead: categoryHintRead,
+        categoryNavigationHintsRead: categoryHintRead, archivedNonCategoryValuesRead: false
       }, assessment.verdict ? 'info' : 'warning');
       await runtimeMessage({
         type: 'UPDATE_TEMPLATE_FILL_SESSION', fillId,
