@@ -1,7 +1,7 @@
 # KAR-59 Phase 1. Standalone Windows PowerShell 5.1-compatible program updater.
 [CmdletBinding()]
 param(
- [ValidateSet('check','inspect_transaction','install','update','oneclick','verify','rollback','recover','accept')][string]$Command='check',
+ [ValidateSet('check','install','update','oneclick','verify','rollback','recover','accept')][string]$Command='check',
  [switch]$Yes,
  [string]$TestRoot,
  [string]$TestChannel,
@@ -30,21 +30,6 @@ $BackupRoot=Join-Path $Root 'Backups'
 $ReceiptPath=Join-Path $State 'active.json'
 $JournalPath=Join-Path $State 'pending.json'
 $LogPath=Join-Path $State 'updater.jsonl'
-# P1.3: negative-only offline witness of an interrupted standalone update.
-# This is not an independently authenticated MV3 transaction outcome or lease.
-# Execute before creating State, updater.lock, log, or invoking approval/network.
-if ($Command -eq 'inspect_transaction') {
- $presence='unknown'
- $state='unverified'
- try {
-  if (Test-Path -LiteralPath $JournalPath -ErrorAction Stop) {
-   $presence='present'
-   $state='blocked'
-  } else { $presence='absent' }
- } catch { $presence='unknown' }
- Write-Output ("NATIVE_TRANSACTION_INSPECTION: status={0} journal={1} nativeOutcomeVerified=false eligibleForLease=false" -f $state,$presence)
- return
-}
 [void][IO.Directory]::CreateDirectory($State)
 $Lock=$null
 function Require([bool]$Ok,[string]$Message) { if (-not $Ok) { throw ('KAR_UPDATER_FAILED: '+$Message) } }

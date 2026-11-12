@@ -3,7 +3,7 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
 if ($env:CI -ne 'true' -or $env:KAR_UPDATER_TEST_MODE -ne '1') { throw 'KAR99_JOURNAL_TEST_REQUIRES_CI' }
-$updater=Join-Path (Split-Path $PSScriptRoot -Parent) 'tools\windows\KleinanzeigenRenewer-Updater.ps1'
+$inspector=Join-Path (Split-Path $PSScriptRoot -Parent) 'tools\windows\Inspect-KleinanzeigenRenewer-UpdateTransaction.ps1'
 $base=Join-Path ([IO.Path]::GetTempPath()) ('kar99-journal-'+[Guid]::NewGuid().ToString('N'))
 $root=Join-Path $base 'isolated'
 $state=Join-Path $root 'State'
@@ -15,7 +15,7 @@ function Verify([bool]$condition,[string]$message) {
  Write-Host ('PASS KAR-99 P1.3 '+$message)
 }
 function Inspect {
- $lines=@(& $updater -Command inspect_transaction -TestRoot $root)
+ $lines=@(& $inspector -TestRoot $root)
  return ($lines -join "`n").Trim()
 }
 $unknown='NATIVE_TRANSACTION_INSPECTION: status=unverified journal=absent nativeOutcomeVerified=false eligibleForLease=false'
