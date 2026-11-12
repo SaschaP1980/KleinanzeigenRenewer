@@ -952,8 +952,101 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
     assert.match(block,/categoryNavigationHintsRead:\s*categoryHintRead/);
     assert.match(block,/archivedNonCategoryValuesRead:\s*false/);
   });
-  assert.equal(passed,63,'KAR-134 preflight regression count must remain complete');
-  console.log(passed+'/63 PASS KAR-134 schema capture/preflight');
+  // Wave L5 step 2: a proven structural change gets a field-level, read-only
+  // review. This is NEVER a request to change saved stage references.
+  const reviewHelpers = () => {
+    const start = fillerSource.indexOf('  // KAR-134 L2 change review');
+    const end = fillerSource.indexOf('  // KAR-134 K3 synthetic fingerprint warning proof',start);
+    assert.ok(start>0&&end>start,'step-2 review policy/UI must be implemented');
+    return vm.runInNewContext(fillerSource.slice(start,end)+
+      '\n({buildStageChangeReview,showStageChangeReviewDialog});',
+      {Object,Array,Set,Map}, {filename:'kar134-stage-review.js'});
+  };
+  await check('step-2 review distinguishes proven F3 field changes from partial F2 identity',()=>{
+    const {buildStageChangeReview}=reviewHelpers();
+    const model=buildStageChangeReview({
+      base:{status:'unchanged',changes:[]},
+      category:{status:'not-fully-verified',changes:[]},
+      attributes:{status:'changed',changes:[
+        {type:'field-removed',key:'attribute:wearables.case_size'},
+        {type:'control-kind-changed',key:'attribute:wearables.bluetooth',before:'checkbox',after:'radio'}
+      ]}
+    });
+    assert.equal(model.hasProvenChange,true);
+    assert.equal(model.hasUncertainty,true);
+    assert.deepEqual(Array.from(model.sections.map(section=>section.status)),
+      ['unchanged','not-fully-verified','changed']);
+    assert.match(model.sections[1].label,/F2/);
+    assert.match(model.sections[1].note,/nicht vollständig/i);
+    assert.match(model.sections[2].items.join(' '),/case_size/);
+    assert.match(model.sections[2].items.join(' '),/checkbox|Kontrollkästchen/);
+    assert.match(model.safetyText,/nicht|keine/i);
+  });
+  await check('step-2 review does not invent drift from uncertain F2 ancestor or option evidence',()=>{
+    const {buildStageChangeReview}=reviewHelpers();
+    const uncertain=buildStageChangeReview({
+      base:{status:'reference-created',changes:[]},
+      category:{status:'uncertain',changes:[{type:'unverified-path-label-changed',level:1}]},
+      attributes:{status:'uncertain',changes:[{type:'option-evidence-uncertain',
+        key:'attribute:shoes.art',before:null,after:['PRIVATE-OPTION-ID']}]}
+    });
+    assert.equal(uncertain.hasProvenChange,false);
+    assert.equal(uncertain.hasUncertainty,true);
+    assert.ok(!JSON.stringify(uncertain).includes('PRIVATE-OPTION-ID'),
+      'uncertain option values must never leak into the review');
+  });
+  await check('step-2 dialog needs explicit acknowledgement, deferral never approves anything',()=>{
+    const {buildStageChangeReview,showStageChangeReviewDialog}=reviewHelpers();
+    const {document}=parseHTML('<html><body></body></html>');
+    let acknowledged=0,deferred=0;
+    const model=buildStageChangeReview({
+      base:{status:'changed',changes:[{type:'field-added',key:'field:foo'}]},
+      category:{status:'not-fully-verified',changes:[]},
+      attributes:{status:'unchanged',changes:[]}
+    });
+    const show=()=>showStageChangeReviewDialog(model,{
+      documentRoot:document,onAcknowledge:()=>{acknowledged++;},
+      onDefer:()=>{deferred++;}
+    });
+    show();
+    const dialog=document.querySelector('[role="dialog"]');
+    assert.ok(dialog,'dialog must be actually rendered');
+    assert.match(dialog.textContent,/F1/);
+    assert.match(dialog.textContent,/F2/);
+    assert.match(dialog.textContent,/F3/);
+    assert.match(dialog.textContent,/nicht übernommen|nicht verändert/i);
+    assert.ok(!dialog.innerHTML.includes('<script>'));
+    const buttons=[...dialog.querySelectorAll('button')];
+    assert.equal(buttons.length,2,'must expose acknowledge and defer distinctly');
+    buttons[0].click();
+    assert.equal(acknowledged,0);
+    assert.equal(deferred,1);
+    assert.equal(document.querySelector('[role="dialog"]'),null);
+    show();
+    [...document.querySelectorAll('[role="dialog"] button')][1].click();
+    assert.equal(acknowledged,1);
+    assert.equal(deferred,1);
+    assert.equal(document.querySelector('[role="dialog"]'),null);
+    assert.equal(showStageChangeReviewDialog(buildStageChangeReview({
+      base:{status:'unchanged'},category:{status:'not-fully-verified'},attributes:{status:'unchanged'}
+    }),{documentRoot:document}),null,'unchanged/partially proved must never show confirmed-drift modal');
+  });
+  await check('step-2 category-check wiring never authorizes reference acceptance or publication',()=>{
+    const block=fillerSource.slice(fillerSource.indexOf("if (scenario === 'category-check')"),
+      fillerSource.indexOf("if (syntheticStageDrift)",fillerSource.indexOf("if (scenario === 'category-check')")));
+    assert.match(block,/buildStageChangeReview\(/);
+    assert.match(block,/showStageChangeReviewDialog\(/);
+    assert.match(block,/KAR134_CHANGE_REVIEW_ACKNOWLEDGED/);
+    assert.match(block,/KAR134_CHANGE_REVIEW_DEFERRED/);
+    assert.match(block,/reviewRequired/);
+    assert.match(block,/referenceApproved:\s*false/);
+    assert.ok(!block.includes('storage.set('));
+    assert.ok(!block.includes('chrome.storage.local.set('));
+    assert.ok(!block.includes('requestSubmit('));
+    assert.ok(!block.includes('uploadImages('));
+  });
+  assert.equal(passed,67,'KAR-134 preflight regression count must remain complete');
+  console.log(passed+'/67 PASS KAR-134 schema capture/preflight');
 
 
 
