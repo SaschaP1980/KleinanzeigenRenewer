@@ -507,7 +507,100 @@
         context
       });
     }
-    return Object.freeze({observe, track, snapshotInFlight});
+    // KAR-99 P1.3: P8 finally() completion is historical local evidence, not
+    // confirmation of native/remote transaction outcome or MV3 generation IDLE.
+    // This owner-scoped inspector deliberately rejects generic routed receipts:
+    // they conservatively attribute *all* seven owners and prove no unique owner.
+    // Read actual persisted/session records before, between and after two complete
+    // observations, and pin the independently double-read P8 admission journal.
+    async function inspectPersistedOwnerCallbackClosureReadOnly(owner) {
+      const result=(status,reason,more={})=>Object.freeze({
+        schema:1,owner,status,reason,eligibleForLease:false,
+        currentLiveAccountVerified:false,priorGenerationClosed:false,
+        remoteOutcomeVerified:false,localCommitVerified:false,
+        noPendingDetachedWorkVerified:false,
+        storedProfileStable:false,completedReceiptCount:0,
+        sourceRevision:null,...more
+      });
+      if (!OWNERS.includes(owner))return result('unverified','UNKNOWN_PERSISTED_OWNER');
+      if (pending.get(owner)!==0)return result('blocked','ACTUAL_IN_FLIGHT_OPERATION');
+      const keys=[...LOCAL_KEYS,...PROFILE_KEYS];
+      let firstLocal,middleLocal,finalLocal;
+      let firstSession,middleSession,finalSession,prior,again;
+      try {
+        [firstLocal,firstSession]=await Promise.all([
+          storageLocal.get(keys),storageSession.get(SESSION_KEYS)
+        ]);
+        prior=await observe();
+        [middleLocal,middleSession]=await Promise.all([
+          storageLocal.get(keys),storageSession.get(SESSION_KEYS)
+        ]);
+        again=await observe();
+        [finalLocal,finalSession]=await Promise.all([
+          storageLocal.get(keys),storageSession.get(SESSION_KEYS)
+        ]);
+      } catch {return result('unverified','PERSISTED_SOURCE_UNAVAILABLE');}
+      if(pending.get(owner)!==0)return result('blocked','ACTUAL_IN_FLIGHT_OPERATION');
+      if([firstLocal,middleLocal,finalLocal,firstSession,middleSession,finalSession]
+        .some(value=>!isRecord(value))
+        ||JSON.stringify(firstLocal)!==JSON.stringify(middleLocal)
+        ||JSON.stringify(firstLocal)!==JSON.stringify(finalLocal)
+        ||JSON.stringify(firstSession)!==JSON.stringify(middleSession)
+        ||JSON.stringify(firstSession)!==JSON.stringify(finalSession))
+        return result('unverified','PERSISTED_SOURCE_CHANGED_DURING_READ');
+      const beforeProfile=prior?.context?.profile;
+      const afterProfile=again?.context?.profile;
+      if(beforeProfile?.reason!=='STORED_PROFILES_MATCH_BUT_LIVE_UNVERIFIED'
+        ||afterProfile?.reason!==beforeProfile.reason
+        ||beforeProfile.profileId!==afterProfile.profileId
+        ||typeof beforeProfile.profileId!=='string'
+        ||!PROFILE_ID.test(beforeProfile.profileId))
+        return result('unverified','PERSISTED_PROFILE_SCOPE_UNVERIFIED');
+      const before=prior?.admissionHistory?.[owner];
+      const after=again?.admissionHistory?.[owner];
+      if(!isRecord(before)||!isRecord(after)
+        ||!prior.admissionJournalRevision
+        ||prior.admissionJournalRevision!==again.admissionJournalRevision
+        ||before.sourceRevision!==after.sourceRevision
+        ||before.state!==after.state
+        ||!Array.isArray(before.entries)||!Array.isArray(after.entries))
+        return result('unverified','DURABLE_ADMISSION_CHANGED_OR_UNVERIFIED');
+      if(prior.observations?.[owner]?.state==='active'
+        ||again.observations?.[owner]?.state==='active'
+        ||before.state==='unfinished')
+        return result('blocked','PERSISTED_OWNER_OR_ADMISSION_ACTIVE');
+      if(before.state!=='callback-finished'||before.entries.length===0)
+        return result('unverified','DURABLE_OWNER_CALLBACK_ABSENT');
+      let tick;
+      try {tick=clock();} catch {return result('unverified','PERSISTED_TIME_UNVERIFIED');}
+      if(!Number.isSafeInteger(tick)||tick<0)
+        return result('unverified','PERSISTED_TIME_UNVERIFIED');
+      if(!before.entries.every(entry=>{
+        if(!isRecord(entry)||entry.state!=='callback-finished'
+          ||typeof entry.operationType!=='string'
+          ||!entry.operationType.startsWith('AUTONOMOUS:')
+          ||typeof entry.token!=='string'||!RECEIPT_ID.test(entry.token)
+          ||typeof entry.workerInstanceId!=='string'||!RECEIPT_ID.test(entry.workerInstanceId)
+          ||!Number.isSafeInteger(entry.startedAtMs)
+          ||!Number.isSafeInteger(entry.completedAtMs)
+          ||entry.startedAtMs<0||entry.completedAtMs<entry.startedAtMs
+          ||entry.completedAtMs>tick||!Array.isArray(entry.owners))return false;
+        const kind=entry.operationType.slice('AUTONOMOUS:'.length);
+        return Object.hasOwn(AUTONOMOUS_RECEIPT_OWNERS,kind)
+          &&AUTONOMOUS_RECEIPT_OWNERS[kind].includes(owner)
+          &&entry.owners.includes(owner);
+      }))return result('unverified','OWNER_PROVENANCE_UNVERIFIED');
+      // These local P8 callback rows are not profile-bound and cannot prove
+      // the *actual* remote result, even when persisted profile keys are stable.
+      return result('callback-settled','HISTORICAL_P8_AUTONOMOUS_CALLBACK_SETTLED',{
+        storedProfileStable:true,completedReceiptCount:before.entries.length,
+        sourceRevision:JSON.stringify([
+          prior.admissionJournalRevision,before.sourceRevision,
+          beforeProfile.profileId,firstLocal,firstSession
+        ])
+      });
+    }
+    return Object.freeze({observe, track, snapshotInFlight, inspectPersistedOwnerCallbackClosureReadOnly});
   }
   const API = Object.freeze({create, OWNERS});
   globalThis.KRDeps?.register?.('KRPersistedOwnerObserver', API);
