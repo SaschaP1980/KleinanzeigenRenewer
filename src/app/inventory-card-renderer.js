@@ -107,14 +107,25 @@ function makeInventoryExportActionButton(record) {
 
 
 function makeSchemaTestActions(record, { compact = false, disabled = false } = {}) {
-  if (String(record?.category?.id ?? record?.categoryIdFromUrl ?? '') !== '405' || record?.renewal) return [];
-  return [
+  const categoryId = String(record?.category?.id ?? record?.categoryIdFromUrl ?? '').trim();
+  const path = Array.isArray(record?.category?.path) && record.category.path.length
+    ? record.category.path : record?.categoryPath;
+  const hasVerifiableCategoryPath = /^[1-9][0-9]*$/.test(categoryId) &&
+    Array.isArray(path) && path.length >= 2 && path.length <= 12 &&
+    path.every(label => typeof label === 'string' && label.trim());
+  if (record?.renewal || !hasVerifiableCategoryPath) return [];
+  const category405Actions = categoryId === '405' ? [
     { scenario: 'compatible', label: 'Schema OK testen', icon: 'update',
       help: 'Liest Kategorie 405 und prüft synthetisch den übernommenen Wert 44 / 44mm. Kein Ausfüllen oder Veröffentlichen.' },
     { scenario: 'incompatible', label: 'Schema-Drift testen', icon: 'retry',
       help: 'Liest Kategorie 405 und prüft den Sicherheitsstopp bei einem simulierten gespeicherten Merkmal, das im aktuellen Formular fehlt. Keine Veröffentlichung.' },
     { scenario: 'stage-drift', label: 'Fingerprint-Warnung testen', icon: 'retry',
       help: 'Simuliert getrennte Strukturänderungen in F1 (Basisformular), F2 (Kategoriepfad) und F3 (Merkmale). Zeigt gelbe TEST-Warnungen, verändert keine gespeicherten Fingerprints und veröffentlicht nichts.' }
+  ] : [];
+  return [
+    { scenario: 'category-check', label: 'Kategorie prüfen', icon: 'update',
+      help: 'Prüft ausschließlich die gespeicherte Kategorie und das aktuelle Formularschema (F1, F2 und F3). Vergleicht die Fingerprints oder legt beim ersten Prüfen Referenzen an. Keine Anzeigenwerte, Bilder oder Veröffentlichung.' },
+    ...category405Actions
   ].map(spec => {
     const button = compact
       ? makeCompactIconButton({ icon: spec.icon, label: spec.label, title: spec.help })
