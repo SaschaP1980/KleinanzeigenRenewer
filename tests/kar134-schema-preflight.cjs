@@ -724,7 +724,7 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
     assert.match(block,/showStageChangeReviewDialog\(/);
     assert.match(block,/KAR134_CHANGE_REVIEW_ACKNOWLEDGED/);
     assert.match(block,/KAR134_CHANGE_REVIEW_DEFERRED/);
-    assert.match(block,/stage:'schema-reference-review-required'/);
+    assert.match(block,/stage:'schema-reference-review-pending'/);
     assert.match(block,/referenceApproved:\s*false/);
     for(const forbidden of ['chrome.storage.local.set(', 'requestSubmit(', 'uploadImages(', 'autoPublishVerifiedRenewal('])
       assert.ok(!block.includes(forbidden),'unexpected automatic mutation: '+forbidden);
@@ -834,8 +834,8 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
     const map=new Map([[key,{schemaVersion:1,snapshot:oldSchema,fingerprint:oldFingerprint}]]);
     let baselineWrites=0,gateCalls=0;
     const sessions={testSession:{fillId:'testSession',templateOnly:true,inventoryId:'watch',
-      sourceAdId:'123456',targetTabId:42,status:'needs-review',
-      stage:'schema-reference-review-required',
+      sourceAdId:'123456',targetTabId:42,status:'running',
+      stage:'schema-reference-review-pending',
       createdAt:new Date().toISOString()}};
     const record={inventoryId:'watch',adId:'123456',profileId:'selected-profile',
       category:{id:405},categoryPath:['Elektronik','Wearables']};
@@ -934,7 +934,7 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
     assert.match(content,/KAR134_REAL_REFERENCE_ADOPTION_COMMITTED/);
     assert.match(normal,/await reviewLivePostingSchema\(/);
     assert.match(controller,/if \(message\?\.referenceAdoption\)/);
-    assert.match(controller,/schema-reference-review-required/);
+    assert.match(controller,/schema-reference-review-pending/);
     assert.match(controller,/Boolean\(session\?\.schemaTestScenario\)/);
     assert.match(controller,/getInsertionLockState\(\)/);
     assert.match(controller,/assertSelectedProfileMatchesLiveAccount\(/);
