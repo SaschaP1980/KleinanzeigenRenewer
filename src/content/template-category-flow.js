@@ -20,7 +20,8 @@
       visible,
       visibleText,
       waitFor,
-      updatePanel
+      updatePanel,
+      onCategoryPathConfirmed
     } = options;
 
   function resolveCategoryNavigationUrl(chooser, baseHref = location.href) {
@@ -341,6 +342,26 @@
       throw new Error('Kategorie-ID nicht verifiziert: erwartet ' + wanted + ', tatsächlich ' + JSON.stringify(actual) + '.');
     }
     void diagnostic(fillId, 'CATEGORY_MODAL_COMMIT_VERIFIED', { categoryId: wanted, depth: path.length });
+    // KAR-134 F2: each breadcrumb was matched against the real current level
+    // before selection, and the committed numeric leaf ID was read back.
+    // The modal does not expose authoritative numeric ancestor IDs here;
+    // unknown ancestor IDs remain null (never inferred from text or order).
+    const categoryPathEvidence = {
+      categoryId: wanted, leafConfirmed: true, observedPath: true,
+      levels: path.map((label, index) => ({
+        label, technicalId: index === path.length - 1 ? wanted : null,
+        kind: index === path.length - 1 ? 'leaf' : 'branch'
+      }))
+    };
+    if (typeof onCategoryPathConfirmed === 'function') {
+      try {
+        await onCategoryPathConfirmed(categoryPathEvidence, fillId);
+      } catch (error) {
+        void diagnostic(fillId, 'KAR134_CATEGORY_EVIDENCE_MONITOR_UNAVAILABLE', {
+          reason: String(error?.message || error).slice(0, 220)
+        }, 'warning');
+      }
+    }
     return { confirmed: true, pendingNavigation: false };
   }
 
