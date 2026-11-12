@@ -804,8 +804,118 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
     assert.ok(!fillerSource.slice(fillerSource.indexOf('  // KAR-134 K3 synthetic fingerprint warning proof'),
       fillerSource.indexOf('  // KAR-134 field-only native simulation.')).includes('monitorSchemaStage('));
   });
-  assert.equal(passed,56,'KAR-134 preflight regression count must remain complete');
-  console.log(passed+'/56 PASS KAR-134 schema capture/preflight');
+  // Wave L1: standalone category monitoring uses no archived listing
+  // values and must be valid for more than the fixed Smartwatch category.
+  const independentChecker = () => {
+    const a=fillerSource.indexOf('  // KAR-134 L1 independent category-check verdict');
+    const b=fillerSource.indexOf('  // KAR-134 field-only native simulation.',a);
+    assert.ok(a>0&&b>a,'generic independent category verdict policy not implemented');
+    return vm.runInNewContext(fillerSource.slice(a,b)+'\nassessIndependentCategoryCheck;',
+      {Object,Array,Set}, {filename:'kar134-independent-category-check.js'});
+  };
+  const categoryCheckFixture = id => ({
+    base:Schema.buildBaseSchema({ready:true,categorySelected:false,formMode:'posting-create',
+      categoryChooser:'button',fields:[{name:'title',controlType:'text',visible:true}]}),
+    category:Schema.buildCategorySchema({categoryId:id,leafConfirmed:true,observedPath:true,levels:[
+      {label:'Root fixture',technicalId:null,kind:'branch'},
+      {label:'Category fixture',technicalId:id,kind:'leaf'}]}),
+    attributes:Schema.buildSchema({categoryId:id,dynamicAttributes:[
+      {key:'fixture.category_field',controlType:'text',requiredState:'optional'}]})
+  });
+  await check('independent category check accepts two different numeric leaf categories without 405 assumptions',()=>{
+    const checker=independentChecker();
+    const stages={base:{status:'reference-created'},category:{status:'reference-created'},
+      attributes:{status:'reference-created'}};
+    for(const id of ['405','2077']){
+      const observed=categoryCheckFixture(id);
+      const verdict=checker(id,observed,stages);
+      assert.equal(verdict.verdict,true,id);
+      assert.equal(verdict.categoryId,id);
+      assert.equal(verdict.partialEvidence,true,'unknown ancestor IDs remain explicit');
+      assert.equal(verdict.status,'checked');
+    }
+    assert.equal(checker('2077',categoryCheckFixture('405'),stages).verdict,false);
+  });
+  await check('independent category check accepts repeated statuses and proven real drift as checked, not identical',()=>{
+    const checker=independentChecker();
+    const observed=categoryCheckFixture('2077');
+    const result=checker('2077',observed,{
+      base:{status:'unchanged'},category:{status:'not-fully-verified'},attributes:{status:'changed'}});
+    assert.equal(result.verdict,true);
+    assert.equal(result.status,'checked-with-change');
+    assert.equal(result.partialEvidence,true);
+    assert.deepEqual(Array.from(result.stageStatuses),['unchanged','not-fully-verified','changed']);
+  });
+  await check('independent category check does not claim success if F1, F2 or F3 is absent or unverified',()=>{
+    const checker=independentChecker(),src=categoryCheckFixture('405');
+    const ok={base:{status:'unchanged'},category:{status:'not-fully-verified'},attributes:{status:'unchanged'}};
+    for(const stage of ['base','category','attributes']){
+      const missing={...src,[stage]:null};
+      assert.equal(checker('405',missing,ok).verdict,false,stage);
+      assert.equal(checker('405',src,{...ok,[stage]:{status:'monitor-unavailable'}}).verdict,false,stage);
+      assert.equal(checker('405',src,{...ok,[stage]:{status:'invalid-reference'}}).verdict,false,stage);
+    }
+    assert.equal(checker('0',src,ok).verdict,false);
+    assert.equal(checker('405',{...src,category:{...src.category,leafConfirmed:false}},ok).verdict,false);
+    assert.equal(checker('405',{...src,category:{...src.category,observedPath:false}},ok).verdict,false);
+    assert.equal(checker('405',{...src,attributes:{...src.attributes,fields:[]}},ok).verdict,false);
+  });
+  await check('generic category fingerprints persist distinctly for two categories while F1 remains shared',async()=>{
+    const monitor=monitoringPolicy(),store=testStorage();
+    const deps={storage:store,onWarning:()=>{},log:()=>Promise.resolve()};
+    const first=categoryCheckFixture('405'),second=categoryCheckFixture('2077');
+    assert.equal((await monitor.monitorSchemaStage('base',first.base,'a',deps)).status,'reference-created');
+    assert.equal((await monitor.monitorSchemaStage('base',second.base,'b',deps)).status,'unchanged');
+    for(const category of [first,second]){
+      const id=category.category.categoryId;
+      assert.equal((await monitor.monitorSchemaStage('category',category.category,id,deps)).status,'reference-created');
+      assert.equal((await monitor.monitorSchemaStage('attributes',category.attributes,id,deps)).status,'reference-created');
+    }
+    assert.equal(store.writes,5);
+    assert.equal(store.map.size,5,'one shared F1 plus two category F2 and two category F3 references');
+    const keys=[...store.map.keys()].join(' ');
+    assert.match(keys,/category:405/);assert.match(keys,/category:2077/);
+    assert.match(keys,/attributes:405/);assert.match(keys,/attributes:2077/);
+    const repeat=await monitor.monitorSchemaStage('attributes',second.attributes,'c',deps);
+    assert.equal(repeat.status,'unchanged');
+    assert.equal(store.writes,5);
+  });
+  await check('standalone category check is available on generic inventory, with account gate and no template values',()=>{
+    const ui=fs.readFileSync(require.resolve('../src/app/inventory-card-renderer.js'),'utf8');
+    const bg=fs.readFileSync(require.resolve('../src/background/controllers/template-fill-controller.js'),'utf8');
+    const service=fs.readFileSync(require.resolve('../src/background/services/template-fill-service.js'),'utf8');
+    assert.match(ui,/scenario:\s*'category-check'/);
+    assert.match(ui,/Kategorie prüfen/);
+    assert.match(ui,/hasVerifiableCategoryPath/);
+    assert.match(ui,/requireAccountBoundAction\(\)/);
+    assert.match(bg,/'category-check'/);
+    assert.match(bg,/category-check[\s\S]*?categoryId/);
+    assert.match(bg,/assertSelectedProfileMatchesLiveAccount/);
+    assert.match(bg,/assertInsertionStartAvailable/);
+    assert.match(service,/session\.schemaTestScenario[\s\S]*?dynamicAttributes: \[\]/);
+  });
+  await check('standalone category-check runs F1 F2 F3 on arbitrary committed leaf without filling or publishing',()=>{
+    const block=fillerSource.slice(fillerSource.indexOf('async function runReadOnlySchemaTest('),
+      fillerSource.indexOf('async function runFillSession('));
+    assert.match(block,/scenario === 'category-check'/);
+    assert.match(block,/KAR134_CATEGORY_CHECK_RESULT/);
+    assert.match(block,/assessIndependentCategoryCheck\(/);
+    assert.match(block,/SchemaPreflight\.afterHydration\(/);
+    assert.match(block,/monitorSchemaStage\('base'/);
+    assert.match(block,/monitorSchemaStage\('category'/);
+    assert.match(block,/monitorSchemaStage\('attributes'/);
+    assert.match(block,/schema-test-category-check/);
+    assert.ok(block.indexOf("scenario === 'category-check'") < block.indexOf("if (syntheticStageDrift)"));
+    assert.ok(block.indexOf("scenario === 'category-check'") < block.indexOf("const caseField"));
+    for(const forbidden of ['fillDynamicAttributes(', 'uploadImages(', 'advanceAfterVerifiedFill(',
+      'autoPublishVerifiedRenewal(', 'requestSubmit(', '.submit(', 'fillCoreForm(', 'ensureStableTitleValue('])
+      assert.ok(!block.includes(forbidden),'a category check may not fill/post listing: '+forbidden);
+    assert.match(block,/remotePublishAttempted:\s*false/);
+    assert.match(block,/archivedValuesRead:\s*false/);
+  });
+  assert.equal(passed,62,'KAR-134 preflight regression count must remain complete');
+  console.log(passed+'/62 PASS KAR-134 schema capture/preflight');
+
 
 
 
