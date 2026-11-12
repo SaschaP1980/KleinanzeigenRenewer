@@ -596,6 +596,159 @@
     }
   }
 
+  // KAR-134 L2 change review. Only normalized structural diff data enters
+  // this view. Acknowledgement explicitly is NOT reference acceptance.
+  function buildStageChangeReview(results = {}) {
+    const order = [
+      ['base', 'F1 – Basisformular'],
+      ['category', 'F2 – Kategoriehierarchie'],
+      ['attributes', 'F3 – Merkmale']
+    ];
+    const labels = {
+      'reference-created': 'Neue Referenz erfasst', unchanged: 'Keine Änderung festgestellt',
+      'not-fully-verified': 'Teilweise verifiziert', changed: 'Strukturänderung nachgewiesen',
+      uncertain: 'Änderung nicht eindeutig', 'not-observed': 'Nicht geprüft',
+      'monitor-unavailable': 'Vergleich nicht möglich', 'invalid-reference': 'Referenz ungültig'
+    };
+    const display = value => String(value ?? '').replace(/[\x00-\x1f\x7f]/g, ' ').trim().slice(0, 110);
+    const fieldName = value => display(value).replace(/^(?:attribute:|field:)/, '');
+    function explain(stage, change) {
+      const type = String(change?.type || '');
+      const key = fieldName(change?.key);
+      const quoted = key ? '„' + key + '“' : 'ein technisches Feld';
+      switch (type) {
+        case 'field-added': return { text: 'Neues Feld ' + quoted + ' hinzugefügt.', verified: true };
+        case 'field-removed': return { text: 'Feld ' + quoted + ' ist weggefallen.', verified: true };
+        case 'control-kind-changed': return {
+          text: 'Bedienart für ' + quoted + ' geändert: ' + display(change.before) + ' → ' + display(change.after) + '.',
+          verified: true
+        };
+        case 'requiredness-changed': return {
+          text: 'Pflichtstatus von ' + quoted + ' geändert' +
+            (change.after === 'required' ? ' (jetzt Pflichtfeld).' :
+              change.after === 'optional' ? ' (jetzt optional).' : '.'),
+          verified: true
+        };
+        case 'valid-options-changed': return { text: 'Verfügbare Auswahlmöglichkeiten für ' + quoted + ' geändert.', verified: true };
+        case 'category-chooser-changed': return { text: 'Die Art der Kategorieauswahl hat sich geändert.', verified: true };
+        case 'leaf-id-changed': return { text: 'Technische Endkategorie-ID hat sich geändert.', verified: true };
+        case 'category-depth-changed': return {
+          text: 'Anzahl der Kategorieebenen geändert: ' + display(change.before) + ' → ' + display(change.after) + '.',
+          verified: true
+        };
+        case 'ancestor-id-changed': return {
+          text: 'Technische Zuordnung der Kategorieebene ' +
+            (Number.isInteger(change.level) && change.level >= 0 ? change.level + 1 : '?') + ' geändert.',
+          verified: true
+        };
+        case 'unverified-path-label-changed': return {
+          text: 'Bezeichnung einer übergeordneten Kategorie hat sich möglicherweise verändert; ihre technische ID ist nicht belegt.',
+          verified: false
+        };
+        case 'option-evidence-uncertain':
+        case 'requiredness-uncertain':
+        case 'requiredness-evidence-uncertain': return {
+          text: 'Für ' + quoted + ' liegen nicht genügend technische Informationen zum sicheren Vergleich vor.',
+          verified: false
+        };
+        default: return { text: 'Ein Strukturunterschied kann noch nicht verständlich aufgelöst werden.', verified: false };
+      }
+    }
+    const sections = order.map(([stage, label]) => {
+      const result = results?.[stage] || {};
+      const status = String(result.status || 'not-observed');
+      const changes = Array.isArray(result.changes) ? result.changes : [];
+      const detail = changes.slice(0, 12).map(change => explain(stage,change));
+      const verified = status === 'changed' && detail.some(item => item.verified);
+      const uncertain = ['uncertain','not-fully-verified','invalid-reference','monitor-unavailable','not-observed'].includes(status) ||
+        (status === 'changed' && detail.some(item => !item.verified)) ||
+        (status === 'changed' && !verified);
+      const note = status === 'not-fully-verified' && stage === 'category'
+        ? 'Technische IDs der übergeordneten Kategorien sind nicht vollständig belegt; dies ist kein nachgewiesener Kategorienwechsel.'
+        : uncertain && status !== 'changed'
+          ? 'Diese Stufe wurde nicht als eindeutig unverändert bestätigt.'
+          : status === 'changed' && !verified
+            ? 'Der Unterschied kann nicht als sicher nachgewiesene Einzeländerung beschrieben werden.'
+            : '';
+      const items = detail.map(item => item.text);
+      if (changes.length > detail.length) items.push('Weitere Unterschiede stehen im Diagnoseexport.');
+      return { stage, label, status, statusLabel: labels[status] || 'Prüfstatus unbekannt',
+        items, note, verified, uncertain };
+    });
+    return {
+      hasProvenChange: sections.some(section => section.verified),
+      hasUncertainty: sections.some(section => section.uncertain),
+      sections,
+      safetyText: 'Dies ist nur eine Bestätigung, dass du die Unterschiede gesehen hast. Gespeicherte Referenzen werden nicht verändert oder übernommen. Es wird nichts veröffentlicht.'
+    };
+  }
+
+  function showStageChangeReviewDialog(review, {
+    documentRoot = document, onAcknowledge = () => {}, onDefer = () => {}
+  } = {}) {
+    if (!review?.hasProvenChange) return null;
+    documentRoot.getElementById('kr134-change-review-overlay')?.remove();
+    const overlay = documentRoot.createElement('div');
+    overlay.id = 'kr134-change-review-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:2147483647;background:rgba(0,0,0,.73);display:flex;align-items:center;justify-content:center;padding:16px';
+    const dialog = documentRoot.createElement('section');
+    dialog.setAttribute('role','dialog');
+    dialog.setAttribute('aria-modal','true');
+    dialog.setAttribute('aria-labelledby','kr134-change-review-title');
+    dialog.style.cssText = 'width:min(620px,100%);max-height:90vh;overflow:auto;background:#141b1e;color:#f0f6f5;border:1px solid #536267;border-radius:12px;padding:20px;font:14px/1.5 system-ui,sans-serif;box-shadow:0 16px 52px #0009';
+    const title = documentRoot.createElement('h2');
+    title.id = 'kr134-change-review-title';
+    title.textContent = 'Änderungen an der Formularstruktur';
+    title.style.cssText = 'font-size:19px;margin:0 0 8px';
+    const intro = documentRoot.createElement('p');
+    intro.textContent = 'Kleinanzeigen hat mindestens eine technische Strukturänderung bestätigt. Bitte prüfe die folgenden Unterschiede.';
+    dialog.append(title,intro);
+    for (const section of review.sections) {
+      const group = documentRoot.createElement('section');
+      group.style.cssText = 'border-top:1px solid #3c4a4e;padding:9px 0';
+      const h = documentRoot.createElement('h3');
+      h.textContent = section.label + ': ' + section.statusLabel;
+      h.style.cssText = 'font-size:14px;margin:0 0 5px';
+      group.append(h);
+      if (section.items.length) {
+        const list = documentRoot.createElement('ul');
+        list.style.cssText = 'margin:4px 0;padding-left:20px';
+        for (const detail of section.items) {
+          const item = documentRoot.createElement('li');
+          item.textContent = detail;
+          list.append(item);
+        }
+        group.append(list);
+      }
+      if (section.note) {
+        const note = documentRoot.createElement('p');
+        note.textContent = section.note;
+        note.style.cssText = 'margin:4px 0;color:#ffce7d';
+        group.append(note);
+      }
+      dialog.append(group);
+    }
+    const safety = documentRoot.createElement('p');
+    safety.textContent = review.safetyText;
+    safety.style.cssText = 'margin:12px 0;color:#a4e1d0;font-weight:600';
+    const controls = documentRoot.createElement('div');
+    controls.style.cssText = 'display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap';
+    const defer = documentRoot.createElement('button');
+    defer.type='button';defer.textContent='Später prüfen';
+    const acknowledge = documentRoot.createElement('button');
+    acknowledge.type='button';acknowledge.textContent='Änderungen gesehen – nicht übernehmen';
+    for (const button of [defer,acknowledge]) {
+      button.style.cssText='padding:9px 12px;border:1px solid #81918f;border-radius:7px;background:#293b3b;color:white;cursor:pointer';
+    }
+    defer.addEventListener('click',()=>{overlay.remove();onDefer();});
+    acknowledge.addEventListener('click',()=>{overlay.remove();onAcknowledge();});
+    controls.append(defer,acknowledge);
+    dialog.append(safety,controls);
+    overlay.append(dialog);
+    documentRoot.documentElement.append(overlay);
+    return overlay;
+  }
+
   // KAR-134 K3 synthetic fingerprint warning proof. This PURE read-only
   // policy compares a fictional historical structure to three independently
   // observed live stages. It never reads or overwrites persisted fingerprints.
