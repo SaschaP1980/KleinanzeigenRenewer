@@ -152,7 +152,7 @@
                 // child after a captured parent. Send only bounded classifier
                 // display labels, never technical values or listing content.
                 // The live selectable leaf AND committed numeric ID must confirm.
-                ...(session.schemaTestScenario === 'category-check' ? {
+                ...(['category-check', 'isolated-review'].includes(session.schemaTestScenario) ? {
                   categoryNavigationHints: (Array.isArray(record.dynamicAttributes) ? record.dynamicAttributes : [])
                     .filter(a => ['art', 'typ'].includes(String(a?.label || '').trim().toLocaleLowerCase('de-DE')) &&
                       typeof a.displayValue === 'string' && a.displayValue.trim() &&
