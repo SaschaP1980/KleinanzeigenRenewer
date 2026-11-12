@@ -727,6 +727,62 @@
     });
   }
 
+  // KAR-134 L4 real reference adoption: conservative F3-only eligibility.
+  // This policy does NOT write a reference. F1 baseline is global, while F2
+  // may have unverified parent IDs; neither is automatically replaceable.
+  // F3 is category-ID-scoped and can be reviewed independently if F1 is
+  // unchanged and the F2 fingerprint is stable (even when partially proved).
+  function buildRealSchemaAdoptionPlan(results = {}, observed = {}, {
+    categoryId, fillId
+  } = {}) {
+    const blocked = reason => Object.freeze({ eligible: false, reason });
+    const validHash = value => /^[a-f0-9]{64}$/.test(String(value || ''));
+    const id = String(categoryId || '');
+    const operation = String(fillId || '');
+    if (!/^[1-9][0-9]*$/.test(id) || !/^[A-Za-z0-9_-]{1,80}$/.test(operation))
+      return blocked('invalid-identity');
+    const base = results.base, category = results.category, attributes = results.attributes;
+    const currentCategory = observed.category, currentAttributes = observed.attributes;
+    if (!currentCategory || currentCategory.stage !== 'category' ||
+        currentCategory.categoryId !== id || currentCategory.leafConfirmed !== true ||
+        currentCategory.observedPath !== true ||
+        !['full-ids','partial-ids'].includes(currentCategory.evidence) ||
+        !Array.isArray(currentCategory.levels) || currentCategory.levels.length < 2 ||
+        currentCategory.levels.at(-1)?.technicalId !== id ||
+        !currentAttributes || currentAttributes.categoryId !== id ||
+        !Array.isArray(currentAttributes.fields) || !currentAttributes.fields.length)
+      return blocked('category-or-current-schema-unverified');
+    if (!base || base.status !== 'unchanged' ||
+        !validHash(base.previousFingerprint) ||
+        base.previousFingerprint !== base.currentFingerprint ||
+        (base.changes || []).length)
+      return blocked('base-schema-not-proven-stable');
+    if (!category || !['unchanged','not-fully-verified'].includes(category.status) ||
+        !validHash(category.previousFingerprint) ||
+        category.previousFingerprint !== category.currentFingerprint ||
+        (category.changes || []).length)
+      return blocked('category-schema-not-proven-stable');
+    const types = new Set([
+      'field-added','field-removed','control-kind-changed',
+      'requiredness-changed','valid-options-changed'
+    ]);
+    if (!attributes || attributes.status !== 'changed' ||
+        !validHash(attributes.previousFingerprint) ||
+        !validHash(attributes.currentFingerprint) ||
+        attributes.previousFingerprint === attributes.currentFingerprint ||
+        !Array.isArray(attributes.changes) || !attributes.changes.length ||
+        attributes.changes.length > 100 ||
+        !attributes.changes.every(change => types.has(change?.type) &&
+          typeof change.key === 'string' && /^attribute:|^field:/.test(change.key)))
+      return blocked('attribute-change-not-exclusively-proven');
+    return Object.freeze({
+      eligible: true, stage: 'attributes', categoryId: id, fillId: operation,
+      oldFingerprint: attributes.previousFingerprint,
+      newFingerprint: attributes.currentFingerprint,
+      warning: 'Nur die F3-Strukturreferenz wird nach erneuter Prüfung ersetzt. F1 und F2 sowie gespeicherte Anzeigen bleiben unverändert.'
+    });
+  }
+
   // KAR-134 L2 change review. Only normalized structural diff data enters
   // this view. Acknowledgement explicitly is NOT reference acceptance.
   function buildStageChangeReview(results = {}, { categoryEvidence = null, simulationOnly = false } = {}) {
@@ -820,7 +876,8 @@
 
   function showStageChangeReviewDialog(review, {
     documentRoot = document, onAcknowledge = () => {}, onDefer = () => {},
-    simulationOnly = false, onTestApprove = null
+    simulationOnly = false, onTestApprove = null,
+    realAdoptionPlan = null, onRealApprove = null
   } = {}) {
     if (!review?.hasProvenChange) return null;
     documentRoot.getElementById('kr134-change-review-overlay')?.remove();
@@ -881,6 +938,29 @@
     defer.addEventListener('click',()=>{overlay.remove();onDefer();});
     acknowledge.addEventListener('click',()=>{overlay.remove();onAcknowledge();});
     controls.append(defer,acknowledge);
+    if (!simulationOnly && realAdoptionPlan?.eligible === true &&
+        typeof onRealApprove === 'function') {
+      const real = documentRoot.createElement('button');
+      real.type = 'button';
+      real.textContent = 'F3-Strukturreferenz übernehmen …';
+      real.style.cssText = 'padding:9px 12px;border:1px solid #d4a64d;border-radius:7px;background:#68430d;color:white;cursor:pointer';
+      real.addEventListener('click', () => {
+        const confirmation = documentRoot.createElement('p');
+        confirmation.textContent = 'Endgültige Bestätigung erforderlich: Die bisherige F3-Strukturreferenz wird nur bei erneutem eindeutigen Nachweis ersetzt. F1, F2, Anzeigen und veröffentlichte Inhalte werden nicht verändert.';
+        confirmation.style.cssText = 'font-weight:700;color:#ffcf81;margin:12px 0';
+        const cancel = documentRoot.createElement('button');
+        cancel.type = 'button'; cancel.textContent = 'Abbrechen';
+        const commit = documentRoot.createElement('button');
+        commit.type = 'button'; commit.textContent = 'F3-Referenz verbindlich übernehmen';
+        for (const button of [cancel,commit])
+          button.style.cssText='padding:9px 12px;border:1px solid #81918f;border-radius:7px;background:#293b3b;color:white;cursor:pointer';
+        cancel.addEventListener('click', () => overlay.remove());
+        commit.addEventListener('click', () => { overlay.remove(); void onRealApprove(); });
+        dialog.append(confirmation);
+        controls.replaceChildren(cancel,commit);
+      });
+      controls.append(real);
+    }
     if (simulationOnly && typeof onTestApprove === 'function') {
       const approve = documentRoot.createElement('button');
       approve.type = 'button';
