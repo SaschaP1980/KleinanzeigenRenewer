@@ -1008,8 +1008,28 @@ async function saveInventory(extracted, options = {}) {
         return { snapshot, fingerprint: await TemplateSchemaCore.fingerprint(snapshot), capturedAt, source: 'edit-form' };
       })()
       : null;
+    // A public detail view cannot prove the posting-form structure. Keep a
+    // previously verified edit-form snapshot only for the exact same ad and
+    // inventory profile; it is *historical* evidence, never a fresh match or
+    // permission to replace an F3 monitor baseline.
+    let priorTemplateSchema = null;
+    if (!templateSchema) {
+      const earlier = await getInventory(inventoryId).catch(() => null);
+      if (earlier?.templateSchema?.snapshot &&
+          String(earlier.adId || '') === String(extracted.adId || '') &&
+          extracted.profileId && earlier.profileId &&
+          String(earlier.profileId) === String(extracted.profileId))
+        priorTemplateSchema = earlier.templateSchema;
+      await logDiagnostic('info', 'KAR134_FORM_SCHEMA_NOT_OBSERVED', {
+        inventoryId, reason: 'no-verified-edit-form',
+        retainedHistoricalSnapshot: Boolean(priorTemplateSchema), currentSchemaVerified: false
+      }, { module:'background', operation:'inventory-save', context:{adId:String(extracted.adId)} }).catch(() => {});
+    }
     const record = {
-      ...extracted, ...(templateSchema ? { templateSchema } : {}), inventoryId, schemaVersion: 2, capturedAt,
+      ...extracted, ...(templateSchema || priorTemplateSchema ? {
+        templateSchema: templateSchema || priorTemplateSchema
+      } : {}), schemaObservationStatus: templateSchema ? 'verified-edit-form' : 'not-observed',
+      inventoryId, schemaVersion: 2, capturedAt,
       images: imageResults,
       imageSummary: {
         discovered: imageResults.length,
