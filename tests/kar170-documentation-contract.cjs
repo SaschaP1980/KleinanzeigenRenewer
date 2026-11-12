@@ -94,7 +94,11 @@ for(const e of ledger.entries){
 }
 const headings=[...changelog.matchAll(/^## v(\d+\.\d+\.\d+(?:_c\d+)?)$/gm)].map(x=>x[1]);
 assert.equal(new Set(headings).size,headings.length,'only one canonical version heading per version');
-assert.deepEqual(headings.slice(2),ledger.structure.orderedVersions,'historical version/correction order must remain deterministic');
+// Current Work/source-status entries carry descriptive suffixes and are not
+// part of the exact historic heading list above; do not discard real versions.
+assert.match(changelog,/^## v1\.23\.88 — Documentation consolidation \(KAR-170\)$/m);
+assert.match(changelog,/^## v1\.23\.87 — MV3 workflow safety foundation$/m);
+assert.deepEqual(headings,ledger.structure.orderedVersions,'historical version/correction order must remain deterministic');
 for(const p of ['docs/DEVELOPMENT_GUIDELINES.md','docs/RELEASE_PROCESS.md','docs/GITHUB_HOWTO.md','docs/INITIAL_PROMPT.md']){
   assert.match(read(p),/CHANGELOG\.md/,'canonical destination policy missing: '+p);
 }
