@@ -112,7 +112,9 @@ function makeSchemaTestActions(record, { compact = false, disabled = false } = {
     { scenario: 'compatible', label: 'Schema OK testen', icon: 'update',
       help: 'Liest Kategorie 405 und prüft synthetisch den übernommenen Wert 44 / 44mm. Kein Ausfüllen oder Veröffentlichen.' },
     { scenario: 'incompatible', label: 'Schema-Drift testen', icon: 'retry',
-      help: 'Liest Kategorie 405 und prüft den Sicherheitsstopp bei einem simulierten gespeicherten Merkmal, das im aktuellen Formular fehlt. Keine Veröffentlichung.' }
+      help: 'Liest Kategorie 405 und prüft den Sicherheitsstopp bei einem simulierten gespeicherten Merkmal, das im aktuellen Formular fehlt. Keine Veröffentlichung.' },
+    { scenario: 'stage-drift', label: 'Fingerprint-Warnung testen', icon: 'retry',
+      help: 'Simuliert getrennte Strukturänderungen in F1 (Basisformular), F2 (Kategoriepfad) und F3 (Merkmale). Zeigt gelbe TEST-Warnungen, verändert keine gespeicherten Fingerprints und veröffentlicht nichts.' }
   ].map(spec => {
     const button = compact
       ? makeCompactIconButton({ icon: spec.icon, label: spec.label, title: spec.help })
