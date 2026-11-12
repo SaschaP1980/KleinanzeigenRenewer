@@ -751,10 +751,21 @@ for (const kind of ['phase4', 'publish']) {
     const {rows} = tokenBoundRemote(kind);
     const key = Object.keys(rows).find(name => name.startsWith(kind === 'phase4'
       ? 'karPhase4VerifiedResolutionV1_' : 'karAutoPublishVerifiedResolutionV1_'));
+    assert.ok(key && rows[key], 'concrete immutable verified remote journal required');
+    // Positive control: all other owner and Web Lock evidence is genuinely
+    // sufficient to produce a test-only candidate before corrupting this row.
+    const {gate:validGate} = fixture({local:rows});
+    assert.equal((await validGate.captureForReserve(request())).status,
+      'candidate-idle', 'unchanged P8-bound remote evidence must be accepted');
     rows[key].targetPagesScanned = 1;
     rows[key].targetFoundPage = 2;
     const {gate} = fixture({local:rows});
+    // The private journal rejects the impossible page interval; the outer
+    // atomic exclusive lock deliberately translates most nested errors into
+    // its own fail-closed typed boundary. Never require an internal code to
+    // escape through this boundary, and never treat the denial as IDLE.
     await assert.rejects(gate.captureForReserve(request()),
-      error => error?.code === 'KR_OWNER_JOURNAL_CORRUPT');
+      error => error?.code === 'KR_UPDATE_FENCE_ATOMIC_UNAVAILABLE',
+      'contradictory remote page evidence must stop owner reserve capture');
   });
 }
