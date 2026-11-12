@@ -219,7 +219,7 @@ async function finalizeLostTrashTemplateSupersede(snapshot, replacementFillId) {
 
 async function startTrashTemplateFillUnlocked(inventoryId) {
   const schemaTestScenario = arguments[1]?.schemaTestScenario ?? null;
-  const isSchemaTest = ['compatible', 'incompatible'].includes(schemaTestScenario);
+  const isSchemaTest = ['compatible', 'incompatible', 'stage-drift'].includes(schemaTestScenario);
   const record = await getInventory(inventoryId);
   if (!record || (!isSchemaTest && !isTrashRecord(record))) throw new Error('Papierkorb-Vorlage wurde nicht gefunden.');
   if (isSchemaTest) {
@@ -453,7 +453,7 @@ async function startTemplateFillUnlocked(inventoryId, { autoReplacementAllowed =
 async function startTrashTemplateFill(inventoryId) {
   const options = arguments[1] && typeof arguments[1] === 'object' ? arguments[1] : {};
   const schemaTestScenario = options.schemaTestScenario == null ? null : String(options.schemaTestScenario);
-  if (schemaTestScenario && !['compatible', 'incompatible'].includes(schemaTestScenario))
+  if (schemaTestScenario && !['compatible', 'incompatible', 'stage-drift'].includes(schemaTestScenario))
     throw new Error('Unbekanntes Schema-Prüfszenario.');
   if (schemaTestScenario && options.supersedeFillId)
     throw new Error('Ein Schema-Prüfmodus darf keinen bestehenden Vorlagenvorgang ersetzen.');
