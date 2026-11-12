@@ -741,7 +741,56 @@
         completedReceiptCount:a.entries.length,
         indexedDbCommitVerified:false,priorGenerationClosed:false});
     }
-    return Object.freeze({observe,observeAll,track,snapshotInFlight,readVerifiedUnmanagedTabsReadOnly,inspectDiagnosticExportClosureReadOnly,inspectTrashMutationClosureReadOnly});
+    // P1.3 singleInventory: historical P8 callbacks only. Some admitted
+    // operations can outlive the handler through tabs, content scripts or
+    // remote listing reads; no result, database or generation authority here.
+    async function inspectSingleInventoryClosureReadOnly() {
+      const denied=reason=>Object.freeze({schema:1,owner:'singleInventory',
+        status:'unverified',reason,eligibleForLease:false,sourceRevision:null});
+      if(pending.get('singleInventory')!==0)
+        return denied('ACTUAL_IN_FLIGHT_OPERATION');
+      let first,second;
+      try {first=await observe();second=await observe();}
+      catch {return denied('SOURCE_UNAVAILABLE');}
+      if(pending.get('singleInventory')!==0)
+        return denied('ACTUAL_IN_FLIGHT_OPERATION');
+      const a=first?.admissionHistory?.singleInventory;
+      const b=second?.admissionHistory?.singleInventory;
+      if(!record(a)||!record(b)||!first.admissionJournalRevision
+        ||first.admissionJournalRevision!==second.admissionJournalRevision
+        ||typeof a.sourceRevision!=='string'||!a.sourceRevision
+        ||a.sourceRevision!==b.sourceRevision)
+        return denied('DURABLE_ADMISSION_UNVERIFIED');
+      if(a.state!=='callback-finished'||b.state!=='callback-finished'
+        ||!Array.isArray(a.entries)||a.entries.length===0
+        ||!Array.isArray(b.entries)||b.entries.length!==a.entries.length)
+        return denied(a.state==='unfinished'||b.state==='unfinished'
+          ?'DURABLE_ADMISSION_UNFINISHED':'NO_COMPLETION_RECEIPT');
+      if(first.observations?.singleInventory?.state==='active'
+        ||second.observations?.singleInventory?.state==='active')
+        return denied('ACTUAL_IN_FLIGHT_OPERATION');
+      // Only explicit, audited single-inventory routed operations qualify
+      // for historical callback attribution. A generic/unknown route
+      // conservatively maps to ALL owners and cannot qualify for any one.
+      const routed=new Set([
+        'SAVE_INVENTORY','CAPTURE_SINGLE_INVENTORY',
+        'REFRESH_INVENTORY','CHECK_INVENTORY_ONLINE_STATUS'
+      ]);
+      if(!a.entries.every(row=>record(row)&&routed.has(row.operationType)
+        &&row.state==='callback-finished'
+        &&typeof row.workerInstanceId==='string'&&PROFILE.test(row.workerInstanceId)
+        &&Number.isSafeInteger(row.startedAtMs)&&row.startedAtMs>=0
+        &&Number.isSafeInteger(row.completedAtMs)
+        &&row.completedAtMs>=row.startedAtMs))
+        return denied('OWNER_PROVENANCE_UNVERIFIED');
+      return Object.freeze({schema:1,owner:'singleInventory',
+        status:'callback-settled',reason:'DURABLE_P8_CALLBACK_FINISHED',
+        eligibleForLease:false,sourceRevision:a.sourceRevision,
+        completedReceiptCount:a.entries.length,
+        localCommitVerified:false,remoteListingVerified:false,
+        priorGenerationClosed:false,detachedTabWorkVerified:false});
+    }
+    return Object.freeze({observe,observeAll,track,snapshotInFlight,readVerifiedUnmanagedTabsReadOnly,inspectDiagnosticExportClosureReadOnly,inspectTrashMutationClosureReadOnly,inspectSingleInventoryClosureReadOnly});
   }
   const API=Object.freeze({create,OWNERS,ownersForOperation});
   globalThis.KRDeps?.register?.('KRAdditionalOwnerObserver',API);
