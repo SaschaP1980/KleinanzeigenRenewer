@@ -219,30 +219,16 @@ async function finalizeLostTrashTemplateSupersede(snapshot, replacementFillId) {
 }
 
 async function startTrashTemplateFillUnlocked(inventoryId) {
-  const schemaTestScenario = arguments[1]?.schemaTestScenario ?? null;
-  if (schemaTestScenario && schemaTestScenario !== 'category-check')
-    throw new Error('Unbekannter Kategorieprüfmodus.');
-  const isSchemaTest = schemaTestScenario === 'category-check';
+  // Retired L15 test-only launch arguments are rejected before creating tabs.
+  if (arguments[1]?.schemaTestScenario != null) throw new Error('Manueller Schema-Prüfmodus wurde entfernt.');
   const record = await getInventory(inventoryId);
-  if (!record || (!isSchemaTest && !isTrashRecord(record))) throw new Error('Papierkorb-Vorlage wurde nicht gefunden.');
-  if (isSchemaTest) {
-    const categoryId = String(record.category?.id ?? record.categoryIdFromUrl ?? '').trim();
-    const storedPath = Array.isArray(record.category?.path) && record.category.path.length
-      ? record.category.path : record.categoryPath;
-    if (record.renewal || !/^[1-9][0-9]*$/.test(categoryId) ||
-        !Array.isArray(storedPath) || storedPath.length < 2 ||
-        storedPath.length > 12 ||
-        !storedPath.every(label => typeof label === 'string' && label.trim())) {
-      throw new Error('Kategorie prüfen benötigt einen eindeutigen numerischen Kategorieeintrag und den gespeicherten Kategoriepfad.');
-    }
-  } else {
-    assertTemplateSourceReady(record);
-  }
+  if (!record || !isTrashRecord(record)) throw new Error('Papierkorb-Vorlage wurde nicht gefunden.');
+  assertTemplateSourceReady(record);
   const fillId = cryptoApi.randomUUID();
   const operationId = cryptoApi.randomUUID();
   const tab = await createAutomationTab({ url: 'about:blank', active: false });
   if (!tab?.id) throw new Error('Neuer Kleinanzeigen-Tab konnte nicht geöffnet werden.');
-  await registerShadowTab(tab.id, TAB_ROLES.TEMPLATE_TARGET, { operationId, fillId, inventoryId: String(record.inventoryId), adId: String(record.adId || ''), ownerType: isSchemaTest ? 'schema-test' : 'trash-template', ownerId: fillId });
+  await registerShadowTab(tab.id, TAB_ROLES.TEMPLATE_TARGET, { operationId, fillId, inventoryId: String(record.inventoryId), adId: String(record.adId || ''), ownerType: 'trash-template', ownerId: fillId });
   const sessions = await readFillSessions();
   sessions[fillId] = {
     operationId,
@@ -250,8 +236,7 @@ async function startTrashTemplateFillUnlocked(inventoryId) {
     fillId,
     renewalId: null,
     templateOnly: true,
-    schemaTestScenario: isSchemaTest ? schemaTestScenario : null,
-    trashInventoryId: isSchemaTest ? null : String(record.inventoryId),
+    trashInventoryId: String(record.inventoryId),
     inventoryId: String(record.inventoryId),
     sourceAdId: String(record.adId || ''),
     targetTabId: tab.id,
@@ -279,10 +264,9 @@ async function startTrashTemplateFillUnlocked(inventoryId) {
     broadcastInventoryChanged('insertion-lock-released', { kind: 'trash-template', ownerId: fillId, inventoryId: String(record.inventoryId), reason: 'target-tab-failed' });
     throw error;
   }
-  await logDiagnostic('info', isSchemaTest ? 'KAR134_SCHEMA_TEST_STARTED' : 'TRASH_TEMPLATE_FILL_STARTED',
+  await logDiagnostic('info', 'TRASH_TEMPLATE_FILL_STARTED',
     { operationId, fillId, inventoryId: String(record.inventoryId), sourceAdId: String(record.adId || ''),
-      targetTabId: tab.id, autoPublishAllowed: false, scenario: isSchemaTest ? schemaTestScenario : null,
-      formFieldsWritable: !isSchemaTest }, { module: 'background', operation: 'trash-template-fill', context: sessionCorrelationContext(sessions[fillId], { adId: record.adId || null, targetTabId: tab.id }) }).catch(() => {});
+      targetTabId: tab.id, autoPublishAllowed: false }, { module: 'background', operation: 'trash-template-fill', context: sessionCorrelationContext(sessions[fillId], { adId: record.adId || null, targetTabId: tab.id }) }).catch(() => {});
   return { operationId, parentOperationId: null, fillId, templateOnly: true, tabId: tab.id, url: TEMPLATE_TARGET_URL };
 }
 
@@ -459,11 +443,7 @@ async function startTemplateFillUnlocked(inventoryId, { autoReplacementAllowed =
 
 async function startTrashTemplateFill(inventoryId) {
   const options = arguments[1] && typeof arguments[1] === 'object' ? arguments[1] : {};
-  const schemaTestScenario = options.schemaTestScenario == null ? null : String(options.schemaTestScenario);
-  if (schemaTestScenario && schemaTestScenario !== 'category-check')
-    throw new Error('Unbekannter Kategorieprüfmodus.');
-  if (schemaTestScenario && options.supersedeFillId)
-    throw new Error('Ein Schema-Prüfmodus darf keinen bestehenden Vorlagenvorgang ersetzen.');
+  if (options.schemaTestScenario != null) throw new Error('Manueller Schema-Prüfmodus wurde entfernt.');
   return withInsertionStartGate(async () => {
     const normalizedInventoryId = String(inventoryId || '');
     await assertInsertionStartAvailable({ kind: 'trash-template', inventoryId: normalizedInventoryId });
@@ -480,7 +460,7 @@ async function startTrashTemplateFill(inventoryId) {
     }
     let result;
     try {
-      result = await startTrashTemplateFillUnlocked(normalizedInventoryId, { schemaTestScenario });
+      result = await startTrashTemplateFillUnlocked(normalizedInventoryId);
     } catch (error) {
       if (supersedeSnapshot) await restoreLostTrashTemplateAfterRestartFailure(supersedeSnapshot).catch(() => false);
       if (supersedeSnapshot) await logDiagnostic('warning', 'TRASH_TEMPLATE_TARGET_LOSS_RESTART_FAILED', {
@@ -534,20 +514,30 @@ async function adoptVerifiedSchemaReference(message, session, sessions, sender) 
   const senderUrl = new URL(String(sender?.tab?.url || ''), target.origin);
   if (senderUrl.origin !== target.origin || senderUrl.pathname !== target.pathname ||
       sender?.tab?.id !== session?.targetTabId ||
-      session?.schemaTestScenario !== 'category-check' ||
-      session?.templateOnly !== true || session?.renewalId || session?.archiveInsertionId ||
+      Boolean(session?.schemaTestScenario) ||
+      !Boolean(session?.templateOnly || session?.renewalId || session?.archiveInsertionId) ||
       session?.status !== 'needs-review' ||
-      session?.stage !== 'schema-test-category-review-required' ||
+      session?.stage !== 'schema-reference-review-required' ||
       !session.fillId || !session.inventoryId ||
       !/^[A-Za-z0-9_-]{1,80}$/.test(String(session.fillId)) ||
       Date.now() - Date.parse(session.createdAt || 0) > 15 * 60 * 1000)
-    fail('Der Kategorieprüfvorgang ist nicht mehr für eine Referenzübernahme gültig.');
+    fail('Die kontrollierte F3-Übernahme ist nur aus einer aktuellen Formular-Strukturprüfung zulässig.');
   const record = await getInventory(session.inventoryId);
   if (!record?.profileId || String(record.adId || '') !== String(session.sourceAdId || '') ||
       String(record.category?.id ?? record.categoryIdFromUrl ?? '') !== categoryId)
     fail('Die Inventar- oder Kontozuordnung hat sich geändert.');
   const lock = await getInsertionLockState();
-  if (lock?.locked === true) fail('Ein weiterer Inserierungsvorgang ist aktiv.');
+  // The current authenticated insertion may legitimately own the global lock;
+  // any unrelated or multiple owner must still fail closed.
+  const own = session.renewalId
+    ? { kind: 'renewal', id: String(session.renewalId) }
+    : session.archiveInsertionId
+      ? { kind: 'archive-insertion', id: String(session.archiveInsertionId) }
+      : { kind: 'trash-template', id: String(session.fillId) };
+  if (lock?.locked === true &&
+      (lock.kind !== own.kind || String(lock.ownerId || '') !== own.id ||
+       Number(lock.conflictCount || 1) !== 1))
+    fail('Ein weiterer Inserierungsvorgang ist aktiv.');
   // Independently check the selected profile and the platform account on
   // both consent preparation and final commit. No permission from the initial
   // native category check is silently re-used for a later mutation.
@@ -633,9 +623,8 @@ async function updateTemplateFillSession(message, sender) {
   const sessions = await readFillSessions();
   const session = sessions[message.fillId];
   if (!session || session.targetTabId !== tabId) throw new Error("Vorlagen-Sitzung gehört nicht zu diesem Tab.");
-  // Real reference approval is an explicit extension-only, authenticated
-  // mutation on an already needs-review category session, never a normal
-  // workflow status update. Reject all other scenario/status combinations.
+  // Real F3 consent is an explicit, authenticated mutation on a paused
+  // production posting preflight, never an invisible or test-mode update.
   if (message?.referenceAdoption)
     return adoptVerifiedSchemaReference(message, session, sessions, sender);
   const previousStatus = session.status;
