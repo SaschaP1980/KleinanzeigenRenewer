@@ -889,6 +889,19 @@
         priorGenerationClosed:false,detachedWorkVerified:false,
         remoteWorkVerified:false});
       if(pending.get(owner)!==0)return denied('ACTUAL_IN_FLIGHT_OPERATION');
+      // A registry may change BETWEEN two individually self-consistent
+      // observations. Pin the actual raw session source across the entire
+      // P8 plus Chrome verification interval, not merely within each pass.
+      const keys=['tabRegistryV1','managedWorkerTabsV1'];
+      let initialRegistry;
+      try {initialRegistry=await storageSession.get(keys);}
+      catch {return denied('CURRENT_TABS_UNVERIFIED');}
+      if(!record(initialRegistry)||!record(initialRegistry.tabRegistryV1)
+        ||!record(initialRegistry.managedWorkerTabsV1))
+        return denied('CURRENT_TABS_UNVERIFIED');
+      const registryRevision=JSON.stringify([
+        initialRegistry.tabRegistryV1,initialRegistry.managedWorkerTabsV1
+      ]);
       const history=await inspectTransitionCallbackClosureReadOnly(owner,
         new Set(['BULK_CLOSE_WORKER','AUTONOMOUS:tab-removed']));
       if(history.status!=='callback-settled')
@@ -925,6 +938,15 @@
           'LIVE_ACCOUNT_PROFILE_CHANGED_DURING_READ',
           'LIVE_ACCOUNT_STATUS_CHANGED_DURING_READ'].includes(profile.reason))
         return denied('ACCOUNT_PROFILE_CONTEXT_UNVERIFIED');
+      let finalRegistry;
+      try {finalRegistry=await storageSession.get(keys);}
+      catch {return denied('CURRENT_TABS_UNVERIFIED');}
+      if(!record(finalRegistry)||!record(finalRegistry.tabRegistryV1)
+        ||!record(finalRegistry.managedWorkerTabsV1)
+        ||JSON.stringify([
+          finalRegistry.tabRegistryV1,finalRegistry.managedWorkerTabsV1
+        ])!==registryRevision)
+        return denied('SESSION_REGISTRY_CHANGED_DURING_READ');
       return Object.freeze({
         ...history,reason:'DURABLE_P8_CALLBACK_AND_LIVE_TABS_RECONCILED',
         eligibleForLease:false,liveTabsReconciled:true,
