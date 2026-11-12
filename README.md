@@ -59,6 +59,8 @@ On Windows, updater and NativeHost setup are optional, per-user where supported,
 - **Guarded publication:** the normal website controls and exact saved-field/required-field verification remain in force. Posting restrictions, checkout or category/schema drift may require an explicit user decision or stop the workflow.
 - **Safe versus Fast:** `Schnellprüfung` shortens parts of the workflow but does not remove fundamental identity, lock or publication-safety checks. `Vollprüfung` adds stronger post-publication comparison/retirement requirements.
 - **Interruption and recovery:** Chrome tabs or the MV3 service worker can restart. A local workflow reset cannot establish an unknown remote action as successful, and a local trash record is not equivalent to an online Kleinanzeigen ad.
+- **Local versus remote deletion:** removing a local inventory or trash record does not delete an online ad. A separate, independently verified Phase-4 replacement operation may retire the remote source ad under exact source-ID/account checks.
+- **Publish hard gate:** the renewal workflow can automatically trigger the site's normal publish control only after every required hard-gate check has passed. It must never bypass the real website submit controls; manual review/payment actions may still be required.
 - **Website compatibility:** Kleinanzeigen can change page structure and category forms. Saving a template does not guarantee permanent form compatibility or lossless future recreation.
 
 ## Local data, diagnostics and privacy
