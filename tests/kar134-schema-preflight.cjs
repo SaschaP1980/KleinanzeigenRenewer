@@ -6,17 +6,6 @@ const { webcrypto } = require('node:crypto');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const fillerSource = fs.readFileSync(require.resolve('../src/content/template-filler.js'),'utf8');
-const policyStart = fillerSource.indexOf('  function assessSyntheticCaseSize(');
-const policyEnd = fillerSource.indexOf('  // KAR-134 field-only native simulation.', policyStart);
-assert.ok(policyStart > 0 && policyEnd > policyStart, 'private schema-test policy must be isolated before any page writes');
-const assessSyntheticCaseSize = vm.runInNewContext(
-  fillerSource.slice(policyStart, policyEnd) + '\nassessSyntheticCaseSize;',
-  { Object, Array }, { filename: 'kar134-read-only-policy.js' });
-const assessSyntheticRemovedField = vm.runInNewContext(
-  fillerSource.slice(policyStart, policyEnd) +
-    '\n(typeof assessSyntheticRemovedField === "function" ? assessSyntheticRemovedField : null);',
-  { Object, Array }, { filename: 'kar134-removed-field-policy.js' });
-
 globalThis.crypto ||= webcrypto;
 require('../src/shared/runtime-deps.js');
 const Schema = require('../src/shared/template-schema-core.js');
@@ -235,107 +224,18 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
     assert.equal(report.complete,true,report.issues.join(';'));
   });
 
-  await check('read-only 405 simulation accepts 44/44mm on current select and reports synthetic schema drift',async()=>{
-    const f=fixture();
-    const observed=f.engine.inspectForm(f.document.querySelector('form'),405,f.document);
-    const focused={...observed,schema:{...observed.schema,fields:observed.schema.fields.filter(field=>field.key==='attribute:wearables.case_size')}};
-    const old=Schema.buildSchema({categoryId:'405',dynamicAttributes:[{key:'wearables.gehausegrosse',controlType:'number'}]});
-    const source={categoryId:'405',templateSchema:{snapshot:old,fingerprint:await Schema.fingerprint(old)},
-      dynamicAttributes:[oldAttr('wearables.gehausegrosse','44','44mm')]};
-    const report=await f.engine.evaluate(source,focused);
-    assert.equal(report.complete,true,report.issues.join(';'));
-    assert.equal(report.comparison.status,'schema-changed');
-    assert.equal(report.mappings.length,1);
-    assert.equal(report.mappings[0].expectedDisplayLabel,'44mm');
-    const assessment=assessSyntheticCaseSize('compatible',focused,report,'__KAR134_UNREPRESENTABLE_CASE_SIZE__');
-    assert.equal(assessment.verdict,true);
-    assert.equal(assessment.optionEvidenceComplete,true);
-    assert.equal(assessment.mapping44Proven,true);
-  });
-  await check('read-only 405 simulation blocks guaranteed absent technical option',async()=>{
-    const f=fixture();
-    const observed=f.engine.inspectForm(f.document.querySelector('form'),405,f.document);
-    const focused={...observed,schema:{...observed.schema,fields:observed.schema.fields.filter(field=>field.key==='attribute:wearables.case_size')}};
-    const old=Schema.buildSchema({categoryId:'405',dynamicAttributes:[{key:'wearables.gehausegrosse',controlType:'number'}]});
-    const source={categoryId:'405',templateSchema:{snapshot:old,fingerprint:await Schema.fingerprint(old)},
-      dynamicAttributes:[syntheticCaseAttr('__KAR134_UNREPRESENTABLE_CASE_SIZE__')]};
-    const report=await f.engine.evaluate(source,focused);
-    assert.equal(report.complete,false);
-    assert.ok(report.issues.some(issue=>issue.includes('nicht angeboten')));
-    const assessment=assessSyntheticCaseSize('incompatible',focused,report,'__KAR134_UNREPRESENTABLE_CASE_SIZE__');
-    assert.equal(assessment.verdict,true);
-    assert.equal(assessment.specificInvalidRejectionProven,true);
-  });
   await check('read-only test branch precedes filler/publisher and has no write primitive',async()=>{
     const fs=require('node:fs');
     const filler=fs.readFileSync(require.resolve('../src/content/template-filler.js'),'utf8');
     const background=fs.readFileSync(require.resolve('../src/background/controllers/template-fill-controller.js'),'utf8');
     const probe=filler.slice(filler.indexOf('async function runReadOnlySchemaTest'),filler.indexOf('async function runFillSession'));
     assert.ok(probe.includes('SchemaPreflight.afterHydration'));
-    assert.ok(probe.includes('SchemaPreflight.evaluate'));
+    assert.ok(probe.includes("monitorSchemaStage('attributes'"));
     for(const forbidden of ['fillDynamicAttributes(', 'uploadImages(', 'advanceAfterVerifiedFill(', 'autoPublishVerifiedRenewal(', 'button.click(', 'submit(', 'requestSubmit('])
       assert.ok(!probe.includes(forbidden),'unexpected write path in read-only probe: '+forbidden);
     assert.ok(filler.indexOf('if (session.schemaTestScenario)')<filler.indexOf("if (kind === 'post-fill' ||"));
     assert.ok(background.includes('schemaTestScenario: isSchemaTest ? schemaTestScenario : null'));
     assert.ok(background.includes("if (isSchemaTest) {"));
-  });
-
-  await check('unproven live options make both native scenarios inconclusive, not falsely green',async()=>{
-    const f=fixture({options:false});
-    const observed=f.engine.inspectForm(f.document.querySelector('form'),405,f.document);
-    const focused={...observed,schema:{...observed.schema,fields:observed.schema.fields.filter(field=>field.key==='attribute:wearables.case_size')}};
-    const old=Schema.buildSchema({categoryId:'405',dynamicAttributes:[{key:'wearables.gehausegrosse',controlType:'number'}]});
-    for(const scenario of ['compatible','incompatible']){
-      const technicalValue=scenario==='compatible'?'44':'__KAR134_UNREPRESENTABLE_CASE_SIZE__';
-      const source={categoryId:'405',templateSchema:{snapshot:old,fingerprint:await Schema.fingerprint(old)},
-        dynamicAttributes:[syntheticCaseAttr(technicalValue,'44mm')]};
-      const report=await f.engine.evaluate(source,focused);
-      assert.equal(report.complete,false);
-      const verdict=assessSyntheticCaseSize(scenario,focused,report,'__KAR134_UNREPRESENTABLE_CASE_SIZE__');
-      assert.equal(verdict.verdict,false,'no option list is not proof of a correct rejection');
-      assert.equal(verdict.optionEvidenceComplete,false);
-      assert.equal(verdict.evidenceState,'case-size-option-evidence-missing');
-    }
-  });
-  await check('missing case-size technical field cannot produce false-positive negative test',async()=>{
-    const f=fixture({caseSize:false});
-    const observed=f.engine.inspectForm(f.document.querySelector('form'),405,f.document);
-    const old=Schema.buildSchema({categoryId:'405',dynamicAttributes:[{key:'wearables.gehausegrosse',controlType:'number'}]});
-    const source={categoryId:'405',templateSchema:{snapshot:old,fingerprint:await Schema.fingerprint(old)},
-      dynamicAttributes:[syntheticCaseAttr('__KAR134_UNREPRESENTABLE_CASE_SIZE__')]};
-    const report=await f.engine.evaluate(source,observed);
-    assert.equal(report.complete,false);
-    const verdict=assessSyntheticCaseSize('incompatible',observed,report,'__KAR134_UNREPRESENTABLE_CASE_SIZE__');
-    assert.equal(verdict.verdict,false);
-    assert.equal(verdict.caseFieldPresent,false);
-    assert.equal(verdict.evidenceState,'case-size-field-missing');
-  });
-  await check('generic form mismatch alone is never proof that invalid technical ID was rejected',async()=>{
-    const f=fixture();
-    const observed=f.engine.inspectForm(f.document.querySelector('form'),405,f.document);
-    const focused={...observed,schema:{...observed.schema,fields:observed.schema.fields.filter(field=>field.key==='attribute:wearables.case_size')}};
-    const generic={complete:false,issues:['Neue Auswahl ist nicht eindeutig bestätigt.'],mappings:[]};
-    const verdict=assessSyntheticCaseSize('incompatible',focused,generic,'__KAR134_UNREPRESENTABLE_CASE_SIZE__');
-    assert.equal(verdict.optionEvidenceComplete,true);
-    assert.equal(verdict.verdict,false);
-    assert.equal(verdict.specificInvalidRejectionProven,false);
-    assert.equal(verdict.evidenceState,'invalid-value-rejection-not-proven');
-  });
-  await check('visible 44mm label remains required even with valid technical option 44',async()=>{
-    const f=fixture();
-    const observed=f.engine.inspectForm(f.document.querySelector('form'),405,f.document);
-    const focused={...observed,schema:{...observed.schema,fields:observed.schema.fields.filter(field=>field.key==='attribute:wearables.case_size')}};
-    const old=Schema.buildSchema({categoryId:'405',dynamicAttributes:[{key:'wearables.gehausegrosse',controlType:'number'}]});
-    const source={categoryId:'405',templateSchema:{snapshot:old,fingerprint:await Schema.fingerprint(old)},
-      dynamicAttributes:[oldAttr('wearables.gehausegrosse','44','44mm')]};
-    const report=await f.engine.evaluate(source,focused);
-    assert.equal(report.complete,true);
-    const stale={...focused,optionLabels:{...focused.optionLabels,
-      'wearables.case_size':[{value:'44',label:'44 mm'}]}};
-    const verdict=assessSyntheticCaseSize('compatible',stale,report,'__KAR134_UNREPRESENTABLE_CASE_SIZE__');
-    assert.equal(verdict.verdict,false);
-    assert.equal(verdict.technical44Offered,true);
-    assert.equal(verdict.visible44mmProven,false);
   });
 
   await check('read-only 405 probe opens an exact linked popup and proves explicit technical IDs without selection', async()=>{
@@ -355,7 +255,7 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
     });
     const original=technical.value;
     const observed=await f.engine.afterHydration(
-      {categoryId:'405',dynamicAttributes:[]}, {probeReadOnlyCaseSize:true});
+      {categoryId:'405',dynamicAttributes:[oldAttr('wearables.gehausegrosse','44','44mm')]});
     assert.equal(clicks,1);
     assert.equal(technical.value,original,'opening a dropdown cannot set a form value');
     assert.equal(observed.optionProbe.verified,true);
@@ -368,7 +268,8 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
       dynamicAttributes:[syntheticCaseAttr('44','44mm')]};
     const focused={...observed,schema:{...observed.schema,fields:observed.schema.fields.filter(x=>x.key==='attribute:wearables.case_size')}};
     const report=await f.engine.evaluate(source,focused);
-    assert.equal(assessSyntheticCaseSize('compatible',focused,report,'__KAR134_UNREPRESENTABLE_CASE_SIZE__').verdict,true);
+    assert.equal(report.complete,true);
+    assert.equal(report.mappings.length,1);
   });
   await check('unlinked custom popup without technical ID cannot be mislabeled as a verified selection',async()=>{
     const f=fixture({options:false});
@@ -383,7 +284,7 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
       f.document.body.append(popup);
     });
     const observed=await f.engine.afterHydration(
-      {categoryId:'405',dynamicAttributes:[]},{probeReadOnlyCaseSize:true});
+      {categoryId:'405',dynamicAttributes:[oldAttr('wearables.gehausegrosse','44','44mm')]});
     assert.equal(observed.optionProbe.popupFound,true);
     assert.equal(observed.optionProbe.renderedOptionCount,2);
     assert.equal(observed.optionProbe.explicitTechnicalOptionCount,0);
@@ -412,8 +313,7 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
       popup.innerHTML='<div role="option" data-value="size-44">44mm</div>';
       f.document.body.append(popup);
     });
-    const observed=await f.engine.afterHydration({categoryId:'405',dynamicAttributes:[]},
-      {probeReadOnlyCaseSize:true});
+    const observed=await f.engine.afterHydration({categoryId:'405',dynamicAttributes:[oldAttr('wearables.gehausegrosse','44','44mm')]});
     assert.equal(observed.optionProbe.verified,true);
     const focused={...observed,schema:{...observed.schema,fields:observed.schema.fields.filter(x=>x.key==='attribute:wearables.case_size')}};
     const old=Schema.buildSchema({categoryId:'405',dynamicAttributes:[{key:'wearables.gehausegrosse',controlType:'number'}]});
@@ -421,7 +321,7 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
       dynamicAttributes:[syntheticCaseAttr('44','44mm')]};
     const report=await f.engine.evaluate(source,focused);
     assert.equal(report.complete,false);
-    assert.equal(assessSyntheticCaseSize('compatible',focused,report,'__KAR134_UNREPRESENTABLE_CASE_SIZE__').verdict,false);
+    assert.equal(report.complete,false);
   });
 
   // KAR-134 Wave I: these exact pairs were independently measured by the owner
@@ -483,9 +383,9 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
     const f=fixture({options:false,caseValue:'',savedValue:'45'});
     const pop=attachOwnerCaseSizePopup(f);
     f.template.templateSchema.fingerprint=await Schema.fingerprint(f.template.templateSchema.snapshot);
-    const observed=await f.engine.afterHydration(f.template,{probeReadOnlyCaseSize:true});
-    assert.equal(pop.opens,1);
-    assert.equal(observed.optionProbe.ownerVerifiedPairCount,2);
+    const observed=await f.engine.afterHydration(f.template);
+    assert.equal(pop.opens,0,'unverified size 45 must not trigger an exploratory popup');
+    assert.equal(observed.optionProbe,undefined);
     const report=await f.engine.evaluate(f.template,observed);
     assert.equal(report.complete,false);
     assert.ok(report.issues.some(x=>x.includes('nicht eindeutig')));
@@ -504,80 +404,11 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
   // Wave J: a missing archived technical field is provable from the full live
   // schema even when technical dropdown options are unknown. It does not
   // prove that any real Kleinanzeigen field was actually removed.
-  await check('native synthetic removed-field drift proves specific preflight rejection without a technical option catalog',async()=>{
-    const f=fixture({options:false,caseValue:''});
-    const observed=f.engine.inspectForm(f.document.querySelector('form'),405,f.document);
-    const key='wearables.__kar134_removed_field_probe__';
-    const label='KAR-134 Testmerkmal (synthetisch)';
-    const snapshot=Schema.buildSchema({categoryId:'405',dynamicAttributes:[
-      {key,controlType:'text',requiredState:'optional'}]});
-    const template={categoryId:'405',templateSchema:{snapshot,fingerprint:await Schema.fingerprint(snapshot)},
-      dynamicAttributes:[{...oldAttr(key,'SAVED_TEST_VALUE','synthetisch'),label,status:'captured'}]};
-    const report=await f.engine.evaluate(template,observed);
-    assert.equal(report.complete,false);
-    assert.equal(observed.schema.fields.find(x=>x.key==='attribute:wearables.case_size').optionValues,null);
-    assert.ok(report.issues.some(x=>x.includes(label) && x.includes('nicht vorhanden')));
-    assert.equal(typeof assessSyntheticRemovedField,'function','native removed-field policy not implemented');
-    const result=assessSyntheticRemovedField(observed,report,key,label);
-    assert.equal(result.verdict,true);
-    assert.equal(result.evidenceState,'synthetic-removed-field-proven');
-    assert.equal(result.missingSavedFieldRejectionProven,true);
-    assert.equal(result.caseFieldPresent,true);
-  });
-  await check('native removed-field negative cannot pass if synthetic key is offered by live form',async()=>{
-    const f=fixture({options:false});
-    const key='wearables.__kar134_removed_field_probe__',label='KAR-134 Testmerkmal (synthetisch)';
-    const input=f.document.createElement('input');
-    input.name='attributeMap['+key+']';input.type='text';input.value='';
-    f.document.querySelector('form').append(input);
-    const observed=f.engine.inspectForm(f.document.querySelector('form'),405,f.document);
-    const snapshot=Schema.buildSchema({categoryId:'405',dynamicAttributes:[{key,controlType:'text'}]});
-    const template={categoryId:'405',templateSchema:{snapshot,fingerprint:await Schema.fingerprint(snapshot)},
-      dynamicAttributes:[{...oldAttr(key,'SAVED_TEST_VALUE'),label,status:'captured'}]};
-    const report=await f.engine.evaluate(template,observed);
-    assert.equal(typeof assessSyntheticRemovedField,'function');
-    const result=assessSyntheticRemovedField(observed,report,key,label);
-    assert.equal(result.verdict,false);
-    assert.equal(result.evidenceState,'synthetic-field-present');
-  });
-  await check('native removed-field negative rejects generic error or unverified category',async()=>{
-    const f=fixture({options:false});
-    const observed=f.engine.inspectForm(f.document.querySelector('form'),405,f.document);
-    const key='wearables.__kar134_removed_field_probe__',label='KAR-134 Testmerkmal (synthetisch)';
-    assert.equal(typeof assessSyntheticRemovedField,'function');
-    const unrelated={complete:false,comparison:{status:'schema-changed'},
-      issues:['Ein neues Pflichtmerkmal ist nicht gesetzt.']};
-    assert.equal(assessSyntheticRemovedField(observed,unrelated,key,label).verdict,false);
-    assert.equal(assessSyntheticRemovedField({...observed,categoryId:'406'},unrelated,key,label).verdict,false);
-    const misleading={...unrelated,issues:['Gespeichertes Merkmal „'+label+'“ ist im neuen Formular nicht vorhanden.']};
-    assert.equal(assessSyntheticRemovedField({...observed,categoryId:'406'},misleading,key,label).verdict,false);
-  });
-  await check('positive read-only 405 simulation recognizes owner-proven pair while negative remains inconclusive',async()=>{
-    const f=fixture({options:false,caseValue:''});
-    attachOwnerCaseSizePopup(f);
-    const observed=await f.engine.afterHydration({categoryId:'405',dynamicAttributes:[]},{probeReadOnlyCaseSize:true});
-    const focused={...observed,schema:{...observed.schema,fields:observed.schema.fields.filter(x=>x.key==='attribute:wearables.case_size')}};
-    const old=Schema.buildSchema({categoryId:'405',dynamicAttributes:[{key:'wearables.gehausegrosse',controlType:'number'}]});
-    const fp=await Schema.fingerprint(old);
-    const positive={categoryId:'405',templateSchema:{snapshot:old,fingerprint:fp},
-      dynamicAttributes:[syntheticCaseAttr('44','44mm')]};
-    const pass=await f.engine.evaluate(positive,focused);
-    assert.equal(pass.complete,true);
-    const positiveAssessment=assessSyntheticCaseSize('compatible',focused,pass,'__KAR134_UNREPRESENTABLE_CASE_SIZE__');
-    assert.equal(positiveAssessment.verdict,true);
-    assert.equal(positiveAssessment.optionEvidenceComplete,false);
-    assert.equal(positiveAssessment.ownerVerifiedPair44,true);
-    const negative={...positive,dynamicAttributes:[syntheticCaseAttr('__KAR134_UNREPRESENTABLE_CASE_SIZE__')]};
-    const deny=await f.engine.evaluate(negative,focused);
-    assert.equal(deny.complete,false);
-    assert.equal(assessSyntheticCaseSize('incompatible',focused,deny,'__KAR134_UNREPRESENTABLE_CASE_SIZE__').verdict,false);
-  });
-
   // Wave K2: runtime stage monitoring is tested with a synthetic create-form
   // and in-memory extension storage, never with actual Kleinanzeigen data.
   function monitoringPolicy() {
     const start=fillerSource.indexOf('  // KAR-134 K2 monitoring helpers');
-    const end=fillerSource.indexOf('  // KAR-134 field-only native simulation.',start);
+    const end=fillerSource.indexOf('  // KAR-134 L4 real reference adoption',start);
     assert.ok(start>0&&end>start,'F1/F2/F3 runtime monitoring helpers must be present');
     const context={
       SchemaCore:Schema,chrome:{storage:{local:{}}},
@@ -586,7 +417,7 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
       diagnostic:()=>Promise.resolve(),registerSchemaMonitorWarning:()=>{},console
     };
     return vm.runInNewContext(fillerSource.slice(start,end)+
-      '\n({captureCategoryNeutralForm, monitorSchemaStage, createIsolatedStageReview});',context,
+      '\n({captureCategoryNeutralForm, monitorSchemaStage});',context,
       {filename:'kar134-live-monitor-policy.js'});
   }
   const testStorage=()=>{
@@ -759,94 +590,11 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
     attributes: Schema.buildSchema({categoryId:'405',dynamicAttributes:[
       {key:'wearables.case_size',controlType:'combobox',requiredState:'optional'}]})
   });
-  const stagePolicy = () => {
-    const a=fillerSource.indexOf('  // KAR-134 K3 synthetic fingerprint warning proof');
-    const b=fillerSource.indexOf('  // KAR-134 field-only native simulation.',a);
-    assert.ok(a>0&&b>a,'read-only F1/F2/F3 fingerprint warning proof policy is missing');
-    return vm.runInNewContext(fillerSource.slice(a,b)+'\nassessSyntheticStageDrift;',
-      {SchemaCore:Schema,Object,Array,Set,Map,Promise},
-      {filename:'kar134-synthetic-stage-drift-proof.js'});
-  };
-  await check('native F1 F2 F3 synthetic previous snapshots prove three distinct stage drifts',async()=>{
-    const policy=stagePolicy();
-    const result=await policy(stageFixture());
-    assert.equal(result.verdict,true);
-    assert.equal(result.simulationOnly,true);
-    assert.equal(result.referenceWrites,0);
-    for(const stage of ['base','category','attributes']){
-      const x=result.stages[stage];
-      assert.equal(x.verdict,true,stage);
-      assert.match(x.previousFingerprint,/^[0-9a-f]{64}$/);
-      assert.match(x.currentFingerprint,/^[0-9a-f]{64}$/);
-      assert.notEqual(x.previousFingerprint,x.currentFingerprint,stage);
-      assert.equal(x.simulationOnly,true);
-      assert.match(x.warningText,/TEST|SIMULATION/i);
-    }
-    assert.ok(result.stages.base.changeTypes.includes('field-removed'));
-    assert.ok(result.stages.category.changeTypes.includes('category-depth-changed'));
-    assert.ok(result.stages.attributes.changeTypes.includes('field-removed'));
-    assert.equal(result.stages.category.categoryId,'405');
-    assert.equal(result.stages.category.previousLeafId,'405');
-  });
-  await check('stage alarm cannot pass without proven live category path and hydrated field evidence',async()=>{
-    const policy=stagePolicy();
-    const base=stageFixture();
-    assert.equal((await policy({...base,category:null})).verdict,false);
-    assert.equal((await policy({...base,base:null})).verdict,false);
-    assert.equal((await policy({...base,attributes:null})).verdict,false);
-    const noPath={...base,category:{...base.category,observedPath:false}};
-    assert.equal((await policy(noPath)).verdict,false);
-    const wrongCategory={...base,attributes:{...base.attributes,categoryId:'406'}};
-    assert.equal((await policy(wrongCategory)).verdict,false);
-    const noAttrs={...base,attributes:{...base.attributes,fields:[]}};
-    assert.equal((await policy(noAttrs)).verdict,false);
-  });
-  await check('F2 synthetic structural depth change does not invent technical parent IDs',async()=>{
-    const result=await stagePolicy()(stageFixture());
-    assert.equal(result.verdict,true);
-    assert.equal(result.stages.category.changeTypes.filter(x=>x==='category-depth-changed').length,1);
-    assert.equal(result.stages.category.verifiedAncestorIdsInvented,false);
-    assert.equal(result.stages.category.previousLeafId,'405');
-    assert.equal(result.stages.category.currentLeafId,'405');
-  });
-  await check('synthetic stage warning is separately named and read-only across all run contracts',()=>{
-    const bg=fs.readFileSync(require.resolve('../src/background/controllers/template-fill-controller.js'),'utf8');
-    const ui=fs.readFileSync(require.resolve('../src/app/inventory-card-renderer.js'),'utf8');
-    assert.match(bg,/['"]stage-drift['"]/);
-    assert.match(ui,/scenario:\s*['"]stage-drift['"]/);
-    assert.match(ui,/Fingerprint-Warnung testen/);
-    const block=fillerSource.slice(fillerSource.indexOf('async function runReadOnlySchemaTest('),
-      fillerSource.indexOf('async function runFillSession('));
-    assert.ok(block.includes("scenario === 'stage-drift'"));
-    assert.ok(block.includes('assessSyntheticStageDrift('));
-    assert.ok(block.includes('KAR134_STAGE_DRIFT_TEST_RESULT'));
-    assert.ok(block.includes('registerSchemaMonitorWarning('));
-    assert.ok(block.includes('schema-test-stage-drift'));
-    const index=block.indexOf("scenario === 'stage-drift'");
-    assert.ok(index>=0);
-    // A structural test must take its own path before any archived-value probe.
-    assert.ok(index<block.indexOf('const caseField'));
-    for(const forbidden of ['fillDynamicAttributes(', 'uploadImages(', 'advanceAfterVerifiedFill(',
-      'autoPublishVerifiedRenewal(', 'requestSubmit(', '.submit('])
-      assert.ok(!block.includes(forbidden),'a read-only probe invokes a writer: '+forbidden);
-  });
-  await check('synthetic stage probe never persists a baseline, replacing the real monitor remains forbidden',()=>{
-    const block=fillerSource.slice(fillerSource.indexOf('async function runReadOnlySchemaTest('),
-      fillerSource.indexOf('async function runFillSession('));
-    assert.ok(block.includes('syntheticStageDrift'));
-    assert.ok(block.includes('monitorSchemaStage('));
-    assert.ok(block.includes('const syntheticOnly = syntheticStageDrift || isolatedReviewTest'));
-    assert.ok(block.includes('if (!syntheticOnly)'), 'both simulation paths must skip real reference monitor');
-    assert.ok(!block.includes('chrome.storage.local.set('));
-    assert.ok(!block.includes('storage.set('));
-    assert.ok(!fillerSource.slice(fillerSource.indexOf('  // KAR-134 K3 synthetic fingerprint warning proof'),
-      fillerSource.indexOf('  // KAR-134 field-only native simulation.')).includes('monitorSchemaStage('));
-  });
   // Wave L1: standalone category monitoring uses no archived listing
   // values and must be valid for more than the fixed Smartwatch category.
   const independentChecker = () => {
-    const a=fillerSource.indexOf('  // KAR-134 L1 independent category-check verdict');
-    const b=fillerSource.indexOf('  // KAR-134 field-only native simulation.',a);
+    const a=fillerSource.indexOf('  // Production category checks require genuine live structural evidence');
+    const b=fillerSource.indexOf('  // Production read-only category schema check.',a);
     assert.ok(a>0&&b>a,'generic independent category verdict policy not implemented');
     return vm.runInNewContext(fillerSource.slice(a,b)+'\nassessIndependentCategoryCheck;',
       {Object,Array,Set}, {filename:'kar134-independent-category-check.js'});
@@ -922,7 +670,7 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
     const ui=fs.readFileSync(require.resolve('../src/app/inventory-card-renderer.js'),'utf8');
     const bg=fs.readFileSync(require.resolve('../src/background/controllers/template-fill-controller.js'),'utf8');
     const service=fs.readFileSync(require.resolve('../src/background/services/template-fill-service.js'),'utf8');
-    assert.match(ui,/scenario:\s*'category-check'/);
+    assert.match(ui,/schemaTestScenario:\s*'category-check'/);
     assert.match(ui,/Kategorie prüfen/);
     assert.match(ui,/hasVerifiableCategoryPath/);
     assert.match(ui,/requireAccountBoundAction\(\)/);
@@ -943,8 +691,8 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
     assert.match(block,/monitorSchemaStage\('category'/);
     assert.match(block,/monitorSchemaStage\('attributes'/);
     assert.match(block,/schema-test-category-check/);
-    assert.ok(block.indexOf("scenario === 'category-check'") < block.indexOf("if (syntheticStageDrift)"));
-    assert.ok(block.indexOf("scenario === 'category-check'") < block.indexOf("const caseField"));
+    assert.ok(!block.includes('syntheticStageDrift'));
+    assert.ok(!block.includes('const caseField'));
     for(const forbidden of ['fillDynamicAttributes(', 'uploadImages(', 'advanceAfterVerifiedFill(',
       'autoPublishVerifiedRenewal(', 'requestSubmit(', '.submit(', 'fillCoreForm(', 'ensureStableTitleValue('])
       assert.ok(!block.includes(forbidden),'a category check may not fill/post listing: '+forbidden);
@@ -957,7 +705,7 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
   // review. This is NEVER a request to change saved stage references.
   const reviewHelpers = () => {
     const start = fillerSource.indexOf('  // KAR-134 L2 change review');
-    const end = fillerSource.indexOf('  // KAR-134 K3 synthetic fingerprint warning proof',start);
+    const end = fillerSource.indexOf('  // Production category checks require genuine live structural evidence',start);
     assert.ok(start>0&&end>start,'step-2 review policy/UI must be implemented');
     return vm.runInNewContext(fillerSource.slice(start,end)+
       '\n({buildStageChangeReview,showStageChangeReviewDialog});',
@@ -1042,7 +790,7 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
   });
   await check('step-2 category-check wiring never authorizes reference acceptance or publication',()=>{
     const block=fillerSource.slice(fillerSource.indexOf("if (scenario === 'category-check')"),
-      fillerSource.indexOf("if (syntheticStageDrift)",fillerSource.indexOf("if (scenario === 'category-check')")));
+      fillerSource.indexOf('async function runFillSession(',fillerSource.indexOf("if (scenario === 'category-check')")));
     assert.match(block,/buildStageChangeReview\(/);
     assert.match(block,/showStageChangeReviewDialog\(/);
     assert.match(block,/KAR134_CHANGE_REVIEW_ACKNOWLEDGED/);
@@ -1054,113 +802,10 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
     assert.ok(!block.includes('requestSubmit('));
     assert.ok(!block.includes('uploadImages('));
   });
-  // Step 3: sandbox references must live only in a run-scoped, in-memory store.
-  await check('isolated synthetic stage references show three proven changes without live fingerprint access',async()=>{
-    const {createIsolatedStageReview}=monitoringPolicy();
-    assert.equal(typeof createIsolatedStageReview,'function');
-    const sandbox=await createIsolatedStageReview('local-check-405',stageFixture());
-    assert.deepEqual(Array.from(['base','category','attributes'].map(k=>sandbox.results[k].status)),
-      ['changed','changed','changed']);
-    assert.equal(sandbox.state().referenceWrites,3,'three synthetic baselines only');
-    assert.equal(sandbox.state().realReferenceReads,0);
-    assert.equal(sandbox.state().realReferenceWrites,0);
-    assert.match(sandbox.state().namespace,/kr134:isolated-stage-monitor:/);
-    const {buildStageChangeReview}=reviewHelpers();
-    const model=buildStageChangeReview(sandbox.results,{categoryEvidence:sandbox.observed.category.evidence,simulationOnly:true});
-    assert.equal(model.hasProvenChange,true);
-    assert.equal(model.simulationOnly,true);
-    assert.match(model.safetyText,/SIMULATION|Testspeicher/i);
-    assert.ok(model.sections.every(section=>section.status==='changed'));
-  });
-  await check('isolated test confirmation adopts only sandbox references then compares unchanged',async()=>{
-    const {createIsolatedStageReview}=monitoringPolicy();
-    const sandbox=await createIsolatedStageReview('local-accept-405',stageFixture());
-    await assert.rejects(sandbox.approve({confirmed:false}),/Bestätigung|bestätigt/i);
-    assert.equal(sandbox.state().referenceWrites,3);
-    const adopted=await sandbox.approve({confirmed:true});
-    assert.equal(adopted.accepted,true);
-    assert.deepEqual(Array.from(['base','category','attributes'].map(k=>adopted.results[k].status)),
-      ['unchanged','not-fully-verified','unchanged']);
-    assert.equal(sandbox.state().referenceWrites,6);
-    assert.equal(sandbox.state().realReferenceWrites,0);
-    await assert.rejects(sandbox.approve({confirmed:true}),/bereits|abgeschlossen/i);
-  });
-  await check('isolated test rejection and simple acknowledgement do not approve or persist',async()=>{
-    const {createIsolatedStageReview}=monitoringPolicy();
-    const sandbox=await createIsolatedStageReview('local-reject-159',{
-      ...stageFixture(),
-      category:Schema.buildCategorySchema({categoryId:'159',leafConfirmed:true,observedPath:true,levels:[
-        {label:'Mode & Beauty',technicalId:null,kind:'branch'},
-        {label:'Damenschuhe',technicalId:null,kind:'branch'},
-        {label:'Sneaker & Sportschuhe',technicalId:'159',kind:'leaf'}]}),
-      attributes:Schema.buildSchema({categoryId:'159',dynamicAttributes:[
-        {key:'shoes.art',controlType:'combobox',requiredState:'unknown'}]})
-    });
-    sandbox.defer();
-    assert.equal(sandbox.state().accepted,false);
-    assert.equal(sandbox.state().referenceWrites,3);
-    assert.deepEqual(Array.from(['base','category','attributes'].map(k=>sandbox.results[k].status)),
-      ['changed','changed','changed']);
-    assert.equal(sandbox.state().realReferenceWrites,0);
-    await assert.rejects(sandbox.approve({confirmed:true}),/abgelehnt|abgeschlossen/i);
-  });
-  await check('isolated test fails closed with missing stage, colliding synthetic key or live storage',async()=>{
-    const {createIsolatedStageReview,monitorSchemaStage}=monitoringPolicy();
-    const sample=stageFixture();
-    await assert.rejects(createIsolatedStageReview('bad', {...sample,attributes:null}),/vollständig|erfasst/i);
-    const colliding={...sample,attributes:{...sample.attributes,fields:[
-      ...sample.attributes.fields,{key:'attribute:kr134.synthetic_previous_attribute',
-        kind:'text',requiredState:'unknown',optionValues:null}]}};
-    await assert.rejects(createIsolatedStageReview('collide',colliding),/Kollision|kollidiert/i);
-    const dummy=testStorage();
-    const blocked=await monitorSchemaStage('base',sample.base,'f',{
-      storage:dummy,isolatedTest:true,log:()=>Promise.resolve(),onWarning:()=>{}});
-    assert.equal(blocked.status,'monitor-unavailable');
-    assert.equal(dummy.writes,0,'live-like storage must be rejected even in test mode');
-  });
-  await check('sandbox-only review dialog exposes explicit isolated adoption, normal dialog remains two buttons',()=>{
-    const {buildStageChangeReview,showStageChangeReviewDialog}=reviewHelpers();
-    const {document}=parseHTML('<html><body></body></html>');
-    let accepted=0,deferred=0,acknowledged=0;
-    const review=buildStageChangeReview({
-      base:{status:'changed',changes:[{type:'field-removed',key:'field:kr134_synthetic_previous_base_field'}]},
-      category:{status:'changed',changes:[{type:'category-depth-changed',before:4,after:3}]},
-      attributes:{status:'changed',changes:[{type:'field-removed',key:'attribute:kr134.synthetic_previous_attribute'}]}
-    });
-    showStageChangeReviewDialog(review,{documentRoot:document,
-      simulationOnly:true,onTestApprove:()=>{accepted++;},
-      onAcknowledge:()=>{acknowledged++;},onDefer:()=>{deferred++;}});
-    const dialog=document.querySelector('[role="dialog"]');
-    assert.ok(dialog);
-    assert.match(dialog.textContent,/TEST|Simulation|Testspeicher/);
-    const buttons=[...dialog.querySelectorAll('button')];
-    assert.equal(buttons.length,3);
-    assert.match(buttons[2].textContent,/Testspeicher/);
-    buttons[2].click();
-    assert.equal(accepted,1);
-    assert.equal(deferred,0);assert.equal(acknowledged,0);
-    assert.equal(document.querySelector('[role="dialog"]'),null);
-  });
-  await check('isolated review run uses category path and prevents all production-stage storage calls',()=>{
-    const ui=fs.readFileSync(require.resolve('../src/app/inventory-card-renderer.js'),'utf8');
-    const bg=fs.readFileSync(require.resolve('../src/background/controllers/template-fill-controller.js'),'utf8');
-    const svc=fs.readFileSync(require.resolve('../src/background/services/template-fill-service.js'),'utf8');
-    const block=fillerSource.slice(fillerSource.indexOf('async function runReadOnlySchemaTest('),
-      fillerSource.indexOf('async function runFillSession('));
-    assert.match(ui,/scenario: 'isolated-review'/);
-    assert.match(bg,/'isolated-review'/);
-    assert.match(svc,/'isolated-review'/);
-    assert.match(block,/scenario === 'isolated-review'/);
-    assert.match(block,/createIsolatedStageReview\(/);
-    assert.match(block,/KAR134_ISOLATED_REVIEW_/);
-    assert.match(block,/referenceApproved:\s*false/);
-    assert.ok(!block.includes('requestSubmit('));assert.ok(!block.includes('uploadImages('));
-    assert.ok(!block.includes('autoPublishVerifiedRenewal('));
-  });
   // Step 4 real adoption policy: entirely distinct from the isolated sandbox.
   const realApprovalPolicy = () => {
     const start = fillerSource.indexOf('  // KAR-134 L4 real reference adoption');
-    const end = fillerSource.indexOf('  // KAR-134 K3 synthetic fingerprint warning proof',start);
+    const end = fillerSource.indexOf('  // Production category checks require genuine live structural evidence',start);
     assert.ok(start > 0 && end > start,'genuine baseline adoption policy must exist');
     return vm.runInNewContext(fillerSource.slice(start,end)+
       '\n({buildRealSchemaAdoptionPlan,showStageChangeReviewDialog});',
@@ -1350,7 +995,7 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
   });
   await check('genuine F3 approval stays inside existing authenticated session route with fresh live verification',()=>{
     const content=fillerSource.slice(fillerSource.indexOf("if (scenario === 'category-check')"),
-      fillerSource.indexOf('if (syntheticStageDrift)',fillerSource.indexOf("if (scenario === 'category-check')")));
+      fillerSource.indexOf('async function runFillSession(',fillerSource.indexOf("if (scenario === 'category-check')")));
     const controller=fs.readFileSync(require.resolve('../src/background/controllers/template-fill-controller.js'),'utf8');
     const bootstrap=fs.readFileSync(require.resolve('../src/background/background.js'),'utf8');
     assert.match(content,/buildRealSchemaAdoptionPlan\(/);
@@ -1367,8 +1012,8 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
     assert.ok(!content.includes('requestSubmit('));
     assert.ok(!content.includes('uploadImages('));
   });
-  assert.equal(passed,81,'KAR-134 preflight regression count must remain complete');
-  console.log(passed+'/81 PASS KAR-134 schema capture/preflight');
+  assert.equal(passed,60,'KAR-134 retained production regression count must remain complete');
+  console.log(passed+'/60 PASS KAR-134 schema capture/preflight');
 
 
 
