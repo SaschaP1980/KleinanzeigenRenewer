@@ -143,7 +143,7 @@ const unchangedHashes = {
   'inventory-runner.js': '21b3a78553b216017c0e74ba3bcdddd24bd0f4756fe0d801bb73282969776318',
   'icons/app-icon-128.png': '8e91b7f9cbd919f22ba1db4ac8c7c5c815a61053670f1b902db406785bf1808f',
   'icons/favicon.ico': 'c9c7652c37add5755a17144c3a8268b2deff1a68bb1c35a507d256bf0abea12f',
-  'icons/taskbar-master-1240.png': '73ed61634cc85624891f3efef663bd5f6d2a7e4cecd76ffebce6a08a232d6c3d'
+  'assets/artwork/taskbar-master-1240.png': '73ed61634cc85624891f3efef663bd5f6d2a7e4cecd76ffebce6a08a232d6c3d'
 };
 for (const [file, digest] of Object.entries(unchangedHashes)) {
   if (includesActivePatch(['1.22.22','1.22.23','1.22.24','1.22.25','1.22.26','1.22.27','1.22.28','1.22.29','1.22.30','1.23.0','1.23.1','1.23.2','1.23.3','1.23.4','1.23.5','1.23.6','1.23.7','1.23.8','1.23.9','1.23.10','1.23.11','1.23.12','1.23.13','1.23.14','1.23.15','1.23.16','1.23.17','1.23.18','1.23.19','1.23.20','1.23.22','1.23.23','1.23.24'], manifest.version)) continue; // v1.22.22 intentionally updates legacy/global wiring; historical patch-scope hashes are not applicable

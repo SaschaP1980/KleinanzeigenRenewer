@@ -64,6 +64,8 @@ for (const asset of doc.assets) {
       // pixel canvas. Their exact original Git blobs are verified above.
       assert.ok(width >= 1024 && height >= 1024,
         'Original source master must stay a high-resolution PNG: ' + asset.currentPath);
+      assert.deepEqual(asset.pixelDimensions, {width, height},
+        'Original Git-hash-verified master dimensions differ from measured I1 source evidence: ' + asset.currentPath);
       console.log('PASS KAR-167 I1 master original pixel dimensions: ' +
         asset.currentPath + ' ' + width + 'x' + height);
     } else {

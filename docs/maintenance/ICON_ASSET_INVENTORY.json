@@ -99,7 +99,11 @@
       "bytes": 1151379,
       "disposition": "MOVE_BINARY_SHA_IDENTICAL",
       "chromePackaged": false,
-      "reason": "Original high-resolution raster design/master; not in manifest, HTML/CSS or explicit Chrome ZIP contents; move SHA-identically to assets/artwork"
+      "reason": "Original high-resolution raster design/master; not in manifest, HTML/CSS or explicit Chrome ZIP contents; move SHA-identically to assets/artwork",
+      "pixelDimensions": {
+        "width": 1254,
+        "height": 1254
+      }
     },
     {
       "originalPath": "icons/favicon.ico",
@@ -189,7 +193,11 @@
       "bytes": 1221908,
       "disposition": "MOVE_BINARY_SHA_IDENTICAL",
       "chromePackaged": false,
-      "reason": "Original high-resolution raster taskbar master; not in manifest, HTML/CSS or explicit Chrome ZIP contents; move SHA-identically to assets/artwork"
+      "reason": "Original high-resolution raster taskbar master; not in manifest, HTML/CSS or explicit Chrome ZIP contents; move SHA-identically to assets/artwork",
+      "pixelDimensions": {
+        "width": 1254,
+        "height": 1254
+      }
     },
     {
       "originalPath": "icons/view-compact.svg",

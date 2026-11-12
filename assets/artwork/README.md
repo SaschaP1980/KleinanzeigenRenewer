@@ -2,9 +2,9 @@
 
 These two **original, unmodified** high-resolution PNG design masters were moved from `icons/` as part of [KAR-167 I1](../../docs/maintenance/ICON_ASSET_AUDIT.md). They are not Chrome extension runtime assets and not layered editable project files.
 
-| Master | Former location | Original Git blob SHA | Bytes |
+| Master | Former location | Original Git blob SHA | Actual PNG pixels | Bytes |
 | --- | --- | --- | ---: |
-| [app-master-1240.png](app-master-1240.png) | `icons/app-master-1240.png` | `919e8bb000f15708b8533985ddcf8dec5a00d1d4` | 1,151,379 |
-| [taskbar-master-1240.png](taskbar-master-1240.png) | `icons/taskbar-master-1240.png` | `25e7ada6070f20091bc28bd650b1e19ebc9563a9` | 1,221,908 |
+| [app-master-1240.png](app-master-1240.png) | `icons/app-master-1240.png` | `919e8bb000f15708b8533985ddcf8dec5a00d1d4` | 1254 × 1254 | 1,151,379 |
+| [taskbar-master-1240.png](taskbar-master-1240.png) | `icons/taskbar-master-1240.png` | `25e7ada6070f20091bc28bd650b1e19ebc9563a9` | 1254 × 1254 | 1,221,908 |
 
-Git object identity/bytes have been preserved, not converted or recompressed. **Do not infer actual pixel dimensions from the `1240` filename suffix.** The initial I1 CI test found the app master is **1254 pixels wide**. Actual dimensions of both originals are reported by the corrected mandatory PNG-header test; Git blob hashes above are the exact content identity. Historical source links to the old binary path can be recovered via the pinned earlier [Work commit](https://github.com/SaschaP1980/KleinanzeigenRenewer/tree/2a0517b73ccbcb6f92c7a26548ad36e1fe17ded6/icons) or the exact blobs. Do not add these originals to `scripts/package.py`: this would change the installed Chrome ZIP.
+Git object identity/bytes have been preserved, not converted or recompressed. **Do not infer actual pixel dimensions from the `1240` filename suffix.** Hosted GitHub Actions verified **both original masters are 1254 × 1254 pixels**, despite the `1240` filename suffix. The mandatory test records and validates these observed dimensions together with the immutable original Git blob hashes. No images were edited. Historical source links to the old binary path can be recovered via the pinned earlier [Work commit](https://github.com/SaschaP1980/KleinanzeigenRenewer/tree/2a0517b73ccbcb6f92c7a26548ad36e1fe17ded6/icons) or the exact blobs. Do not add these originals to `scripts/package.py`: this would change the installed Chrome ZIP.
