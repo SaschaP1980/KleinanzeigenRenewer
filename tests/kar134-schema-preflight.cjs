@@ -708,8 +708,105 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
     assert.match(region.textContent,/Struktur verändert/);
     assert.match(document.querySelector('#kr-template-fill-status').textContent,/Test bestanden/);
   });
-  assert.equal(passed,51,'KAR-134 preflight regression count must remain complete');
-  console.log(passed+'/51 PASS KAR-134 schema capture/preflight');
+  // Wave K3: explicit synthetic previous F1/F2/F3 structural snapshots.
+  // No historical archive, account information or persistent references used.
+  const stageFixture = () => ({
+    base: Schema.buildBaseSchema({ready:true,categorySelected:false,formMode:'posting-create',
+      categoryChooser:'button',fields:[
+        {name:'title',controlType:'text',visible:true,requiredState:'unknown'},
+        {name:'description',controlType:'textarea',visible:true,requiredState:'unknown'}]}),
+    category: Schema.buildCategorySchema({categoryId:'405',leafConfirmed:true,observedPath:true,levels:[
+      {label:'Elektronik',technicalId:null,kind:'branch'},
+      {label:'Wearables',technicalId:null,kind:'branch'},
+      {label:'Smartwatches',technicalId:'405',kind:'leaf'}]}),
+    attributes: Schema.buildSchema({categoryId:'405',dynamicAttributes:[
+      {key:'wearables.case_size',controlType:'combobox',requiredState:'optional'}]})
+  });
+  const stagePolicy = () => {
+    const a=fillerSource.indexOf('  // KAR-134 K3 synthetic fingerprint warning proof');
+    const b=fillerSource.indexOf('  // KAR-134 field-only native simulation.',a);
+    assert.ok(a>0&&b>a,'read-only F1/F2/F3 fingerprint warning proof policy is missing');
+    return vm.runInNewContext(fillerSource.slice(a,b)+'\nassessSyntheticStageDrift;',
+      {SchemaCore:Schema,Object,Array,Set,Map,Promise},
+      {filename:'kar134-synthetic-stage-drift-proof.js'});
+  };
+  await check('native F1 F2 F3 synthetic previous snapshots prove three distinct stage drifts',async()=>{
+    const policy=stagePolicy();
+    const result=await policy(stageFixture());
+    assert.equal(result.verdict,true);
+    assert.equal(result.simulationOnly,true);
+    assert.equal(result.referenceWrites,0);
+    for(const stage of ['base','category','attributes']){
+      const x=result.stages[stage];
+      assert.equal(x.verdict,true,stage);
+      assert.match(x.previousFingerprint,/^[0-9a-f]{64}$/);
+      assert.match(x.currentFingerprint,/^[0-9a-f]{64}$/);
+      assert.notEqual(x.previousFingerprint,x.currentFingerprint,stage);
+      assert.equal(x.simulationOnly,true);
+      assert.match(x.warningText,/TEST|SIMULATION/i);
+    }
+    assert.ok(result.stages.base.changeTypes.includes('field-removed'));
+    assert.ok(result.stages.category.changeTypes.includes('category-depth-changed'));
+    assert.ok(result.stages.attributes.changeTypes.includes('field-removed'));
+    assert.equal(result.stages.category.categoryId,'405');
+    assert.equal(result.stages.category.previousLeafId,'405');
+  });
+  await check('stage alarm cannot pass without proven live category path and hydrated field evidence',async()=>{
+    const policy=stagePolicy();
+    const base=stageFixture();
+    assert.equal((await policy({...base,category:null})).verdict,false);
+    assert.equal((await policy({...base,base:null})).verdict,false);
+    assert.equal((await policy({...base,attributes:null})).verdict,false);
+    const noPath={...base,category:{...base.category,observedPath:false}};
+    assert.equal((await policy(noPath)).verdict,false);
+    const wrongCategory={...base,attributes:{...base.attributes,categoryId:'406'}};
+    assert.equal((await policy(wrongCategory)).verdict,false);
+    const noAttrs={...base,attributes:{...base.attributes,fields:[]}};
+    assert.equal((await policy(noAttrs)).verdict,false);
+  });
+  await check('F2 synthetic structural depth change does not invent technical parent IDs',async()=>{
+    const result=await stagePolicy()(stageFixture());
+    assert.equal(result.verdict,true);
+    assert.equal(result.stages.category.changeTypes.filter(x=>x==='category-depth-changed').length,1);
+    assert.equal(result.stages.category.verifiedAncestorIdsInvented,false);
+    assert.equal(result.stages.category.previousLeafId,'405');
+    assert.equal(result.stages.category.currentLeafId,'405');
+  });
+  await check('synthetic stage warning is separately named and read-only across all run contracts',()=>{
+    const bg=fs.readFileSync(require.resolve('../src/background/controllers/template-fill-controller.js'),'utf8');
+    const ui=fs.readFileSync(require.resolve('../src/app/inventory-card-renderer.js'),'utf8');
+    assert.match(bg,/['"]stage-drift['"]/);
+    assert.match(ui,/scenario:\s*['"]stage-drift['"]/);
+    assert.match(ui,/Fingerprint-Warnung testen/);
+    const block=fillerSource.slice(fillerSource.indexOf('async function runReadOnlySchemaTest('),
+      fillerSource.indexOf('async function runFillSession('));
+    assert.ok(block.includes("scenario === 'stage-drift'"));
+    assert.ok(block.includes('assessSyntheticStageDrift('));
+    assert.ok(block.includes('KAR134_STAGE_DRIFT_TEST_RESULT'));
+    assert.ok(block.includes('registerSchemaMonitorWarning('));
+    assert.ok(block.includes('schema-test-stage-drift'));
+    const index=block.indexOf("scenario === 'stage-drift'");
+    assert.ok(index>=0);
+    // A structural test must take its own path before any archived-value probe.
+    assert.ok(index<block.indexOf('const caseField'));
+    for(const forbidden of ['fillDynamicAttributes(', 'uploadImages(', 'advanceAfterVerifiedFill(',
+      'autoPublishVerifiedRenewal(', 'requestSubmit(', '.submit('])
+      assert.ok(!block.includes(forbidden),'a read-only probe invokes a writer: '+forbidden);
+  });
+  await check('synthetic stage probe never persists a baseline, replacing the real monitor remains forbidden',()=>{
+    const block=fillerSource.slice(fillerSource.indexOf('async function runReadOnlySchemaTest('),
+      fillerSource.indexOf('async function runFillSession('));
+    assert.ok(block.includes('syntheticStageDrift'));
+    assert.ok(block.includes('monitorSchemaStage('));
+    assert.ok(block.includes('if (!syntheticStageDrift)'));
+    assert.ok(!block.includes('chrome.storage.local.set('));
+    assert.ok(!block.includes('storage.set('));
+    assert.ok(!fillerSource.slice(fillerSource.indexOf('  // KAR-134 K3 synthetic fingerprint warning proof'),
+      fillerSource.indexOf('  // KAR-134 field-only native simulation.')).includes('monitorSchemaStage('));
+  });
+  assert.equal(passed,56,'KAR-134 preflight regression count must remain complete');
+  console.log(passed+'/56 PASS KAR-134 schema capture/preflight');
+
 
 
 
