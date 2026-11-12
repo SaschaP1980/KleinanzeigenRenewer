@@ -142,10 +142,17 @@
   // Match by complete normalized label against one unique, visible, enabled,
   // selectable live leaf, then verify the form's numeric category ID later.
   function capturedTerminalAttributePath(template, storedPath, liveState) {
-    if (!Array.isArray(template?.dynamicAttributes) || !liveState ||
+    // The independent category checker has no archived form fields. It may
+    // carry only bounded, category-classifier Art/Typ display labels, separate
+    // from the normal publish template. The generic normal fill continues to
+    // use its original dynamicAttributes contract unchanged.
+    const attributes = Array.isArray(template?.categoryNavigationHints) &&
+      Array.isArray(template?.dynamicAttributes) && template.dynamicAttributes.length === 0
+      ? template.categoryNavigationHints : template?.dynamicAttributes;
+    if (!Array.isArray(attributes) || !liveState ||
         !sameModernPath(liveState.path, storedPath) ||
         storedPath.length < 2 || storedPath.length >= 8) return null;
-    const candidates = template.dynamicAttributes.filter(attribute =>
+    const candidates = attributes.filter(attribute =>
       ['typ', 'art'].includes(modernLabel(attribute?.label)) &&
       typeof attribute?.displayValue === 'string' &&
       clean(attribute.displayValue));
