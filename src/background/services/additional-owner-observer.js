@@ -790,7 +790,66 @@
         localCommitVerified:false,remoteListingVerified:false,
         priorGenerationClosed:false,detachedTabWorkVerified:false});
     }
-    return Object.freeze({observe,observeAll,track,snapshotInFlight,readVerifiedUnmanagedTabsReadOnly,inspectDiagnosticExportClosureReadOnly,inspectTrashMutationClosureReadOnly,inspectSingleInventoryClosureReadOnly});
+    // P1.3: an immutable P8 callback finish is merely historical evidence.
+    // It does NOT attest profile commit, the authenticated live Kleinanzeigen
+    // account, consumer delivery, previous MV3 worker clearance, or IDLE.
+    async function inspectTransitionCallbackClosureReadOnly(owner,operations) {
+      const denied=reason=>Object.freeze({schema:1,owner,status:'unverified',
+        reason,eligibleForLease:false,sourceRevision:null});
+      if(pending.get(owner)!==0)return denied('ACTUAL_IN_FLIGHT_OPERATION');
+      let first,second;
+      try {first=await observe();second=await observe();}
+      catch {return denied('SOURCE_UNAVAILABLE');}
+      if(pending.get(owner)!==0)return denied('ACTUAL_IN_FLIGHT_OPERATION');
+      const a=first?.admissionHistory?.[owner];
+      const b=second?.admissionHistory?.[owner];
+      if(!record(a)||!record(b)||!first.admissionJournalRevision
+        ||first.admissionJournalRevision!==second.admissionJournalRevision
+        ||typeof a.sourceRevision!=='string'||!a.sourceRevision
+        ||a.sourceRevision!==b.sourceRevision)
+        return denied('DURABLE_ADMISSION_UNVERIFIED');
+      if(a.state!=='callback-finished'||b.state!=='callback-finished'
+        ||!Array.isArray(a.entries)||a.entries.length===0
+        ||!Array.isArray(b.entries)||b.entries.length!==a.entries.length)
+        return denied(a.state==='unfinished'||b.state==='unfinished'
+          ?'DURABLE_ADMISSION_UNFINISHED':'NO_COMPLETION_RECEIPT');
+      if(first.observations?.[owner]?.state==='active'
+        ||second.observations?.[owner]?.state==='active')
+        return denied('ACTUAL_IN_FLIGHT_OPERATION');
+      // Two source observations must agree about profile context. A known
+      // account/profile mismatch must never become positive source evidence.
+      const p=first.context?.profile,q=second.context?.profile;
+      if(!record(p)||!record(q)||p.reason!==q.reason||p.profileId!==q.profileId)
+        return denied('ACCOUNT_PROFILE_CONTEXT_DRIFT');
+      if(['PROFILE_MISMATCH','PROFILE_CHANGED_DURING_READ',
+        'LIVE_ACCOUNT_PROFILE_NAME_MISMATCH','LIVE_ACCOUNT_TABS_DISAGREE',
+        'LIVE_ACCOUNT_PROFILE_CHANGED_DURING_READ',
+        'LIVE_ACCOUNT_STATUS_CHANGED_DURING_READ'].includes(p.reason))
+        return denied('ACCOUNT_PROFILE_CONTRADICTION');
+      if(!a.entries.every(row=>record(row)&&operations.has(row.operationType)
+        &&row.state==='callback-finished'
+        &&typeof row.workerInstanceId==='string'&&PROFILE.test(row.workerInstanceId)
+        &&Number.isSafeInteger(row.startedAtMs)&&row.startedAtMs>=0
+        &&Number.isSafeInteger(row.completedAtMs)
+        &&row.completedAtMs>=row.startedAtMs))
+        return denied('OWNER_PROVENANCE_UNVERIFIED');
+      return Object.freeze({schema:1,owner,status:'callback-settled',
+        reason:'DURABLE_P8_CALLBACK_FINISHED',eligibleForLease:false,
+        sourceRevision:a.sourceRevision,completedReceiptCount:a.entries.length,
+        priorGenerationClosed:false,liveAccountVerified:false,
+        profileCommitVerified:false,consumerDeliveryVerified:false});
+    }
+    async function inspectProfileTransitionClosureReadOnly() {
+      // Exclude multi-owner recognition, backup import/delete and assignment.
+      return inspectTransitionCallbackClosureReadOnly('profileTransition',
+        new Set(['SET_SELECTED_PROFILE']));
+    }
+    async function inspectAccountTransitionClosureReadOnly() {
+      // Site authentication and the existing profile gate remain authoritative.
+      return inspectTransitionCallbackClosureReadOnly('accountTransition',
+        new Set(['RECOGNIZE_PROFILE','PROBE_LIVE_KLEINANZEIGEN_ACCOUNT']));
+    }
+    return Object.freeze({observe,observeAll,track,snapshotInFlight,readVerifiedUnmanagedTabsReadOnly,inspectDiagnosticExportClosureReadOnly,inspectTrashMutationClosureReadOnly,inspectSingleInventoryClosureReadOnly,inspectProfileTransitionClosureReadOnly,inspectAccountTransitionClosureReadOnly});
   }
   const API=Object.freeze({create,OWNERS,ownersForOperation});
   globalThis.KRDeps?.register?.('KRAdditionalOwnerObserver',API);
