@@ -70,6 +70,43 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
   return {document,engine,template,complete};
 }
 (async()=>{
+  await check('read-only generic category check transports only bounded Art/Typ navigation labels', async()=>{
+    const now = new Date().toISOString();
+    const records = {
+      shoe: {inventoryId:'shoe',category:{id:159,path:['Mode & Beauty','Damenschuhe']},
+        title:'PRIVATE TITLE',description:'PRIVATE DESCRIPTION',price:{value:12345},
+        dynamicAttributes:[
+          {key:'shoes.art',label:'Art',displayValue:'Sneaker & Sportschuhe',technicalValue:'secret-art-code'},
+          {key:'shoes.color',label:'Farbe',displayValue:'PRIVATE COLOR',technicalValue:'private'},
+          {key:'shoes.type',label:'Typ',displayValue:'Schuhe',technicalValue:'secret-type-code'}],
+        images:[{imageKey:'PRIVATE-IMAGE'}]},
+      watch: {inventoryId:'watch',category:{id:405,path:['Elektronik','Wearables']},
+        dynamicAttributes:[{label:'Typ',displayValue:'Smartwatches'}]}
+    };
+    const db={templateFillSessions:{
+      first:{fillId:'first',inventoryId:'shoe',schemaTestScenario:'category-check',
+        targetTabId:71,status:'waiting',createdAt:now},
+      second:{fillId:'second',inventoryId:'watch',schemaTestScenario:'compatible',
+        targetTabId:72,status:'waiting',createdAt:now}
+    }};
+    const service=require('../src/background/services/template-fill-service.js').create({
+      storageLocal:{get:async()=>db,set:async()=>{}},getInventory:async id=>records[id]
+    });
+    const shoe=await service.getTemplateFillSession({tab:{id:71}});
+    assert.equal(shoe.template.categoryId,159);
+    assert.deepEqual(shoe.template.categoryPath,['Mode & Beauty','Damenschuhe']);
+    assert.deepEqual(shoe.template.dynamicAttributes,[]);
+    assert.deepEqual(shoe.template.categoryNavigationHints,[
+      {label:'Art',displayValue:'Sneaker & Sportschuhe'},
+      {label:'Typ',displayValue:'Schuhe'}]);
+    const serialized=JSON.stringify(shoe.template);
+    for(const secret of ['PRIVATE TITLE','PRIVATE DESCRIPTION','PRIVATE COLOR','PRIVATE-IMAGE',
+      'secret-art-code','secret-type-code','12345'])
+      assert.equal(serialized.includes(secret),false,'schema test must not carry content: '+secret);
+    const watch=await service.getTemplateFillSession({tab:{id:72}});
+    assert.equal(watch.template.categoryNavigationHints,undefined,
+      'only the generic category checker can receive restricted structural choice metadata');
+  });
   await check('archive-shaped category/technical attributes hash ignores saved data', async()=>{
     const original={category:{id:405,path:['Elektronik','Wearables','Smartwatches']},formFields:[{name:'title',type:'text',value:'PRIVATE'}],
       dynamicAttributes:[{key:'wearables.case_size',controlType:'combobox',technicalValue:'44'}]};
@@ -913,8 +950,8 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
     assert.match(block,/remotePublishAttempted:\s*false/);
     assert.match(block,/archivedValuesRead:\s*false/);
   });
-  assert.equal(passed,62,'KAR-134 preflight regression count must remain complete');
-  console.log(passed+'/62 PASS KAR-134 schema capture/preflight');
+  assert.equal(passed,63,'KAR-134 preflight regression count must remain complete');
+  console.log(passed+'/63 PASS KAR-134 schema capture/preflight');
 
 
 
