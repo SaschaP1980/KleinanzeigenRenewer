@@ -78,8 +78,16 @@ for(const e of ledger.entries){
   assert.ok(stop>first,'historical section terminator missing: '+origin);
   const payload=target.slice(first+begin.length,stop).trim();
   const separator=payload.indexOf('\n\n');
-  assert.ok(separator>=0,'source subsection label missing: '+origin);
-  const body=payload.slice(separator+2).trim();
+  // Several original README headings contained no body. Their provenance
+  // still must exist, but a body separator cannot be required for empty text.
+  // For every nonempty original section, the full original body stays mandatory.
+  if (e.length===0) {
+    assert.equal(separator,-1,'zero-length legacy source must not acquire new body: '+e.id);
+    assert.match(payload,/^### (?:Historical README|Original CHANGELOG): .+ \(source line \d+\)$/,'empty legacy heading provenance missing: '+e.id);
+  } else {
+    assert.ok(separator>=0,'source subsection label missing: '+origin);
+  }
+  const body=e.length===0?'':payload.slice(separator+2).trim();
   assert.equal(body.length,e.length,'historical source text truncated: '+e.id);
   assert.equal(fnv(body),e.checksum64,'historical source text modified: '+e.id);
   checked++;
