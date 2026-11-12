@@ -696,26 +696,72 @@
       stages };
   }
 
+  // KAR-134 L1 independent category-check verdict. "Checked" confirms that
+  // each stage was observed and compared; it is NOT a claim of equal schemas,
+  // complete intermediate category IDs or permission to publish.
+  function assessIndependentCategoryCheck(categoryId, observed, results) {
+    const id = String(categoryId ?? '').trim();
+    const order = ['base', 'category', 'attributes'];
+    const stageStatuses = order.map(stage => String(results?.[stage]?.status || 'not-observed'));
+    const partialEvidence = observed?.category?.evidence === 'partial-ids' ||
+      stageStatuses.includes('not-fully-verified') || stageStatuses.includes('uncertain');
+    const rejected = reason => ({
+      categoryId: id, verdict: false, status: 'needs-review',
+      reason, stageStatuses, partialEvidence
+    });
+    if (!/^[1-9][0-9]*$/.test(id)) return rejected('invalid-category-id');
+    if (!observed?.base || observed.base.stage !== 'base' ||
+        observed.base.formMode !== 'posting-create' ||
+        !Array.isArray(observed.base.fields) || !observed.base.fields.length)
+      return rejected('base-form-not-observed');
+    const navigation = observed.category;
+    if (!navigation || navigation.stage !== 'category' ||
+        navigation.categoryId !== id || navigation.observedPath !== true ||
+        navigation.leafConfirmed !== true || !Array.isArray(navigation.levels) ||
+        navigation.levels.length < 2 ||
+        navigation.levels[navigation.levels.length - 1]?.technicalId !== id)
+      return rejected('verified-category-path-missing');
+    const attributes = observed.attributes;
+    if (!attributes || attributes.categoryId !== id || !Array.isArray(attributes.fields) ||
+        !attributes.fields.some(field => field?.key?.startsWith('attribute:')))
+      return rejected('hydrated-category-attributes-missing');
+    const allowed = new Set(['reference-created', 'unchanged', 'not-fully-verified', 'changed', 'uncertain']);
+    if (!stageStatuses.every(status => allowed.has(status)))
+      return rejected('stage-monitor-incomplete');
+    return {
+      categoryId: id, verdict: true,
+      status: stageStatuses.includes('changed') ? 'checked-with-change' : 'checked',
+      reason: null, stageStatuses, partialEvidence
+    };
+  }
+
   // KAR-134 field-only native simulation. No listing content, image upload,
   // wizard continuation, submit or source mutation is permitted in this path.
   async function runReadOnlySchemaTest(session) {
     const scenario = session.schemaTestScenario;
-    if (!['compatible', 'incompatible', 'stage-drift'].includes(scenario) ||
-        String(session.template?.categoryId || '') !== '405' || !SchemaCore || !SchemaPreflight)
+    const expectedCategoryId = String(session.template?.categoryId ?? '').trim();
+    const independentCategoryCheck = scenario === 'category-check';
+    if (!['compatible', 'incompatible', 'stage-drift', 'category-check'].includes(scenario) ||
+        !/^[1-9][0-9]*$/.test(expectedCategoryId) ||
+        (!independentCategoryCheck && expectedCategoryId !== '405') ||
+        !SchemaCore || !SchemaPreflight)
       throw new Error('Schema-Prüfmodus ist nicht verfügbar oder die Kategorie stimmt nicht.');
     const fillId = session.fillId;
-    updatePanel('Schema-Prüfmodus (nur Lesen)', 'Kategorie 405 wird für den Vergleich vorbereitet. Es werden keine Anzeigenwerte eingetragen und keine Anzeigen veröffentlicht.', [],
-      { safetyText: 'TESTMODUS – Formular ausschließlich prüfen, nicht veröffentlichen.' });
+    updatePanel(independentCategoryCheck ? 'Kategorieprüfung (nur Lesen)' : 'Schema-Prüfmodus (nur Lesen)',
+      'Kategorie ' + expectedCategoryId + ' wird für den Strukturvergleich vorbereitet. Es werden keine Anzeigenwerte eingetragen und keine Anzeigen veröffentlicht.', [],
+      { safetyText: 'NUR FORMULARPRÜFUNG – keine Anzeigenwerte, kein Bild-Upload und keine Veröffentlichung.' });
     await runtimeMessage({ type: 'UPDATE_TEMPLATE_FILL_SESSION', fillId, status: 'running', stage: 'schema-test-category' });
     const preCategoryForm = await waitFor(() => resolveActivePostingForm(), { description: 'Aktives Schema-Basisformular' });
     const syntheticStageDrift = scenario === 'stage-drift';
     let observedBaseSchema = null;
     let observedCategorySchema = null;
+    let observedAttributeSchema = null;
+    let baseStageResult = null, categoryStageResult = null, attributeStageResult = null;
     const baseObservation = captureCategoryNeutralForm(preCategoryForm);
     if (baseObservation.status === 'observed') {
       observedBaseSchema = baseObservation.schema;
       if (!syntheticStageDrift)
-        await monitorSchemaStage('base', baseObservation.schema, fillId);
+        baseStageResult = await monitorSchemaStage('base', baseObservation.schema, fillId);
     } else void diagnostic(fillId, 'KAR134_STAGE_MONITOR_SKIPPED',
       { stage: 'base', reason: baseObservation.status });
     stagedCategoryPathEvidence = null;
@@ -726,23 +772,86 @@
       registerSchemaMonitorWarning('Kategoriehierarchie: Der bisherige Kategoriepfad konnte nicht bestätigt werden. Die Merkmalsprüfung wurde nicht erreicht.');
       void diagnostic(fillId, 'KAR134_STAGE_MONITOR_SKIPPED',
         { stage: 'category', reason: 'category-selection-failed', message: String(error?.message || error).slice(0, 200) }, 'warning');
-      throw error;
+      if (!independentCategoryCheck) throw error;
+      const issues = ['Die Kategorieauswahl konnte nicht eindeutig bestätigt werden. Die Kategorieprüfung ist unvollständig.'];
+      void diagnostic(fillId, 'KAR134_CATEGORY_CHECK_RESULT', {
+        categoryId: expectedCategoryId, verdict: false, reason: 'category-selection-failed',
+        stageStatuses: [baseStageResult?.status || 'not-observed', 'not-observed', 'not-observed'],
+        remotePublishAttempted: false, archivedValuesRead: false
+      }, 'warning');
+      await runtimeMessage({ type: 'UPDATE_TEMPLATE_FILL_SESSION', fillId,
+        status: 'needs-review', stage: 'schema-test-category-unreachable',
+        result: { complete: false, issues } });
+      updatePanel('Kategorieprüfung: Nicht vollständig', issues[0], issues,
+        { safetyText: 'Keine Anzeigenwerte übertragen, keine Veröffentlichung.' });
+      return { schemaTest: true, scenario, verdict: false, publishTriggered: false, issues };
     }
     if (categoryState?.pendingNavigation) return { pending: true, schemaTest: true };
     if (stagedCategoryPathEvidence) {
       observedCategorySchema = SchemaCore.buildCategorySchema(stagedCategoryPathEvidence);
       if (!syntheticStageDrift)
-        await monitorSchemaStage('category', observedCategorySchema, fillId);
+        categoryStageResult = await monitorSchemaStage('category', observedCategorySchema, fillId);
     } else void diagnostic(fillId, 'KAR134_STAGE_MONITOR_SKIPPED',
       { stage: 'category', reason: 'no-independent-navigation-evidence' });
-    const live = await SchemaPreflight.afterHydration({ categoryId: '405', dynamicAttributes: [] },
+    const live = await SchemaPreflight.afterHydration({ categoryId: expectedCategoryId, dynamicAttributes: [] },
       { probeReadOnlyCaseSize: scenario === 'compatible' });
-    if (live.categoryId !== '405') throw new Error('Live-Kategorie 405 wurde nicht bestätigt.');
+    if (live.categoryId !== expectedCategoryId)
+      throw new Error('Aktuelle Kategorie stimmt nicht mit der ausgewählten Inventarkategorie überein.');
     if (live.dynamicCount > 0) {
+      observedAttributeSchema = live.schema;
       if (!syntheticStageDrift)
-        await monitorSchemaStage('attributes', live.schema, fillId);
+        attributeStageResult = await monitorSchemaStage('attributes', live.schema, fillId);
     } else void diagnostic(fillId, 'KAR134_STAGE_MONITOR_SKIPPED',
       { stage: 'attributes', reason: 'no-dynamic-field-evidence' });
+
+    if (scenario === 'category-check') {
+      // Generic category monitoring: read only the live structure; DO NOT
+      // evaluate an archived ad, populate fields/images or request publishing.
+      const assessment = assessIndependentCategoryCheck(expectedCategoryId, {
+        base: observedBaseSchema,
+        category: observedCategorySchema,
+        attributes: observedAttributeSchema
+      }, {
+        base: baseStageResult, category: categoryStageResult,
+        attributes: attributeStageResult
+      });
+      const stageLabels = ['F1 (Basisformular)', 'F2 (Kategoriehierarchie)', 'F3 (Merkmale)'];
+      const statusLabels = {
+        'reference-created': 'Referenz angelegt', 'unchanged': 'Unverändert',
+        'not-fully-verified': 'Teilweise verifiziert', changed: 'Änderung erkannt',
+        uncertain: 'Nicht eindeutig', 'not-observed': 'Nicht erfasst',
+        'monitor-unavailable': 'Speicher nicht erreichbar',
+        'invalid-reference': 'Referenz ungültig'
+      };
+      const stagesDescription = assessment.stageStatuses.map((status, i) =>
+        stageLabels[i] + ': ' + (statusLabels[status] || 'Prüfung nicht vollständig')).join(' · ');
+      const issues = assessment.verdict ? [] : [
+        'Nicht alle F1-/F2-/F3-Prüfungen waren vollständig möglich. Die Kategorie wird nicht als unverändert bestätigt.'
+      ];
+      void diagnostic(fillId, 'KAR134_CATEGORY_CHECK_RESULT', {
+        categoryId: expectedCategoryId, verdict: assessment.verdict,
+        status: assessment.status, reason: assessment.reason,
+        partialEvidence: assessment.partialEvidence,
+        stageStatuses: assessment.stageStatuses,
+        remotePublishAttempted: false, archivedValuesRead: false
+      }, assessment.verdict ? 'info' : 'warning');
+      await runtimeMessage({
+        type: 'UPDATE_TEMPLATE_FILL_SESSION', fillId,
+        status: assessment.verdict ? 'complete' : 'needs-review',
+        stage: assessment.verdict ? 'schema-test-category-check' : 'schema-test-category-incomplete',
+        result: { complete: assessment.verdict, issues }
+      });
+      updatePanel(
+        assessment.verdict ? 'Kategorieprüfung abgeschlossen' : 'Kategorieprüfung: Nicht vollständig',
+        'Kategorie ' + expectedCategoryId + ' – ' + stagesDescription +
+          (assessment.partialEvidence
+            ? '. Technische IDs der Zwischenkategorien oder Auswahlwerte sind nicht vollständig belegt.' : '') +
+          ' Eine Veröffentlichung wurde nicht durchgeführt.',
+        issues, { safetyText: 'NUR STRUKTURPRÜFUNG – keine Anzeigenwerte, keine Bilder und keine Veröffentlichung.' }
+      );
+      return { schemaTest: true, scenario, verdict: assessment.verdict,
+        publishTriggered: false, issues };
+    }
     if (syntheticStageDrift) {
       // IMPORTANT: no monitorSchemaStage() calls in this scenario. Existing
       // chrome.storage.local baselines are never read, replaced, or created.
