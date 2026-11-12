@@ -907,14 +907,18 @@
   async function runFillSession(session) {
     const { fillId, template } = session;
     const issues = [];
+    let observedBaseSchema = null, observedCategorySchema = null, observedAttributeSchema = null;
+    let baseStageResult = null, categoryStageResult = null, attributeStageResult = null;
     updatePanel('Anzeige wird ausgefüllt', 'Die gespeicherten Angaben werden in die neue Anzeige übernommen …');
     // Capture F1 before even setting the initial ad type or title. An already
     // selected category cannot supply a pre-category reference.
     if (SchemaCore) {
       const initialForm = await waitFor(() => resolveActivePostingForm(), { description: 'Aktives Schema-Basisformular' });
       const base = captureCategoryNeutralForm(initialForm);
-      if (base.status === 'observed')
-        await monitorSchemaStage('base', base.schema, fillId);
+      if (base.status === 'observed') {
+        observedBaseSchema = base.schema;
+        baseStageResult = await monitorSchemaStage('base', base.schema, fillId);
+      }
       else void diagnostic(fillId, 'KAR134_STAGE_MONITOR_SKIPPED', { stage: 'base', reason: base.status });
     }
     void diagnostic(fillId, 'TEMPLATE_FILL_EXECUTION_STARTED', { sourceAdId: template.sourceAdId || null, inventoryId: template.inventoryId || null });
@@ -937,8 +941,10 @@
         { stage: 'category', reason: 'category-selection-failed', message: String(error?.message || error).slice(0, 200) }, 'warning');
     }
     if (categoryState?.pendingNavigation) return { pending: true, issues };
-    if (stagedCategoryPathEvidence && SchemaCore)
-      await monitorSchemaStage('category', SchemaCore.buildCategorySchema(stagedCategoryPathEvidence), fillId);
+    if (stagedCategoryPathEvidence && SchemaCore) {
+      observedCategorySchema = SchemaCore.buildCategorySchema(stagedCategoryPathEvidence);
+      categoryStageResult = await monitorSchemaStage('category', observedCategorySchema, fillId);
+    }
     else void diagnostic(fillId, 'KAR134_STAGE_MONITOR_SKIPPED',
       { stage: 'category', reason: 'no-independent-navigation-evidence' });
     // React may replace the entire posting form after the modal category commit.
@@ -951,8 +957,10 @@
       try {
         if (!SchemaPreflight) throw new Error('Die Formularschema-Sicherheitsprüfung ist nicht verfügbar.');
         const live = await SchemaPreflight.afterHydration(template);
-        if (live.dynamicCount > 0)
-          await monitorSchemaStage('attributes', live.schema, fillId);
+        if (live.dynamicCount > 0) {
+          observedAttributeSchema = live.schema;
+          attributeStageResult = await monitorSchemaStage('attributes', live.schema, fillId);
+        }
         else void diagnostic(fillId, 'KAR134_STAGE_MONITOR_SKIPPED',
           { stage: 'attributes', reason: 'no-dynamic-field-evidence' });
         schemaPreflightReport = await SchemaPreflight.evaluate(template, live);
@@ -969,6 +977,18 @@
           ownerVerifiedCaseSizePairs: live.optionProbe?.ownerVerifiedPairCount || 0,
           ownerCaseSizeEvidence: live.optionProbe?.reason || null
         }, schemaPreflightReport.complete ? 'info' : 'warning');
+        // The normal posting workflow now owns the only structural-change
+        // review and optional F3 reference consent. No separate test tab.
+        const acknowledged = await reviewLivePostingSchema(session, {
+          base: observedBaseSchema, category: observedCategorySchema,
+          attributes: observedAttributeSchema
+        }, {
+          base: baseStageResult, category: categoryStageResult,
+          attributes: attributeStageResult
+        }, schemaPreflightReport);
+        if (!acknowledged) return { complete: false, reviewRequired: true,
+          referenceApproved: false, publishTriggered: false,
+          issues: schemaPreflightReport.issues || [] };
         if (!schemaPreflightReport.complete)
           return await stopForSchemaPreflight(session, schemaPreflightReport.issues, schemaPreflightReport);
       } catch (error) {
@@ -1092,14 +1112,8 @@
       armPublishDetection(session.fillId);
     }
     try {
-      // Test mode runs before all filling, continuation and publication branches.
-      if (session.schemaTestScenario) {
-        if (session.schemaTestScenario !== 'category-check')
-          throw new Error('Veralteter Schema-Testvorgang kann nicht ausgeführt werden.');
-        if (kind === 'category') return await runLegacyCategorySelection(session);
-        if (kind !== 'target') throw new Error('Schema-Test: unerwartete Formularseite.');
-        return await runReadOnlySchemaTest(session);
-      }
+      // Retired L15 test sessions never enter the normal publishing path.
+      if (session.schemaTestScenario) throw new Error('Veralteter Schema-Testvorgang kann nicht ausgeführt werden.');
       if (kind === 'paid-insertion-checkout') {
         const detection = paidInsertionDetection();
         if (detection.required) return await stopForPaidInsertion(session, detection, 'checkout-page');
