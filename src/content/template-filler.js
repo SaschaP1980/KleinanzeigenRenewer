@@ -1364,6 +1364,47 @@
         issues, { safetyText: 'NUR STRUKTURPRÜFUNG – keine weiteren Anzeigenwerte, keine Bilder und keine Veröffentlichung.' }
       );
       if (reviewRequired) {
+        // Real reference approval is separate from mere acknowledgement and
+        // from the synthetic sandbox. It is offered ONLY for a proven F3-only
+        // structural change while F1 and F2 fingerprints remain stable.
+        const candidate = buildRealSchemaAdoptionPlan({
+          base: baseStageResult, category: categoryStageResult,
+          attributes: attributeStageResult
+        }, {
+          base: observedBaseSchema, category: observedCategorySchema,
+          attributes: observedAttributeSchema
+        }, { categoryId: expectedCategoryId, fillId });
+        let realAdoptionPlan = null;
+        if (candidate.eligible) {
+          try {
+            const prepared = await runtimeMessage({
+              type: 'UPDATE_TEMPLATE_FILL_SESSION', fillId,
+              referenceAdoption: {
+                action: 'prepare', stage: candidate.stage,
+                categoryId: expectedCategoryId,
+                oldFingerprint: candidate.oldFingerprint,
+                newFingerprint: candidate.newFingerprint
+              }
+            });
+            if (prepared?.pending !== true || prepared.referenceApproved !== false ||
+                typeof prepared.token !== 'string' || !prepared.token)
+              throw new Error('Freigabevorbereitung wurde nicht bestätigt.');
+            realAdoptionPlan = { ...candidate, token: prepared.token };
+            void diagnostic(fillId,'KAR134_REAL_REFERENCE_ADOPTION_PREPARED',{
+              categoryId: expectedCategoryId, stage:'attributes',
+              previousFingerprint:candidate.oldFingerprint,
+              currentFingerprint:candidate.newFingerprint,
+              referenceApproved:false,realReferenceWrites:0,
+              remotePublishAttempted:false
+            });
+          } catch(error) {
+            void diagnostic(fillId,'KAR134_REAL_REFERENCE_ADOPTION_BLOCKED',{
+              categoryId:expectedCategoryId,reason:'account-or-baseline-gate',
+              referenceApproved:false,realReferenceWrites:0,
+              remotePublishAttempted:false
+            },'warning');
+          }
+        }
         void diagnostic(fillId, 'KAR134_CHANGE_REVIEW_SHOWN', {
           categoryId: expectedCategoryId,
           changedStages: review.sections.filter(section => section.verified).map(section => section.stage),
@@ -1371,6 +1412,60 @@
           remotePublishAttempted: false
         }, 'warning');
         showStageChangeReviewDialog(review, {
+          realAdoptionPlan,
+          onRealApprove: realAdoptionPlan ? () => {
+            void (async() => {
+              try {
+                // New live DOM observation after the owner's second click;
+                // never trust a stale initial F3 snapshot or cached category.
+                if (pageKind() !== 'target' ||
+                    String(resolveActivePostingForm()?.querySelector('input[name="categoryId"]')?.value || '') !== expectedCategoryId ||
+                    !stagedCategoryPathEvidence ||
+                    String(stagedCategoryPathEvidence.categoryId || '') !== expectedCategoryId)
+                  throw new Error('Die aktuelle Endkategorie ist nicht mehr eindeutig bestätigt.');
+                const refreshed = await SchemaPreflight.afterHydration({
+                  categoryId: expectedCategoryId, dynamicAttributes: []
+                }, { probeReadOnlyCaseSize: false });
+                if (refreshed.categoryId !== expectedCategoryId || refreshed.dynamicCount < 1 ||
+                    await SchemaCore.fingerprint(refreshed.schema) !== realAdoptionPlan.newFingerprint)
+                  throw new Error('Die aktuelle Merkmalsstruktur weicht von der geprüften Änderung ab.');
+                const commit = await runtimeMessage({
+                  type: 'UPDATE_TEMPLATE_FILL_SESSION', fillId,
+                  referenceAdoption: {
+                    action:'commit',stage:'attributes',categoryId:expectedCategoryId,
+                    token:realAdoptionPlan.token,
+                    oldFingerprint:realAdoptionPlan.oldFingerprint,
+                    newFingerprint:realAdoptionPlan.newFingerprint,
+                    snapshot:refreshed.schema,
+                    freshObservationCapturedAt:Date.now()
+                  }
+                });
+                if (commit?.referenceApproved !== true || commit.realReferenceWrites !== 1)
+                  throw new Error('Der neue Referenz-Fingerprint konnte nicht sicher gelesen werden.');
+                void diagnostic(fillId,'KAR134_REAL_REFERENCE_ADOPTION_COMMITTED',{
+                  categoryId:expectedCategoryId,stage:'attributes',
+                  oldFingerprint:realAdoptionPlan.oldFingerprint,
+                  newFingerprint:realAdoptionPlan.newFingerprint,
+                  referenceApproved:true,realReferenceWrites:1,
+                  remotePublishAttempted:false
+                });
+                updatePanel('F3-Strukturreferenz kontrolliert übernommen',
+                  'Nach erneuter Live-Prüfung wurde ausschließlich die Kategorie-Merkmalsreferenz F3 aktualisiert. F1 und F2 sowie bestehende Anzeigenwerte bleiben unverändert. Es wurde nichts veröffentlicht.',
+                  [],{safetyText:'NUR F3-STRUKTUR – keine Anzeigenwerte oder Veröffentlichung.'});
+              } catch(error) {
+                void diagnostic(fillId,'KAR134_REAL_REFERENCE_ADOPTION_BLOCKED',{
+                  categoryId:expectedCategoryId,stage:'attributes',
+                  reason:'final-confirmation-or-live-readback-failed',
+                  referenceApproved:false,remotePublishAttempted:false
+                },'warning');
+                updatePanel('F3-Referenzübernahme nicht bestätigt',
+                  'Der Nachweis ist veraltet, die Identität hat sich geändert oder der Referenzspeicher konnte nicht eindeutig bestätigt werden.',
+                  [String(error?.message || error).slice(0,200)],{
+                    safetyText:'Keine automatische Übernahme oder Veröffentlichung; bitte den Kategorieprüflauf erneut starten.'
+                  });
+              }
+            })();
+          } : null,
           onAcknowledge: () => {
             void diagnostic(fillId, 'KAR134_CHANGE_REVIEW_ACKNOWLEDGED', {
               categoryId: expectedCategoryId, referenceApproved: false,
