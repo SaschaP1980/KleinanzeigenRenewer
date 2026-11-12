@@ -136,8 +136,14 @@ const pkg=JSON.parse(read('package.json'));
 assert.equal(spec.version,manifest.version,'Release-spec and current extension version drift');
 assert.equal(spec.packageVersion,manifest.version_name||manifest.version,'Release package name contract drift');
 assert.equal(pkg.version,manifest.version,'Package manifest current version drift');
-assert.ok(fs.existsSync(abs('release/kleinanzeigen-renewal-chrome-v'+(manifest.version_name||manifest.version)+'.zip')),
-  'Current source version has no committed source-tested Chrome ZIP');
+// KAR-46's separately isolated future-PATCH test deliberately prepares the
+// next manifest/package/spec version without adding a future release ZIP.
+// That is legitimate test-first RED evidence, never an authorization to
+// invent the future archive. Real Work/main checkouts still require it.
+if(process.env.KAR46_SYNTHETIC_PATCH !== '1') {
+  assert.ok(fs.existsSync(abs('release/kleinanzeigen-renewal-chrome-v'+(manifest.version_name||manifest.version)+'.zip')),
+    'Current source version has no committed source-tested Chrome ZIP');
+}
 const windowsRecords=inv.files.filter(x=>x.path.startsWith('tools/windows/'));
 assert.equal(windowsRecords.length,7);
 const windowsOwners={
