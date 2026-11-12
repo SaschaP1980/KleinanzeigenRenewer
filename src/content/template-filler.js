@@ -769,7 +769,7 @@
       'Die bisherigen Referenzen bleiben unverändert.',
       ...(!report?.complete ? (report?.issues || []).slice(0,10) : [])];
     await runtimeMessage({ type:'UPDATE_TEMPLATE_FILL_SESSION', fillId,
-      status:'needs-review', stage:'schema-reference-review-required',
+      status:'running', stage:'schema-reference-review-pending',
       result:{ complete:false, issues } });
     updatePanel('Formularstruktur geändert – Prüfung erforderlich',
       'Die aktuelle Formularstruktur unterscheidet sich von einer gespeicherten Referenz.',
@@ -826,10 +826,34 @@
       const done = allow => {
         if (decided) return;
         decided = true;
-        if (!allow) return resolve(false);
+        if (allow) {
+          // Verify the same live schema once again before resuming filling.
+          void (async () => {
+            try {
+              const refreshed = await SchemaPreflight.afterHydration(session.template);
+              const verified = await SchemaPreflight.evaluate(session.template, refreshed);
+              if (!verified.complete || refreshed.categoryId !== expectedCategoryId ||
+                  verified.currentFingerprint !== report.currentFingerprint)
+                throw new Error('Formularstruktur oder gespeicherte Werte haben sich seit der Prüfung geändert.');
+              const resumed = await runtimeMessage({
+                type:'UPDATE_TEMPLATE_FILL_SESSION', fillId,
+                status:'running', stage:'form-ready'
+              });
+              resolve(resumed?.stage === 'form-ready' && resumed?.status === 'running');
+            } catch (error) {
+              void runtimeMessage({ type:'UPDATE_TEMPLATE_FILL_SESSION', fillId,
+                status:'needs-review', stage:'schema-reference-review-required',
+                result:{complete:false,issues:['Die erneute Formularprüfung konnte nicht bestätigt werden.']}
+              }).catch(() => {});
+              resolve(false);
+            }
+          })();
+          return;
+        }
         void runtimeMessage({ type:'UPDATE_TEMPLATE_FILL_SESSION', fillId,
-          status:'running', stage:'form-ready' })
-          .then(() => resolve(true), () => resolve(false));
+          status:'needs-review', stage:'schema-reference-review-required',
+          result:{complete:false,issues:['Die Formularstrukturprüfung wurde angehalten.']}
+        }).then(() => resolve(false), () => resolve(false));
       };
         showStageChangeReviewDialog(review, {
           realAdoptionPlan,
@@ -1114,6 +1138,9 @@
     try {
       // Retired L15 test sessions never enter the normal publishing path.
       if (session.schemaTestScenario) throw new Error('Veralteter Schema-Testvorgang kann nicht ausgeführt werden.');
+      // A reconnected tab may not silently skip an unacknowledged F3 review.
+      if (session.stage === 'schema-reference-review-pending')
+        throw new Error('Die laufende Formularstrukturprüfung muss zuerst abgeschlossen werden.');
       if (kind === 'paid-insertion-checkout') {
         const detection = paidInsertionDetection();
         if (detection.required) return await stopForPaidInsertion(session, detection, 'checkout-page');
