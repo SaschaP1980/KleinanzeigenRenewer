@@ -92,9 +92,9 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
     for(const secret of ['PRIVATE TITLE','PRIVATE DESCRIPTION','PRIVATE COLOR','PRIVATE-IMAGE',
       'secret-art-code','secret-type-code','12345'])
       assert.equal(serialized.includes(secret),false,'schema test must not carry content: '+secret);
-    const watch=await service.getTemplateFillSession({tab:{id:72}});
-    assert.equal(watch.template.categoryNavigationHints,undefined,
-      'only the generic category checker can receive restricted structural choice metadata');
+    await assert.rejects(service.getTemplateFillSession({tab:{id:72}}),
+      /Veralteter Schema-Testvorgang/,
+      'retired development sessions must fail closed before accessing a posting form');
   });
   await check('archive-shaped category/technical attributes hash ignores saved data', async()=>{
     const original={category:{id:405,path:['Elektronik','Wearables','Smartwatches']},formFields:[{name:'title',type:'text',value:'PRIVATE'}],
