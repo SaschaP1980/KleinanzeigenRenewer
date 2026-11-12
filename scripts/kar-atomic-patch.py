@@ -130,7 +130,10 @@ def sealed_prior_archive(issue, base, head, relative, current):
     changed = set(git("diff-tree", "--no-commit-id", "--name-only", "-r", seal).splitlines())
     require(changed == set([*META, relative]),
             "previous Work ZIP commit did not change exactly the five atomic paths")
-    git("merge-base", "--is-ancestor", base, seal)
+    # Main may have advanced after the sealed Work package was built. The
+    # exact current Work HEAD must contain both main (assert_lease) and the
+    # immutable prior package seal; retroactive main ancestry is impossible.
+    git("merge-base", "--is-ancestor", seal, head)
     for item in META:
         old_meta = json.loads(run("git", "show", seal + ":" + item))
         require(old_meta.get("version") == current,
