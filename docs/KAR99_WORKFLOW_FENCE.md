@@ -61,3 +61,21 @@ a legacy Windows file establishes a transaction identity, origin-bound nonce,
 completed apply/rollback, Chrome activation, previous MV3-generation IDLE or
 all fifteen owner closure. This is strictly a negative native observation
 checkpoint toward the still-unimplemented independent transaction oracle.
+
+## P1.3 F2 — binding explicit remote intent tokens to actual P8 callback records
+
+The private `KRTrustedOwnerAuthority` now rejects a remote Phase-4 delete or
+publish intent that carries `admissionToken` unless the *same immutable*
+`karAtomicAdmissionStartV1_<token>` and `karAtomicAdmissionFinishV1_<token>`
+records exist and agree on token, original worker generation, permitted
+operation type and chronological containment of the remote intent creation.
+The same token cannot authorize two independent remote attempts, even across
+journal families. Missing, swapped, malformed and temporally contradictory
+records deny with `KR_OWNER_JOURNAL_ADMISSION_UNVERIFIED`; the P8 Web Locks
+boundary preserves that precise fail-closed reason. Existing tokenless legacy
+attempts retain the pre-existing historical remote-resolution check, but do
+**not** acquire any token-bound provenance, intergenerational IDLE or native
+transaction authority. Neither a P8 callback finish nor a remote-resolution
+row certifies the current live Kleinanzeigen account; the production 15-owner
+positive source producer is still missing. This change adds no updater or
+native transaction route, consent, lease, release or live-account mutation.

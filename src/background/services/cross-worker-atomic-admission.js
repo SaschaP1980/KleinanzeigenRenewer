@@ -94,7 +94,8 @@
         // F2E1: preserve this one exact, private, fail-closed remote journal
         // profile mismatch. Rewriting it to a generic lock outage hides the
         // actual account-bound evidence rejection after worker restart.
-        if(error?.code==='KR_OWNER_JOURNAL_PROFILE_MISMATCH')throw error;
+        if(error?.code==='KR_OWNER_JOURNAL_PROFILE_MISMATCH'
+          ||error?.code==='KR_OWNER_JOURNAL_ADMISSION_UNVERIFIED')throw error;
         if(typeof error?.code==='string'&&error.code.startsWith('KR_UPDATE_FENCE_'))throw error;
         throw denied('KR_UPDATE_FENCE_ATOMIC_UNAVAILABLE');
       }

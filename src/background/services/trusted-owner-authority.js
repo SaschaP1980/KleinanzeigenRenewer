@@ -13,6 +13,23 @@
   const PHASE4_OK = 'karPhase4VerifiedResolutionV1_';
   const PUBLISH = 'karAutoPublishIntentV1_';
   const PUBLISH_OK = 'karAutoPublishVerifiedResolutionV1_';
+  const P8_START = 'karAtomicAdmissionStartV1_';
+  const P8_FINISH = 'karAtomicAdmissionFinishV1_';
+  // The same admitted mutation kinds are permitted by the actual immutable
+  // remote journal producers. A routed/mis-scoped token cannot authenticate
+  // a remote attempt from another workflow.
+  const PHASE4_ADMISSIONS = new Set([
+    'AUTONOMOUS:renewal-auto-phase4', 'AUTONOMOUS:renewal-resume',
+    'AUTONOMOUS:renewal-detached-retry', 'AUTONOMOUS:renewal-detached-verify',
+    'AUTONOMOUS:mass-renewal-next-item', 'RETRY_RENEWAL_VERIFICATION',
+    'RETRY_MASS_RENEWAL_ITEM'
+  ]);
+  const PUBLISH_ADMISSIONS = new Set([
+    'AUTONOMOUS:renewal-publish-detection',
+    'AUTONOMOUS:trash-publish-detection',
+    'AUTONOMOUS:archive-postpublish-detached',
+    'AUTHORIZE_AUTOMATIC_PUBLISH'
+  ]);
   const RECORD = v => v !== null && typeof v === 'object' && !Array.isArray(v);
   const denied = code => Object.assign(new Error(code), {code});
   const validId = value => typeof value === 'string' && ID.test(value);
@@ -28,9 +45,13 @@
   // A received "resolved" text is never proof; the matching independent
   // resolution receipt must have exact workflow, account and Ad-ID evidence.
   function checkJournals(rows, expectedProfileId) {
+    // Only a necessary LOCAL provenance check. Neither the P8 finish nor an
+    // independently recorded remote resolution authorizes update/IDLE.
+    const usedAdmissions = new Set();
     const families = [
       {
         prefix: PHASE4, completed: PHASE4_OK,
+        admissions: PHASE4_ADMISSIONS,
         validIntent: (r, k) => RECORD(r) && r.schema === 1 &&
           r.state === 'outcome-unverified' && validId(r.renewalId) &&
           validId(r.attemptId) && validId(r.workerInstanceId) &&
@@ -55,6 +76,7 @@
       },
       {
         prefix: PUBLISH, completed: PUBLISH_OK,
+        admissions: PUBLISH_ADMISSIONS,
         validIntent: (r, k) => RECORD(r) && r.schema === 1 &&
           r.state === 'outcome-unverified' && validId(r.fillId) &&
           validId(r.workflowId) && validId(r.attemptId) &&
@@ -98,6 +120,34 @@
               value, key, rows[family.prefix + suffix]);
           }))
         throw denied('KR_OWNER_JOURNAL_CORRUPT');
+      // P1.3-F2: a remote intent that explicitly carries a P8 admission token
+      // must be bound to the exact durable start AND finish for the same
+      // worker-generation, permitted operation and creation interval.
+      // Absence or ambiguity is not allowed to fall back to time overlap.
+      // Legacy tokenless records remain historical, never positive IDLE.
+      for (const [,intent] of attempts) {
+        if (!Object.hasOwn(intent,'admissionToken')) continue;
+        const token=intent.admissionToken;
+        if (!validId(token) || token.length < 12 || usedAdmissions.has(token))
+          throw denied('KR_OWNER_JOURNAL_ADMISSION_UNVERIFIED');
+        usedAdmissions.add(token);
+        const start=rows[P8_START+token];
+        const finish=rows[P8_FINISH+token];
+        if (!RECORD(start) || !RECORD(finish)
+          || start.schema!==1 || start.state!=='admitted'
+          || start.token!==token
+          || !family.admissions.has(start.operationType)
+          || start.workerInstanceId!==intent.workerInstanceId
+          || !Number.isSafeInteger(start.startedAtMs) || start.startedAtMs<0
+          || start.startedAtMs>intent.createdAtMs
+          || finish.schema!==1 || finish.state!=='completed'
+          || finish.token!==token
+          || finish.workerInstanceId!==intent.workerInstanceId
+          || !Number.isSafeInteger(finish.completedAtMs)
+          || finish.completedAtMs<intent.createdAtMs
+          || finish.completedAtMs<start.startedAtMs)
+          throw denied('KR_OWNER_JOURNAL_ADMISSION_UNVERIFIED');
+      }
       if (attempts.some(([key]) => !Object.hasOwn(rows,
             family.completed + key.slice(family.prefix.length))))
         throw denied('KR_OWNER_JOURNAL_UNRESOLVED');
