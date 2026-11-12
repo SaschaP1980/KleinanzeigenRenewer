@@ -266,7 +266,11 @@ async function withAttempt(env,kind='renewal'){
   });
   const ambiguousResult=await directPostFill.autoPublishVerifiedRenewal({
     fillId:'p6-direct-post-fill-two-buttons',renewalId:'renewal-direct',
-    result:{complete:true,issues:[]}
+    // KAR-134 preflight must be independently present to test the later P6
+    // two-button arbitration branch. Missing proof is correctly blocked earlier.
+    result:{complete:true,issues:[],schemaPreflight:{
+      verified:true,currentFingerprint:'a'.repeat(64),categoryId:'405'
+    }}
   });
   assert.equal(ambiguousResult.awaitingPublish,true,
     'multiple publish buttons must pause auto publication');
