@@ -227,7 +227,7 @@
       }
     }
 
-    async function afterHydration(template, { probeReadOnlyCaseSize = false } = {}) {
+    async function afterHydration(template) {
       const doc = documentRoot();
       let last = null, repetitions = 0;
       const observed = await waitFor(() => {
@@ -245,7 +245,7 @@
       // directly measured by the owner may invoke the narrowly scoped
       // popup check in the productive preflight. All other cases stay read-only
       // and fail closed exactly as before.
-      return probeReadOnlyCaseSize || isOwnerConfirmedLegacyCaseSize(template)
+      return isOwnerConfirmedLegacyCaseSize(template)
         ? probeCaseSizeOptions(observed) : observed;
     }
     async function evaluate(template, observed) {
