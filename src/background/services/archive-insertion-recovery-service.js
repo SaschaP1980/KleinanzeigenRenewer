@@ -2,9 +2,9 @@
   'use strict';
   const API = Object.freeze({
     create(options = {}) {
-      const {readArchiveInsertionSessions,readFillSessions,getInventory,isTrashRecord,persistArchiveInsertionSession,deleteImagesByInventoryId,logDiagnostic,setAppNotice,broadcastInventoryChanged,normalizeRenewalMode,cryptoApi,compareArchiveInsertionRecords,runArchiveInsertionPostPublish,confirmPublishedArchiveInsertion}=options;
+      const {readArchiveInsertionSessions,readFillSessions,getInventory,isTrashRecord,persistArchiveInsertionSession,deleteImagesByInventoryId,logDiagnostic,setAppNotice,broadcastInventoryChanged,normalizeRenewalMode,cryptoApi,compareArchiveInsertionRecords,runArchiveInsertionPostPublish,confirmPublishedArchiveInsertion,withAutonomousAdmission}=options;
       const crypto=cryptoApi;
-      const required={readArchiveInsertionSessions,readFillSessions,getInventory,isTrashRecord,persistArchiveInsertionSession,deleteImagesByInventoryId,logDiagnostic,setAppNotice,broadcastInventoryChanged,normalizeRenewalMode,compareArchiveInsertionRecords,runArchiveInsertionPostPublish,confirmPublishedArchiveInsertion};
+      const required={readArchiveInsertionSessions,readFillSessions,getInventory,isTrashRecord,persistArchiveInsertionSession,deleteImagesByInventoryId,logDiagnostic,setAppNotice,broadcastInventoryChanged,normalizeRenewalMode,compareArchiveInsertionRecords,runArchiveInsertionPostPublish,confirmPublishedArchiveInsertion,withAutonomousAdmission};
       for(const [name,value] of Object.entries(required)) if(typeof value!=='function') throw new Error(`archive recovery service dependency ${name} is required`);
       if(!crypto?.randomUUID) throw new Error('archive recovery service crypto API is required');
 async function completeRecoveredArchiveInsertionIfAlreadyInventoried(session) {
@@ -75,7 +75,7 @@ async function resumePendingArchiveInsertions() {
         await logDiagnostic('info', 'ARCHIVE_INSERT_LEGACY_PROFILE_GATE_RECOVERY_STARTED', {
           archiveInsertionId: session.archiveInsertionId, newAdId: session.newAdId
         }, { module: 'background', operation: 'archive-import-resume', context: { adId: session.newAdId } }).catch(() => {});
-        void runArchiveInsertionPostPublish(session.archiveInsertionId).catch(() => {});
+        void withAutonomousAdmission('archive-postpublish-detached', () => runArchiveInsertionPostPublish(session.archiveInsertionId)).catch(() => {});
         continue;
       }
       if (['complete', 'needs-review', 'error', 'cancelled'].includes(String(session?.status || ''))) continue;
@@ -86,7 +86,7 @@ async function resumePendingArchiveInsertions() {
           if (detected?.adId) await confirmPublishedArchiveInsertion(fill, detected);
         }
       } else if (/^\d+$/.test(String(session?.newAdId || '')) && ['published', 'finding', 'checking', 'saving'].includes(String(session?.status || ''))) {
-        void runArchiveInsertionPostPublish(session.archiveInsertionId).catch(() => {});
+        void withAutonomousAdmission('archive-postpublish-detached', () => runArchiveInsertionPostPublish(session.archiveInsertionId)).catch(() => {});
       }
     } catch (error) {
       await logDiagnostic('warning', 'ARCHIVE_INSERT_RESUME_DEFERRED', {

@@ -1,4 +1,7 @@
-importScripts("../shared/runtime-deps.js", "../shared/message-contract-registry.js", "../shared/renewal-policy.js", "background-message-router.js", "services/native-update-status-gateway.js", "services/native-status-bridge.js", "repositories/profile-repository.js", "repositories/inventory-repository.js", "repositories/inventory-image-store.js", "services/trash-service.js", "services/diagnostics-service.js", "services/tab-registry.js", "services/managed-tab-worker-service.js", "services/content-connection-manager.js", "services/account-probe-service.js", "controllers/profile-management-controller.js", "controllers/account-session-controller.js", "controllers/platform-safety-controller.js", "controllers/tab-lifecycle-observer.js", "controllers/workflow-emergency-reset-controller.js", "lib/bulk-run-guard.js", "controllers/single-inventory-controller.js", "services/bulk-worker-service.js", "services/bulk-reconciliation-service.js", "controllers/bulk-inventory-controller.js", "controllers/mass-renewal-controller.js", "services/mass-renewal-watchdog-service.js", "controllers/mass-renewal-workflow-controller.js", "services/renewal-verification-flow.js", "services/renewal-reinventory-flow.js", "services/paid-checkout-recovery-service.js", "controllers/renewal-workflow-controller.js", "services/renewal-verification-service.js", "repositories/renewal-state-repository.js", "services/template-fill-service.js", "services/insertion-lock-service.js", "controllers/template-fill-controller.js", "services/archive-insertion-service.js", "services/archive-insertion-verification-service.js", "services/archive-insertion-recovery-service.js", "controllers/archive-insertion-controller.js", "services/remote-delete-replacement-service.js", "services/published-inventory-resolver.js", "services/diagnostic-export-service.js", "services/public-listing-evidence-service.js", "../shared/managed-navigation.js", "lib/inventory-reconciliation.js", "../shared/my-ads-readiness.js", "lib/inventory-scope.js", "../shared/platform-hardening.js", "services/tab-load-coordinator.js", "../shared/template-schema-core.js");
+importScripts("../shared/runtime-deps.js", "../shared/message-contract-registry.js", "../shared/renewal-policy.js", "background-message-router.js", "services/native-update-status-gateway.js", "services/native-status-bridge.js", "services/update-workflow-fence.js", "repositories/profile-repository.js", "repositories/inventory-repository.js", "repositories/inventory-image-store.js", "services/trash-service.js", "services/diagnostics-service.js", "services/tab-registry.js", "services/managed-tab-worker-service.js", "services/content-connection-manager.js", "services/account-probe-service.js", "controllers/profile-management-controller.js", "controllers/account-session-controller.js", "controllers/platform-safety-controller.js", "controllers/tab-lifecycle-observer.js", "controllers/workflow-emergency-reset-controller.js", "lib/bulk-run-guard.js", "controllers/single-inventory-controller.js", "services/bulk-worker-service.js", "services/bulk-reconciliation-service.js", "controllers/bulk-inventory-controller.js", "controllers/mass-renewal-controller.js", "services/mass-renewal-watchdog-service.js", "controllers/mass-renewal-workflow-controller.js", "services/renewal-verification-flow.js", "services/renewal-reinventory-flow.js", "services/paid-checkout-recovery-service.js", "controllers/renewal-workflow-controller.js", "services/renewal-verification-service.js", "repositories/renewal-state-repository.js", "services/template-fill-service.js", "services/insertion-lock-service.js", "controllers/template-fill-controller.js", "services/archive-insertion-service.js", "services/archive-insertion-verification-service.js", "services/archive-insertion-recovery-service.js", "controllers/archive-insertion-controller.js", "services/remote-delete-replacement-service.js", "services/published-inventory-resolver.js", "services/diagnostic-export-service.js", "services/public-listing-evidence-service.js", "../shared/managed-navigation.js", "lib/inventory-reconciliation.js", "../shared/my-ads-readiness.js", "lib/inventory-scope.js", "../shared/platform-hardening.js", "services/tab-load-coordinator.js", "../shared/template-schema-core.js", "services/persisted-owner-observer.js", "services/additional-owner-observer.js", "services/phase4-uncertainty-journal.js", "services/cross-worker-atomic-admission.js", "services/auto-publish-intent-journal.js");
+// Private updater policy/authority: no content/app IPC route; production proof
+// sources remain intentionally absent until each of 15 owners is grounded.
+importScripts("../../lib/update-idle-policy.js", "services/trusted-owner-authority.js");
 
 const KRDeps = globalThis.KRDeps;
 if (!KRDeps) throw new Error('runtime-deps.js must load before background.js');
@@ -8,6 +11,14 @@ const RenewalPolicy = KRDeps.require('KRRenewalPolicy');
 const BackgroundMessageRouter = KRDeps.require('KRBackgroundMessageRouter');
 const NativeUpdateStatusGateway = KRDeps.require('KRNativeUpdateStatusGateway');
 const NativeStatusBridge = KRDeps.require('KRNativeStatusBridge');
+const UpdateWorkflowFence = KRDeps.require('KRUpdateWorkflowFence');
+const UpdateIdlePolicy = KRDeps.require('KRUpdateIdlePolicy');
+const TrustedOwnerAuthority = KRDeps.require('KRTrustedOwnerAuthority');
+const AtomicMV3Admission = KRDeps.require('KRAtomicMV3Admission');
+const AutoPublishIntentJournal = KRDeps.require('KRAutoPublishIntentJournal');
+const PersistedOwnerObserver = KRDeps.require('KRPersistedOwnerObserver');
+const AdditionalOwnerObserver = KRDeps.require('KRAdditionalOwnerObserver');
+const Phase4UncertaintyJournal = KRDeps.require('KRPhase4UncertaintyJournal');
 const DiagnosticsService = KRDeps.require('KRDiagnosticsService');
 const TabRegistry = KRDeps.require('KRTabRegistry');
 const ManagedNavigation = KRDeps.require('KRManagedNavigation');
@@ -168,6 +179,7 @@ function requireTemplateFillController() {
     recordRenewalPhaseAttemptError, canRetryRenewalPhase1, restartRenewalPhase1Attempt,
     evictTemplateImageTransfersForFill, classifyKleinanzeigenInsertionErrorUrl,
     cryptoApi: crypto, chromeApi: chrome, TemplateSchemaCore, queueMicrotaskFn: queueMicrotask,
+    withAutonomousAdmission,
     TEMPLATE_TARGET_URL, TAB_ROLES, TERMINAL_TEMPLATE_FILL_STATUSES
   });
   return templateFillController;
@@ -195,7 +207,10 @@ function requireRemoteDeleteReplacementService() {
     renewalMaxPhaseAttempts, isPhase4DeleteTransportInterruption, assertMassRenewalManualActionAllowed, getInventory, normalBrowserWindowId,
     renewalPhaseAttemptAvailable, renewalAttemptState, delay, renewalPhaseRetryDelayMs, logRenewalPhaseAttemptStarted,
     logRenewalPhaseAttemptFailed, isNonRetryableRenewalSafetyError, renewalAttemptDetails, setAppNotice, markMassRenewalItemSucceeded,
-    IDBKeyRangeCtor: globalThis.IDBKeyRange, captureEmergencyResetGeneration, assertEmergencyResetGeneration
+    IDBKeyRangeCtor: globalThis.IDBKeyRange, captureEmergencyResetGeneration, assertEmergencyResetGeneration,
+    beginPhase4Attempt: current => requirePhase4UncertaintyJournal().begin(current),
+    observePhase4Attempts: renewalId => requirePhase4UncertaintyJournal().observe(renewalId),
+    resolvePhase4Attempt: request => requirePhase4UncertaintyJournal().resolveVerified(request)
   });
   return remoteDeleteReplacementService;
 }
@@ -737,11 +752,11 @@ function redactUrl(raw) { return requireDiagnosticsService().redactUrl(raw); }
 function sanitizeDiagnosticValue(value, key = '', depth = 0) { return requireDiagnosticsService().sanitize(value, key, depth); }
 function representedDiagnosticEventCount(events) { return requireDiagnosticsService().representedEventCount(events); }
 function readDiagnostics() { return requireDiagnosticsService().read(); }
-function readDiagnosticOccupancy() { return requireDiagnosticsService().occupancy(); }
 function flushDiagnosticBuffer() { return requireDiagnosticsService().flush(); }
 function logDiagnostic(level, event, details = {}, meta = {}) { return requireDiagnosticsService().log(level, event, details, meta); }
 function storeGalleryDiagnostic(message, sender) { return requireDiagnosticsService().storeGallery(message, sender); }
 function readRecentGalleryDiagnostics() { return requireDiagnosticsService().readRecentGallery(); }
+function readDiagnosticOccupancy() { return requireDiagnosticsService().occupancy(); }
 function resetDiagnostics() { return requireDiagnosticsService().reset(); }
 
 async function logClientDiagnostic(message, sender) {
@@ -1150,7 +1165,7 @@ async function verifyRenewalSourceAbsenceFresh(session, expectedProfile, windowI
 
 async function preverifyAndTriggerRenewalSourceDeleteAttempt(session, expectedProfile, windowId, attemptState) { return requireRemoteDeleteReplacementService().preverifyAndTriggerRenewalSourceDeleteAttempt(session, expectedProfile, windowId, attemptState); }
 
-async function finishRenewalReplacement(message) { return requireRemoteDeleteReplacementService().finishRenewalReplacement(message); }
+async function finishRenewalReplacement(message, admissionReceipt) { return requireRemoteDeleteReplacementService().finishRenewalReplacement(message, admissionReceipt); }
 
 async function discardRenewalDraft(message) {
   const renewalId = String(message?.renewalId || '');
@@ -1580,7 +1595,9 @@ function requirePublicListingEvidenceService() {
   if (!publicListingEvidenceService) {
     publicListingEvidenceService = PublicListingEvidenceService.create({
       URL, chromeTabs: chrome.tabs, delay, ensureContentConnection, sendTabRequestWithBootstrap,
-      readOnlyMetadataTimeoutMs: READONLY_METADATA_TIMEOUT_MS
+      readOnlyMetadataTimeoutMs: READONLY_METADATA_TIMEOUT_MS,
+      normalizeProfileName, createAutomationTab, waitForTabComplete, closeRegistryTabs,
+      MY_ADS_PROJECTS_URL, TAB_LOAD_TIMEOUT_RENEWAL_MS
     });
   }
   return publicListingEvidenceService;
@@ -2265,71 +2282,6 @@ async function checkInventoryOnlineStatus(message) {
   return { online: false, pending: true, record: existing, verificationClass };
 }
 
-// KAR-143: the public detail page can omit the expiration shown on the
-// seller's own listing card. Reuse the existing exact-ID read-only scan of
-// "Meine Anzeigen". Require account continuity before and after pagination;
-// never copy another account's or another Ad-ID's expiration into inventory.
-async function readInventoryRefreshOwnAdsEndDate(adId, expectedProfileName, windowId = null) {
-  const wanted = String(adId || '');
-  const expected = normalizeProfileName(expectedProfileName || '');
-  if (!/^\d+$/.test(wanted)) throw new Error('Anzeigen-ID der Ablaufdatumprüfung ist ungültig.');
-  if (!expected) throw new Error('Konto für Ablaufdatumprüfung nicht eindeutig erfasst.');
-  let ownerTabId = null;
-  try {
-    const created = await createAutomationTab({
-      ...(windowId ? { windowId } : {}),
-      url: MY_ADS_PROJECTS_URL,
-      active: false
-    });
-    if (!created?.id) throw new Error('„Meine Anzeigen“-Prüftab konnte nicht geöffnet werden.');
-    ownerTabId = created.id;
-    await waitForTabComplete(ownerTabId, {
-      timeoutMs: TAB_LOAD_TIMEOUT_RENEWAL_MS,
-      purpose: 'inventory-refresh-own-ads',
-      label: 'Ablaufdatum-Prüftab',
-      operation: 'inventory-refresh-own-ads',
-      context: { adId: wanted, workerTabId: ownerTabId }
-    });
-    await ensureContentConnection({ tabId: ownerTabId });
-
-    const assertOwnerProfile = status => {
-      const observed = normalizeProfileName(status?.profileName || '');
-      if (!status?.isMyAdsPage || !status?.isProjectsTab || !observed ||
-          observed.toLocaleLowerCase('de-DE') !== expected.toLocaleLowerCase('de-DE')) {
-        throw new Error('Konto für Ablaufdatumprüfung stimmt nicht eindeutig mit dem Inventarprofil überein.');
-      }
-    };
-    assertOwnerProfile(await sendTabRequestWithBootstrap(ownerTabId, { type: 'MY_ADS_STATUS' }));
-    const card = await sendTabRequestWithBootstrap(ownerTabId, { type: 'FIND_OWN_AD_BY_ID', adId: wanted });
-    assertOwnerProfile(await sendTabRequestWithBootstrap(ownerTabId, { type: 'MY_ADS_STATUS' }));
-    if (!card?.found) throw new Error('Anzeigenkarte für Ablaufdatumprüfung nicht gefunden.');
-    if (String(card.adId || '') !== wanted) throw new Error('Anzeigen-ID der gefundenen Anzeigenkarte stimmt nicht überein.');
-
-    const endDateDisplay = String(card.endDateDisplay || '').trim();
-    const endDateIso = String(card.endDateIso || '').trim();
-    const displayParts = endDateDisplay.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
-    const isoParts = endDateIso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-    if (!displayParts || !isoParts ||
-        [displayParts[3], displayParts[2], displayParts[1]].join('-') !== endDateIso) {
-      throw new Error('Ablaufdatum der Anzeigenkarte fehlt oder ist widersprüchlich.');
-    }
-    const year = Number(isoParts[1]), month = Number(isoParts[2]), day = Number(isoParts[3]);
-    const parsed = new Date(Date.UTC(year, month - 1, day));
-    if (!Number.isFinite(parsed.getTime()) || parsed.getUTCFullYear() !== year ||
-        parsed.getUTCMonth() !== month - 1 || parsed.getUTCDate() !== day) {
-      throw new Error('Ablaufdatum der Anzeigenkarte ist ungültig.');
-    }
-    return {
-      adId: wanted, endDateDisplay, endDateIso,
-      pagesScanned: card.pagesScanned ?? null, evidence: 'my-ads-exact-id-owner-verified'
-    };
-  } finally {
-    if (ownerTabId) {
-      await closeRegistryTabs([ownerTabId], 'inventory-refresh-own-ads-finished', 'Ablaufdatum-Prüftab').catch(() => {});
-    }
-  }
-}
-
 async function refreshInventoryRecord(message) {
   const inventoryId = String(message?.inventoryId || message?.adId || '');
   const existing = await getInventory(inventoryId);
@@ -2389,7 +2341,7 @@ async function refreshInventoryRecord(message) {
     // existing bounded multi-page FIND_OWN_AD_BY_ID parser.
     if (!readOnlyResult.ok || !readOnlyResult.metadata?.endDateDisplay) {
       try {
-        ownerCardEndDate = await readInventoryRefreshOwnAdsEndDate(adId, existing.profileName || '', windowId);
+        ownerCardEndDate = await requirePublicListingEvidenceService().readInventoryRefreshOwnAdsEndDate(adId, existing.profileName || '', windowId);
         await logDiagnostic('info', 'INVENTORY_REFRESH_OWN_AD_END_DATE_CONFIRMED', {
           adId, source: ownerCardEndDate.evidence, pagesScanned: ownerCardEndDate.pagesScanned,
           endDateDisplay: ownerCardEndDate.endDateDisplay
@@ -2552,6 +2504,7 @@ function requireMassRenewalWorkflowController() {
       publicAvailabilityPending, readFillSessions, classifyKleinanzeigenInsertionErrorUrl,
       terminalizeTemplateFillOnPlatformError, terminalizeTemplateFillForWatchdog, persistRenewalSession,
       cryptoApi: globalThis.crypto, chromeApi: chrome, queueMicrotaskFn: globalThis.queueMicrotask,
+      withAutonomousAdmission: (kind, task) => withAutonomousAdmission(kind, task),
       setTimeoutFn: globalThis.setTimeout, clearTimeoutFn: globalThis.clearTimeout,
       MASS_RENEWAL_MAX_ITEMS, MASS_RENEWAL_WATCHDOG_STALE_MS, MASS_RENEWAL_WATCHDOG_TICK_MS,
       UNASSIGNED_PROFILE_ID
@@ -2601,6 +2554,7 @@ function requireArchiveInsertionController() {
       createAutomationTab, registerShadowTab, closePublishedRenewalTargetTab,
       assertSelectedProfileMatchesLiveAccount, getRenewalConfiguration, withInsertionStartGate, assertInsertionStartAvailable,
       readFillSessions, writeFillSessions, detectPublishedAdForFill,
+      withAutonomousAdmission, resolvePublishIntent: resolveManagedPublishIntent,
       correlationContext, sessionCorrelationContext, delay, logDiagnostic, setAppNotice, broadcastInventoryChanged,
       cryptoApi: globalThis.crypto, chromeApi: chrome,
       MY_ADS_PROJECTS_URL, TAB_LOAD_TIMEOUT_RENEWAL_MS, BULK_RETRY_TIMEOUT_MS, BULK_RETRY_POLL_MS,
@@ -2621,12 +2575,174 @@ function renewalPublicSnapshot(session) { return requireRenewalStateRepository()
 
 
 let renewalWorkflowController = null;
+let phase4Journal = null;
+function requirePhase4UncertaintyJournal() {
+  if (!phase4Journal) {
+    phase4Journal = Phase4UncertaintyJournal.create({
+      storageLocal: chrome.storage.local, clock: () => Date.now(),
+      newToken: () => crypto.randomUUID(), workerInstanceId: ownerWorkerInstanceId,
+      verifyRemoteOutcome: receipt => requireRemoteDeleteReplacementService().verifyPhase4RemoteOutcomeFresh(receipt),
+      lockName: AtomicMV3Admission.LOCK_NAME,
+      lockManager: globalThis.navigator?.locks
+    });
+  }
+  return phase4Journal;
+}
+let autoPublishIntentJournal = null;
+function requireAutoPublishIntentJournal() {
+  if (!autoPublishIntentJournal) {
+    autoPublishIntentJournal = AutoPublishIntentJournal.create({
+      storageLocal: chrome.storage.local, clock: () => Date.now(),
+      newToken: () => crypto.randomUUID(), workerInstanceId: ownerWorkerInstanceId,
+      lockName: AtomicMV3Admission.LOCK_NAME,
+      lockManager: globalThis.navigator?.locks,
+      verifyRemoteOutcome: (intent, newAdId) => verifyAutoPublishRemoteOutcomeFresh(intent, newAdId)
+    });
+  }
+  return autoPublishIntentJournal;
+}
+// A caller-supplied new-ID redirect is only a candidate. Read-only My Ads
+// verification in an independent managed tab is the sole outcome authority.
+async function verifyAutoPublishRemoteOutcomeFresh(intent, newAdId) {
+  const deny = () => { throw Object.assign(new Error('KR_PUBLISH_INTENT_UNVERIFIED'),
+    {code:'KR_PUBLISH_INTENT_UNVERIFIED'}); };
+  if (!intent || !/^\d+$/.test(String(newAdId || ''))
+      || String(intent.sourceAdId || '') === String(newAdId) || !intent.workflowId) deny();
+  const archive = intent.kind === 'archive';
+  const session = archive
+    ? (await readArchiveInsertionSessions())[intent.workflowId]
+    : (await readRenewalSessions())[intent.workflowId];
+  if (!session || session.fillId !== intent.fillId
+      || String((archive ? session.targetProfileId : session.profileId) || '') !== intent.profileId
+      || String(session.sourceAdId || '') !== intent.sourceAdId
+      || Number(session.targetTabId) !== intent.targetTabId) deny();
+  const bound = await assertSelectedProfileMatchesLiveAccount({
+    expectedProfileId: intent.profileId,
+    ...(archive ? {expectedProfileName:String(session.targetProfileName || '')} : {}),
+    purpose:'publish-independent-result-verification'
+  });
+  const expectedName = normalizeProfileName(bound?.displayName || '');
+  if (String(bound?.profileId || '') !== intent.profileId || !expectedName) deny();
+  let tabId = null;
+  try {
+    const tab = await createManagedWorkerTab({
+      url:MY_ADS_PROJECTS_URL,active:false
+    },'publish-independent-presence',{
+      ownerType:archive?'archive-insertion':'renewal',ownerId:intent.workflowId,
+      fillId:intent.fillId,adId:newAdId,phaseAttemptId:intent.attemptId
+    });
+    if (!Number.isSafeInteger(tab?.id) || tab.id<=0) deny();
+    tabId=tab.id;
+    await waitForTabComplete(tabId,{
+      timeoutMs:TAB_LOAD_TIMEOUT_PHASE4_MS,purpose:'publish-independent-presence',
+      label:'Unabhängige Veröffentlichungsprüfung',operation:'publish-verification',
+      context:{fillId:intent.fillId,adId:newAdId,workerTabId:tabId}
+    });
+    await ensureContentConnection({tabId});
+    const normalize=text=>normalizeProfileName(text).toLocaleLowerCase('de-DE');
+    const assertStatus=async()=>{
+      const status=await sendTabRequestWithBootstrap(tabId,{type:'MY_ADS_STATUS'});
+      if(status?.isMyAdsPage!==true||status?.isProjectsTab!==true
+          ||!status.profileName||normalize(status.profileName)!==normalize(expectedName))deny();
+    };
+    await assertStatus();
+    const presence=await sendTabRequestWithBootstrap(tabId,{
+      type:'FIND_OWN_AD_BY_ID',adId:newAdId,
+      correlation:{fillId:intent.fillId,
+        ...(archive?{archiveInsertionId:intent.workflowId}:{renewalId:intent.workflowId})}
+    });
+    await assertStatus(); // Also check account after navigation / full pagination.
+    const confirmed = await assertSelectedProfileMatchesLiveAccount({
+      expectedProfileId:intent.profileId,purpose:'publish-independent-result-readback'
+    });
+    if (String(confirmed?.profileId||'')!==intent.profileId
+        ||presence?.found!==true||String(presence.adId||'')!==newAdId
+        ||presence.evidence!=='found-in-my-ads-full-pagination-scan'
+        ||!Number.isSafeInteger(presence.pagesScanned)||presence.pagesScanned<1
+        ||!Number.isSafeInteger(presence.page)||presence.page<1)deny();
+    return Object.freeze({
+      fillId:intent.fillId,workflowId:intent.workflowId,kind:intent.kind,
+      profileId:intent.profileId,sourceAdId:intent.sourceAdId,newAdId,
+      targetPresent:true,targetEvidence:presence.evidence,
+      targetPagesScanned:presence.pagesScanned,targetFoundPage:presence.page
+    });
+  } finally {
+    if(tabId)await closeManagedWorkerTab(tabId).catch(()=>{});
+  }
+}
+async function resolveManagedPublishIntent(fill,detected) {
+  const fillId=String(fill?.fillId||''),newAdId=String(detected?.adId||'');
+  const result=await requireAutoPublishIntentJournal().resolveVerified({fillId,newAdId});
+  if(result?.state!=='resolved-confirmed'||result.fillId!==fillId||result.newAdId!==newAdId)
+    throw Object.assign(new Error('KR_PUBLISH_INTENT_UNVERIFIED'),{code:'KR_PUBLISH_INTENT_UNVERIFIED'});
+  return result;
+}
+async function authorizeAutomaticPublish(message, sender, admissionReceipt) {
+  if (!admissionReceipt || !Object.isFrozen(admissionReceipt)
+      || admissionReceipt.operationType !== 'AUTHORIZE_AUTOMATIC_PUBLISH')
+    throw Object.assign(new Error('KR_PUBLISH_INTENT_ADMISSION_UNVERIFIED'), {code:'KR_PUBLISH_INTENT_ADMISSION_UNVERIFIED'});
+  const fillId = String(message?.fillId || '');
+  const tabId = Number(sender?.tab?.id || 0);
+  if (!/^[A-Za-z0-9_-]{1,128}$/.test(fillId) || !Number.isSafeInteger(tabId) || tabId <= 0)
+    throw new Error('KR_PUBLISH_INTENT_IDENTITY');
+  // Never trust a claimed page URL from the message body.
+  let url;
+  try { url = new URL(String(sender?.url || '')); }
+  catch { throw new Error('KR_PUBLISH_INTENT_WRONG_PAGE'); }
+  if (!['www.kleinanzeigen.de','kleinanzeigen.de'].includes(url.hostname)
+      || !url.pathname.startsWith('/p-anzeige-aufgeben'))
+    throw new Error('KR_PUBLISH_INTENT_WRONG_PAGE');
+  const fill = (await readFillSessions())[fillId];
+  if (!fill || String(fill.fillId || '') !== fillId || Number(fill.targetTabId) !== tabId
+      || fill.templateOnly || fill.status !== 'running'
+      || !['auto-publish-ready','awaiting-publish','awaiting-manual-publish'].includes(fill.stage)
+      || fill?.result?.complete !== true || !Array.isArray(fill?.result?.issues)
+      || fill.result.issues.length !== 0
+      || Boolean(fill.renewalId) === Boolean(fill.archiveInsertionId))
+    throw new Error('KR_PUBLISH_INTENT_SESSION_UNVERIFIED');
+  const archive = Boolean(fill.archiveInsertionId);
+  const workflowId = String(archive ? fill.archiveInsertionId : fill.renewalId);
+  const session = archive
+    ? (await readArchiveInsertionSessions())[workflowId]
+    : (await readRenewalSessions())[workflowId];
+  const profileId = String((archive ? session?.targetProfileId : session?.profileId) || '');
+  const sourceAdId = String(session?.sourceAdId || '');
+  if (!session || !profileId || session.fillId !== fillId
+      || Number(session.targetTabId) !== tabId || session.newAdId
+      || String(fill.sourceAdId || '') !== sourceAdId
+      || (!archive && !/^\d+$/.test(sourceAdId)))
+    throw new Error('KR_PUBLISH_INTENT_WORKFLOW_UNVERIFIED');
+  const bound = await assertSelectedProfileMatchesLiveAccount({
+    expectedProfileId: profileId,
+    ...(archive ? {expectedProfileName: String(session.targetProfileName || '')} : {}),
+    purpose: 'automatic-publish-preflight'
+  });
+  if (!bound?.profileId || String(bound.profileId) !== profileId)
+    throw new Error('KR_PUBLISH_INTENT_ACCOUNT_UNVERIFIED');
+  const entry = await requireAutoPublishIntentJournal().begin({
+    fillId, workflowId, kind: archive ? 'archive' : 'renewal',
+    profileId, sourceAdId, targetTabId: tabId, admissionReceipt
+  });
+  // Web Locks serialize journal operations, but cannot freeze the external
+  // login while storage I/O is pending. Rebind immediately AFTER the durable
+  // receipt and BEFORE returning a usable click permit. A changed account
+  // leaves the immutable attempt unresolved and never authorizes publication.
+  const afterReceipt = await assertSelectedProfileMatchesLiveAccount({
+    expectedProfileId: profileId,
+    ...(archive ? {expectedProfileName: String(session.targetProfileName || '')} : {}),
+    purpose: 'publish-preclick-account-readback'
+  });
+  if (String(afterReceipt?.profileId || '') !== profileId)
+    throw new Error('KR_PUBLISH_INTENT_ACCOUNT_CHANGED');
+  return {authorized:true, receiptId:entry.attemptId};
+}
 function requireRenewalWorkflowController() {
   if (!renewalWorkflowController) {
     renewalWorkflowController = RenewalWorkflowController.create({
       assertMassRenewalManualActionAllowed, broadcastInventoryChanged, closeManagedWorkerTab, closeRegistryTab,
       compareRenewalRecords, correlationContext, createManagedWorkerTab, delay, detectPublishedAdForFill,
       dropMassRenewalProgress, ensureContentConnection, evaluateCheckoutRecoveryProof, finishRenewalReplacement,
+      withAutonomousAdmission, resolvePublishIntent: resolveManagedPublishIntent,
       flushDiagnosticBuffer, getInventory, isCheckoutAbortedRecoveryCandidate, isNonRetryableRenewalSafetyError,
       isSafeLegacyManualEmergencyReset, logDiagnostic, logRenewalPhaseAttemptFailed, logRenewalPhaseAttemptStarted,
       massRenewalBatchCounts, massRenewalTerminalOutcome, mergeListingMetadata, mutateMassRenewalBatch,
@@ -3040,11 +3156,11 @@ chrome.storage?.onChanged?.addListener((changes, areaName) => {
 
 chrome.tabs?.onUpdated?.addListener((tabId, changeInfo, tab) => {
   if (changeInfo?.status || changeInfo?.url) notifyTabLoadWaiters(tabId, { kind: 'updated', status: changeInfo.status || tab?.status || null, url: changeInfo.url || tab?.url || null, tab });
-  if (tab?.id) void observeTabLifecycleUpdate(tab).catch(() => {});
+  if (tab?.id) void withAutonomousAdmission('tab-lifecycle-update', () => observeTabLifecycleUpdate(tab)).catch(() => {});
   const observedUrl = String(changeInfo.url || tab?.url || '');
   const platformError = classifyKleinanzeigenInsertionErrorUrl(observedUrl, { title: tab?.title || '' });
   if (platformError.isError) {
-    void terminalizeTemplateFillOnPlatformError(tabId, observedUrl, { ...platformError, title: tab?.title || '', source: 'tab-navigation' }).catch(async error => {
+    void withAutonomousAdmission('template-error-terminalize', () => terminalizeTemplateFillOnPlatformError(tabId, observedUrl, { ...platformError, title: tab?.title || '', source: 'tab-navigation' })).catch(async error => {
       await logDiagnostic('error', 'KLEINANZEIGEN_ERROR_PAGE_TERMINALIZATION_FAILED', {
         tabId, path: platformError.path || null, errorCode: platformError.errorCode || null,
         message: String(error.message || error).slice(0, 800)
@@ -3053,7 +3169,7 @@ chrome.tabs?.onUpdated?.addListener((tabId, changeInfo, tab) => {
   }
   if (changeInfo.status !== 'complete' || renewalPublishDetectionInFlight.has(tabId)) return;
   renewalPublishDetectionInFlight.add(tabId);
-  (async () => {
+  void withAutonomousAdmission('renewal-publish-detection', async () => {
     const fills = await readFillSessions();
     const fill = Object.values(fills).find(item => item?.targetTabId === tabId && (item?.renewalId || item?.archiveInsertionId) && item?.stage === 'publish-submitted' && item?.status === 'running');
     if (!fill) return;
@@ -3087,15 +3203,19 @@ chrome.tabs?.onUpdated?.addListener((tabId, changeInfo, tab) => {
         message: String(error.message || error).slice(0, 500)
       }, { module: 'background', operation: fill.archiveInsertionId ? 'archive-import-publish-detect' : 'renewal-publish-detect', context: sessionCorrelationContext(fill, { renewalId: fill.renewalId || null, adId: fill.sourceAdId, targetTabId: tabId }) }).catch(() => {});
     }
-  })().finally(() => renewalPublishDetectionInFlight.delete(tabId));
+  }).catch(error => {
+    void logDiagnostic('warning', 'RENEWAL_PUBLISH_AUTO_ADMISSION_REJECTED', {
+      errorCode: String(error?.code || ''), tabId
+    }, { module: 'background', operation: 'renewal-publish-auto-admission' }).catch(() => {});
+  }).finally(() => renewalPublishDetectionInFlight.delete(tabId));
 });
 
 chrome.tabs?.onActivated?.addListener(({ tabId }) => {
-  void requireTabLifecycleObserver().handleActivated(tabId).catch(() => {});
+  void withAutonomousAdmission('tab-activated', () => requireTabLifecycleObserver().handleActivated(tabId)).catch(() => {});
 });
 
 chrome.tabs?.onRemoved?.addListener(tabId => {
-  void requireTabLifecycleObserver().handleRemoved(tabId).catch(() => {});
+  void withAutonomousAdmission('tab-removed', () => requireTabLifecycleObserver().handleRemoved(tabId)).catch(() => {});
 });
 
 
@@ -3166,7 +3286,132 @@ function requireNativeStatusBridge() {
   return nativeStatusBridge;
 }
 
+// No trusted 15-owner snapshot provider exists yet: reserve always fails closed.
+let atomicMV3Admission = null;
+function requireAtomicMV3Admission() {
+  if(!atomicMV3Admission) {
+    if(typeof AtomicMV3Admission?.create!=='function')
+      throw new Error('KR_UPDATE_FENCE_ATOMIC_UNAVAILABLE');
+    atomicMV3Admission=AtomicMV3Admission.create({
+      storageLocal:chrome.storage.local,lockManager:globalThis.navigator?.locks,
+      workerInstanceId:ownerWorkerInstanceId,clock:()=>Date.now(),
+      newToken:()=>crypto.randomUUID()
+    });
+  }
+  return atomicMV3Admission;
+}
+let updateWorkflowFence = null;
+function requireUpdateWorkflowFence() {
+  if (!updateWorkflowFence) {
+    if (typeof UpdateWorkflowFence?.create !== 'function')
+      throw new Error('KR_UPDATE_FENCE_UNAVAILABLE');
+    updateWorkflowFence = UpdateWorkflowFence.create({
+      storageLocal: chrome.storage.local,
+      clock: () => Date.now(),
+      newToken: () => crypto.randomUUID(),
+      atomicCoordinator: requireAtomicMV3Admission()
+    });
+  }
+  return updateWorkflowFence;
+}
+// This tracker covers positively identified autonomous paths only. Message
+// handlers, detached tasks and previous worker generations still need their
+// own complete proofs before KAR-97 can treat ANY owner as confirmed idle.
+const ownerWorkerInstanceId = crypto.randomUUID();
+let persistedOwnerObserver = null;
+function requirePersistedOwnerObserver() {
+  if (!persistedOwnerObserver) {
+    if (typeof PersistedOwnerObserver?.create !== 'function') throw new Error('KR_UPDATE_OWNER_OBSERVER_UNAVAILABLE');
+    persistedOwnerObserver = PersistedOwnerObserver.create({
+      storageLocal: chrome.storage.local, storageSession: chrome.storage.session, clock: () => Date.now(),
+      workerInstanceId:ownerWorkerInstanceId
+    });
+  }
+  return persistedOwnerObserver;
+}
+// The private gate uses the existing, read-only authenticated Kleinanzeigen
+// account/profile match from KRAdditionalOwnerObserver (without an extra
+// seller userId or email syntax check). It remains FAIL-CLOSED for updater
+// reserve: 15 crash-durable owner-completion producers and independent
+// NativeHost transaction recovery are still absent. A matched account
+// is never equivalent to all-15 owner IDLE.
+// Do not add an app/content route to captureForReserve/reserveThroughFence.
+const privateOwnerUpdateAuthority = typeof TrustedOwnerAuthority?.create === 'function'
+  && typeof UpdateIdlePolicy?.evaluate === 'function'
+  ? TrustedOwnerAuthority.create({
+  storageLocal: chrome.storage.local, storageSession: chrome.storage.session,
+  clock: () => Date.now(), newToken: () => crypto.randomUUID(),
+  workerInstanceId: ownerWorkerInstanceId,
+  ownerPolicy: UpdateIdlePolicy, lockManager: globalThis.navigator?.locks,
+  // This function is invoked only inside a later private capture under the
+  // existing Web Lock. The observer independently rechecks PAGE_STATUS.
+  readLiveAccountReadOnly: () => requireAdditionalOwnerObserver().observe(),
+  readBrowserTabsReadOnly: () => requireAdditionalOwnerObserver().readVerifiedUnmanagedTabsReadOnly()
+}) : null;
+// In older VM fixture harnesses this module is intentionally absent; that
+// keeps only the optional *positive* updater authority disabled. Ordinary
+// routed safety remains enforced by the existing P8 admission gate.
+void privateOwnerUpdateAuthority;
+// Additional owner observation is ACTIVE/UNKNOWN only and cannot grant a lease.
+let additionalOwnerObserver = null;
+function requireAdditionalOwnerObserver() {
+  if (!additionalOwnerObserver) {
+    if (typeof AdditionalOwnerObserver?.create !== 'function')
+      throw new Error('KR_ADDITIONAL_OWNER_OBSERVER_UNAVAILABLE');
+    additionalOwnerObserver = AdditionalOwnerObserver.create({
+      storageLocal:chrome.storage.local,storageSession:chrome.storage.session,
+      clock:()=>Date.now(),workerInstanceId:ownerWorkerInstanceId,
+      queryBrowserTabsReadOnly:()=>chrome.tabs.query({}),
+      readAccountPageStatusReadOnly:tabId=>sendTabRequest(tabId,{type:'PAGE_STATUS'})
+    });
+  }
+  return additionalOwnerObserver;
+}
+const AUTONOMOUS_PERSISTED_OWNER_KINDS = Object.freeze({
+  'bulk-runtime-recovery': ['bulkInventory', 'bulkReconciliation'],
+  'bulk-watchdog': ['bulkInventory'],
+  'renewal-resume': ['renewal', 'insertionLock'],
+  'renewal-detached-verify': ['renewal', 'insertionLock'],
+  'renewal-detached-retry': ['renewal', 'insertionLock'],
+  'renewal-auto-phase4': ['renewal', 'insertionLock'],
+  'renewal-publish-detection': ['renewal', 'templateFill', 'archiveInsertion', 'insertionLock'],
+  'mass-resume': ['massRenewal', 'insertionLock'],
+  'mass-renewal-next-item': ['massRenewal', 'insertionLock'],
+  'mass-renewal-watchdog-timer': ['massRenewal', 'insertionLock'],
+  'renewal-phase1-retry': ['renewal', 'templateFill', 'insertionLock'],
+  'archive-resume': ['archiveInsertion', 'templateFill', 'insertionLock'],
+  'archive-postpublish-detached': ['archiveInsertion', 'templateFill', 'insertionLock'],
+  'template-error-terminalize': ['renewal', 'templateFill', 'archiveInsertion', 'insertionLock'],
+  // Tab-driven paths can update several persisted sessions or reload a managed
+  // worker; conservatively hold every candidate owner until the handler settles.
+  'trash-publish-detection': ['templateFill', 'insertionLock'],
+  'tab-removed': ['bulkInventory', 'bulkReconciliation', 'renewal', 'templateFill', 'archiveInsertion', 'insertionLock'],
+  'tab-lifecycle-update': ['bulkInventory', 'bulkReconciliation', 'renewal', 'massRenewal', 'templateFill', 'archiveInsertion', 'insertionLock']
+});
+// Routed/autonomous callbacks share P8 fence and owner trackers; missing sources fail closed.
+function withAutonomousAdmission(kind, task) {
+  try {
+    const names = AUTONOMOUS_PERSISTED_OWNER_KINDS[kind];
+    if (names) {
+      const admittedTask = task;
+      task = admissionReceipt => requirePersistedOwnerObserver().track(names, () => admittedTask(admissionReceipt));
+    }
+    const started = task;
+    const namesForKind = AdditionalOwnerObserver.ownersForOperation(kind, 'autonomous');
+    task = admissionReceipt => requireAdditionalOwnerObserver().track(namesForKind, () => started(admissionReceipt));
+    return requireUpdateWorkflowFence().withAdmission('AUTONOMOUS:' + kind, task);
+  } catch (error) { return Promise.reject(error); }
+}
+// All currently fenced routed handlers can transitively mutate any persisted
+// workflow; conservatively count all seven for the lifetime of their admitted
+// Promise. The same existing fence arbitrates admission. This is in-memory
+// BUSY evidence only, never proof of idle after restart or update permission.
+function withRoutedAdmission(type, task) {
+  const namesForType = AdditionalOwnerObserver.ownersForOperation(type, 'routed');
+  return requireUpdateWorkflowFence().withAdmission(type, admissionReceipt => requirePersistedOwnerObserver().track(PersistedOwnerObserver.OWNERS, () => namesForType.length ? requireAdditionalOwnerObserver().track(namesForType, () => task(admissionReceipt)) : task(admissionReceipt)));
+}
 const backgroundMessageRouter = BackgroundMessageRouter.create({
+  withWorkflowAdmission: (type, task) => withRoutedAdmission(type, task),
   MessageContractRegistry,
   assertPlatformAccessAllowedForRequest,
   handlers: Object.freeze({
@@ -3179,6 +3424,7 @@ const backgroundMessageRouter = BackgroundMessageRouter.create({
   "LOG_DIAGNOSTIC_EVENT": (message, sender) => logClientDiagnostic(message, sender),
   "SET_ACCOUNT_GATE_DIAGNOSTIC_STATE": (message, sender) => setAccountGateDiagnosticState(message),
   "STORE_GALLERY_DIAGNOSTIC": (message, sender) => storeGalleryDiagnostic(message, sender),
+  "GET_DIAGNOSTIC_OCCUPANCY": (message, sender) => readDiagnosticOccupancy(),
   "GET_DIAGNOSTIC_EXPORT": (message, sender) => requireDiagnosticExportService().buildDiagnosticExport(),
   "RESET_DIAGNOSTICS": (message, sender) => resetDiagnostics(),
   "RESET_ACTIVE_WORKFLOWS": (message, sender) => resetActiveWorkflows(),
@@ -3211,7 +3457,7 @@ const backgroundMessageRouter = BackgroundMessageRouter.create({
   "DELETE_TRASH_ENTRY": (message, sender) => deleteTrashEntry(message.inventoryId),
   "RESET_TRASH_RETENTION": (message, sender) => resetTrashRetention(message.inventoryId),
   "REMOVE_REPLACEMENT_READY_LOCAL": (message, sender) => removeReplacementReadyLocal(message),
-  "FINISH_RENEWAL_REPLACEMENT": (message, sender) => finishRenewalReplacement(message),
+  "FINISH_RENEWAL_REPLACEMENT": (message, sender, admissionReceipt) => finishRenewalReplacement(message, admissionReceipt),
   "DISCARD_RENEWAL_DRAFT": (message, sender) => discardRenewalDraft(message),
   "CLEAR_INVENTORIES": (message, sender) => clearInventories(Object.prototype.hasOwnProperty.call(message, 'profileId') ? message.profileId : undefined),
   "START_BULK_INVENTORY_OPERATION": (message, sender) => startBulkInventoryOperation(message),
@@ -3252,11 +3498,11 @@ const backgroundMessageRouter = BackgroundMessageRouter.create({
   "GET_APP_NOTICE": (message, sender) => getAppNotice(),
   "DISMISS_APP_NOTICE": (message, sender) => dismissAppNotice(message),
   "RENEWAL_PUBLISH_CLICKED": (message, sender) => markRenewalPublishClicked(message, sender),
+  "AUTHORIZE_AUTOMATIC_PUBLISH": (message, sender, admissionReceipt) => authorizeAutomaticPublish(message, sender, admissionReceipt),
   "GET_TEMPLATE_FILL_SESSION": (message, sender) => getTemplateFillSession(sender),
   "GET_TEMPLATE_IMAGE_CHUNK": (message, sender) => templateImageChunk(message, sender),
   "UPDATE_TEMPLATE_FILL_SESSION": (message, sender) => updateTemplateFillSession(message, sender),
   "GET_DIAGNOSTICS": (message, sender) => readDiagnostics(),
-  "GET_DIAGNOSTIC_OCCUPANCY": (message, sender) => readDiagnosticOccupancy(),
   })
 });
 
@@ -3299,7 +3545,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 chrome.tabs?.onUpdated?.addListener((tabId, changeInfo, tab) => {
   if (!changeInfo?.url && changeInfo?.status !== 'complete') return;
-  void maybeDetectTrashTemplatePublishedAd(tabId, changeInfo, tab).catch(error => {
+  void withAutonomousAdmission('trash-publish-detection', () => maybeDetectTrashTemplatePublishedAd(tabId, changeInfo, tab)).catch(error => {
     void logDiagnostic('warning', 'TRASH_TEMPLATE_PUBLISH_DETECTION_FAILED', {
       tabId: Number(tabId || 0) || null,
       message: String(error?.message || error || '').slice(0, 500)
@@ -3313,24 +3559,27 @@ chrome.action?.onClicked?.addListener(() => {
   });
 });
 
-void reconcileTabRegistry().catch(() => {});
-chrome.runtime.onStartup?.addListener(() => { void reconcileTabRegistry().catch(() => {}); });
+// Startup maintenance mutates local registry/trash state outside the message router.
+// Deny it while the persisted update lease is held, including after an MV3 restart.
+// These short tasks use the same admission service as routed workflow requests.
+void withAutonomousAdmission('tab-registry-boot', () => reconcileTabRegistry()).catch(() => {});
+chrome.runtime.onStartup?.addListener(() => { void withAutonomousAdmission('tab-registry-startup', () => reconcileTabRegistry()).catch(() => {}); });
 
-// Opportunistic lifecycle cleanup is sufficient for the 30-day archive: it runs
-// whenever the service worker starts, and again before each inventory/trash listing.
-void purgeExpiredTrash().catch(() => {});
-chrome.runtime.onStartup?.addListener(() => { void purgeExpiredTrash().catch(() => {}); });
-chrome.runtime.onInstalled?.addListener(() => { void purgeExpiredTrash().catch(() => {}); });
+// The 30-day trash purge is locally mutating maintenance, not just a read.
+// All three autonomous launch paths must observe the persistent update fence.
+void withAutonomousAdmission('trash-purge-boot', () => purgeExpiredTrash()).catch(() => {});
+chrome.runtime.onStartup?.addListener(() => { void withAutonomousAdmission('trash-purge-startup', () => purgeExpiredTrash()).catch(() => {}); });
+chrome.runtime.onInstalled?.addListener(() => { void withAutonomousAdmission('trash-purge-installed', () => purgeExpiredTrash()).catch(() => {}); });
 
 // Bulk inventory recovery: extension reload/browser restart invalidates the session lease,
 // while an independent watchdog enforces the hard per-item deadline even if the source loop stalls.
-void ensureBulkRuntimeRecovery().catch(() => {});
-void bulkRunWatchdogTick().catch(() => {});
-if (typeof setInterval === 'function') setInterval(() => { void bulkRunWatchdogTick().catch(() => {}); }, BULK_RUN_WATCHDOG_TICK_MS);
+void withAutonomousAdmission('bulk-runtime-recovery', () => ensureBulkRuntimeRecovery()).catch(() => {});
+void withAutonomousAdmission('bulk-watchdog', () => bulkRunWatchdogTick()).catch(() => {});
+if (typeof setInterval === 'function') setInterval(() => { void withAutonomousAdmission('bulk-watchdog', () => bulkRunWatchdogTick()).catch(() => {}); }, BULK_RUN_WATCHDOG_TICK_MS);
 
 // Recover persisted workflows only when no platform safety stop is active.
 void readPlatformAccessRestriction().then(state => {
   if (state?.active) return;
-  void resumePendingRenewals().finally(() => resumeMassRenewalBatch().catch(() => {})).catch(() => {});
-  void resumePendingArchiveInsertions().catch(() => {});
+  void withAutonomousAdmission('renewal-resume', () => resumePendingRenewals()).finally(() => withAutonomousAdmission('mass-resume', () => resumeMassRenewalBatch()).catch(() => {})).catch(() => {});
+  void withAutonomousAdmission('archive-resume', () => resumePendingArchiveInsertions()).catch(() => {});
 }).catch(() => {});

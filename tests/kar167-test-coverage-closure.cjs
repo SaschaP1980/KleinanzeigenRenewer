@@ -36,7 +36,10 @@ const referencedByOwner = new Map();
 const pattern = /tests\/[A-Za-z0-9_.\/-]+\.(?:cjs|mjs|js|py|ps1|json|sh|txt)/g;
 for (const [owner, file] of Object.entries(ownerPaths)) {
   // Windows PowerShell uses backslash; convert for path comparisons only.
-  referencedByOwner.set(owner, new Set([...read(file).replace(/\\/g, '/').matchAll(pattern)].map(m => m[0])));
+  // PowerShell native invocation uses .\\tests\\file.ps1; after slash
+  // conversion, collapse doubled separators so the exact path remains indexed.
+  const ownerSource = read(file).replace(/\\/g, '/').replace(/\/{2,}/g, '/');
+  referencedByOwner.set(owner, new Set([...ownerSource.matchAll(pattern)].map(m => m[0])));
 }
 const records = new Map();
 for (const r of registry.tests) {
@@ -74,7 +77,20 @@ for (const addition of additions) {
   // Future new test programs must be reachable from a real entrypoint, or
   // explicitly added to this T1 registry with proven test-only helper ownership.
   if (!/\.(?:cjs|js|mjs|py|ps1)$/.test(addition)) continue;
-  assert.ok([...referencedByOwner.values()].some(set => set.has(addition)),
+  const directlyInvoked = [...referencedByOwner.values()].some(set => set.has(addition));
+  // KAR-99: a shared Web Locks fixture is deliberately not an executable
+  // top-level test. Require TWO separately registered, directly invoked
+  // negative suites to import it by its exact relative path. All other new
+  // unregistered executables must still have their own live entrypoint.
+  const phase4HelperOwners = [
+    'tests/kar117-uncertain-phase4-journal.cjs',
+    'tests/kar99-phase4-outcome-reconciliation.cjs'
+  ];
+  const verifiedPhase4Helper = addition === 'tests/helpers/phase4-locks.cjs' &&
+    phase4HelperOwners.every(testPath =>
+      [...referencedByOwner.values()].some(set => set.has(testPath)) &&
+      read(testPath).includes("require('./helpers/phase4-locks.cjs')"));
+  assert.ok(directlyInvoked || verifiedPhase4Helper,
     'Unregistered new executable test/fixture with no top-level invocation: ' + addition);
 }
 for (const paths of referencedByOwner.values()) for (const p of paths) {

@@ -76,18 +76,10 @@ console.log(`${passes} v1.18.2 derived-date runtime groups passed`);
 // expiration date, while the account-bound exact-ID own-ads card supplies it.
 // These are read-only fixtures: no live account, deletion or publication.
 const background = fs.readFileSync('background.js', 'utf8');
-function extractAsyncBackgroundFunction(name) {
-  const sig = 'async function ' + name + '(';
-  const start = background.indexOf(sig);
-  assert.ok(start >= 0, 'missing production function ' + name);
-  const brace = background.indexOf('{', start);
-  let depth = 0;
-  for (let i = brace; i < background.length; i++) {
-    if (background[i] === '{') depth++;
-    if (background[i] === '}' && --depth === 0) return background.slice(start, i + 1);
-  }
-  throw new Error('unterminated production function ' + name);
-}
+assert.match(background,
+  /requirePublicListingEvidenceService\(\)\.readInventoryRefreshOwnAdsEndDate\(/,
+  'background must delegate to owner-bound listing evidence service');
+
 function expiryFixture({
   profile = 'Account One', expectedProfile = 'Account One', afterProfile = profile,
   found = true, responseId = '3566991742',
@@ -118,9 +110,16 @@ function expiryFixture({
     closeRegistryTabs: async ids => { calls.push(['close', ...ids]); },
     logDiagnostic: async (level, event, details) => { events.push({ level, event, details }); }
   };
-  const ctx = vm.createContext(dependencies);
-  vm.runInContext(extractAsyncBackgroundFunction('readInventoryRefreshOwnAdsEndDate'), ctx);
-  return { run: () => ctx.readInventoryRefreshOwnAdsEndDate('3566991742', expectedProfile, 6), calls, events };
+  let registered = null;
+  const ctx = vm.createContext({ KRDeps: {
+    register(name, api) {
+      if (name === 'KRPublicListingEvidenceService') registered = api;
+    }
+  } });
+  vm.runInContext(source, ctx, { filename: 'public-listing-evidence-service.js' });
+  assert.ok(registered?.create, 'actual registered production evidence service must load');
+  const instance = registered.create(dependencies);
+  return { run: () => instance.readInventoryRefreshOwnAdsEndDate('3566991742', expectedProfile, 6), calls, events };
 }
 (async () => {
   const ok = expiryFixture();

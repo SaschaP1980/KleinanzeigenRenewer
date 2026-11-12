@@ -1210,6 +1210,12 @@
     panelArchiveInsertion = Boolean(session.archiveInsertionId);
     stageMonitorWarnings = [];
     stagedCategoryPathEvidence = null;
+    // A final publish button may already be visible during a managed fill.
+    // Intercept before any asynchronous form, recovery or navigation work;
+    // user-owned template-only publishing remains deliberately unmodified.
+    if (session.fillId && !session.templateOnly && (session.renewalId || session.archiveInsertionId)) {
+      armPublishDetection(session.fillId);
+    }
     try {
       // Test mode runs before all filling, continuation and publication branches.
       if (session.schemaTestScenario) {

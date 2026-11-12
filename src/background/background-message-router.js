@@ -11,6 +11,7 @@
     "LOG_DIAGNOSTIC_EVENT": Object.freeze({ handler: "LOG_DIAGNOSTIC_EVENT", preSafety: false }),
     "SET_ACCOUNT_GATE_DIAGNOSTIC_STATE": Object.freeze({ handler: "SET_ACCOUNT_GATE_DIAGNOSTIC_STATE", preSafety: false }),
     "STORE_GALLERY_DIAGNOSTIC": Object.freeze({ handler: "STORE_GALLERY_DIAGNOSTIC", preSafety: false }),
+    "GET_DIAGNOSTIC_OCCUPANCY": Object.freeze({ handler: "GET_DIAGNOSTIC_OCCUPANCY", preSafety: false }),
     "GET_DIAGNOSTIC_EXPORT": Object.freeze({ handler: "GET_DIAGNOSTIC_EXPORT", preSafety: false }),
     "RESET_DIAGNOSTICS": Object.freeze({ handler: "RESET_DIAGNOSTICS", preSafety: false }),
     "RESET_ACTIVE_WORKFLOWS": Object.freeze({ handler: "RESET_ACTIVE_WORKFLOWS", preSafety: false }),
@@ -81,11 +82,13 @@
     "GET_APP_NOTICE": Object.freeze({ handler: "GET_APP_NOTICE", preSafety: false }),
     "DISMISS_APP_NOTICE": Object.freeze({ handler: "DISMISS_APP_NOTICE", preSafety: false }),
     "RENEWAL_PUBLISH_CLICKED": Object.freeze({ handler: "RENEWAL_PUBLISH_CLICKED", preSafety: false }),
+    // Genuine pre-click permit is a routed, fenced operation. A content message
+    // never provides its own P8 admission token: only the admitted callback does.
+    "AUTHORIZE_AUTOMATIC_PUBLISH": Object.freeze({ handler: "AUTHORIZE_AUTOMATIC_PUBLISH", preSafety: false }),
     "GET_TEMPLATE_FILL_SESSION": Object.freeze({ handler: "GET_TEMPLATE_FILL_SESSION", preSafety: false }),
     "GET_TEMPLATE_IMAGE_CHUNK": Object.freeze({ handler: "GET_TEMPLATE_IMAGE_CHUNK", preSafety: false }),
     "UPDATE_TEMPLATE_FILL_SESSION": Object.freeze({ handler: "UPDATE_TEMPLATE_FILL_SESSION", preSafety: false }),
     "GET_DIAGNOSTICS": Object.freeze({ handler: "GET_DIAGNOSTICS", preSafety: false }),
-    "GET_DIAGNOSTIC_OCCUPANCY": Object.freeze({ handler: "GET_DIAGNOSTIC_OCCUPANCY", preSafety: false }),
   });
 
   function create(options = {}) {
@@ -95,6 +98,16 @@
     if (!registry?.route || !registry?.errorFor) throw new Error('background-message-router requires MessageContractRegistry.');
     if (typeof assertPlatformAccessAllowedForRequest !== 'function') throw new Error('background-message-router requires platform safety guard.');
 
+    // Allow only genuinely read-only or essential safety-control routes during a fence.
+    // All other current/future routes are conservatively treated as mutations.
+    const UNFENCED_ROUTES = new Set([
+      'GET_NATIVE_UPDATE_STATUS', 'GET_BACKGROUND_EPOCH',
+      'GET_PLATFORM_ACCESS_RESTRICTION', 'PLATFORM_ACCESS_RESTRICTED',
+      'GET_PROFILE_STATE', 'LIST_INVENTORIES', 'LIST_TRASH',
+      'OPEN_APP_WINDOW', 'GET_APP_NOTICE', 'GET_DIAGNOSTICS'
+    ]);
+    const withWorkflowAdmission = options.withWorkflowAdmission;
+
     async function dispatch(message, sender, { messageContract = null } = {}) {
       const contract = messageContract || registry.route(message?.type, 'background');
       if (contract.action !== 'accept') throw registry.errorFor(contract);
@@ -103,6 +116,11 @@
       const handler = handlers[descriptor.handler];
       if (typeof handler !== 'function') throw new Error(`Background handler fehlt: ${descriptor.handler}`);
       if (!descriptor.preSafety) await assertPlatformAccessAllowedForRequest(message);
+      if (typeof withWorkflowAdmission === 'function' && !UNFENCED_ROUTES.has(descriptor.handler))
+        // Keep the private source-issued P8 receipt in-band for this exact
+        // admitted handler; never copy provenance from message or sender.
+        return withWorkflowAdmission(descriptor.handler,
+          admissionReceipt => handler(message, sender, admissionReceipt));
       return handler(message, sender);
     }
 

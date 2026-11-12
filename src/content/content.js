@@ -554,6 +554,8 @@
             return url.pathname.match(/\/(\d+)-\d+-\d+(?:\/|$)/)?.[1] || null;
           } catch { return null; }
         })(),
+        // Existing Kleinanzeigen account/profile identity used by the app.
+        // The website owns authentication; no email/seller-ID inference here.
         profileName: auth.loggedIn ? (InventoryRun?.detectedProfileName?.(document) || null) : null
       } });
       return;

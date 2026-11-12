@@ -18,7 +18,7 @@ assert.match(classifier, /message channel closed/);
 assert.match(classifier, /message port closed/);
 pass('Phase-4 classifier recognizes observed post-confirmation channel loss');
 
-const phase4 = background.match(/async function finishRenewalReplacement\(message\) \{[\s\S]*?\n\}\n\nasync function discardRenewalDraft/)?.[0] || '';
+const phase4 = background.match(/async function finishRenewalReplacement\(message(?:, admissionReceipt = null)?\) \{[\s\S]*?\n\}\n\nasync function discardRenewalDraft/)?.[0] || '';
 const phase4Verifier = background.match(/async function verifyRenewalSourceAbsenceFresh[\s\S]*?\n}\n\nasync function preverifyAndTriggerRenewalSourceDeleteAttempt/)?.[0] || '';
 const phase4Delete = background.match(/async function preverifyAndTriggerRenewalSourceDeleteAttempt[\s\S]*?\n}\n\nasync function finishRenewalReplacement/)?.[0] || '';
 assert.ok(phase4, 'finishRenewalReplacement must exist');
@@ -39,12 +39,14 @@ assert.match(phase4Verifier, /VERIFY_OWN_AD_ABSENT_BY_ID/);
 assert.doesNotMatch(phase4Delete, /chrome\.tabs\.reload\(deleteTabId\)/);
 pass('verification runs in a separate fresh My Ads worker independent of destructive-tab lifecycle');
 
-assert.match(phase4, /while \(renewalPhaseAttemptAvailable\(session, 4\)\)/);
+assert.match(phase4, /while \(!verification\?\.verified && renewalPhaseAttemptAvailable\(session, 4\)\)/);
 assert.match(phase4, /renewalPhaseRetryDelayMs/);
 assert.match(phase4, /RENEWAL_PHASE4_ATTEMPT_STARTED/);
 assert.match(phase4Verifier, /RENEWAL_SOURCE_DELETE_VERIFICATION_ATTEMPT/);
-assert.match(phase4, /if \(verification\?\.verified\) break/);
-pass('authoritative absence verification retries are bounded by the configured phase-attempt policy');
+assert.match(phase4, /if \(verification\?\.verified\) \{[\s\S]*?await resolvePhase4Attempt\(/);
+assert.match(phase4, /if \(previousEvidence\.attempts\.length\) \{[\s\S]*?await resolvePhase4Attempt\(/);
+assert.match(phase4, /KR_PHASE4_JOURNAL_UNVERIFIED/);
+pass('bounded phase attempts skip already resolved DELETE and require independent source+target proof');
 
 assert.match(phase4, /session\.stage = 'replacement-ready'/);
 assert.match(phase4, /sourceDeleteVerificationFailedAt/);

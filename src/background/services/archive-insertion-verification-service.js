@@ -10,10 +10,10 @@
         waitForTabComplete, ensureContentConnection, sendTabRequestWithBootstrap, updateAutomationTab, reloadAutomationTab, closePublishedRenewalTargetTab,
         assertSelectedProfileMatchesLiveAccount, readFillSessions, writeFillSessions, correlationContext, sessionCorrelationContext,
         delay, logDiagnostic, setAppNotice, broadcastInventoryChanged, cryptoApi, chromeApi, MY_ADS_PROJECTS_URL,
-        TAB_LOAD_TIMEOUT_RENEWAL_MS, BULK_RETRY_TIMEOUT_MS, BULK_RETRY_POLL_MS, RENEWAL_MODE_FAST, INVENTORY_STORE, IMAGE_STORE
+        TAB_LOAD_TIMEOUT_RENEWAL_MS, BULK_RETRY_TIMEOUT_MS, BULK_RETRY_POLL_MS, RENEWAL_MODE_FAST, INVENTORY_STORE, IMAGE_STORE, withAutonomousAdmission, resolvePublishIntent
       } = options;
       const crypto = cryptoApi; const chrome = chromeApi;
-      const required={readArchiveInsertionSessions,archiveInsertionPublicSnapshot,persistArchiveInsertionSession,archiveInsertionMeta,getInventory,getInventoryImage,deleteImagesByInventoryId,assertTemplateSourceReady,inventoryImageSetExplicitlyEmpty,compareRenewalRecords,normalizedScalar,normalizedComparableBoolean,normalizeProfileName,normalizeRenewalMode,ensureProfile,saveInventory,openDatabase,normalBrowserWindowId,createManagedWorkerTab,closeManagedWorkerTab,waitForTabComplete,ensureContentConnection,sendTabRequestWithBootstrap,updateAutomationTab,reloadAutomationTab,closePublishedRenewalTargetTab,assertSelectedProfileMatchesLiveAccount,readFillSessions,writeFillSessions,correlationContext,sessionCorrelationContext,delay,logDiagnostic,setAppNotice,broadcastInventoryChanged};
+      const required={readArchiveInsertionSessions,archiveInsertionPublicSnapshot,persistArchiveInsertionSession,archiveInsertionMeta,getInventory,getInventoryImage,deleteImagesByInventoryId,assertTemplateSourceReady,inventoryImageSetExplicitlyEmpty,compareRenewalRecords,normalizedScalar,normalizedComparableBoolean,normalizeProfileName,normalizeRenewalMode,ensureProfile,saveInventory,openDatabase,normalBrowserWindowId,createManagedWorkerTab,closeManagedWorkerTab,waitForTabComplete,ensureContentConnection,sendTabRequestWithBootstrap,updateAutomationTab,reloadAutomationTab,closePublishedRenewalTargetTab,assertSelectedProfileMatchesLiveAccount,readFillSessions,writeFillSessions,correlationContext,sessionCorrelationContext,delay,logDiagnostic,setAppNotice,broadcastInventoryChanged,withAutonomousAdmission};
       for(const [name,value] of Object.entries(required)) if(typeof value!=='function') throw new Error(`archive verification service dependency ${name} is required`);
       if(!crypto?.randomUUID || !crypto?.subtle || !chrome?.tabs) throw new Error('archive verification service runtime APIs are required');
 async function sha256BlobHex(blob) {
@@ -469,6 +469,8 @@ async function confirmPublishedArchiveInsertion(fill, detected) {
   const newAdId = String(detected?.adId || '');
   if (!/^\d+$/.test(newAdId)) throw new Error('Neue Anzeigen-ID konnte nicht eindeutig ermittelt werden.');
   if (session.newAdId && String(session.newAdId) !== newAdId) throw new Error('Ermittelte neue Anzeigen-ID widerspricht der bereits gespeicherten ID.');
+  if (typeof resolvePublishIntent !== 'function') throw new Error('KR_PUBLISH_INTENT_UNVERIFIED');
+  await resolvePublishIntent(fill, detected);
   session.newAdId = newAdId;
   session.newPublicUrl = String(detected?.publicUrl || session.newPublicUrl || '');
   session.newIdConfirmedAt = session.newIdConfirmedAt || new Date().toISOString();
@@ -493,7 +495,7 @@ async function confirmPublishedArchiveInsertion(fill, detected) {
   await closePublishedRenewalTargetTab({ targetTabId: session.targetTabId, newAdId, renewalId: null }).catch(() => {});
   session.targetTabId = null;
   await persistArchiveInsertionSession(session);
-  void runArchiveInsertionPostPublish(archiveInsertionId).catch(() => {});
+  void withAutonomousAdmission('archive-postpublish-detached', () => runArchiveInsertionPostPublish(archiveInsertionId)).catch(() => {});
   return archiveInsertionPublicSnapshot(session);
 }
 

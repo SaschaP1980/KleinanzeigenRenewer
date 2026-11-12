@@ -8,6 +8,8 @@
       const ensureContentConnection = options.ensureContentConnection || (async () => {});
       const sendTabRequestWithBootstrap = options.sendTabRequestWithBootstrap || (async () => null);
       const defaultReadOnlyTimeoutMs = Math.max(1, Number(options.readOnlyMetadataTimeoutMs || 15000));
+      const { normalizeProfileName, createAutomationTab, waitForTabComplete, closeRegistryTabs,
+        MY_ADS_PROJECTS_URL, TAB_LOAD_TIMEOUT_RENEWAL_MS } = options;
 
       function normalizeKnownPublicAdUrl(rawUrl, expectedAdId) {
         const adId = String(expectedAdId || '');
@@ -149,7 +151,75 @@
         };
       }
 
-      return Object.freeze({ normalizeKnownPublicAdUrl, slugifyListingTitle, publicUrlForInventoryRecord, directPublicUrlForAdId, publicAvailabilityPending, publicAvailabilitySnapshot, extractReadOnlyMetadata, normalizedCalendarParts, deriveListingDateFromEndDate, mergeListingMetadata });
+      // KAR-143: owner-bound exact-ID expiry evidence; distinct from public
+      // detail metadata, never writes or guesses an expiration date.
+      async function readInventoryRefreshOwnAdsEndDate(adId, expectedProfileName, windowId = null) {
+        if (![normalizeProfileName, createAutomationTab, waitForTabComplete, ensureContentConnection,
+          sendTabRequestWithBootstrap, closeRegistryTabs].every(fn => typeof fn === 'function') ||
+          !MY_ADS_PROJECTS_URL || !Number.isFinite(Number(TAB_LOAD_TIMEOUT_RENEWAL_MS))) {
+          throw new Error('Read-only own-ads expiry verification dependencies are unavailable.');
+        }
+        const wanted = String(adId || '');
+        const expected = normalizeProfileName(expectedProfileName || '');
+        if (!/^\d+$/.test(wanted)) throw new Error('Anzeigen-ID der Ablaufdatumprüfung ist ungültig.');
+        if (!expected) throw new Error('Konto für Ablaufdatumprüfung nicht eindeutig erfasst.');
+        let ownerTabId = null;
+        try {
+          const created = await createAutomationTab({
+            ...(windowId ? { windowId } : {}),
+            url: MY_ADS_PROJECTS_URL,
+            active: false
+          });
+          if (!created?.id) throw new Error('„Meine Anzeigen“-Prüftab konnte nicht geöffnet werden.');
+          ownerTabId = created.id;
+          await waitForTabComplete(ownerTabId, {
+            timeoutMs: TAB_LOAD_TIMEOUT_RENEWAL_MS,
+            purpose: 'inventory-refresh-own-ads',
+            label: 'Ablaufdatum-Prüftab',
+            operation: 'inventory-refresh-own-ads',
+            context: { adId: wanted, workerTabId: ownerTabId }
+          });
+          await ensureContentConnection({ tabId: ownerTabId });
+      
+          const assertOwnerProfile = status => {
+            const observed = normalizeProfileName(status?.profileName || '');
+            if (!status?.isMyAdsPage || !status?.isProjectsTab || !observed ||
+                observed.toLocaleLowerCase('de-DE') !== expected.toLocaleLowerCase('de-DE')) {
+              throw new Error('Konto für Ablaufdatumprüfung stimmt nicht eindeutig mit dem Inventarprofil überein.');
+            }
+          };
+          assertOwnerProfile(await sendTabRequestWithBootstrap(ownerTabId, { type: 'MY_ADS_STATUS' }));
+          const card = await sendTabRequestWithBootstrap(ownerTabId, { type: 'FIND_OWN_AD_BY_ID', adId: wanted });
+          assertOwnerProfile(await sendTabRequestWithBootstrap(ownerTabId, { type: 'MY_ADS_STATUS' }));
+          if (!card?.found) throw new Error('Anzeigenkarte für Ablaufdatumprüfung nicht gefunden.');
+          if (String(card.adId || '') !== wanted) throw new Error('Anzeigen-ID der gefundenen Anzeigenkarte stimmt nicht überein.');
+      
+          const endDateDisplay = String(card.endDateDisplay || '').trim();
+          const endDateIso = String(card.endDateIso || '').trim();
+          const displayParts = endDateDisplay.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+          const isoParts = endDateIso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+          if (!displayParts || !isoParts ||
+              [displayParts[3], displayParts[2], displayParts[1]].join('-') !== endDateIso) {
+            throw new Error('Ablaufdatum der Anzeigenkarte fehlt oder ist widersprüchlich.');
+          }
+          const year = Number(isoParts[1]), month = Number(isoParts[2]), day = Number(isoParts[3]);
+          const parsed = new Date(Date.UTC(year, month - 1, day));
+          if (!Number.isFinite(parsed.getTime()) || parsed.getUTCFullYear() !== year ||
+              parsed.getUTCMonth() !== month - 1 || parsed.getUTCDate() !== day) {
+            throw new Error('Ablaufdatum der Anzeigenkarte ist ungültig.');
+          }
+          return {
+            adId: wanted, endDateDisplay, endDateIso,
+            pagesScanned: card.pagesScanned ?? null, evidence: 'my-ads-exact-id-owner-verified'
+          };
+        } finally {
+          if (ownerTabId) {
+            await closeRegistryTabs([ownerTabId], 'inventory-refresh-own-ads-finished', 'Ablaufdatum-Prüftab').catch(() => {});
+          }
+        }
+      }
+
+      return Object.freeze({ normalizeKnownPublicAdUrl, slugifyListingTitle, publicUrlForInventoryRecord, directPublicUrlForAdId, publicAvailabilityPending, publicAvailabilitySnapshot, extractReadOnlyMetadata, normalizedCalendarParts, deriveListingDateFromEndDate, mergeListingMetadata, readInventoryRefreshOwnAdsEndDate });
     }
   });
   globalThis.KRDeps?.register?.('KRPublicListingEvidenceService', API);

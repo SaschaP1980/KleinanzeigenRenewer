@@ -13,6 +13,16 @@
         logRenewalPhaseAttemptFailed, isNonRetryableRenewalSafetyError, renewalAttemptDetails, setAppNotice,
         markMassRenewalItemSucceeded, captureEmergencyResetGeneration, assertEmergencyResetGeneration
       } = options;
+      // A missing shared Phase-4 journal port must never permit remote deletion.
+      const beginPhase4Attempt = typeof options.beginPhase4Attempt === 'function'
+        ? options.beginPhase4Attempt
+        : async () => { throw Object.assign(new Error('KR_PHASE4_JOURNAL_UNAVAILABLE'), {code:'KR_PHASE4_JOURNAL_UNAVAILABLE'}); };
+      const observePhase4Attempts = typeof options.observePhase4Attempts === 'function'
+        ? options.observePhase4Attempts
+        : async () => { throw Object.assign(new Error('KR_PHASE4_JOURNAL_UNAVAILABLE'), {code:'KR_PHASE4_JOURNAL_UNAVAILABLE'}); };
+      const resolvePhase4Attempt = typeof options.resolvePhase4Attempt === 'function'
+        ? options.resolvePhase4Attempt
+        : async () => { throw Object.assign(new Error('KR_PHASE4_JOURNAL_UNAVAILABLE'), {code:'KR_PHASE4_JOURNAL_UNAVAILABLE'}); };
       const TRASH_RETENTION_MS = Number(options.TRASH_RETENTION_MS);
       const INVENTORY_STORE = String(options.INVENTORY_STORE || 'inventories');
       const IMAGE_STORE = String(options.IMAGE_STORE || 'images');
@@ -301,7 +311,71 @@ async function verifyRenewalSourceAbsenceFresh(session, expectedProfile, windowI
   }
 }
 
-async function preverifyAndTriggerRenewalSourceDeleteAttempt(session, expectedProfile, windowId, attemptState, resetGeneration) {
+
+async function verifyPhase4RemoteOutcomeFresh(receipt) {
+  // A caller cannot submit a success object: the trusted background service
+  // obtains two independent, freshly loaded My Ads pages, under the recorded
+  // source account. Neither the original deletion response nor local cache
+  // qualifies as an independently authenticated remote result.
+  const expected = normalizeProfileName(receipt?.profileId || '');
+  const sourceId = String(receipt?.sourceAdId || '');
+  const targetId = String(receipt?.newAdId || '');
+  if (!expected || !/^\d+$/.test(sourceId) || !/^\d+$/.test(targetId)
+      || sourceId === targetId || !receipt?.renewalId)
+    throw new Error('KR_PHASE4_JOURNAL_UNVERIFIED');
+  const normalized = text => normalizeProfileName(text).toLocaleLowerCase('de-DE');
+  async function scanFresh(kind, id, command) {
+    let tabId = null;
+    try {
+      const tab = await createManagedWorkerTab({
+        url: MY_ADS_PROJECTS_URL, active: false
+      }, 'renewal-phase4-independent-' + kind, {
+        ownerType: 'renewal', ownerId: receipt.renewalId,
+        adId: id, phaseAttemptId: receipt.attemptId
+      });
+      if (!Number.isSafeInteger(tab?.id) || tab.id <= 0)
+        throw new Error('KR_PHASE4_JOURNAL_UNVERIFIED');
+      tabId = tab.id;
+      await waitForTabComplete(tabId, {
+        timeoutMs: TAB_LOAD_TIMEOUT_PHASE4_MS,
+        purpose: 'renewal-phase4-independent-' + kind,
+        label: 'Unabhängige Phase-4-Ergebnisprüfung',
+        operation: 'renewal-phase-4',
+        context: {renewalId:receipt.renewalId,adId:id,workerTabId:tabId}
+      });
+      await ensureContentConnection({tabId});
+      const status = await sendTabRequestWithBootstrap(tabId,{type:'MY_ADS_STATUS'});
+      if (status?.isMyAdsPage !== true || status?.isProjectsTab !== true
+          || !status.profileName || normalized(status.profileName) !== normalized(expected))
+        throw new Error('KR_PHASE4_JOURNAL_UNVERIFIED');
+      return await sendTabRequestWithBootstrap(tabId,{
+        type:command,adId:id,correlation:{renewalId:receipt.renewalId}
+      });
+    } finally {
+      if (tabId) await closeManagedWorkerTab(tabId).catch(() => {});
+    }
+  }
+  const source = await scanFresh('source',sourceId,'VERIFY_OWN_AD_ABSENT_BY_ID');
+  if (source?.verified !== true || String(source.adId || '') !== sourceId
+      || source.evidence !== 'not-in-my-ads-full-pagination-scan'
+      || !Number.isSafeInteger(source.pagesScanned) || source.pagesScanned < 1)
+    throw new Error('KR_PHASE4_JOURNAL_UNVERIFIED');
+  const target = await scanFresh('target',targetId,'FIND_OWN_AD_BY_ID');
+  if (target?.found !== true || String(target.adId || '') !== targetId
+      || target.evidence !== 'found-in-my-ads-full-pagination-scan'
+      || !Number.isSafeInteger(target.pagesScanned) || target.pagesScanned < 1
+      || !Number.isSafeInteger(target.page) || target.page < 1)
+    throw new Error('KR_PHASE4_JOURNAL_UNVERIFIED');
+  return Object.freeze({
+    profileId:receipt.profileId,sourceAdId:sourceId,newAdId:targetId,
+    sourceAbsent:true,targetPresent:true,
+    sourceEvidence:source.evidence,targetEvidence:target.evidence,
+    sourcePagesScanned:source.pagesScanned,targetPagesScanned:target.pagesScanned,
+    targetFoundPage:target.page
+  });
+}
+
+async function preverifyAndTriggerRenewalSourceDeleteAttempt(session, expectedProfile, windowId, attemptState, resetGeneration, admissionReceipt = null) {
   let deleteTabId = null;
   let deletion = null;
   let transportInterrupted = false;
@@ -338,6 +412,18 @@ async function preverifyAndTriggerRenewalSourceDeleteAttempt(session, expectedPr
       throw new Error('Das aktuell angemeldete Kleinanzeigen-Konto entspricht nicht dem Inventarprofil der Quellanzeige.');
     }
 
+    // Common manual, mass and automatic Phase-4 source-delete boundary.
+    // Store/read back the irreversible uncertainty receipt only after the
+    // fresh My Ads page has independently confirmed the expected profile.
+    // No follow-up DELETE_OWN_AD_BY_ID may run if this admission fails.
+    const attemptReceipt = await beginPhase4Attempt({
+      renewalId: String(session.renewalId || ''),
+      profileId: actualProfile,
+      sourceAdId: String(session.sourceAdId || ''),
+      newAdId: String(session.newAdId || ''),
+      admissionReceipt
+    });
+
     await logDiagnostic('info', 'RENEWAL_PHASE4_ATOMIC_PREVERIFY_DELETE_STARTED', {
       renewalId: session.renewalId,
       sourceAdId: session.sourceAdId,
@@ -351,6 +437,26 @@ async function preverifyAndTriggerRenewalSourceDeleteAttempt(session, expectedPr
       operation: 'renewal-phase-4',
       context: sessionCorrelationContext(session, { renewalId: session.renewalId, adId: session.sourceAdId, workerTabId: deleteTabId })
     }).catch(() => {});
+
+    // The logged-in account can change while the durable intent is written
+    // and read back. Recheck the SAME actual My Ads worker before any remote
+    // DELETE, leaving the immutable attempt unresolved on uncertainty.
+    let postReceiptStatus;
+    try {
+      postReceiptStatus = await sendTabRequestWithBootstrap(deleteTabId, { type: 'MY_ADS_STATUS' });
+    } catch {
+      const code = 'KR_PHASE4_JOURNAL_ACCOUNT_UNVERIFIED';
+      throw Object.assign(new Error(code), { code });
+    }
+    const postReceiptProfile = normalizeProfileName(postReceiptStatus?.profileName || '');
+    if (postReceiptStatus?.isMyAdsPage !== true || postReceiptStatus?.isProjectsTab !== true || !postReceiptProfile) {
+      const code = 'KR_PHASE4_JOURNAL_ACCOUNT_UNVERIFIED';
+      throw Object.assign(new Error(code), { code });
+    }
+    if (postReceiptProfile.toLocaleLowerCase('de-DE') !== actualProfile.toLocaleLowerCase('de-DE')) {
+      const code = 'KR_PHASE4_JOURNAL_ACCOUNT_CHANGED';
+      throw Object.assign(new Error(code), { code });
+    }
 
     try {
       assertResetGeneration(resetGeneration, 'renewal-phase4-before-delete');
@@ -378,13 +484,13 @@ async function preverifyAndTriggerRenewalSourceDeleteAttempt(session, expectedPr
       }).catch(() => {});
     }
 
-    return { deletion, transportInterrupted };
+    return { deletion, transportInterrupted, attemptReceipt };
   } finally {
     if (deleteTabId) await closeManagedWorkerTab(deleteTabId).catch(() => {});
   }
 }
 
-async function finishRenewalReplacement(message) {
+async function finishRenewalReplacement(message, admissionReceipt = null) {
   const resetGeneration = captureResetGeneration();
   await assertMassRenewalManualActionAllowed(message);
   assertResetGeneration(resetGeneration, 'renewal-phase4-start');
@@ -422,6 +528,21 @@ async function finishRenewalReplacement(message) {
 
   const expectedProfile = normalizeProfileName(source?.profileName || candidate?.profileName || '');
   if (!expectedProfile) throw new Error('Die Quellanzeige besitzt keinen bestätigten Profilbezug; Phase 4 wird aus Sicherheitsgründen nicht ausgeführt.');
+  // A crashed worker might already have committed a before-DELETE intent. Never
+  // replay the remote side effect merely because a local renewal retry resumed.
+  // Resolve that exact existing attempt from new independent My Ads tabs.
+  const previousEvidence = await observePhase4Attempts(renewalId);
+  if (!previousEvidence || !Array.isArray(previousEvidence.attempts)
+      || previousEvidence.attempts.length > 1)
+    throw Object.assign(new Error('KR_PHASE4_JOURNAL_UNRESOLVED'),{code:'KR_PHASE4_JOURNAL_UNRESOLVED'});
+  if (previousEvidence.attempts.length) {
+    const oldAttempt = previousEvidence.attempts[0];
+    if (normalizeProfileName(oldAttempt.profileId).toLocaleLowerCase('de-DE')
+          !== expectedProfile.toLocaleLowerCase('de-DE')
+        || oldAttempt.sourceAdId !== String(session.sourceAdId)
+        || oldAttempt.newAdId !== String(session.newAdId))
+      throw Object.assign(new Error('KR_PHASE4_JOURNAL_UNVERIFIED'),{code:'KR_PHASE4_JOURNAL_UNVERIFIED'});
+  }
 
   session.status = 'verified';
   session.stage = 'source-delete-started';
@@ -433,8 +554,25 @@ async function finishRenewalReplacement(message) {
   let deletion = session.sourceDeleteAction || null;
   let deleteTransportInterrupted = Boolean(session.sourceDeleteTransportInterrupted);
   let lastError = null;
+  if (previousEvidence.attempts.length) {
+    const exactAttempt = previousEvidence.attempts[0];
+    // Even an earlier resolved receipt is independently rechecked on return
+    // before local candidate promotion. A failed check keeps the record intact.
+    const confirmed = await resolvePhase4Attempt({
+      renewalId, attemptId: exactAttempt.attemptId
+    });
+    if (confirmed?.state !== 'resolved-confirmed'
+        || confirmed.sourceAdId !== String(session.sourceAdId)
+        || confirmed.newAdId !== String(session.newAdId))
+      throw Object.assign(new Error('KR_PHASE4_JOURNAL_UNVERIFIED'),{code:'KR_PHASE4_JOURNAL_UNVERIFIED'});
+    verification = {
+      verified:true, evidence:confirmed.sourceEvidence,
+      pagesScanned:confirmed.sourcePagesScanned
+    };
+    deleteTransportInterrupted = true;
+  }
 
-  while (renewalPhaseAttemptAvailable(session, 4)) {
+  while (!verification?.verified && renewalPhaseAttemptAvailable(session, 4)) {
     const previousAttempt = renewalAttemptState(session, 4).attempt;
     if (previousAttempt > 0) await delay(renewalPhaseRetryDelayMs(previousAttempt + 1));
     const attemptState = await logRenewalPhaseAttemptStarted(session, 4, 'RENEWAL_PHASE4_ATTEMPT_STARTED', 'renewal-phase-4', {
@@ -446,7 +584,7 @@ async function finishRenewalReplacement(message) {
       // worker before it can resolve a delete control. If the source is already
       // absent, it performs no delete action. This makes preverify + delete atomic
       // in one fresh worker while preserving the independent post-delete full scan.
-      const result = await preverifyAndTriggerRenewalSourceDeleteAttempt(session, expectedProfile, windowId, attemptState, resetGeneration);
+      const result = await preverifyAndTriggerRenewalSourceDeleteAttempt(session, expectedProfile, windowId, attemptState, resetGeneration, admissionReceipt);
       assertResetGeneration(resetGeneration, 'renewal-phase4-after-delete');
       deletion = result.deletion || deletion || null;
       deleteTransportInterrupted = deleteTransportInterrupted || Boolean(result.transportInterrupted);
@@ -481,10 +619,30 @@ async function finishRenewalReplacement(message) {
       verification = await verifyRenewalSourceAbsenceFresh(session, expectedProfile, windowId, attemptState, 'post-delete');
       assertResetGeneration(resetGeneration, 'renewal-phase4-before-promotion');
 
-      if (verification?.verified) break;
+      if (verification?.verified) {
+        // Independent source absence alone cannot prove that the intended
+        // replacement was actually published to the same live account.
+        // The journal resolver confirms BOTH IDs in separate fresh tabs.
+        const confirmed = await resolvePhase4Attempt({
+          renewalId, attemptId: result.attemptReceipt?.attemptId
+        });
+        if (confirmed?.state !== 'resolved-confirmed'
+            || confirmed.sourceAdId !== String(session.sourceAdId)
+            || confirmed.newAdId !== String(session.newAdId))
+          throw Object.assign(new Error('KR_PHASE4_JOURNAL_UNVERIFIED'),{code:'KR_PHASE4_JOURNAL_UNVERIFIED'});
+        verification = {
+          verified:true, evidence:confirmed.sourceEvidence,
+          pagesScanned:confirmed.sourcePagesScanned
+        };
+        break;
+      }
       const pageText = verification?.foundPage ? ` (gefunden auf Seite ${verification.foundPage})` : '';
       throw new Error(`Quellanzeige ist nach der Löschaktion weiterhin in „Meine Anzeigen“ vorhanden${pageText}.`);
     } catch (error) {
+      // A journal denial means no confirmed remote attempt was admitted.
+      // Never classify missing/corrupt/old-worker receipts as a failed delete
+      // or continue automatic retries under an ambiguous MV3 generation.
+      if (String(error?.code || error?.message || '').startsWith('KR_PHASE4_JOURNAL_')) throw error;
       lastError = error;
       session.stage = 'source-delete-retry-pending';
       session.lastError = String(error.message || error).slice(0, 800);
@@ -636,7 +794,8 @@ async function finishRenewalReplacement(message) {
       return Object.freeze({
         removeReplacementReadyLocal, promoteRenewalCandidateAtomic, renewalTargetTabStillOwned, renewalPublishedTargetTabStillOwned,
         closePublishedRenewalTargetTab, retirePublishedRenewalTargetTab, closeCompletedRenewalTargetTab,
-        verifyRenewalSourceAbsenceFresh, preverifyAndTriggerRenewalSourceDeleteAttempt, finishRenewalReplacement
+        verifyRenewalSourceAbsenceFresh, verifyPhase4RemoteOutcomeFresh,
+        preverifyAndTriggerRenewalSourceDeleteAttempt, finishRenewalReplacement
       });
     }
   });

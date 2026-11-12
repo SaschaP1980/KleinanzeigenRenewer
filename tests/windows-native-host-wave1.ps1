@@ -107,7 +107,7 @@ try {
  $id='0123456789abcdef'
  $reply=Run-Host (Frame ('{"protocol":1,"requestId":"'+$id+'","operation":"health"}'))
  Check ($reply.ok -eq $true -and $reply.requestId -ceq $id -and $reply.operation -ceq 'health') 'valid local read-only health message'
- Check (@($reply.capabilities).Count -eq 2 -and @($reply.capabilities) -contains 'health' -and @($reply.capabilities) -contains 'check') 'only health/check exposed'
+ Check (@($reply.capabilities).Count -eq 3 -and @($reply.capabilities) -contains 'health' -and @($reply.capabilities) -contains 'check' -and @($reply.capabilities) -contains 'inspect_transaction') 'health advertises only the three read-only host capabilities'
  $origin='chrome-extension://hafahjhhgiipdegfkgacchmnacgblnah/'
  $health=Frame ('{"protocol":1,"requestId":"'+$id+'","operation":"health"}')
  $nonSlash=Run-Host $health @('chrome-extension://hafahjhhgiipdegfkgacchmnacgblnah','--parent-window=0')
@@ -149,6 +149,56 @@ try {
   $r=Run-Host (Frame ('{"protocol":1,"requestId":"'+$id+'","operation":"health"}'))
   Check ($r.ok -eq $true) 'health remains local with offline delegate'
  } finally { [IO.File]::WriteAllBytes($updater,$real) }
+ # KAR-99 P1.3: authentic NativeHost read-only transaction probe.
+ # The CI-only root is supplied through the host process environment, never
+ # through arbitrary Native Messaging request fields. Nothing touches owner PC.
+ $inspectRoot=Join-Path $base 'transaction-observer-fixture'
+ $previousRoot=$env:KAR_NATIVE_HOST_INSPECT_TEST_ROOT
+ $env:KAR_NATIVE_HOST_INSPECT_TEST_ROOT=$inspectRoot
+ $inspectRequest=Frame ('{"protocol":1,"requestId":"'+$id+'","operation":"inspect_transaction"}')
+ try {
+  $proof=Run-Host $inspectRequest
+  Check ($proof.ok -eq $true -and $proof.operation -ceq 'inspect_transaction' -and
+    $proof.requestId -ceq $id -and $proof.status -ceq 'unverified' -and
+    $proof.journal -ceq 'absent' -and $proof.lock -ceq 'absent') 'missing native transaction artifacts are unverified, never idle'
+  Check ($proof.nativeOutcomeVerified -eq $false -and $proof.rollbackVerified -eq $false -and
+    $proof.eligibleForLease -eq $false) 'absent native artifacts never prove transaction or lease'
+  Check (-not (Test-Path -LiteralPath $inspectRoot)) 'native inspector never creates missing state root'
+  $state=Join-Path $inspectRoot 'State'
+  [void][IO.Directory]::CreateDirectory($state)
+  $pending=Join-Path $state 'pending.json'
+  $lockFile=Join-Path $state 'updater.lock'
+  [IO.File]::WriteAllText($pending,'{malformed transaction journal')
+  $journalHash=(Get-FileHash -LiteralPath $pending -Algorithm SHA256).Hash
+  $proof=Run-Host $inspectRequest
+  Check ($proof.ok -eq $true -and $proof.status -ceq 'blocked' -and
+    $proof.journal -ceq 'present' -and $proof.lock -ceq 'absent') 'malformed pending journal blocks NativeHost assessment'
+  Check ((Get-FileHash -LiteralPath $pending -Algorithm SHA256).Hash -ceq $journalHash) 'NativeHost does not modify transaction journal bytes'
+  [IO.File]::WriteAllText($lockFile,'busy')
+  $proof=Run-Host $inspectRequest
+  Check ($proof.status -ceq 'blocked' -and $proof.journal -ceq 'present' -and
+    $proof.lock -ceq 'present') 'concurrent update lock and journal are both observed'
+  Remove-Item -LiteralPath $pending
+  $proof=Run-Host $inspectRequest
+  Check ($proof.status -ceq 'blocked' -and $proof.journal -ceq 'absent' -and
+    $proof.lock -ceq 'present') 'native lock alone blocks, even without journal'
+  Remove-Item -LiteralPath $lockFile
+  $proof=Run-Host $inspectRequest
+  Check ($proof.status -ceq 'unverified' -and $proof.journal -ceq 'absent' -and
+    $proof.lock -ceq 'absent' -and $proof.nativeOutcomeVerified -eq $false -and
+    $proof.rollbackVerified -eq $false -and $proof.eligibleForLease -eq $false) 'artifact disappearance cannot attest native rollback or completed update'
+  Check (-not (Test-Path -LiteralPath (Join-Path $state 'updater.jsonl'))) 'native inspection never creates updater event log'
+  $env:KAR_NATIVE_HOST_INSPECT_TEST_ROOT='C:\\Windows'
+  $proof=Run-Host $inspectRequest
+  Check ($proof.ok -eq $true -and $proof.status -ceq 'unverified' -and
+    $proof.journal -ceq 'unknown' -and $proof.lock -ceq 'unknown' -and
+    $proof.eligibleForLease -eq $false) 'out-of-TEMP CI root cannot redirect native inspection to real files'
+  $env:KAR_NATIVE_HOST_INSPECT_TEST_ROOT=$inspectRoot
+  Expect-Deny ('{"protocol":1,"requestId":"'+$id+'","operation":"inspect_transaction","path":"C:\\\\unsafe"}') 'INVALID_REQUEST'
+ } finally {
+  $env:KAR_NATIVE_HOST_INSPECT_TEST_ROOT=$previousRoot
+  if (Test-Path -LiteralPath $inspectRoot) { Remove-Item -LiteralPath $inspectRoot -Recurse -Force }
+ }
  & $installer -Action verify @params | Out-Null
  Check ($true) 'receipt intact after protocol tests'
  $failed=$false

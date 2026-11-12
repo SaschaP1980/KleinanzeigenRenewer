@@ -68,7 +68,7 @@ assert.match(resolver, /probeFreshRenewalPublicUrl\(directIdUrl, newAdId, 'id-di
 assert.match(resolver, /findRenewalAdInMyAdsFresh\(newAdId, expectedProfileName, correlation\)/);
 pass('phase 3 uses target-bound fresh tabs for canonical, id-direct and My Ads verification instead of recycling a worker');
 
-const phase4 = background.match(/async function finishRenewalReplacement\(message\) \{[\s\S]*?\n\}\n\nasync function discardRenewalDraft/)?.[0] || '';
+const phase4 = background.match(/async function finishRenewalReplacement\(message(?:, admissionReceipt = null)?\) \{[\s\S]*?\n\}\n\nasync function discardRenewalDraft/)?.[0] || '';
 const phase4Delete = background.match(/async function preverifyAndTriggerRenewalSourceDeleteAttempt[\s\S]*?\n}\n\nasync function finishRenewalReplacement/)?.[0] || '';
 const phase4Verifier = background.match(/async function verifyRenewalSourceAbsenceFresh[\s\S]*?\n}\n\nasync function preverifyAndTriggerRenewalSourceDeleteAttempt/)?.[0] || '';
 assert.match(phase4Delete, /finally \{[\s\S]*closeManagedWorkerTab\(deleteTabId\)/);

@@ -94,7 +94,37 @@ if(typeof api.create==='function') {
       },
       has:()=>true
     });
-    instance=api.create(options);
+    // A journal needs a genuine Worker identity and a safe inert storage port.
+    // The generic proxy intentionally is not a valid durable identity.
+    const sourceOptions = rel.endsWith('/phase4-uncertainty-journal.js')
+      ? {storageLocal:{get:async()=>({}),set:async()=>{}},
+         clock:()=>123456,newToken:()=> 'coverage-probe-attempt-12345',
+         workerInstanceId:'coverage-probe-worker'}
+      : rel.endsWith('/cross-worker-atomic-admission.js')
+      ? {storageLocal:{get:async()=>({}),set:async()=>{}},
+         lockManager:{request:async(_name,_options,callback)=>callback(null)},
+         clock:()=>123456,newToken:()=> 'coverage-probe-atomic-12345',
+         workerInstanceId:'coverage-probe-worker'}
+      : rel.endsWith('/auto-publish-intent-journal.js')
+      ? {storageLocal:{get:async()=>({}),set:async()=>{}},
+         lockManager:{request:async(_name,_options,callback)=>callback(null)},
+         lockName:'kar-updater-global-admission-v1',clock:()=>123456,
+         newToken:()=> 'coverage-probe-publish-12345',
+         workerInstanceId:'coverage-probe-worker'}
+      : rel.endsWith('/trusted-owner-authority.js')
+      ? {storageLocal:{get:async()=>({}),set:async()=>{}},
+         storageSession:{get:async()=>({})},
+         lockManager:{request:async(_name,_options,callback)=>callback(null)},
+         ownerPolicy:{requiredOwners:[
+           'bulkInventory','bulkReconciliation','singleInventory','renewal',
+           'massRenewal','templateFill','archiveInsertion','trashMutation',
+           'insertionLock','managedTabs','profileTransition','accountTransition',
+           'emergencyRecovery','diagnosticExport','nativeUpdateTransaction'
+         ],evaluate:()=>({status:'blocked'})},
+         clock:()=>123456,newToken:()=> 'coverage-probe-authority-12345',
+         workerInstanceId:'coverage-probe-worker'}
+      : options;
+    instance=api.create(sourceOptions);
   } catch(e) { createError=String(e?.message||e); }
 }
 const instanceMethods=instance && typeof instance==='object' ? Object.entries(instance).filter(([,v])=>typeof v==='function').map(([k])=>k) : [];

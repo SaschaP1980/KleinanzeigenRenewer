@@ -167,8 +167,28 @@ assert.equal(groups.KEEP_WINDOWS_KIT,7);
 assert.equal(groups.KEEP_TEST_POLICY,1);
 assert.ok(read('tests/kar97-update-idle-policy.cjs').includes("../lib/update-idle-policy.js"),
   'Non-runtime idle policy still has a historical test consumer');
-assert.ok(!packager.includes("'lib/update-idle-policy.js'"),
-  'Test-only idle policy was accidentally bundled into Chrome runtime');
+// KAR-167's frozen baseline classified this policy as test-only. KAR-99
+// promotes the *pure candidate classifier* into a private Background owner
+// observer: require actual packaged policy + paired trusted authority and
+// verify the owner remains unreachable through public IPC. Do not confuse
+// this code-presence proof with positive all-15 IDLE or updater apply rights.
+if (packager.includes("'lib/update-idle-policy.js'")) {
+  const background = read('src/background/background.js');
+  assert.ok(packager.includes("'src/background/services/update-workflow-fence.js'") &&
+    packager.includes("'src/background/services/trusted-owner-authority.js'"),
+    'Private idle policy requires both the workflow fence and trusted owner authority');
+  assert.ok(background.includes('importScripts("../../lib/update-idle-policy.js", "services/trusted-owner-authority.js");'),
+    'Idle policy may only be loaded through the paired private Background authority');
+  assert.ok(background.includes("KRDeps.require('KRUpdateIdlePolicy')") &&
+    background.includes("KRDeps.require('KRTrustedOwnerAuthority')") &&
+    background.includes('ownerPolicy: UpdateIdlePolicy'),
+    'Private owner authority must explicitly consume the pure policy');
+  assert.ok(!read('src/background/background-message-router.js').includes('KRUpdateIdlePolicy'),
+    'Candidate policy must not be exposed by the public Background message router');
+  assert.doesNotMatch(read('lib/update-idle-policy.js'),
+    /chrome\\.(?:runtime|tabs|storage)|sendNativeMessage|safeToApply/,
+    'Candidate policy must never acquire a Chrome or NativeHost update capability');
+}
 console.log('PASS KAR-167 R1 final repository closure: '+inv.files.length+
   ' original tree paths, 30 blob-identical historical moves, 3 retired tool paths, '+
   srcPaths.length+' packaged source modules, 7 Windows tools, '+

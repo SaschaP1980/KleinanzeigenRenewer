@@ -67,9 +67,12 @@ internal static class Program {
                     Write(new Dictionary<string, object> {
                         { "protocol", ProtocolVersion }, { "requestId", requestId },
                         { "ok", true }, { "operation", "health" }, { "hostVersion", "1" },
-                        { "capabilities", new string[] { "health", "check" } }
+                        { "capabilities", new string[] { "health", "check", "inspect_transaction" } }
                     });
                     return 0;
+                }
+                if (operation == "inspect_transaction") {
+                    Write(InspectTransaction(requestId)); return 0;
                 }
                 if (operation != "check") { Write(Error(requestId, "OPERATION_DENIED")); return 1; }
                 Write(Check(requestId));
@@ -105,6 +108,79 @@ internal static class Program {
         output.Write(header, 0, 4);
         output.Write(bytes, 0, bytes.Length);
         output.Flush();
+    }
+
+
+    // KAR-99 P1.3: read-only, negative-only NativeHost evidence. No transaction
+    // token or MV3 generation is available from this Windows legacy updater.
+    // Never call an updater, change a lock, or assert positive update IDLE.
+    static string InspectRoot() {
+        string testRoot = Environment.GetEnvironmentVariable("KAR_NATIVE_HOST_INSPECT_TEST_ROOT");
+        if (!String.IsNullOrEmpty(testRoot)) {
+            if (Environment.GetEnvironmentVariable("CI") != "true" ||
+                Environment.GetEnvironmentVariable("KAR_NATIVE_HOST_TEST_MODE") != "1")
+                return null;
+            try {
+                string temp = Path.GetFullPath(Path.GetTempPath())
+                    .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+                    + Path.DirectorySeparatorChar;
+                string canonical = Path.GetFullPath(testRoot);
+                return canonical.StartsWith(temp, StringComparison.OrdinalIgnoreCase) ? canonical : null;
+            } catch { return null; }
+        }
+        string local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        return String.IsNullOrEmpty(local) ? null : Path.Combine(local, "KleinanzeigenRenewer");
+    }
+
+    static string ProbeFile(string name) {
+        try {
+            FileAttributes kind = File.GetAttributes(name);
+            if ((kind & FileAttributes.Directory) != 0) return "unknown";
+            return "present";
+        } catch (FileNotFoundException) {
+            return "absent";
+        } catch (DirectoryNotFoundException) {
+            return "absent";
+        } catch {
+            // File.Exists() is forbidden here: access/read errors must not
+            // be silently equated with a safe missing transaction.
+            return "unknown";
+        }
+    }
+
+    static string CombineProof(string a, string b) {
+        if (a == "present" || b == "present") return "present";
+        if (a == "unknown" || b == "unknown") return "unknown";
+        return "absent";
+    }
+
+    static Dictionary<string, object> InspectTransaction(string requestId) {
+        string journal = "unknown", nativeLock = "unknown";
+        try {
+            string root = InspectRoot();
+            if (root != null) {
+                string state = Path.Combine(root, "State");
+                string journalPath = Path.Combine(state, "pending.json");
+                string lockPath = Path.Combine(state, "updater.lock");
+                // Read independently twice; any observed artifact persists as
+                // blocked even if it disappears while the second read runs.
+                string journalFirst = ProbeFile(journalPath);
+                string lockFirst = ProbeFile(lockPath);
+                string journalSecond = ProbeFile(journalPath);
+                string lockSecond = ProbeFile(lockPath);
+                journal = CombineProof(journalFirst, journalSecond);
+                nativeLock = CombineProof(lockFirst, lockSecond);
+            }
+        } catch { journal = "unknown"; nativeLock = "unknown"; }
+        string status = journal == "present" || nativeLock == "present"
+            ? "blocked" : "unverified";
+        return new Dictionary<string, object> {
+            { "protocol", ProtocolVersion }, { "requestId", requestId },
+            { "ok", true }, { "operation", "inspect_transaction" },
+            { "status", status }, { "journal", journal }, { "lock", nativeLock },
+            { "nativeOutcomeVerified", false }, { "rollbackVerified", false },
+            { "eligibleForLease", false }
+        };
     }
 
     static Dictionary<string, object> Check(string requestId) {

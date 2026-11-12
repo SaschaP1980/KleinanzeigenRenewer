@@ -11,6 +11,13 @@ const lock = j('package-lock.json');
 const spec = j('release/release-spec.json');
 const arch = j('docs/history/architecture/architecture-progress-v1.23.22.json');
 const reviewedNative = /^1\.23\.(?:3\d|[4-9]\d|[1-9]\d{2,})$/.test(manifest.version);
+const reviewedFence = fs.existsSync('src/background/services/update-workflow-fence.js') && fs.readFileSync('src/background/background.js','utf8').includes('"services/update-workflow-fence.js"');
+const reviewedPersistedObserver = fs.existsSync('src/background/services/persisted-owner-observer.js') && fs.readFileSync('src/background/background.js','utf8').includes('"services/persisted-owner-observer.js"');
+const reviewedPhase4Journal = fs.existsSync('src/background/services/phase4-uncertainty-journal.js') && fs.readFileSync('src/background/background.js','utf8').includes('"services/phase4-uncertainty-journal.js"');
+const reviewedAdditionalOwners = fs.existsSync('src/background/services/additional-owner-observer.js') && fs.readFileSync('src/background/background.js','utf8').includes('"services/additional-owner-observer.js"') && fs.readFileSync('src/background/background.js','utf8').includes("KRDeps.require('KRAdditionalOwnerObserver')");
+const reviewedAtomicArbiter = fs.existsSync('src/background/services/cross-worker-atomic-admission.js') && fs.readFileSync('src/background/background.js','utf8').includes('"services/cross-worker-atomic-admission.js"') && fs.readFileSync('src/background/background.js','utf8').includes("KRDeps.require('KRAtomicMV3Admission')");
+const reviewedAutoPublishIntent = fs.existsSync('src/background/services/auto-publish-intent-journal.js') && fs.readFileSync('src/background/background.js','utf8').includes('"services/auto-publish-intent-journal.js"') && fs.readFileSync('src/background/background.js','utf8').includes("KRDeps.require('KRAutoPublishIntentJournal')");
+const reviewedTrustedOwner = fs.existsSync('src/background/services/trusted-owner-authority.js') && fs.readFileSync('src/background/background.js','utf8').includes('"services/trusted-owner-authority.js"') && fs.readFileSync('src/background/background.js','utf8').includes("KRDeps.require('KRTrustedOwnerAuthority')") && fs.readFileSync('scripts/package.py','utf8').includes("'src/background/services/trusted-owner-authority.js'");
 const { assertCompatibleCurrentPatch } = require('./current-patch-policy.cjs');
 
 assert.equal(assertCompatibleCurrentPatch({ manifest, pkg, lock, spec }), manifest.version);
@@ -92,8 +99,12 @@ files.sort();
 const tree=crypto.createHash('sha256');
 for(const p of files){ tree.update(p); tree.update('\0'); tree.update(Buffer.from(sha(p),'hex')); }
 const kar134SchemaRuntime = files.includes('src/shared/template-schema-core.js') && files.includes('src/content/template-schema-preflight.js') ? 2 : 0;
-assert.equal(files.length, (reviewedNative ? 103 : 100) + kar134SchemaRuntime);
+assert.equal(files.length, (reviewedAutoPublishIntent ? 109 : reviewedAtomicArbiter ? 108 : reviewedAdditionalOwners ? 107 : reviewedPhase4Journal ? 106 : reviewedPersistedObserver ? 105 : reviewedFence ? 104 : reviewedNative ? 103 : 100) + (reviewedTrustedOwner ? 1 : 0) + kar134SchemaRuntime);
 if(reviewedNative) {
+  if(reviewedFence){ assert.ok(files.includes('src/background/services/update-workflow-fence.js')); assert.match(fs.readFileSync('src/background/background.js','utf8'), /KRDeps\.require\('KRUpdateWorkflowFence'\)/); }
+  if(reviewedAdditionalOwners){ assert.ok(files.includes('src/background/services/additional-owner-observer.js')); assert.match(fs.readFileSync('src/background/background.js','utf8'), /KRDeps\.require\('KRAdditionalOwnerObserver'\)/); }
+  if(reviewedAutoPublishIntent){ assert.ok(files.includes('src/background/services/auto-publish-intent-journal.js')); assert.match(fs.readFileSync('src/background/background.js','utf8'), /KRDeps\.require\('KRAutoPublishIntentJournal'\)/); }
+  if(reviewedAtomicArbiter){ assert.ok(files.includes('src/background/services/cross-worker-atomic-admission.js')); assert.match(fs.readFileSync('src/background/background.js','utf8'), /KRDeps\.require\('KRAtomicMV3Admission'\)/); }
   const allowedAdditions=['src/app/native-update-check-ui.js','src/background/services/native-status-bridge.js','src/background/services/native-update-status-gateway.js'];
   for(const name of allowedAdditions)assert.ok(files.includes(name),name);
   assert.equal(files.filter(x=>allowedAdditions.includes(x)).length,3);
