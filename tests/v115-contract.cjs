@@ -6,7 +6,7 @@ const root = path.join(__dirname, '..');
 const manifest = JSON.parse(fs.readFileSync(path.join(root, 'manifest.json'), 'utf8'));
 const filler = fs.readFileSync(path.join(root, 'template-filler.js'), 'utf8');
 const build = fs.readFileSync(path.join(root, 'scripts/build.sh'), 'utf8');
-const readme = fs.readFileSync(path.join(root, 'README.md'), 'utf8');
+const changelog = fs.readFileSync(path.join(root, 'CHANGELOG.md'), 'utf8');
 let n = 0;
 const pass = name => { n += 1; console.log('PASS ' + name); };
 
@@ -25,8 +25,8 @@ assert.match(filler, /applyLocalPreviewFallback/);
 assert.match(filler, /LOCAL_PREVIEW_URLS/);
 pass('v1.1.5 validates actual thumbnail decoding and provides a local JPEG visual fallback');
 
-assert.match(readme, /Autocomplete- und Bildvorschau-Robustheit ab 1\.1\.5/);
-assert.match(readme, /serverseitigen[\s\S]{0,120}Uploadzustand zu manipulieren/);
+assert.match(changelog, /Autocomplete- und Bildvorschau-Robustheit ab 1\.1\.5/);
+assert.match(changelog, /serverseitigen[\s\S]{0,120}Uploadzustand zu manipulieren/);
 pass('v1.1.5 behavior and local-only preview fallback are documented');
 
 assert.doesNotMatch(filler, /requestSubmit\s*\(/);

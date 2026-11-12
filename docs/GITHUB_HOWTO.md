@@ -1,5 +1,9 @@
 # KAR GitHub How-To & Recovery
 
+## Documentation destinations
+
+For each GitHub implementation, route stable product narrative, supported workflows and installation requirements to root `README.md`; **all version-specific changes** to root `CHANGELOG.md`; durable technical procedures and architecture to `docs/`; and in-progress work, exact commit/PR/CI SHA evidence and recovery checkpoints to the owning Issue's unique Rolling Comment. GitHub Release notes record only actually published artifact identity and highlights, not a substitute changelog. Never add new patch/release diaries to README. The existing coverage gate runs `tests/kar170-documentation-contract.cjs` as a lightweight anti-regression. See `docs/DEVELOPMENT_GUIDELINES.md` §12 for the normative ownership rule.
+
 ## Bootstrap
 
 The single entry point is `docs/INITIAL_PROMPT.md`. A new ChatGPT session must be able to reconstruct the project from GitHub alone.

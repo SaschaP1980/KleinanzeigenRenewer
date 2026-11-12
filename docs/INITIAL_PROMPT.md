@@ -20,6 +20,8 @@ Project prefix:
 
 GitHub is the durable project authority. The Git repository contains the sources; GitHub Issues contain the backlog and implementation history; the canonical Rolling Comment in an Issue contains recoverable in-progress Work state.
 
+Documentation destinations: root `README.md` is the enduring product overview only, root `CHANGELOG.md` is the canonical versioned change history, and normative developer/release/operational instructions belong under `docs/`. Active PR/CI/Wave evidence stays in the owning Issue's canonical Rolling Comment. Never append version-by-version entries to root README.
+
 Previous chats, model memory, local source ZIPs and old chat handovers may be useful hints, but they are never stronger than current GitHub state.
 
 Use the GitHub connector for repository, Issue, PR, commit, workflow and comment state whenever it is available. For private or mutable repository state, do not substitute ordinary web search.
