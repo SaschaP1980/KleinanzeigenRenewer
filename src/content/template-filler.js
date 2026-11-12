@@ -985,32 +985,68 @@
       };
       const stagesDescription = assessment.stageStatuses.map((status, i) =>
         stageLabels[i] + ': ' + (statusLabels[status] || 'Prüfung nicht vollständig')).join(' · ');
-      const issues = assessment.verdict ? [] : [
-        'Nicht alle F1-/F2-/F3-Prüfungen waren vollständig möglich. Die Kategorie wird nicht als unverändert bestätigt.'
-      ];
+      // A proven change is a successful *observation* but still requires
+      // human review. Acknowledgement never accepts/replaces the fingerprint.
+      const review = buildStageChangeReview({
+        base: baseStageResult, category: categoryStageResult,
+        attributes: attributeStageResult
+      });
+      const reviewRequired = review.hasProvenChange;
+      const issues = reviewRequired
+        ? ['Bestätigte Strukturänderungen müssen geprüft werden. Die bisherigen Referenzen bleiben unverändert.']
+        : assessment.verdict ? [] : [
+          'Nicht alle F1-/F2-/F3-Prüfungen waren vollständig möglich. Die Kategorie wird nicht als unverändert bestätigt.'
+        ];
       void diagnostic(fillId, 'KAR134_CATEGORY_CHECK_RESULT', {
         categoryId: expectedCategoryId, verdict: assessment.verdict,
         status: assessment.status, reason: assessment.reason,
         partialEvidence: assessment.partialEvidence,
         stageStatuses: assessment.stageStatuses,
+        reviewRequired, referenceApproved: false,
+        changedStages: review.sections.filter(section => section.verified).map(section => section.stage),
         remotePublishAttempted: false, archivedValuesRead: categoryHintRead,
         categoryNavigationHintsRead: categoryHintRead, archivedNonCategoryValuesRead: false
       }, assessment.verdict ? 'info' : 'warning');
       await runtimeMessage({
         type: 'UPDATE_TEMPLATE_FILL_SESSION', fillId,
-        status: assessment.verdict ? 'complete' : 'needs-review',
-        stage: assessment.verdict ? 'schema-test-category-check' : 'schema-test-category-incomplete',
-        result: { complete: assessment.verdict, issues }
+        status: assessment.verdict && !reviewRequired ? 'complete' : 'needs-review',
+        stage: reviewRequired ? 'schema-test-category-review-required'
+          : assessment.verdict ? 'schema-test-category-check' : 'schema-test-category-incomplete',
+        result: { complete: assessment.verdict && !reviewRequired, issues }
       });
       updatePanel(
-        assessment.verdict ? 'Kategorieprüfung abgeschlossen' : 'Kategorieprüfung: Nicht vollständig',
+        reviewRequired ? 'Kategorieprüfung: Strukturänderung erkannt'
+          : assessment.verdict ? 'Kategorieprüfung abgeschlossen' : 'Kategorieprüfung: Nicht vollständig',
         'Kategorie ' + expectedCategoryId + ' – ' + stagesDescription +
           (assessment.partialEvidence
             ? '. Technische IDs der Zwischenkategorien oder Auswahlwerte sind nicht vollständig belegt.' : '') +
           ' Eine Veröffentlichung wurde nicht durchgeführt.',
-        issues, { safetyText: 'NUR STRUKTURPRÜFUNG – keine Anzeigenwerte, keine Bilder und keine Veröffentlichung.' }
+        issues, { safetyText: 'NUR STRUKTURPRÜFUNG – keine weiteren Anzeigenwerte, keine Bilder und keine Veröffentlichung.' }
       );
+      if (reviewRequired) {
+        void diagnostic(fillId, 'KAR134_CHANGE_REVIEW_SHOWN', {
+          categoryId: expectedCategoryId,
+          changedStages: review.sections.filter(section => section.verified).map(section => section.stage),
+          hasUncertainty: review.hasUncertainty, referenceApproved: false,
+          remotePublishAttempted: false
+        }, 'warning');
+        showStageChangeReviewDialog(review, {
+          onAcknowledge: () => {
+            void diagnostic(fillId, 'KAR134_CHANGE_REVIEW_ACKNOWLEDGED', {
+              categoryId: expectedCategoryId, referenceApproved: false,
+              referenceWrites: 0, remotePublishAttempted: false
+            });
+          },
+          onDefer: () => {
+            void diagnostic(fillId, 'KAR134_CHANGE_REVIEW_DEFERRED', {
+              categoryId: expectedCategoryId, referenceApproved: false,
+              referenceWrites: 0, remotePublishAttempted: false
+            });
+          }
+        });
+      }
       return { schemaTest: true, scenario, verdict: assessment.verdict,
+        reviewRequired, referenceApproved: false,
         publishTriggered: false, issues };
     }
     if (syntheticStageDrift) {
