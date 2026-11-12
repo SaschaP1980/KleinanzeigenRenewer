@@ -1157,8 +1157,95 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
     assert.ok(!block.includes('requestSubmit('));assert.ok(!block.includes('uploadImages('));
     assert.ok(!block.includes('autoPublishVerifiedRenewal('));
   });
-  assert.equal(passed,73,'KAR-134 preflight regression count must remain complete');
-  console.log(passed+'/73 PASS KAR-134 schema capture/preflight');
+  // Step 4 real adoption policy: entirely distinct from the isolated sandbox.
+  const realApprovalPolicy = () => {
+    const start = fillerSource.indexOf('  // KAR-134 L4 real reference adoption');
+    const end = fillerSource.indexOf('  // KAR-134 K3 synthetic fingerprint warning proof',start);
+    assert.ok(start > 0 && end > start,'genuine baseline adoption policy must exist');
+    return vm.runInNewContext(fillerSource.slice(start,end)+
+      '\n({buildRealSchemaAdoptionPlan,showStageChangeReviewDialog});',
+      {Object,Array,Set,Map,SchemaCore:Schema}, {filename:'kar134-real-adoption-policy.js'});
+  };
+  const realResults = () => ({
+    base:{status:'unchanged',previousFingerprint:'a'.repeat(64),currentFingerprint:'a'.repeat(64),changes:[]},
+    category:{status:'not-fully-verified',previousFingerprint:'b'.repeat(64),currentFingerprint:'b'.repeat(64),changes:[]},
+    attributes:{status:'changed',previousFingerprint:'c'.repeat(64),currentFingerprint:'d'.repeat(64),
+      changes:[{type:'field-added',key:'attribute:wearables.new_feature'}]}
+  });
+  const realEvidence = () => ({
+    base:stageFixture().base,category:stageFixture().category,attributes:stageFixture().attributes
+  });
+  await check('real F3 adoption requires exact category and stable F1/F2 structural evidence',()=>{
+    const {buildRealSchemaAdoptionPlan}=realApprovalPolicy();
+    const plan=buildRealSchemaAdoptionPlan(realResults(),realEvidence(),{
+      categoryId:'405',fillId:'owner-real-405'});
+    assert.equal(plan.eligible,true);
+    assert.equal(plan.stage,'attributes');
+    assert.equal(plan.categoryId,'405');
+    assert.equal(plan.oldFingerprint,'c'.repeat(64));
+    assert.equal(plan.newFingerprint,'d'.repeat(64));
+    assert.equal(plan.fillId,'owner-real-405');
+    assert.ok(!JSON.stringify(plan).includes('PRIVATE'));
+  });
+  await check('real reference adoption denies uncertain F3, unproven F2, F1 drift and mismatched leaf',()=>{
+    const {buildRealSchemaAdoptionPlan}=realApprovalPolicy();
+    const decide=(results=realResults(),observed=realEvidence(),categoryId='405')=>
+      buildRealSchemaAdoptionPlan(results,observed,{categoryId,fillId:'owner-real-405'});
+    assert.equal(decide({...realResults(),attributes:{
+      ...realResults().attributes,changes:[{type:'option-evidence-uncertain',key:'attribute:x'}]}}).eligible,false);
+    assert.equal(decide({...realResults(),category:{
+      ...realResults().category,previousFingerprint:'a'.repeat(64)}}).eligible,false);
+    assert.equal(decide({...realResults(),base:{
+      ...realResults().base,status:'changed'}}).eligible,false);
+    assert.equal(decide({...realResults(),attributes:{
+      ...realResults().attributes,oldFingerprint:'d'.repeat(64),
+      previousFingerprint:'d'.repeat(64)}}).eligible,false);
+    assert.equal(decide(realResults(),realEvidence(),'159').eligible,false);
+    const unverified=realEvidence();
+    unverified.category={...unverified.category,leafConfirmed:false};
+    assert.equal(decide(realResults(),unverified).eligible,false);
+  });
+  await check('real F2 with missing parent numeric IDs never obtains approval',()=>{
+    const {buildRealSchemaAdoptionPlan}=realApprovalPolicy();
+    const results=realResults();
+    results.category={...results.category,status:'changed',previousFingerprint:'b'.repeat(64),
+      currentFingerprint:'e'.repeat(64),changes:[{type:'category-depth-changed',before:4,after:3}]};
+    results.attributes={...results.attributes,status:'unchanged',
+      previousFingerprint:'d'.repeat(64),currentFingerprint:'d'.repeat(64),changes:[]};
+    assert.equal(buildRealSchemaAdoptionPlan(results,realEvidence(),{
+      categoryId:'405',fillId:'owner-real-405'}).eligible,false);
+  });
+  await check('real approval dialog requires second explicit click and never enables simulation control',()=>{
+    const {buildRealSchemaAdoptionPlan,showStageChangeReviewDialog}=realApprovalPolicy();
+    const {buildStageChangeReview}=reviewHelpers();
+    const {document}=parseHTML('<html><body></body></html>');
+    const review=buildStageChangeReview(realResults(),{categoryEvidence:'partial-ids'});
+    const plan=buildRealSchemaAdoptionPlan(realResults(),realEvidence(),{
+      categoryId:'405',fillId:'owner-real-405'});
+    let commits=0,acknowledges=0;
+    showStageChangeReviewDialog(review,{documentRoot:document,
+      realAdoptionPlan:plan,onRealApprove:()=>{commits++;},
+      onAcknowledge:()=>{acknowledges++;}});
+    const dialog=document.querySelector('[role="dialog"]');
+    assert.ok(dialog);
+    const initial=[...dialog.querySelectorAll('button')];
+    assert.equal(initial.length,3,'eligible real review gains an additional action');
+    assert.match(initial[2].textContent,/F3|Strukturreferenz/);
+    initial[2].click();
+    assert.equal(commits,0,'first click must only open explicit confirmation');
+    assert.ok(document.querySelector('[role="dialog"]'));
+    const followUp=[...document.querySelectorAll('[role="dialog"] button')];
+    assert.match(document.querySelector('[role="dialog"]').textContent,/bestätig|endgültig|unwiderruflich/i);
+    assert.equal(followUp.length,2,'second step must support cancellation');
+    followUp[1].click();
+    assert.equal(commits,1);
+    assert.equal(acknowledges,0);
+    assert.equal(document.querySelector('[role="dialog"]'),null);
+    showStageChangeReviewDialog(review,{documentRoot:document,realAdoptionPlan:{eligible:false}});
+    assert.equal(document.querySelectorAll('[role="dialog"] button').length,2);
+  });
+  assert.equal(passed,77,'KAR-134 preflight regression count must remain complete');
+  console.log(passed+'/77 PASS KAR-134 schema capture/preflight');
 
 
 
