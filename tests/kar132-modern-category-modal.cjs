@@ -14,7 +14,7 @@ let passed = 0;
 
 function fixture({ committedId = '154', disableConfirmation = false, duplicateLeaf = false,
   activePath = categoryPath, formSuggestions = [], misleadingWearablesBranch = false, misleadingBranchName = null, extraLeafChoices = [], disabledLeaf = false,
-  delayedWearablesSuggestionAtQuery = 0 } = {}) {
+  delayedWearablesSuggestionAtQuery = 0, delayedInitialChoices = false } = {}) {
   const formRadio = ({ id, path }) => '<label><input type="radio" name="category-suggestions" value="' +
     id + '">' + path.join(' → ') + '</label>';
   const formSuggestionHtml = '<fieldset id="ad-category-picker" aria-label="Kategorienvorschläge">' +
@@ -82,7 +82,11 @@ function fixture({ committedId = '154', disableConfirmation = false, duplicateLe
       mount.innerHTML = '';
     };
   }
-  chooser.click = () => { activity.opens += 1; render(); };
+  chooser.click = () => {
+    activity.opens += 1;
+    render();
+    if (delayedInitialChoices) mount.querySelector('ul').replaceChildren();
+  };
   if (delayedWearablesSuggestionAtQuery > 0) {
     const rawQuery = form.querySelectorAll.bind(form);
     let probeCount = 0;
@@ -97,7 +101,7 @@ function fixture({ committedId = '154', disableConfirmation = false, duplicateLe
       return rawQuery(selector);
     };
   }
-  return { document, form, activity };
+  return { document, form, activity, hydrateChoices: () => render() };
 }
 
 function makeFlow(extraOptions = {}) {
@@ -128,6 +132,33 @@ function makeFlow(extraOptions = {}) {
     assert.deepEqual(result, { confirmed: true, pendingNavigation: false });
     assert.deepEqual(activity.clicked, categoryPath);
     assert.equal(activity.opens, 1, 'must not retry-click opener when modal opens on same route');
+    assert.equal(activity.confirms, 1);
+    passed++;
+  }
+  // KAR-134 native v1.23.68: category IDs 159 and 22 fail at the first
+  // root item when the modal is open but the choices have not hydrated yet.
+  // These synthetic paths contain a complete selectable leaf; they prove only
+  // the async list/readiness behaviour, not the historical live leaf mapping.
+  for (const [categoryId, root] of [['159', 'Mode & Beauty'], ['22', 'Familie, Kind & Baby']]) {
+    const syntheticPath = [root, 'Fixture-Endkategorie'];
+    const { activity, hydrateChoices } = fixture({ committedId: categoryId,
+      activePath: syntheticPath, delayedInitialChoices: true });
+    let hydrated = false;
+    const flow = makeFlow({ waitFor: async (getter, config = {}) => {
+      for (let poll = 0; poll < 4; poll += 1) {
+        const current = getter();
+        if (current) return current;
+        if (activity.opens > 0 && !hydrated) {
+          hydrateChoices();
+          hydrated = true;
+        }
+      }
+      throw new Error(config.description || 'wait timed out');
+    }});
+    assert.deepEqual(await flow.setCategory({ categoryId, categoryPath: syntheticPath },
+      'kar134-late-root-' + categoryId), { confirmed: true, pendingNavigation: false });
+    assert.equal(hydrated, true, 'category choices must be awaited rather than assumed ready');
+    assert.deepEqual(activity.clicked, syntheticPath);
     assert.equal(activity.confirms, 1);
     passed++;
   }
@@ -528,5 +559,5 @@ function makeFlow(extraOptions = {}) {
     assert.equal(fired,false,'preselected category cannot be passed off as observed category navigation');
     passed++;
   }
-  console.log(passed + '/40 PASS KAR-132/KAR-143/KAR-134 modern same-page category modal safety');
+  console.log(passed + '/42 PASS KAR-132/KAR-143/KAR-134 modern same-page category modal safety');
 })().catch(error => { console.error(error); process.exitCode = 1; });
