@@ -1,6 +1,6 @@
 # KAR Development Operations — Configuration Record
 
-> **Scope/status (2026-10-12):** This is an initial, narrowly scoped repository-configuration record. The full first-time setup and operational runbook are still pending in [KAR-35](https://github.com/SaschaP1980/KleinanzeigenRenewer/issues/35) and [KAR-36](https://github.com/SaschaP1980/KleinanzeigenRenewer/issues/36). Do not interpret this first entry as completion of those Waves. The authoritative development and safety contracts remain in [DEVELOPMENT_GUIDELINES.md](DEVELOPMENT_GUIDELINES.md), [GITHUB_HOWTO.md](GITHUB_HOWTO.md), and the current workflows.
+> **Historical scope/status (2026-10-12):** This is an initial, narrowly scoped repository-configuration record. The fuller setup/runbook work was subsequently tracked and the corresponding Issues closed in [KAR-35](https://github.com/SaschaP1980/KleinanzeigenRenewer/issues/35) and [KAR-36](https://github.com/SaschaP1980/KleinanzeigenRenewer/issues/36). This archived configuration record does not itself prove completion or current settings; consult those Issues and read current GitHub configuration. The authoritative development and safety contracts remain in [DEVELOPMENT_GUIDELINES.md](DEVELOPMENT_GUIDELINES.md), [GITHUB_HOWTO.md](GITHUB_HOWTO.md), and the current workflows.
 
 ## GitHub main-branch ruleset — owner-selected baseline
 

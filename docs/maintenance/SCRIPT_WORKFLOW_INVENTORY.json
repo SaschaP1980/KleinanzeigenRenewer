@@ -1,0 +1,172 @@
+{
+  "schema": 1,
+  "issue": 167,
+  "referenceCommit": "1497174cebd241568486ec395d2440af17ace3c3",
+  "classification": "Retain execution/CI/contract/standalone supported; retire only documented superseded and nonreferenced one-shot.",
+  "scripts": [
+    {
+      "path": "scripts/archive-release-zip.sh",
+      "status": "release-active",
+      "evidence": "kar-release.yml directly invokes it after publication; byte-for-byte committed archive parity"
+    },
+    {
+      "path": "scripts/build.sh",
+      "status": "release-active",
+      "evidence": "release-pipeline.sh invokes regression/build/reproducibility stages; historical contracts inspect it"
+    },
+    {
+      "path": "scripts/coverage-gate.sh",
+      "status": "ci-active",
+      "evidence": "kar-ci.yml, kar-work-pr.yml, kar-release.yml and release-pipeline.sh run this mandatory gate"
+    },
+    {
+      "path": "scripts/coverage-no-regression.cjs",
+      "status": "ci-active",
+      "evidence": "coverage-gate.sh runs it to prevent line, branch and public API regressions"
+    },
+    {
+      "path": "scripts/js-ast-loader.cjs",
+      "status": "ci-active",
+      "evidence": "runtime-api-inventory.cjs and v12319-coverage-report.cjs require the shared Acorn loader"
+    },
+    {
+      "path": "scripts/kar-atomic-patch.py",
+      "status": "ci-active",
+      "evidence": "kar-atomic-patch.yml exact-SHA guarded Work builder; kar-fast-patch.py imports shared implementation"
+    },
+    {
+      "path": "scripts/kar-fast-patch.py",
+      "status": "ci-active",
+      "evidence": "kar-fast-patch.yml exact-main guarded Fast PATCH process"
+    },
+    {
+      "path": "scripts/kar-issue-title.cjs",
+      "status": "ci-active",
+      "evidence": "kar-work-pr-contract.cjs requires this Issue identity validator"
+    },
+    {
+      "path": "scripts/kar-work-pr-contract.cjs",
+      "status": "ci-active",
+      "evidence": "kar-work-pr.yml uses exact-head Rolling Comment contract; preflight also imports it"
+    },
+    {
+      "path": "scripts/kar-work-pr-preflight.cjs",
+      "status": "ci-active",
+      "evidence": "kar-atomic-patch.yml uses SHA/issue/comment preflight"
+    },
+    {
+      "path": "scripts/package-oneclick-setup.py",
+      "status": "support-standalone",
+      "evidence": "tests/kar94-setup-package.cjs invokes --check; Windows end-user setup needs reproducible kit"
+    },
+    {
+      "path": "scripts/package.py",
+      "status": "ci-active",
+      "evidence": "kar-ci.yml, kar-work-pr.yml and release paths package the exact Chrome MV3 runtime"
+    },
+    {
+      "path": "scripts/public-api-probe-child.cjs",
+      "status": "runtime-test-support",
+      "evidence": "tests/v12319-public-api-execution-closure.cjs spawns this isolated public API probe"
+    },
+    {
+      "path": "scripts/release-finalize-gate.sh",
+      "status": "release-active",
+      "evidence": "release-pipeline.sh invokes this mandatory release-finalization safety gate"
+    },
+    {
+      "path": "scripts/release-notes.sh",
+      "status": "release-active",
+      "evidence": "kar-release.yml renders publication notes using this script"
+    },
+    {
+      "path": "scripts/release-pipeline.sh",
+      "status": "support-standalone",
+      "evidence": "release-supervisor.sh launches this sequence; historical release/architecture tests inspect it"
+    },
+    {
+      "path": "scripts/release-status-heartbeat.py",
+      "status": "support-standalone",
+      "evidence": "release-supervisor.sh invokes heartbeat snapshots for detached release operations"
+    },
+    {
+      "path": "scripts/release-supervisor.sh",
+      "status": "support-standalone",
+      "evidence": "historical and native release-supervisor operation supported by tests/v12310-release-supervisor-hardening.cjs"
+    },
+    {
+      "path": "scripts/release_finalize.py",
+      "status": "release-active",
+      "evidence": "release-finalize-gate.sh invokes it; requires scripts/source-layout.json exact path"
+    },
+    {
+      "path": "scripts/runtime-api-inventory.cjs",
+      "status": "ci-active",
+      "evidence": "coverage-gate.sh generates public API manifest; v12319-coverage-report.cjs uses its Acorn machinery"
+    },
+    {
+      "path": "scripts/source-layout.json",
+      "status": "legacy-but-required",
+      "evidence": "release_finalize.py reads exact scripts/source-layout.json for historical source closure; tests/v1237-version-architecture.cjs also loads it"
+    },
+    {
+      "path": "scripts/v12319-architecture-audit.cjs",
+      "status": "ci-active",
+      "evidence": "coverage-gate.sh runs this for architecture/cycle/no-regression evidence"
+    },
+    {
+      "path": "scripts/v12319-coverage-report.cjs",
+      "status": "ci-active",
+      "evidence": "coverage-gate.sh runs current authoritative public/line/branch report; supersedes older stdout-only analyzer"
+    },
+    {
+      "path": "scripts/verify_committed_chrome_zip.py",
+      "status": "ci-active",
+      "evidence": "kar-ci.yml, kar-work-pr.yml and release tests enforce byte-identical committed Chrome ZIP"
+    }
+  ],
+  "workflows": [
+    {
+      "path": ".github/workflows/kar-atomic-patch.yml",
+      "status": "ci-active",
+      "evidence": "workflow_dispatch and guarded work/KAR-* builder; invokes kar-work-pr-preflight and kar-atomic-patch.py"
+    },
+    {
+      "path": ".github/workflows/kar-ci.yml",
+      "status": "ci-active",
+      "evidence": "main push CI coverage, exact source-package parity and Chromium E2E"
+    },
+    {
+      "path": ".github/workflows/kar-fast-patch.yml",
+      "status": "ci-active",
+      "evidence": "main push with explicit guarded Fast PATCH marker; auto skip otherwise"
+    },
+    {
+      "path": ".github/workflows/kar-release.yml",
+      "status": "release-active",
+      "evidence": "explicit manual publication; approved gates and archive-release-zip.sh"
+    },
+    {
+      "path": ".github/workflows/kar-work-pr.yml",
+      "status": "ci-active",
+      "evidence": "PR exact-head Rolling Comment, runtime/safety, Windows and Chromium four-job gate"
+    }
+  ],
+  "retired": [
+    {
+      "path": "scripts/coverage-analyze.cjs",
+      "sha": "2844df747a127bbb227c496993e5ec7d902decfb",
+      "reason": "Older stdout-only V8 public-function summary; not invoked by current package scripts, workflow YAML, release pipeline, current coverage gate or inspected doc entrypoints. v12319-coverage-report.cjs + coverage-no-regression.cjs are mandatory, richer authoritative successors. New S1 scan guards against executable in-repo references; original Git blob stays retrievable in history."
+    },
+    {
+      "path": "scripts/kar50-atomic-patch.py",
+      "sha": null,
+      "reason": "Retired by prior KAR-167 root checkpoint; one-shot version-pinned KAR-50 builder was superseded by generic kar-atomic-patch.py."
+    },
+    {
+      "path": ".github/workflows/kar50-atomic-next-patch.yml",
+      "sha": null,
+      "reason": "Retired by prior KAR-167 root checkpoint; dedicated work/KAR-50 workflow no longer used."
+    }
+  ]
+}

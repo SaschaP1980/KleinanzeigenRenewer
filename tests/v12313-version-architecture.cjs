@@ -3,7 +3,7 @@ const fs=require('node:fs'),assert=require('node:assert/strict');
 const manifest=JSON.parse(fs.readFileSync('manifest.json','utf8'));
 const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
 const spec=JSON.parse(fs.readFileSync('release/release-spec.json','utf8'));
-const progressPath='architecture-progress-v1.23.13.json';
+const progressPath='docs/history/architecture/architecture-progress-v1.23.13.json';
 const parts=v=>String(v||'').split('.').map(Number);const atLeast=(v,b)=>{const a=parts(v),c=parts(b);for(let i=0;i<3;i++){if((a[i]||0)!==(c[i]||0))return (a[i]||0)>(c[i]||0)}return true};
 let n=0;const p=(m,f)=>{f();n++;console.log('PASS '+m)};
 p('v1.23.13 owner record remains intact while later regular releases may advance',()=>{if(manifest.version==='1.23.13'){assert.ok(manifest.version_name===undefined||['1.23.13_c1','1.23.13_c2'].includes(manifest.version_name));assert.equal(pkg.version,'1.23.13');assert.equal(pkg.displayVersion,'1.23.13');assert.equal(spec.version,'1.23.13');assert.equal(spec.packageVersion,manifest.version_name||'1.23.13')}else{assert.ok(atLeast(manifest.version,'1.23.14'));assert.equal(pkg.version,manifest.version);assert.equal(pkg.displayVersion,manifest.version);assert.equal(spec.version,manifest.version)}});
