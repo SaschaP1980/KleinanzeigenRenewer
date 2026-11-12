@@ -849,7 +849,22 @@
       return inspectTransitionCallbackClosureReadOnly('accountTransition',
         new Set(['RECOGNIZE_PROFILE','PROBE_LIVE_KLEINANZEIGEN_ACCOUNT']));
     }
-    return Object.freeze({observe,observeAll,track,snapshotInFlight,readVerifiedUnmanagedTabsReadOnly,inspectDiagnosticExportClosureReadOnly,inspectTrashMutationClosureReadOnly,inspectSingleInventoryClosureReadOnly,inspectProfileTransitionClosureReadOnly,inspectAccountTransitionClosureReadOnly});
+    // KAR-99 P1.3: exact historical autonomous bulk-recovery callbacks.
+    // Reuse the double-read, same-revision P8 source/provenance checks;
+    // callback settlement does not prove any durable recovery result.
+    // Routed emergency resets, remote/detached renewals and every unknown
+    // operation are deliberately not eligible for this finite evidence.
+    async function inspectEmergencyRecoveryClosureReadOnly() {
+      const historical=await inspectTransitionCallbackClosureReadOnly(
+        'emergencyRecovery',new Set([
+          'AUTONOMOUS:bulk-runtime-recovery',
+          'AUTONOMOUS:bulk-watchdog'
+        ]));
+      return Object.freeze({...historical,
+        eligibleForLease:false,recoveryStateVerified:false,
+        priorGenerationClosed:false,detachedWorkVerified:false});
+    }
+    return Object.freeze({observe,observeAll,track,snapshotInFlight,readVerifiedUnmanagedTabsReadOnly,inspectDiagnosticExportClosureReadOnly,inspectTrashMutationClosureReadOnly,inspectSingleInventoryClosureReadOnly,inspectProfileTransitionClosureReadOnly,inspectAccountTransitionClosureReadOnly,inspectEmergencyRecoveryClosureReadOnly});
   }
   const API=Object.freeze({create,OWNERS,ownersForOperation});
   globalThis.KRDeps?.register?.('KRAdditionalOwnerObserver',API);
