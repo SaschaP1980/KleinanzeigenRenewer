@@ -146,10 +146,14 @@
     throw lastError || new Error(`${description} wurde nicht rechtzeitig verfügbar.`);
   }
 
+  let stagedCategoryPathEvidence = null;
+  let stageMonitorWarnings = [];
+
   const TemplateCategoryFlow = KRDeps.require('KRTemplateCategoryFlow').create({
     CATEGORY_PATH, LEGACY_ACTION_DELAY_MS, INTERACTION_SETTLE_MS, CATEGORY_OPEN_LOCAL_CONFIRM_MS,
     CATEGORY_OPEN_LOCAL_RETRY_DELAY_MS, LOCAL_INTERACTION_ATTEMPTS_DEFAULT, clean, sleep, actionText,
-    runtimeMessage, diagnostic, visible, visibleText, waitFor, updatePanel
+    runtimeMessage, diagnostic, visible, visibleText, waitFor, updatePanel,
+    onCategoryPathConfirmed: evidence => { stagedCategoryPathEvidence = evidence; }
   });
   const {
     resolveCategoryNavigationUrl, normalizeLocalInteractionAttempts, settleAfterInteraction, setCategory,
@@ -201,6 +205,34 @@
     return panel;
   }
 
+  function renderSchemaMonitorWarnings(panel) {
+    panel.querySelector('#kr134-schema-monitor-warnings')?.remove();
+    if (!stageMonitorWarnings.length) return;
+    const region = document.createElement('div');
+    region.id = 'kr134-schema-monitor-warnings';
+    region.setAttribute('role', 'status');
+    region.style.cssText = 'margin-top:10px;padding:8px;border-radius:6px;border:1px solid #b38b36;color:#ffdb8c;background:#372e17;font-size:12px';
+    const heading = document.createElement('strong');
+    heading.textContent = 'Hinweis zur Formularstruktur';
+    region.append(heading);
+    const list = document.createElement('ul');
+    list.style.cssText = 'margin:5px 0 0;padding-left:17px';
+    for (const message of stageMonitorWarnings.slice(0, 4)) {
+      const item = document.createElement('li');
+      item.textContent = message;
+      list.append(item);
+    }
+    region.append(list);
+    panel.append(region);
+  }
+  function registerSchemaMonitorWarning(message) {
+    const safe = String(message || '').slice(0, 320);
+    if (!safe || stageMonitorWarnings.includes(safe)) return;
+    stageMonitorWarnings = [...stageMonitorWarnings, safe].slice(0, 4);
+    const panel = document.getElementById('kr-template-fill-status');
+    if (panel) renderSchemaMonitorWarnings(panel);
+  }
+
   function updatePanel(title, text, issues = [], options = {}) {
     const panel = ensurePanel();
     panel.style.display = 'block';
@@ -241,6 +273,7 @@
       safety.style.cssText = 'margin-top:8px;color:#77e8ca;font-weight:700';
       panel.append(safety);
     }
+    renderSchemaMonitorWarnings(panel);
   }
 
   async function runPostFillSession(session) {
@@ -435,6 +468,134 @@
     });
   }
 
+  // KAR-134 K2 monitoring helpers: strictly read-only site structure only.
+  // No listing titles, descriptions, account information, field values,
+  // images, platform tokens or transient DOM IDs enter the stored snapshots.
+  function captureCategoryNeutralForm(form, isVisible = visible, textOf = visibleText) {
+    if (!form?.querySelectorAll) return { status: 'form-not-available' };
+    const categoryInputs = [...form.querySelectorAll('input[name="categoryId"]')];
+    if (categoryInputs.length !== 1) return { status: 'category-control-unverified' };
+    const selected = String(categoryInputs[0].value ?? '').trim();
+    if (selected && selected !== '0') return { status: 'category-already-selected' };
+    if (form.querySelector('[aria-busy="true"]')) return { status: 'form-not-settled' };
+    const candidates = [...form.querySelectorAll('button,a')].filter(element =>
+      isVisible(element) && /wähle deine kategorie|kategorie ändern/i.test(textOf(element)));
+    if (candidates.length > 1) return { status: 'category-chooser-ambiguous' };
+    const chooser = candidates.length ? (candidates[0].tagName === 'A' ? 'link' : 'button') : 'missing';
+    const groups = new Map();
+    for (const element of form.querySelectorAll('input[name],textarea[name],select[name]')) {
+      const type = String(element.getAttribute('type') || element.tagName || '').toLowerCase();
+      if (['hidden', 'password', 'file'].includes(type) || !isVisible(element)) continue;
+      const name = String(element.getAttribute('name') || '');
+      // An unsupported visible technical key is incomplete evidence, not
+      // authority to fingerprint a convenient but silently partial subset.
+      if (!/^[a-zA-Z][a-zA-Z0-9_.:-]{0,127}$/.test(name))
+        return { status: 'unsupported-visible-field' };
+      const controls = groups.get(name) || [];
+      controls.push({ element, type });
+      groups.set(name, controls);
+    }
+    const fields = [];
+    for (const [name, controls] of groups) {
+      if (controls.length > 1 && !controls.every(control => control.type === 'radio'))
+        return { status: 'ambiguous-visible-field' };
+      const source = controls[0], isRadio = source.type === 'radio';
+      const isSelect = source.element.tagName === 'SELECT';
+      fields.push({
+        name, visible: true,
+        controlType: isRadio ? 'radio' : (source.element.getAttribute('type') ||
+          source.element.tagName.toLowerCase()),
+        requiredState: controls.some(control => control.element.hasAttribute('required') ||
+          control.element.getAttribute('aria-required') === 'true') ? 'required' : 'unknown',
+        optionsComplete: isRadio || isSelect,
+        options: isRadio ? controls.map(control => ({ value: control.element.value }))
+          : isSelect ? [...source.element.querySelectorAll('option')].map(option => ({ value: option.value }))
+            : []
+      });
+    }
+    return { status: 'observed',
+      schema: SchemaCore.buildBaseSchema({
+        formMode: 'posting-create', ready: true, categorySelected: false,
+        categoryChooser: chooser, fields
+      }) };
+  }
+
+  // One independent no-PII baseline per exact observation stage/context.
+  // A drift is never auto-accepted as the new reference: the original
+  // fingerprint remains available until an explicit future review action.
+  async function monitorSchemaStage(stage, snapshot, fillId, {
+    storage = chrome.storage?.local, onWarning = registerSchemaMonitorWarning,
+    log = diagnostic
+  } = {}) {
+    const hashFn = stage === 'base' ? SchemaCore.baseFingerprint
+      : stage === 'category' ? SchemaCore.categoryFingerprint
+        : stage === 'attributes' ? SchemaCore.fingerprint : null;
+    const diffFn = stage === 'base' ? SchemaCore.diffBaseSchemas
+      : stage === 'category' ? SchemaCore.diffCategorySchemas
+        : stage === 'attributes' ? SchemaCore.diff : null;
+    if (!hashFn || !diffFn) throw new Error('Unbekannte Schema-Fingerprint-Stufe');
+    const categoryId = stage === 'base' ? null : String(snapshot?.categoryId || '');
+    if (stage !== 'base' && !/^[1-9][0-9]*$/.test(categoryId))
+      throw new Error('Kategorie für den Schema-Monitor nicht eindeutig');
+    if (stage === 'category' && (!snapshot.leafConfirmed || !snapshot.observedPath))
+      return { status: 'not-observed', currentFingerprint: null };
+    const key = 'kr134:stage-monitor:v1:' + stage + ':' +
+      (stage === 'base' ? String(snapshot.formMode || '') : categoryId);
+    const notices = {
+      base: 'Basisformular',
+      category: 'Kategoriehierarchie',
+      attributes: 'Kategorieformular'
+    };
+    const label = notices[stage];
+    let currentFingerprint = null, previousFingerprint = null;
+    const notify = text => { if (typeof onWarning === 'function') onWarning(text); };
+    const audit = (status, changes = []) => {
+      void Promise.resolve(log(fillId, 'KAR134_STAGE_MONITOR_RESULT', {
+        stage, categoryId, status, oldFingerprint: previousFingerprint, newFingerprint: currentFingerprint,
+        changeTypes: changes.map(change => change.type).slice(0, 50)
+      }, ['changed','uncertain','invalid-reference','monitor-unavailable'].includes(status) ? 'warning' : 'info')).catch(() => {});
+      return { status, previousFingerprint, currentFingerprint, changes };
+    };
+    try {
+      currentFingerprint = await hashFn(snapshot);
+      if (!storage?.get || !storage?.set) throw new Error('Schema reference store unavailable');
+      const loaded = await storage.get(key);
+      const saved = loaded?.[key];
+      if (saved === undefined) {
+        // First observation establishes a reference, NOT evidence of no drift.
+        await storage.set({ [key]: { schemaVersion: 1, snapshot, fingerprint: currentFingerprint } });
+        return audit('reference-created');
+      }
+      try {
+        if (!saved || saved.schemaVersion !== 1 || !saved.snapshot ||
+            !/^[a-f0-9]{64}$/.test(String(saved.fingerprint)) ||
+            await hashFn(saved.snapshot) !== saved.fingerprint)
+          throw new Error('invalid fingerprint reference');
+        previousFingerprint = saved.fingerprint;
+        const compare = diffFn(saved.snapshot, snapshot);
+        const changes = compare.changes || [];
+        const verified = stage === 'base' ? compare.status === 'base-changed'
+          : stage === 'category' ? compare.status === 'category-changed'
+            : compare.status === 'schema-changed' &&
+              changes.some(change => !['option-evidence-uncertain', 'requiredness-uncertain'].includes(change.type));
+        const uncertain = stage === 'base' ? compare.status === 'base-evidence-uncertain'
+          : stage === 'category' ? compare.status === 'category-evidence-uncertain'
+            : compare.status === 'schema-changed' && changes.length > 0 && !verified;
+        if (verified) notify(label + ': Kleinanzeigen hat die bestätigte Formular- oder Kategoriestruktur verändert. Bitte die Änderungen prüfen.');
+        else if (uncertain) notify(label + ': Eine mögliche Änderung ist nicht eindeutig verifizierbar. Technische Auswahl- oder Kategorieinformationen fehlen.');
+        return audit(verified ? 'changed' : uncertain ? 'uncertain'
+          : ['category-partially-verified', 'category-not-verified', 'base-not-comparable'].includes(compare.status)
+            ? 'not-fully-verified' : 'unchanged', changes);
+      } catch (error) {
+        notify('Gespeicherte Schema-Referenz für ' + label + ' ist beschädigt oder nicht eindeutig. Änderungen konnten nicht zuverlässig geprüft werden.');
+        return audit('invalid-reference');
+      }
+    } catch (error) {
+      notify(label + ': Schema-Referenz konnte nicht geprüft werden (Speicherzugriff fehlgeschlagen).');
+      return audit('monitor-unavailable');
+    }
+  }
+
   // KAR-134 field-only native simulation. No listing content, image upload,
   // wizard continuation, submit or source mutation is permitted in this path.
   async function runReadOnlySchemaTest(session) {
@@ -446,11 +607,26 @@
     updatePanel('Schema-Prüfmodus (nur Lesen)', 'Kategorie 405 wird für den Vergleich vorbereitet. Es werden keine Anzeigenwerte eingetragen und keine Anzeigen veröffentlicht.', [],
       { safetyText: 'TESTMODUS – Formular ausschließlich prüfen, nicht veröffentlichen.' });
     await runtimeMessage({ type: 'UPDATE_TEMPLATE_FILL_SESSION', fillId, status: 'running', stage: 'schema-test-category' });
+    const preCategoryForm = await waitFor(() => document.querySelector('form'), { description: 'Schema-Basisformular' });
+    const baseObservation = captureCategoryNeutralForm(preCategoryForm);
+    if (baseObservation.status === 'observed')
+      await monitorSchemaStage('base', baseObservation.schema, fillId);
+    else void diagnostic(fillId, 'KAR134_STAGE_MONITOR_SKIPPED',
+      { stage: 'base', reason: baseObservation.status });
+    stagedCategoryPathEvidence = null;
     const categoryState = await setCategory(session.template, fillId, session?.maxPhaseAttempts);
     if (categoryState?.pendingNavigation) return { pending: true, schemaTest: true };
+    if (stagedCategoryPathEvidence)
+      await monitorSchemaStage('category', SchemaCore.buildCategorySchema(stagedCategoryPathEvidence), fillId);
+    else void diagnostic(fillId, 'KAR134_STAGE_MONITOR_SKIPPED',
+      { stage: 'category', reason: 'no-independent-navigation-evidence' });
     const live = await SchemaPreflight.afterHydration({ categoryId: '405', dynamicAttributes: [] },
       { probeReadOnlyCaseSize: scenario === 'compatible' });
     if (live.categoryId !== '405') throw new Error('Live-Kategorie 405 wurde nicht bestätigt.');
+    if (live.dynamicCount > 0)
+      await monitorSchemaStage('attributes', live.schema, fillId);
+    else void diagnostic(fillId, 'KAR134_STAGE_MONITOR_SKIPPED',
+      { stage: 'attributes', reason: 'no-dynamic-field-evidence' });
     const caseField = live.schema.fields.find(field => field.key === 'attribute:wearables.case_size');
     const focused = {
       ...live,
@@ -542,6 +718,15 @@
     const { fillId, template } = session;
     const issues = [];
     updatePanel('Anzeige wird ausgefüllt', 'Die gespeicherten Angaben werden in die neue Anzeige übernommen …');
+    // Capture F1 before even setting the initial ad type or title. An already
+    // selected category cannot supply a pre-category reference.
+    if (SchemaCore) {
+      const initialForm = await waitFor(() => document.querySelector('form'), { description: 'Schema-Basisformular' });
+      const base = captureCategoryNeutralForm(initialForm);
+      if (base.status === 'observed')
+        await monitorSchemaStage('base', base.schema, fillId);
+      else void diagnostic(fillId, 'KAR134_STAGE_MONITOR_SKIPPED', { stage: 'base', reason: base.status });
+    }
     void diagnostic(fillId, 'TEMPLATE_FILL_EXECUTION_STARTED', { sourceAdId: template.sourceAdId || null, inventoryId: template.inventoryId || null });
     await runtimeMessage({ type: 'UPDATE_TEMPLATE_FILL_SESSION', fillId, status: 'running', stage: 'form-ready' });
 
@@ -552,12 +737,17 @@
     } catch (error) { issues.push(`Titel: ${error.message}`); }
 
     let categoryState = null;
+    stagedCategoryPathEvidence = null;
     try {
       categoryState = await setCategory(template, fillId, session?.maxPhaseAttempts);
     } catch (error) {
       issues.push(`Kategorie: ${error.message}`);
     }
     if (categoryState?.pendingNavigation) return { pending: true, issues };
+    if (stagedCategoryPathEvidence && SchemaCore)
+      await monitorSchemaStage('category', SchemaCore.buildCategorySchema(stagedCategoryPathEvidence), fillId);
+    else void diagnostic(fillId, 'KAR134_STAGE_MONITOR_SKIPPED',
+      { stage: 'category', reason: 'no-independent-navigation-evidence' });
     // React may replace the entire posting form after the modal category commit.
     if (categoryState?.confirmed) form = resolveActivePostingForm(form);
     const paidAfterCategory = paidInsertionDetection();
@@ -568,6 +758,10 @@
       try {
         if (!SchemaPreflight) throw new Error('Die Formularschema-Sicherheitsprüfung ist nicht verfügbar.');
         const live = await SchemaPreflight.afterHydration(template);
+        if (live.dynamicCount > 0)
+          await monitorSchemaStage('attributes', live.schema, fillId);
+        else void diagnostic(fillId, 'KAR134_STAGE_MONITOR_SKIPPED',
+          { stage: 'attributes', reason: 'no-dynamic-field-evidence' });
         schemaPreflightReport = await SchemaPreflight.evaluate(template, live);
         void diagnostic(fillId, 'TEMPLATE_SCHEMA_PREFLIGHT', {
           status: schemaPreflightReport.comparison?.status || 'unresolved',
@@ -696,6 +890,8 @@
     };
     panelTemplateOnly = Boolean(session.templateOnly);
     panelArchiveInsertion = Boolean(session.archiveInsertionId);
+    stageMonitorWarnings = [];
+    stagedCategoryPathEvidence = null;
     try {
       // Test mode runs before all filling, continuation and publication branches.
       if (session.schemaTestScenario) {
