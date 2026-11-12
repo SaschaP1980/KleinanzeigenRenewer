@@ -556,6 +556,15 @@ async function adoptVerifiedSchemaReference(message, session, sessions, sender) 
     expectedProfileId: record.profileId, expectedProfileName: record.profileName || '',
     purpose: 'schema-reference-adoption'
   });
+  if (action === 'commit') {
+    const pending = session.pendingSchemaReferenceApproval;
+    if (!pending || pending.token !== String(request.token || '') ||
+        Date.now() >= Date.parse(pending.expiresAt || 0) ||
+        pending.categoryId !== categoryId || pending.stage !== stage ||
+        pending.oldFingerprint !== oldFingerprint || pending.newFingerprint !== newFingerprint ||
+        pending.inventoryId !== String(session.inventoryId))
+      fail('Die ausdrückliche Bestätigung ist abgelaufen oder bereits benutzt.');
+  }
   const key = 'kr134:stage-monitor:v1:attributes:' + categoryId;
   const stored = await chromeApi.storage.local.get(key);
   const baseline = stored?.[key];
@@ -574,13 +583,6 @@ async function adoptVerifiedSchemaReference(message, session, sessions, sender) 
     await writeFillSessions(sessions);
     return { pending: true, referenceApproved: false, token, expiresAt };
   }
-  const pending = session.pendingSchemaReferenceApproval;
-  if (!pending || pending.token !== String(request.token || '') ||
-      Date.now() >= Date.parse(pending.expiresAt || 0) ||
-      pending.categoryId !== categoryId || pending.stage !== stage ||
-      pending.oldFingerprint !== oldFingerprint || pending.newFingerprint !== newFingerprint ||
-      pending.inventoryId !== String(session.inventoryId))
-    fail('Die ausdrückliche Bestätigung ist abgelaufen oder bereits benutzt.');
   if (!Number.isFinite(request.freshObservationCapturedAt) ||
       Math.abs(Date.now() - request.freshObservationCapturedAt) > 15000)
     fail('Die aktuelle Formularstruktur muss unmittelbar vor der Übernahme erneut gelesen werden.');
