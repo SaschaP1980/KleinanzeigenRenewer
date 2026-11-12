@@ -110,4 +110,15 @@ const workflow = fs.readFileSync(path.join(ROOT, '.github/workflows/kar-work-pr.
 assert.match(workflow, /node scripts\/kar-work-pr-contract\.cjs/, 'PR workflow must execute shared validator');
 const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
 assert.ok(pkg.scripts.test.includes('node tests/kar-work-pr-contract.cjs'), 'contract test must run in mandatory coverage gate');
+// KAR-134: the canonical Rolling Comment can exceed Linux's per-argument
+// size limit (MAX_ARG_STRLEN). The GitHub CLI PATCH must stream JSON via stdin,
+// never pass a >128 KiB comment as a single process argument.
+const preflightScript = fs.readFileSync(path.join(ROOT, 'scripts/kar-work-pr-preflight.cjs'), 'utf8');
+assert.match(preflightScript, /'--input','-'/,
+  'large canonical Rolling Comment must be uploaded through stdin');
+assert.match(preflightScript, /JSON\.stringify\(\{\s*body:\s*changed\s*\}\)/,
+  'preflight must serialize the entire unchanged comment as JSON request body');
+assert.doesNotMatch(preflightScript, /'body='\s*\+\s*changed/,
+  'never put an oversized canonical comment in process argv');
+
 console.log('PASS KAR-22 normative rolling scaffold and ' + rejected + ' strict fail-closed cases');

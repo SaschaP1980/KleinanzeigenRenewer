@@ -1,10 +1,11 @@
-importScripts("../shared/runtime-deps.js", "../shared/message-contract-registry.js", "../shared/renewal-policy.js", "background-message-router.js", "services/native-update-status-gateway.js", "services/native-status-bridge.js", "services/update-workflow-fence.js", "repositories/profile-repository.js", "repositories/inventory-repository.js", "repositories/inventory-image-store.js", "services/trash-service.js", "services/diagnostics-service.js", "services/tab-registry.js", "services/managed-tab-worker-service.js", "services/content-connection-manager.js", "services/account-probe-service.js", "controllers/profile-management-controller.js", "controllers/account-session-controller.js", "controllers/platform-safety-controller.js", "controllers/tab-lifecycle-observer.js", "controllers/workflow-emergency-reset-controller.js", "lib/bulk-run-guard.js", "controllers/single-inventory-controller.js", "services/bulk-worker-service.js", "services/bulk-reconciliation-service.js", "controllers/bulk-inventory-controller.js", "controllers/mass-renewal-controller.js", "services/mass-renewal-watchdog-service.js", "controllers/mass-renewal-workflow-controller.js", "services/renewal-verification-flow.js", "services/renewal-reinventory-flow.js", "services/paid-checkout-recovery-service.js", "controllers/renewal-workflow-controller.js", "services/renewal-verification-service.js", "repositories/renewal-state-repository.js", "services/template-fill-service.js", "services/insertion-lock-service.js", "controllers/template-fill-controller.js", "services/archive-insertion-service.js", "services/archive-insertion-verification-service.js", "services/archive-insertion-recovery-service.js", "controllers/archive-insertion-controller.js", "services/remote-delete-replacement-service.js", "services/published-inventory-resolver.js", "services/diagnostic-export-service.js", "services/public-listing-evidence-service.js", "../shared/managed-navigation.js", "lib/inventory-reconciliation.js", "../shared/my-ads-readiness.js", "lib/inventory-scope.js", "../shared/platform-hardening.js", "services/tab-load-coordinator.js", "services/persisted-owner-observer.js", "services/additional-owner-observer.js", "services/phase4-uncertainty-journal.js", "services/cross-worker-atomic-admission.js", "services/auto-publish-intent-journal.js");
+importScripts("../shared/runtime-deps.js", "../shared/message-contract-registry.js", "../shared/renewal-policy.js", "background-message-router.js", "services/native-update-status-gateway.js", "services/native-status-bridge.js", "services/update-workflow-fence.js", "repositories/profile-repository.js", "repositories/inventory-repository.js", "repositories/inventory-image-store.js", "services/trash-service.js", "services/diagnostics-service.js", "services/tab-registry.js", "services/managed-tab-worker-service.js", "services/content-connection-manager.js", "services/account-probe-service.js", "controllers/profile-management-controller.js", "controllers/account-session-controller.js", "controllers/platform-safety-controller.js", "controllers/tab-lifecycle-observer.js", "controllers/workflow-emergency-reset-controller.js", "lib/bulk-run-guard.js", "controllers/single-inventory-controller.js", "services/bulk-worker-service.js", "services/bulk-reconciliation-service.js", "controllers/bulk-inventory-controller.js", "controllers/mass-renewal-controller.js", "services/mass-renewal-watchdog-service.js", "controllers/mass-renewal-workflow-controller.js", "services/renewal-verification-flow.js", "services/renewal-reinventory-flow.js", "services/paid-checkout-recovery-service.js", "controllers/renewal-workflow-controller.js", "services/renewal-verification-service.js", "repositories/renewal-state-repository.js", "services/template-fill-service.js", "services/insertion-lock-service.js", "controllers/template-fill-controller.js", "services/archive-insertion-service.js", "services/archive-insertion-verification-service.js", "services/archive-insertion-recovery-service.js", "controllers/archive-insertion-controller.js", "services/remote-delete-replacement-service.js", "services/published-inventory-resolver.js", "services/diagnostic-export-service.js", "services/public-listing-evidence-service.js", "../shared/managed-navigation.js", "lib/inventory-reconciliation.js", "../shared/my-ads-readiness.js", "lib/inventory-scope.js", "../shared/platform-hardening.js", "services/tab-load-coordinator.js", "../shared/template-schema-core.js", "services/persisted-owner-observer.js", "services/additional-owner-observer.js", "services/phase4-uncertainty-journal.js", "services/cross-worker-atomic-admission.js", "services/auto-publish-intent-journal.js");
 // Private updater policy/authority: no content/app IPC route; production proof
 // sources remain intentionally absent until each of 15 owners is grounded.
 importScripts("../../lib/update-idle-policy.js", "services/trusted-owner-authority.js");
 
 const KRDeps = globalThis.KRDeps;
 if (!KRDeps) throw new Error('runtime-deps.js must load before background.js');
+const TemplateSchemaCore = KRDeps.require('KRTemplateSchemaCore');
 const MessageContractRegistry = KRDeps.require('KRMessageContractRegistry');
 const RenewalPolicy = KRDeps.require('KRRenewalPolicy');
 const BackgroundMessageRouter = KRDeps.require('KRBackgroundMessageRouter');
@@ -81,7 +82,7 @@ const RUNTIME_EPOCH_KEY = "runtimeEpochV1";
 const BULK_RETRY_POLL_MS = 500;
 const BULK_WORKER_TAB_CREATE_MAX_ATTEMPTS = 2;
 const BULK_WORKER_TAB_CREATE_RETRY_MS = 200;
-const CONTENT_SCRIPT_FILES = ["src/shared/runtime-deps.js", "src/shared/message-contract-registry.js", "src/shared/managed-navigation.js", "src/shared/platform-hardening.js", "src/content/platform-guard-content.js", "src/content/image-extractor.js", "src/content/form-extractor.js", "src/content/paid-insertion-guard.js", "src/content/template-category-flow.js", "src/content/template-form-fields.js", "src/content/template-image-upload.js", "src/content/template-verification.js", "src/content/template-publish-flow.js", "src/content/template-filler.js", "src/shared/my-ads-readiness.js", "src/content/inventory-roster-parser.js", "src/content/inventory-readiness.js", "src/content/inventory-status-overlay.js", "src/content/inventory-delete-operations.js", "src/content/inventory-run-loop.js", "src/content/inventory-runner.js", "src/content/content.js"];
+const CONTENT_SCRIPT_FILES = ["src/shared/runtime-deps.js", "src/shared/message-contract-registry.js", "src/shared/managed-navigation.js", "src/shared/platform-hardening.js", "src/content/platform-guard-content.js", "src/content/image-extractor.js", "src/content/form-extractor.js", "src/shared/template-schema-core.js", "src/content/paid-insertion-guard.js", "src/content/template-category-flow.js", "src/content/template-form-fields.js", "src/content/template-image-upload.js", "src/content/template-verification.js", "src/content/template-schema-preflight.js", "src/content/template-publish-flow.js", "src/content/template-filler.js", "src/shared/my-ads-readiness.js", "src/content/inventory-roster-parser.js", "src/content/inventory-readiness.js", "src/content/inventory-status-overlay.js", "src/content/inventory-delete-operations.js", "src/content/inventory-run-loop.js", "src/content/inventory-runner.js", "src/content/content.js"];
 const CONTENT_BOOTSTRAP_WAITS_MS = [80, 140, 240, 400, 650];
 const CONTENT_BOOTSTRAP_NAVIGATION_WAIT_MS = 30000;
 const DIAGNOSTIC_BATCH_FLUSH_MS = 1200;
@@ -177,7 +178,7 @@ function requireTemplateFillController() {
     readArchiveInsertionSessions, persistArchiveInsertionSession,
     recordRenewalPhaseAttemptError, canRetryRenewalPhase1, restartRenewalPhase1Attempt,
     evictTemplateImageTransfersForFill, classifyKleinanzeigenInsertionErrorUrl,
-    cryptoApi: crypto, chromeApi: chrome, queueMicrotaskFn: queueMicrotask,
+    cryptoApi: crypto, chromeApi: chrome, TemplateSchemaCore, queueMicrotaskFn: queueMicrotask,
     withAutonomousAdmission,
     TEMPLATE_TARGET_URL, TAB_ROLES, TERMINAL_TEMPLATE_FILL_STATUSES
   });
@@ -999,8 +1000,16 @@ async function saveInventory(extracted, options = {}) {
       const { blob, ...metadata } = downloaded;
       imageResults.push({ imageId: extracted.images[index].imageId, identityType: extracted.images[index].identityType, sourceFormatHint: extracted.images[index].sourceFormatHint, variants: extracted.images[index].variants, isPrimary: Boolean(extracted.images[index].isPrimary || index === 0), downloadSource: extracted.images[index].downloadSource || null, ...metadata, imageKey, position: index, locallyStored: true, uploadReady: downloaded.mimeType === "image/jpeg" });
     }
+    // KAR-134: derive category-scoped, value-free evidence before the same atomic inventory commit.
+    // Non-edit capture is not sufficient evidence to assert a saved posting-form schema.
+    const templateSchema = extracted.extraction?.capturedFromEditView === true
+      ? await (async () => {
+        const snapshot = TemplateSchemaCore.buildSchema(extracted);
+        return { snapshot, fingerprint: await TemplateSchemaCore.fingerprint(snapshot), capturedAt, source: 'edit-form' };
+      })()
+      : null;
     const record = {
-      ...extracted, inventoryId, schemaVersion: 2, capturedAt,
+      ...extracted, ...(templateSchema ? { templateSchema } : {}), inventoryId, schemaVersion: 2, capturedAt,
       images: imageResults,
       imageSummary: {
         discovered: imageResults.length,
@@ -3478,7 +3487,10 @@ const backgroundMessageRouter = BackgroundMessageRouter.create({
   "START_TEMPLATE_FILL": (message, sender) => startTemplateFill(message.inventoryId, { autoReplacementAllowed: message.autoReplacementAllowed === true, startConfirmationVersion: message.startConfirmationVersion }),
   "START_ARCHIVE_INSERTION": (message, sender) => startArchiveInsertion(message),
   "GET_ARCHIVE_INSERTION_STATUS": (message, sender) => getArchiveInsertionStatus(message),
-  "START_TRASH_TEMPLATE_FILL": (message, sender) => startTrashTemplateFill(message.inventoryId, { supersedeFillId: message.supersedeFillId || null }),
+  "START_TRASH_TEMPLATE_FILL": (message, sender) => startTrashTemplateFill(message.inventoryId, {
+    supersedeFillId: message.supersedeFillId || null,
+    schemaTestScenario: message.schemaTestScenario || null
+  }),
   "GET_TRASH_TEMPLATE_FILL_STATUS": (message, sender) => getTrashTemplateFillStatus(message),
   "GET_RECOVERABLE_TRASH_TEMPLATE_FILL": (message, sender) => getRecoverableTrashTemplateFill(),
   "PREPARE_TRASH_TEMPLATE_INVENTORY_CAPTURE": (message, sender) => prepareTrashTemplateInventoryCapture(message),

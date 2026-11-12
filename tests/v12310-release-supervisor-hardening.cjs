@@ -4,7 +4,7 @@ const supervisor=path.join(root,'scripts','release-supervisor.sh');
 const pipeline=path.join(root,'scripts','release-pipeline.sh');
 const finalizer=path.join(root,'scripts','release_finalize.py');
 const build=path.join(root,'scripts','build.sh');
-const progress=JSON.parse(fs.readFileSync(path.join(root,'architecture-progress-v1.23.10.json'),'utf8'));
+const progress=JSON.parse(fs.readFileSync(path.join(root,'docs/history/architecture/architecture-progress-v1.23.10.json'),'utf8'));
 let n=0;const p=(name,fn)=>{fn();n++;console.log('PASS '+name)};
 p('detached release supervisor is materialized',()=>{assert.ok(fs.existsSync(supervisor),'release-supervisor.sh missing');const s=fs.readFileSync(supervisor,'utf8');assert.ok(s.startsWith('#!/usr/bin/env bash'));assert.match(s,/nohup\s+setsid\s+bash/);assert.match(s,/release-supervisor\.pid/);assert.match(s,/release-supervisor\.rc/);assert.match(s,/release-supervisor\.wall-ms/)});
 p('supervisor creates durable source checkpoint before long pipeline',()=>{const s=fs.readFileSync(supervisor,'utf8');assert.match(s,/package\.py/);assert.match(s,/source-before-release/);assert.match(s,/sha256/)});

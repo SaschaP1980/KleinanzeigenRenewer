@@ -20,7 +20,8 @@
       visible,
       visibleText,
       waitFor,
-      updatePanel
+      updatePanel,
+      onCategoryPathConfirmed
     } = options;
 
   function resolveCategoryNavigationUrl(chooser, baseHref = location.href) {
@@ -141,10 +142,17 @@
   // Match by complete normalized label against one unique, visible, enabled,
   // selectable live leaf, then verify the form's numeric category ID later.
   function capturedTerminalAttributePath(template, storedPath, liveState) {
-    if (!Array.isArray(template?.dynamicAttributes) || !liveState ||
+    // The independent category checker has no archived form fields. It may
+    // carry only bounded, category-classifier Art/Typ display labels, separate
+    // from the normal publish template. The generic normal fill continues to
+    // use its original dynamicAttributes contract unchanged.
+    const attributes = Array.isArray(template?.categoryNavigationHints) &&
+      Array.isArray(template?.dynamicAttributes) && template.dynamicAttributes.length === 0
+      ? template.categoryNavigationHints : template?.dynamicAttributes;
+    if (!Array.isArray(attributes) || !liveState ||
         !sameModernPath(liveState.path, storedPath) ||
         storedPath.length < 2 || storedPath.length >= 8) return null;
-    const candidates = template.dynamicAttributes.filter(attribute =>
+    const candidates = attributes.filter(attribute =>
       ['typ', 'art'].includes(modernLabel(attribute?.label)) &&
       typeof attribute?.displayValue === 'string' &&
       clean(attribute.displayValue));
@@ -225,11 +233,19 @@
     }
     for (let i = 0; i < path.length; i += 1) {
       const prior = path.slice(0, i), name = path[i];
-      const state = await waitFor(() => {
+      // An open modal and a correct breadcrumb do not prove that its list of
+      // category choices has hydrated. In the native KAR-134 v1.23.68 run,
+      // generic categories 159/22 were checked in that empty intermediate
+      // state, while category 405 happened to receive an unrelated ID delay.
+      // Wait for the exact live option, not for a timer or a hardcoded ID.
+      // Duplicate/disabled matches still fail closed in exactModernChoice.
+      const button = await waitFor(() => {
         const current = modernState();
-        return current && sameModernPath(current.path, prior) ? current : null;
-      }, { timeout: 10000, description: 'Kategorieebene „' + prior.join(' › ') + '“' });
-      const button = exactModernChoice(state, name);
+        if (!current || !sameModernPath(current.path, prior)) return null;
+        const hasExactChoice = modernChoices(current)
+          .some(item => modernLabel(item.label) === modernLabel(name));
+        return hasExactChoice ? exactModernChoice(current, name) : null;
+      }, { timeout: 10000, description: 'Geladene Kategorie „' + name + '“ nach „' + prior.join(' › ') + '“' });
       let leaf = i === path.length - 1;
       const branch = Boolean(button.querySelector('svg[data-title="arrowRight"]'));
       const selectable = button.hasAttribute('aria-pressed');
@@ -341,6 +357,26 @@
       throw new Error('Kategorie-ID nicht verifiziert: erwartet ' + wanted + ', tatsächlich ' + JSON.stringify(actual) + '.');
     }
     void diagnostic(fillId, 'CATEGORY_MODAL_COMMIT_VERIFIED', { categoryId: wanted, depth: path.length });
+    // KAR-134 F2: each breadcrumb was matched against the real current level
+    // before selection, and the committed numeric leaf ID was read back.
+    // The modal does not expose authoritative numeric ancestor IDs here;
+    // unknown ancestor IDs remain null (never inferred from text or order).
+    const categoryPathEvidence = {
+      categoryId: wanted, leafConfirmed: true, observedPath: true,
+      levels: path.map((label, index) => ({
+        label, technicalId: index === path.length - 1 ? wanted : null,
+        kind: index === path.length - 1 ? 'leaf' : 'branch'
+      }))
+    };
+    if (typeof onCategoryPathConfirmed === 'function') {
+      try {
+        await onCategoryPathConfirmed(categoryPathEvidence, fillId);
+      } catch (error) {
+        void diagnostic(fillId, 'KAR134_CATEGORY_EVIDENCE_MONITOR_UNAVAILABLE', {
+          reason: String(error?.message || error).slice(0, 220)
+        }, 'warning');
+      }
+    }
     return { confirmed: true, pendingNavigation: false };
   }
 

@@ -2,7 +2,7 @@ const fs=require('fs'); const assert=require('assert');
 const manifest=JSON.parse(fs.readFileSync('manifest.json','utf8'));
 const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
 const spec=JSON.parse(fs.readFileSync('release/release-spec.json','utf8'));
-const progress=JSON.parse(fs.readFileSync('architecture-progress-v1.23.11.json','utf8'));
+const progress=JSON.parse(fs.readFileSync('docs/history/architecture/architecture-progress-v1.23.11.json','utf8'));
 const finalizer=fs.readFileSync('scripts/release_finalize.py','utf8');
 let pass=0; function p(n,f){f();pass++;console.log('PASS',n)}
 p('v1.23.11 owner record remains intact while release metadata may advance',()=>{assert.equal(progress.version,'1.23.11');assert.equal(pkg.version,manifest.version);assert.equal(spec.version,manifest.version);if(manifest.version==='1.23.11')assert.equal(spec.nextPlannedBuild,'1.23.12');else assert.notEqual(spec.nextPlannedBuild,'1.23.12')});

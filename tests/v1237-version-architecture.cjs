@@ -3,7 +3,7 @@ const fs=require('fs'),path=require('path'),assert=require('assert');
 const root=path.join(__dirname,'..');
 const manifest=JSON.parse(fs.readFileSync(path.join(root,'manifest.json'),'utf8'));
 const pkg=JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'));
-const progress=JSON.parse(fs.readFileSync(path.join(root,'architecture-progress-v1.23.7.json'),'utf8'));
+const progress=JSON.parse(fs.readFileSync(path.join(root,'docs/history/architecture/architecture-progress-v1.23.7.json'),'utf8'));
 const pack=fs.readFileSync(path.join(root,'scripts/package.py'),'utf8');
 const bg=fs.readFileSync(path.join(root,'src/background/background.js'),'utf8');
 const service=fs.readFileSync(path.join(root,'src/background/services/diagnostic-export-service.js'),'utf8');

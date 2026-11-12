@@ -149,12 +149,19 @@
   }
 
   function verifiedPublishGate(session) {
+    const proof = session?.result?.schemaPreflight;
     return Boolean(
       (session?.renewalId || session?.archiveInsertionId) &&
       session?.result?.complete === true &&
       Array.isArray(session?.result?.issues) &&
-      session.result.issues.length === 0
+      session.result.issues.length === 0 &&
+      proof?.verified === true &&
+      /^[a-f0-9]{64}$/.test(String(proof.currentFingerprint || '')) &&
+      /^\d+$/.test(String(proof.categoryId || ''))
     );
+  }
+  function verifiedSessionResult(session) {
+    return { complete: true, issues: [], schemaPreflight: session?.result?.schemaPreflight || null };
   }
 
   async function prepareTemplateOnlyComplete(session) {
@@ -216,7 +223,13 @@
       return { publishSubmitted: true, awaitingPublishedId: session.stage !== 'new-id-confirmed' };
     }
     if (!fillId || !verifiedPublishGate(session)) {
-      return await prepareAwaitingPublish(fillId, 'Die automatische Veröffentlichung ist nicht freigegeben. Bitte alle Angaben prüfen und „Anzeige aufgeben“ selbst anklicken.', session);
+      const issue = 'Die sicherheitsrelevante Formularschema-Prüfung ist für diese Sitzung nicht nachgewiesen. Bitte die Vorlage neu einlesen oder die Anzeige manuell prüfen.';
+      await runtimeMessage({ type: 'UPDATE_TEMPLATE_FILL_SESSION', fillId, status: 'needs-review',
+        stage: 'schema-preflight-missing', result: { complete: false, issues: [issue] } }).catch(() => {});
+      updatePanel('Automatische Veröffentlichung gesperrt', 'Der Formularabgleich konnte nicht wiederhergestellt werden.',
+        [issue], { safetyText: 'Nicht automatisch veröffentlicht. Die bisherige Anzeige bleibt unverändert.' });
+      void diagnostic(fillId, 'AUTO_PUBLISH_SCHEMA_PROOF_MISSING', { stage: session?.stage || null }, 'warning');
+      return { complete: false, issues: [issue], autoPublishBlocked: true };
     }
 
     const paidBeforePublish = paidInsertionDetection();
@@ -229,7 +242,7 @@
         fillId,
         status: 'running',
         stage: 'awaiting-manual-publish',
-        result: { complete: true, issues: [] }
+        result: verifiedSessionResult(session)
       }).catch(() => {});
       const reason = candidates.length ? `${candidates.length} sichtbare „Anzeige aufgeben“-Buttons erkannt.` : 'Kein eindeutiger sichtbarer „Anzeige aufgeben“-Button erkannt.';
       updatePanel('Vorlage vollständig übernommen – Veröffentlichung prüfen', `${reason} Der automatische Ablauf wartet auf deine Prüfung.`, [], { safetyText: 'Automatischer Ablauf pausiert – bitte den finalen Schritt prüfen.' });
@@ -244,7 +257,7 @@
       fillId,
       status: 'running',
       stage: 'auto-publish-ready',
-      result: { complete: true, issues: [] }
+      result: verifiedSessionResult(session)
     });
     updatePanel('Vorlage vollständig übernommen', 'Alle kontrollierten Werte und Bilder stimmen. Die Anzeige wird jetzt automatisch veröffentlicht.', [], { safetyText: 'Automatische Veröffentlichung freigegeben – keine Abweichungen erkannt.' });
     try { button.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' }); } catch { /* Komfortschritt */ }
@@ -327,7 +340,7 @@
         fillId,
         status: 'running',
         stage: 'awaiting-manual-continue',
-        result: { complete: true, issues: [] }
+        result: verifiedSessionResult(session)
       });
       const reason = continueButtons.length ? `${continueButtons.length} sichtbare „Weiter“-Buttons erkannt.` : 'Kein eindeutiger sichtbarer „Weiter“-Button erkannt.';
       updatePanel('Vorlage vollständig übernommen', `${reason} Bitte den nächsten Schritt manuell öffnen.`, [], { safetyText: 'Automatischer Ablauf pausiert – bitte den nächsten Schritt prüfen.' });
@@ -342,7 +355,7 @@
       fillId,
       status: 'running',
       stage: 'post-fill-continuing',
-      result: { complete: true, issues: [] }
+      result: verifiedSessionResult(session)
     });
     updatePanel('Vorlage vollständig übernommen', 'Alle kontrollierten Vorlagenwerte stimmen. Weiter zum abschließenden Prüfschritt …');
     void diagnostic(fillId, 'POST_FILL_CONTINUE_CLICK_STARTED', { path: location.pathname });
@@ -365,7 +378,7 @@
         fillId,
         status: 'running',
         stage: 'awaiting-manual-continue',
-        result: { complete: true, issues: [] }
+        result: verifiedSessionResult(session)
       }).catch(() => {});
       updatePanel('Vorlage vollständig übernommen', '„Weiter“ wurde ausgelöst, aber der nächste Schritt konnte nicht eindeutig bestätigt werden. Bitte den aktuellen Stand prüfen und gegebenenfalls manuell fortfahren.', [], { safetyText: 'Automatischer Ablauf pausiert – bitte den nächsten Schritt prüfen.' });
       void diagnostic(fillId, 'POST_FILL_CONTINUE_UNCONFIRMED', { message: String(error.message || error).slice(0, 400) }, 'warning');

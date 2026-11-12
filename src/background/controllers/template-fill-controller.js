@@ -16,7 +16,7 @@
                 readArchiveInsertionSessions, persistArchiveInsertionSession,
                 recordRenewalPhaseAttemptError, canRetryRenewalPhase1, restartRenewalPhase1Attempt,
                 evictTemplateImageTransfersForFill, classifyKleinanzeigenInsertionErrorUrl,
-                cryptoApi, chromeApi, queueMicrotaskFn,
+                cryptoApi, chromeApi, TemplateSchemaCore, queueMicrotaskFn,
                  withAutonomousAdmission = () => Promise.reject(Object.assign(new Error('KR_UPDATE_FENCE_UNAVAILABLE'), { code: 'KR_UPDATE_FENCE_UNAVAILABLE' })),
                 TEMPLATE_TARGET_URL, TAB_ROLES, TERMINAL_TEMPLATE_FILL_STATUSES
       } = options;
@@ -117,7 +117,7 @@ async function getTrashTemplateFillStatus(message = {}) {
   if (!fillId) return null;
   const sessions = await readFillSessions();
   const session = sessions[fillId];
-  if (!session?.templateOnly) return null;
+  if (!session?.templateOnly || session.schemaTestScenario) return null;
   return {
     operationId: session.operationId || null,
     fillId: session.fillId,
@@ -219,14 +219,32 @@ async function finalizeLostTrashTemplateSupersede(snapshot, replacementFillId) {
 }
 
 async function startTrashTemplateFillUnlocked(inventoryId) {
+  const schemaTestScenario = arguments[1]?.schemaTestScenario ?? null;
+  const isSchemaTest = ['compatible', 'incompatible', 'stage-drift', 'category-check', 'isolated-review'].includes(schemaTestScenario);
   const record = await getInventory(inventoryId);
-  if (!record || !isTrashRecord(record)) throw new Error('Papierkorb-Vorlage wurde nicht gefunden.');
-  assertTemplateSourceReady(record);
+  if (!record || (!isSchemaTest && !isTrashRecord(record))) throw new Error('Papierkorb-Vorlage wurde nicht gefunden.');
+  if (isSchemaTest) {
+    const categoryId = String(record.category?.id ?? record.categoryIdFromUrl ?? '').trim();
+    const storedPath = Array.isArray(record.category?.path) && record.category.path.length
+      ? record.category.path : record.categoryPath;
+    const independentCategoryCheck = ['category-check', 'isolated-review'].includes(schemaTestScenario);
+    if (record.renewal || !/^[1-9][0-9]*$/.test(categoryId) ||
+        !Array.isArray(storedPath) || storedPath.length < 2 ||
+        storedPath.length > 12 ||
+        !storedPath.every(label => typeof label === 'string' && label.trim()) ||
+        (!independentCategoryCheck && categoryId !== '405')) {
+      throw new Error(independentCategoryCheck
+        ? 'Kategorie prüfen benötigt einen eindeutigen numerischen Kategorieeintrag und den gespeicherten Kategoriepfad.'
+        : 'Der read-only Schema-Prüfmodus benötigt einen Inventareintrag der Kategorie 405 mit gesichertem Kategoriepfad.');
+    }
+  } else {
+    assertTemplateSourceReady(record);
+  }
   const fillId = cryptoApi.randomUUID();
   const operationId = cryptoApi.randomUUID();
   const tab = await createAutomationTab({ url: 'about:blank', active: false });
   if (!tab?.id) throw new Error('Neuer Kleinanzeigen-Tab konnte nicht geöffnet werden.');
-  await registerShadowTab(tab.id, TAB_ROLES.TEMPLATE_TARGET, { operationId, fillId, inventoryId: String(record.inventoryId), adId: String(record.adId || ''), ownerType: 'trash-template', ownerId: fillId });
+  await registerShadowTab(tab.id, TAB_ROLES.TEMPLATE_TARGET, { operationId, fillId, inventoryId: String(record.inventoryId), adId: String(record.adId || ''), ownerType: isSchemaTest ? 'schema-test' : 'trash-template', ownerId: fillId });
   const sessions = await readFillSessions();
   sessions[fillId] = {
     operationId,
@@ -234,7 +252,8 @@ async function startTrashTemplateFillUnlocked(inventoryId) {
     fillId,
     renewalId: null,
     templateOnly: true,
-    trashInventoryId: String(record.inventoryId),
+    schemaTestScenario: isSchemaTest ? schemaTestScenario : null,
+    trashInventoryId: isSchemaTest ? null : String(record.inventoryId),
     inventoryId: String(record.inventoryId),
     sourceAdId: String(record.adId || ''),
     targetTabId: tab.id,
@@ -262,7 +281,10 @@ async function startTrashTemplateFillUnlocked(inventoryId) {
     broadcastInventoryChanged('insertion-lock-released', { kind: 'trash-template', ownerId: fillId, inventoryId: String(record.inventoryId), reason: 'target-tab-failed' });
     throw error;
   }
-  await logDiagnostic('info', 'TRASH_TEMPLATE_FILL_STARTED', { operationId, fillId, inventoryId: String(record.inventoryId), sourceAdId: String(record.adId || ''), targetTabId: tab.id, autoPublishAllowed: false }, { module: 'background', operation: 'trash-template-fill', context: sessionCorrelationContext(sessions[fillId], { adId: record.adId || null, targetTabId: tab.id }) }).catch(() => {});
+  await logDiagnostic('info', isSchemaTest ? 'KAR134_SCHEMA_TEST_STARTED' : 'TRASH_TEMPLATE_FILL_STARTED',
+    { operationId, fillId, inventoryId: String(record.inventoryId), sourceAdId: String(record.adId || ''),
+      targetTabId: tab.id, autoPublishAllowed: false, scenario: isSchemaTest ? schemaTestScenario : null,
+      formFieldsWritable: !isSchemaTest }, { module: 'background', operation: 'trash-template-fill', context: sessionCorrelationContext(sessions[fillId], { adId: record.adId || null, targetTabId: tab.id }) }).catch(() => {});
   return { operationId, parentOperationId: null, fillId, templateOnly: true, tabId: tab.id, url: TEMPLATE_TARGET_URL };
 }
 
@@ -439,6 +461,11 @@ async function startTemplateFillUnlocked(inventoryId, { autoReplacementAllowed =
 
 async function startTrashTemplateFill(inventoryId) {
   const options = arguments[1] && typeof arguments[1] === 'object' ? arguments[1] : {};
+  const schemaTestScenario = options.schemaTestScenario == null ? null : String(options.schemaTestScenario);
+  if (schemaTestScenario && !['compatible', 'incompatible', 'stage-drift', 'category-check', 'isolated-review'].includes(schemaTestScenario))
+    throw new Error('Unbekanntes Schema-Prüfszenario.');
+  if (schemaTestScenario && options.supersedeFillId)
+    throw new Error('Ein Schema-Prüfmodus darf keinen bestehenden Vorlagenvorgang ersetzen.');
   return withInsertionStartGate(async () => {
     const normalizedInventoryId = String(inventoryId || '');
     await assertInsertionStartAvailable({ kind: 'trash-template', inventoryId: normalizedInventoryId });
@@ -455,7 +482,7 @@ async function startTrashTemplateFill(inventoryId) {
     }
     let result;
     try {
-      result = await startTrashTemplateFillUnlocked(normalizedInventoryId);
+      result = await startTrashTemplateFillUnlocked(normalizedInventoryId, { schemaTestScenario });
     } catch (error) {
       if (supersedeSnapshot) await restoreLostTrashTemplateAfterRestartFailure(supersedeSnapshot).catch(() => false);
       if (supersedeSnapshot) await logDiagnostic('warning', 'TRASH_TEMPLATE_TARGET_LOSS_RESTART_FAILED', {
@@ -484,12 +511,135 @@ async function startTemplateFill(inventoryId, options = {}) {
   });
 }
 
+// KAR-134 L4: A genuine F3 reference update is owned by the background
+// mutation queue, not by a content script or the synthetic test store.
+// It uses the existing UPDATE_TEMPLATE_FILL_SESSION route, sender-tab gate,
+// live profile check and an expiring one-use consent token. Never touches F2
+// without confirmed ancestor technical IDs, or the globally scoped F1.
+async function adoptVerifiedSchemaReference(message, session, sessions, sender) {
+  const request = message?.referenceAdoption || {};
+  const action = String(request.action || '');
+  const categoryId = String(request.categoryId || '');
+  const stage = String(request.stage || '');
+  const oldFingerprint = String(request.oldFingerprint || '');
+  const newFingerprint = String(request.newFingerprint || '');
+  const validHash = value => /^[a-f0-9]{64}$/.test(value);
+  const fail = text => { throw new Error(text); };
+  if (!TemplateSchemaCore?.fingerprint || !TemplateSchemaCore?.diff ||
+      !chromeApi?.storage?.local?.get || !chromeApi?.storage?.local?.set)
+    fail('Schema-Fingerprint-Übernahme ist nicht verfügbar.');
+  if (!['prepare','commit'].includes(action) || stage !== 'attributes' ||
+      !/^[1-9][0-9]*$/.test(categoryId) || !validHash(oldFingerprint) ||
+      !validHash(newFingerprint) || oldFingerprint === newFingerprint)
+    fail('Eine eindeutige, geänderte F3-Referenz ist erforderlich.');
+  const target = new URL(TEMPLATE_TARGET_URL);
+  const senderUrl = new URL(String(sender?.tab?.url || ''), target.origin);
+  if (senderUrl.origin !== target.origin || senderUrl.pathname !== target.pathname ||
+      sender?.tab?.id !== session?.targetTabId ||
+      session?.schemaTestScenario !== 'category-check' ||
+      session?.templateOnly !== true || session?.renewalId || session?.archiveInsertionId ||
+      session?.status !== 'needs-review' ||
+      session?.stage !== 'schema-test-category-review-required' ||
+      !session.fillId || !session.inventoryId ||
+      !/^[A-Za-z0-9_-]{1,80}$/.test(String(session.fillId)) ||
+      Date.now() - Date.parse(session.createdAt || 0) > 15 * 60 * 1000)
+    fail('Der Kategorieprüfvorgang ist nicht mehr für eine Referenzübernahme gültig.');
+  const record = await getInventory(session.inventoryId);
+  if (!record?.profileId || String(record.adId || '') !== String(session.sourceAdId || '') ||
+      String(record.category?.id ?? record.categoryIdFromUrl ?? '') !== categoryId)
+    fail('Die Inventar- oder Kontozuordnung hat sich geändert.');
+  const lock = await getInsertionLockState();
+  if (lock?.locked === true) fail('Ein weiterer Inserierungsvorgang ist aktiv.');
+  // Independently check the selected profile and the platform account on
+  // both consent preparation and final commit. No permission from the initial
+  // native category check is silently re-used for a later mutation.
+  await assertSelectedProfileMatchesLiveAccount({
+    expectedProfileId: record.profileId, expectedProfileName: record.profileName || '',
+    purpose: 'schema-reference-adoption'
+  });
+  if (action === 'commit') {
+    const pending = session.pendingSchemaReferenceApproval;
+    if (!pending || pending.token !== String(request.token || '') ||
+        Date.now() >= Date.parse(pending.expiresAt || 0) ||
+        pending.categoryId !== categoryId || pending.stage !== stage ||
+        pending.oldFingerprint !== oldFingerprint || pending.newFingerprint !== newFingerprint ||
+        pending.inventoryId !== String(session.inventoryId))
+      fail('Die ausdrückliche Bestätigung ist abgelaufen oder bereits benutzt.');
+  }
+  const key = 'kr134:stage-monitor:v1:attributes:' + categoryId;
+  const stored = await chromeApi.storage.local.get(key);
+  const baseline = stored?.[key];
+  if (!baseline || baseline.schemaVersion !== 1 || !baseline.snapshot ||
+      baseline.fingerprint !== oldFingerprint ||
+      await TemplateSchemaCore.fingerprint(baseline.snapshot) !== oldFingerprint)
+    fail('Die gespeicherte F3-Referenz ist veraltet oder ungültig.');
+  if (action === 'prepare') {
+    const token = cryptoApi.randomUUID();
+    const expiresAt = new Date(Date.now() + 120000).toISOString();
+    session.pendingSchemaReferenceApproval = {
+      token, categoryId, stage, oldFingerprint, newFingerprint,
+      expiresAt, inventoryId: String(session.inventoryId)
+    };
+    sessions[session.fillId] = session;
+    await writeFillSessions(sessions);
+    return { pending: true, referenceApproved: false, token, expiresAt };
+  }
+  if (!Number.isFinite(request.freshObservationCapturedAt) ||
+      Math.abs(Date.now() - request.freshObservationCapturedAt) > 15000)
+    fail('Die aktuelle Formularstruktur muss unmittelbar vor der Übernahme erneut gelesen werden.');
+  const snapshot = request.snapshot;
+  const serialized = JSON.stringify(snapshot || null);
+  if (serialized.length > 100000 || snapshot?.categoryId !== categoryId ||
+      !Array.isArray(snapshot.fields) || snapshot.fields.length < 1 ||
+      snapshot.fields.length > 200 ||
+      await TemplateSchemaCore.fingerprint(snapshot) !== newFingerprint)
+    fail('Die erneut gelesene F3-Struktur stimmt nicht mit der bestätigten Änderung überein.');
+  const comparison = TemplateSchemaCore.diff(baseline.snapshot,snapshot);
+  const allowed = new Set(['field-added','field-removed','control-kind-changed',
+    'requiredness-changed','valid-options-changed']);
+  if (comparison.status !== 'schema-changed' ||
+      !Array.isArray(comparison.changes) || !comparison.changes.length ||
+      comparison.changes.length > 100 ||
+      !comparison.changes.every(c => allowed.has(c.type) &&
+        /^(?:field|attribute):/.test(String(c.key || ''))))
+    fail('Die Strukturänderung kann nicht vollständig und eindeutig nachgewiesen werden.');
+  // The controller's withTemplateFillMutation queue serializes all real
+  // approvals; F3 is the single Chrome storage key changed by this action.
+  // Concurrent initial observers never overwrite an existing reference.
+  const acceptedAt = new Date().toISOString();
+  await chromeApi.storage.local.set({ [key]: {
+    schemaVersion: 1, snapshot, fingerprint: newFingerprint,
+    priorReference: { snapshot: baseline.snapshot, fingerprint: oldFingerprint },
+    approval: { kind: 'explicit-owner-f3-structural-review', fillId: session.fillId,
+      categoryId, approvedAt: acceptedAt }
+  } });
+  const check = (await chromeApi.storage.local.get(key))?.[key];
+  if (!check || check.fingerprint !== newFingerprint ||
+      check.approval?.fillId !== session.fillId ||
+      await TemplateSchemaCore.fingerprint(check.snapshot) !== newFingerprint)
+    fail('Die gespeicherte Referenzübernahme konnte nicht bestätigt werden.');
+  session.pendingSchemaReferenceApproval = null;
+  session.schemaReferenceApproval = {
+    stage: 'attributes', categoryId, oldFingerprint, newFingerprint, approvedAt: acceptedAt
+  };
+  sessions[session.fillId] = session;
+  await writeFillSessions(sessions);
+  return { referenceApproved: true, stage: 'attributes', categoryId,
+    previousFingerprint: oldFingerprint, currentFingerprint: newFingerprint,
+    realReferenceWrites: 1, remotePublishAttempted: false };
+}
+
 async function updateTemplateFillSession(message, sender) {
   return withTemplateFillMutation(async () => {
   const tabId = sender?.tab?.id;
   const sessions = await readFillSessions();
   const session = sessions[message.fillId];
   if (!session || session.targetTabId !== tabId) throw new Error("Vorlagen-Sitzung gehört nicht zu diesem Tab.");
+  // Real reference approval is an explicit extension-only, authenticated
+  // mutation on an already needs-review category session, never a normal
+  // workflow status update. Reject all other scenario/status combinations.
+  if (message?.referenceAdoption)
+    return adoptVerifiedSchemaReference(message, session, sessions, sender);
   const previousStatus = session.status;
   const previousStage = session.stage;
   const requestedStage = typeof message.stage === 'string' ? message.stage.slice(0, 80) : '';
@@ -520,9 +670,24 @@ async function updateTemplateFillSession(message, sender) {
   if (message.status && allowedStatuses.has(message.status)) session.status = message.status;
   if (requestedStage) session.stage = requestedStage;
   if (message.result && typeof message.result === "object") {
+    // KAR-134: a successful fill is not a publish authorization without a persisted
+    // exact-category live-schema attestation. Retain it over the post-fill wizard.
+    const incomingProof = message.result.schemaPreflight;
+    const validProof = incomingProof?.verified === true &&
+      /^[a-f0-9]{64}$/.test(String(incomingProof.currentFingerprint || '')) &&
+      (incomingProof.sourceFingerprint == null || /^[a-f0-9]{64}$/.test(String(incomingProof.sourceFingerprint))) &&
+      /^\d+$/.test(String(incomingProof.categoryId || ''));
+    const existingProof = session.result?.schemaPreflight?.verified === true
+      ? session.result.schemaPreflight : null;
+    const proof = validProof && requestedStage === 'form-verified'
+      ? { verified: true, categoryId: String(incomingProof.categoryId),
+          currentFingerprint: String(incomingProof.currentFingerprint),
+          sourceFingerprint: incomingProof.sourceFingerprint || null, checkedAt: new Date().toISOString() }
+      : existingProof;
     session.result = {
       complete: Boolean(message.result.complete),
-      issues: Array.isArray(message.result.issues) ? message.result.issues.slice(0, 50).map(value => String(value).slice(0, 300)) : []
+      issues: Array.isArray(message.result.issues) ? message.result.issues.slice(0, 50).map(value => String(value).slice(0, 300)) : [],
+      schemaPreflight: Boolean(message.result.complete) ? proof : null
     };
   }
   if (session.stage === 'paid-insertion-required' && message.paidInsertion && typeof message.paidInsertion === 'object') {
@@ -551,7 +716,12 @@ async function updateTemplateFillSession(message, sender) {
         renewal.stage = session.stage;
       } else if (session.status === 'needs-review' || session.status === 'error') {
         const issue = session.result?.issues?.[0] || null;
-        if (session.stage === 'paid-insertion-required') {
+        if (session.stage === 'schema-preflight' || session.stage === 'schema-preflight-missing') {
+          // A structural incompatibility must never trigger another automated Phase-1 attempt.
+          renewal.status = 'verification-failed';
+          renewal.stage = session.stage;
+          renewal.lastError = issue || 'Formularschema-Vorprüfung konnte nicht bestätigt werden.';
+        } else if (session.stage === 'paid-insertion-required') {
           renewal.status = 'verification-failed';
           renewal.stage = 'paid-insertion-required';
           renewal.paidInsertion = session.paidInsertion ? { ...session.paidInsertion } : null;

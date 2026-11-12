@@ -8,6 +8,15 @@ cd "$project_dir"
 # Generate the authoritative public API inventory before running execution-closure tests.
 node scripts/runtime-api-inventory.cjs --json > "$project_dir/coverage/public-api-manifest.json"
 NODE_V8_COVERAGE="$raw" npm test
+# KAR-167: retain KAR-165's existing regression as a mandatory, measured test
+# after main's v1.23.74 package script ceased to invoke it directly.
+NODE_V8_COVERAGE="$raw" node tests/kar165-trash-retention-warning.cjs
+# KAR-167: independent path/link/immutable architecture-evidence closure after the normal suite.
+node tests/kar167-file-layout.cjs
+node tests/kar167-script-closure.cjs
+node tests/kar167-icons-closure.cjs
+node tests/kar167-test-coverage-closure.cjs
+node tests/kar167-final-repository-closure.cjs
 node scripts/v12319-coverage-report.cjs "$raw" coverage
 node scripts/v12319-architecture-audit.cjs >/dev/null
 node scripts/coverage-no-regression.cjs
