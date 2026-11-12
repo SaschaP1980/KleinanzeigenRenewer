@@ -26,3 +26,9 @@ Every other registered message route is admitted through `withWorkflowAdmission`
 `tests/kar99-workflow-fence.cjs` is registered in npm test. It covers missing provider, storage read/write failures, active/missing KAR97 owner, duplicate/competing reservations, delayed in-flight workflow start, reserved/expired/cancelled state after recreation, ownership mismatch, explicit recovery and router integration. Exact Work PR CI gates, packaged Chromium and Windows updater tests must be GREEN before any merge.
 
 This file is an honest **partial architecture checkpoint** toward KAR-99; leave unproven full-coverage Issue criteria OPEN. No new Chrome-update/install UI or changes to Windows NativeHost, updater channel, permissions or extension identity.
+
+## P1.3 standalone updater pending-journal witness (negative-only)
+
+The standalone Windows PowerShell 5.1 updater accepts `-Command inspect_transaction` as a local, offline, strictly read-only observation **before** it creates a State folder or lock, writes an event log, fetches approval or opens a Chrome profile. It emits one fixed `NATIVE_TRANSACTION_INSPECTION` line without paths, tokens, or journal contents. Presence of `State/pending.json` means `status=blocked journal=present` even for malformed or stale contents; absence means `status=unverified journal=absent`; filesystem uncertainty remains `status=unverified journal=unknown`. Every observation explicitly carries `nativeOutcomeVerified=false eligibleForLease=false`.
+
+This is **not** accessible through the existing Chrome NativeHost protocol (still `health/check` only). It does not establish an origin-bound transaction outcome, current generation closure, independent rollback completion, no in-flight process, or all-15 owner IDLE. No update lease, recovery, apply, automatic installation or release is authorized. The isolated hosted Windows test `tests/kar99-p13-windows-journal-inspection.ps1` exercises the non-mutation and fail-closed boundary.

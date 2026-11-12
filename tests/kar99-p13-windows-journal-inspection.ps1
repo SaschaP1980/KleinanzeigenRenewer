@@ -28,7 +28,7 @@ try {
  [IO.File]::WriteAllText($journal,'{"schema":1,"backup":"backup-00000000000000000000000000000000"}')
  $bytes=[IO.File]::ReadAllBytes($journal)
  Verify ((Inspect) -ceq $held) 'persistent interrupted transaction blocks regardless of age'
- Verify ([Linq.Enumerable]::SequenceEqual([byte[]]$bytes,[byte[]][IO.File]::ReadAllBytes($journal))) 'journal bytes are untouched'
+ Verify ([Convert]::ToBase64String($bytes) -ceq [Convert]::ToBase64String([IO.File]::ReadAllBytes($journal))) 'journal bytes are untouched'
  Verify (-not (Test-Path -LiteralPath (Join-Path $state 'updater.lock'))) 'inspection does not open/create update lock'
  Verify (-not (Test-Path -LiteralPath (Join-Path $state 'updater.jsonl'))) 'inspection does not append updater event log'
  [IO.File]::WriteAllText($journal,'{not valid json')
