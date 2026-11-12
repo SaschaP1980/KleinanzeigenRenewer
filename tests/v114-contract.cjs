@@ -6,7 +6,7 @@ const root = path.join(__dirname, '..');
 const manifest = JSON.parse(fs.readFileSync(path.join(root, 'manifest.json'), 'utf8'));
 const filler = fs.readFileSync(path.join(root, 'template-filler.js'), 'utf8');
 const build = fs.readFileSync(path.join(root, 'scripts/build.sh'), 'utf8');
-const readme = fs.readFileSync(path.join(root, 'README.md'), 'utf8');
+const changelog = fs.readFileSync(path.join(root, 'CHANGELOG.md'), 'utf8');
 let n = 0;
 const pass = name => { n += 1; console.log('PASS ' + name); };
 
@@ -24,7 +24,7 @@ pass('v1.1.4 supports explicit Bestätigen modal commit');
 
 assert.match(filler, /concrete carrier\/method IDs and package sizes are deliberately/);
 assert.doesNotMatch(filler.match(/async function fillShipping[\s\S]*?\n  async function fillPriceType/)?.[0] || '', /inferShippingPackageSize/);
-assert.match(readme, /Konkrete Versandmethoden .* gelten in 1\.1\.4 vorerst nicht als gepflegte Vorlagendaten/s);
+assert.match(changelog, /Konkrete Versandmethoden .* gelten in 1\.1\.4 vorerst nicht als gepflegte Vorlagendaten/s);
 pass('v1.1.4 ignores concrete shipping methods and package sizes');
 
 assert.doesNotMatch(filler, /requestSubmit\s*\(/);
