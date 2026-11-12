@@ -164,7 +164,7 @@ function renderTrash(records = currentTrashRecords) {
     facts.append(makeInfoLine('Preis', displayPriceWithType(record)));
     facts.append(makeInfoLine('ID', String(record.adId || 'unbekannt')));
     facts.append(makeInfoLine('Im Papierkorb', formatDate(record.trash?.trashedAt)));
-    const expiryRow = makeInfoLine('Aufbewahrung', trashRetentionPresentation(record));
+    const expiryRow = makeInfoLine('Aufbewahrung', trashRetentionPresentation(record), true);
     expiryRow.classList.add('trash-expiry');
     facts.append(expiryRow);
     facts.append(makeInfoLine('Grund', trashReasonLabel(record)));

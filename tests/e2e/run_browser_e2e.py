@@ -534,6 +534,57 @@ def scenario_bottom_clamp_four_views(pw, browser_path, headless):
             env.app.locator(view_sel).click()
             env.app.locator(mode_sel).click()
             env.app.wait_for_timeout(180)
+            if name.startswith("trash-"):
+                # KAR-165: real Chromium computed CSS, not merely a DOM-class assertion.
+                env.app.wait_for_function("() => !!document.querySelector('#trashList .trash-retention-countdown')")
+                styles = env.app.evaluate("""(viewName) => {
+                  const selector = viewName === 'trash-detailed'
+                    ? '#trashList .trash-expiry strong'
+                    : '#trashList .compact-list-meta-end';
+                  const deadline = document.querySelector(selector);
+                  const countdown = deadline?.querySelector('.trash-retention-countdown');
+                  if (!countdown) return { error: 'missing rendered countdown' };
+                  const originalClass = countdown.className;
+                  const originalText = deadline.textContent;
+                  const prefix = deadline.firstChild;
+                  const parentStyle = getComputedStyle(deadline);
+                  const dateColor = parentStyle.color;
+                  const parentFontSize = parentStyle.fontSize;
+                  const probe = (urgency) => {
+                    countdown.className = 'trash-retention-countdown' +
+                      (urgency ? ' trash-retention-countdown-' + urgency : '');
+                    const computed = getComputedStyle(countdown);
+                    return {color: computed.color, transform: computed.textTransform,
+                      fontSize: computed.fontSize};
+                  };
+                  const neutral = probe(null);
+                  const warning = probe('warning');
+                  const urgent = probe('urgent');
+                  const afterDateColor = getComputedStyle(deadline).color;
+                  countdown.className = originalClass;
+                  return {
+                    neutral, warning, urgent, dateColor, afterDateColor,
+                    parentFontSize, originalText, preservedText: deadline.textContent,
+                    prefixIsText: prefix?.nodeType === 3,
+                    prefixText: prefix?.textContent
+                  };
+                }""", name)
+                require(not styles.get("error"), f"{name}: {styles}")
+                require(styles["prefixIsText"] and styles["prefixText"].startswith("Im Papierkorb bis "),
+                        f"{name}: date prefix must be an uncolored text node: {styles}")
+                require(styles["originalText"] == styles["preservedText"] and
+                        styles["dateColor"] == styles["afterDateColor"],
+                        f"{name}: date/label styling must remain untouched: {styles}")
+                require(styles["neutral"]["color"] == styles["dateColor"],
+                        f"{name}: 8+ day suffix must inherit normal deadline color: {styles}")
+                require(styles["warning"]["color"] == "rgb(248, 206, 101)",
+                        f"{name}: 7-day warning computed CSS not yellow: {styles}")
+                require(styles["urgent"]["color"] == "rgb(255, 133, 133)",
+                        f"{name}: 2-day urgency computed CSS not red: {styles}")
+                for variant in ("neutral", "warning", "urgent"):
+                    require(styles[variant]["transform"] == "none" and
+                            styles[variant]["fontSize"] == styles["parentFontSize"],
+                            f"{name}: countdown should preserve original case/size: {styles}")
             env.app.evaluate("window.scrollTo(0,0)")
             env.app.wait_for_timeout(80)
             top_before = env.app.locator(".control-panel").bounding_box()["y"]

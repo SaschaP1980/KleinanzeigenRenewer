@@ -111,22 +111,30 @@
         return 'Manuell aus Inventar entfernt';
       }
 
-      function trashRetentionLabel(record, now = Date.now()) {
+      function remainingTrashDays(record, now = Date.now()) {
         const expires = Date.parse(record?.trash?.expiresAt || '');
-        if (!Number.isFinite(expires)) return 'Ablauf unbekannt';
-        const ms = Math.max(0, expires - Number(now));
-        const days = Math.max(1, Math.ceil(ms / (24 * 60 * 60 * 1000)));
+        const referenceTime = Number(now);
+        if (!Number.isFinite(expires) || !Number.isFinite(referenceTime)) return null;
+        // Keep the existing upward-rounded whole-day semantics for future deadlines.
+        // Zero means the deadline has already been reached, not that an entry was deleted.
+        return Math.max(0, Math.ceil((expires - referenceTime) / (24 * 60 * 60 * 1000)));
+      }
+
+      function trashRetentionLabel(record, now = Date.now()) {
+        const days = remainingTrashDays(record, now);
+        if (days === null) return 'Ablauf unbekannt';
+        if (days === 0) return 'Frist abgelaufen';
         return days === 1 ? 'Noch 1 Tag' : `Noch ${days} Tage`;
       }
 
       function trashRetentionPresentation(record, now = Date.now()) {
-        const expiresAt = String(record?.trash?.expiresAt || '');
-        const expires = Date.parse(expiresAt);
-        if (!Number.isFinite(expires)) return 'Aufbewahrung unbekannt';
-        const ms = Math.max(0, expires - Number(now));
-        const days = Math.max(1, Math.ceil(ms / (24 * 60 * 60 * 1000)));
-        const remaining = days === 1 ? 'noch 1 Tag' : `noch ${days} Tage`;
-        return `Im Papierkorb bis ${formatCalendarDate(expiresAt)} (${remaining})`;
+        const days = remainingTrashDays(record, now);
+        if (days === null) return 'Aufbewahrung unbekannt';
+        const date = formatCalendarDate(record.trash.expiresAt);
+        const remaining = days === 0
+          ? 'Frist abgelaufen'
+          : days === 1 ? 'noch 1 Tag' : `noch ${days} Tage`;
+        return `Im Papierkorb bis ${date} (${remaining})`;
       }
 
       return Object.freeze({
