@@ -85,6 +85,37 @@ async function main(){
  ok(correspondingStart?.operationType==='AUTONOMOUS:renewal-auto-phase4'
     && correspondingFinish?.state==='completed',
     'P8 durable start/finish attest exact automatic Phase-4 callback lifetime');
+
+ // P1.3-F3: the real routed manual Finish action obtains a P8 receipt.
+ // It MUST pass unchanged through background.js to Phase-4's immutable
+ // before-DELETE journal. The successful test never visits Kleinanzeigen.
+ const manual=harness();
+ let manualReceipt=null;
+ await manual.atomic.withAdmission('FINISH_RENEWAL_REPLACEMENT',async receipt=>{
+   manualReceipt=receipt;
+   await manual.api.preverifyAndTriggerRenewalSourceDeleteAttempt(
+     session,'Source Profile',null,{attempt:1,attemptId:'manual'},0,receipt);
+ });
+ const manualIntent=Object.values(manual.db.map).find(row=>row.state==='outcome-unverified');
+ ok(manual.deleteCalls===1 && typeof manualIntent?.admissionToken==='string'
+   && manualIntent.admissionToken===manualReceipt?.token,
+   'manual Phase-4 remote DELETE is anchored to its genuine routed P8 token');
+ ok(manual.db.map[Atomic.START_PREFIX+manualReceipt.token]?.operationType==='FINISH_RENEWAL_REPLACEMENT'
+   && manual.db.map[Atomic.FINISH_PREFIX+manualReceipt.token]?.state==='completed',
+   'manual Phase-4 P8 admission start/finish remains independently reconstructible');
+ ok(/async function finishRenewalReplacement\(message,\s*admissionReceipt\)\s*\{\s*return requireRemoteDeleteReplacementService\(\)\.finishRenewalReplacement\(message,\s*admissionReceipt\);/.test(bg),
+   'existing background wrapper forwards source-issued manual receipt to service');
+ ok(/"FINISH_RENEWAL_REPLACEMENT":\s*\(message,\s*sender,\s*admissionReceipt\)\s*=>\s*finishRenewalReplacement\(message,\s*admissionReceipt\)/.test(bg),
+   'actual routed handler forwards source-issued manual receipt, not client input');
+ const unrelated=harness();
+ await assert.rejects(
+   unrelated.atomic.withAdmission('SAVE_INVENTORY',receipt=>
+     unrelated.api.preverifyAndTriggerRenewalSourceDeleteAttempt(
+       session,'Source Profile',null,{attempt:1,attemptId:'foreign'},0,receipt)),
+   /KR_PHASE4_JOURNAL_ADMISSION_UNVERIFIED/);
+ ok(unrelated.deleteCalls===0
+   && !Object.values(unrelated.db.map).some(row=>row.state==='outcome-unverified'),
+   'genuine unrelated routed P8 operation cannot authorize manual remote DELETE');
  const forged=harness();
  const forgedReceipt=Object.freeze({schema:1,state:'admitted',
     token:'p8-fake-token-no-source',operationType:'AUTONOMOUS:renewal-auto-phase4',
