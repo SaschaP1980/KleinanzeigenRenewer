@@ -218,6 +218,79 @@ const base = () => ({
     assert.equal(Schema.diffCategorySchemas(null,Schema.buildCategorySchema(c)).status,'baseline-missing');
     assert.equal(Schema.diffCategorySchemas(Schema.buildCategorySchema(categoryObserved()),Schema.buildCategorySchema(c)).status,'category-not-verified');
   });
-  console.log(passed + '/22 PASS KAR-134 schema core');
+
+  await check('F1 field additions, removals and authoritative requiredness produce structured differences',()=>{
+    const base=Schema.buildBaseSchema(baseNeutral());
+    const add=baseNeutral();
+    add.fields.push({name:'contactName',controlType:'text',visible:true,requiredState:'optional'});
+    assert.ok(Schema.diffBaseSchemas(base,Schema.buildBaseSchema(add)).changes.some(x=>x.type==='field-added'));
+    const removed=baseNeutral();removed.fields=removed.fields.filter(x=>x.name!=='title');
+    assert.ok(Schema.diffBaseSchemas(base,Schema.buildBaseSchema(removed)).changes.some(x=>x.type==='field-removed'));
+    const changed=baseNeutral();changed.fields[0].requiredState='optional';
+    assert.ok(Schema.diffBaseSchemas(base,Schema.buildBaseSchema(changed)).changes.some(x=>x.type==='requiredness-changed'));
+    const uncertain=baseNeutral();uncertain.fields[0].requiredState='unknown';
+    assert.equal(Schema.diffBaseSchemas(base,Schema.buildBaseSchema(uncertain)).status,'base-evidence-uncertain');
+  });
+  await check('F1 technical option diffs distinguish proven change from insufficient option evidence',()=>{
+    const source=baseNeutral();
+    source.fields.push({name:'paymentType',controlType:'combobox',visible:true,optionsComplete:true,
+      options:[{value:'FIXED'},{value:'VB'}]});
+    const a=Schema.buildBaseSchema(source);
+    const changed=baseNeutral();
+    changed.fields.push({name:'paymentType',controlType:'combobox',visible:true,optionsComplete:true,
+      options:[{value:'FIXED'},{value:'OTHER'}]});
+    assert.equal(Schema.diffBaseSchemas(a,Schema.buildBaseSchema(changed)).changes[0].type,'valid-options-changed');
+    const unknown=baseNeutral();
+    unknown.fields.push({name:'paymentType',controlType:'combobox',visible:true,options:[]});
+    assert.equal(Schema.diffBaseSchemas(a,Schema.buildBaseSchema(unknown)).status,'base-evidence-uncertain');
+    const duplicate=baseNeutral();
+    duplicate.fields.push({name:'paymentType',controlType:'select',visible:true,
+      options:[{value:'FIXED'},{value:'FIXED'}]});
+    assert.throws(()=>Schema.buildBaseSchema(duplicate),/Duplicate technical option identifier/);
+  });
+  await check('F1 rejects unknown contexts, sensitive visible controls and corrupted snapshots',async()=>{
+    for(const broken of [{categoryChooser:'unknown'},{formMode:'unrecognized'},{fields:null}]){
+      const data={...baseNeutral(),...broken};
+      assert.throws(()=>Schema.buildBaseSchema(data));
+    }
+    const secret=baseNeutral();secret.fields.push({name:'csrfToken',visible:true,controlType:'text'});
+    assert.throws(()=>Schema.buildBaseSchema(secret),/Untrusted/);
+    const a=Schema.buildBaseSchema(baseNeutral());
+    assert.throws(()=>Schema.diffBaseSchemas({...a,stage:'corrupt'},a),/Incompatible F1/);
+    await assert.rejects(Schema.baseFingerprint(a,{}),/SHA-256 is unavailable/);
+    assert.throws(()=>Schema.diffBaseSchemas(a,{...a,fields:[{key:'field:title',kind:'text',requiredState:'required',optionValues:['X','X']}]}),/Duplicate stage option/);
+  });
+  await check('F2 distinct numeric leaf or incorrect evidence level fails closed',()=>{
+    const old=Schema.buildCategorySchema(categoryObserved());
+    const changed=categoryObserved();changed.categoryId='406';changed.levels[2].technicalId='406';
+    assert.ok(Schema.diffCategorySchemas(old,Schema.buildCategorySchema(changed)).changes.some(x=>x.type==='leaf-id-changed'));
+    const notObserved=categoryObserved();notObserved.leafConfirmed=false;
+    assert.equal(Schema.diffCategorySchemas(Schema.buildCategorySchema(notObserved),old).status,'category-not-verified');
+  });
+  await check('F2 rejects missing, excessively deep, unlabeled or unsupported category steps',()=>{
+    for(const change of [{levels:[]},{levels:Array.from({length:13},(_,i)=>({
+      label:'Step '+i,technicalId:i===12?'405':'12',kind:i===12?'leaf':'branch'
+    }))}]){
+      assert.throws(()=>Schema.buildCategorySchema({...categoryObserved(),...change}),/category navigation path/);
+    }
+    const noLabel=categoryObserved();noLabel.levels[0].label='';
+    assert.throws(()=>Schema.buildCategorySchema(noLabel),/breadcrumb label/);
+    const noKind=categoryObserved();noKind.levels[1].kind='article-type';
+    assert.throws(()=>Schema.buildCategorySchema(noKind),/category level kind/);
+    const wrongId=categoryObserved();wrongId.categoryId='unknown';
+    assert.throws(()=>Schema.buildCategorySchema(wrongId),/category ID/);
+  });
+  await check('F2 verifies schema integrity and does not accept forged identity evidence',async()=>{
+    const a=Schema.buildCategorySchema(categoryObserved());
+    assert.throws(()=>Schema.diffCategorySchemas(a,{...a,evidence:'partial-ids'}),/Inconsistent category identity evidence/);
+    assert.throws(()=>Schema.diffCategorySchemas({...a,stage:'wrong'},a),/Incompatible F2/);
+    await assert.rejects(Schema.categoryFingerprint(a,{}),/SHA-256 is unavailable/);
+    const b=categoryObserved();b.levels[0].technicalId=null;
+    const diff=Schema.diffCategorySchemas(Schema.buildCategorySchema(b),a);
+    assert.equal(diff.status,'category-partially-verified');
+    assert.equal(diff.compatible,null);
+  });
+  console.log(passed + '/28 PASS KAR-134 schema core');
+
 
 })().catch(error => { console.error(error); process.exitCode = 1; });
