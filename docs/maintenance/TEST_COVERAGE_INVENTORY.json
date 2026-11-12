@@ -1,0 +1,5475 @@
+{
+  "schema": 1,
+  "issue": 167,
+  "baselineWorkHead": "5c4d256608f81b7b4deb7c802661d05a77b161ea",
+  "baselineMain": "e5b1ebceab4bd16116f1cd6532f08e56e1cdfde2",
+  "version": "1.23.59",
+  "policy": "Conservative path/consumer inventory as of this pinned source head. This is a frozen historical baseline; new tests added later are allowed, but deleting a baseline test requires separately updating the registry after an independent safe-retirement proof.",
+  "counts": {
+    "baselineTests": 506,
+    "byRole": {
+      "indirect-fixture": 2,
+      "standalone-historical": 6,
+      "indirect-helper": 13,
+      "direct-or-hosted": 483,
+      "gold-reference": 1,
+      "documentation": 1
+    },
+    "trackedCoverageContracts": 2
+  },
+  "tests": [
+    {
+      "path": "tests/current-patch-next-release-regression.cjs",
+      "gitBlobSha": "39404b38daea28a94c335789146024122aaaaa72",
+      "bytes": 3564,
+      "role": "indirect-fixture",
+      "entrypoints": [],
+      "keepReason": "KAR-50 historical unfixed-next-PATCH fixture calls this under an isolated prospective PATCH environment"
+    },
+    {
+      "path": "tests/current-patch-policy-regression.cjs",
+      "gitBlobSha": "3051e55784e69400b73d817eb25b549500dfa090",
+      "bytes": 4874,
+      "role": "standalone-historical",
+      "entrypoints": [],
+      "keepReason": "Version progression and negative policy checks; no direct current CI/package command proven"
+    },
+    {
+      "path": "tests/current-patch-policy.cjs",
+      "gitBlobSha": "90be2cb6f951bd9ff7a42a006a1d0dc05f832c62",
+      "bytes": 4293,
+      "role": "indirect-helper",
+      "entrypoints": [],
+      "keepReason": "Imported by many versioned regression tests for safe PATCH version and permission policy"
+    },
+    {
+      "path": "tests/description.cjs",
+      "gitBlobSha": "736ee685fc8d14ca6e720225863b54474f9268bd",
+      "bytes": 2978,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/e2e/gold-v1.21.15.json",
+      "gitBlobSha": "e2d49c314c7ce340f8162bbb14306b69b6aa5b7b",
+      "bytes": 4240,
+      "role": "gold-reference",
+      "entrypoints": [],
+      "keepReason": "Immutable v1.21.15 E2E/runtime identity Gold reference, not executable"
+    },
+    {
+      "path": "tests/e2e/README.md",
+      "gitBlobSha": "9e7e4595a171144f14f746550d1a67094ea8f28a",
+      "bytes": 3218,
+      "role": "documentation",
+      "entrypoints": [],
+      "keepReason": "Browser E2E operation and isolation manual, kept at canonical instructions path"
+    },
+    {
+      "path": "tests/e2e/requirements.txt",
+      "gitBlobSha": "24b4715c902743f61e981e4f6e1b38da466c6bf2",
+      "bytes": 19,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "KAR Release hosted CI",
+        "KAR Work PR hosted CI",
+        "KAR main CI"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/e2e/run_browser_e2e_supervisor.py",
+      "gitBlobSha": "b05857c71b2c1857dd0ebd2491aac0fe4f81d9c2",
+      "bytes": 7698,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "KAR Work PR hosted CI",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/e2e/run_browser_e2e.py",
+      "gitBlobSha": "08f9047398a11b3f15a265b7818c515ac3f5951b",
+      "bytes": 39540,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "KAR Release hosted CI",
+        "KAR main CI",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/e2e/run.cjs",
+      "gitBlobSha": "10331fafa1b6fb98ecbd9809bfe4354ee02ebf68",
+      "bytes": 1000,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/e2e/verify_pr_e2e_report.py",
+      "gitBlobSha": "afc99da238915c54b5e9403ef464060f583ca0e5",
+      "bytes": 6962,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "KAR Work PR hosted CI"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/edit.cjs",
+      "gitBlobSha": "a835a4eecb53a088fd6c17aac57095deae5c794a",
+      "bytes": 7053,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/identity.cjs",
+      "gitBlobSha": "44d9598b639d471e52f332ad12d18861099adb31",
+      "bytes": 2175,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/images.cjs",
+      "gitBlobSha": "15a2ae00d186d6212b28b4cea512131007c0f5c5",
+      "bytes": 4743,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/jpeg.cjs",
+      "gitBlobSha": "a9af74e65cc29a19b0b15c3adc75f03367ba5d14",
+      "bytes": 4290,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/kar-ci-contract.cjs",
+      "gitBlobSha": "feab3532e1ce8716a393b153c7bf9f034f751d3e",
+      "bytes": 2320,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "KAR main CI"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/kar-issue-title.cjs",
+      "gitBlobSha": "c9262298a9adad90b445d4262e33cdf8ec8ef708",
+      "bytes": 2306,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/kar-release-notes-contract.cjs",
+      "gitBlobSha": "727299e2a1d260159e8b957fbe88e040b58d605a",
+      "bytes": 2305,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/kar-release-repo-archive-contract.cjs",
+      "gitBlobSha": "f7a203ca43e902bc4c29887d1c610e18bb283664",
+      "bytes": 2103,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/kar-work-pr-contract.cjs",
+      "gitBlobSha": "5d8671ff4b578898c0bd22fbf76c331d8b96f349",
+      "bytes": 8079,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/kar132-modern-category-modal.cjs",
+      "gitBlobSha": "94eb484ad973a6d6cf7ca8b1a75a1316ab9c01e4",
+      "bytes": 26668,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/kar132-wearables-attributes.cjs",
+      "gitBlobSha": "caa8f2fed7b2b4aff7fac27db746af4db6161a2e",
+      "bytes": 6887,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/kar136-roster-assessment.cjs",
+      "gitBlobSha": "1fc09b6f9f6f68377a3a32c30aa456d7d3a52ae6",
+      "bytes": 4035,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/kar138-complete-roster-integration.cjs",
+      "gitBlobSha": "b9c00481f32eb5a83972d8c2a2c604e9f3e116f5",
+      "bytes": 6583,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/kar147-diagnostic-occupancy.cjs",
+      "gitBlobSha": "c7ef6e1d13bf127a22d68aa435d8adfc78909645",
+      "bytes": 4574,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/kar148-article-type.cjs",
+      "gitBlobSha": "944fc42545df535395354e6370a02c10818539d3",
+      "bytes": 5678,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/kar150-stop-on-error.cjs",
+      "gitBlobSha": "b92f5f024dce5ff0664f8ea7ee6aca5467ab2a31",
+      "bytes": 15530,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/kar150-ui-preference.cjs",
+      "gitBlobSha": "bfddff42d2171eb5b22a227b7484e16679e78771",
+      "bytes": 8154,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/kar151-mass-title-search.cjs",
+      "gitBlobSha": "e68cc83e385e1198a868a367fcdf438694db57e0",
+      "bytes": 12155,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/kar158-compact-category.cjs",
+      "gitBlobSha": "95be2589d499b3923d1bdc03a9f71a4ee9800a3b",
+      "bytes": 6009,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/kar165-trash-retention-warning.cjs",
+      "gitBlobSha": "d884347775f238c7a505a9ab12b080427b8ec072",
+      "bytes": 7077,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/kar167-file-layout.cjs",
+      "gitBlobSha": "982c2447862c9e11d0615524deb663fab1c1c3fe",
+      "bytes": 6621,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "mandatory coverage gate"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/kar167-icons-closure.cjs",
+      "gitBlobSha": "ffd8647a693fe9f96a92f6e7b7e02fcdd14a032f",
+      "bytes": 7520,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "mandatory coverage gate"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/kar167-script-closure.cjs",
+      "gitBlobSha": "b6bf134046eeb65248e599f2b9391c411e282f66",
+      "bytes": 5515,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "mandatory coverage gate"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/kar46-unfixed-next-patch-red.py",
+      "gitBlobSha": "7748f871269a58b7981f8c8c51791a8036f2ee2a",
+      "bytes": 4688,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "KAR Work PR hosted CI"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/kar46-work-pr-e2e-contract.cjs",
+      "gitBlobSha": "0184aff0a0e06aeb1ded7ac66e78a641d8ec57eb",
+      "bytes": 3114,
+      "role": "standalone-historical",
+      "entrypoints": [],
+      "keepReason": "Historical KAR-46 Work PR browser artifact and fail-closed report verification contract"
+    },
+    {
+      "path": "tests/kar48-archive-negative.py",
+      "gitBlobSha": "d5c8d63218f2b05ef370b80b49c1b8132252f2ad",
+      "bytes": 2927,
+      "role": "standalone-historical",
+      "entrypoints": [],
+      "keepReason": "Executable independently operable archive collision/invalid-asset negative verification"
+    },
+    {
+      "path": "tests/kar48-historical-unfixed-red.py",
+      "gitBlobSha": "9a7e85de5eda9a592ee132f16688bd2ddc52a211",
+      "bytes": 2273,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "KAR Work PR hosted CI"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/kar48-zip-only-contract.cjs",
+      "gitBlobSha": "87448ec24c777d61a846d029b419e333feb2b0c9",
+      "bytes": 2048,
+      "role": "standalone-historical",
+      "entrypoints": [],
+      "keepReason": "KAR-48 historical committed-archive-only Work/main browser test contract"
+    },
+    {
+      "path": "tests/kar50-next-patch-contract.cjs",
+      "gitBlobSha": "fc793685b7bdf58a436c9fb92252aba98d62dead",
+      "bytes": 1387,
+      "role": "standalone-historical",
+      "entrypoints": [],
+      "keepReason": "KAR-50 historical dynamic successor/manifest consistency contract; imports kar50-next-patch.cjs"
+    },
+    {
+      "path": "tests/kar50-next-patch.cjs",
+      "gitBlobSha": "f068712104a56eb0c351d1ee9e6328b91b2d5c89",
+      "bytes": 558,
+      "role": "indirect-helper",
+      "entrypoints": [],
+      "keepReason": "Imported by KAR-50 successor contract and isolated prospective-PATCH fixture"
+    },
+    {
+      "path": "tests/kar50-unfixed-next-patch-red.cjs",
+      "gitBlobSha": "8722bec4730a84edab05685661330f8f80d9d42b",
+      "bytes": 3638,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "KAR Work PR hosted CI"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/kar52-patch-builder-policy.py",
+      "gitBlobSha": "af5c59bb0f63e10a08f4c7f49c5d7232b69fb8f3",
+      "bytes": 6394,
+      "role": "indirect-fixture",
+      "entrypoints": [],
+      "keepReason": "Executed by KAR-52 Work-path contract for strict failure cases and no mutation"
+    },
+    {
+      "path": "tests/kar52-work-path-contract.cjs",
+      "gitBlobSha": "f1099898861cd80c177862e18a8b65dfb50a88eb",
+      "bytes": 3856,
+      "role": "standalone-historical",
+      "entrypoints": [],
+      "keepReason": "KAR-52 canonical Rolling Comment / reusable PATCH preflight and negative contract"
+    },
+    {
+      "path": "tests/kar58-fast-patch-policy.py",
+      "gitBlobSha": "a67141d00e54d1af38c5be1c8777df64d9a4d763",
+      "bytes": 2708,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "mandatory coverage gate"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/kar68-native-status-gateway.cjs",
+      "gitBlobSha": "febcebacd02998825d10624f12b4cae434c0113b",
+      "bytes": 5260,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "KAR Work PR hosted CI",
+        "KAR main CI",
+        "npm test / npm run test:e2e"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/kar69-native-check.cjs",
+      "gitBlobSha": "359618f4739e96d229552e94cd7e1d896e3b8b8a",
+      "bytes": 7714,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/kar81-native-fallback.cjs",
+      "gitBlobSha": "f4c74f41f580145631b57a57571a5d808286cee2",
+      "bytes": 4532,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "KAR Work PR hosted CI"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/kar85-updater-modal.cjs",
+      "gitBlobSha": "9a93d600e3af27e113b9d8b1a21b790485cf8e82",
+      "bytes": 5460,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/kar86-approved-channel.cjs",
+      "gitBlobSha": "2b40bdb1b040785e821eaba693b7c233c152ee83",
+      "bytes": 6710,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/kar90-updater-ux.cjs",
+      "gitBlobSha": "8e475061adab224aa08a8224987525e92a4973f3",
+      "bytes": 4803,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/kar91-english-console.cjs",
+      "gitBlobSha": "4cd364da2a22e84556709ec8c122b25259dc5fa2",
+      "bytes": 2381,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/kar94-setup-package.cjs",
+      "gitBlobSha": "9b676f8deebaf9754c2ed43bb5cfeda016e811ab",
+      "bytes": 2051,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/kar97-update-idle-policy.cjs",
+      "gitBlobSha": "8410d1fdcbbd65ef7eb3f4f19d9846aa675ce46f",
+      "bytes": 4736,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/optional-dom-indexeddb.cjs",
+      "gitBlobSha": "cc5146e452f839996ef37939c7e512c8dada71b7",
+      "bytes": 705,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/popup.cjs",
+      "gitBlobSha": "1ed675db6a029b1623faf8493d20dac89f45f70b",
+      "bytes": 1560,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/storage.cjs",
+      "gitBlobSha": "9bc4d6835629a1ce7cb0ee06f7651538dec80d5d",
+      "bytes": 4697,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v015-contract.cjs",
+      "gitBlobSha": "3a9a92c40c142c08e74b2c72900674123da86691",
+      "bytes": 1925,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v016-contract.cjs",
+      "gitBlobSha": "bb66f6be8ee83218ef481e9f78ee82e383bf3e95",
+      "bytes": 3567,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v017-contract.cjs",
+      "gitBlobSha": "36be64656e16f438c96c2fa8e730b0e5cc1b0d08",
+      "bytes": 4128,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v017-structured.cjs",
+      "gitBlobSha": "a61861d671b06caeba5010a7f3e9b7aaf46aaeb0",
+      "bytes": 3674,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v110-contract.cjs",
+      "gitBlobSha": "a5772b2da2755020c94a4f11e3dc5c2cd457b558",
+      "bytes": 3192,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v110-template.cjs",
+      "gitBlobSha": "49e2d9c18a33ea5bd120706ca6fb7dd5abd58163",
+      "bytes": 1775,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1100-contract.cjs",
+      "gitBlobSha": "992498e3ff85ea210b0d9c4309b1f67bdb43c77f",
+      "bytes": 9418,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1101-contract.cjs",
+      "gitBlobSha": "253f3bd86e843d5ba02bee3e226b471fca9e08e2",
+      "bytes": 10546,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1102-contract.cjs",
+      "gitBlobSha": "ec7ceb10df9a2942680773377d4b0d9809da97ba",
+      "bytes": 5083,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1103-contract.cjs",
+      "gitBlobSha": "7291c36aeb9ee608a5a3224f76fe579a7f272dd5",
+      "bytes": 13500,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1104-contract.cjs",
+      "gitBlobSha": "c0659a9d9a7a583af4f669dc038b9919df02eea9",
+      "bytes": 18805,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v111-category.cjs",
+      "gitBlobSha": "c3ce499139dd20e20d847345368e0490c29c4dc3",
+      "bytes": 1402,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v111-contract.cjs",
+      "gitBlobSha": "d7bf8316299fc0ffa53468caaf3ae8dd1c14cdb0",
+      "bytes": 3750,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1110-contract.cjs",
+      "gitBlobSha": "5e19c82570078926bfce3758e0082c7b3b7afbe2",
+      "bytes": 25565,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1111-contract.cjs",
+      "gitBlobSha": "f9ad2a690c5c2dcd6372e3b1817db3a9435db394",
+      "bytes": 17962,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1112-contract.cjs",
+      "gitBlobSha": "6a2a50020d3185a1e3d906acf26944d11c8f748c",
+      "bytes": 19712,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1113-contract.cjs",
+      "gitBlobSha": "f07989731f639fa6ca16dff5e0af2d05cf6d5b27",
+      "bytes": 26742,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1114-contract.cjs",
+      "gitBlobSha": "787226fc7688c40bf338ec2d442504f779161907",
+      "bytes": 27399,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1115-contract.cjs",
+      "gitBlobSha": "10bb27ad705d04db2a1af7d92d771be769c8172e",
+      "bytes": 20632,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v112-category.cjs",
+      "gitBlobSha": "30eea729ed1e72da6def15c5aeca5a6cf84bc712",
+      "bytes": 3225,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v112-contract.cjs",
+      "gitBlobSha": "c627b39ca72815757661c945f05f3258f77a5799",
+      "bytes": 4008,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1120-contract.cjs",
+      "gitBlobSha": "959c95c9f207a3b852a83586126d21c0d54f99f5",
+      "bytes": 12166,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1121-contract.cjs",
+      "gitBlobSha": "db4755b54d816f191211c156a6fc41cb50c94878",
+      "bytes": 23418,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v113-category.cjs",
+      "gitBlobSha": "b76964db446e311f7e5dae993c91d4f65cf5b024",
+      "bytes": 856,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v113-contract.cjs",
+      "gitBlobSha": "9597423dab22c5441da96828ec5ef9fdff146850",
+      "bytes": 2166,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1130-contract.cjs",
+      "gitBlobSha": "d475108f5f3c0698fb90f2775c81ed9cf68608c3",
+      "bytes": 9518,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1131-contract.cjs",
+      "gitBlobSha": "19e23f961b0762b695d9a9c46ba6805ae456ff83",
+      "bytes": 19789,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1132-contract.cjs",
+      "gitBlobSha": "26a262e8c9df8d50822e2aadc868e63a5a0bf1af",
+      "bytes": 8075,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1133-contract.cjs",
+      "gitBlobSha": "3b002b9f2eaee3dea4c483ce3801881ba47a200e",
+      "bytes": 8374,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1134-contract.cjs",
+      "gitBlobSha": "0d67adaecd56f4c8cefe09b40e3148c8ce834493",
+      "bytes": 6509,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1135-contract.cjs",
+      "gitBlobSha": "1a94bbaae50e9f7253deda96de3cf420ff47aa82",
+      "bytes": 8840,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1136-contract.cjs",
+      "gitBlobSha": "da2dbd4af055b5dfcb163e1c9015af05f7a3ec2f",
+      "bytes": 8368,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1137-contract.cjs",
+      "gitBlobSha": "f54d4b532c426b3f1a1932f006d4e16391984fdf",
+      "bytes": 13006,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1138-contract.cjs",
+      "gitBlobSha": "bec8ef19cf644f6016c64d28668dd43d7213ac34",
+      "bytes": 7316,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v114-contract.cjs",
+      "gitBlobSha": "85e784acca58de32f38ecb166911af9a728193cc",
+      "bytes": 3823,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v114-selection.cjs",
+      "gitBlobSha": "fdb21ec40ade919a3a394e7963f63f02854b57d0",
+      "bytes": 2669,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1140-contract.cjs",
+      "gitBlobSha": "6843053cc2c2b4e75e7c8ac2711a3ebb1209b468",
+      "bytes": 7794,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1141-contract.cjs",
+      "gitBlobSha": "ae8ab9c06c4e98df7a07f715e8d60c7209a6133e",
+      "bytes": 6112,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1142-contract.cjs",
+      "gitBlobSha": "45e1714417bad5b04bbe2f25893efe5899dfc7cd",
+      "bytes": 6031,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1143-contract.cjs",
+      "gitBlobSha": "a6c1de28a762fd575c39ac7b2e7af7f5a26edc6b",
+      "bytes": 5935,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1144-contract.cjs",
+      "gitBlobSha": "43b955a253014373f396459e4ed4ba548122a9e1",
+      "bytes": 5243,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1145-contract.cjs",
+      "gitBlobSha": "0e6930985526f271645b41adfb4ec7f923c027fc",
+      "bytes": 4513,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v115-contract.cjs",
+      "gitBlobSha": "60f63eaa584f2fe231250900f5052f7f1342d4fa",
+      "bytes": 3723,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v115-selection.cjs",
+      "gitBlobSha": "a9d63e96efa4cd34d33b9affb62d4b36fb8d8e4d",
+      "bytes": 3347,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1150-correlation-runtime.cjs",
+      "gitBlobSha": "87a247e9eeaf26939e7401f7219308c448f76124",
+      "bytes": 2138,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1150-correlation.cjs",
+      "gitBlobSha": "a77b4d413f40f3235e08e30017dacf17457d5e87",
+      "bytes": 2994,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1151-online-count.cjs",
+      "gitBlobSha": "fdf74a8aae6210700289a52d7f8e3f76f67cbd32",
+      "bytes": 1928,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1152-bulk-freshness-runtime.cjs",
+      "gitBlobSha": "e5736252ac0be82911052574f82110227e8e370b",
+      "bytes": 3967,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1152-bulk-freshness.cjs",
+      "gitBlobSha": "1045c970d311ea3b73d5fccea7b0f8b9033ac0f1",
+      "bytes": 2348,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1153-correlation-propagation.cjs",
+      "gitBlobSha": "b7bd72875b63c4a511f67a5ec6fae8f4dd3d1082",
+      "bytes": 3948,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1153-correlation-runtime.cjs",
+      "gitBlobSha": "25aebcbc2d488ff0e8a478df9dd97dc0fbe9f0ce",
+      "bytes": 2750,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1154-a2-closeout-runtime.cjs",
+      "gitBlobSha": "cad2097981523e1cf19480b6480de45ebddd1d7b",
+      "bytes": 1459,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1154-a2-closeout.cjs",
+      "gitBlobSha": "854fe9794d0592c7b6c584e68c97f2976116d7ba",
+      "bytes": 2289,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1154-message-ui.cjs",
+      "gitBlobSha": "c356026e850256c4b8e81b59cd6d78c291d2224b",
+      "bytes": 1619,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1155-ui-polish-runtime.cjs",
+      "gitBlobSha": "f6ee012e4efbd84692fb1640d870007accf82c60",
+      "bytes": 1699,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1155-ui-polish.cjs",
+      "gitBlobSha": "163f693ff2ccbe813a8a60405302270cf7d0a0b1",
+      "bytes": 2332,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1156-a1-tab-registry-runtime.cjs",
+      "gitBlobSha": "bddb805ec081a743da0a92f28fea3ec693599432",
+      "bytes": 5740,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1156-a1-tab-registry.cjs",
+      "gitBlobSha": "8e8cd8982a04d28acf0bf127a9a5eeca884540c6",
+      "bytes": 4336,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1157-a1b-gone-worker-runtime.cjs",
+      "gitBlobSha": "5bdf2e9b531dc5e620ed7ed5675317ca5c8c8cfd",
+      "bytes": 3460,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1157-a1b-gone-worker.cjs",
+      "gitBlobSha": "844d01031fc90240dcd5324abb61539057ce4830",
+      "bytes": 3023,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1157-ui-polish.cjs",
+      "gitBlobSha": "79b65249a1949e812764915cc4e033e4c105e82a",
+      "bytes": 1345,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v116-contract.cjs",
+      "gitBlobSha": "3ad7ffc1b1a1195aea7df0518a772f5789896959",
+      "bytes": 3982,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v116-images.cjs",
+      "gitBlobSha": "075a5915aac97976f469290468523c1e3c944675",
+      "bytes": 3950,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1160-inventory-capture-modal.cjs",
+      "gitBlobSha": "4973738e53e4259aec55b6e78c69ea6222d84065",
+      "bytes": 6268,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1160-inventory-capture-runtime.cjs",
+      "gitBlobSha": "fc2b94332e645124b23477f5ae0532195730c50b",
+      "bytes": 1638,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1161-single-inventory-edit-page-runtime.cjs",
+      "gitBlobSha": "c7cb067e9afc8b1d92fdf35720543ecbc28c975b",
+      "bytes": 2015,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1161-single-inventory-edit-worker-runtime.cjs",
+      "gitBlobSha": "332c58de5e15c84598d1ebc67ba3400335bb91b5",
+      "bytes": 1341,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1161-single-inventory-edit-worker.cjs",
+      "gitBlobSha": "1f19701f0416a6b3d2a3e42c95603b0136bc14d4",
+      "bytes": 4221,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1162-single-inventory-candidates-runtime.cjs",
+      "gitBlobSha": "fd945cc125041cacad3a871db14cd4a10e8269a8",
+      "bytes": 2553,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1162-single-inventory-candidates.cjs",
+      "gitBlobSha": "f40499db48b59bf89b7a12be5070d601ee29d451",
+      "bytes": 3612,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1163-single-inventory-result-runtime.cjs",
+      "gitBlobSha": "bba16c8969d62a9d695cd13bca938af54b64e11b",
+      "bytes": 1487,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1163-single-inventory-result.cjs",
+      "gitBlobSha": "c4bbaf9273e715c61848d62757b3d4d1c2b28efb",
+      "bytes": 5167,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1164-gallery-root-img-runtime.cjs",
+      "gitBlobSha": "add70b822958a05fa1c8472681986faf0d9ba9db",
+      "bytes": 2281,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1164-gallery-root-img.cjs",
+      "gitBlobSha": "96b709ec956eaa411948e2b7a79044126ce326be",
+      "bytes": 1974,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1165-inventory-microcopy.cjs",
+      "gitBlobSha": "129af24e4eaa73a446df9314e2625630a33ad00d",
+      "bytes": 4726,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1166-bulk-current-card.cjs",
+      "gitBlobSha": "80b5dfd6277b63684d0878fbb1add2fa88c57cc5",
+      "bytes": 1811,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1167-inventory-capture-reentry.cjs",
+      "gitBlobSha": "8190c7ab9d3b6342d2fecee0edc540f0cb03c264",
+      "bytes": 8042,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1168-single-reentry-direct-action.cjs",
+      "gitBlobSha": "bfea55832109442fde9f5d83e101d4a7357cd68e",
+      "bytes": 7472,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1168-single-reentry-runtime.cjs",
+      "gitBlobSha": "8c8e805a801b1d1d6e95cabb3bdc0e8ff2dec063",
+      "bytes": 2594,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1169-modal-discard-runtime.cjs",
+      "gitBlobSha": "78802170e03ae6182a3751a6ebb9ec9f871b7ae2",
+      "bytes": 2686,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1169-modal-discard-ux.cjs",
+      "gitBlobSha": "763fd0287c35969b783b905ff8522b40f0a9bf5c",
+      "bytes": 4416,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1170-a1b-authority-runtime.cjs",
+      "gitBlobSha": "1fb87ca9e295e21017b6f7522df6ba9fa1223c4b",
+      "bytes": 5993,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1170-a1b-authority.cjs",
+      "gitBlobSha": "3014da942f00c26b6d9c9838da314d4cee6e43ea",
+      "bytes": 5338,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1171-phase-retries.cjs",
+      "gitBlobSha": "05c57c798bd01ede6dd01c326eeb6364dd913be0",
+      "bytes": 6846,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1171-phase-retry-policy-runtime.cjs",
+      "gitBlobSha": "5c2a236e6bfd16aeadb2d922f3204927f29f545d",
+      "bytes": 3564,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v11710-taskbar-icon-title.cjs",
+      "gitBlobSha": "cf1b36dfbad85c46fedf78c4e21ba53b4a21f79f",
+      "bytes": 1713,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1172-account-gate-runtime.cjs",
+      "gitBlobSha": "b405c2be6a52c2addb05c626434fcb074e3b573a",
+      "bytes": 2281,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1172-account-modal-ux.cjs",
+      "gitBlobSha": "6066ec1e3a3d6689b545c25fdeb18011a20fd2d5",
+      "bytes": 8166,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1173-profile-status-ux.cjs",
+      "gitBlobSha": "c83edb7c587a7e6603f6383764a3d8f22d34bed8",
+      "bytes": 4766,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1173-progress-control-runtime.cjs",
+      "gitBlobSha": "71548c87b4124149583f66184a75c287676e607c",
+      "bytes": 1179,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1174-sidebar-header-runtime.cjs",
+      "gitBlobSha": "00ed6fd489496b3b519287eb231dcf30114815f2",
+      "bytes": 1386,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1174-sidebar-header-ux.cjs",
+      "gitBlobSha": "13085e880f36894c62908511987d8adb6537a83a",
+      "bytes": 3992,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1175-account-status-runtime.cjs",
+      "gitBlobSha": "19e957607dcbc4cb9e7d38b37a5d21162c2e47ac",
+      "bytes": 1435,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1175-ui-layout.cjs",
+      "gitBlobSha": "978591cfe7c977cc4126be4458f3a45828bf3510",
+      "bytes": 1533,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1176-accordion-motion.cjs",
+      "gitBlobSha": "d624988466e76a804df8f00be3f154508e2ce00c",
+      "bytes": 883,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1176-guided-trash-template.cjs",
+      "gitBlobSha": "4f8829f5c71eda486dba2ac714b46dc29289e9f0",
+      "bytes": 1842,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1176-trash-template-publish-runtime.cjs",
+      "gitBlobSha": "2219baad374f257cf08ca0929312c344d36703a5",
+      "bytes": 1422,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1177-performance1-diagnostics.cjs",
+      "gitBlobSha": "913571c2059bb8600083ad0a558c52d445a7e5f0",
+      "bytes": 1557,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1177-performance2-progress.cjs",
+      "gitBlobSha": "6b84a529e1528a5e5f3ca799797159231a6da62f",
+      "bytes": 1230,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1177-performance3-bootstrap.cjs",
+      "gitBlobSha": "bc43e852a95753a2cc62e762b2e754f71ad07cc2",
+      "bytes": 1575,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1177-performance4-phase4.cjs",
+      "gitBlobSha": "d3617356df8736fbe6d26231f25c26cbcbce4e33",
+      "bytes": 1633,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1178-local-attribute-retry.cjs",
+      "gitBlobSha": "c98a0aa17ba8626d744c89ad85b4d865160b2b3c",
+      "bytes": 2291,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1178-phase3-public-url.cjs",
+      "gitBlobSha": "007d76f6b925a5283df6dc3bef86c5c8cb297a7e",
+      "bytes": 1949,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1179-copy-icon-spacing.cjs",
+      "gitBlobSha": "073f51ca008758caaf71df92699588e490648b5d",
+      "bytes": 1997,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1179-expected-tab-close.cjs",
+      "gitBlobSha": "b7474badc6ebe411cce87b7c5f3e4ffa46d292fa",
+      "bytes": 2418,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1179-refresh-account-gate.cjs",
+      "gitBlobSha": "f27896f86bcfff789d4395dbcbbb673ee5bf4bc9",
+      "bytes": 1748,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1180-ui-workflow.cjs",
+      "gitBlobSha": "89d1c081993e2792e954c9f20f5bcaa7d4de5c66",
+      "bytes": 4054,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1181-profile-backup-runtime.cjs",
+      "gitBlobSha": "19044d64af4bc156f77d225091b180d2ab89f32f",
+      "bytes": 4829,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1181-profile-backup-zip-runtime.cjs",
+      "gitBlobSha": "23ac6a106c3195dcf273c6583c526ac209f3e9cd",
+      "bytes": 2799,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1181-reconciliation-profile-backup.cjs",
+      "gitBlobSha": "2c2b574f5d027bf7267c0c791e2826d8cd8fedfa",
+      "bytes": 4769,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1181-reconciliation-runtime.cjs",
+      "gitBlobSha": "fa6d075beafd69174fa245911fcf2bd51b43043f",
+      "bytes": 2586,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1182-derived-date-runtime.cjs",
+      "gitBlobSha": "e5765d47f785ad74bb557c06defff38535d34d01",
+      "bytes": 7995,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1182-fast-derived-trash-retention.cjs",
+      "gitBlobSha": "aa5c3cb3ea8d3dad513a75463b77d1769ba9f876",
+      "bytes": 7194,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1183-trash-modal-order.cjs",
+      "gitBlobSha": "454a01a329d7986875ffe5d071801d21b81d51ab",
+      "bytes": 4744,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1183-trash-runtime.cjs",
+      "gitBlobSha": "4bcbb1d2cfe6e8b09e289ccb9e999bcfd765f682",
+      "bytes": 1729,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1184-ux-copy.cjs",
+      "gitBlobSha": "e10786032f8aa99d3d6221b89786bf8d58c87f82",
+      "bytes": 5629,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1190-performance5-image-overlap-runtime.cjs",
+      "gitBlobSha": "c6f5052838ab961cee73ee639751825a1836771f",
+      "bytes": 3632,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1190-performance5-image-overlap.cjs",
+      "gitBlobSha": "cecf40e2dba6421511e0174c819b0c57b51fc1d1",
+      "bytes": 2039,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1191-bulk-controlled-stop.cjs",
+      "gitBlobSha": "d301f2dc4ec8632a58a50a612a74a65b6ad453e4",
+      "bytes": 1670,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1191-hardening-h1-h2.cjs",
+      "gitBlobSha": "05374be41439119abc9311c706bb253f1bdb6500",
+      "bytes": 2173,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1191-hardening-runtime.cjs",
+      "gitBlobSha": "6605d6d61f0537be04e85f30f8ba2b1fd475af8f",
+      "bytes": 1744,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1192-inventory-scope-runtime.cjs",
+      "gitBlobSha": "6974192ae87948c614e33edc10e70171377e7676",
+      "bytes": 1620,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1192-inventory-scope.cjs",
+      "gitBlobSha": "64f9d597ae0fc47e207b062271e0dcb98fd1233b",
+      "bytes": 2758,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1193-inventory-ux-copy.cjs",
+      "gitBlobSha": "e80d70a88ff825844114066745b99fa9d5dff34f",
+      "bytes": 3845,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1194-reconciliation-fresh-source-runtime.cjs",
+      "gitBlobSha": "e29fe9b3c60b2b068a8e9cc95107af48dd76bb9d",
+      "bytes": 5917,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1194-reconciliation-fresh-source.cjs",
+      "gitBlobSha": "e853dc2fe52833fe34053f5db51cf5f82ca4ebab",
+      "bytes": 5017,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1194-reconciliation-source-policy-runtime.cjs",
+      "gitBlobSha": "d64d5632e057c5d3f71eb6dcd463caa70ce76cb9",
+      "bytes": 1855,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1195-fresh-inventory-source-runtime.cjs",
+      "gitBlobSha": "b4808b02a11a4dc8d2f9071b4f6214232250eb50",
+      "bytes": 1655,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1195-fresh-inventory-source.cjs",
+      "gitBlobSha": "ad94c018ab9972c2168b64d16bf921e9c93b1351",
+      "bytes": 4941,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1196-activity-center.cjs",
+      "gitBlobSha": "2aa69d665cd444925a390cf7cc061a0a9e7661bb",
+      "bytes": 1978,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1196-inventory-summary-window.cjs",
+      "gitBlobSha": "828de5f025b076c50f0cef25377d1f4982e216e3",
+      "bytes": 1640,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1197-accordion-dynamic-height.cjs",
+      "gitBlobSha": "db3d02f2767106dc0f0e048be1425774d30a4b92",
+      "bytes": 1736,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1197-activity-history-retention.cjs",
+      "gitBlobSha": "3269418265e238e90a86c18187463cd44873d649",
+      "bytes": 3254,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1198-profile-backup-dedupe.cjs",
+      "gitBlobSha": "5e7a30b1b6b13ad661fbe5f24752d69fb5f451fb",
+      "bytes": 2839,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1198-profile-transfer-ux.cjs",
+      "gitBlobSha": "83b72d1079d26923244bf467e526c5fac2ccbcf4",
+      "bytes": 1897,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1198-renewal-interaction-settling.cjs",
+      "gitBlobSha": "4208bca59b335ec353e3dea0c48d52a91be4dea7",
+      "bytes": 1452,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v120-contract.cjs",
+      "gitBlobSha": "79def37273a131c576f9b7e64aedb389bd80ebcc",
+      "bytes": 4010,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v120-logic.cjs",
+      "gitBlobSha": "f8d3d65c3faaf6b1e5dec821f3f9f45c06c84e8a",
+      "bytes": 2188,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v120-runner.cjs",
+      "gitBlobSha": "3a92ef79fff53e9e106ecf9f8e15b83db2df3f4b",
+      "bytes": 1683,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1200-diagnostic-reset.cjs",
+      "gitBlobSha": "bd0ae46eb2c55b93181b7bce9ccf776edca79063",
+      "bytes": 2543,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1201-a6-event-driven-runtime.cjs",
+      "gitBlobSha": "c64a6356979d0c2f6b5f8859429b44cafff9e61f",
+      "bytes": 2060,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1201-a6-event-driven.cjs",
+      "gitBlobSha": "94446c1cf5f2057d7ccba6cfe9bde2863a6bcac2",
+      "bytes": 2728,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12010-account-gate-runtime.cjs",
+      "gitBlobSha": "c132c8ba17ffd2e37b9b40e6e0f8594f875a883b",
+      "bytes": 2358,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12010-actions-account-architecture.cjs",
+      "gitBlobSha": "9d827232d28f5b1ad93646b6c18a68c834cc7680",
+      "bytes": 2825,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12010-managed-navigation-runtime.cjs",
+      "gitBlobSha": "e9d3aec934e4aaf6ee641f88ead009ce3f5cd8bc",
+      "bytes": 2050,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12011-archive-progress-architecture.cjs",
+      "gitBlobSha": "d8c75353dc36803bb40a7ed2eaa9d970bb55d541",
+      "bytes": 2664,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12011-archive-progress-runtime.cjs",
+      "gitBlobSha": "3502b4eab37e127206bf350862731bbca715e616",
+      "bytes": 2978,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12012-archive-ui-polish.cjs",
+      "gitBlobSha": "dd8f5a80c3d4e552428e78b69c61340f7de55416",
+      "bytes": 2216,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12013-mass-gold-line.cjs",
+      "gitBlobSha": "d49860251f5a022a0123bd885456cafd2bf8b339",
+      "bytes": 1297,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12013-phase3-public-verification.cjs",
+      "gitBlobSha": "07cc52d2de5f6d69a03c34caabcc490971f3a1b2",
+      "bytes": 3126,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12014-mass-count-normalization.cjs",
+      "gitBlobSha": "b09f10d82552d5542f3e71ab59ad94bd63140104",
+      "bytes": 1677,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12014-public-id-parser.cjs",
+      "gitBlobSha": "f31063e6ec02ffd354d6b9eaa4cea081433ec9e0",
+      "bytes": 1637,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12014-renewal-copy.cjs",
+      "gitBlobSha": "371dfa5cdef7a0fb4320955549c6e90b97c562a0",
+      "bytes": 1477,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12016-header-tab-continuity.cjs",
+      "gitBlobSha": "161cc25071c16fe430060ee7cf72d834bc9cbeff",
+      "bytes": 870,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12016-mass-status-normalization.cjs",
+      "gitBlobSha": "8d851777822b96c2bb775aa10585a2c6c96f10d3",
+      "bytes": 1476,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12016-phase3-public-readiness.cjs",
+      "gitBlobSha": "7289d8d84a2494da6e254ec0d0b9775445211d6b",
+      "bytes": 1594,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12017-actions-card-dismiss.cjs",
+      "gitBlobSha": "32b8e1fd4436a5579857adda27b1f584aa5ab2d6",
+      "bytes": 1461,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12017-myads-inconsistency.cjs",
+      "gitBlobSha": "56e35e5e34090c78d4ef40d575994445432c8ebf",
+      "bytes": 2076,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12018-activity-history-bootstrap.cjs",
+      "gitBlobSha": "c6066495112867ae189b901418ebec961700a44b",
+      "bytes": 1667,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12018-header-refresh.cjs",
+      "gitBlobSha": "bc4bace7b30ccdef38d02a6829b3d0b1b7fd7056",
+      "bytes": 1996,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12018-sticky-geometry.cjs",
+      "gitBlobSha": "a428c4ca62b5f3c8f38fd16b75d91424ed7eede5",
+      "bytes": 1007,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12019-bald-online.cjs",
+      "gitBlobSha": "a279644a34c7b432120acb4f959cdffa59e2438d",
+      "bytes": 2418,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12019-phase3-edit-authority.cjs",
+      "gitBlobSha": "e093ee08c89b1d5e2924cc0b3ea0c727285dbee6",
+      "bytes": 3057,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12019-retry-ui.cjs",
+      "gitBlobSha": "17feb7e5a15e7cc4b02be39bbca7d60cbadd7d68",
+      "bytes": 1481,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12019-ui-polish.cjs",
+      "gitBlobSha": "d98aa7b09054a9cde945e134ce7a1c2ac7289f19",
+      "bytes": 759,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1202-a7-indexeddb.cjs",
+      "gitBlobSha": "bff2a2d798beee29c9fe34035c565356ae0cd19c",
+      "bytes": 4106,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1202-expected-close-race.cjs",
+      "gitBlobSha": "fec00d38dfaa3429fb0e7e8b972e47556c13f457",
+      "bytes": 2742,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12020-bald-online-normal-card.cjs",
+      "gitBlobSha": "2f941eaa9e4c509ca940dc83395607cbaeea9e6c",
+      "bytes": 1557,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12021-mass-summary-bald-online.cjs",
+      "gitBlobSha": "a57cd2072fd59d3456508dab99800acdc81b9607",
+      "bytes": 3692,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12022-optional-images.cjs",
+      "gitBlobSha": "2f49d1cbd4d160bffba590768d14a9cee0d89ae3",
+      "bytes": 4354,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1203-hot-path-runtime.cjs",
+      "gitBlobSha": "a09b060e059dc306fc835e7356f30742850d6733",
+      "bytes": 3170,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1203-hot-path.cjs",
+      "gitBlobSha": "0e68040bc0523cbf8911a6a44fb7cbbba2932246",
+      "bytes": 5002,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1204-image-ipc.cjs",
+      "gitBlobSha": "65343947d6f998a4aea091cdcb8babb843109943",
+      "bytes": 2329,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1204-p6a-readiness.cjs",
+      "gitBlobSha": "b0da67931e7e6afd0cb9e22aae164e6988ac73d1",
+      "bytes": 1802,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1204-phase2-runtime.cjs",
+      "gitBlobSha": "660438ef1f7c261e61ae2463c76f545a7aea5a59",
+      "bytes": 3580,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1205-controlled-close-bootstrap-race.cjs",
+      "gitBlobSha": "01919ead8252d059aa8704a66bd0420865f31901",
+      "bytes": 6484,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1207-reconciliation-readiness-race.cjs",
+      "gitBlobSha": "5e963f4d343a5f353dccb6779d23de322ed45947",
+      "bytes": 3030,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1208-worker-tab-create-retry.cjs",
+      "gitBlobSha": "fe5506a1132759572b2a076ed017ebe68826065f",
+      "bytes": 7721,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1209-myads-readiness-architecture.cjs",
+      "gitBlobSha": "271aeec969642e74076bcff8e0b693253456561c",
+      "bytes": 3270,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1209-myads-readiness-runtime.cjs",
+      "gitBlobSha": "cfb0458798fdf81f0154e2d9b80013f14151f2f0",
+      "bytes": 9449,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1210-compact-views-message-history.cjs",
+      "gitBlobSha": "8b7d9959874048a840eb809fe9c2deb98502469d",
+      "bytes": 4039,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1211-message-gold-line.cjs",
+      "gitBlobSha": "3242bbb7f6aac5f2805f53b5cfd6fa06e57d7f12",
+      "bytes": 5200,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12110-ui-polish.cjs",
+      "gitBlobSha": "6df72d78b2147022e90ddf0f396a19d6d53c3763",
+      "bytes": 4301,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12111-global-view-sidebar-bottom-diagnostics.cjs",
+      "gitBlobSha": "5a72c983ab41872398a92e5c1e73a7f62d5df5ea",
+      "bytes": 6998,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12112-sidebar-refresh-capture-polish.cjs",
+      "gitBlobSha": "00879c5798a4740a98ede8f63cb6d9194b6b6dcf",
+      "bytes": 4622,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12113-compact-trash-actions.cjs",
+      "gitBlobSha": "5e7d737479e63d90ba87036048ef6db8200b42d4",
+      "bytes": 1552,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12114-ui-copy-consistency.cjs",
+      "gitBlobSha": "86d86529e7c35e6d35630d319e4c217f871f3b06",
+      "bytes": 5201,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12115-accordion-recovery-runtime.cjs",
+      "gitBlobSha": "b317acbc665c8961ca59c153cee3fa682db6b321",
+      "bytes": 2282,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12115-actions-accordion-recovery.cjs",
+      "gitBlobSha": "a214227254092998c1c7ac9c88cee953ce6cf020",
+      "bytes": 3794,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1212-compact-layout-icons.cjs",
+      "gitBlobSha": "87bf1e6808cca50853fb939cd7d173a6860d7409",
+      "bytes": 4265,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1213-sticky-retention-interaction.cjs",
+      "gitBlobSha": "d62214a71c282726adc985f3c6fbf9a075370a06",
+      "bytes": 3951,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1214-sticky-goldline.cjs",
+      "gitBlobSha": "ce9966f8fbad561d427f453cacd027dd9cd8d737",
+      "bytes": 3059,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1215-sticky-scroll-hardening.cjs",
+      "gitBlobSha": "ac6729fe210d0b6b9ec7ceeb0738796e21de5c9f",
+      "bytes": 2874,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1216-fixed-slot-diagnostics.cjs",
+      "gitBlobSha": "e1bc02321b74376ba975fe0b96d2b8479015b6e4",
+      "bytes": 3408,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1217-sticky-target-geometry.cjs",
+      "gitBlobSha": "1812563c2d00596261091d7318c90aaa5ff73aa6",
+      "bytes": 2384,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1218-occlusion-actions-diagnostics.cjs",
+      "gitBlobSha": "ffc165c40e7a70cad3685c2ca555e19296b96910",
+      "bytes": 1898,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1219-ui-consolidation.cjs",
+      "gitBlobSha": "b2ce4be9806aaf0b01471e1f52c398c3d0ade39b",
+      "bytes": 3484,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1220-browser-e2e-contract.cjs",
+      "gitBlobSha": "2a013d05450b098755deb55c498d5047572db5b8",
+      "bytes": 4080,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1221-actions-controlled-accordion.cjs",
+      "gitBlobSha": "ed4d7ffd7aa6f306414ea288c7c46afcbb5820b2",
+      "bytes": 5476,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12210-modularization-runtime.cjs",
+      "gitBlobSha": "13aec94e168ff03ccded872e26b4752c03f215eb",
+      "bytes": 5807,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12210-modularization.cjs",
+      "gitBlobSha": "884fb38ff60a9a67c49ab846a8c99d6cdeb388d9",
+      "bytes": 5441,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12210-pre-refactor-characterization.cjs",
+      "gitBlobSha": "61df74481393808e4a727114dec630f5f1c81362",
+      "bytes": 4007,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12210-pre-refactor-runtime.cjs",
+      "gitBlobSha": "07b914ce79a715423a8708a6cfe82014e6642f80",
+      "bytes": 2927,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12210-source-surface.cjs",
+      "gitBlobSha": "db7bc9d0e3edc6fed9cf1d47726685609bab3106",
+      "bytes": 811,
+      "role": "indirect-helper",
+      "entrypoints": [],
+      "keepReason": "Source-surface fixture exporting reconstructed app source for historical lexical assertions"
+    },
+    {
+      "path": "tests/v12211-background-source-surface.cjs",
+      "gitBlobSha": "27907bc4d9c994c9640802d90c6ed5f0da8a732b",
+      "bytes": 1790,
+      "role": "indirect-helper",
+      "entrypoints": [],
+      "keepReason": "Source-surface fixture exporting reconstructed background module source"
+    },
+    {
+      "path": "tests/v12211-modularization-runtime.cjs",
+      "gitBlobSha": "34de562b9a80bc719cf0a4e6aaa2f883f3c89889",
+      "bytes": 4094,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12211-modularization.cjs",
+      "gitBlobSha": "403db556548c165fffbb9eba952aee17041e2892",
+      "bytes": 5825,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12211-pre-refactor-characterization.cjs",
+      "gitBlobSha": "8eab168ba97a28a45e0882ee7bf9e75361ce436c",
+      "bytes": 1919,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12211-pre-refactor-runtime.cjs",
+      "gitBlobSha": "0579fcdbb0c89d9a94b8e942e3e4b0fb28fbffec",
+      "bytes": 7982,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12212-modularization-runtime.cjs",
+      "gitBlobSha": "dabba2c763fccb5f279d43f2cf798f66b0c7d8a4",
+      "bytes": 7338,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12212-modularization.cjs",
+      "gitBlobSha": "e50f1667486c992a7c2ffb0b2b812c1de9f0da0f",
+      "bytes": 4724,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12212-pre-refactor-characterization.cjs",
+      "gitBlobSha": "025cec9676fdf3fb8c7717eb567cc08a57db1a1c",
+      "bytes": 2944,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12212-pre-refactor-runtime.cjs",
+      "gitBlobSha": "e38371eb77eaa717420e7c1231afcc7001c7c3ce",
+      "bytes": 4224,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12212-source-surface.cjs",
+      "gitBlobSha": "63504d40e07b80e6aabb95c7e69ab32897387dd4",
+      "bytes": 530,
+      "role": "indirect-helper",
+      "entrypoints": [],
+      "keepReason": "Historical background source composition helper with dependent surface imports"
+    },
+    {
+      "path": "tests/v12213-bulk-deadlock-regression.cjs",
+      "gitBlobSha": "9318468d1b0e8cf30034940a740475e2ea30c2ea",
+      "bytes": 2252,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12213-bulk-deadlock-runtime.cjs",
+      "gitBlobSha": "4c26f62e21ade7467438475231591b8b7fe0647d",
+      "bytes": 3378,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12213-lifecycle-race-runtime.cjs",
+      "gitBlobSha": "25b6a55e35a45e932d9191e1bc24d725fb091376",
+      "bytes": 2327,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12214-emergency-reset-ui.cjs",
+      "gitBlobSha": "f5ef2330745f7bce1f727493b6939fb0f8de711a",
+      "bytes": 1330,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12214-modularization-runtime.cjs",
+      "gitBlobSha": "abe537935e31a6a095037ee5f855541403e7c424",
+      "bytes": 6584,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12214-modularization.cjs",
+      "gitBlobSha": "b18a3cc90edd345d8d494ff13ee38cb34913e9b3",
+      "bytes": 3628,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12214-post-recovery-benign.cjs",
+      "gitBlobSha": "446cca7d9d3845d740bd2683fd9bc5e9e5cbfbcf",
+      "bytes": 701,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12214-pre-refactor-characterization.cjs",
+      "gitBlobSha": "f88f256f8397d4987a4d5a42cec19d8cafe42a98",
+      "bytes": 3232,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12214-pre-refactor-runtime.cjs",
+      "gitBlobSha": "b23e557c4939fa328056e31ada990a308b5c917c",
+      "bytes": 1297,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12214-source-surface.cjs",
+      "gitBlobSha": "ad8d1886c35f55200bbf605dfbc936772daa2e85",
+      "bytes": 339,
+      "role": "indirect-helper",
+      "entrypoints": [],
+      "keepReason": "Historical background source composition helper imported by later characterization tests"
+    },
+    {
+      "path": "tests/v12215-modularization-runtime.cjs",
+      "gitBlobSha": "9fcebfea0f2f13fd32c166e934761e33cd685162",
+      "bytes": 3325,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12215-modularization.cjs",
+      "gitBlobSha": "0ed241db3b09767d6ccc734b17895a4093eea24e",
+      "bytes": 4130,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12215-pre-refactor-characterization.cjs",
+      "gitBlobSha": "46244e155e3b0fec3d7e26d0dd2686266b816612",
+      "bytes": 2291,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12215-pre-refactor-runtime.cjs",
+      "gitBlobSha": "1c27ecaeb07839d8054fa85b5bbf1a234b40c39e",
+      "bytes": 1038,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12215-single-inventory-result-regression.cjs",
+      "gitBlobSha": "0e67fd7e1a7da43a9978f92479255a6ad956fb60",
+      "bytes": 2147,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12215-source-surface.cjs",
+      "gitBlobSha": "81dde78a297a14146c01da20d03edb0e6b042a38",
+      "bytes": 1333,
+      "role": "indirect-helper",
+      "entrypoints": [],
+      "keepReason": "Historical composed renewal/insertion source surface for indirect contract tests"
+    },
+    {
+      "path": "tests/v12216-modularization-runtime.cjs",
+      "gitBlobSha": "46f44798af6131616cede22a9b05c260afaffdb2",
+      "bytes": 3627,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12216-modularization.cjs",
+      "gitBlobSha": "2463dbffb7df1ab9143d28391f4eee5c4fd76815",
+      "bytes": 4361,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12216-pre-refactor-characterization.cjs",
+      "gitBlobSha": "c79387e5b0faab36062096ff5ef56f20c2cde898",
+      "bytes": 2917,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12216-pre-refactor-runtime.cjs",
+      "gitBlobSha": "48edb36b70e2ba39fab78dd5413d3d1016e27a23",
+      "bytes": 2730,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12216-source-surface.cjs",
+      "gitBlobSha": "49f32b0f5143980d41edeb1a173fb7e616352a31",
+      "bytes": 720,
+      "role": "indirect-helper",
+      "entrypoints": [],
+      "keepReason": "Historical composed renewal/insertion source surface for indirect contract tests"
+    },
+    {
+      "path": "tests/v12217-trash-template-recovery-runtime.cjs",
+      "gitBlobSha": "1b86129f11bba5da2b94c0590c2e3cd48cc6d397",
+      "bytes": 2106,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12217-trash-template-recovery.cjs",
+      "gitBlobSha": "cad1c45705ff74b820b109aa468e17d6c1a1682f",
+      "bytes": 2006,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12217-trash-template-ui-recovery-runtime.cjs",
+      "gitBlobSha": "1b289bedccdc794763c3858a2f42d77b30b057ce",
+      "bytes": 2254,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12218-trash-template-recovery-runtime.cjs",
+      "gitBlobSha": "26a4117452e19ecddabdc3f31758ea85731a0e48",
+      "bytes": 2242,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12218-trash-template-recovery-ui.cjs",
+      "gitBlobSha": "74c8e81b4cf1e85b6e9036bbd8db0496ff6f878b",
+      "bytes": 1976,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12219-trash-template-session-isolation-runtime.cjs",
+      "gitBlobSha": "99af7ef7879841528da92231a11b1232c3004a1b",
+      "bytes": 4112,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12219-trash-template-session-isolation.cjs",
+      "gitBlobSha": "0b3dda7d67d6ecd82c123e176c6e3bdfeaee9787",
+      "bytes": 819,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1222-focus-safety-docs.cjs",
+      "gitBlobSha": "bd694c968a2f0ab3441243c530f56c4487cd46fa",
+      "bytes": 2032,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12220-trash-template-preview-recovery-runtime.cjs",
+      "gitBlobSha": "19eb441dfb439ece4d05863aaa9231bc9e33f49d",
+      "bytes": 3261,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12221-legacy-background-surface.cjs",
+      "gitBlobSha": "aa6c8423b2e350b09595bfd5987a6ecaf4a47876",
+      "bytes": 4934,
+      "role": "indirect-helper",
+      "entrypoints": [],
+      "keepReason": "Reconstructs legacy background implementation for compatibility assertions"
+    },
+    {
+      "path": "tests/v12221-modularization-runtime.cjs",
+      "gitBlobSha": "f8c235cee9c5b22000997f1b475d016ee9a082bd",
+      "bytes": 3946,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12221-modularization.cjs",
+      "gitBlobSha": "2f46ed1b04877c767bd3ae9393b48c102ef255b6",
+      "bytes": 3210,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12221-pre-refactor-characterization.cjs",
+      "gitBlobSha": "c7f22d5e20c3ae163a0bd9591d668e1ee449e39d",
+      "bytes": 2847,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12221-pre-refactor-runtime.cjs",
+      "gitBlobSha": "3fe1743ab7458ab767b1df50047c62614d2421f9",
+      "bytes": 3551,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12221-source-surface.cjs",
+      "gitBlobSha": "1d5118111f245b5ca2537cdae6538013ea44bd8f",
+      "bytes": 304,
+      "role": "indirect-helper",
+      "entrypoints": [],
+      "keepReason": "Legacy background source surface exporting combined module text"
+    },
+    {
+      "path": "tests/v12222-cleanup-runtime.cjs",
+      "gitBlobSha": "1e4bc0495967fff5b78c374815e4457ea400f249",
+      "bytes": 2233,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12222-emergency-reset-regression.cjs",
+      "gitBlobSha": "0dca48481e43623fa5e58fa2816cfc555f9889f2",
+      "bytes": 1780,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12222-legacy-global-cleanup.cjs",
+      "gitBlobSha": "928444326fc1ae3c91c57510803fda9e39a5de7e",
+      "bytes": 1262,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12222-pre-refactor-characterization.cjs",
+      "gitBlobSha": "44faf07a7510cb66a357fdfc295b2b1f4186731b",
+      "bytes": 1623,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12222-pre-refactor-runtime.cjs",
+      "gitBlobSha": "087c042d5c8fdd2ac207773f5e30ac116e41aabe",
+      "bytes": 1200,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12222-vm-legacy-bridge.cjs",
+      "gitBlobSha": "deb2036edd1a705d024a4283576dd8917a1a5c25",
+      "bytes": 11095,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12223-emergency-reset-activity-regression.cjs",
+      "gitBlobSha": "f30047a6289ea4c13812d687fbdf612d8c1a68b5",
+      "bytes": 1630,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12223c1-terminal-activity-replay-regression.cjs",
+      "gitBlobSha": "7b59c84d19905de6173b8cdaa56f908335aff2fc",
+      "bytes": 3401,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12223c2-reset-recovery-archive-regression.cjs",
+      "gitBlobSha": "a654d0751dcbd4e2c3b6b771b6d32db508ca931f",
+      "bytes": 1367,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12224-message-contract-registry-packaging.cjs",
+      "gitBlobSha": "56f16cc943103e0debabda01cbc960f1cda64231",
+      "bytes": 445,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12224-message-contract-registry-runtime.cjs",
+      "gitBlobSha": "9615d4bea1d1506b6b9c601930cc45f80d75c2e3",
+      "bytes": 2593,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12224-message-contract-registry.cjs",
+      "gitBlobSha": "0cdd202319ef8dfe7769a0bc89945a5e5da2cab3",
+      "bytes": 1593,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12224-pre-refactor-characterization.cjs",
+      "gitBlobSha": "586801238eb00c57fa027ff9438df05c84916396",
+      "bytes": 1441,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12225-message-contract-enforcement-runtime.cjs",
+      "gitBlobSha": "658dc5a8d4bf7d21c2025383a65bd4b40bd137ca",
+      "bytes": 2329,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12225-message-contract-enforcement.cjs",
+      "gitBlobSha": "3c595abd64123bc8b3e7ccad9450ff05ad707cd9",
+      "bytes": 2290,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12225-pre-enforcement-characterization.cjs",
+      "gitBlobSha": "d6b0cd4fd1b419febb706d1c4f8b9e77147d4ecf",
+      "bytes": 1911,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12225c1-content-bootstrap-regression.cjs",
+      "gitBlobSha": "fb49f533ddafc393bd1a4e82ae92b57a949402eb",
+      "bytes": 2132,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12226-action-state-sync-regression.cjs",
+      "gitBlobSha": "8d549b54a7e6bbaeb8297a4e17199cf1d74d1f26",
+      "bytes": 1393,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12226-paid-insertion-diagnostic-placement.cjs",
+      "gitBlobSha": "b58093e77a6e3944c3b2c6653f01c7e6dd5485f1",
+      "bytes": 1014,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12226-paid-insertion-regression.cjs",
+      "gitBlobSha": "e6e2af682e4f91c057518374f777b82abddac145",
+      "bytes": 3275,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12226-pre-stabilization-characterization.cjs",
+      "gitBlobSha": "f334720840499b393fc1e3c30a50f4f7b5f992aa",
+      "bytes": 1099,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12227-e2e-supervisor-contract.cjs",
+      "gitBlobSha": "dc2d7dd449a38113ed2272ea733a33fbdc87f42e",
+      "bytes": 3279,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12227-paid-insertion-lock-reset-regression.cjs",
+      "gitBlobSha": "918c093891e9dc7c43d36eee508a45d2ac85fa10",
+      "bytes": 3042,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12227-pre-stabilization-characterization.cjs",
+      "gitBlobSha": "01e8b1afbf685aa8142b6c23d1951a127a4eb971",
+      "bytes": 1200,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12228-legacy-emergency-reset-regression.cjs",
+      "gitBlobSha": "62e915f934909d78ad0e8d005185e7bc7b0cdcc7",
+      "bytes": 2744,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12228-pre-patch-characterization.cjs",
+      "gitBlobSha": "e6666dcc6c0d7a3f81e21295cb17ffbaf431abf5",
+      "bytes": 2061,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12229-checkout-recovery-regression.cjs",
+      "gitBlobSha": "c8058813d37b69260aa9280836454897ac141255",
+      "bytes": 3265,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12229-pre-patch-characterization.cjs",
+      "gitBlobSha": "47caa3582437724a121111e4a07c9f14e98ddc3a",
+      "bytes": 1459,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1223-action-focus-modality.cjs",
+      "gitBlobSha": "0b945d6fd1489dec615e0fa3a1d87d3994e6e360",
+      "bytes": 2911,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12230-global-emergency-reset.cjs",
+      "gitBlobSha": "21562c3ea4938fdfce11c1a00abe02cf3eb394a6",
+      "bytes": 5740,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1224-runtime-dependency-boundary.cjs",
+      "gitBlobSha": "8592574435120b2909215aeb4ce2bf24f9f6dc19",
+      "bytes": 3919,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1224-runtime-deps-runtime.cjs",
+      "gitBlobSha": "08bc57a87f590e7b3d022f01017148ae71f4c765",
+      "bytes": 2136,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1225-modularization-runtime.cjs",
+      "gitBlobSha": "8c943beaa06f57036e7a8183354e99937a7df506",
+      "bytes": 4164,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1225-modularization.cjs",
+      "gitBlobSha": "a170d7d91df75e30b567995dc1d72970b2e6c493",
+      "bytes": 2080,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1226-diagnostics-actions-modularization.cjs",
+      "gitBlobSha": "6ff5b041ee2dd583af5b62aba1825846c1eac44c",
+      "bytes": 2521,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1226-diagnostics-actions-runtime.cjs",
+      "gitBlobSha": "971cb907715512a2921452ab4a85716fdde2a240",
+      "bytes": 9031,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1227-modularization-runtime.cjs",
+      "gitBlobSha": "24890cc63eb6cbee6c217bedc7f0a0b8186265d4",
+      "bytes": 2099,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1227-modularization.cjs",
+      "gitBlobSha": "a053649c439165bdc1d4d1c719f09eb00613b7fd",
+      "bytes": 2382,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1227-pre-refactor-characterization.cjs",
+      "gitBlobSha": "4180912476b5e7dd7bb2deb6af4303073e1b9528",
+      "bytes": 2575,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1227-pre-refactor-runtime.cjs",
+      "gitBlobSha": "a8173654f868c4388653cf0a398caeb498a88f74",
+      "bytes": 2239,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1228-modularization-runtime.cjs",
+      "gitBlobSha": "3b177c06210948011caa60027fc1544aef789383",
+      "bytes": 4195,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1228-modularization.cjs",
+      "gitBlobSha": "79840fc815f0952ca5a007ed9410fb57aa598cd0",
+      "bytes": 3061,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1228-pre-refactor-characterization.cjs",
+      "gitBlobSha": "5dc75de80ca10a3d409abca660beaee78eab6033",
+      "bytes": 2981,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1228-pre-refactor-runtime.cjs",
+      "gitBlobSha": "38a023ef06a7fcca5f55afa23ad476ca6fc19306",
+      "bytes": 3490,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1229-modularization-runtime.cjs",
+      "gitBlobSha": "491e129825538864b689202da34a3db535f661d5",
+      "bytes": 3028,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1229-modularization.cjs",
+      "gitBlobSha": "5c235f846ca1fcdc220b7ce305cfa01be426e19f",
+      "bytes": 2992,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1229-pre-refactor-characterization.cjs",
+      "gitBlobSha": "10da7032f747abd67807c989feab80b0389c0cd2",
+      "bytes": 2963,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1229-pre-refactor-runtime.cjs",
+      "gitBlobSha": "5e0adb2e178cf98ef0fd5fbfb3d0367dfe935595",
+      "bytes": 4085,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1230-epic-ref-002-contract.cjs",
+      "gitBlobSha": "7c58f0ad930eedf84a17fe641612ef5d9c400fce",
+      "bytes": 4085,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1230-packaging-hygiene.cjs",
+      "gitBlobSha": "659e0b90e6db7a4828675bf4a277ce2399e2a83f",
+      "bytes": 765,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1230-pre-refactor-characterization.cjs",
+      "gitBlobSha": "c599d43db16b3a7b45871286f5fe5a9952f52760",
+      "bytes": 4399,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1230-source-surface.cjs",
+      "gitBlobSha": "e3f094a106ac53c2a46f2ecbebd865efb17efa04",
+      "bytes": 1423,
+      "role": "indirect-helper",
+      "entrypoints": [],
+      "keepReason": "Pre-refactor composition/source characterisation module with exported file list"
+    },
+    {
+      "path": "tests/v1231-legacy-background-surface.cjs",
+      "gitBlobSha": "f74d43afbf73018ff743c3ce36a1066b26995d6d",
+      "bytes": 405,
+      "role": "indirect-helper",
+      "entrypoints": [],
+      "keepReason": "Legacy background source surface used by ownership characterization"
+    },
+    {
+      "path": "tests/v1231-pre-refactor-characterization.cjs",
+      "gitBlobSha": "34f84cb003bd67399fdaee6251a5419262bdaf51",
+      "bytes": 3368,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1231-renewal-workflow-modularization.cjs",
+      "gitBlobSha": "84e764e01ad9c39001970191df98ae147dc77547",
+      "bytes": 3234,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1231-renewal-workflow-runtime.cjs",
+      "gitBlobSha": "fc6f5732ff0078811f20a7d79ed4f6f69d420ad5",
+      "bytes": 7489,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1231-version-architecture.cjs",
+      "gitBlobSha": "bd41bf5c99d6586a4922952dda5c378fdcba865d",
+      "bytes": 1083,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12310-inventory-capture-characterization.cjs",
+      "gitBlobSha": "c95c9a7ca5e85d5bde8091d7a65faeb227b16f40",
+      "bytes": 2281,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12310-inventory-capture-ownership.cjs",
+      "gitBlobSha": "69dc55c03a1f5271331436a29b0262f5b984f059",
+      "bytes": 1595,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12310-release-supervisor-hardening.cjs",
+      "gitBlobSha": "33de65821cf93783326aa283ec8f7a88ea29978b",
+      "bytes": 2663,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12310-version-architecture.cjs",
+      "gitBlobSha": "f949d5175071da556613074418dea4a890701704",
+      "bytes": 2602,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12311-dead-code-cleanup.cjs",
+      "gitBlobSha": "a2ddf81857e4737a607c254544096e9861431ea0",
+      "bytes": 2215,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12311-pre-cleanup-characterization.cjs",
+      "gitBlobSha": "9abcdfc05b34d84853dcd09c29724286cc33782d",
+      "bytes": 1547,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12311-version-architecture.cjs",
+      "gitBlobSha": "830f9d9dd9175c11db358de559f50e77c885208d",
+      "bytes": 2364,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12312-app-elements-runtime.cjs",
+      "gitBlobSha": "7411cebd0d16bc8f1a2611e0d2589355f634a9cf",
+      "bytes": 2055,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12312-background-message-router-runtime.cjs",
+      "gitBlobSha": "33717a2a91b16e9e8a168b351887dfa2c3e54923",
+      "bytes": 2231,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12312-composition-routing-characterization.cjs",
+      "gitBlobSha": "5ba74bd09aef09d0d55112209cb18dfc0f212b14",
+      "bytes": 3461,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12312-composition-routing-ownership.cjs",
+      "gitBlobSha": "bae89699c03992745f4a3b5995f30a777e302a9c",
+      "bytes": 1625,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12312-profile-account-ui-runtime.cjs",
+      "gitBlobSha": "a7d76d5f860712c4e6db0be498cadb980a5dff30",
+      "bytes": 1885,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12312-renewal-policy-runtime.cjs",
+      "gitBlobSha": "245204a5aeed781847d6a752ed811d0c6da41ecc",
+      "bytes": 1175,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12312-version-architecture.cjs",
+      "gitBlobSha": "ae82152aa0d85d68ae05606cf1ca2834ba73c9d1",
+      "bytes": 2761,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12312c1-bulk-composition-root-regression.cjs",
+      "gitBlobSha": "96c544f4683d481514d05fa1b33c200b4263e986",
+      "bytes": 2332,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12312c1-version-release.cjs",
+      "gitBlobSha": "3a264e2e3f14ada09a74afa703e1bed8e74a0c00",
+      "bytes": 3021,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12313-inventory-capture-characterization.cjs",
+      "gitBlobSha": "94cbd6c80f9cc755b59d64c6784e5eeced90c822",
+      "bytes": 5845,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12313-inventory-capture-ownership.cjs",
+      "gitBlobSha": "0f2a5d700ccdcda99a7361b59631d8afc2b6b94f",
+      "bytes": 2632,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12313-inventory-capture-runtime.cjs",
+      "gitBlobSha": "b263a764313fc6f0332c6e8a6beb224c1bba87f0",
+      "bytes": 3114,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12313-version-architecture.cjs",
+      "gitBlobSha": "358a429b3c678a3014b2084607138381896ddc12",
+      "bytes": 4190,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12313c1-bulk-reentry-rehydration-regression.cjs",
+      "gitBlobSha": "d4f8dd8d9c2346caa98c0e3c803ded59d0ca37b0",
+      "bytes": 1896,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12313c1-version-release.cjs",
+      "gitBlobSha": "4d2b15ebed9f1ff0e855002d4ee52b5a1d72894a",
+      "bytes": 2893,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12313c2-bulk-e2e-restart-barrier.cjs",
+      "gitBlobSha": "6cc3d39b70dcfcfe3d181784c972fa8468124a31",
+      "bytes": 1134,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12313c2-e2e-startup-barrier.cjs",
+      "gitBlobSha": "4e2681e01ccb2b368cec016e50f58f88a804f33e",
+      "bytes": 899,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12313c2-inventory-reentry-activity-arbitration-regression.cjs",
+      "gitBlobSha": "ecf6b95573dcc32bcc7eadb476b33cfce699845f",
+      "bytes": 3629,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12313c2-release-status-heartbeat-runtime.cjs",
+      "gitBlobSha": "c986b603b01705e2eff7aa2ff798b14f1166ca61",
+      "bytes": 1759,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12313c2-version-release.cjs",
+      "gitBlobSha": "7708ce535565bba82414866977f3b8ba7c1f3cd3",
+      "bytes": 3520,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12314-characterization.cjs",
+      "gitBlobSha": "781d9535af27a1d1659fdd2147d2afbba3952234",
+      "bytes": 1814,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12314-ownership.cjs",
+      "gitBlobSha": "338197e3ace51a011f9b94d9c334bce4b04f2afb",
+      "bytes": 2625,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12314-runtime.cjs",
+      "gitBlobSha": "3164934316fdc984c3062f6649ba6ae22a01750f",
+      "bytes": 4410,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12314-version-architecture.cjs",
+      "gitBlobSha": "ee51b9e20c3e3817b446e9f8a092084b7b80260f",
+      "bytes": 5318,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12315-characterization.cjs",
+      "gitBlobSha": "aba98612117ab8545fc6f28709a40ad56ecd6622",
+      "bytes": 2270,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12315-ownership.cjs",
+      "gitBlobSha": "516be096af99a22be76b3b0cc30bea6d1e166ccd",
+      "bytes": 2044,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12315-runtime.cjs",
+      "gitBlobSha": "2f31c233d5b4f5435d74bd8200b9ac02aa33ebcc",
+      "bytes": 3602,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12315-version-architecture.cjs",
+      "gitBlobSha": "23102300eb24929c88164c14b29b7eeb28a43a05",
+      "bytes": 4989,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12316-characterization.cjs",
+      "gitBlobSha": "4b4a872eb18acb5c70ff6b41e21d3db38a8c649a",
+      "bytes": 2120,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12316-ownership.cjs",
+      "gitBlobSha": "5b837880a52720ddd9239c1fb0ba738b0095f8df",
+      "bytes": 2596,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12316-runtime.cjs",
+      "gitBlobSha": "b52d522e0d48e53cd383d8e8c4910e62759eefec",
+      "bytes": 8249,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12316-version-architecture.cjs",
+      "gitBlobSha": "f4933741b8bff21c6fa5de2927d3db5417fc6480",
+      "bytes": 4399,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12316c1-trash-template-target-loss.cjs",
+      "gitBlobSha": "7a759d0ace6390e0d3373b856c0631fc4111c980",
+      "bytes": 8364,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12316c1-wiring-version.cjs",
+      "gitBlobSha": "a0a52a72a8e65ae6e6cafbe2626b42754d656d91",
+      "bytes": 4900,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12316c2-live-target-loss.cjs",
+      "gitBlobSha": "9016445a9354d5f9c09a2e7e6d150a9189bf3e7c",
+      "bytes": 5173,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12316c2-wiring-version.cjs",
+      "gitBlobSha": "583eff472feb3c0a83fe3e056243862d1903242e",
+      "bytes": 4826,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12317-template-filler-modularization.cjs",
+      "gitBlobSha": "a6af932f2ab0789eb9f057e2636eaf142319665e",
+      "bytes": 2181,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12317-template-filler-runtime.cjs",
+      "gitBlobSha": "a7b78073e25eee5a5e5780d42c82029de2362878",
+      "bytes": 3255,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12317-version-architecture.cjs",
+      "gitBlobSha": "88d31c2349d318c0f70aa8bf76e9b8369836e394",
+      "bytes": 4516,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12317c1-template-module-public-api.cjs",
+      "gitBlobSha": "e78263bf06933c41fb58f997ddf55034c0c11d66",
+      "bytes": 9780,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12317c1-version-architecture.cjs",
+      "gitBlobSha": "b1494a308cc14e77c0b4cb57a9b4ea8a3a2510c3",
+      "bytes": 4162,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12317c2-trash-template-modal-reopen.cjs",
+      "gitBlobSha": "ceb79278bb0712e1d64602473e28bf2be42d1580",
+      "bytes": 4931,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12317c2-version-architecture.cjs",
+      "gitBlobSha": "ba7b9f4fcdd605724ea79d8509417f262b58bfed",
+      "bytes": 4711,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12317c3-content-rebootstrap.cjs",
+      "gitBlobSha": "bde0c445043b2db16323e6f517c15e26400088d9",
+      "bytes": 2245,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12317c3-version-architecture.cjs",
+      "gitBlobSha": "256100357010de345dcbd7f4e40a9dfbb88d6cbc",
+      "bytes": 3855,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12318-inventory-module-public-api.cjs",
+      "gitBlobSha": "558374532a04218394382fa549cf04120f6ba1b8",
+      "bytes": 11242,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12318-inventory-runner-modularization.cjs",
+      "gitBlobSha": "6d6d4c5620e9f23e0337b0fcab93b0a71dd451bd",
+      "bytes": 2145,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12318-version-architecture.cjs",
+      "gitBlobSha": "538bd23b1fc3f6b41c12cf5a8ab649de040d07b5",
+      "bytes": 4264,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12319-public-api-execution-closure.cjs",
+      "gitBlobSha": "fd4b0154ac4d0a3b7839970da51d5901e8c724c8",
+      "bytes": 1934,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12319-safety-public-api-closure.cjs",
+      "gitBlobSha": "f1b3bbfd4b283e17dba404dfdd7f26507b07501d",
+      "bytes": 1236,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12319-version-architecture.cjs",
+      "gitBlobSha": "b7d23fcb9757f9d22d76d9c9bd45d7a2410a4ed9",
+      "bytes": 8372,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1232-packaged-e2e-root.cjs",
+      "gitBlobSha": "a6dbabc1a943cd699c1464445d7eea664b5501d6",
+      "bytes": 422,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1232-packaging-runtime-closure.cjs",
+      "gitBlobSha": "7fe3bc9d5bb2647aeac86c55b954c5456d1f82dd",
+      "bytes": 1068,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1232-version-correction.cjs",
+      "gitBlobSha": "cb45dc365fb9a3788273382bc3109a0e95b6d9e3",
+      "bytes": 1020,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12320-final-closure.cjs",
+      "gitBlobSha": "b60faab8b05832615aff8881615a74a2fd5eecde",
+      "bytes": 7265,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12320-performance-plan.cjs",
+      "gitBlobSha": "316937dc1383e6bb73145c502083bbdce94b63c8",
+      "bytes": 1020,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12320c1-stale-terminal-mass-resync.cjs",
+      "gitBlobSha": "e308960b1854c196919d2fcdfa5ed3683717c1ec",
+      "bytes": 3469,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12320c1-version-release.cjs",
+      "gitBlobSha": "121cbf172f0ff1fecea4c1f2acb7d6245876f79c",
+      "bytes": 2647,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12322-legacy-content-startup.cjs",
+      "gitBlobSha": "bdf4a5547d25f30c7715d69013623fbb14607bf3",
+      "bytes": 2385,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12322-title-field-stability.cjs",
+      "gitBlobSha": "4d711b92440f103f67514828eea4669affece956",
+      "bytes": 6262,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v12322-version-release.cjs",
+      "gitBlobSha": "3c684151b67d9a307fe2a01d0ba06ae29a4744f1",
+      "bytes": 6930,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1233-mass-renewal-workflow-modularization.cjs",
+      "gitBlobSha": "3644cb08726acf81fe6f078068001c66ef64efd0",
+      "bytes": 1439,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1233-mass-renewal-workflow-runtime.cjs",
+      "gitBlobSha": "99cfbb77e086dced96969505642ab039f7447d84",
+      "bytes": 4328,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1233-pre-refactor-characterization.cjs",
+      "gitBlobSha": "e25d8f7ff823933f1444bc1f721c7562beb6e8f2",
+      "bytes": 1611,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1233-version-architecture.cjs",
+      "gitBlobSha": "3c7b80da490f5ae40569e64f33a6a709bdd1be80",
+      "bytes": 1899,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1234-insertion-lock-runtime.cjs",
+      "gitBlobSha": "75388060a412b6860030fc35cd08454bb5cff76f",
+      "bytes": 2293,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1234-pre-refactor-characterization.cjs",
+      "gitBlobSha": "f0f53ff04d1ecf7ab8ca666340c9076872297f42",
+      "bytes": 2568,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1234-source-surface.cjs",
+      "gitBlobSha": "aee2f408c7889a7289b375bb9b380aad78435ad3",
+      "bytes": 341,
+      "role": "indirect-helper",
+      "entrypoints": [],
+      "keepReason": "Historical insertion and background source surface for lexical contracts"
+    },
+    {
+      "path": "tests/v1234-template-fill-controller-runtime.cjs",
+      "gitBlobSha": "de2357411d4c37ae7902f2fa2018fb41dc67c34f",
+      "bytes": 7413,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1234-template-lock-modularization.cjs",
+      "gitBlobSha": "b817c0ceadc45d0d4bf665368d326f05aa085a15",
+      "bytes": 1662,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1234-version-architecture.cjs",
+      "gitBlobSha": "04124745cff3e487d9c866829399d2ad4c5d5c2e",
+      "bytes": 1607,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1235-archive-insertion-controller-runtime.cjs",
+      "gitBlobSha": "c922bed66dac25d00c40cd05f121aa2e0a4df175",
+      "bytes": 5957,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1235-archive-insertion-modularization.cjs",
+      "gitBlobSha": "d3b5f57b8dbeaf5f68ee1a8811ef0d84b9199139",
+      "bytes": 1206,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1235-pre-refactor-characterization.cjs",
+      "gitBlobSha": "bdb9331922ae18b324ae2cd53959f90248f8d196",
+      "bytes": 3286,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1235-terminal-template-emergency-reset.cjs",
+      "gitBlobSha": "455fcf7c2da86a38dd96580172d75dc99e192997",
+      "bytes": 1261,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1235-version-architecture.cjs",
+      "gitBlobSha": "22247b0ef7c70da6868b286b29f2acea27a7b0a2",
+      "bytes": 2155,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1236-bulk-controller-runtime.cjs",
+      "gitBlobSha": "91add616d6d917a0639c255b1dfe12134d3461f9",
+      "bytes": 5269,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1236-bulk-public-modularization.cjs",
+      "gitBlobSha": "61a75235c56e1414ab388f3fb84f71f630904879",
+      "bytes": 1756,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1236-pre-refactor-characterization.cjs",
+      "gitBlobSha": "c3831eb3d3766cc630b7a6095b39bc5b57d8b9f0",
+      "bytes": 3391,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1236-public-listing-evidence-runtime.cjs",
+      "gitBlobSha": "0b63df6e1c53f293319bf7fd392f3f41b4f480ec",
+      "bytes": 2629,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1236-trash-template-action-ux.cjs",
+      "gitBlobSha": "28f37945ca57d9e55bb81f597004ad8a8695538c",
+      "bytes": 768,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1236-version-architecture.cjs",
+      "gitBlobSha": "2e27d17ede2dbc97043275b56e20b602d7a93776",
+      "bytes": 2028,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1237-diagnostic-export-runtime.cjs",
+      "gitBlobSha": "c1d1096bb079518ef9f96ef5514be5df848a0061",
+      "bytes": 3403,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1237-ownership-layout.cjs",
+      "gitBlobSha": "2740a7701740b1bfaec34dac30da320ed37c6394",
+      "bytes": 1610,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1237-path-closure.cjs",
+      "gitBlobSha": "21305cfa906c6ebef67ff5deba0a38f5282c8165",
+      "bytes": 2672,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1237-pre-refactor-characterization.cjs",
+      "gitBlobSha": "c0708ad6f34a992f29dccd903d8cd4ec280fa017",
+      "bytes": 2880,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1237-release-finalize-gate.cjs",
+      "gitBlobSha": "97df9b27edbbf3e6cd3f0419d217d9c845204b04",
+      "bytes": 3728,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1237-version-architecture.cjs",
+      "gitBlobSha": "fa155fb2ceba2ea82b5b12497643df4afb2db14c",
+      "bytes": 3394,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1238-account-session-controller-runtime.cjs",
+      "gitBlobSha": "031d34cbcc5c0fd630d2545bea70ce9845fd25f6",
+      "bytes": 3909,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1238-controller-ownership.cjs",
+      "gitBlobSha": "4499715e1642c4ab7899b33362957a47593e126f",
+      "bytes": 2278,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1238-path-closure.cjs",
+      "gitBlobSha": "6dc8d7a329fbf25c0b439aa89cec6dbb8fadd9a9",
+      "bytes": 1825,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1238-pre-refactor-characterization.cjs",
+      "gitBlobSha": "18904a299edd3f545287477bf4733b6f7a1761de",
+      "bytes": 3503,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1238-profile-management-controller-runtime.cjs",
+      "gitBlobSha": "94fd4283db3ec0adf8e0a91a6f7bdd2cdeca3cd4",
+      "bytes": 5793,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1238-version-architecture.cjs",
+      "gitBlobSha": "e20bc3c68dd4dde009931842a6bc3fdff248b171",
+      "bytes": 2599,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1239-app-boot-reduced-motion-regression.cjs",
+      "gitBlobSha": "440f996ea503f1e0e631d23450a03e32c715368e",
+      "bytes": 1166,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1239-controller-ownership.cjs",
+      "gitBlobSha": "0d2e29f9fbd9474feab91df74f43788304aa6797",
+      "bytes": 1283,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1239-controllers-runtime.cjs",
+      "gitBlobSha": "5ed9d2c54d928563164e819c817772285222808b",
+      "bytes": 3419,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1239-pre-refactor-characterization.cjs",
+      "gitBlobSha": "eec690be3e8c23d319dac5de5326e828eac1a4bf",
+      "bytes": 2583,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1239-version-architecture.cjs",
+      "gitBlobSha": "70112cba537a9b9bb70e687fd67aa7d5a05259f6",
+      "bytes": 2509,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v130-contract.cjs",
+      "gitBlobSha": "ef15f13b414c4a95d36d7ad0c780162f986ea0e0",
+      "bytes": 9270,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v130-retry.cjs",
+      "gitBlobSha": "e25719a7d2263dbbb34251b4024c82cc300f4ec8",
+      "bytes": 1721,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v140-contract.cjs",
+      "gitBlobSha": "79ed2f350b68cf1ef45c017011417208c85031f2",
+      "bytes": 5736,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v140-zip.cjs",
+      "gitBlobSha": "e0f8e586657bd2fc3b55273cf55fca905d6bb6d3",
+      "bytes": 1018,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v150-connection.cjs",
+      "gitBlobSha": "760dd6378f8960bbfbca70607799aa0e7b683318",
+      "bytes": 4540,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v150-contract.cjs",
+      "gitBlobSha": "3453ca34f12086f83eb9497ca28675b610d86802",
+      "bytes": 4301,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v151-category.cjs",
+      "gitBlobSha": "ba00376baed61eeb29cc0347326bc64e187dfc2f",
+      "bytes": 2915,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v160-contract.cjs",
+      "gitBlobSha": "86602724bb7e926dd38097d97c34c729da90cff2",
+      "bytes": 5712,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v160-profile.cjs",
+      "gitBlobSha": "c14ab42811edb21bf8fd3e9d2ae69a8f6b3a9dfe",
+      "bytes": 1409,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v160-readonly.cjs",
+      "gitBlobSha": "37108451723db4939677ee4a7d2f0b945035c52c",
+      "bytes": 1924,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v161-contract.cjs",
+      "gitBlobSha": "74191b3fdcc798fadb6f279c9bba0e5aa353259b",
+      "bytes": 5545,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v162-contract.cjs",
+      "gitBlobSha": "0f8da6dfcd9abc16292bbed49da1dbee596db4f8",
+      "bytes": 8591,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v170-contract.cjs",
+      "gitBlobSha": "7e4d5e4be4df005235504912b31275c3438398fd",
+      "bytes": 6054,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v170-view.cjs",
+      "gitBlobSha": "a7003334dc28a89504269feb3981a8ebe992e6d0",
+      "bytes": 2446,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v171-contract.cjs",
+      "gitBlobSha": "23568037645589a94b1fbf691e3f80947b6a65f7",
+      "bytes": 3917,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v171-runner.cjs",
+      "gitBlobSha": "5cb457667d87727163d5b29347cc8004c56a9bf1",
+      "bytes": 2106,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v180-renewal.cjs",
+      "gitBlobSha": "4c0ce31aa8f2f6b546f963ce0dae0a80a0dacc16",
+      "bytes": 5783,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v181-contract.cjs",
+      "gitBlobSha": "ae58bab9307376b853c21502c678a4ac3a8181ee",
+      "bytes": 5413,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1810-contract.cjs",
+      "gitBlobSha": "7e475a73cc14f393cef9fcfb936b68382c8669af",
+      "bytes": 10361,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1811-contract.cjs",
+      "gitBlobSha": "6e148930802c99f378b7fdd49eed1969ef6974c9",
+      "bytes": 7240,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1812-contract.cjs",
+      "gitBlobSha": "4d41667a530023a38825bd3fe24e3cddcd226a58",
+      "bytes": 8562,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1813-contract.cjs",
+      "gitBlobSha": "933b0b2c75a54b1108e0b0f52419988bf3d359bd",
+      "bytes": 9891,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v1814-contract.cjs",
+      "gitBlobSha": "b77e71524c1955308789477d1c0e8d4d566e4d1a",
+      "bytes": 12082,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v182-contract.cjs",
+      "gitBlobSha": "3f1b4c033e0bb5c7772cc22c61db7a88ecd94b31",
+      "bytes": 4805,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v183-contract.cjs",
+      "gitBlobSha": "dd1bfee788c6d047e696bc858108b889d6887376",
+      "bytes": 5406,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v184-contract.cjs",
+      "gitBlobSha": "ac831eed23b434c34f0ce8b1ea6a7bfed6923fe1",
+      "bytes": 6511,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v185-contract.cjs",
+      "gitBlobSha": "c69c988258019677fc13cf6bd3de0531e86f5270",
+      "bytes": 7643,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v186-contract.cjs",
+      "gitBlobSha": "5c050891a26e9a19868b38a2130b7c87c39f62a4",
+      "bytes": 7497,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v187-contract.cjs",
+      "gitBlobSha": "b21cbae5dc85afbcb2333f4703641cbd86d6a308",
+      "bytes": 6273,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v188-contract.cjs",
+      "gitBlobSha": "88c9cc40643417e742f7efecc67fa3d3e97fcbd9",
+      "bytes": 7821,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v189-contract.cjs",
+      "gitBlobSha": "e725e2c7cdf2c841cf8e56d72ace9199b28362de",
+      "bytes": 7804,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/v190-contract.cjs",
+      "gitBlobSha": "adc207382b572b56f52b174078dce3a0afc03cbe",
+      "bytes": 8866,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/validate.mjs",
+      "gitBlobSha": "cdfdc4122b483e8188f0ce460394dd890f3c523d",
+      "bytes": 5996,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "npm test / npm run test:e2e",
+        "scripts/build.sh core tests"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/windows-native-host-wave1.ps1",
+      "gitBlobSha": "b4be43e74f08ee76258a6ac12aa01451977e32f8",
+      "bytes": 10221,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "KAR Work PR hosted CI",
+        "KAR main CI"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/windows-oneclick-shortcut.ps1",
+      "gitBlobSha": "4ef485ee2c44521c0f773a2668f7333382c90249",
+      "bytes": 8454,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "KAR Work PR hosted CI",
+        "KAR main CI"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    },
+    {
+      "path": "tests/windows-updater-phase1.ps1",
+      "gitBlobSha": "e862741815bcfaaad8f92c39c402723bf578bbfa",
+      "bytes": 9994,
+      "role": "direct-or-hosted",
+      "entrypoints": [
+        "KAR Work PR hosted CI",
+        "KAR main CI"
+      ],
+      "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
+    }
+  ],
+  "coverageContracts": [
+    {
+      "path": "coverage/coverage-baseline-v1.23.19.json",
+      "gitBlobSha": "2d1ccf036c9d3e52e4e3f31212c852886eeda2ea",
+      "bytes": 2097,
+      "role": "immutable-coverage-gold-floor",
+      "keepReason": "Mandatory 100% public function and line/branch per-area no-regression baselines"
+    },
+    {
+      "path": "coverage/safety-critical-public-apis.json",
+      "gitBlobSha": "b377a3fcd8eef7a34a89a642deee8b16b0f86fb6",
+      "bytes": 4450,
+      "role": "safety-critical-negative-evidence-map",
+      "keepReason": "Safety-critical public APIs must retain explicit negative/fail-closed test references; expected to evolve under issue-backed review"
+    }
+  ]
+}

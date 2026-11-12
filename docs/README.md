@@ -44,6 +44,9 @@ Historical QA and Windows documents now have **one canonical location** in `docs
 - [I1 icon asset manifest](maintenance/ICON_ASSET_INVENTORY.json) — original Git blob SHAs, 13 packaged, 7 retained variants and 2 moved masters
 - [Source artwork (PNG masters)](../assets/artwork/README.md) — original high-resolution PNGs, historical filenames and verified image identity
 - [Installed icon paths](../icons/README.md) — assets protected by manifest, HTML/CSS and Chrome ZIP
+- [T1 tests/coverage audit](maintenance/TEST_COVERAGE_AUDIT.md) — original test ownership, independent Gold and generated coverage boundaries
+- [T1 506-file test provenance](maintenance/TEST_COVERAGE_INVENTORY.json) — machine-readable original test path, Git blob SHA and KEEP disposition
+- [Test runner/fixture index](../tests/README.md) — tests, Chromium, Windows and safety-critical evidence
 - [File-hygiene audit and decisions](maintenance/FILE_HYGIENE_AUDIT.md) — root/docs decisions, historical tooling and safety rationale
 - [Complete baseline file inventory](maintenance/FILE_INVENTORY_MAIN_A1F7878.json) — all tracked source-tree files and conservative per-file dispositions
 

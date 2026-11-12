@@ -89,3 +89,10 @@ References checked in main's `package.json`, `scripts/build.sh`, sampled KAR-50 
 ### I1 image references and measured pixel clarification
 
 Hosted CI observed both original `-master-1240.png` bitmap files are **1254 × 1254**, not 1240 × 1240; the PNG bytes/SHAs remain unchanged. Their original pixel dimensions are now recorded in `ICON_ASSET_INVENTORY.json`, with strict shape checks retained for installed/compatibility variants. The CI source scan found a stale historical reference in `tests/v1103-contract.cjs`; only its file **path** was updated to `assets/artwork/taskbar-master-1240.png`, preserving the expected original SHA-256 hash.
+
+## T1 — Historical tests and permanent coverage contracts
+
+- Traced **506/506 original tracked `tests/` paths** back to entrypoints and role evidence: **483** directly mentioned by current npm/build/coverage/hosted CI commands, **13** test-only helpers, **2** isolated fixtures, **6** independently operable historical checks, **1** original browser Gold JSON and **1** E2E operations manual. See [audited ownership](TEST_COVERAGE_AUDIT.md) and full per-test [frozen inventory](TEST_COVERAGE_INVENTORY.json).
+- **No test deletion is justified**: absence from a particular current command does not disprove standalone or indirect negative/regression value. Baseline paths remain protected by `tests/kar167-test-coverage-closure.cjs` as a mandatory coverage gate; future issue-backed tests can be added with explicit direct invocation or helper justification.
+- Preserve the two originally tracked `coverage/` files: the **v1.23.19 public 100% and per-area line/branch Gold floor** pinned to its original Git blob, plus the evolving safety-critical API/negative-test map. Generated coverage JSON/raw output remains Git-ignored; do not delete Gold or historic [v1.21.15 browser E2E Gold](../../tests/e2e/gold-v1.21.15.json).
+- No product runtime, extension ID, version, committed Chrome ZIP, publish path, Windows installer or live account data changed by T1. Hosted exact-head full 4/4 CI mandatory before T1 is accepted.
