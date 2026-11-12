@@ -1,5 +1,5 @@
 'use strict';
-// KAR-134 L14: the shipped extension exposes the real category schema check only.
+// KAR-134 L15: the shipped extension has no manual schema-test action.
 // Mocked historical preflight evidence belongs in tests, not in runtime/UI.
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -15,7 +15,7 @@ const runtime = [ui,content,controller,service,background].join('\n');
 
 for (const label of [
   'Änderungsdialog testen', 'Schema OK testen',
-  'Schema-Drift testen', 'Fingerprint-Warnung testen'
+  'Schema-Drift testen', 'Fingerprint-Warnung testen', 'Kategorie prüfen'
 ]) assert.ok(!ui.includes(label), 'development-only UI action remains: '+label);
 
 for (const scenario of ['compatible', 'incompatible', 'stage-drift', 'isolated-review']) {
@@ -30,19 +30,21 @@ for (const obsolete of [
   'kr134:isolated-stage-monitor:v1:'
 ]) assert.ok(!runtime.includes(obsolete), 'development-only runtime helper remains: '+obsolete);
 
-assert.match(ui, /schemaTestScenario:\s*'category-check'/, 'independent category checking must remain');
-assert.match(controller, /schemaTestScenario\s*===\s*'category-check'/,
-  'controller must only admit the real category check');
-assert.match(controller, /session\?\.schemaTestScenario\s*!==\s*'category-check'/,
-  'genuine F3 approval must stay restricted to category checks');
-assert.match(service, /session\.schemaTestScenario\s*!==\s*'category-check'/,
-  'persisted unsupported probe sessions must fail before delivery');
-assert.match(content, /session\.schemaTestScenario\s*!==\s*'category-check'/,
-  'content must reject unsupported probes before legacy category navigation');
-assert.match(content, /runReadOnlySchemaTest/);
+assert.doesNotMatch(ui, /Kategorie prüfen|makeCategoryCheckActions|schemaTestScenario/,
+  'L15: the inventory never advertises a separate category checker');
+assert.doesNotMatch(runtime, /'category-check'|runReadOnlySchemaTest|assessIndependentCategoryCheck/,
+  'L15: standalone category-check runtime must not ship');
+assert.match(controller, /Boolean\(session\?\.schemaTestScenario\)/,
+  'real F3 authority must explicitly reject old test sessions');
+assert.match(service, /if \(session\.schemaTestScenario\) throw/,
+  'all persisted test sessions must fail closed');
+assert.match(content, /if \(session\.schemaTestScenario\) throw/,
+  'content must reject legacy test sessions before normal publication');
+assert.match(content, /reviewLivePostingSchema/,
+  'schema review must remain reachable through the real production flow');
 assert.match(content, /monitorSchemaStage\('attributes'/);
 assert.match(content, /buildRealSchemaAdoptionPlan/);
 assert.match(content, /KAR134_REAL_REFERENCE_ADOPTION_COMMITTED/);
 assert.match(content, /showStageChangeReviewDialog/);
 assert.match(background, /START_TRASH_TEMPLATE_FILL/, 'preserve existing message boundary');
-console.log('PASS KAR-134 L14: no shipped test-only scenarios, real category and F3 contracts retained');
+console.log('PASS KAR-134 L15: no manual schema-check runtime and real F3 review retained');
