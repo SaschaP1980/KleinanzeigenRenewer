@@ -70,6 +70,7 @@
           Number.isSafeInteger(r.sourcePagesScanned) && r.sourcePagesScanned >= 1 &&
           Number.isSafeInteger(r.targetPagesScanned) && r.targetPagesScanned >= 1 &&
           Number.isSafeInteger(r.targetFoundPage) && r.targetFoundPage >= 1 &&
+          r.targetFoundPage <= r.targetPagesScanned &&
           Number.isSafeInteger(r.verifiedAtMs) &&
           r.verifiedAtMs >= original.createdAtMs &&
           k === PHASE4_OK + r.renewalId + '_' + r.attemptId
@@ -97,6 +98,7 @@
           r.targetEvidence === 'found-in-my-ads-full-pagination-scan' &&
           Number.isSafeInteger(r.targetPagesScanned) && r.targetPagesScanned >= 1 &&
           Number.isSafeInteger(r.targetFoundPage) && r.targetFoundPage >= 1 &&
+          r.targetFoundPage <= r.targetPagesScanned &&
           Number.isSafeInteger(r.verifiedAtMs) &&
           r.verifiedAtMs >= original.createdAtMs &&
           k === PUBLISH_OK + r.fillId + '_' + r.attemptId
