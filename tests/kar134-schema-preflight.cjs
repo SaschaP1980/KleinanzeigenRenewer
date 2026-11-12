@@ -586,7 +586,7 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
       diagnostic:()=>Promise.resolve(),registerSchemaMonitorWarning:()=>{},console
     };
     return vm.runInNewContext(fillerSource.slice(start,end)+
-      '\n({captureCategoryNeutralForm, monitorSchemaStage});',context,
+      '\n({captureCategoryNeutralForm, monitorSchemaStage, createIsolatedStageReview});',context,
       {filename:'kar134-live-monitor-policy.js'});
   }
   const testStorage=()=>{
@@ -835,7 +835,8 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
       fillerSource.indexOf('async function runFillSession('));
     assert.ok(block.includes('syntheticStageDrift'));
     assert.ok(block.includes('monitorSchemaStage('));
-    assert.ok(block.includes('if (!syntheticStageDrift)'));
+    assert.ok(block.includes('const syntheticOnly = syntheticStageDrift || isolatedReviewTest'));
+    assert.ok(block.includes('if (!syntheticOnly)'), 'both simulation paths must skip real reference monitor');
     assert.ok(!block.includes('chrome.storage.local.set('));
     assert.ok(!block.includes('storage.set('));
     assert.ok(!fillerSource.slice(fillerSource.indexOf('  // KAR-134 K3 synthetic fingerprint warning proof'),
