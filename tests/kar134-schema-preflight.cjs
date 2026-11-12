@@ -535,6 +535,157 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
     assert.equal(deny.complete,false);
     assert.equal(assessSyntheticCaseSize('incompatible',focused,deny,'__KAR134_UNREPRESENTABLE_CASE_SIZE__').verdict,false);
   });
-  assert.equal(passed,41,'KAR-134 preflight regression count must remain complete');
-  console.log(passed+'/41 PASS KAR-134 schema capture/preflight');
+
+  // Wave K2: runtime stage monitoring is tested with a synthetic create-form
+  // and in-memory extension storage, never with actual Kleinanzeigen data.
+  function monitoringPolicy() {
+    const start=fillerSource.indexOf('  // KAR-134 K2 monitoring helpers');
+    const end=fillerSource.indexOf('  // KAR-134 field-only native simulation.',start);
+    assert.ok(start>0&&end>start,'F1/F2/F3 runtime monitoring helpers must be present');
+    const context={
+      SchemaCore:Schema,chrome:{storage:{local:{}}},
+      globalThis:{crypto:webcrypto},Object,Array,Set,Map,Promise,
+      document:{},visible:el=>el?.type!=='hidden',visibleText:el=>el?.textContent||'',
+      diagnostic:()=>Promise.resolve(),registerSchemaMonitorWarning:()=>{},console
+    };
+    return vm.runInNewContext(fillerSource.slice(start,end)+
+      '\n({captureCategoryNeutralForm, monitorSchemaStage});',context,
+      {filename:'kar134-live-monitor-policy.js'});
+  }
+  const testStorage=()=>{
+    const map=new Map();let writes=0;
+    return {map,get writes(){return writes;},async get(key){return {[key]:map.get(key)};},
+      async set(record){writes++;for(const[k,v]of Object.entries(record))map.set(k,v);}};
+  };
+  const neutralDom=()=>parseHTML('<html><body><form>'+
+    '<input name="categoryId" type="hidden" value="">'+
+    '<input name="title" value="PRIVATE TITLE">'+
+    '<textarea name="description">PRIVATE TEXT</textarea>'+
+    '<input type="hidden" name="csrfToken" value="SECRET">'+
+    '<button type="button">Wähle deine Kategorie</button></form></body></html>').document;
+  await check('F1 runtime captures real visible neutral controls without values or hidden identifiers',async()=>{
+    const monitor=monitoringPolicy(),doc=neutralDom(),form=doc.querySelector('form');
+    const result=monitor.captureCategoryNeutralForm(form,el=>el.getAttribute('type')!=='hidden',el=>el.textContent);
+    assert.equal(result.status,'observed');
+    assert.equal(result.schema.formMode,'posting-create');
+    assert.equal(result.schema.categoryChooser,'button');
+    assert.ok(result.schema.fields.some(x=>x.key==='field:title'));
+    assert.ok(result.schema.fields.some(x=>x.key==='field:description'));
+    assert.ok(!JSON.stringify(result.schema).includes('PRIVATE TITLE'));
+    assert.ok(!JSON.stringify(result.schema).includes('SECRET'));
+    form.querySelector('input[name="title"]').value='CHANGED SECRET';
+    const unchanged=monitor.captureCategoryNeutralForm(form,el=>el.getAttribute('type')!=='hidden',el=>el.textContent);
+    assert.equal(await Schema.baseFingerprint(result.schema,webcrypto),
+      await Schema.baseFingerprint(unchanged.schema,webcrypto));
+  });
+  await check('F1 runtime skips preselected categories and loading forms, never invents initial baseline',()=>{
+    const monitor=monitoringPolicy(),doc=neutralDom(),form=doc.querySelector('form');
+    form.querySelector('input[name="categoryId"]').value='405';
+    assert.equal(monitor.captureCategoryNeutralForm(form,()=>true,el=>el.textContent).status,'category-already-selected');
+    form.querySelector('input[name="categoryId"]').value='';
+    const spinner=doc.createElement('span');spinner.setAttribute('aria-busy','true');form.append(spinner);
+    assert.equal(monitor.captureCategoryNeutralForm(form,()=>true,el=>el.textContent).status,'form-not-settled');
+  });
+  await check('stage monitoring creates a persistent first reference and then reads it without overwriting',async()=>{
+    const monitor=monitoringPolicy(),storage=testStorage(),notices=[],events=[];
+    const first=Schema.buildBaseSchema({formMode:'posting-create',ready:true,categorySelected:false,
+      categoryChooser:'button',fields:[{name:'title',controlType:'text',visible:true}]});
+    const deps={storage,onWarning:notice=>notices.push(notice),log:(...args)=>events.push(args)};
+    const initial=await monitor.monitorSchemaStage('base',first,'synthetic-fill',deps);
+    assert.equal(initial.status,'reference-created');assert.equal(storage.writes,1);
+    assert.equal(notices.length,0);
+    const repeat=await monitor.monitorSchemaStage('base',first,'synthetic-fill',deps);
+    assert.equal(repeat.status,'unchanged');assert.equal(storage.writes,1);
+    assert.equal(notices.length,0);
+    assert.ok(events.some(x=>x[1]==='KAR134_STAGE_MONITOR_RESULT'));
+  });
+  await check('F1 proven control drift warns visibly without silently replacing baseline',async()=>{
+    const monitor=monitoringPolicy(),storage=testStorage(),messages=[];
+    const base=Schema.buildBaseSchema({formMode:'posting-create',ready:true,categorySelected:false,
+      categoryChooser:'button',fields:[{name:'title',controlType:'text',visible:true}]});
+    const changed=Schema.buildBaseSchema({formMode:'posting-create',ready:true,categorySelected:false,
+      categoryChooser:'button',fields:[{name:'title',controlType:'textarea',visible:true}]});
+    const cfg={storage,onWarning:msg=>messages.push(msg),log:()=>Promise.resolve()};
+    await monitor.monitorSchemaStage('base',base,'f',cfg);
+    const result=await monitor.monitorSchemaStage('base',changed,'f',cfg);
+    assert.equal(result.status,'changed');assert.ok(messages.some(x=>x.includes('Basisformular')));
+    assert.equal(storage.writes,1);assert.equal((await monitor.monitorSchemaStage('base',base,'f',cfg)).status,'unchanged');
+  });
+  await check('F2 missing numeric ancestor identity remains uncertain, while proven new parent ID warns',async()=>{
+    const monitor=monitoringPolicy(),storage=testStorage(),warnings=[],config={storage,onWarning:m=>warnings.push(m),log:()=>Promise.resolve()};
+    const path=()=>Schema.buildCategorySchema({categoryId:'405',observedPath:true,leafConfirmed:true,levels:[
+      {label:'Elektronik',kind:'branch',technicalId:null},{label:'Wearables',kind:'branch',technicalId:null},
+      {label:'Smartwatches',kind:'leaf',technicalId:'405'}]});
+    const initial=path();
+    assert.equal((await monitor.monitorSchemaStage('category',initial,'f',config)).status,'reference-created');
+    const uncertain=path();uncertain.levels[1].label='Wearables neu';
+    const inconclusive=await monitor.monitorSchemaStage('category',uncertain,'f',config);
+    assert.equal(inconclusive.status,'uncertain');assert.ok(warnings.some(x=>x.includes('nicht eindeutig')));
+    const proven=Schema.buildCategorySchema({categoryId:'405',observedPath:true,leafConfirmed:true,levels:[
+      {label:'Elektronik',kind:'branch',technicalId:'12'},
+      {label:'Wearables',kind:'branch',technicalId:'999'},
+      {label:'Smartwatches',kind:'leaf',technicalId:'405'}]});
+    const previous=Schema.buildCategorySchema({categoryId:'405',observedPath:true,leafConfirmed:true,levels:[
+      {label:'Elektronik',kind:'branch',technicalId:'12'},
+      {label:'Wearables',kind:'branch',technicalId:'102'},
+      {label:'Smartwatches',kind:'leaf',technicalId:'405'}]});
+    const storage2=testStorage(), config2={...config,storage:storage2};
+    await monitor.monitorSchemaStage('category',previous,'f',config2);
+    assert.equal((await monitor.monitorSchemaStage('category',proven,'f',config2)).status,'changed');
+    assert.ok(warnings.some(x=>x.includes('Kategoriehierarchie')));
+    assert.equal(storage2.writes,1);
+  });
+  await check('F3 monitors category-specific technical fields without mistaking unknown options for proof',async()=>{
+    const monitor=monitoringPolicy(),storage=testStorage(),warnings=[],deps={storage,onWarning:m=>warnings.push(m),log:()=>Promise.resolve()};
+    const before=Schema.buildSchema({categoryId:'405',dynamicAttributes:[
+      {key:'wearables.case_size',controlType:'combobox',options:[],requiredState:'unknown'}]});
+    const after=Schema.buildSchema({categoryId:'405',dynamicAttributes:[
+      {key:'wearables.case_size',controlType:'combobox',optionsComplete:true,
+        options:[{value:'44'}],requiredState:'unknown'}]});
+    assert.equal((await monitor.monitorSchemaStage('attributes',before,'f',deps)).status,'reference-created');
+    assert.equal((await monitor.monitorSchemaStage('attributes',after,'f',deps)).status,'uncertain');
+    const actual=Schema.buildSchema({categoryId:'405',dynamicAttributes:[
+      {key:'wearables.case_size',controlType:'combobox',options:[],requiredState:'unknown'},
+      {key:'wearables.new_field',controlType:'text',requiredState:'optional'}]});
+    assert.equal((await monitor.monitorSchemaStage('attributes',actual,'f',deps)).status,'changed');
+    assert.ok(warnings.some(x=>x.includes('Kategorieformular')));
+    assert.equal(storage.writes,1);
+  });
+  await check('corrupt persisted baseline is warned, not silently trusted or reset',async()=>{
+    const monitor=monitoringPolicy(),storage=testStorage(),warnings=[],deps={storage,onWarning:m=>warnings.push(m),log:()=>Promise.resolve()};
+    const a=Schema.buildBaseSchema({formMode:'posting-create',ready:true,categorySelected:false,
+      categoryChooser:'button',fields:[{name:'title',controlType:'text',visible:true}]});
+    await monitor.monitorSchemaStage('base',a,'f',deps);
+    const [key]=storage.map.keys();
+    storage.map.get(key).fingerprint='f'.repeat(64);
+    const bad=await monitor.monitorSchemaStage('base',a,'f',deps);
+    assert.equal(bad.status,'invalid-reference');
+    assert.equal(storage.writes,1);
+    assert.ok(warnings.some(x=>x.includes('Referenz')));
+  });
+  await check('unavailable storage never claims unchanged or creates false reference',async()=>{
+    const monitor=monitoringPolicy(),warnings=[];
+    const base=Schema.buildBaseSchema({formMode:'posting-create',ready:true,categorySelected:false,
+      categoryChooser:'button',fields:[{name:'title',controlType:'text',visible:true}]});
+    const failed=await monitor.monitorSchemaStage('base',base,'f',{
+      storage:{get:async()=>{throw Error('storage denied')},set:async()=>{}},
+      onWarning:m=>warnings.push(m),log:()=>Promise.resolve()});
+    assert.equal(failed.status,'monitor-unavailable');
+    assert.ok(warnings.some(x=>x.includes('nicht geprüft')));
+  });
+  await check('live monitor is bound before category selection, then category trail and hydrated fields',()=>{
+    const block=fillerSource.slice(fillerSource.indexOf('async function runReadOnlySchemaTest('),
+      fillerSource.indexOf('async function runFillSession('));
+    assert.ok(block.indexOf("captureCategoryNeutralForm(")>0);
+    assert.ok(block.indexOf("monitorSchemaStage('base'")<block.indexOf('await setCategory('));
+    assert.ok(block.indexOf("monitorSchemaStage('category'")>block.indexOf('await setCategory('));
+    assert.ok(block.indexOf("monitorSchemaStage('attributes'")>block.indexOf('await SchemaPreflight.afterHydration('));
+    const categorySource=fs.readFileSync(require.resolve('../src/content/template-category-flow.js'),'utf8');
+    assert.match(categorySource,/categoryPathEvidence/);
+    assert.match(categorySource,/CATEGORY_MODAL_COMMIT_VERIFIED/);
+  });
+  assert.equal(passed,50,'KAR-134 preflight regression count must remain complete');
+  console.log(passed+'/50 PASS KAR-134 schema capture/preflight');
+
+
 })().catch(error=>{console.error(error);process.exitCode=1});
