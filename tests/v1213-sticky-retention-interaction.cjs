@@ -38,8 +38,8 @@ ok('trash compact row shows retention deadline instead of listing end date', () 
   const end = app.indexOf('\nfunction setCompactButtonsBusy', start);
   const fn = app.slice(start, end);
   // KAR-165: presentation remains trash-specific while its countdown is styled as an isolated span.
-  assert.match(fn, /if \\(trash\\) appendTrashRetentionCountdown\\(end, trashRetentionPresentation\\(record\\)\\)/);
-  assert.match(fn, /else end\\.textContent = `Endet am \\$\\{endDateWithRelativeLabel\\(record\\)\\}`/);
+  assert.match(fn, /if \(trash\) appendTrashRetentionCountdown\(end, trashRetentionPresentation\(record\)\)/);
+  assert.match(fn, /else end\.textContent = `Endet am \$\{endDateWithRelativeLabel\(record\)\}`/);
   assert.match(app, /function trashRetentionPresentation\(record\)/);
   assert.match(app, /Im Papierkorb bis/);
 });
