@@ -1053,8 +1053,110 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
     assert.ok(!block.includes('requestSubmit('));
     assert.ok(!block.includes('uploadImages('));
   });
-  assert.equal(passed,67,'KAR-134 preflight regression count must remain complete');
-  console.log(passed+'/67 PASS KAR-134 schema capture/preflight');
+  // Step 3: sandbox references must live only in a run-scoped, in-memory store.
+  await check('isolated synthetic stage references show three proven changes without live fingerprint access',async()=>{
+    const {createIsolatedStageReview}=monitoringPolicy();
+    assert.equal(typeof createIsolatedStageReview,'function');
+    const sandbox=await createIsolatedStageReview('local-check-405',stageFixture());
+    assert.deepEqual(Array.from(['base','category','attributes'].map(k=>sandbox.results[k].status)),
+      ['changed','changed','changed']);
+    assert.equal(sandbox.state().referenceWrites,3,'three synthetic baselines only');
+    assert.equal(sandbox.state().realReferenceReads,0);
+    assert.equal(sandbox.state().realReferenceWrites,0);
+    assert.match(sandbox.state().namespace,/kr134:isolated-stage-monitor:/);
+    const model=buildIsolatedReviewModel(sandbox.results,sandbox.observed.category);
+    assert.equal(model.hasProvenChange,true);
+    assert.equal(model.simulationOnly,true);
+    assert.match(model.safetyText,/SIMULATION|Testspeicher/i);
+    assert.ok(model.sections.every(section=>section.status==='changed'));
+  });
+  await check('isolated test confirmation adopts only sandbox references then compares unchanged',async()=>{
+    const {createIsolatedStageReview}=monitoringPolicy();
+    const sandbox=await createIsolatedStageReview('local-accept-405',stageFixture());
+    await assert.rejects(sandbox.approve({confirmed:false}),/Bestätigung|bestätigt/i);
+    assert.equal(sandbox.state().referenceWrites,3);
+    const adopted=await sandbox.approve({confirmed:true});
+    assert.equal(adopted.accepted,true);
+    assert.deepEqual(Array.from(['base','category','attributes'].map(k=>adopted.results[k].status)),
+      ['unchanged','not-fully-verified','unchanged']);
+    assert.equal(sandbox.state().referenceWrites,6);
+    assert.equal(sandbox.state().realReferenceWrites,0);
+    await assert.rejects(sandbox.approve({confirmed:true}),/bereits|abgeschlossen/i);
+  });
+  await check('isolated test rejection and simple acknowledgement do not approve or persist',async()=>{
+    const {createIsolatedStageReview}=monitoringPolicy();
+    const sandbox=await createIsolatedStageReview('local-reject-159',{
+      ...stageFixture(),
+      category:Schema.buildCategorySchema({categoryId:'159',leafConfirmed:true,observedPath:true,levels:[
+        {label:'Mode & Beauty',technicalId:null,kind:'branch'},
+        {label:'Damenschuhe',technicalId:null,kind:'branch'},
+        {label:'Sneaker & Sportschuhe',technicalId:'159',kind:'leaf'}]}),
+      attributes:Schema.buildSchema({categoryId:'159',dynamicAttributes:[
+        {key:'shoes.art',controlType:'combobox',requiredState:'unknown'}]})
+    });
+    sandbox.defer();
+    assert.equal(sandbox.state().accepted,false);
+    assert.equal(sandbox.state().referenceWrites,3);
+    assert.deepEqual(Array.from(['base','category','attributes'].map(k=>sandbox.results[k].status)),
+      ['changed','changed','changed']);
+    assert.equal(sandbox.state().realReferenceWrites,0);
+    await assert.rejects(sandbox.approve({confirmed:true}),/abgelehnt|abgeschlossen/i);
+  });
+  await check('isolated test fails closed with missing stage, colliding synthetic key or live storage',async()=>{
+    const {createIsolatedStageReview,monitorSchemaStage}=monitoringPolicy();
+    const sample=stageFixture();
+    await assert.rejects(createIsolatedStageReview('bad', {...sample,attributes:null}),/vollständig|erfasst/i);
+    const colliding={...sample,attributes:{...sample.attributes,fields:[
+      ...sample.attributes.fields,{key:'attribute:kr134.synthetic_previous_attribute',
+        kind:'text',requiredState:'unknown',optionValues:null}]}};
+    await assert.rejects(createIsolatedStageReview('collide',colliding),/Kollision|kollidiert/i);
+    const dummy=testStorage();
+    const blocked=await monitorSchemaStage('base',sample.base,'f',{
+      storage:dummy,isolatedTest:true,log:()=>Promise.resolve(),onWarning:()=>{}});
+    assert.equal(blocked.status,'monitor-unavailable');
+    assert.equal(dummy.writes,0,'live-like storage must be rejected even in test mode');
+  });
+  await check('sandbox-only review dialog exposes explicit isolated adoption, normal dialog remains two buttons',()=>{
+    const {buildStageChangeReview,showStageChangeReviewDialog}=reviewHelpers();
+    const {document}=parseHTML('<html><body></body></html>');
+    let accepted=0,deferred=0,acknowledged=0;
+    const review=buildStageChangeReview({
+      base:{status:'changed',changes:[{type:'field-removed',key:'field:kr134_synthetic_previous_base_field'}]},
+      category:{status:'changed',changes:[{type:'category-depth-changed',before:4,after:3}]},
+      attributes:{status:'changed',changes:[{type:'field-removed',key:'attribute:kr134.synthetic_previous_attribute'}]}
+    });
+    showStageChangeReviewDialog(review,{documentRoot:document,
+      simulationOnly:true,onTestApprove:()=>{accepted++;},
+      onAcknowledge:()=>{acknowledged++;},onDefer:()=>{deferred++;}});
+    const dialog=document.querySelector('[role="dialog"]');
+    assert.ok(dialog);
+    assert.match(dialog.textContent,/TEST|Simulation|Testspeicher/);
+    const buttons=[...dialog.querySelectorAll('button')];
+    assert.equal(buttons.length,3);
+    assert.match(buttons[2].textContent,/Testspeicher/);
+    buttons[2].click();
+    assert.equal(accepted,1);
+    assert.equal(deferred,0);assert.equal(acknowledged,0);
+    assert.equal(document.querySelector('[role="dialog"]'),null);
+  });
+  await check('isolated review run uses category path and prevents all production-stage storage calls',()=>{
+    const ui=fs.readFileSync(require.resolve('../src/app/inventory-card-renderer.js'),'utf8');
+    const bg=fs.readFileSync(require.resolve('../src/background/controllers/template-fill-controller.js'),'utf8');
+    const svc=fs.readFileSync(require.resolve('../src/background/services/template-fill-service.js'),'utf8');
+    const block=fillerSource.slice(fillerSource.indexOf('async function runReadOnlySchemaTest('),
+      fillerSource.indexOf('async function runFillSession('));
+    assert.match(ui,/scenario: 'isolated-review'/);
+    assert.match(bg,/'isolated-review'/);
+    assert.match(svc,/'isolated-review'/);
+    assert.match(block,/scenario === 'isolated-review'/);
+    assert.match(block,/createIsolatedStageReview\(/);
+    assert.match(block,/KAR134_ISOLATED_REVIEW_/);
+    assert.match(block,/referenceApproved:\s*false/);
+    assert.ok(!block.includes('requestSubmit('));assert.ok(!block.includes('uploadImages('));
+    assert.ok(!block.includes('autoPublishVerifiedRenewal('));
+  });
+  assert.equal(passed,73,'KAR-134 preflight regression count must remain complete');
+  console.log(passed+'/73 PASS KAR-134 schema capture/preflight');
 
 
 
