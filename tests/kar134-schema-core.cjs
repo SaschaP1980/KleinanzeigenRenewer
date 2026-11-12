@@ -117,5 +117,107 @@ const base = () => ({
     const snap = Schema.buildSchema(base());
     assert.throws(() => Schema.diff({ ...snap, schemaVersion: 999 }, snap), /Incompatible form schema/);
   });
-  console.log(passed + '/13 PASS KAR-134 schema core');
+
+  // KAR-134 Wave K: three-stage monitoring requires evidence-sensitive F1/F2
+  // contracts. These fixtures never contain real listing or account values.
+  const baseNeutral = () => ({
+    formMode: 'posting-create', ready: true, categorySelected: false, categoryChooser: 'button',
+    fields: [
+      {name:'title',controlType:'text',visible:true,requiredState:'required',value:'SECRET AD TITLE'},
+      {name:'description',controlType:'textarea',visible:true,value:'SECRET DESCRIPTION'},
+      {name:'priceAmount',controlType:'number',visible:true,value:'9999'},
+      {name:'categoryId',controlType:'hidden',visible:false,value:'405'},
+      {name:'csrfToken',controlType:'hidden',visible:false,value:'SECRET_TOKEN'}
+    ]
+  });
+  const categoryObserved = () => ({
+    categoryId:'405', leafConfirmed:true, observedPath:true, levels:[
+      {label:'Elektronik',technicalId:'12',kind:'branch'},
+      {label:'Wearables',technicalId:'102',kind:'branch'},
+      {label:'Smartwatches',technicalId:'405',kind:'leaf'}
+    ]
+  });
+  await check('F1 hashes category-neutral visible controls without values or category selections',async()=>{
+    const a=baseNeutral(),b=baseNeutral();
+    b.fields.reverse(); b.fields[0].value='ANOTHER PRIVATE VALUE';
+    b.fields.find(x=>x.name==='title').value='DIFFERENT SECRET';
+    const x=Schema.buildBaseSchema(a),y=Schema.buildBaseSchema(b);
+    assert.deepEqual(x.fields,y.fields);
+    assert.equal((await Schema.baseFingerprint(x,webcrypto)),await Schema.baseFingerprint(y,webcrypto));
+    assert.match(await Schema.baseFingerprint(x,webcrypto),/^[a-f0-9]{64}$/);
+    assert.equal(Schema.diffBaseSchemas(x,y).status,'base-identical');
+    const serialized=JSON.stringify(x);
+    for(const secret of ['SECRET','9999','categoryId','csrfToken']) assert.ok(!serialized.includes(secret));
+  });
+  await check('F1 detects changed visible field control or absent category chooser',()=>{
+    const a=Schema.buildBaseSchema(baseNeutral()),b=baseNeutral();
+    b.fields.find(x=>x.name==='priceAmount').controlType='text';
+    const diff=Schema.diffBaseSchemas(a,Schema.buildBaseSchema(b));
+    assert.equal(diff.status,'base-changed');
+    assert.ok(diff.changes.some(x=>x.type==='control-kind-changed'&&x.key==='field:priceAmount'));
+    const c=baseNeutral();c.categoryChooser='missing';
+    assert.ok(Schema.diffBaseSchemas(a,Schema.buildBaseSchema(c)).changes.some(x=>x.type==='category-chooser-changed'));
+  });
+  await check('F1 never approves incomplete, category-selected or cross-mode observations',()=>{
+    for(const change of [{ready:false},{categorySelected:true},{formMode:'posting-edit'}]){
+      const b={...baseNeutral(),...change};
+      if(change.formMode) assert.equal(Schema.diffBaseSchemas(
+        Schema.buildBaseSchema(baseNeutral()),Schema.buildBaseSchema(b)).status,'base-not-comparable');
+      else assert.throws(()=>Schema.buildBaseSchema(b),/category-neutral|settled/);
+    }
+    const a=baseNeutral();a.fields.push({...a.fields[0]});
+    assert.throws(()=>Schema.buildBaseSchema(a),/Duplicate/);
+  });
+  await check('F1 missing baseline is unknown, never identical',()=>{
+    const current=Schema.buildBaseSchema(baseNeutral());
+    const diff=Schema.diffBaseSchemas(null,current);
+    assert.equal(diff.status,'baseline-missing');assert.equal(diff.compatible,null);
+  });
+  await check('F2 fingerprint is stable across label localization, order-irrelevant metadata and values',async()=>{
+    const a=Schema.buildCategorySchema(categoryObserved()),b=categoryObserved();
+    b.levels[0].label='Electronics';b.levels[2].label='Smart Watches';b.title='SECRET AD';
+    const other=Schema.buildCategorySchema(b);
+    assert.equal(await Schema.categoryFingerprint(a,webcrypto),await Schema.categoryFingerprint(other,webcrypto));
+    assert.equal(Schema.diffCategorySchemas(a,other).status,'category-identical');
+    assert.ok(!JSON.stringify(a).includes('SECRET AD'));
+  });
+  await check('F2 different verified parent ID is provable category drift even with same leaf ID',()=>{
+    const a=Schema.buildCategorySchema(categoryObserved()),b=categoryObserved();
+    b.levels[1].technicalId='103';
+    const d=Schema.diffCategorySchemas(a,Schema.buildCategorySchema(b));
+    assert.equal(d.status,'category-changed');
+    assert.ok(d.changes.some(c=>c.type==='ancestor-id-changed'));
+    assert.equal(d.compatible,false);
+  });
+  await check('F2 changed path depth is detected only from fully observed navigation',()=>{
+    const a=Schema.buildCategorySchema(categoryObserved()),b=categoryObserved();
+    b.levels.splice(1,1);
+    assert.equal(Schema.diffCategorySchemas(a,Schema.buildCategorySchema(b)).status,'category-changed');
+    const incomplete={...categoryObserved(),observedPath:false};
+    assert.equal(Schema.diffCategorySchemas(a,Schema.buildCategorySchema(incomplete)).status,'category-not-verified');
+  });
+  await check('F2 label-only ancestor identity remains evidence-limited, never claimed unchanged',async()=>{
+    const a=categoryObserved(),b=categoryObserved();
+    a.levels[0].technicalId=null; a.levels[1].technicalId=null;
+    b.levels[0].technicalId=null; b.levels[1].technicalId=null;
+    b.levels[1].label='Wearables und mehr';
+    const x=Schema.buildCategorySchema(a),y=Schema.buildCategorySchema(b);
+    assert.equal(await Schema.categoryFingerprint(x,webcrypto),await Schema.categoryFingerprint(y,webcrypto));
+    assert.equal(Schema.diffCategorySchemas(x,x).status,'category-partially-verified');
+    const drift=Schema.diffCategorySchemas(x,y);
+    assert.equal(drift.status,'category-evidence-uncertain');
+    assert.equal(drift.compatible,null);
+    assert.ok(drift.changes.some(c=>c.type==='unverified-path-label-changed'));
+  });
+  await check('F2 never invents leaf/category IDs or silently accepts malformed path observations',()=>{
+    const a=categoryObserved();a.levels[2].technicalId='999';
+    assert.throws(()=>Schema.buildCategorySchema(a),/leaf|category ID/);
+    const b=categoryObserved();b.levels[0].technicalId='not-numeric';
+    assert.throws(()=>Schema.buildCategorySchema(b),/technical category ID/);
+    const c=categoryObserved();c.leafConfirmed=false;
+    assert.equal(Schema.diffCategorySchemas(null,Schema.buildCategorySchema(c)).status,'baseline-missing');
+    assert.equal(Schema.diffCategorySchemas(Schema.buildCategorySchema(categoryObserved()),Schema.buildCategorySchema(c)).status,'category-not-verified');
+  });
+  console.log(passed + '/22 PASS KAR-134 schema core');
+
 })().catch(error => { console.error(error); process.exitCode = 1; });
