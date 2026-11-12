@@ -1348,8 +1348,27 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
       newFingerprint:wrong.newFingerprint}},wrong.session,wrong.sessions,wrong.sender),/profile mismatch/);
     assert.equal(wrong.baselineWrites,0);
   });
-  assert.equal(passed,80,'KAR-134 preflight regression count must remain complete');
-  console.log(passed+'/80 PASS KAR-134 schema capture/preflight');
+  await check('genuine F3 approval stays inside existing authenticated session route with fresh live verification',()=>{
+    const content=fillerSource.slice(fillerSource.indexOf("if (scenario === 'category-check')"),
+      fillerSource.indexOf('if (syntheticStageDrift)',fillerSource.indexOf("if (scenario === 'category-check')")));
+    const controller=fs.readFileSync(require.resolve('../src/background/controllers/template-fill-controller.js'),'utf8');
+    const bootstrap=fs.readFileSync(require.resolve('../src/background/background.js'),'utf8');
+    assert.match(content,/buildRealSchemaAdoptionPlan\(/);
+    assert.match(content,/referenceAdoption:\s*\{\s*action:\s*'prepare'/);
+    assert.match(content,/action:'commit'/);
+    assert.match(content,/SchemaPreflight\.afterHydration\(/);
+    assert.match(content,/KAR134_REAL_REFERENCE_ADOPTION_COMMITTED/);
+    assert.match(controller,/if \(message\?\.referenceAdoption\)/);
+    assert.match(controller,/schemaTestScenario !== 'category-check'/);
+    assert.match(controller,/getInsertionLockState\(\)/);
+    assert.match(controller,/assertSelectedProfileMatchesLiveAccount\(/);
+    assert.match(bootstrap,/TemplateSchemaCore,\s*queueMicrotaskFn/);
+    assert.ok(!content.includes('chrome.storage.local.set('));
+    assert.ok(!content.includes('requestSubmit('));
+    assert.ok(!content.includes('uploadImages('));
+  });
+  assert.equal(passed,81,'KAR-134 preflight regression count must remain complete');
+  console.log(passed+'/81 PASS KAR-134 schema capture/preflight');
 
 
 
