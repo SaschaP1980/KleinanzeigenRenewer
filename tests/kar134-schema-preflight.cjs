@@ -1313,7 +1313,7 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
       a.session,a.sessions,a.sender);
     const result=await a.approve({referenceAdoption:{action:'commit',stage:'attributes',
       categoryId:'405',token:prep.token,oldFingerprint:a.oldFingerprint,
-      newFingerprint:a.newFingerprint,snapshot:a.freshSchema}},
+      newFingerprint:a.newFingerprint,snapshot:a.freshSchema,freshObservationCapturedAt:Date.now()}},
       a.session,a.sessions,a.sender);
     assert.equal(result.referenceApproved,true);
     assert.equal(a.baselineWrites,1,'one production F3 ref is changed at most once');
@@ -1322,7 +1322,7 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
     assert.ok(a.gateCalls>=2,'profile checked both before prepare and immediately before commit');
     await assert.rejects(a.approve({referenceAdoption:{action:'commit',stage:'attributes',
       categoryId:'405',token:prep.token,oldFingerprint:a.oldFingerprint,
-      newFingerprint:a.newFingerprint,snapshot:a.freshSchema}},
+      newFingerprint:a.newFingerprint,snapshot:a.freshSchema,freshObservationCapturedAt:Date.now()}},
       a.session,a.sessions,a.sender),/benutzt|abgelaufen|Bestätigung|nicht verfügbar/i);
     assert.equal(a.baselineWrites,1);
   });
@@ -1333,7 +1333,7 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
       a.session,a.sessions,a.sender);
     const send=(extra={})=>a.approve({referenceAdoption:{action:'commit',stage:'attributes',
       categoryId:'405',token:prep.token,oldFingerprint:a.oldFingerprint,
-      newFingerprint:a.newFingerprint,snapshot:a.freshSchema,...extra}},
+      newFingerprint:a.newFingerprint,snapshot:a.freshSchema,freshObservationCapturedAt:Date.now(),...extra}},
       a.session,a.sessions,a.sender);
     await assert.rejects(send({token:'forged'}),/Bestätigung|Token|abgelaufen/i);
     await assert.rejects(send({categoryId:'159'}),/Kategorie|Identität/i);
