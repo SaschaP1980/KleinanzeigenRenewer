@@ -106,51 +106,6 @@ function makeInventoryExportActionButton(record) {
 }
 
 
-function makeCategoryCheckActions(record, { compact = false, disabled = false } = {}) {
-  const categoryId = String(record?.category?.id ?? record?.categoryIdFromUrl ?? '').trim();
-  const path = Array.isArray(record?.category?.path) && record.category.path.length
-    ? record.category.path : record?.categoryPath;
-  const hasVerifiableCategoryPath = /^[1-9][0-9]*$/.test(categoryId) &&
-    Array.isArray(path) && path.length >= 2 && path.length <= 12 &&
-    path.every(label => typeof label === 'string' && label.trim());
-  if (record?.renewal || !hasVerifiableCategoryPath) return [];
-  const help = 'Prüft die Kategorie und das aktuelle Formularschema (F1, F2 und F3). Verwendet bei Bedarf den gespeicherten Artikeltyp (Art/Typ) nur zur Kategorienavigation. Keine übrigen Anzeigenwerte, Bilder oder Veröffentlichung.';
-  const button = compact
-    ? makeCompactIconButton({ icon: 'update', label: 'Kategorie prüfen', title: help })
-    : document.createElement('button');
-  if (!compact) {
-    button.type = 'button';
-    button.className = 'secondary compact-action';
-    button.textContent = 'Kategorie prüfen';
-    button.title = help;
-  }
-  button.disabled = disabled;
-  if (compact) rememberCompactButtonDisabled(button);
-  button.addEventListener('click', async () => {
-    if (!requireAccountBoundAction()) return;
-    if (!await confirmAction({
-      title: 'Kategorie nur prüfen?',
-      text: help,
-      detail: 'Die Inventarvorlage bleibt unverändert. Zur Kategorienavigation darf der gespeicherte Artikeltyp (Art/Typ) verwendet werden. Es werden keine anderen Anzeigenwerte übertragen oder Anzeigen veröffentlicht.',
-      confirmLabel: 'Kategorieprüfung starten'
-    })) return;
-    button.disabled = true;
-    try {
-      const started = await runtimeMessage({
-        type: 'START_TRASH_TEMPLATE_FILL', inventoryId: record.inventoryId,
-        schemaTestScenario: 'category-check'
-      });
-      void logAppEvent('USER_CATEGORY_CHECK_STARTED', { tabId: started?.tabId || null });
-      setStatus('ready', 'Kategorieprüfung gestartet',
-        'Das Ergebnis erscheint im neuen Kleinanzeigen-Tab und im Diagnoseexport. Keine Veröffentlichung.');
-    } catch (error) {
-      button.disabled = false;
-      setFriendlyErrorStatus(error, 'Kategorieprüfung konnte nicht gestartet werden');
-    }
-  });
-  return [button];
-}
-
 function makeCompactInventoryExportButton(record) {
   const exportButton = makeCompactIconButton({
     icon: 'zip-export',
@@ -377,8 +332,6 @@ function renderCompactInventoryRow(record) {
     }
   });
   actions.append(createButton, updateButton, exportButton, deleteButton);
-  for (const button of makeCategoryCheckActions(record,
-    { compact: true, disabled: insertionBlocked || !gate.allowed || !profileMatches })) actions.insertBefore(button, deleteButton);
   return row;
 }
 
@@ -818,8 +771,6 @@ function renderInventories(records = currentRecords) {
       }
     });
     actions.append(createButton, updateButton, exportButton, deleteButton);
-    for (const button of makeCategoryCheckActions(record,
-      { disabled: insertionBlocked || !accountGate.allowed || !recordMatchesSelectedProfile })) actions.insertBefore(button, deleteButton);
     card.append(actions);
     }
 
