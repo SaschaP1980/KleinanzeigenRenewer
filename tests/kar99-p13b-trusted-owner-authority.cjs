@@ -396,6 +396,80 @@ for(const kind of ['phase4','publish']) {
       e?.code==='KR_OWNER_JOURNAL_PROFILE_MISMATCH');
   });
 }
+// P1.3-F2 next: independently bind explicit remote-admission tokens to the
+// immutable P8 start+finish rows. A resolved remote journal with a forged,
+// reused, wrong-owner, or non-overlapping token is NOT generation closure.
+function tokenBoundRemote(kind) {
+  const rows=remoteReceipts(PROFILE,kind);
+  const intentKey=Object.keys(rows).find(k=>k.startsWith(
+    kind==='phase4'?'karPhase4UncertainAttemptV1_':'karAutoPublishIntentV1_'));
+  const intent=rows[intentKey];
+  const token='p8-remote-bound-token-00001';
+  intent.admissionToken=token;
+  rows['karAtomicAdmissionStartV1_'+token]={
+    schema:1,state:'admitted',token,
+    operationType:kind==='phase4'
+      ?'AUTONOMOUS:renewal-auto-phase4':'AUTONOMOUS:renewal-publish-detection',
+    workerInstanceId:intent.workerInstanceId,startedAtMs:NOW-1200
+  };
+  rows['karAtomicAdmissionFinishV1_'+token]={
+    schema:1,state:'completed',token,
+    workerInstanceId:intent.workerInstanceId,completedAtMs:NOW-850
+  };
+  return {rows,intentKey,token};
+}
+for (const kind of ['phase4','publish']) {
+  test('P1.3-F2 token-bound '+kind+' remote history matches real P8 start+finish structure (fixture only)',async()=>{
+    const {rows}=tokenBoundRemote(kind);
+    const {gate}=fixture({local:rows});
+    const proof=await gate.captureForReserve(request());
+    assert.equal(proof.status,'candidate-idle',
+      'PRIVATE fully mocked owner-source fixture only, not production update permission');
+  });
+  for(const [label,mutate] of [
+    ['missing P8 start and finish',({rows,token})=>{
+      delete rows['karAtomicAdmissionStartV1_'+token];
+      delete rows['karAtomicAdmissionFinishV1_'+token];
+    }],
+    ['token points to another completed P8 admission',({rows,intentKey})=>{
+      rows[intentKey].admissionToken='different-p8-remote-token';
+    }],
+    ['admitted P8 operation belongs to unrelated remote flow',({rows,token})=>{
+      rows['karAtomicAdmissionStartV1_'+token].operationType='CAPTURE_SINGLE_INVENTORY';
+    }],
+    ['admitted P8 generation is different from remote intent',({rows,token})=>{
+      rows['karAtomicAdmissionStartV1_'+token].workerInstanceId='unrelated-worker';
+      rows['karAtomicAdmissionFinishV1_'+token].workerInstanceId='unrelated-worker';
+    }],
+    ['P8 admission starts after remote intent',({rows,token})=>{
+      rows['karAtomicAdmissionStartV1_'+token].startedAtMs=NOW-875;
+    }],
+    ['P8 callback finishes before remote intent was written',({rows,token})=>{
+      rows['karAtomicAdmissionFinishV1_'+token].completedAtMs=NOW-950;
+    }],
+    ['invalid token in otherwise resolved remote journal',({rows,intentKey})=>{
+      rows[intentKey].admissionToken='../forged-token';
+    }]
+  ]) {
+    test('P1.3-F2 RED: '+kind+' '+label+' must reject private owner capture',async()=>{
+      const caseData=tokenBoundRemote(kind);
+      mutate(caseData);
+      const {gate}=fixture({local:caseData.rows});
+      await assert.rejects(gate.captureForReserve(request()),
+        e=>e?.code==='KR_OWNER_JOURNAL_ADMISSION_UNVERIFIED');
+    });
+  }
+}
+test('P1.3-F2 RED: one P8 token cannot authorize two remote journal families',async()=>{
+  const p=tokenBoundRemote('phase4');
+  const other=remoteReceipts(PROFILE,'publish');
+  const intent=other.karAutoPublishIntentV1_fillA_attemptA;
+  intent.admissionToken=p.token;
+  const {gate}=fixture({local:{...p.rows,...other}});
+  await assert.rejects(gate.captureForReserve(request()),
+    e=>e?.code==='KR_OWNER_JOURNAL_ADMISSION_UNVERIFIED');
+});
+
 const negativeCases = [
   ['wrong selected profile', {local: {selectedInventoryProfileV1: {profileId: 'other'}}}],
   ['missing selected profile', {local: {selectedInventoryProfileV1: null}}],
