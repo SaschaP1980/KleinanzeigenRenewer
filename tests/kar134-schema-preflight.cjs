@@ -1282,7 +1282,7 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
       writeFillSessions:async()=>{},getInsertionLockState:async()=>null,
       TEMPLATE_TARGET_URL:'https://www.kleinanzeigen.de/p-anzeige-aufgeben-schritt2.html',
       logDiagnostic:()=>Promise.resolve(),sessionCorrelationContext:()=>({}),
-      Date,RegExp,Array,Object,Set,Map,Promise
+      Date,URL,RegExp,Array,Object,Set,Map,Promise
     };
     const approve=vm.runInNewContext(controllerSource.slice(start,end)+
       '\n adoptVerifiedSchemaReference;',context,{filename:'kar134-reference-adoption-guard.js'});
