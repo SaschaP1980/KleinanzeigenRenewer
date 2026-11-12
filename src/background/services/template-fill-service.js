@@ -130,6 +130,9 @@
         const sessions = await readFillSessions();
         const session = Object.values(sessions).find(item => item?.targetTabId === tabId && ['waiting', 'running'].includes(item.status));
         if (!session) return null;
+        // A persisted session from a retired development probe must never resume.
+        if (session.schemaTestScenario && session.schemaTestScenario !== 'category-check')
+          throw new Error('Veralteter Schema-Testvorgang kann nicht fortgesetzt werden.');
         const record = session.archiveInsertionId && session.archiveTemplate ? session.archiveTemplate : await getInventory(session.inventoryId);
         if (!record) throw new Error('Vorlageninventar wurde nach dem Öffnen des Tabs nicht gefunden.');
         session.status = 'running';
@@ -152,7 +155,7 @@
                 // child after a captured parent. Send only bounded classifier
                 // display labels, never technical values or listing content.
                 // The live selectable leaf AND committed numeric ID must confirm.
-                ...(['category-check', 'isolated-review'].includes(session.schemaTestScenario) ? {
+                ...(session.schemaTestScenario === 'category-check' ? {
                   categoryNavigationHints: (Array.isArray(record.dynamicAttributes) ? record.dynamicAttributes : [])
                     .filter(a => ['art', 'typ'].includes(String(a?.label || '').trim().toLocaleLowerCase('de-DE')) &&
                       typeof a.displayValue === 'string' && a.displayValue.trim() &&

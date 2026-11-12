@@ -380,94 +380,6 @@
   }
 
 
-  // KAR-134 native probe: negative tests only pass on a specific, technically
-  // proven invalid option. A missing/unhydrated option catalog is inconclusive,
-  // never a successful rejection. This policy cannot authorize publication.
-  function assessSyntheticCaseSize(scenario, observed, report, rejectedValue) {
-    if (!['compatible', 'incompatible'].includes(scenario))
-      throw new Error('Unbekanntes synthetisches Gehäusegrößen-Prüfszenario.');
-    const candidates = (observed?.schema?.fields || []).filter(field =>
-      field.key === 'attribute:wearables.case_size');
-    const field = candidates.length === 1 ? candidates[0] : null;
-    const values = Array.isArray(field?.optionValues) ? field.optionValues : null;
-    const optionEvidenceComplete = Array.isArray(values) && values.length > 0;
-    const labels = observed?.optionLabels?.['wearables.case_size'];
-    const exact44mmMatches = Array.isArray(labels)
-      ? labels.filter(item => item?.value === '44' && item?.label === '44mm').length : 0;
-    const technical44Offered = optionEvidenceComplete && values.includes('44');
-    const ownerVerifiedPair44 = observed?.optionProbe?.reason === 'owner-confirmed-case-size-pairs' &&
-      observed.optionProbe.ownerVerifiedPairCount === 2 && exact44mmMatches === 1;
-    const mapped44 = (report?.mappings || []).filter(item =>
-      item.oldKey === 'wearables.gehausegrosse' &&
-      item.newKey === 'wearables.case_size' &&
-      item.technicalValue === '44' &&
-      item.expectedDisplayLabel === '44mm').length === 1;
-    const specificInvalidRejectionProven = Boolean(
-      optionEvidenceComplete && typeof rejectedValue === 'string' &&
-      rejectedValue.length > 0 && !values.includes(rejectedValue) &&
-      (report?.issues || []).some(issue => typeof issue === 'string' &&
-        issue.includes('Gehäusegröße (synthetischer Test)') &&
-        issue.includes('wird im neuen Formular nicht angeboten.')));
-    const mapping44Proven = Boolean((technical44Offered || ownerVerifiedPair44) &&
-      exact44mmMatches === 1 && mapped44);
-    const verdict = scenario === 'compatible'
-      ? Boolean(report?.complete === true && mapping44Proven)
-      : Boolean(report?.complete === false && specificInvalidRejectionProven);
-    const evidenceState = !field ? 'case-size-field-missing'
-      : !optionEvidenceComplete && scenario === 'compatible' && mapping44Proven
-        ? 'owner-confirmed-case-size-pair'
-        : !optionEvidenceComplete ? 'case-size-option-evidence-missing'
-        : scenario === 'compatible' && !mapping44Proven ? '44mm-option-not-proven'
-          : scenario === 'incompatible' && !specificInvalidRejectionProven ? 'invalid-value-rejection-not-proven'
-            : 'proven';
-    return Object.freeze({
-      verdict, evidenceState, caseFieldPresent: Boolean(field),
-      optionEvidenceComplete, optionCount: values?.length || 0,
-      technical44Offered: Boolean(technical44Offered),
-      ownerVerifiedPair44: Boolean(ownerVerifiedPair44),
-      visible44mmProven: exact44mmMatches === 1,
-      mapping44Proven, specificInvalidRejectionProven
-    });
-  }
-
-  // Wave J: the separate native drift simulation proves a missing saved FIELD,
-  // never that an unknown technical dropdown value is invalid.
-  // The synthetic key is not an observed Kleinanzeigen field removal.
-  const SYNTHETIC_REMOVED_FIELD_KEY = 'wearables.__kar134_removed_field_probe__';
-  const SYNTHETIC_REMOVED_FIELD_LABEL = 'KAR-134 Testmerkmal (synthetisch)';
-  function assessSyntheticRemovedField(observed, report, missingKey, missingLabel) {
-    const fields = Array.isArray(observed?.schema?.fields) ? observed.schema.fields : [];
-    const categoryConfirmed = observed?.categoryId === '405' && observed?.schema?.categoryId === '405';
-    const matches = fields.filter(field => field.key === 'attribute:wearables.case_size');
-    const caseField = matches.length === 1 ? matches[0] : null;
-    const keyAbsent = fields.every(field => field.key !== 'attribute:' + missingKey);
-    const exactIssue = 'Gespeichertes Merkmal „' + missingLabel +
-      '“ ist im neuen Formular nicht vorhanden.';
-    const specificMissingFieldRejectionProven = Boolean(
-      report?.complete === false && report?.comparison?.status === 'schema-changed' &&
-      (report?.issues || []).filter(issue => issue === exactIssue).length === 1);
-    const optionValues = Array.isArray(caseField?.optionValues) ? caseField.optionValues : null;
-    const verdict = Boolean(categoryConfirmed && caseField && keyAbsent &&
-      missingKey === SYNTHETIC_REMOVED_FIELD_KEY &&
-      missingLabel === SYNTHETIC_REMOVED_FIELD_LABEL &&
-      specificMissingFieldRejectionProven);
-    const evidenceState = !categoryConfirmed ? 'category-not-confirmed'
-      : !caseField ? 'case-size-field-missing'
-        : !keyAbsent ? 'synthetic-field-present'
-          : !specificMissingFieldRejectionProven ? 'specific-removed-field-rejection-not-proven'
-            : 'synthetic-removed-field-proven';
-    return Object.freeze({
-      verdict, evidenceState, caseFieldPresent: Boolean(caseField),
-      optionEvidenceComplete: Boolean(optionValues?.length),
-      optionCount: optionValues?.length || 0,
-      technical44Offered: Boolean(optionValues?.includes('44')),
-      ownerVerifiedPair44: false, visible44mmProven: false,
-      mapping44Proven: false, specificInvalidRejectionProven: false,
-      syntheticMissingFieldKeyAbsent: keyAbsent,
-      missingSavedFieldRejectionProven: verdict
-    });
-  }
-
   // KAR-134 K2 monitoring helpers: strictly read-only site structure only.
   // No listing titles, descriptions, account information, field values,
   // images, platform tokens or transient DOM IDs enter the stored snapshots.
@@ -525,7 +437,7 @@
   // fingerprint remains available until an explicit future review action.
   async function monitorSchemaStage(stage, snapshot, fillId, {
     storage = chrome.storage?.local, onWarning = registerSchemaMonitorWarning,
-    log = diagnostic, isolatedTest = false
+    log = diagnostic
   } = {}) {
     const hashFn = stage === 'base' ? SchemaCore.baseFingerprint
       : stage === 'category' ? SchemaCore.categoryFingerprint
@@ -539,10 +451,7 @@
       throw new Error('Kategorie für den Schema-Monitor nicht eindeutig');
     if (stage === 'category' && (!snapshot.leafConfirmed || !snapshot.observedPath))
       return { status: 'not-observed', currentFingerprint: null };
-    const namespace = isolatedTest
-      ? 'kr134:isolated-stage-monitor:v1:' + String(fillId) + ':'
-      : 'kr134:stage-monitor:v1:';
-    const key = namespace + stage + ':' +
+    const key = 'kr134:stage-monitor:v1:' + stage + ':' +
       (stage === 'base' ? String(snapshot.formMode || '') : categoryId);
     const notices = {
       base: 'Basisformular',
@@ -561,10 +470,6 @@
     };
     try {
       currentFingerprint = await hashFn(snapshot);
-      // A synthetic monitor MUST use the explicitly injected, ephemeral
-      // storage facade. chrome.storage.local cannot satisfy this contract.
-      if (isolatedTest && storage?.kind !== 'kr134-isolated-reference-store')
-        throw new Error('Isolierter Schema-Testspeicher fehlt.');
       if (!storage?.get || !storage?.set) throw new Error('Schema reference store unavailable');
       const loaded = await storage.get(key);
       const saved = loaded?.[key];
@@ -601,130 +506,6 @@
       notify(label + ': Schema-Referenz konnte nicht geprüft werden (Speicherzugriff fehlgeschlagen).');
       return audit('monitor-unavailable');
     }
-  }
-
-  // KAR-134 L3: A per-run, memory-only reference store. Its keys have a
-  // disjoint prefix and its get/set implementations cannot access extension
-  // storage. The synthetic "old" fields/parent level are TEST FIXTURES.
-  // All three real observations must be complete before creating this store.
-  async function createIsolatedStageReview(fillId, observed) {
-    const id = String(fillId || '');
-    if (!/^[A-Za-z0-9_-]{1,80}$/.test(id))
-      throw new Error('Isolierter Test benötigt eine eindeutige Vorgangs-ID.');
-    const { base, category, attributes } = observed || {};
-    if (!base || base.stage !== 'base' || base.formMode !== 'posting-create' ||
-        !Array.isArray(base.fields) || base.fields.length === 0 ||
-        !category || category.stage !== 'category' ||
-        category.leafConfirmed !== true || category.observedPath !== true ||
-        !Array.isArray(category.levels) || category.levels.length < 2 ||
-        category.levels.length >= 12 ||
-        !/^[1-9][0-9]*$/.test(String(category.categoryId || '')) ||
-        category.levels.at(-1)?.technicalId !== category.categoryId ||
-        !attributes || attributes.categoryId !== category.categoryId ||
-        !Array.isArray(attributes.fields) || !attributes.fields.some(field =>
-          field?.key?.startsWith('attribute:')))
-      throw new Error('F1/F2/F3 sind für einen isolierten Test nicht vollständig erfasst.');
-    const baseProbe = 'field:kr134_synthetic_previous_base_field';
-    const attrProbe = 'attribute:kr134.synthetic_previous_attribute';
-    if (base.fields.some(field => field.key === baseProbe) ||
-        attributes.fields.some(field => field.key === attrProbe))
-      throw new Error('Kollision mit synthetischem Testschema.');
-    // Only technical structure, never real ad content, is copied or hashed.
-    const clone = value => JSON.parse(JSON.stringify(value));
-    const current = { base: clone(base), category: clone(category), attributes: clone(attributes) };
-    const prior = {
-      base: { ...clone(base), fields: [...clone(base.fields), {
-        key: baseProbe, kind: 'text', requiredState: 'unknown', optionValues: null
-      }] },
-      category: SchemaCore.buildCategorySchema({
-        categoryId: category.categoryId, leafConfirmed: true, observedPath: true,
-        levels: [{ label: 'KAR-134 TEST: zusätzliche frühere Ebene',
-          technicalId: null, kind: 'branch' },
-          ...clone(category.levels)]
-      }),
-      attributes: { ...clone(attributes), fields: [...clone(attributes.fields), {
-        key: attrProbe, kind: 'text', requiredState: 'unknown', optionValues: null
-      }] }
-    };
-    const namespace = 'kr134:isolated-stage-monitor:v1:' + id + ':';
-    const keyOf = (stage, snapshot) => namespace + stage + ':' +
-      (stage === 'base' ? snapshot.formMode : snapshot.categoryId);
-    const keys = Object.fromEntries(['base','category','attributes'].map(stage =>
-      [stage, keyOf(stage, current[stage])]));
-    const data = new Map();
-    let referenceWrites = 0, decision = 'pending';
-    const storage = Object.freeze({
-      kind: 'kr134-isolated-reference-store',
-      async get(key) {
-        if (!Object.values(keys).includes(key)) throw new Error('Testreferenz außerhalb des isolierten Bereichs.');
-        return { [key]: data.has(key) ? clone(data.get(key)) : undefined };
-      },
-      async set(values) {
-        const entries = Object.entries(values || {});
-        if (!entries.length || entries.some(([key]) => !Object.values(keys).includes(key)))
-          throw new Error('Ungültige Referenz im isolierten Testspeicher.');
-        for (const [key,value] of entries) data.set(key,clone(value));
-        referenceWrites += entries.length;
-      }
-    });
-    const hash = { base: SchemaCore.baseFingerprint,
-      category: SchemaCore.categoryFingerprint, attributes: SchemaCore.fingerprint };
-    const baseline = {};
-    for (const stage of Object.keys(keys)) {
-      const fingerprint = await hash[stage](prior[stage]);
-      baseline[keys[stage]] = { schemaVersion: 1, snapshot: prior[stage], fingerprint };
-    }
-    await storage.set(baseline);
-    const compare = async () => {
-      const results = {};
-      for (const stage of Object.keys(keys))
-        results[stage] = await monitorSchemaStage(stage, current[stage], id, {
-          storage, isolatedTest: true,
-          onWarning: () => {}, log: () => Promise.resolve()
-        });
-      return results;
-    };
-    const results = await compare();
-    if (Object.values(results).some(result => result.status !== 'changed'))
-      throw new Error('Synthetische Strukturänderung konnte nicht vollständig nachgewiesen werden.');
-    const state = () => ({
-      namespace, referenceWrites, decision,
-      accepted: decision === 'approved', realReferenceReads: 0, realReferenceWrites: 0
-    });
-    return Object.freeze({
-      observed: current, results, state,
-      defer() {
-        if (decision !== 'pending') throw new Error('Testentscheidung bereits abgeschlossen.');
-        decision = 'deferred';
-        return state();
-      },
-      async approve({ confirmed = false } = {}) {
-        if (confirmed !== true) throw new Error('Explizite Test-Bestätigung fehlt.');
-        if (decision !== 'pending') throw new Error('Testentscheidung bereits abgeschlossen.');
-        // Validate all three stored fixtures before any isolated adoption.
-        const accepted = {};
-        for (const stage of Object.keys(keys)) {
-          const saved = (await storage.get(keys[stage]))[keys[stage]];
-          if (!saved || saved.schemaVersion !== 1 ||
-              saved.fingerprint !== baseline[keys[stage]].fingerprint ||
-              await hash[stage](saved.snapshot) !== saved.fingerprint ||
-              await hash[stage](current[stage]) === saved.fingerprint)
-            throw new Error('Testreferenz ist ungültig oder bereits angenommen.');
-          accepted[keys[stage]] = {
-            schemaVersion: 1, snapshot: current[stage],
-            fingerprint: await hash[stage](current[stage])
-          };
-        }
-        await storage.set(accepted); // in-memory atomic three-reference update
-        const checked = await compare();
-        if (checked.base.status !== 'unchanged' ||
-            !['unchanged','not-fully-verified'].includes(checked.category.status) ||
-            checked.attributes.status !== 'unchanged')
-          throw new Error('Isolierte Referenzübernahme konnte nicht erneut verifiziert werden.');
-        decision = 'approved';
-        return { accepted: true, results: checked, ...state() };
-      }
-    });
   }
 
   // KAR-134 L4 real reference adoption: conservative F3-only eligibility.
@@ -785,7 +566,7 @@
 
   // KAR-134 L2 change review. Only normalized structural diff data enters
   // this view. Acknowledgement explicitly is NOT reference acceptance.
-  function buildStageChangeReview(results = {}, { categoryEvidence = null, simulationOnly = false } = {}) {
+  function buildStageChangeReview(results = {}, { categoryEvidence = null } = {}) {
     const order = [
       ['base', 'F1 – Basisformular'],
       ['category', 'F2 – Kategoriehierarchie'],
@@ -866,17 +647,13 @@
     return {
       hasProvenChange: sections.some(section => section.verified),
       hasUncertainty: sections.some(section => section.uncertain),
-      simulationOnly,
       sections,
-      safetyText: simulationOnly
-        ? 'NUR TEST / SIMULATION: Alle Änderungen stammen aus künstlichen Referenzen im isolierten Testspeicher. Produktive Fingerprints und Anzeigen bleiben unverändert.'
-        : 'Dies ist nur eine Bestätigung, dass du die Unterschiede gesehen hast. Gespeicherte Referenzen werden nicht verändert oder übernommen. Es wird nichts veröffentlicht.'
+      safetyText: 'Dies ist nur eine Bestätigung, dass du die Unterschiede gesehen hast. Gespeicherte Referenzen werden nicht verändert oder übernommen. Es wird nichts veröffentlicht.'
     };
   }
 
   function showStageChangeReviewDialog(review, {
     documentRoot = document, onAcknowledge = () => {}, onDefer = () => {},
-    simulationOnly = false, onTestApprove = null,
     realAdoptionPlan = null, onRealApprove = null
   } = {}) {
     if (!review?.hasProvenChange) return null;
@@ -891,12 +668,10 @@
     dialog.style.cssText = 'width:min(620px,100%);max-height:90vh;overflow:auto;background:#141b1e;color:#f0f6f5;border:1px solid #536267;border-radius:12px;padding:20px;font:14px/1.5 system-ui,sans-serif;box-shadow:0 16px 52px #0009';
     const title = documentRoot.createElement('h2');
     title.id = 'kr134-change-review-title';
-    title.textContent = simulationOnly ? 'TEST – Künstliche Strukturänderungen' : 'Änderungen an der Formularstruktur';
+    title.textContent = 'Änderungen an der Formularstruktur';
     title.style.cssText = 'font-size:19px;margin:0 0 8px';
     const intro = documentRoot.createElement('p');
-    intro.textContent = simulationOnly
-      ? 'Diese Unterschiede sind synthetisch. Kleinanzeigen wurde nicht verändert. Alle Freigaben wirken ausschließlich im temporären Testspeicher.'
-      : 'Kleinanzeigen hat mindestens eine technische Strukturänderung bestätigt. Bitte prüfe die folgenden Unterschiede.';
+    intro.textContent = 'Kleinanzeigen hat mindestens eine technische Strukturänderung bestätigt. Bitte prüfe die folgenden Unterschiede.';
     dialog.append(title,intro);
     for (const section of review.sections) {
       const group = documentRoot.createElement('section');
@@ -938,7 +713,7 @@
     defer.addEventListener('click',()=>{overlay.remove();onDefer();});
     acknowledge.addEventListener('click',()=>{overlay.remove();onAcknowledge();});
     controls.append(defer,acknowledge);
-    if (!simulationOnly && realAdoptionPlan?.eligible === true &&
+    if (realAdoptionPlan?.eligible === true &&
         typeof onRealApprove === 'function') {
       const real = documentRoot.createElement('button');
       real.type = 'button';
@@ -961,123 +736,13 @@
       });
       controls.append(real);
     }
-    if (simulationOnly && typeof onTestApprove === 'function') {
-      const approve = documentRoot.createElement('button');
-      approve.type = 'button';
-      approve.textContent = 'Testreferenzen übernehmen (nur Testspeicher)';
-      approve.style.cssText='padding:9px 12px;border:1px solid #77e8ca;border-radius:7px;background:#1e5447;color:white;cursor:pointer';
-      approve.addEventListener('click',()=>{overlay.remove();void onTestApprove();});
-      controls.append(approve);
-    }
     dialog.append(safety,controls);
     overlay.append(dialog);
     documentRoot.documentElement.append(overlay);
     return overlay;
   }
 
-  // KAR-134 K3 synthetic fingerprint warning proof. This PURE read-only
-  // policy compares a fictional historical structure to three independently
-  // observed live stages. It never reads or overwrites persisted fingerprints.
-  // Synthetic ancestor names/fields are TEST FIXTURES, not platform evidence.
-  async function assessSyntheticStageDrift({ base, category, attributes } = {}) {
-    const failure = evidenceState => ({
-      verdict: false, simulationOnly: true, referenceWrites: 0,
-      evidenceState, stages: {}
-    });
-    if (!base || base.stage !== 'base' || base.formMode !== 'posting-create' ||
-        base.categoryChooser === 'missing' || !Array.isArray(base.fields) ||
-        base.fields.length === 0)
-      return failure('base-form-not-observed');
-    if (!category || category.stage !== 'category' || category.categoryId !== '405' ||
-        category.leafConfirmed !== true || category.observedPath !== true ||
-        !Array.isArray(category.levels) || category.levels.length < 2 ||
-        category.levels.length >= 12 ||
-        category.levels.at(-1)?.technicalId !== '405')
-      return failure('category-navigation-not-proven');
-    if (!attributes || attributes.categoryId !== '405' ||
-        !Array.isArray(attributes.fields) ||
-        !attributes.fields.some(field => field?.key?.startsWith('attribute:')))
-      return failure('category-attributes-not-observed');
-
-    const baseProbeKey = 'field:kr134_synthetic_previous_base_field';
-    const attributeProbeKey = 'attribute:kr134.synthetic_previous_attribute';
-    if (base.fields.some(field => field.key === baseProbeKey) ||
-        attributes.fields.some(field => field.key === attributeProbeKey))
-      return failure('synthetic-probe-collides-with-live-schema');
-
-    const syntheticBase = {
-      ...base,
-      fields: [...base.fields, {
-        key: baseProbeKey, kind: 'text', requiredState: 'unknown', optionValues: null
-      }]
-    };
-    const syntheticCategory = SchemaCore.buildCategorySchema({
-      categoryId: '405', observedPath: true, leafConfirmed: true,
-      levels: [
-        { label: 'KAR-134 synthetische frühere Oberkategorie',
-          technicalId: null, kind: 'branch' },
-        ...category.levels.map(level => ({
-          label: level.label, technicalId: level.technicalId, kind: level.kind
-        }))
-      ]
-    });
-    const syntheticAttributes = {
-      ...attributes,
-      fields: [...attributes.fields, {
-        key: attributeProbeKey, kind: 'text', requiredState: 'unknown', optionValues: null
-      }]
-    };
-    const input = {
-      base: {
-        prior: syntheticBase, current: base,
-        fingerprint: SchemaCore.baseFingerprint,
-        compare: SchemaCore.diffBaseSchemas,
-        expectedStatus: 'base-changed', expectedType: 'field-removed',
-        warningText: 'TEST / SIMULATION – Basisformular: Eine veränderte Formularstruktur wurde nachgewiesen. Kleinanzeigen hat sich für diesen Test nicht geändert.'
-      },
-      category: {
-        prior: syntheticCategory, current: category,
-        fingerprint: SchemaCore.categoryFingerprint,
-        compare: SchemaCore.diffCategorySchemas,
-        expectedStatus: 'category-changed', expectedType: 'category-depth-changed',
-        warningText: 'TEST / SIMULATION – Kategoriehierarchie: Eine geänderte Pfadtiefe wurde erkannt. Es wurde keine echte Kategorie verändert.'
-      },
-      attributes: {
-        prior: syntheticAttributes, current: attributes,
-        fingerprint: SchemaCore.fingerprint,
-        compare: SchemaCore.diff,
-        expectedStatus: 'schema-changed', expectedType: 'field-removed',
-        warningText: 'TEST / SIMULATION – Kategorieformular: Ein synthetisch entferntes Merkmal wurde erkannt. Dies ist kein echter Kleinanzeigen-Feldverlust.'
-      }
-    };
-    const stages = {};
-    for (const [stage, spec] of Object.entries(input)) {
-      const previousFingerprint = await spec.fingerprint(spec.prior);
-      const currentFingerprint = await spec.fingerprint(spec.current);
-      const comparison = spec.compare(spec.prior, spec.current);
-      const changeTypes = (comparison.changes || []).map(change => change.type);
-      const verdict = previousFingerprint !== currentFingerprint &&
-        comparison.status === spec.expectedStatus &&
-        changeTypes.includes(spec.expectedType);
-      stages[stage] = {
-        stage, verdict, simulationOnly: true, warningText: spec.warningText,
-        previousFingerprint, currentFingerprint, changeTypes,
-        ...(stage === 'category' ? {
-          categoryId: '405', previousLeafId: spec.prior.categoryId,
-          currentLeafId: spec.current.categoryId,
-          verifiedAncestorIdsInvented: false
-        } : {})
-      };
-    }
-    const verdict = Object.values(stages).every(stage => stage.verdict === true);
-    return { verdict, simulationOnly: true, referenceWrites: 0,
-      evidenceState: verdict ? 'synthetic-stage-drift-proven' : 'synthetic-stage-drift-not-proven',
-      stages };
-  }
-
-  // KAR-134 L1 independent category-check verdict. "Checked" confirms that
-  // each stage was observed and compared; it is NOT a claim of equal schemas,
-  // complete intermediate category IDs or permission to publish.
+  // Production category checks require genuine live structural evidence.
   function assessIndependentCategoryCheck(categoryId, observed, results) {
     const id = String(categoryId ?? '').trim();
     const order = ['base', 'category', 'attributes'];
@@ -1114,32 +779,26 @@
     };
   }
 
-  // KAR-134 field-only native simulation. No listing content, image upload,
-  // wizard continuation, submit or source mutation is permitted in this path.
+  // Production read-only category schema check. No saved listing fields,
+  // image upload, wizard continuation, publish or source retirement.
   async function runReadOnlySchemaTest(session) {
     const scenario = session.schemaTestScenario;
     const expectedCategoryId = String(session.template?.categoryId ?? '').trim();
-    const isolatedReviewTest = scenario === 'isolated-review';
-    const independentCategoryCheck = scenario === 'category-check' || isolatedReviewTest;
     // Generic category checks may inspect only bounded Art/Typ categorization
     // hints. They are saved values, so the diagnostic must report this read.
     // No title, price, description, other attributes, or images are copied.
-    const categoryHintRead = independentCategoryCheck &&
-      Array.isArray(session.template?.categoryNavigationHints) &&
+    const categoryHintRead = Array.isArray(session.template?.categoryNavigationHints) &&
       session.template.categoryNavigationHints.length > 0;
-    if (!['compatible', 'incompatible', 'stage-drift', 'category-check', 'isolated-review'].includes(scenario) ||
+    if (scenario !== 'category-check' ||
         !/^[1-9][0-9]*$/.test(expectedCategoryId) ||
-        (!independentCategoryCheck && expectedCategoryId !== '405') ||
         !SchemaCore || !SchemaPreflight)
       throw new Error('Schema-Prüfmodus ist nicht verfügbar oder die Kategorie stimmt nicht.');
     const fillId = session.fillId;
-    updatePanel(independentCategoryCheck ? 'Kategorieprüfung (nur Lesen)' : 'Schema-Prüfmodus (nur Lesen)',
+    updatePanel('Kategorieprüfung (nur Lesen)',
       'Kategorie ' + expectedCategoryId + ' wird für den Strukturvergleich vorbereitet. Es werden keine Anzeigenwerte eingetragen und keine Anzeigen veröffentlicht.', [],
       { safetyText: 'NUR FORMULARPRÜFUNG – keine Anzeigenwerte, kein Bild-Upload und keine Veröffentlichung.' });
     await runtimeMessage({ type: 'UPDATE_TEMPLATE_FILL_SESSION', fillId, status: 'running', stage: 'schema-test-category' });
     const preCategoryForm = await waitFor(() => resolveActivePostingForm(), { description: 'Aktives Schema-Basisformular' });
-    const syntheticStageDrift = scenario === 'stage-drift';
-    const syntheticOnly = syntheticStageDrift || isolatedReviewTest;
     let observedBaseSchema = null;
     let observedCategorySchema = null;
     let observedAttributeSchema = null;
@@ -1147,8 +806,7 @@
     const baseObservation = captureCategoryNeutralForm(preCategoryForm);
     if (baseObservation.status === 'observed') {
       observedBaseSchema = baseObservation.schema;
-      if (!syntheticOnly)
-        baseStageResult = await monitorSchemaStage('base', baseObservation.schema, fillId);
+      baseStageResult = await monitorSchemaStage('base', baseObservation.schema, fillId);
     } else void diagnostic(fillId, 'KAR134_STAGE_MONITOR_SKIPPED',
       { stage: 'base', reason: baseObservation.status });
     stagedCategoryPathEvidence = null;
@@ -1159,7 +817,6 @@
       registerSchemaMonitorWarning('Kategoriehierarchie: Der bisherige Kategoriepfad konnte nicht bestätigt werden. Die Merkmalsprüfung wurde nicht erreicht.');
       void diagnostic(fillId, 'KAR134_STAGE_MONITOR_SKIPPED',
         { stage: 'category', reason: 'category-selection-failed', message: String(error?.message || error).slice(0, 200) }, 'warning');
-      if (!independentCategoryCheck) throw error;
       const issues = ['Die Kategorieauswahl konnte nicht eindeutig bestätigt werden. Die Kategorieprüfung ist unvollständig.'];
       void diagnostic(fillId, 'KAR134_CATEGORY_CHECK_RESULT', {
         categoryId: expectedCategoryId, verdict: false, reason: 'category-selection-failed',
@@ -1177,132 +834,17 @@
     if (categoryState?.pendingNavigation) return { pending: true, schemaTest: true };
     if (stagedCategoryPathEvidence) {
       observedCategorySchema = SchemaCore.buildCategorySchema(stagedCategoryPathEvidence);
-      if (!syntheticOnly)
-        categoryStageResult = await monitorSchemaStage('category', observedCategorySchema, fillId);
+      categoryStageResult = await monitorSchemaStage('category', observedCategorySchema, fillId);
     } else void diagnostic(fillId, 'KAR134_STAGE_MONITOR_SKIPPED',
       { stage: 'category', reason: 'no-independent-navigation-evidence' });
-    const live = await SchemaPreflight.afterHydration({ categoryId: expectedCategoryId, dynamicAttributes: [] },
-      { probeReadOnlyCaseSize: scenario === 'compatible' });
+    const live = await SchemaPreflight.afterHydration({ categoryId: expectedCategoryId, dynamicAttributes: [] });
     if (live.categoryId !== expectedCategoryId)
       throw new Error('Aktuelle Kategorie stimmt nicht mit der ausgewählten Inventarkategorie überein.');
     if (live.dynamicCount > 0) {
       observedAttributeSchema = live.schema;
-      if (!syntheticOnly)
-        attributeStageResult = await monitorSchemaStage('attributes', live.schema, fillId);
+      attributeStageResult = await monitorSchemaStage('attributes', live.schema, fillId);
     } else void diagnostic(fillId, 'KAR134_STAGE_MONITOR_SKIPPED',
       { stage: 'attributes', reason: 'no-dynamic-field-evidence' });
-
-    if (isolatedReviewTest) {
-      // Only the three actual *structural observations* are read. All
-      // synthetic history and any approval remain in a per-tab in-memory Map.
-      // No production reference get/set is executed in this scenario.
-      let isolated = null;
-      let review = null;
-      try {
-        isolated = await createIsolatedStageReview(fillId, {
-          base: observedBaseSchema, category: observedCategorySchema,
-          attributes: observedAttributeSchema
-        });
-        review = buildStageChangeReview(isolated.results, {
-          categoryEvidence: observedCategorySchema?.evidence || null,
-          simulationOnly: true
-        });
-        if (!review.hasProvenChange || review.sections.some(section => section.status !== 'changed'))
-          throw new Error('Künstliche F1/F2/F3-Strukturunterschiede wurden nicht bestätigt.');
-      } catch (error) {
-        const issues = ['Isolierter Strukturtest nicht vollständig: ' + String(error?.message || error).slice(0, 180)];
-        void diagnostic(fillId, 'KAR134_ISOLATED_REVIEW_BLOCKED', {
-          scenario, simulationOnly: true, categoryId: expectedCategoryId,
-          evidenceState: 'incomplete', realReferenceReads: 0, realReferenceWrites: 0,
-          remotePublishAttempted: false
-        }, 'warning');
-        await runtimeMessage({ type:'UPDATE_TEMPLATE_FILL_SESSION', fillId,
-          status:'needs-review', stage:'schema-test-isolated-incomplete',
-          result:{complete:false,issues} });
-        updatePanel('TEST – Änderungsdialog nicht verfügbar', issues[0],issues,{
-          safetyText:'NUR SIMULATION – keine produktive Referenz verändert, keine Veröffentlichung.'
-        });
-        return { schemaTest:true,scenario,verdict:false,simulationOnly:true,
-          referenceApproved:false,publishTriggered:false,issues };
-      }
-      void diagnostic(fillId, 'KAR134_ISOLATED_REVIEW_STARTED', {
-        scenario, simulationOnly: true, categoryId: expectedCategoryId,
-        stageStatuses: review.sections.map(section => section.status),
-        sandboxReferenceWrites: isolated.state().referenceWrites,
-        realReferenceReads: 0, realReferenceWrites: 0,
-        remotePublishAttempted: false, referenceApproved: false
-      });
-      // This remains needs-review after any sandbox-only choice; a test
-      // acceptance NEVER becomes production schema authorization.
-      const issues=['TEST: Künstliche Strukturänderungen in F1, F2 und F3. Nur der isolierte Testspeicher kann geändert werden.'];
-      await runtimeMessage({ type:'UPDATE_TEMPLATE_FILL_SESSION', fillId,
-        status:'needs-review', stage:'schema-test-isolated-review',
-        result:{complete:false,issues} });
-      updatePanel('TEST – Künstliche Änderungen erkannt',
-        'Kategorie ' + expectedCategoryId + ': F1, F2 und F3 wurden ausschließlich gegen synthetische Referenzen verglichen. Der Änderungsdialog zeigt die Testunterschiede.',
-        issues,{safetyText:'NUR SIMULATION – echte Fingerprints unverändert, keine Anzeige veröffentlicht.'});
-      showStageChangeReviewDialog(review,{
-        simulationOnly: true,
-        onDefer: () => {
-          try {
-            const state = isolated.defer();
-            void diagnostic(fillId,'KAR134_ISOLATED_REVIEW_DEFERRED',{
-              categoryId:expectedCategoryId,simulationOnly:true,
-              sandboxReferenceWrites:state.referenceWrites,referenceApproved:false,
-              realReferenceWrites:0,remotePublishAttempted:false
-            });
-            updatePanel('TEST – Referenzübernahme abgelehnt',
-              'Die synthetischen Referenzen bleiben unverändert im Testspeicher.',
-              [],{safetyText:'Echte Fingerprints unverändert, keine Veröffentlichung.'});
-          } catch(error) {
-            void diagnostic(fillId,'KAR134_ISOLATED_REVIEW_BLOCKED',{
-              categoryId:expectedCategoryId,simulationOnly:true,
-              reason:'defer-failed',realReferenceWrites:0
-            },'warning');
-          }
-        },
-        onAcknowledge: () => {
-          // Acknowledgement is distinct from approval, including in tests.
-          void diagnostic(fillId,'KAR134_ISOLATED_REVIEW_ACKNOWLEDGED',{
-            categoryId:expectedCategoryId,simulationOnly:true,
-            sandboxReferenceWrites:isolated.state().referenceWrites,
-            referenceApproved:false,realReferenceWrites:0,remotePublishAttempted:false
-          });
-          updatePanel('TEST – Änderungen zur Kenntnis genommen',
-            'Die künstlichen Fingerprints wurden NICHT übernommen.',
-            [],{safetyText:'Echte Fingerprints unverändert, keine Veröffentlichung.'});
-        },
-        onTestApprove: () => {
-          void (async()=>{
-            try {
-              const adopted = await isolated.approve({confirmed:true});
-              void diagnostic(fillId,'KAR134_ISOLATED_REVIEW_ACCEPTED',{
-                categoryId:expectedCategoryId,simulationOnly:true,
-                referenceApproved:false,testReferenceAccepted:adopted.accepted,
-                sandboxReferenceWrites:adopted.referenceWrites,
-                repeatedStageStatuses:['base','category','attributes'].map(stage => adopted.results[stage].status),
-                realReferenceWrites:0,remotePublishAttempted:false
-              });
-              updatePanel('TEST – Übernahme nur im Testspeicher erfolgreich',
-                'F1 und F3 wurden im isolierten Speicher erneut als unverändert bestätigt. F2 bleibt bei fehlenden technischen Eltern-IDs teilweise verifiziert. Produktive Fingerprints wurden nicht verändert.',
-                [],{safetyText:'NUR SIMULATION – keine echte Referenzübernahme und keine Veröffentlichung.'});
-            }catch(error){
-              void diagnostic(fillId,'KAR134_ISOLATED_REVIEW_BLOCKED',{
-                categoryId:expectedCategoryId,simulationOnly:true,
-                reason:'test-acceptance-not-verified',realReferenceWrites:0
-              },'warning');
-              updatePanel('TEST – Übernahme nicht bestätigt',
-                'Die isolierte Testübernahme konnte nicht sicher verifiziert werden.',
-                [String(error?.message || error).slice(0,180)],{
-                  safetyText:'Echte Fingerprints unverändert, keine Veröffentlichung.'
-                });
-            }
-          })();
-        }
-      });
-      return { schemaTest:true,scenario,verdict:true,simulationOnly:true,
-        referenceApproved:false,reviewRequired:true,publishTriggered:false,issues };
-    }
 
     if (scenario === 'category-check') {
       // Generic category monitoring: read only the live structure; DO NOT
@@ -1365,7 +907,7 @@
       );
       if (reviewRequired) {
         // Real reference approval is separate from mere acknowledgement and
-        // from the synthetic sandbox. It is offered ONLY for a proven F3-only
+        // from a simulated test. It is offered ONLY for a proven F3-only
         // structural change while F1 and F2 fingerprints remain stable.
         const candidate = buildRealSchemaAdoptionPlan({
           base: baseStageResult, category: categoryStageResult,
@@ -1425,7 +967,7 @@
                   throw new Error('Die aktuelle Endkategorie ist nicht mehr eindeutig bestätigt.');
                 const refreshed = await SchemaPreflight.afterHydration({
                   categoryId: expectedCategoryId, dynamicAttributes: []
-                }, { probeReadOnlyCaseSize: false });
+                });
                 if (refreshed.categoryId !== expectedCategoryId || refreshed.dynamicCount < 1 ||
                     await SchemaCore.fingerprint(refreshed.schema) !== realAdoptionPlan.newFingerprint)
                   throw new Error('Die aktuelle Merkmalsstruktur weicht von der geprüften Änderung ab.');
@@ -1484,143 +1026,7 @@
         reviewRequired, referenceApproved: false,
         publishTriggered: false, issues };
     }
-    if (syntheticStageDrift) {
-      // IMPORTANT: no monitorSchemaStage() calls in this scenario. Existing
-      // chrome.storage.local baselines are never read, replaced, or created.
-      const proof = await assessSyntheticStageDrift({
-        base: observedBaseSchema,
-        category: observedCategorySchema,
-        attributes: live.dynamicCount > 0 ? live.schema : null
-      });
-      const stages = Object.values(proof.stages);
-      if (proof.verdict) {
-        for (const stage of stages) registerSchemaMonitorWarning(stage.warningText);
-      }
-      void diagnostic(fillId, 'KAR134_STAGE_DRIFT_TEST_RESULT', {
-        scenario, verdict: proof.verdict,
-        evidenceState: proof.evidenceState,
-        simulationOnly: true, referenceWrites: 0,
-        remotePublishAttempted: false, archivedValuesRead: false,
-        stageResults: stages.map(stage => ({
-          stage: stage.stage, verdict: stage.verdict,
-          previousFingerprint: stage.previousFingerprint,
-          currentFingerprint: stage.currentFingerprint,
-          changeTypes: stage.changeTypes,
-          ...(stage.stage === 'category' ? {
-            categoryId: stage.categoryId,
-            previousLeafId: stage.previousLeafId,
-            currentLeafId: stage.currentLeafId,
-            verifiedAncestorIdsInvented: stage.verifiedAncestorIdsInvented
-          } : {})
-        }))
-      }, proof.verdict ? 'info' : 'warning');
-      const issues = proof.verdict ? [] : [
-        'Nicht alle drei Fingerprint-Phasen konnten mit echten Formulardaten geprüft werden. Der Simulationstest ist nicht bestanden.'
-      ];
-      await runtimeMessage({
-        type: 'UPDATE_TEMPLATE_FILL_SESSION', fillId,
-        status: proof.verdict ? 'complete' : 'needs-review',
-        stage: proof.verdict ? 'schema-test-stage-drift' : 'schema-test-unexpected',
-        result: { complete: proof.verdict, issues }
-      });
-      updatePanel(
-        proof.verdict ? 'Fingerprint-Warnung: Simulation bestanden' : 'Fingerprint-Warnung: Simulation nicht bestätigt',
-        proof.verdict
-          ? 'F1, F2 und F3 haben jeweils eine synthetische Strukturänderung erkannt. Die gelben TEST-Hinweise zeigen die Warnungen. Die echten Fingerprint-Referenzen blieben unverändert.'
-          : 'Die drei Strukturänderungen konnten nicht vollständig nachgewiesen werden. Bitte die Diagnose prüfen.',
-        issues,
-        { safetyText: 'NUR SIMULATION – keine Referenz geändert, keine Anzeigenwerte gelesen, keine Anzeige veröffentlicht.' }
-      );
-      return {
-        schemaTest: true, scenario, verdict: proof.verdict,
-        publishTriggered: false, issues
-      };
-    }
-    const caseField = live.schema.fields.find(field => field.key === 'attribute:wearables.case_size');
-    const focused = {
-      ...live,
-      schema: { ...live.schema, fields: caseField ? [caseField] : [] }
-    };
-    // Two distinct synthetic tests: owner-proven case-size mapping (positive)
-    // and a saved field absent from the COMPLETE current schema (negative).
-    // Neither reads archived values or claims an actual Kleinanzeigen field deletion.
-    const savedKey = scenario === 'compatible' ? 'wearables.gehausegrosse'
-      : SYNTHETIC_REMOVED_FIELD_KEY;
-    const savedLabel = scenario === 'compatible' ? 'Gehäusegröße (synthetischer Test)'
-      : SYNTHETIC_REMOVED_FIELD_LABEL;
-    const snapshot = SchemaCore.buildSchema({ categoryId: '405', dynamicAttributes: [
-      { key: savedKey, controlType: scenario === 'compatible' ? 'number' : 'text',
-        requiredState: 'unknown' }
-    ] });
-    const fingerprint = await SchemaCore.fingerprint(snapshot);
-    const simulated = {
-      categoryId: '405',
-      templateSchema: { snapshot, fingerprint },
-      dynamicAttributes: [{
-        key: savedKey, label: savedLabel,
-        technicalValue: scenario === 'compatible' ? '44' : '__KAR134_SYNTHETIC_SAVED_VALUE__',
-        displayValue: scenario === 'compatible' ? '44mm' : 'Synthetisch gespeicherter Wert',
-        status: 'captured'
-      }]
-    };
-    const testedLive = scenario === 'compatible' ? focused : live;
-    const report = await SchemaPreflight.evaluate(simulated, testedLive);
-    const assessment = scenario === 'compatible'
-      ? assessSyntheticCaseSize('compatible', focused, report, null)
-      : assessSyntheticRemovedField(live, report, savedKey, savedLabel);
-    const { verdict } = assessment;
-    const issues = verdict ? [] : [
-      ...report.issues,
-      scenario === 'compatible'
-        ? 'Die nachgewiesene Zuordnung 44 / 44mm konnte nicht bestätigt werden.'
-        : 'Der Sicherheitsstopp für das fehlende synthetische Testmerkmal wurde nicht eindeutig nachgewiesen.'
-    ];
-    const actualFullFingerprint = await SchemaCore.fingerprint(live.schema);
-    void diagnostic(fillId, 'KAR134_SCHEMA_TEST_RESULT', {
-      scenario, verdict, mode: 'read-only',
-      scope: scenario === 'compatible' ? 'category-405-case-size-only' : 'category-405-synthetic-removed-field',
-      remotePublishAttempted: false, archivedValuesRead: false,
-      syntheticOldFingerprint: fingerprint, actualFullFingerprint,
-      focusedCurrentFingerprint: report.currentFingerprint,
-      testedCurrentFingerprint: report.currentFingerprint,
-      detectedChangeTypes: (report.comparison?.changes || []).map(item => item.type).slice(0, 30),
-      issueCount: report.issues.length, mappedCaseSize44mm: assessment.mapping44Proven,
-      caseSizeFieldPresent: assessment.caseFieldPresent,
-      caseSizeOptionEvidenceComplete: assessment.optionEvidenceComplete,
-      caseSizeOptionCount: assessment.optionCount,
-      technical44Offered: assessment.technical44Offered,
-      ownerVerifiedPair44: assessment.ownerVerifiedPair44,
-      ownerVerifiedPairCount: live.optionProbe?.ownerVerifiedPairCount || 0,
-      visible44mmProven: assessment.visible44mmProven,
-      invalidValueRejectionProven: assessment.specificInvalidRejectionProven,
-      missingSavedFieldRejectionProven: assessment.missingSavedFieldRejectionProven === true,
-      syntheticMissingFieldKeyAbsent: assessment.syntheticMissingFieldKeyAbsent === true,
-      evidenceState: assessment.evidenceState,
-      popupProbeAttempted: live.optionProbe?.attempted === true,
-      popupProbeFound: live.optionProbe?.popupFound === true,
-      popupRenderedOptions: live.optionProbe?.renderedOptionCount || 0,
-      popupExplicitTechnicalOptions: live.optionProbe?.explicitTechnicalOptionCount || 0,
-      popupEvidenceReason: live.optionProbe?.reason || 'none'
-    }, verdict ? 'info' : 'warning');
-    await runtimeMessage({
-      type: 'UPDATE_TEMPLATE_FILL_SESSION', fillId,
-      status: verdict ? 'complete' : 'needs-review',
-      stage: verdict ? 'schema-test-' + scenario : 'schema-test-unexpected',
-      result: { complete: verdict, issues: issues.slice(0, 50) }
-    });
-    updatePanel(
-      verdict ? 'Schema-Prüfmodus: Test bestanden' : 'Schema-Prüfmodus: Prüfung fehlgeschlagen',
-      scenario === 'compatible'
-        ? (verdict
-          ? 'Die manuell nachgewiesene Zuordnung 44mm / 44 ist im aktuellen Auswahlfeld eindeutig sichtbar. Eine Veröffentlichung wurde nicht durchgeführt.'
-          : 'Die aktuelle Auswahl 44 / 44mm konnte nicht nachgewiesen werden.')
-        : (verdict
-          ? 'Ein simuliertes gespeichertes Merkmal fehlt nachweislich im aktuellen Formular. Der Sicherheitsstopp wurde bestätigt. Dies ist kein Nachweis einer echten Kleinanzeigen-Formularänderung.'
-          : 'Der Sicherheitsstopp für das simulierte entfernte Merkmal konnte nicht belegt werden.'),
-      verdict ? [] : issues,
-      { safetyText: 'TEST ABGESCHLOSSEN – keine Werte übertragen, keine Bilder hochgeladen, keine Anzeige veröffentlicht. Dies ist nur eine Feldsimulation, keine vollständige Abnahme.' }
-    );
-    return { schemaTest: true, scenario, verdict, publishTriggered: false, issues };
+    throw new Error('Unbekannter Kategorieprüfmodus.');
   }
 
   async function runFillSession(session) {
@@ -1807,6 +1213,8 @@
     try {
       // Test mode runs before all filling, continuation and publication branches.
       if (session.schemaTestScenario) {
+        if (session.schemaTestScenario !== 'category-check')
+          throw new Error('Veralteter Schema-Testvorgang kann nicht ausgeführt werden.');
         if (kind === 'category') return await runLegacyCategorySelection(session);
         if (kind !== 'target') throw new Error('Schema-Test: unerwartete Formularseite.');
         return await runReadOnlySchemaTest(session);
