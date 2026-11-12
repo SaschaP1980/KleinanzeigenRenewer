@@ -219,14 +219,14 @@ async function finalizeLostTrashTemplateSupersede(snapshot, replacementFillId) {
 
 async function startTrashTemplateFillUnlocked(inventoryId) {
   const schemaTestScenario = arguments[1]?.schemaTestScenario ?? null;
-  const isSchemaTest = ['compatible', 'incompatible', 'stage-drift', 'category-check'].includes(schemaTestScenario);
+  const isSchemaTest = ['compatible', 'incompatible', 'stage-drift', 'category-check', 'isolated-review'].includes(schemaTestScenario);
   const record = await getInventory(inventoryId);
   if (!record || (!isSchemaTest && !isTrashRecord(record))) throw new Error('Papierkorb-Vorlage wurde nicht gefunden.');
   if (isSchemaTest) {
     const categoryId = String(record.category?.id ?? record.categoryIdFromUrl ?? '').trim();
     const storedPath = Array.isArray(record.category?.path) && record.category.path.length
       ? record.category.path : record.categoryPath;
-    const independentCategoryCheck = schemaTestScenario === 'category-check';
+    const independentCategoryCheck = ['category-check', 'isolated-review'].includes(schemaTestScenario);
     if (record.renewal || !/^[1-9][0-9]*$/.test(categoryId) ||
         !Array.isArray(storedPath) || storedPath.length < 2 ||
         storedPath.length > 12 ||
@@ -461,7 +461,7 @@ async function startTemplateFillUnlocked(inventoryId, { autoReplacementAllowed =
 async function startTrashTemplateFill(inventoryId) {
   const options = arguments[1] && typeof arguments[1] === 'object' ? arguments[1] : {};
   const schemaTestScenario = options.schemaTestScenario == null ? null : String(options.schemaTestScenario);
-  if (schemaTestScenario && !['compatible', 'incompatible', 'stage-drift', 'category-check'].includes(schemaTestScenario))
+  if (schemaTestScenario && !['compatible', 'incompatible', 'stage-drift', 'category-check', 'isolated-review'].includes(schemaTestScenario))
     throw new Error('Unbekanntes Schema-Prüfszenario.');
   if (schemaTestScenario && options.supersedeFillId)
     throw new Error('Ein Schema-Prüfmodus darf keinen bestehenden Vorlagenvorgang ersetzen.');
