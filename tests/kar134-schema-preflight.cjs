@@ -948,9 +948,9 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
       'autoPublishVerifiedRenewal(', 'requestSubmit(', '.submit(', 'fillCoreForm(', 'ensureStableTitleValue('])
       assert.ok(!block.includes(forbidden),'a category check may not fill/post listing: '+forbidden);
     assert.match(block,/remotePublishAttempted:\s*false/);
-    assert.match(block,/archivedValuesRead:\\s*categoryHintRead/);
-    assert.match(block,/categoryNavigationHintsRead:\\s*categoryHintRead/);
-    assert.match(block,/archivedNonCategoryValuesRead:\\s*false/);
+    assert.match(block,/archivedValuesRead:\s*categoryHintRead/);
+    assert.match(block,/categoryNavigationHintsRead:\s*categoryHintRead/);
+    assert.match(block,/archivedNonCategoryValuesRead:\s*false/);
   });
   assert.equal(passed,63,'KAR-134 preflight regression count must remain complete');
   console.log(passed+'/63 PASS KAR-134 schema capture/preflight');
