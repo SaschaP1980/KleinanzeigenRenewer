@@ -266,6 +266,9 @@ button { font: inherit; }
 
 .trash-badge { display:inline-flex; align-items:center; min-height:20px; padding:2px 7px; border-radius:999px; border:1px solid #756746; background:#302b1f; color:#f0d996; font-size:9px; font-weight:800; letter-spacing:.05em; white-space:nowrap; }
 .trash-expiry { color:#f0d996 !important; }
+/* KAR-165: urgency belongs only to the parenthesized countdown, never its date prefix. */
+.trash-retention-countdown-warning { color:#f8ce65; }
+.trash-retention-countdown-urgent { color:#ff8585; }
 .trash-actions-note { margin-top:7px; color:#8f989b; font-size:10px; line-height:1.4; }
 
 
