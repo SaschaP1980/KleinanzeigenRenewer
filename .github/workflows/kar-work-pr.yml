@@ -241,6 +241,13 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           & .\tests\windows-updater-phase1.ps1
+      - name: KAR-99 P1.3 read-only Windows pending-journal witness
+        if: github.head_ref == 'work/KAR-99'
+        shell: powershell
+        run: |
+          $env:CI='true'
+          $env:KAR_UPDATER_TEST_MODE='1'
+          & .\\tests\\kar99-p13-windows-journal-inspection.ps1
       - name: Hosted Windows Native Messaging host and IPC security tests (KAR-64)
         shell: powershell
         env:
