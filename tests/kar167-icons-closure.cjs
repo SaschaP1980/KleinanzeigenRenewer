@@ -59,8 +59,18 @@ for (const asset of doc.assets) {
     const px = Number(asset.currentPath.match(/-(\d+)\.png$/)?.[1]);
     const width = file.readUInt32BE(16), height = file.readUInt32BE(20);
     assert.ok(Number.isSafeInteger(px) && px > 0);
-    assert.equal(width, px, 'PNG pixel width is inconsistent with filename: ' + asset.currentPath);
-    assert.equal(height, px, 'PNG pixel height is inconsistent with filename: ' + asset.currentPath);
+    if (asset.disposition === 'MOVE_BINARY_SHA_IDENTICAL') {
+      // Master filenames are historical labels, not a contract for the actual
+      // pixel canvas. Their exact original Git blobs are verified above.
+      assert.ok(width >= 1024 && height >= 1024,
+        'Original source master must stay a high-resolution PNG: ' + asset.currentPath);
+      console.log('PASS KAR-167 I1 master original pixel dimensions: ' +
+        asset.currentPath + ' ' + width + 'x' + height);
+    } else {
+      // The installed and compatibility size variants DO promise these pixels.
+      assert.equal(width, px, 'PNG pixel width is inconsistent with filename: ' + asset.currentPath);
+      assert.equal(height, px, 'PNG pixel height is inconsistent with filename: ' + asset.currentPath);
+    }
   } else if (asset.currentPath.endsWith('.svg')) {
     svgs++;
     const svg = file.toString('utf8');

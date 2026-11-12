@@ -42,7 +42,7 @@ Historical QA and Windows documents now have **one canonical location** in `docs
 - [Scripts/workflows machine inventory](maintenance/SCRIPT_WORKFLOW_INVENTORY.json) — verified 24 retained scripts and 5 workflows
 - [I1 icon/media audit](maintenance/ICON_ASSET_AUDIT.md) — exact 22-file inventory, unchanged runtime icon paths and preserved master artwork
 - [I1 icon asset manifest](maintenance/ICON_ASSET_INVENTORY.json) — original Git blob SHAs, 13 packaged, 7 retained variants and 2 moved masters
-- [Source artwork (PNG masters)](../assets/artwork/README.md) — original 1240px graphics and historical locations
+- [Source artwork (PNG masters)](../assets/artwork/README.md) — original high-resolution PNGs, historical filenames and verified image identity
 - [Installed icon paths](../icons/README.md) — assets protected by manifest, HTML/CSS and Chrome ZIP
 - [File-hygiene audit and decisions](maintenance/FILE_HYGIENE_AUDIT.md) — root/docs decisions, historical tooling and safety rationale
 - [Complete baseline file inventory](maintenance/FILE_INVENTORY_MAIN_A1F7878.json) — all tracked source-tree files and conservative per-file dispositions
