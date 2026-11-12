@@ -322,7 +322,7 @@
       "bytes": 7077,
       "role": "direct-or-hosted",
       "entrypoints": [
-        "npm test / npm run test:e2e"
+        "mandatory coverage gate"
       ],
       "keepReason": "Referenced by a current top-level test/build/coverage/hosted-CI command"
     },
