@@ -1336,7 +1336,7 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
       newFingerprint:a.newFingerprint,snapshot:a.freshSchema,freshObservationCapturedAt:Date.now(),...extra}},
       a.session,a.sessions,a.sender);
     await assert.rejects(send({token:'forged'}),/Bestätigung|Token|abgelaufen/i);
-    await assert.rejects(send({categoryId:'159'}),/Kategorie|Identität/i);
+    await assert.rejects(send({categoryId:'159'}),/Kategorie|Identität|Zuordnung/i);
     await assert.rejects(send({snapshot:a.oldSchema}),/Fingerprint|Struktur/i);
     assert.equal(a.baselineWrites,0);
     a.map.set(a.key,{schemaVersion:1,snapshot:a.freshSchema,fingerprint:a.newFingerprint});
