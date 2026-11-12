@@ -743,3 +743,18 @@ test('P1.3-F2A RED: duplicate supposedly verified Chrome tab IDs never prove own
   const {gate}=fixture({tabs:[good,{...good}]});
   await denied(()=>gate.captureForReserve(request()),'duplicate Chrome tab ID');
 });
+
+// P1.3-F4: a claimed full-pagination verification cannot locate a result on
+// a page it never scanned. The immutable receipt must remain fail-closed.
+for (const kind of ['phase4', 'publish']) {
+  test('P1.3-F4 RED: '+kind+' rejects target found beyond scanned pages', async () => {
+    const {rows} = tokenBoundRemote(kind);
+    const key = Object.keys(rows).find(name => name.startsWith(kind === 'phase4'
+      ? 'karPhase4VerifiedResolutionV1_' : 'karAutoPublishVerifiedResolutionV1_'));
+    rows[key].targetPagesScanned = 1;
+    rows[key].targetFoundPage = 2;
+    const {gate} = fixture({local:rows});
+    await assert.rejects(gate.captureForReserve(request()),
+      error => error?.code === 'KR_OWNER_JOURNAL_CORRUPT');
+  });
+}
