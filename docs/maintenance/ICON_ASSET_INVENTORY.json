@@ -1,0 +1,213 @@
+{
+  "schema": 1,
+  "issue": 167,
+  "baselineWorkHead": "2a0517b73ccbcb6f92c7a26548ad36e1fe17ded6",
+  "baselineProductVersion": "1.23.59",
+  "purpose": "Record exact original path and Git blob SHA; only the two un-packaged original raster master assets move.",
+  "counts": {
+    "originalIcons": 22,
+    "packagedRuntime": 13,
+    "nonpackagedVariantsRetained": 7,
+    "highResolutionMastersRelocated": 2
+  },
+  "assets": [
+    {
+      "originalPath": "icons/action-delete.svg",
+      "currentPath": "icons/action-delete.svg",
+      "gitBlobSha": "62278488e23c91c9c1528170cf234c912da0f2b7",
+      "bytes": 217,
+      "disposition": "KEEP_PACKAGED_RUNTIME",
+      "chromePackaged": true,
+      "reason": "CSS .action-delete mask; installed Chrome ZIP; current UI surface"
+    },
+    {
+      "originalPath": "icons/action-finish-renewal.svg",
+      "currentPath": "icons/action-finish-renewal.svg",
+      "gitBlobSha": "8c2500d1fffa24ec03a79b9fd628c6af70df667b",
+      "bytes": 284,
+      "disposition": "KEEP_PACKAGED_RUNTIME",
+      "chromePackaged": true,
+      "reason": "CSS .action-finish-renewal mask; installed Chrome ZIP; current UI surface"
+    },
+    {
+      "originalPath": "icons/action-new-listing.svg",
+      "currentPath": "icons/action-new-listing.svg",
+      "gitBlobSha": "de06aec524526263c5ea23c542c410631cafda78",
+      "bytes": 522,
+      "disposition": "KEEP_PACKAGED_RUNTIME",
+      "chromePackaged": true,
+      "reason": "CSS .action-new-listing mask and v1212 layout regression; installed Chrome ZIP"
+    },
+    {
+      "originalPath": "icons/action-retry.svg",
+      "currentPath": "icons/action-retry.svg",
+      "gitBlobSha": "784397eb5a8f81ec8dadfdfb8d55d6f77fed9aa6",
+      "bytes": 323,
+      "disposition": "KEEP_PACKAGED_RUNTIME",
+      "chromePackaged": true,
+      "reason": "CSS .action-retry mask; installed Chrome ZIP"
+    },
+    {
+      "originalPath": "icons/action-update.svg",
+      "currentPath": "icons/action-update.svg",
+      "gitBlobSha": "45fb65fbb7924d8ed2d8ffd319618f777072ae8c",
+      "bytes": 205,
+      "disposition": "KEEP_PACKAGED_RUNTIME",
+      "chromePackaged": true,
+      "reason": "CSS .action-update mask; installed Chrome ZIP"
+    },
+    {
+      "originalPath": "icons/action-zip-export.svg",
+      "currentPath": "icons/action-zip-export.svg",
+      "gitBlobSha": "158877da0b6aa527bed5b8ebb29539173d452e5c",
+      "bytes": 627,
+      "disposition": "KEEP_PACKAGED_RUNTIME",
+      "chromePackaged": true,
+      "reason": "CSS .action-zip-export mask; installed Chrome ZIP"
+    },
+    {
+      "originalPath": "icons/app-icon-128.png",
+      "currentPath": "icons/app-icon-128.png",
+      "gitBlobSha": "c37f1e15279c548b85a77f70034f62bdee92e72d",
+      "bytes": 21373,
+      "disposition": "KEEP_PACKAGED_RUNTIME",
+      "chromePackaged": true,
+      "reason": "manifest.icons[128], app/popup link, installed Chrome ZIP; hash-pinned in v11710 taskbar test"
+    },
+    {
+      "originalPath": "icons/app-icon-256.png",
+      "currentPath": "icons/app-icon-256.png",
+      "gitBlobSha": "1132c1ad05d374605d1ef88b2563faa425fe13e2",
+      "bytes": 66238,
+      "disposition": "KEEP_NONPACKAGED_COMPATIBILITY",
+      "chromePackaged": false,
+      "reason": "Non-distributed PNG resolution variant retained at stable path; source history, independent past/manual users not disproved"
+    },
+    {
+      "originalPath": "icons/app-icon-64.png",
+      "currentPath": "icons/app-icon-64.png",
+      "gitBlobSha": "b2862ca26c56c4b3c8b2642e741fdf57b683b0bb",
+      "bytes": 7067,
+      "disposition": "KEEP_NONPACKAGED_COMPATIBILITY",
+      "chromePackaged": false,
+      "reason": "Non-distributed PNG resolution variant retained at stable path; source history, independent past/manual users not disproved"
+    },
+    {
+      "originalPath": "icons/app-master-1240.png",
+      "currentPath": "assets/artwork/app-master-1240.png",
+      "gitBlobSha": "919e8bb000f15708b8533985ddcf8dec5a00d1d4",
+      "bytes": 1151379,
+      "disposition": "MOVE_BINARY_SHA_IDENTICAL",
+      "chromePackaged": false,
+      "reason": "Original high-resolution raster design/master; not in manifest, HTML/CSS or explicit Chrome ZIP contents; move SHA-identically to assets/artwork"
+    },
+    {
+      "originalPath": "icons/favicon.ico",
+      "currentPath": "icons/favicon.ico",
+      "gitBlobSha": "bd4706b8d830b24b86373552ff42f567b3fafabe",
+      "bytes": 103128,
+      "disposition": "KEEP_PACKAGED_RUNTIME",
+      "chromePackaged": true,
+      "reason": "app/popup HTML multi-resolution favicon, installed Chrome ZIP; hash-pinned in v11710"
+    },
+    {
+      "originalPath": "icons/icon-128.png",
+      "currentPath": "icons/icon-128.png",
+      "gitBlobSha": "c37f1e15279c548b85a77f70034f62bdee92e72d",
+      "bytes": 21373,
+      "disposition": "KEEP_NONPACKAGED_COMPATIBILITY",
+      "chromePackaged": false,
+      "reason": "Legacy 128px alias byte-identical to packaged icons/app-icon-128.png (same Git blob SHA); retained for historical path compatibility"
+    },
+    {
+      "originalPath": "icons/icon-16.png",
+      "currentPath": "icons/icon-16.png",
+      "gitBlobSha": "5e8fd8b259eb1c74a02ce95caadd292fd920709a",
+      "bytes": 788,
+      "disposition": "KEEP_NONPACKAGED_COMPATIBILITY",
+      "chromePackaged": false,
+      "reason": "Legacy PNG resolution variant not packaged; retained for historical/indirect usage pending proof"
+    },
+    {
+      "originalPath": "icons/icon-32.png",
+      "currentPath": "icons/icon-32.png",
+      "gitBlobSha": "2f33bf540b3a7b3cfdd3329b08fc969467d3c270",
+      "bytes": 2197,
+      "disposition": "KEEP_NONPACKAGED_COMPATIBILITY",
+      "chromePackaged": false,
+      "reason": "Legacy PNG resolution variant not packaged; retained for historical/indirect usage pending proof"
+    },
+    {
+      "originalPath": "icons/icon-48.png",
+      "currentPath": "icons/icon-48.png",
+      "gitBlobSha": "717dc37a065852fb1200b13fb58e7fcab6819628",
+      "bytes": 4253,
+      "disposition": "KEEP_NONPACKAGED_COMPATIBILITY",
+      "chromePackaged": false,
+      "reason": "Legacy PNG resolution variant not packaged; retained for historical/indirect usage pending proof"
+    },
+    {
+      "originalPath": "icons/taskbar-16.png",
+      "currentPath": "icons/taskbar-16.png",
+      "gitBlobSha": "c5929874ace262956c4083c2b60c5a6cdfebabde",
+      "bytes": 908,
+      "disposition": "KEEP_PACKAGED_RUNTIME",
+      "chromePackaged": true,
+      "reason": "manifest.action.default_icon[16] and manifest.icons[16], installed Chrome ZIP; SHA256 pinned in v11710"
+    },
+    {
+      "originalPath": "icons/taskbar-32.png",
+      "currentPath": "icons/taskbar-32.png",
+      "gitBlobSha": "6dda83b1d48a523c7e1becbf642d606892ba09b2",
+      "bytes": 2686,
+      "disposition": "KEEP_PACKAGED_RUNTIME",
+      "chromePackaged": true,
+      "reason": "manifest.action.default_icon[32], manifest.icons[32], HTML, Chrome ZIP; SHA256 pinned in v11710"
+    },
+    {
+      "originalPath": "icons/taskbar-48.png",
+      "currentPath": "icons/taskbar-48.png",
+      "gitBlobSha": "128c0c861723df0d5afef522914696e1f79b2cc3",
+      "bytes": 5323,
+      "disposition": "KEEP_PACKAGED_RUNTIME",
+      "chromePackaged": true,
+      "reason": "manifest.action.default_icon[48] and manifest.icons[48], Chrome ZIP; SHA256 pinned in v11710"
+    },
+    {
+      "originalPath": "icons/taskbar-64.png",
+      "currentPath": "icons/taskbar-64.png",
+      "gitBlobSha": "f5091dc9c410b308a15eec027bd3b4635e215417",
+      "bytes": 6915,
+      "disposition": "KEEP_NONPACKAGED_COMPATIBILITY",
+      "chromePackaged": false,
+      "reason": "Non-distributed PNG resolution variant; retained at stable path for source/manual usage"
+    },
+    {
+      "originalPath": "icons/taskbar-master-1240.png",
+      "currentPath": "assets/artwork/taskbar-master-1240.png",
+      "gitBlobSha": "25e7ada6070f20091bc28bd650b1e19ebc9563a9",
+      "bytes": 1221908,
+      "disposition": "MOVE_BINARY_SHA_IDENTICAL",
+      "chromePackaged": false,
+      "reason": "Original high-resolution raster taskbar master; not in manifest, HTML/CSS or explicit Chrome ZIP contents; move SHA-identically to assets/artwork"
+    },
+    {
+      "originalPath": "icons/view-compact.svg",
+      "currentPath": "icons/view-compact.svg",
+      "gitBlobSha": "2ed840e03c7a7a99d5bef30a06a54bdb7c103518",
+      "bytes": 487,
+      "disposition": "KEEP_PACKAGED_RUNTIME",
+      "chromePackaged": true,
+      "reason": "CSS .view-mode-compact mask and v1212 test; installed Chrome ZIP"
+    },
+    {
+      "originalPath": "icons/view-detailed.svg",
+      "currentPath": "icons/view-detailed.svg",
+      "gitBlobSha": "0311d8aeadb29dff60079e14444a825e1201e2c1",
+      "bytes": 592,
+      "disposition": "KEEP_PACKAGED_RUNTIME",
+      "chromePackaged": true,
+      "reason": "CSS .view-mode-detailed mask and v1212 test; installed Chrome ZIP"
+    }
+  ]
+}

@@ -11,6 +11,7 @@ NODE_V8_COVERAGE="$raw" npm test
 # KAR-167: independent path/link/immutable architecture-evidence closure after the normal suite.
 node tests/kar167-file-layout.cjs
 node tests/kar167-script-closure.cjs
+node tests/kar167-icons-closure.cjs
 node scripts/v12319-coverage-report.cjs "$raw" coverage
 node scripts/v12319-architecture-audit.cjs >/dev/null
 node scripts/coverage-no-regression.cjs
