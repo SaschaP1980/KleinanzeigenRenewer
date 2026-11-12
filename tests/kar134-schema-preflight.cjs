@@ -684,8 +684,33 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
     assert.match(categorySource,/categoryPathEvidence/);
     assert.match(categorySource,/CATEGORY_MODAL_COMMIT_VERIFIED/);
   });
-  assert.equal(passed,50,'KAR-134 preflight regression count must remain complete');
-  console.log(passed+'/50 PASS KAR-134 schema capture/preflight');
+
+  await check('user-visible structural warning remains in the live status panel across progress messages',()=>{
+    const from=fillerSource.indexOf('  function ensurePanel()');
+    const to=fillerSource.indexOf('  async function runPostFillSession(',from);
+    assert.ok(from>0 && to>from,'schema monitor warning must use the live overlay panel');
+    const {document}=parseHTML('<html><body></body></html>');
+    const context={document,panelTemplateOnly:true,panelArchiveInsertion:false,
+      stageMonitorWarnings:[],Object,Array,Set,Map};
+    const ui=vm.runInNewContext(fillerSource.slice(from,to)+
+      '\n({updatePanel,registerSchemaMonitorWarning});',context,
+      {filename:'kar134-live-warning-overlay.js'});
+    ui.updatePanel('Schema-Test gestartet','F1 wird erfasst.',[],{safetyText:false});
+    ui.registerSchemaMonitorWarning('Basisformular: Kleinanzeigen hat die Struktur verändert.');
+    ui.registerSchemaMonitorWarning('Basisformular: Kleinanzeigen hat die Struktur verändert.');
+    let region=document.querySelector('#kr134-schema-monitor-warnings');
+    assert.ok(region,'missing warning region');
+    assert.match(region.textContent,/Basisformular/);
+    assert.equal(region.querySelectorAll('li').length,1,'duplicated warning must not multiply');
+    ui.updatePanel('Schema-Test beendet','Test bestanden.',[],{safetyText:false});
+    region=document.querySelector('#kr134-schema-monitor-warnings');
+    assert.ok(region,'warning must remain visible after progress status update');
+    assert.match(region.textContent,/Struktur verändert/);
+    assert.match(document.querySelector('#kr-template-fill-status').textContent,/Test bestanden/);
+  });
+  assert.equal(passed,51,'KAR-134 preflight regression count must remain complete');
+  console.log(passed+'/51 PASS KAR-134 schema capture/preflight');
+
 
 
 })().catch(error=>{console.error(error);process.exitCode=1});
