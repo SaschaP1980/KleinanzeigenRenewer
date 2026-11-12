@@ -79,3 +79,24 @@ transaction authority. Neither a P8 callback finish nor a remote-resolution
 row certifies the current live Kleinanzeigen account; the production 15-owner
 positive source producer is still missing. This change adds no updater or
 native transaction route, consent, lease, release or live-account mutation.
+
+
+## P1.3-F2 legacy tokenless remote history is not update IDLE authority
+
+Previous-generation `karPhase4UncertainAttemptV1_*` and
+`karAutoPublishIntentV1_*` records may contain independently obtained remote
+resolution rows but no immutable P8 `admissionToken`. These records **must
+remain preserved and observable as historical local evidence**. Even if the
+remote scan recorded a terminal-looking result, the private all-owner capture
+now denies `KR_OWNER_JOURNAL_ADMISSION_UNVERIFIED` whenever any Phase-4
+or publish attempt lacks an explicit valid token bound to its exact P8
+start/finish and original worker generation. An unrelated finished P8 receipt,
+a time overlap, or another valid remote family cannot repair this missing
+provenance. The existing Phase-4/publish journal APIs are unmodified: they
+still support reading historical entries and independently checking actual
+remote outcomes. This change **does not delete, migrate, or rewrite** legacy
+storage, does not turn any owner IDLE, and does not authorize NativeHost apply,
+rollback, release, installation, or live Kleinanzeigen mutation. Production
+positive 15-owner proofs and origin-bound native transaction attestation remain
+outstanding acceptance blockers. Six focused genuine RED cases preceded the
+source correction.

@@ -126,7 +126,12 @@
       // Absence or ambiguity is not allowed to fall back to time overlap.
       // Legacy tokenless records remain historical, never positive IDLE.
       for (const [,intent] of attempts) {
-        if (!Object.hasOwn(intent,'admissionToken')) continue;
+        // Historical tokenless rows remain readable in their journal, but
+        // they can never establish the per-admission provenance necessary
+        // for a private all-owner update candidate. A separate completed P8
+        // entry with matching timestamps is NOT an authenticated linkage.
+        if (!Object.hasOwn(intent,'admissionToken'))
+          throw denied('KR_OWNER_JOURNAL_ADMISSION_UNVERIFIED');
         const token=intent.admissionToken;
         if (!validId(token) || token.length < 12 || usedAdmissions.has(token))
           throw denied('KR_OWNER_JOURNAL_ADMISSION_UNVERIFIED');
