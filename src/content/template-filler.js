@@ -607,14 +607,22 @@
     updatePanel('Schema-Prüfmodus (nur Lesen)', 'Kategorie 405 wird für den Vergleich vorbereitet. Es werden keine Anzeigenwerte eingetragen und keine Anzeigen veröffentlicht.', [],
       { safetyText: 'TESTMODUS – Formular ausschließlich prüfen, nicht veröffentlichen.' });
     await runtimeMessage({ type: 'UPDATE_TEMPLATE_FILL_SESSION', fillId, status: 'running', stage: 'schema-test-category' });
-    const preCategoryForm = await waitFor(() => document.querySelector('form'), { description: 'Schema-Basisformular' });
+    const preCategoryForm = await waitFor(() => resolveActivePostingForm(), { description: 'Aktives Schema-Basisformular' });
     const baseObservation = captureCategoryNeutralForm(preCategoryForm);
     if (baseObservation.status === 'observed')
       await monitorSchemaStage('base', baseObservation.schema, fillId);
     else void diagnostic(fillId, 'KAR134_STAGE_MONITOR_SKIPPED',
       { stage: 'base', reason: baseObservation.status });
     stagedCategoryPathEvidence = null;
-    const categoryState = await setCategory(session.template, fillId, session?.maxPhaseAttempts);
+    let categoryState;
+    try {
+      categoryState = await setCategory(session.template, fillId, session?.maxPhaseAttempts);
+    } catch (error) {
+      registerSchemaMonitorWarning('Kategoriehierarchie: Der bisherige Kategoriepfad konnte nicht bestätigt werden. Die Merkmalsprüfung wurde nicht erreicht.');
+      void diagnostic(fillId, 'KAR134_STAGE_MONITOR_SKIPPED',
+        { stage: 'category', reason: 'category-selection-failed', message: String(error?.message || error).slice(0, 200) }, 'warning');
+      throw error;
+    }
     if (categoryState?.pendingNavigation) return { pending: true, schemaTest: true };
     if (stagedCategoryPathEvidence)
       await monitorSchemaStage('category', SchemaCore.buildCategorySchema(stagedCategoryPathEvidence), fillId);
@@ -721,7 +729,7 @@
     // Capture F1 before even setting the initial ad type or title. An already
     // selected category cannot supply a pre-category reference.
     if (SchemaCore) {
-      const initialForm = await waitFor(() => document.querySelector('form'), { description: 'Schema-Basisformular' });
+      const initialForm = await waitFor(() => resolveActivePostingForm(), { description: 'Aktives Schema-Basisformular' });
       const base = captureCategoryNeutralForm(initialForm);
       if (base.status === 'observed')
         await monitorSchemaStage('base', base.schema, fillId);
@@ -742,6 +750,9 @@
       categoryState = await setCategory(template, fillId, session?.maxPhaseAttempts);
     } catch (error) {
       issues.push(`Kategorie: ${error.message}`);
+      registerSchemaMonitorWarning('Kategoriehierarchie: Der gespeicherte Kategoriepfad ist aktuell nicht eindeutig erreichbar. Die Merkmale konnten nicht geprüft werden.');
+      void diagnostic(fillId, 'KAR134_STAGE_MONITOR_SKIPPED',
+        { stage: 'category', reason: 'category-selection-failed', message: String(error?.message || error).slice(0, 200) }, 'warning');
     }
     if (categoryState?.pendingNavigation) return { pending: true, issues };
     if (stagedCategoryPathEvidence && SchemaCore)
