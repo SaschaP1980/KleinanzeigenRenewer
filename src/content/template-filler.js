@@ -598,7 +598,7 @@
 
   // KAR-134 L2 change review. Only normalized structural diff data enters
   // this view. Acknowledgement explicitly is NOT reference acceptance.
-  function buildStageChangeReview(results = {}) {
+  function buildStageChangeReview(results = {}, { categoryEvidence = null } = {}) {
     const order = [
       ['base', 'F1 – Basisformular'],
       ['category', 'F2 – Kategoriehierarchie'],
@@ -660,10 +660,11 @@
       const changes = Array.isArray(result.changes) ? result.changes : [];
       const detail = changes.slice(0, 12).map(change => explain(stage,change));
       const verified = status === 'changed' && detail.some(item => item.verified);
-      const uncertain = ['uncertain','not-fully-verified','invalid-reference','monitor-unavailable','not-observed'].includes(status) ||
+      const incompleteCategoryIds = stage === 'category' && categoryEvidence === 'partial-ids';
+      const uncertain = incompleteCategoryIds || ['uncertain','not-fully-verified','invalid-reference','monitor-unavailable','not-observed'].includes(status) ||
         (status === 'changed' && detail.some(item => !item.verified)) ||
         (status === 'changed' && !verified);
-      const note = status === 'not-fully-verified' && stage === 'category'
+      const note = incompleteCategoryIds || status === 'not-fully-verified' && stage === 'category'
         ? 'Technische IDs der übergeordneten Kategorien sind nicht vollständig belegt; dies ist kein nachgewiesener Kategorienwechsel.'
         : uncertain && status !== 'changed'
           ? 'Diese Stufe wurde nicht als eindeutig unverändert bestätigt.'
@@ -990,7 +991,7 @@
       const review = buildStageChangeReview({
         base: baseStageResult, category: categoryStageResult,
         attributes: attributeStageResult
-      });
+      }, { categoryEvidence: observedCategorySchema?.evidence || null });
       const reviewRequired = review.hasProvenChange;
       const issues = reviewRequired
         ? ['Bestätigte Strukturänderungen müssen geprüft werden. Die bisherigen Referenzen bleiben unverändert.']
