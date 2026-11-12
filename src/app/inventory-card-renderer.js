@@ -125,6 +125,8 @@ function makeSchemaTestActions(record, { compact = false, disabled = false } = {
   return [
     { scenario: 'category-check', label: 'Kategorie prüfen', icon: 'update',
       help: 'Prüft die Kategorie und das aktuelle Formularschema (F1, F2 und F3). Verwendet bei Bedarf den gespeicherten Artikeltyp (Art/Typ) nur zur Kategorienavigation. Keine übrigen Anzeigenwerte, Bilder oder Veröffentlichung.' },
+    { scenario: 'isolated-review', label: 'Änderungsdialog testen', icon: 'retry',
+      help: 'TEST: Vergleicht die aktuelle Kategorie mit künstlichen F1-/F2-/F3-Referenzen ausschließlich im Arbeitsspeicher. Testübernahme oder Ablehnung verändern niemals echte Fingerprints. Kein Eintragen oder Veröffentlichen.' },
     ...category405Actions
   ].map(spec => {
     const button = compact
@@ -143,7 +145,7 @@ function makeSchemaTestActions(record, { compact = false, disabled = false } = {
       if (!await confirmAction({
         title: 'Formularschema nur prüfen?',
         text: spec.help,
-        detail: 'Die Inventarvorlage bleibt unverändert. Bei „Kategorie prüfen“ darf die gespeicherte Angabe Art/Typ ausschließlich zur Kategorienavigation gelesen werden. Andere Anzeigenwerte und Bilder werden nicht übertragen.',
+        detail: 'Die Inventarvorlage bleibt unverändert. Zur Kategorienavigation darf bei „Kategorie prüfen“ und „Änderungsdialog testen“ die Angabe Art/Typ verwendet werden. Der Test nutzt ausschließlich einen isolierten Arbeitsspeicher; echte Referenzen bleiben unverändert.',
         confirmLabel: 'Prüfmodus starten'
       })) return;
       button.disabled = true;
