@@ -20,13 +20,33 @@ function cardTargetIsInteractive(target) {
   return target instanceof Element && Boolean(target.closest('button, a, summary, details, input, select, textarea, [role="button"], [contenteditable="true"]'));
 }
 
-function makeInfoLine(label, value) {
+function appendTrashRetentionCountdown(container, value) {
+  const text = String(value ?? '');
+  // The displayed label is the authority: parse the same whole-day integer that the user sees.
+  // Unknown/indefinite deadlines deliberately remain plain neutral text without a guessed date.
+  const match = /^(.*?)(\((?:noch (\d+) Tag(?:e)?|Frist abgelaufen)\))$/.exec(text);
+  if (!match) {
+    container.textContent = text;
+    return;
+  }
+  container.append(document.createTextNode(match[1]));
+  const countdown = document.createElement('span');
+  countdown.className = 'trash-retention-countdown';
+  countdown.textContent = match[2];
+  const days = match[3] === undefined ? 0 : Number(match[3]);
+  if (days <= 3) countdown.classList.add('trash-retention-countdown-urgent');
+  else if (days <= 7) countdown.classList.add('trash-retention-countdown-warning');
+  container.append(countdown);
+}
+
+function makeInfoLine(label, value, highlightTrashCountdown = false) {
   const row = document.createElement('div');
   row.className = 'summary-row';
   const key = document.createElement('span');
   key.textContent = label;
   const val = document.createElement('strong');
-  val.textContent = value;
+  if (highlightTrashCountdown) appendTrashRetentionCountdown(val, value);
+  else val.textContent = value;
   row.append(key, val);
   return row;
 }
@@ -130,7 +150,8 @@ function createCompactListRow(record, { trash = false } = {}) {
   price.textContent = displayPriceWithType(record);
   const end = document.createElement('span');
   end.className = 'compact-list-meta-end';
-  end.textContent = trash ? trashRetentionPresentation(record) : `Endet am ${endDateWithRelativeLabel(record)}`;
+  if (trash) appendTrashRetentionCountdown(end, trashRetentionPresentation(record));
+  else end.textContent = `Endet am ${endDateWithRelativeLabel(record)}`;
   meta.append(price, end);
 
   main.append(categoryLine, title, meta);
