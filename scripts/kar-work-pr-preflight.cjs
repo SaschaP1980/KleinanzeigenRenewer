@@ -77,9 +77,14 @@ function main() {
   if(matches.length!==1) fail('unique canonical comment not found');
   const c=matches[0];
   const changed=nextBody(c.body,n,previous,target);
-  // One narrowly scoped field update. No PR creation, no merge or tag.
-  execFileSync('gh',['api','--method','PATCH','-f','body='+changed,
-    'repos/'+repo+'/issues/comments/'+c.id],{encoding:'utf8',timeout:30000});
+  // One narrowly scoped field update. Stream JSON through stdin instead
+  // of putting the entire (>128 KiB) canonical history in process argv.
+  // This preserves the complete single Rolling Comment without truncation.
+  execFileSync('gh',['api','--method','PATCH','--input','-',
+    'repos/'+repo+'/issues/comments/'+c.id],{
+    input:JSON.stringify({body:changed}),encoding:'utf8',timeout:30000,
+    maxBuffer:8*1024*1024
+  });
   const {issue:again,comments:after}=getData(repo,n);
   const checked=assertReady(again,after,n,target,repo);
   if(checked.commentId!==oldReady.commentId) fail('comment owner changed during readback');
