@@ -38,12 +38,12 @@ assert.match(productionReview,/showStageChangeReviewDialog\(/,'normal workflow m
 assert.match(productionReview,/buildRealSchemaAdoptionPlan\(/,'F3 plan must be available in normal workflow');
 assert.match(productionReview,/KAR134_REAL_REFERENCE_ADOPTION_COMMITTED/,
   'real F3 double-consent remains in normal workflow');
-assert.match(productionReview,/status:\s*'needs-review'/,
+assert.match(productionReview,/stage:'schema-reference-review-pending'/,
   'genuine reference approval must pause publication');
 assert.match(content,/if \(session\.schemaTestScenario\)\s*throw/,
   'old persisted test sessions cannot resume inside normal flow');
 
-assert.match(background,/stage !== 'schema-reference-review-required'/,
+assert.match(background,/stage !== 'schema-reference-review-pending'/,
   'real F3 background authority must be bound to the normal review stage');
 assert.match(background,/session\?\.schemaTestScenario/,
   'real F3 must reject obsolete test-mode sessions');
