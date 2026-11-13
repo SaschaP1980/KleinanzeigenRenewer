@@ -157,7 +157,8 @@
   const active=reason=>Object.freeze({state:'active',reason});
   const unknown=reason=>Object.freeze({state:'unknown',reason});
   function create({storageLocal,storageSession,workerInstanceId=null,clock=()=>Date.now(),
-    queryBrowserTabsReadOnly=null,readAccountPageStatusReadOnly=null}={}) {
+    queryBrowserTabsReadOnly=null,readAccountPageStatusReadOnly=null,
+    getAtomicAdmissionCoordinator=null}={}) {
     if(typeof storageLocal?.get!=='function'||typeof storageSession?.get!=='function'
        ||typeof clock!=='function')throw Error('supplemental owner observer requires read-only storage and clock');
     const pending=new Map(OWNERS.map(n=>[n,0]));
@@ -1057,7 +1058,8 @@
     // is intentionally NOT an all-idle producer, update lease, apply route,
     // authenticated current account certificate or old-worker termination
     // oracle. Each owner still requires independent positive sources later.
-    async function inspectAllOwnerClosureReadOnly(persistedObserver) {
+    async function inspectAllOwnerClosureReadOnly(persistedObserver,request=undefined) {
+      const capture=async()=>{
       const names=[...PERSISTED_OWNERS,...OWNERS];
       // Bracket all 15 independent owner inspectors with fresh, actual
       // P8/remote observations plus both stored and live-profile producers.
@@ -1223,6 +1225,29 @@
         currentLiveAccountVerified:false,remoteOutcomeVerified:false,
         nativeHostOutcomeVerified:false
       });
+      };
+      // KAR-171 W3D3A: default remains historical-only and may be inspected
+      // without a lock; a caller explicitly requiring the real origin lock
+      // must not fall back to an unguarded snapshot on any failure.
+      if(request===undefined)return capture();
+      const unavailable=()=>{
+        const error=new Error('KR_UPDATE_FENCE_ATOMIC_UNAVAILABLE');
+        error.code='KR_UPDATE_FENCE_ATOMIC_UNAVAILABLE';
+        return error;
+      };
+      if(!record(request)||Object.keys(request).length!==1
+        ||request.requireAtomicAdmission!==true
+        ||!worker||typeof getAtomicAdmissionCoordinator!=='function')
+        throw unavailable();
+      let coordinator;
+      try{coordinator=getAtomicAdmissionCoordinator();}
+      catch{throw unavailable();}
+      if(typeof coordinator?.guardReserve!=='function')throw unavailable();
+      // P8 guardReserve owns the existing exact origin Web Lock, double-reads
+      // immutable journals, rejects prior unfinished starts and checks Worker
+      // identity. Keep the entire 15-owner/account/Chrome capture INSIDE its
+      // callback; this is never a positive update lease.
+      return coordinator.guardReserve(capture,worker);
     }
     return Object.freeze({observe,observeAll,inspectAllOwnerClosureReadOnly,track,snapshotInFlight,readVerifiedUnmanagedTabsReadOnly,inspectDiagnosticExportClosureReadOnly,inspectTrashMutationClosureReadOnly,inspectSingleInventoryClosureReadOnly,inspectProfileTransitionClosureReadOnly,inspectAccountTransitionClosureReadOnly,inspectEmergencyRecoveryClosureReadOnly,inspectManagedTabsClosureReadOnly,inspectNativeUpdateTransactionClosureReadOnly});
   }
