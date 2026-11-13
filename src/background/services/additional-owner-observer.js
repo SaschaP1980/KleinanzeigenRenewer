@@ -1127,6 +1127,28 @@
         &&same(first.remoteAdmissionLineage,last.remoteAdmissionLineage)
         &&same(first.context?.worker,last.context?.worker)
         &&profileNotContradicted;
+      // KAR-171 W3D2A: an owner-specific historical callback is acceptable
+      // as HISTORY only if its independent inspector attests the exact same
+      // P8 journal/owner-subset revision as both aggregate observations.
+      // A matching callback count or a truthy sourceRevision is not identity.
+      // Persisted inspectors encode [P8 revision, owner revision, profile,
+      // local snapshot, session snapshot], while supplemental inspectors
+      // return the owner revision directly. Neither is a positive IDLE proof.
+      const witnessMatchesHistory=(name,witness,history)=>{
+        if(!record(witness)||typeof witness.sourceRevision!=='string'
+          ||typeof history?.sourceRevision!=='string'
+          ||!history.sourceRevision)return false;
+        if(!PERSISTED_OWNERS.includes(name))
+          return witness.sourceRevision===history.sourceRevision;
+        try {
+          const parts=JSON.parse(witness.sourceRevision);
+          return Array.isArray(parts)&&parts.length===5
+            &&parts[0]===first.admissionJournalRevision
+            &&parts[1]===history.sourceRevision
+            &&parts[2]===firstProfile?.context?.profile?.profileId
+            &&record(parts[3])&&record(parts[4]);
+        }catch{return false;}
+      };
       const owners=Object.create(null);
       for(const name of names){
         const witness=individual[name];
@@ -1144,7 +1166,7 @@
         const complete=historicalStable&&record(witness)
           &&witness.schema===1&&witness.owner===name
           &&witness.status==='callback-settled'&&witness.eligibleForLease===false
-          &&typeof witness.sourceRevision==='string'&&witness.sourceRevision.length>0
+          &&witnessMatchesHistory(name,witness,before)
           &&before?.state==='callback-finished'
           &&Array.isArray(before.entries)&&before.entries.length>0
           &&before.entries.length===witness.completedReceiptCount
