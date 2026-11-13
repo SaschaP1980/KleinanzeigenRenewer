@@ -5,6 +5,7 @@ const fs=require('node:fs');
 const Policy=require('../lib/update-idle-policy.js');
 const Additional=require('../src/background/services/additional-owner-observer.js');
 const Persisted=require('../src/background/services/persisted-owner-observer.js');
+const Atomic=require('../src/background/services/cross-worker-atomic-admission.js');
 const bg=fs.readFileSync('src/background/background.js','utf8');
 let checks=0;
 function ok(value,name){assert.ok(value,name);checks++;console.log('PASS KAR99-P7-AUTH '+name);}
@@ -61,6 +62,33 @@ async function waitUntil(predicate){for(let i=0;i<250&&!predicate();i++)await Pr
     'actual read-only integrated observation contains all fifteen named owners');
   ok(REQUIRED.every(x=>before.observations[x].state==='unknown'),
     'no in-flight or generation proof produces UNKNOWN, never fabricated IDLE');
+  // KAR-171 W3C: the second independent owner observer must not turn a
+  // future-dated prior-worker P8 completion into a historical callback proof.
+  for (const [label,startedAtMs,completedAtMs] of [
+    ['future-start',123100,123200],
+    ['future-finish',122900,123200]
+  ]) {
+    const token='prior_'+label;
+    const seeded=db({
+      [Atomic.START_PREFIX+token]:{
+        schema:1,state:'admitted',token,
+        operationType:'AUTONOMOUS:trash-purge-boot',
+        workerInstanceId:'worker-before-restart',startedAtMs
+      },
+      [Atomic.FINISH_PREFIX+token]:{
+        schema:1,state:'completed',token,
+        workerInstanceId:'worker-before-restart',completedAtMs
+      }
+    });
+    const observer=Additional.create({storageLocal:seeded.local,
+      storageSession:seeded.session,workerInstanceId:'worker-after-restart',
+      clock:()=>123000});
+    const history=await observer.observe();
+    ok(history.eligibleForLease===false
+       &&history.admissionHistory.trashMutation.state==='unverified',
+      label+': supplemental prior-worker history is unknown, never callback-finished');
+    ok(seeded.writes===0,label+': supplemental observer does not alter evidence');
+  }
   let release;const pending=new Promise(r=>release=r);let running=false;
   const op=additional.track(Additional.ownersForOperation('CAPTURE_SINGLE_INVENTORY','routed'),
     async()=>{running=true;await pending;return 7;});
