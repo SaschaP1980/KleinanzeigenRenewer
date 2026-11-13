@@ -92,6 +92,46 @@ test('F2E2D2A RED: real Phase4 remote resolution + old P8 worker overlap is only
  assert.equal(all.admissionHistory.renewal.state,'callback-finished');
  assert.equal(all.observations.renewal.state,'unknown');
 });
+// KAR-171 W3D3B1: independently verified P8 callback completion and even
+// verified REMOTE journal rows must not become reconciled old-worker ownership
+// when their transaction's P8 admission token is absent or ambiguous.
+test('KAR-171 W3D3B1 RED: tokenless Phase4 resolution never claims historical remote owner closure',async()=>{
+ const s=store();admission(s,'old-token-001');await resolvedPhase4(s);
+ const {p,a}=consumers(s);
+ const matrix=await a.inspectAllOwnerClosureReadOnly(p);
+ assert.equal(matrix.sourcesStable,true,'both real P8/owner observers remain stable');
+ assert.equal(matrix.owners.renewal.remoteLineageState,'possible-generation-overlap');
+ assert.equal(matrix.owners.renewal.status,'unverified',
+   'a worker/time overlap without an exact token cannot reconcile remote owner closure');
+ assert.equal(matrix.owners.renewal.remoteOutcomeVerified,false);
+ assert.equal(matrix.eligibleForLease,false);
+});
+test('KAR-171 W3D3B1 RED: ambiguous matching workers cannot claim historical remote owner closure',async()=>{
+ const s=store();admission(s,'ambiguous-001');admission(s,'ambiguous-002');
+ await resolvedPhase4(s);
+ const {p,a}=consumers(s),matrix=await a.inspectAllOwnerClosureReadOnly(p);
+ assert.equal(matrix.owners.renewal.remoteLineageState,'ambiguous-generation-overlap');
+ assert.equal(matrix.owners.renewal.status,'unverified');
+ assert.equal(matrix.eligibleForLease,false);
+});
+test('KAR-171 W3D3B1 RED: archive publication requires exact old-worker remote lineage',async()=>{
+ const s=store();admission(s,'archive-token-001',OLD,500,2200,
+  'AUTONOMOUS:archive-postpublish-detached');
+ await resolvedPublish(s);
+ const {p,a}=consumers(s),matrix=await a.inspectAllOwnerClosureReadOnly(p);
+ assert.equal(matrix.owners.archiveInsertion.remoteLineageState,'possible-generation-overlap');
+ assert.equal(matrix.owners.archiveInsertion.status,'unverified');
+ assert.equal(matrix.owners.archiveInsertion.remoteOutcomeVerified,false);
+ assert.equal(matrix.eligibleForLease,false);
+});
+test('KAR-171 W3D3B1: purely local callback with no remote intent stays historical only',async()=>{
+ const s=store();admission(s,'no-remote-001');
+ const {p,a}=consumers(s),matrix=await a.inspectAllOwnerClosureReadOnly(p);
+ assert.equal(matrix.owners.renewal.remoteLineageState,'no-evidence');
+ assert.equal(matrix.owners.renewal.status,'historical-callback-settled');
+ assert.equal(matrix.owners.renewal.remoteOutcomeVerified,false);
+ assert.equal(matrix.eligibleForLease,false);
+});
 test('F2E2D2A RED: different worker cannot borrow independently verified remote evidence',async()=>{
  const s=store();admission(s,'new-token-001',NOW);await resolvedPhase4(s,OLD);
  const all=await consumers(s).read();assertNonAuthorizing(all);
