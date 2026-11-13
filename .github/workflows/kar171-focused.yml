@@ -25,3 +25,4 @@ jobs:
           set -euo pipefail
           node tests/kar99-phase4-outcome-reconciliation.cjs
           node tests/kar99-publish-outcome.cjs
+          node tests/kar175-publish-intent-authorization.cjs
