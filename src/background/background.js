@@ -1,4 +1,4 @@
-importScripts("../shared/runtime-deps.js", "../shared/message-contract-registry.js", "../shared/renewal-policy.js", "background-message-router.js", "services/native-update-status-gateway.js", "services/native-status-bridge.js", "services/update-workflow-fence.js", "repositories/profile-repository.js", "repositories/inventory-repository.js", "repositories/inventory-image-store.js", "services/inventory-capture-service.js", "services/inventory-refresh-service.js", "services/trash-service.js", "services/diagnostics-service.js", "services/diagnostic-correlation-service.js", "services/listing-url-evidence-service.js", "services/tab-registry.js", "services/managed-tab-worker-service.js", "services/content-connection-manager.js", "services/account-probe-service.js", "controllers/profile-management-controller.js", "controllers/account-session-controller.js", "controllers/manual-listing-navigation-controller.js", "controllers/platform-safety-controller.js", "controllers/tab-lifecycle-observer.js", "controllers/workflow-emergency-reset-controller.js", "lib/bulk-run-guard.js", "controllers/single-inventory-controller.js", "services/bulk-worker-service.js", "services/bulk-reconciliation-service.js", "controllers/bulk-inventory-controller.js", "controllers/mass-renewal-controller.js", "services/mass-renewal-watchdog-service.js", "controllers/mass-renewal-workflow-controller.js", "services/renewal-verification-flow.js", "services/renewal-reinventory-flow.js", "services/renewal-phase1-retry-service.js", "services/paid-checkout-recovery-service.js", "controllers/renewal-workflow-controller.js", "services/renewal-verification-service.js", "repositories/renewal-state-repository.js", "services/template-fill-service.js", "services/insertion-lock-service.js", "controllers/template-fill-controller.js", "services/trash-template-publish-detection-service.js", "services/archive-insertion-service.js", "services/archive-insertion-verification-service.js", "services/archive-insertion-recovery-service.js", "controllers/archive-insertion-controller.js", "services/remote-delete-replacement-service.js", "services/published-inventory-resolver.js", "services/diagnostic-export-service.js", "services/public-listing-evidence-service.js", "services/renewal-public-evidence-coordinator.js", "../shared/managed-navigation.js", "lib/inventory-reconciliation.js", "../shared/my-ads-readiness.js", "lib/inventory-scope.js", "../shared/platform-hardening.js", "services/tab-load-coordinator.js", "../shared/template-schema-core.js", "services/persisted-owner-observer.js", "services/additional-owner-observer.js", "services/phase4-uncertainty-journal.js", "services/cross-worker-atomic-admission.js", "services/auto-publish-intent-journal.js", "services/publish-intent-authorization-service.js");
+importScripts("../shared/runtime-deps.js", "../shared/message-contract-registry.js", "../shared/renewal-policy.js", "background-message-router.js", "services/native-update-status-gateway.js", "services/native-status-bridge.js", "services/update-workflow-fence.js", "repositories/profile-repository.js", "repositories/inventory-repository.js", "repositories/inventory-image-store.js", "services/inventory-capture-service.js", "services/inventory-refresh-service.js", "services/trash-service.js", "controllers/trash-management-controller.js", "services/diagnostics-service.js", "services/diagnostic-correlation-service.js", "services/listing-url-evidence-service.js", "services/tab-registry.js", "services/managed-tab-worker-service.js", "services/content-connection-manager.js", "services/account-probe-service.js", "controllers/profile-management-controller.js", "controllers/account-session-controller.js", "controllers/manual-listing-navigation-controller.js", "controllers/platform-safety-controller.js", "controllers/tab-lifecycle-observer.js", "controllers/workflow-emergency-reset-controller.js", "lib/bulk-run-guard.js", "controllers/single-inventory-controller.js", "services/bulk-worker-service.js", "services/bulk-reconciliation-service.js", "controllers/bulk-inventory-controller.js", "controllers/mass-renewal-controller.js", "services/mass-renewal-watchdog-service.js", "controllers/mass-renewal-workflow-controller.js", "services/renewal-verification-flow.js", "services/renewal-reinventory-flow.js", "services/renewal-phase1-retry-service.js", "services/paid-checkout-recovery-service.js", "controllers/renewal-workflow-controller.js", "services/renewal-verification-service.js", "repositories/renewal-state-repository.js", "services/template-fill-service.js", "services/insertion-lock-service.js", "controllers/template-fill-controller.js", "services/trash-template-publish-detection-service.js", "services/archive-insertion-service.js", "services/archive-insertion-verification-service.js", "services/archive-insertion-recovery-service.js", "controllers/archive-insertion-controller.js", "services/remote-delete-replacement-service.js", "services/published-inventory-resolver.js", "services/diagnostic-export-service.js", "services/public-listing-evidence-service.js", "services/renewal-public-evidence-coordinator.js", "../shared/managed-navigation.js", "lib/inventory-reconciliation.js", "../shared/my-ads-readiness.js", "lib/inventory-scope.js", "../shared/platform-hardening.js", "services/tab-load-coordinator.js", "../shared/template-schema-core.js", "services/persisted-owner-observer.js", "services/additional-owner-observer.js", "services/phase4-uncertainty-journal.js", "services/cross-worker-atomic-admission.js", "services/auto-publish-intent-journal.js", "services/publish-intent-authorization-service.js");
 // Private updater policy/authority: no content/app IPC route; production proof
 // sources remain intentionally absent until each of 15 owners is grounded.
 importScripts("../../lib/update-idle-policy.js", "services/trusted-owner-authority.js");
@@ -37,6 +37,7 @@ const InventoryImageStore = KRDeps.require('KRInventoryImageStore');
 const InventoryCaptureService = KRDeps.require('KRInventoryCaptureService');
 const InventoryRefreshService = KRDeps.require('KRInventoryRefreshService');
 const TrashService = KRDeps.require('KRTrashService');
+const TrashManagementController = KRDeps.require('KRTrashManagementController');
 const ManagedTabWorkerService = KRDeps.require('KRManagedTabWorkerService');
 const ContentConnectionManager = KRDeps.require('KRContentConnectionManager');
 const AccountProbeService = KRDeps.require('KRAccountProbeService');
@@ -134,7 +135,7 @@ const MASS_RENEWAL_MAX_ITEMS = 10;
 const MASS_RENEWAL_BATCH_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 const MASS_RENEWAL_WATCHDOG_STALE_MS = 5 * 60 * 1000;
 const MASS_RENEWAL_WATCHDOG_TICK_MS = 20 * 1000;
-const TRASH_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
+const TRASH_RETENTION_MS = 30 * 24 * 60 * 60 * 1000; // Legacy 30-day fallback for older contracts.
 const APP_NOTICE_KEY = "appNoticeV1";
 const PLATFORM_ACCESS_RESTRICTION_KEY = "platformAccessRestrictionV1";
 const PLATFORM_ACCESS_RESTRICTION_ERROR_CODE = "KR_PLATFORM_ACCESS_RESTRICTED";
@@ -640,7 +641,8 @@ async function openOrFocusAppWindow() {
 
 let inventoryRepository = null;
 let inventoryImageStore = null;
-let trashService = null;
+let trashManagementController = null;
+let diagnosticsService = null; // Required by eager diagnostic-session startup and runtime message error handling.
 
 function requireInventoryRepository() {
   if (inventoryRepository) return inventoryRepository;
@@ -652,6 +654,9 @@ function requireInventoryRepository() {
   });
   return inventoryRepository;
 }
+
+// Retained public storage facade: renewal and legacy IndexedDB consumers use this.
+function openDatabase() { return requireInventoryRepository().openDatabase(); }
 
 function requireInventoryImageStore() {
   if (inventoryImageStore) return inventoryImageStore;
@@ -666,16 +671,15 @@ function requireInventoryImageStore() {
   return inventoryImageStore;
 }
 
-function requireTrashService() {
-  if (trashService) return trashService;
-  if (!TrashService?.create) throw new Error('trash-service.js must load before trash storage is used');
-  trashService = TrashService.create({ inventoryRepository: requireInventoryRepository(), retentionMs: TRASH_RETENTION_MS });
-  return trashService;
+function requireTrashManagementController() {
+  if (!trashManagementController) trashManagementController = TrashManagementController.create({
+    TrashService, inventoryRepository: requireInventoryRepository(),
+    storageLocal: chrome.storage.local, selectedProfileKey: SELECTED_PROFILE_KEY,
+    logDiagnostic, broadcastInventoryChanged, withAutonomousAdmission
+  });
+  return trashManagementController;
 }
-
-function openDatabase() { return requireInventoryRepository().openDatabase(); }
-
-let diagnosticsService = null;
+function requireTrashService() { return requireTrashManagementController().service; }
 
 function requireDiagnosticsService() {
   if (diagnosticsService) return diagnosticsService;
@@ -803,17 +807,19 @@ async function readInventoryRecordsForProfile(profileId) { return requireInvento
 
 function invalidateTrashPurgeSchedule() { requireTrashService().invalidatePurgeSchedule(); }
 
-async function purgeExpiredTrash() {
-  const result = await requireTrashService().purgeExpired();
-  if (!result.purged) return { purged: 0, skipped: result.skipped === true, nextDueAt: result.nextDueAt };
-  await logDiagnostic('info', 'TRASH_EXPIRED_PURGED', { count: result.expired.length, inventoryIds: result.expired.map(record => String(record.inventoryId || '')).slice(0, 100) }, { module: 'background', operation: 'trash-purge' }).catch(() => {});
-  broadcastInventoryChanged('trash-expired-purged', { count: result.expired.length });
-  return { purged: result.expired.length, nextDueAt: result.nextDueAt };
-}
+async function purgeExpiredTrash() { return requireTrashManagementController().purgeExpiredTrash(); }
 
 async function listInventories(profileId) { await purgeExpiredTrash(); const records = (await readInventoryRecordsForProfile(profileId)).filter(record => !isTrashRecord(record)); return records.sort((a, b) => String(b.capturedAt || '').localeCompare(String(a.capturedAt || ''))); }
 
 async function listTrashEntries(profileId) { await purgeExpiredTrash(); return requireTrashService().list(profileId); }
+
+async function getTrashRetentionConfiguration() { return requireTrashService().getConfiguration(); }
+async function previewTrashRetentionChange(message) {
+  return requireTrashService().previewRetentionChange(message?.retentionDays, message?.selectedProfileId);
+}
+async function commitTrashRetentionChange(message) {
+  return requireTrashManagementController().commitTrashRetentionChange(message);
+}
 
 async function setAccountGateDiagnosticState(message = {}) { return requireAccountSessionController().setAccountGateDiagnosticState(message); }
 
@@ -876,21 +882,8 @@ async function deleteInventoryStorageRecord(inventoryId) { return requireInvento
 
 async function moveInventoryToTrash(inventoryId, reason = 'manual', context = {}) { return requireTrashService().moveToTrash(inventoryId, reason, context); }
 
-async function resetTrashRetention(inventoryId) {
-  const id = String(inventoryId || '');
-  const updated = await requireTrashService().resetRetention(id);
-  await logDiagnostic('info', 'TRASH_RETENTION_RESET', { inventoryId: id, adId: updated.adId || null, expiresAt: updated.trash?.expiresAt || null }, { module: 'background', operation: 'trash-retention-reset', context: { adId: updated.adId || null } }).catch(() => {});
-  broadcastInventoryChanged('trash-retention-reset', { inventoryId: id, adId: updated.adId || null, expiresAt: updated.trash?.expiresAt || null });
-  return { inventoryId: id, expiresAt: updated.trash?.expiresAt || null, retentionResetAt: updated.trash?.retentionResetAt || null };
-}
-
-async function deleteTrashEntry(inventoryId) {
-  const id = String(inventoryId || '');
-  const record = await requireTrashService().deleteEntry(id);
-  await logDiagnostic('info', 'TRASH_ENTRY_PERMANENTLY_DELETED', { inventoryId: id, adId: record.adId || null, trashedAt: record.trash?.trashedAt || null }, { module: 'background', operation: 'trash-delete', context: { adId: record.adId || null } }).catch(() => {});
-  broadcastInventoryChanged('trash-entry-deleted', { inventoryId: id, adId: record.adId || null });
-  return { deleted: true, inventoryId: id };
-}
+async function resetTrashRetention(inventoryId) { return requireTrashManagementController().resetTrashRetention(inventoryId); }
+async function deleteTrashEntry(inventoryId) { return requireTrashManagementController().deleteTrashEntry(inventoryId); }
 
 async function deleteInventory(inventoryId) {
   const active = await getBulkRunState();
@@ -977,6 +970,7 @@ async function discardRenewalDraft(message) {
 }
 
 async function clearInventories(profileId) {
+  const retention = (await getTrashRetentionConfiguration()).retentionDays;
   const active = await getBulkRunState();
   if (active?.status === "running" || active?.retryAdId) throw new Error("Die Inventarliste kann während einer laufenden Erfassung oder einer einzelnen Wiederholung nicht geleert werden.");
   const renewals = await readRenewalSessions().catch(() => ({}));
@@ -995,7 +989,7 @@ async function clearInventories(profileId) {
       const store = tx.objectStore(INVENTORY_STORE);
       for (const record of records) store.put(trashRecordFrom(record, 'inventory-cleared', { source: 'clear-inventory' }, now));
     });
-    await logDiagnostic('info', 'INVENTORY_CLEARED_TO_TRASH', { count: records.length, profileId: profileId === UNASSIGNED_PROFILE_ID ? null : (profileId || null), unassigned: profileId === UNASSIGNED_PROFILE_ID, expiresAt: new Date(now.getTime() + TRASH_RETENTION_MS).toISOString() }).catch(() => {});
+    await logDiagnostic('info', 'INVENTORY_CLEARED_TO_TRASH', { count: records.length, profileId: profileId === UNASSIGNED_PROFILE_ID ? null : (profileId || null), unassigned: profileId === UNASSIGNED_PROFILE_ID, expiresAt: retention === 'infinite' ? null : new Date(now.getTime() + retention * 24 * 60 * 60 * 1000).toISOString() }).catch(() => {});
     broadcastInventoryChanged('cleared-to-trash', { count: records.length });
     return { cleared: true, movedToTrash: records.length };
   } finally { db.close(); }
@@ -2283,6 +2277,9 @@ const backgroundMessageRouter = BackgroundMessageRouter.create({
   "GET_TAB_REGISTRY_SNAPSHOT": (message, sender) => getTabRegistrySnapshot(),
   "REACTIVATE_DISCARDED_TABS": (message, sender) => reactivateDiscardedTabs(message),
   "GET_RENEWAL_CONFIGURATION": (message, sender) => getRenewalConfiguration(),
+  "GET_TRASH_RETENTION_CONFIGURATION": (message, sender) => getTrashRetentionConfiguration(),
+  "PREVIEW_TRASH_RETENTION_CHANGE": (message, sender) => previewTrashRetentionChange(message),
+  "COMMIT_TRASH_RETENTION_CHANGE": (message, sender) => commitTrashRetentionChange(message),
   "SET_RENEWAL_MODE": (message, sender) => setRenewalMode(message),
   "SET_RENEWAL_PHASE_ATTEMPTS": (message, sender) => setRenewalPhaseAttempts(message),
   "OPEN_EDIT_AD": (message, sender) => openEditAd(message),
@@ -2415,7 +2412,7 @@ chrome.action?.onClicked?.addListener(() => {
 void withAutonomousAdmission('tab-registry-boot', () => reconcileTabRegistry()).catch(() => {});
 chrome.runtime.onStartup?.addListener(() => { void withAutonomousAdmission('tab-registry-startup', () => reconcileTabRegistry()).catch(() => {}); });
 
-// The 30-day trash purge is locally mutating maintenance, not just a read.
+// Configurable local-trash expiry is mutating maintenance, not just a read.
 // All three autonomous launch paths must observe the persistent update fence.
 void withAutonomousAdmission('trash-purge-boot', () => purgeExpiredTrash()).catch(() => {});
 chrome.runtime.onStartup?.addListener(() => { void withAutonomousAdmission('trash-purge-startup', () => purgeExpiredTrash()).catch(() => {}); });

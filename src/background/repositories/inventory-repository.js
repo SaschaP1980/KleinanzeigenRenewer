@@ -152,6 +152,52 @@
         return { inventoryId: id };
       }
 
+
+      // Exact record-ID and local-image removal must share one readwrite transaction.
+      // A stale expiry scan or a concurrent reset/restore must never authorize deletion.
+      async function deleteTrashIfEligible(inventoryId, expected, days, nowMs = Date.now()) {
+        const id = String(inventoryId || '');
+        if (!id || !expected || ![10, 30, 60, 90, 180, 360].includes(days) || !Number.isFinite(nowMs)) {
+          throw new Error('Ungültiger oder unsicherer Papierkorb-Löschauftrag.');
+        }
+        const db = await openDatabase();
+        try {
+          return await new Promise((resolve, reject) => {
+            const tx = db.transaction([inventoryStoreName, imageStoreName], 'readwrite');
+            const inventories = tx.objectStore(inventoryStoreName);
+            const images = tx.objectStore(imageStoreName);
+            let failed = null;
+            let deleted = false;
+            tx.onerror = () => { failed ||= tx.error; };
+            tx.onabort = () => reject(failed || tx.error || new Error('Papierkorb-Löschung fehlgeschlagen.'));
+            tx.oncomplete = () => resolve(deleted);
+            const request = inventories.get(id);
+            request.onerror = () => { failed = request.error; tx.abort(); };
+            request.onsuccess = () => {
+              const record = request.result;
+              if (!record || !(record.recordKind === 'trash' || record.trash?.trashedAt)) return;
+              const actualReset = record.trash?.retentionResetAt == null ? undefined : String(record.trash.retentionResetAt);
+              if (String(record.profileId || '') !== String(expected.profileId || '')
+                || String(record.trash?.trashedAt || '') !== String(expected.trashedAt || '')
+                || actualReset !== expected.retentionResetAt) return;
+              const trashed = Date.parse(record.trash?.trashedAt || '');
+              const reset = Date.parse(actualReset || '');
+              if (!Number.isFinite(trashed)) return;
+              const since = Number.isFinite(reset) && reset >= trashed ? reset : trashed;
+              if (since + days * 24 * 60 * 60 * 1000 > nowMs) return;
+              const cursor = images.index('inventoryId').openKeyCursor(IDBKeyRange.only(id));
+              cursor.onerror = () => { failed = cursor.error; tx.abort(); };
+              cursor.onsuccess = () => {
+                const row = cursor.result;
+                if (row) { images.delete(row.primaryKey); row.continue(); return; }
+                inventories.delete(id);
+                deleted = true;
+              };
+            };
+          });
+        } finally { db.close(); }
+      }
+
       async function countUnassignedActive(isTrashRecord) {
         const db = await openDatabase();
         try {
@@ -313,7 +359,7 @@
         return records.length;
       }
 
-      return Object.freeze({ openDatabase, openSharedDatabase, readAll, readForProfile, get, put, commit, deleteWithImages, countUnassignedActive, readTrashExpiryState, unassignProfileRecords, assignUnassignedRecords, mutate, putMany });
+      return Object.freeze({ openDatabase, openSharedDatabase, readAll, readForProfile, get, put, commit, deleteWithImages, deleteTrashIfEligible, countUnassignedActive, readTrashExpiryState, unassignProfileRecords, assignUnassignedRecords, mutate, putMany });
     }
   });
   globalThis.KRDeps?.register?.('KRInventoryRepository', API);

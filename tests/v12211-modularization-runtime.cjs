@@ -43,10 +43,10 @@ function loadModule(file, exportName, extra = {}) {
   const repo = {
     readForProfile: async () => [current],
     get: async () => current,
-    readAll: async () => [current],
+    readAll: async () => { expiryReads += 1; return [current]; },
     async mutate(id, mutator) { assert.equal(id, current.inventoryId); current = mutator(structuredClone(current)); return current; },
     async deleteWithImages(id) { deleted.push(id); },
-    async readTrashExpiryState() { expiryReads += 1; return { expired: [], nextDueAt: Date.now() + 60000 }; },
+    async deleteTrashIfEligible() { throw Error('No record should be due before 30 days in this fixture'); },
     async putMany(rows) { current = rows[0] || current; return rows.length; }
   };
   const { api: trashApi } = loadModule('trash-service.js', 'KRTrashService');
@@ -56,7 +56,7 @@ function loadModule(file, exportName, extra = {}) {
   assert.equal(trashed.trash.reason, 'runtime-test');
   await trash.purgeExpired();
   await trash.purgeExpired();
-  assert.equal(expiryReads, 1, 'second purge should use cached next due time');
+  assert.equal(expiryReads, 1, 'second policy-derived purge should use cached next due time');
   assert.deepEqual(deleted, []);
   pass('trash service preserves move semantics and next-expiry hot-path cache');
 

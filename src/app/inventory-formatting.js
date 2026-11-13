@@ -121,6 +121,7 @@
       }
 
       function trashRetentionLabel(record, now = Date.now()) {
+        if (record?.trash?.retentionIndefinite === true) return 'Unbegrenzt (∞)';
         const days = remainingTrashDays(record, now);
         if (days === null) return 'Ablauf unbekannt';
         if (days === 0) return 'Frist abgelaufen';
@@ -128,6 +129,7 @@
       }
 
       function trashRetentionPresentation(record, now = Date.now()) {
+        if (record?.trash?.retentionIndefinite === true) return 'Unbegrenzt (∞) – bis zur ausdrücklichen endgültigen Löschung';
         const days = remainingTrashDays(record, now);
         if (days === null) return 'Aufbewahrung unbekannt';
         const date = formatCalendarDate(record.trash.expiresAt);

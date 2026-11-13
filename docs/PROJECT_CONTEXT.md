@@ -73,7 +73,7 @@ Safe Mode means the four-phase guarded replacement workflow:
 3. independently verify presence under the correct account and semantic match;
 4. only then retire the old ad by authoritative source Ad ID/profile binding and prove absence through a fresh independent verification.
 
-Local promotion occurs only after the source-delete boundary is verified. The old item remains in the local trash retention model for 30 days.
+Local promotion occurs only after the source-delete boundary is verified. The old item remains in the local trash according to the configured policy (10/30/60/90/180/360 days or indefinite; default 30 days). Shortening retention must not silently delete currently stored records without user confirmation.
 
 Never delete or replace based only on title, price, image or similarity.
 

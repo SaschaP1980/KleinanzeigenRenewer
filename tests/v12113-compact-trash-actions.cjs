@@ -8,7 +8,7 @@ const css = fs.readFileSync(path.join(root, 'app.css'), 'utf8');
 const compactTrash = app.match(/function renderCompactTrashRow[\s\S]*?\n}\n\nfunction /)?.[0] || '';
 
 assert.ok(compactTrash, 'renderCompactTrashRow missing');
-assert.match(compactTrash, /icon:\s*'update'[\s\S]{0,180}label:\s*'30 Tage neu starten'/, 'compact trash reset must reuse update icon');
+assert.match(compactTrash, /icon:\s*'update'[\s\S]{0,180}label:\s*'Frist neu starten'/, 'compact trash reset must reuse update icon');
 assert.match(compactTrash, /icon:\s*'zip-export'[\s\S]{0,180}label:\s*'Als ZIP exportieren'/, 'compact trash ZIP action missing');
 assert.match(compactTrash, /RESET_TRASH_RETENTION/, 'compact trash reset must use existing retention runtime action');
 assert.match(compactTrash, /USER_TRASH_RETENTION_RESET_CLICK/, 'compact trash reset diagnostics missing');

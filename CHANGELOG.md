@@ -4,6 +4,13 @@ This is the canonical version-specific history for Kleinanzeigen Manager. Entrie
 
 All distinct historical section bodies from the former root README and CHANGELOG are preserved with source labels and line numbers. The [KAR-170 migration ledger](docs/maintenance/KAR170_CHANGELOG_MIGRATION.json) identifies their original Git blobs and body checksums. Overlapping versions retain distinct factual notes; older references to planned builds or native/CI acceptance are **historical**, not live status.
 
+## v1.24.0 — KAR-161 configurable local trash retention (Work candidate)
+
+- Add the seven-position 10/30/60/90/180/360/∞ control under **Konfiguration** with 30 days as the legacy/default local policy. Persist the setting across Chrome restarts; keep it distinct from remotely hosted Kleinanzeigen listings.
+- Preview any shortening against persisted local trash, show an explicit irreversible-delete modal only when currently stored records qualify, and revalidate all stored records and the active profile before a single-use confirmed commit. Cancelling, Escape or stale confirmation must not change storage.
+- Evaluate retention from actual trash placement or an explicitly restarted retention period; guard local record/image deletion by atomic IndexedDB identity/age checks. Under ∞, age-based purge is disabled. Update the visible Papierkorb deadline/countdown, descriptions and reset notices accordingly.
+- Include focused characterization/safety tests and the established full Work PR, dynamic public coverage, architecture, package and Chromium validation. This source candidate does not imply a GitHub Release or native acceptance.
+
 ## v1.23.92 — KAR-175 in-process background responsibility extraction (Work candidate)
 
 - Refactor `src/background/background.js` into nine cohesive in-process MV3 services and controllers for inventory capture, inventory refresh, fresh renewal evidence, guarded phase-1 retry, immutable publish-intent authorization and independent remote proof, manual listing navigation, diagnostics correlation, strict listing URL evidence and conservative trash-template publication detection. Keep existing message-routing facades and emergency-reset in-flight Set authority.
