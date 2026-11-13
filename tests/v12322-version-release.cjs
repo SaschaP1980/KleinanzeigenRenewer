@@ -101,7 +101,7 @@ for(const p of files){ tree.update(p); tree.update('\0'); tree.update(Buffer.fro
 const kar134SchemaRuntime = files.includes('src/shared/template-schema-core.js') && files.includes('src/content/template-schema-preflight.js') ? 2 : 0;
 const kar175InventoryOwners = [
   ['src/background/services/inventory-capture-service.js','KRInventoryCaptureService'],
-  ['src/background/services/inventory-refresh-service.js','KRInventoryRefreshService',
+  ['src/background/services/inventory-refresh-service.js','KRInventoryRefreshService'],
   ['src/background/services/renewal-public-evidence-coordinator.js','KRRenewalPublicEvidenceCoordinator'],
   ['src/background/services/renewal-phase1-retry-service.js','KRRenewalPhase1RetryService'],
   ['src/background/services/publish-intent-authorization-service.js','KRPublishIntentAuthorizationService'],
