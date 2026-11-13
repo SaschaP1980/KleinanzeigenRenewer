@@ -18,6 +18,7 @@ module.exports = [
   readIfPresent('trash-service.js'),
   readIfPresent('single-inventory-controller.js'),
   readIfPresent('bulk-inventory-controller.js'),
+  readIfPresent('src/background/services/inventory-capture-service.js'),
   readIfPresent('src/background/services/bulk-worker-service.js'),
   readIfPresent('src/background/services/bulk-reconciliation-service.js'),
   readIfPresent('mass-renewal-controller.js'),

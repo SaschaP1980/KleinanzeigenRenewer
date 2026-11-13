@@ -38,4 +38,6 @@ const routerPath=path.join(root,'background-message-router.js');
 const policyPath=path.join(root,'renewal-policy.js');
 const router=fs.existsSync(routerPath)?fs.readFileSync(routerPath,'utf8'):'';
 const policy=fs.existsSync(policyPath)?fs.readFileSync(policyPath,'utf8'):'';
-module.exports=[policy,router,templateController,insertionLock,emergencyReset,background].filter(Boolean).join('\n');
+const inventoryCapturePath=path.join(root,'src/background/services/inventory-capture-service.js');
+const inventoryCapture=fs.existsSync(inventoryCapturePath)?fs.readFileSync(inventoryCapturePath,'utf8'):'';
+module.exports=[policy,router,templateController,insertionLock,emergencyReset,background,inventoryCapture].filter(Boolean).join('\n');
