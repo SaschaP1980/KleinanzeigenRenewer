@@ -56,7 +56,7 @@ for (const file of ['action-new-listing.svg','action-update.svg','action-delete.
 const compactInventory = app.match(/function renderCompactInventoryRow[\s\S]*?\n}\n\nfunction /)?.[0] || '';
 const compactTrash = app.match(/function renderCompactTrashRow[\s\S]*?\n}\n\nfunction /)?.[0] || '';
 assert.ok(compactInventory && compactInventory.includes('makeCompactInventoryExportButton'));
-assert.ok(compactTrash && compactTrash.includes('30 Tage neu starten') && compactTrash.includes('Als ZIP exportieren'));
+assert.ok(compactTrash && compactTrash.includes('Frist neu starten') && compactTrash.includes('Als ZIP exportieren'));
 assert.ok(app.includes('Als ZIP exportieren'));
 
 console.log('v1.21.0 compact views + message history contract: PASS');
