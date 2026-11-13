@@ -102,7 +102,8 @@ const kar134SchemaRuntime = files.includes('src/shared/template-schema-core.js')
 const kar175InventoryOwners = [
   ['src/background/services/inventory-capture-service.js','KRInventoryCaptureService'],
   ['src/background/services/inventory-refresh-service.js','KRInventoryRefreshService',
-  ['src/background/services/renewal-public-evidence-coordinator.js','KRRenewalPublicEvidenceCoordinator']]
+  ['src/background/services/renewal-public-evidence-coordinator.js','KRRenewalPublicEvidenceCoordinator'],
+  ['src/background/services/renewal-phase1-retry-service.js','KRRenewalPhase1RetryService']]
 ].filter(([file, provider]) => files.includes(file) &&
   fs.readFileSync('src/background/background.js','utf8').includes("KRDeps.require('"+provider+"')") &&
   fs.readFileSync('scripts/package.py','utf8').includes("'"+file+"'")).length;

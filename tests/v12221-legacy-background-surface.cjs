@@ -44,4 +44,6 @@ const inventoryRefreshPath=path.join(root,'src/background/services/inventory-ref
 const inventoryRefresh=fs.existsSync(inventoryRefreshPath)?fs.readFileSync(inventoryRefreshPath,'utf8'):'';
 const renewalPublicEvidencePath=path.join(root,'src/background/services/renewal-public-evidence-coordinator.js');
 const renewalPublicEvidence=fs.existsSync(renewalPublicEvidencePath)?fs.readFileSync(renewalPublicEvidencePath,'utf8'):'';
-module.exports=[policy,router,templateController,insertionLock,emergencyReset,background,inventoryCapture,inventoryRefresh,renewalPublicEvidence].filter(Boolean).join('\n');
+const renewalPhase1RetryPath=path.join(root,'src/background/services/renewal-phase1-retry-service.js');
+const renewalPhase1Retry=fs.existsSync(renewalPhase1RetryPath)?fs.readFileSync(renewalPhase1RetryPath,'utf8'):'';
+module.exports=[policy,router,templateController,insertionLock,emergencyReset,background,inventoryCapture,inventoryRefresh,renewalPublicEvidence,renewalPhase1Retry].filter(Boolean).join('\n');

@@ -21,6 +21,7 @@ module.exports = [
   readIfPresent('src/background/services/inventory-capture-service.js'),
   readIfPresent('src/background/services/inventory-refresh-service.js'),
   readIfPresent('src/background/services/renewal-public-evidence-coordinator.js'),
+  readIfPresent('src/background/services/renewal-phase1-retry-service.js'),
   readIfPresent('src/background/services/bulk-worker-service.js'),
   readIfPresent('src/background/services/bulk-reconciliation-service.js'),
   readIfPresent('mass-renewal-controller.js'),

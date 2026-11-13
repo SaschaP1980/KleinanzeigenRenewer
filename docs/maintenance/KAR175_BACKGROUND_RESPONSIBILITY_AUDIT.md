@@ -49,3 +49,11 @@
 - Important invariants moved unchanged: off-target failure classified fail-closed, platform restrictions propagate, fresh verification tab closed in `finally`, My Ads account-name and exact numeric ID checks, no public-not-found optimistic confirmation and no remote posting/deletion. The downstream inventory refresh's verified/uncertain logic remains unchanged.
 - Existing v1.23.19/v1.23.20/v1.23.22 source/module/public coverage guards now enumerate this explicitly registered/packaged owner rather than altering frozen historical Gold.
 - Full exact-head CI and packaged E2E **pending**, not presumed from this source extraction.
+
+## Wave 4 — retry-safe renewal phase 1 admission
+
+- Moved the three coherent retry rules (`phase1PublishBoundaryReached`, `canRetryRenewalPhase1`, `restartRenewalPhase1Attempt`) to `KRRenewalPhase1RetryService`; exported only the two previously consumed methods, kept original signatures in background as lazy in-process facades.
+- All original phase-one publish-boundary hard stops, per-session attempt budgets, persisted fill/renewal records, fresh target-tab ownership registration, old-tab retirement, failed-retry diagnostics and `finally` in-flight cleanup remain unchanged.
+- **Emergency-reset state authority preserved:** `renewalPhase1RetryInFlight` remains the same Set instance in background (also passed to `WorkflowEmergencyResetController`); injected into the service, never shadowed.
+- No publish-click, remote delete, account binding, update authority or storage schema changed. Dedicated test exercises positive/negative budget, already-published hard-stop, same-session record updates, failed tab open and retry-in-flight cleanup.
+- Source change does not infer native verification or final Chrome ZIP parity.

@@ -1,4 +1,4 @@
-importScripts("../shared/runtime-deps.js", "../shared/message-contract-registry.js", "../shared/renewal-policy.js", "background-message-router.js", "services/native-update-status-gateway.js", "services/native-status-bridge.js", "services/update-workflow-fence.js", "repositories/profile-repository.js", "repositories/inventory-repository.js", "repositories/inventory-image-store.js", "services/inventory-capture-service.js", "services/inventory-refresh-service.js", "services/trash-service.js", "services/diagnostics-service.js", "services/tab-registry.js", "services/managed-tab-worker-service.js", "services/content-connection-manager.js", "services/account-probe-service.js", "controllers/profile-management-controller.js", "controllers/account-session-controller.js", "controllers/platform-safety-controller.js", "controllers/tab-lifecycle-observer.js", "controllers/workflow-emergency-reset-controller.js", "lib/bulk-run-guard.js", "controllers/single-inventory-controller.js", "services/bulk-worker-service.js", "services/bulk-reconciliation-service.js", "controllers/bulk-inventory-controller.js", "controllers/mass-renewal-controller.js", "services/mass-renewal-watchdog-service.js", "controllers/mass-renewal-workflow-controller.js", "services/renewal-verification-flow.js", "services/renewal-reinventory-flow.js", "services/paid-checkout-recovery-service.js", "controllers/renewal-workflow-controller.js", "services/renewal-verification-service.js", "repositories/renewal-state-repository.js", "services/template-fill-service.js", "services/insertion-lock-service.js", "controllers/template-fill-controller.js", "services/archive-insertion-service.js", "services/archive-insertion-verification-service.js", "services/archive-insertion-recovery-service.js", "controllers/archive-insertion-controller.js", "services/remote-delete-replacement-service.js", "services/published-inventory-resolver.js", "services/diagnostic-export-service.js", "services/public-listing-evidence-service.js", "services/renewal-public-evidence-coordinator.js", "../shared/managed-navigation.js", "lib/inventory-reconciliation.js", "../shared/my-ads-readiness.js", "lib/inventory-scope.js", "../shared/platform-hardening.js", "services/tab-load-coordinator.js", "../shared/template-schema-core.js", "services/persisted-owner-observer.js", "services/additional-owner-observer.js", "services/phase4-uncertainty-journal.js", "services/cross-worker-atomic-admission.js", "services/auto-publish-intent-journal.js");
+importScripts("../shared/runtime-deps.js", "../shared/message-contract-registry.js", "../shared/renewal-policy.js", "background-message-router.js", "services/native-update-status-gateway.js", "services/native-status-bridge.js", "services/update-workflow-fence.js", "repositories/profile-repository.js", "repositories/inventory-repository.js", "repositories/inventory-image-store.js", "services/inventory-capture-service.js", "services/inventory-refresh-service.js", "services/trash-service.js", "services/diagnostics-service.js", "services/tab-registry.js", "services/managed-tab-worker-service.js", "services/content-connection-manager.js", "services/account-probe-service.js", "controllers/profile-management-controller.js", "controllers/account-session-controller.js", "controllers/platform-safety-controller.js", "controllers/tab-lifecycle-observer.js", "controllers/workflow-emergency-reset-controller.js", "lib/bulk-run-guard.js", "controllers/single-inventory-controller.js", "services/bulk-worker-service.js", "services/bulk-reconciliation-service.js", "controllers/bulk-inventory-controller.js", "controllers/mass-renewal-controller.js", "services/mass-renewal-watchdog-service.js", "controllers/mass-renewal-workflow-controller.js", "services/renewal-verification-flow.js", "services/renewal-reinventory-flow.js", "services/renewal-phase1-retry-service.js", "services/paid-checkout-recovery-service.js", "controllers/renewal-workflow-controller.js", "services/renewal-verification-service.js", "repositories/renewal-state-repository.js", "services/template-fill-service.js", "services/insertion-lock-service.js", "controllers/template-fill-controller.js", "services/archive-insertion-service.js", "services/archive-insertion-verification-service.js", "services/archive-insertion-recovery-service.js", "controllers/archive-insertion-controller.js", "services/remote-delete-replacement-service.js", "services/published-inventory-resolver.js", "services/diagnostic-export-service.js", "services/public-listing-evidence-service.js", "services/renewal-public-evidence-coordinator.js", "../shared/managed-navigation.js", "lib/inventory-reconciliation.js", "../shared/my-ads-readiness.js", "lib/inventory-scope.js", "../shared/platform-hardening.js", "services/tab-load-coordinator.js", "../shared/template-schema-core.js", "services/persisted-owner-observer.js", "services/additional-owner-observer.js", "services/phase4-uncertainty-journal.js", "services/cross-worker-atomic-admission.js", "services/auto-publish-intent-journal.js");
 // Private updater policy/authority: no content/app IPC route; production proof
 // sources remain intentionally absent until each of 15 owners is grounded.
 importScripts("../../lib/update-idle-policy.js", "services/trusted-owner-authority.js");
@@ -50,6 +50,7 @@ const MassRenewalWorkflowController = KRDeps.require('KRMassRenewalWorkflowContr
 const RenewalVerificationService = KRDeps.require('KRRenewalVerificationService');
 const RenewalStateRepository = KRDeps.require('KRRenewalStateRepository');
 const RenewalWorkflowController = KRDeps.require('KRRenewalWorkflowController');
+const RenewalPhase1RetryService = KRDeps.require('KRRenewalPhase1RetryService');
 const TemplateFillService = KRDeps.require('KRTemplateFillService');
 const InsertionLockService = KRDeps.require('KRInsertionLockService');
 const TemplateFillController = KRDeps.require('KRTemplateFillController');
@@ -2198,115 +2199,24 @@ async function startTemplateFill(inventoryId, options = {}) { return await requi
 
 const renewalPhase1RetryInFlight = new Set();
 
-function phase1PublishBoundaryReached(renewal, fill = null) {
-  if (/^\d+$/.test(String(renewal?.newAdId || ''))) return true;
-  if (renewal?.publishClickedAt || fill?.publishClickedAt) return true;
-  const statuses = [renewal?.status, fill?.status].map(value => String(value || ''));
-  if (statuses.some(status => ['submitted', 'new-id-confirmed', 'reinventorizing', 'verifying', 'verified', 'replaced'].includes(status))) return true;
-  const stages = [renewal?.stage, fill?.stage].map(value => String(value || ''));
-  return stages.some(stage => ['publish-submitted', 'new-id-confirmed'].includes(stage));
+let renewalPhase1RetryService = null;
+function requireRenewalPhase1RetryService() {
+  if (!renewalPhase1RetryService) renewalPhase1RetryService = RenewalPhase1RetryService.create({
+    sessionPort: { readRenewalSessions, readFillSessions, writeFillSessions, persistRenewalSession },
+    policyPort: { renewalPhaseAttemptAvailable, renewalAttemptState, beginRenewalPhaseAttempt, normalizeRenewalMode, renewalMaxPhaseAttempts },
+    tabPort: { createAutomationTab, registerShadowTab, closeRegistryTab, updateAutomationTab },
+    diagnosticsPort: { correlationContext, sessionCorrelationContext, logDiagnostic },
+    configPort: { crypto, TEMPLATE_TARGET_URL, TAB_ROLES },
+    statePort: { renewalPhase1RetryInFlight }
+  });
+  return renewalPhase1RetryService;
 }
-
 function canRetryRenewalPhase1(renewal, fill = null) {
-  if (!renewal?.renewalId || phase1PublishBoundaryReached(renewal, fill)) return false;
-  if (['cancelled', 'replaced'].includes(String(renewal.status || ''))) return false;
-  return renewalPhaseAttemptAvailable(renewal, 1);
+  return requireRenewalPhase1RetryService().canRetryRenewalPhase1(renewal, fill);
 }
-
 async function restartRenewalPhase1Attempt(renewalId, failedFillId, reason = 'phase-1-fill-failed') {
-  const id = String(renewalId || '');
-  if (!id || renewalPhase1RetryInFlight.has(id)) return false;
-  renewalPhase1RetryInFlight.add(id);
-  try {
-    const [renewals, fills] = await Promise.all([readRenewalSessions(), readFillSessions()]);
-    const renewal = renewals[id];
-    const failedFill = fills[String(failedFillId || '')];
-    if (!renewal || !failedFill) return false;
-    if (String(renewal.fillId || '') !== String(failedFill.fillId || '')) return false;
-    if (!canRetryRenewalPhase1(renewal, failedFill)) return false;
-
-    const previousTargetTabId = Number(renewal.targetTabId || failedFill.targetTabId || 0) || null;
-    const previousAttempt = renewalAttemptState(renewal, 1);
-    const attemptState = beginRenewalPhaseAttempt(renewal, 1, { lastError: failedFill.result?.issues?.[0] || renewal.lastError || reason });
-    const fillId = crypto.randomUUID();
-    const tab = await createAutomationTab({ url: 'about:blank', active: false });
-    if (!tab?.id) throw new Error('Neuer Kleinanzeigen-Tab für den Phase-1-Wiederholungsversuch konnte nicht geöffnet werden.');
-
-    renewal.fillId = fillId;
-    renewal.targetTabId = tab.id;
-    renewal.status = 'draft';
-    renewal.stage = 'phase1-retry-started';
-    renewal.lastError = null;
-    renewal.updatedAt = new Date().toISOString();
-    await persistRenewalSession(renewal);
-
-    const nextFill = {
-      operationId: renewal.operationId || failedFill.operationId || null,
-      parentOperationId: renewal.parentOperationId || failedFill.parentOperationId || null,
-      fillId,
-      renewalId: id,
-      skeletonInventoryId: renewal.skeletonInventoryId,
-      inventoryId: renewal.sourceInventoryId,
-      sourceAdId: renewal.sourceAdId,
-      targetTabId: tab.id,
-      targetUrl: TEMPLATE_TARGET_URL,
-      renewalMode: normalizeRenewalMode(renewal.renewalMode),
-      maxPhaseAttempts: renewalMaxPhaseAttempts(renewal),
-      phase1Attempt: attemptState.attempt,
-      phase1AttemptId: attemptState.attemptId,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      status: 'waiting',
-      stage: 'tab-opened',
-      result: null,
-      autoReplacementAllowed: Boolean(renewal.autoReplacementAllowed),
-      startConfirmedAt: renewal.startConfirmedAt || failedFill.startConfirmedAt || null,
-      massBatchId: renewal.massBatchId || failedFill.massBatchId || null,
-      massBatchItemIndex: renewal.massBatchItemIndex ?? failedFill.massBatchItemIndex ?? null
-    };
-    fills[fillId] = nextFill;
-    await writeFillSessions(fills);
-    await registerShadowTab(tab.id, TAB_ROLES.RENEWAL_TARGET, { ...correlationContext(renewal), ownerType: 'renewal', ownerId: id, inventoryId: String(renewal.sourceInventoryId || ''), adId: String(renewal.sourceAdId || '') });
-
-    if (previousTargetTabId && previousTargetTabId !== tab.id) {
-      await closeRegistryTab(previousTargetTabId, 'renewal-phase1-retry', 'Vorheriger Phase-1-Zieltab').catch(() => {});
-    }
-
-    await updateAutomationTab(tab.id, { url: TEMPLATE_TARGET_URL, active: true });
-    await logDiagnostic('warning', 'RENEWAL_PHASE1_ATTEMPT_RESTARTED', {
-      renewalId: id,
-      sourceAdId: renewal.sourceAdId,
-      previousFillId: failedFill.fillId,
-      fillId,
-      previousAttempt: previousAttempt.attempt,
-      attempt: attemptState.attempt,
-      maxAttempts: renewalMaxPhaseAttempts(renewal),
-      phase1AttemptId: attemptState.attemptId,
-      reason: String(reason || '').slice(0, 300)
-    }, { module: 'background', operation: 'renewal-phase-1', context: sessionCorrelationContext(renewal, { renewalId: id, fillId, adId: renewal.sourceAdId, targetTabId: tab.id }) }).catch(() => {});
-    return true;
-  } catch (error) {
-    const renewals = await readRenewalSessions().catch(() => ({}));
-    const renewal = renewals[id];
-    if (renewal && !phase1PublishBoundaryReached(renewal)) {
-      renewal.status = 'verification-failed';
-      renewal.stage = 'phase1-retry-start-failed';
-      renewal.lastError = String(error.message || error).slice(0, 800);
-      await persistRenewalSession(renewal).catch(() => {});
-    }
-    await logDiagnostic('error', 'RENEWAL_PHASE1_RETRY_START_FAILED', {
-      renewalId: id,
-      fillId: failedFillId || null,
-      message: String(error.message || error).slice(0, 800)
-    }, { module: 'background', operation: 'renewal-phase-1', context: sessionCorrelationContext(renewal || { renewalId: id }, { renewalId: id }) }).catch(() => {});
-    return false;
-  } finally {
-    renewalPhase1RetryInFlight.delete(id);
-  }
+  return requireRenewalPhase1RetryService().restartRenewalPhase1Attempt(renewalId, failedFillId, reason);
 }
-
-
-
 
 async function deleteImagesByInventoryId(inventoryId) { return requireInventoryImageStore().deleteByInventoryId(inventoryId); }
 
