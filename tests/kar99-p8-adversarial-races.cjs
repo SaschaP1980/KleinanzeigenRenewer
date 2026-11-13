@@ -157,6 +157,36 @@ function allIdle(worker='worker-current',profile='profile-A'){
  const lost=disk();lost.control.failRead=true;
  await deny(make(lost,locks()).guardReserve(()=>true),
    'KR_UPDATE_FENCE_ATOMIC_STORAGE','storage enumeration failure denies update reserve');
+ // KAR-171 W3C RED: a restarted MV3 worker cannot trust a future-dated
+ // durable start+finish pair, even though both rows are structurally valid.
+ // The P8 origin Web Lock must reject the receipts BEFORE any reserve callback
+ // or subsequent external mutation is entered.
+ for (const [label,startedAtMs,completedAtMs] of [
+   ['future prior-worker start and finish',100100,100200],
+   ['future prior-worker finish with old start',99900,100200]
+ ]) {
+   const future=disk(),token='future_prior_worker_'+(++serial);
+   future.data[Atomic.START_PREFIX+token]={
+     schema:1,state:'admitted',token,
+     operationType:'AUTONOMOUS:renewal-detached-verify',
+     workerInstanceId:'worker-before-restart',startedAtMs
+   };
+   future.data[Atomic.FINISH_PREFIX+token]={
+     schema:1,state:'completed',token,
+     workerInstanceId:'worker-before-restart',completedAtMs
+   };
+   let entered=false,remoteMutation=0;
+   const afterRestart=make(future,locks(),'worker-after-restart');
+   await deny(afterRestart.guardReserve(()=>{entered=true;return true;}),
+     'KR_UPDATE_FENCE_ATOMIC_STORAGE',
+     label+' cannot be treated as completed prior-worker work');
+   pass(!entered,'future prior-worker receipt never enters reserve callback');
+   await deny(afterRestart.withAdmission('REMOTE',()=>{remoteMutation++;}),
+     'KR_UPDATE_FENCE_ATOMIC_STORAGE',
+     label+' prevents any later remote callback from starting');
+   pass(remoteMutation===0 && Object.keys(future.data).length===2,
+     'future receipt remains unresolved without new mutation or journal writes');
+ }
  const noWrite=disk();noWrite.control.failWrite=true;let noWriteRemote=0;
  await deny(make(noWrite,locks()).withAdmission('REMOTE',()=>{noWriteRemote++;}),
    'KR_UPDATE_FENCE_ATOMIC_STORAGE','journal write failure denies remote start before callback');
