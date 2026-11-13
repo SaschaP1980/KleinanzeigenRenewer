@@ -63,7 +63,7 @@ assert.match(resolver, /findRenewalAdInMyAdsFresh\(newAdId, expectedProfileName,
 assert.doesNotMatch(resolver, /reusedWorker/);
 pass('Safe-Mode public verification is ID-centered and uses fresh isolated workers rather than a recycled verification tab');
 
-const myAdsHelper = renewalPublicOwner.match(/async function findRenewalAdInMyAdsFresh\(adId, expectedProfileName,[\s\S]*?\n\}/)?.[0] || '';
+const myAdsHelper = renewalPublicOwner.match(/async function findRenewalAdInMyAdsFresh\(adId, expectedProfileName,[\s\S]*?\n      \}/)?.[0] || '';
 assert.match(myAdsHelper, /MY_ADS_PROJECTS_URL/);
 assert.match(myAdsHelper, /MY_ADS_STATUS/);
 assert.match(myAdsHelper, /FIND_OWN_AD_BY_ID/);
