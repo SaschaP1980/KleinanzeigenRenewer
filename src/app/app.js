@@ -3366,8 +3366,14 @@ recordSidebarBottomDiagnostics('startup');
 syncActionsActivityIndicator();
 void detectBackgroundEpoch('startup').then(() => recordActionsStateSnapshot('startup', { force: true }));
 
-Promise.all([ensureUiActivityLoaded(), loadListViewModes(), refreshProfileState(), refreshRenewalConfiguration(), refreshTrashRetentionConfiguration(), primeManagedWorkerTabCache()])
-  .then(() => Promise.all([inspectPage(), refreshInventories(), refreshBulkStatus(), refreshMassRenewalBatchStatus({ forceOpen: false, recoveryOnly: true, source: 'startup' })]))
+// An optional configuration or background inspection failure must not hide persisted inventory/trash.
+Promise.allSettled([ensureUiActivityLoaded(), loadListViewModes(), refreshProfileState(), refreshRenewalConfiguration(), refreshTrashRetentionConfiguration(), primeManagedWorkerTabCache()])
+  .then(() => Promise.allSettled([inspectPage(), refreshInventories(), refreshBulkStatus(), refreshMassRenewalBatchStatus({ forceOpen: false, recoveryOnly: true, source: 'startup' })]))
+  .then(results => {
+    if (results[1]?.status === 'rejected') {
+      setStatus('error', 'Inventar konnte nicht geladen werden', friendlyErrorMessage(results[1].reason));
+    }
+  })
   .catch(error => setStatus('error', 'Inventar konnte nicht geladen werden', friendlyErrorMessage(error)));
 schedulePageInspect(ACCOUNT_HEALTH_FALLBACK_MS);
 window.addEventListener('pagehide', () => {

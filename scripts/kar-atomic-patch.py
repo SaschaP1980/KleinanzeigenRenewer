@@ -14,7 +14,7 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parent.parent
 META = ("manifest.json", "package.json", "package-lock.json", "release/release-spec.json")
-VERSION = re.compile(r"^1\.23\.(0|[1-9][0-9]*)$")
+VERSION = re.compile(r"^1\.(23|24)\.(0|[1-9][0-9]*)$")
 HEX = re.compile(r"^[a-f0-9]{40}$")
 ISSUE = re.compile(r"^[1-9][0-9]*$")
 
@@ -30,10 +30,11 @@ def digest(data):
 
 def successor(version):
     require(isinstance(version, str) and VERSION.fullmatch(version),
-            "regular 1.23.x PATCH required, no correction or minor jump")
-    patch = int(version.split(".")[2])
-    require(22 <= patch < 2147483647, "PATCH outside safe range")
-    return "1.23." + str(patch + 1)
+            "regular 1.23.x or 1.24.x PATCH required, no correction or minor jump")
+    minor, patch = map(int, version.split(".")[1:])
+    require((minor == 23 and patch >= 22 or minor == 24) and patch < 2147483647,
+            "PATCH outside safe range")
+    return "1." + str(minor) + "." + str(patch + 1)
 
 
 def metadata_plan(meta):
@@ -49,8 +50,10 @@ def metadata_plan(meta):
     require(meta["release/release-spec.json"].get("packageVersion") == current,
             "release-spec packageVersion mismatch")
     spec = meta["release/release-spec.json"]
+    expected_next_minor = "1.24.0" if current.startswith("1.23.") else "TBD"
     require(spec.get("directBasis") == "1.23.20_c1" and
-            spec.get("nextPlannedBuild") == "1.24.0", "basis/next-minor policy drift")
+            spec.get("nextPlannedBuild") == expected_next_minor,
+            "basis/next-minor policy drift")
     future = copy.deepcopy(meta)
     for p in META:
         future[p]["version"] = next_version

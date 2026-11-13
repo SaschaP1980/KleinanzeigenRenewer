@@ -4,6 +4,12 @@ This is the canonical version-specific history for Kleinanzeigen Manager. Entrie
 
 All distinct historical section bodies from the former root README and CHANGELOG are preserved with source labels and line numbers. The [KAR-170 migration ledger](docs/maintenance/KAR170_CHANGELOG_MIGRATION.json) identifies their original Git blobs and body checksums. Overlapping versions retain distinct factual notes; older references to planned builds or native/CI acceptance are **historical**, not live status.
 
+## v1.24.1 — KAR-185 preserve inventory/trash visibility after app restart (Fast Patch)
+
+- Isolate initial inventory/trash loading from optional settings and account-inspection failures. A temporary `KR_UPDATE_FENCE_ATOMIC_BUSY` on renewal or local retention configuration must no longer leave saved records visually empty until profile switching.
+- Keep genuine inventory read errors explicit rather than representing an unknown result as an empty inventory. Preserve the account/profile binding and the existing strict MV3 updater safety fence; do not permit unsafe publish, deletion, or NativeHost update apply.
+- Add focused startup RED/GREEN regression coverage and enable the existing guarded ZIP-only Fast PATCH builder for the active 1.24.x line without permitting unapproved future version series. This source entry is not evidence of a GitHub Release.
+
 ## v1.24.0 — KAR-161 configurable local trash retention (Work candidate)
 
 - Add the seven-position 10/30/60/90/180/360/∞ control under **Konfiguration** with 30 days as the legacy/default local policy. Persist the setting across Chrome restarts; keep it distinct from remotely hosted Kleinanzeigen listings.
