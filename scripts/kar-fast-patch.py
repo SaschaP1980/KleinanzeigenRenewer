@@ -32,8 +32,19 @@ def require(value, reason):
 
 
 def run(*args, timeout=60, binary=False):
-    done = subprocess.run(args, cwd=ROOT, capture_output=True, check=True,
-                          text=not binary, timeout=timeout)
+    try:
+        done = subprocess.run(args, cwd=ROOT, capture_output=True, check=True,
+                              text=not binary, timeout=timeout)
+    except subprocess.CalledProcessError as error:
+        # A full safety-gate failure must retain bounded actionable RED evidence,
+        # not just the wrapper's non-zero exit status.
+        if args[:2] == ("bash", "scripts/coverage-gate.sh"):
+            for label, stream in (("stdout", error.stdout), ("stderr", error.stderr)):
+                if stream:
+                    value = stream.decode("utf-8", "replace") if isinstance(stream, bytes) else stream
+                    print("KAR58_FAST_GATE_FAILED_" + label.upper() + ":\\n" + value[-10000:],
+                          file=sys.stderr, flush=True)
+        raise
     return done.stdout if binary else done.stdout.strip()
 
 
