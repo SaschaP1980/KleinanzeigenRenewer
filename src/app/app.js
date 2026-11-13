@@ -3199,7 +3199,7 @@ appNoticeDismiss.addEventListener('click', async () => {
 clearInventoryButton.addEventListener('click', async () => {
   if (!currentRecords.length) return;
   void logAppEvent('USER_CLEAR_INVENTORY_CLICK', { count: currentRecords.length });
-  if (!await confirmAction({ title: 'Alle Anzeigen in den Papierkorb?', text: `Alle ${currentRecords.length} gespeicherten Anzeigen werden ${currentTrashRetentionDays === 'infinite' ? 'unbegrenzt' : 'für ' + trashRetentionDurationLabel()} im Papierkorb aufbewahrt.`, detail: 'Die Anzeigen bei Kleinanzeigen bleiben unverändert. Gespeicherte Bilder bleiben bis zum Ablauf erhalten.', confirmLabel: 'Alle in Papierkorb', danger: true })) {
+  if (!await confirmAction({ title: 'Alle Anzeigen in den Papierkorb?', text: `Alle ${currentRecords.length} gespeicherten Anzeigen werden ${currentTrashRetentionDays === 'infinite' ? 'unbegrenzt' : 'für ' + trashRetentionDurationLabel()} im Papierkorb aufbewahrt.`, detail: 'Die Anzeigen bei Kleinanzeigen bleiben unverändert. Gespeicherte Bilder bleiben bis zur gewählten Löschung erhalten.', confirmLabel: 'Alle in Papierkorb', danger: true })) {
     void logAppEvent('USER_CLEAR_INVENTORY_CANCELLED', { count: currentRecords.length });
     return;
   }
@@ -3207,7 +3207,7 @@ clearInventoryButton.addEventListener('click', async () => {
   try {
     await runtimeMessage(scopedProfileMessage('CLEAR_INVENTORIES'));
     void logAppEvent('USER_CLEAR_INVENTORY_SUCCEEDED', {});
-    setStatus('ready', 'Alle Einträge in Papierkorb verschoben', 'Die Einträge bleiben ${trashRetentionDurationLabel()} als Vorlagen erhalten.');
+    setStatus('ready', 'Alle Einträge in Papierkorb verschoben', `Die Einträge bleiben ${trashRetentionDurationLabel()} als Vorlagen erhalten.`);
     await refreshInventories();
   } catch (error) {
     void logAppEvent('USER_CLEAR_INVENTORY_FAILED', { message: error.message }, 'error');
