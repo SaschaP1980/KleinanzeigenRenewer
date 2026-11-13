@@ -43,9 +43,12 @@ jobs:
           readonly WORKFLOW='.github/workflows/kar178-historical-stable-release.yml'
           readonly ZIP="$RUNNER_TEMP/$ZIP_NAME"
 
-          # A later workflow edit must never republish or replace this historical Release.
-          test "$(git diff --name-status "$GITHUB_SHA^" "$GITHUB_SHA" -- "$WORKFLOW")" = "$(printf 'A\t%s' "$WORKFLOW")"
-          test "$(git diff --name-only "$GITHUB_SHA^" "$GITHUB_SHA")" = "$(printf '%s\n' "$WORKFLOW" 'docs/maintenance/KAR178_STABLE_BASELINE.md' 'docs/maintenance/SCRIPT_WORKFLOW_INVENTORY.json' 'tests/kar167-script-closure.cjs')"
+          # Exactly one recovery from the first failed publisher merge: require the
+          # original preceding main SHA and the two explicit correction paths only.
+          # Any subsequent edit/merge (or tag collision) must fail closed.
+          test "$(git rev-parse "$GITHUB_SHA^")" = 'af27c843ed0777d7a6d9e26aeba88f265691912e'
+          test "$(git diff --name-status "$GITHUB_SHA^" "$GITHUB_SHA" -- "$WORKFLOW")" = "$(printf 'M\t%s' "$WORKFLOW")"
+          test "$(git diff --name-only "$GITHUB_SHA^" "$GITHUB_SHA")" = "$(printf '%s\n' "$WORKFLOW" 'docs/maintenance/KAR178_STABLE_BASELINE.md')"
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           test -z "$(git status --porcelain)"
 
@@ -87,10 +90,24 @@ jobs:
           print("KAR178_HISTORICAL_RELEASE_IDENTITY_VERIFIED")
           PY
 
-          # Fail closed on any existing published OR draft release for this tag.
-          gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" > "$RUNNER_TEMP/kar178-existing-releases.json"
-          test "$(jq --arg tag "$TAG" '[.[] | select(.tag_name == $tag)] | length' "$RUNNER_TEMP/kar178-existing-releases.json")" = 0
-          readonly LATEST_BEFORE="$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name)"
+          # Targeted authenticated by-tag 404 probe: GITHUB_TOKEN cannot list releases
+          # in this repo (first publication run 43380692211 returned HTTP 403).
+          # A 403 or any status other than an explicit 404 is a hard stop.
+          set +e
+          release_probe="$(gh api -i "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" 2>&1)"
+          release_probe_rc=$?
+          set -e
+          if [ "$release_probe_rc" -eq 0 ]; then
+            echo "FAIL: release already exists for $TAG" >&2
+            exit 1
+          fi
+          if ! printf '%s\n' "$release_probe" | grep -Eq 'HTTP/[0-9.]+ 404'; then
+            echo "FAIL: release absence could not be verified (auth/API error)" >&2
+            exit 1
+          fi
+
+          # Latest is public metadata. Read it without the limited Actions app token.
+          readonly LATEST_BEFORE="$(curl -fsSL -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$GITHUB_REPOSITORY/releases/latest" | jq -r .tag_name)"
           test -n "$LATEST_BEFORE"
           test "$LATEST_BEFORE" != "$TAG"
 
@@ -157,7 +174,7 @@ jobs:
             --input "$RUNNER_TEMP/kar178-release-publish.json" > "$RUNNER_TEMP/kar178-release-published.json"
           test "$(jq -r .draft "$RUNNER_TEMP/kar178-release-published.json")" = false
           test "$(jq -r .tag_name "$RUNNER_TEMP/kar178-release-published.json")" = "$TAG"
-          test "$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name)" = "$LATEST_BEFORE"
+          test "$(curl -fsSL -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$GITHUB_REPOSITORY/releases/latest" | jq -r .tag_name)" = "$LATEST_BEFORE"
           test "$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" --jq .id)" = "$RELEASE_ID"
           test "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG" --jq .object.sha)" = "$TAG_OBJECT"
           test "$(git rev-parse "$TAG^{commit}")" = "$TARGET"
