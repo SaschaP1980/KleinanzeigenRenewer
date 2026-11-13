@@ -64,3 +64,9 @@
 - This is an explicit safety/receipt ownership boundary, not a generic utility move. Existing code was relocated unchanged, with explicit session, live-account, tab, journal and URL/config ports.
 - Maintains immutable admission receipt check, valid sender origin/page, same fill/workflow/profile/source binding, exact remote Ad ID, two independent account observations around journal begin and around full pagination scan, and fresh verification-tab `finally` close. No publish click was introduced and missing/ambiguous evidence still denies.
 - Focused tests cover invalid admission/source/sender/session, mismatched proof/account, durable journal permit and read-only verification cleanup. CI still required, no live account action undertaken.
+
+## Wave 6 — manual listing navigation and read-only diagnostic correlation
+
+- `KRManualListingNavigationController` owns the existing open-edit and open-readonly browser workflows, retaining exact numeric Ad ID check, expected same-ad public URL preference, ID-only fallback, user-visible tab focus and pending-load diagnostics. Browser tab creation/diagnostic code was relocated unchanged; UI message names and return values stay behind background facades.
+- `KRDiagnosticCorrelationService` owns the existing read-only session correlation enrichment for client diagnostics (fill, renewal, archive, mass batch, bulk). Operation-ID short circuit, backing storage key names, tab-ID matching and no-write policy preserved unchanged. Internal `correlationContextFromBindings` remains private.
+- Both use explicit trusted ports and do not grant any new account/worker/updater authority or mutate remote data. Observable positive and failure tests added. This moves ~7,350 source characters from the oversized entrypoint.

@@ -1,4 +1,4 @@
-importScripts("../shared/runtime-deps.js", "../shared/message-contract-registry.js", "../shared/renewal-policy.js", "background-message-router.js", "services/native-update-status-gateway.js", "services/native-status-bridge.js", "services/update-workflow-fence.js", "repositories/profile-repository.js", "repositories/inventory-repository.js", "repositories/inventory-image-store.js", "services/inventory-capture-service.js", "services/inventory-refresh-service.js", "services/trash-service.js", "services/diagnostics-service.js", "services/tab-registry.js", "services/managed-tab-worker-service.js", "services/content-connection-manager.js", "services/account-probe-service.js", "controllers/profile-management-controller.js", "controllers/account-session-controller.js", "controllers/platform-safety-controller.js", "controllers/tab-lifecycle-observer.js", "controllers/workflow-emergency-reset-controller.js", "lib/bulk-run-guard.js", "controllers/single-inventory-controller.js", "services/bulk-worker-service.js", "services/bulk-reconciliation-service.js", "controllers/bulk-inventory-controller.js", "controllers/mass-renewal-controller.js", "services/mass-renewal-watchdog-service.js", "controllers/mass-renewal-workflow-controller.js", "services/renewal-verification-flow.js", "services/renewal-reinventory-flow.js", "services/renewal-phase1-retry-service.js", "services/paid-checkout-recovery-service.js", "controllers/renewal-workflow-controller.js", "services/renewal-verification-service.js", "repositories/renewal-state-repository.js", "services/template-fill-service.js", "services/insertion-lock-service.js", "controllers/template-fill-controller.js", "services/archive-insertion-service.js", "services/archive-insertion-verification-service.js", "services/archive-insertion-recovery-service.js", "controllers/archive-insertion-controller.js", "services/remote-delete-replacement-service.js", "services/published-inventory-resolver.js", "services/diagnostic-export-service.js", "services/public-listing-evidence-service.js", "services/renewal-public-evidence-coordinator.js", "../shared/managed-navigation.js", "lib/inventory-reconciliation.js", "../shared/my-ads-readiness.js", "lib/inventory-scope.js", "../shared/platform-hardening.js", "services/tab-load-coordinator.js", "../shared/template-schema-core.js", "services/persisted-owner-observer.js", "services/additional-owner-observer.js", "services/phase4-uncertainty-journal.js", "services/cross-worker-atomic-admission.js", "services/auto-publish-intent-journal.js", "services/publish-intent-authorization-service.js");
+importScripts("../shared/runtime-deps.js", "../shared/message-contract-registry.js", "../shared/renewal-policy.js", "background-message-router.js", "services/native-update-status-gateway.js", "services/native-status-bridge.js", "services/update-workflow-fence.js", "repositories/profile-repository.js", "repositories/inventory-repository.js", "repositories/inventory-image-store.js", "services/inventory-capture-service.js", "services/inventory-refresh-service.js", "services/trash-service.js", "services/diagnostics-service.js", "services/diagnostic-correlation-service.js", "services/tab-registry.js", "services/managed-tab-worker-service.js", "services/content-connection-manager.js", "services/account-probe-service.js", "controllers/profile-management-controller.js", "controllers/account-session-controller.js", "controllers/manual-listing-navigation-controller.js", "controllers/platform-safety-controller.js", "controllers/tab-lifecycle-observer.js", "controllers/workflow-emergency-reset-controller.js", "lib/bulk-run-guard.js", "controllers/single-inventory-controller.js", "services/bulk-worker-service.js", "services/bulk-reconciliation-service.js", "controllers/bulk-inventory-controller.js", "controllers/mass-renewal-controller.js", "services/mass-renewal-watchdog-service.js", "controllers/mass-renewal-workflow-controller.js", "services/renewal-verification-flow.js", "services/renewal-reinventory-flow.js", "services/renewal-phase1-retry-service.js", "services/paid-checkout-recovery-service.js", "controllers/renewal-workflow-controller.js", "services/renewal-verification-service.js", "repositories/renewal-state-repository.js", "services/template-fill-service.js", "services/insertion-lock-service.js", "controllers/template-fill-controller.js", "services/archive-insertion-service.js", "services/archive-insertion-verification-service.js", "services/archive-insertion-recovery-service.js", "controllers/archive-insertion-controller.js", "services/remote-delete-replacement-service.js", "services/published-inventory-resolver.js", "services/diagnostic-export-service.js", "services/public-listing-evidence-service.js", "services/renewal-public-evidence-coordinator.js", "../shared/managed-navigation.js", "lib/inventory-reconciliation.js", "../shared/my-ads-readiness.js", "lib/inventory-scope.js", "../shared/platform-hardening.js", "services/tab-load-coordinator.js", "../shared/template-schema-core.js", "services/persisted-owner-observer.js", "services/additional-owner-observer.js", "services/phase4-uncertainty-journal.js", "services/cross-worker-atomic-admission.js", "services/auto-publish-intent-journal.js", "services/publish-intent-authorization-service.js");
 // Private updater policy/authority: no content/app IPC route; production proof
 // sources remain intentionally absent until each of 15 owners is grounded.
 importScripts("../../lib/update-idle-policy.js", "services/trusted-owner-authority.js");
@@ -21,6 +21,7 @@ const PersistedOwnerObserver = KRDeps.require('KRPersistedOwnerObserver');
 const AdditionalOwnerObserver = KRDeps.require('KRAdditionalOwnerObserver');
 const Phase4UncertaintyJournal = KRDeps.require('KRPhase4UncertaintyJournal');
 const DiagnosticsService = KRDeps.require('KRDiagnosticsService');
+const DiagnosticCorrelationService = KRDeps.require('KRDiagnosticCorrelationService');
 const TabRegistry = KRDeps.require('KRTabRegistry');
 const ManagedNavigation = KRDeps.require('KRManagedNavigation');
 const InventoryReconciliation = KRDeps.require('KRInventoryReconciliation');
@@ -40,6 +41,7 @@ const ContentConnectionManager = KRDeps.require('KRContentConnectionManager');
 const AccountProbeService = KRDeps.require('KRAccountProbeService');
 const ProfileManagementController = KRDeps.require('KRProfileManagementController');
 const AccountSessionController = KRDeps.require('KRAccountSessionController');
+const ManualListingNavigationController = KRDeps.require('KRManualListingNavigationController');
 const PlatformSafetyController = KRDeps.require('KRPlatformSafetyController');
 const WorkflowEmergencyResetController = KRDeps.require('KRWorkflowEmergencyResetController');
 const TabLifecycleObserver = KRDeps.require('KRTabLifecycleObserver');
@@ -242,73 +244,17 @@ function sessionCorrelationContext(session, extra = {}) {
   return { ...correlationContext(session, extra), ...extra };
 }
 
-function correlationContextFromBindings(baseContext = {}, bindings = {}) {
-  let result = correlationContext(baseContext);
-  const fillSessions = Object.values(bindings.fillSessions || {}).filter(Boolean);
-  const renewalSessions = Object.values(bindings.renewalSessions || {}).filter(Boolean);
-  const archiveSessions = Object.values(bindings.archiveSessions || {}).filter(Boolean);
-  const bulkRun = bindings.bulkRun && typeof bindings.bulkRun === 'object' ? bindings.bulkRun : null;
-  const massBatch = bindings.massBatch && typeof bindings.massBatch === 'object' ? bindings.massBatch : null;
-  const senderTabId = Number(baseContext?.senderTabId || 0) || null;
-
-  const fill = fillSessions.find(item =>
-    (result.fillId && String(item?.fillId || '') === String(result.fillId)) ||
-    (result.renewalId && String(item?.renewalId || '') === String(result.renewalId)) ||
-    (senderTabId && Number(item?.targetTabId || 0) === senderTabId)
-  ) || null;
-  if (fill) result = correlationContext(result, fill);
-
-  const renewal = renewalSessions.find(item =>
-    (result.renewalId && String(item?.renewalId || '') === String(result.renewalId)) ||
-    (result.fillId && String(item?.fillId || '') === String(result.fillId)) ||
-    (fill?.renewalId && String(item?.renewalId || '') === String(fill.renewalId)) ||
-    (senderTabId && Number(item?.targetTabId || 0) === senderTabId)
-  ) || null;
-  if (renewal) result = correlationContext(result, renewal);
-
-  const archive = archiveSessions.find(item =>
-    (result.archiveInsertionId && String(item?.archiveInsertionId || '') === String(result.archiveInsertionId)) ||
-    (result.fillId && String(item?.fillId || '') === String(result.fillId)) ||
-    (senderTabId && Number(item?.targetTabId || 0) === senderTabId)
-  ) || null;
-  if (archive) result = correlationContext(result, archive);
-
-  const massBatchId = String(result.massBatchId || renewal?.massBatchId || fill?.massBatchId || '');
-  const massItems = Array.isArray(massBatch?.items) ? massBatch.items : [];
-  const massItem = massItems.find(item =>
-    (result.renewalId && String(item?.renewalId || '') === String(result.renewalId)) ||
-    (result.operationId && String(item?.operationId || '') === String(result.operationId))
-  ) || null;
-  if (massItem) result = correlationContext(result, massItem, { massBatchId: massBatch?.batchId || massBatchId });
-
-  const bulkMatches = bulkRun && (
-    (result.bulkRunId && String(bulkRun.bulkRunId || bulkRun.runId || '') === String(result.bulkRunId)) ||
-    (result.runId && String(bulkRun.runId || '') === String(result.runId)) ||
-    (senderTabId && [bulkRun.sourceTabId, bulkRun.workerTabId, bulkRun.metadataTabId].some(value => Number(value || 0) === senderTabId))
-  );
-  if (bulkMatches) result = correlationContext(result, bulkRun);
-
-  if (massBatch && (massBatchId && String(massBatch.batchId || '') === massBatchId || massItem)) {
-    result = correlationContext(result, { ...massBatch, massBatchId: massBatch.batchId || massBatchId });
-  }
-  return result;
-}
-
-async function resolveClientDiagnosticCorrelation(message = {}, sender = {}) {
-  const senderTabId = Number(sender?.tab?.id || 0) || null;
-  const base = correlationContext(message?.context || {}, message?.details || {});
-  if (base.operationId) return base;
-  const stored = await chrome.storage.local.get([
-    'bulkInventoryRun', 'templateFillSessions', RENEWAL_SESSIONS_KEY,
-    MASS_RENEWAL_BATCH_KEY, ARCHIVE_INSERTION_SESSIONS_KEY
-  ]).catch(() => ({}));
-  return correlationContextFromBindings({ ...base, senderTabId }, {
-    bulkRun: stored?.bulkInventoryRun || null,
-    fillSessions: stored?.templateFillSessions || {},
-    renewalSessions: stored?.[RENEWAL_SESSIONS_KEY] || {},
-    massBatch: stored?.[MASS_RENEWAL_BATCH_KEY] || null,
-    archiveSessions: stored?.[ARCHIVE_INSERTION_SESSIONS_KEY] || {}
+let diagnosticCorrelationService = null;
+function requireDiagnosticCorrelationService() {
+  if (!diagnosticCorrelationService) diagnosticCorrelationService = DiagnosticCorrelationService.create({
+    correlationContext,
+    storageLocal: chrome.storage.local,
+    RENEWAL_SESSIONS_KEY, MASS_RENEWAL_BATCH_KEY, ARCHIVE_INSERTION_SESSIONS_KEY
   });
+  return diagnosticCorrelationService;
+}
+async function resolveClientDiagnosticCorrelation(message = {}, sender = {}) {
+  return requireDiagnosticCorrelationService().resolveClientDiagnosticCorrelation(message, sender);
 }
 
 async function withInsertionStartGate(task) { return requireInsertionLockService().withInsertionStartGate(task); }
@@ -1393,16 +1339,17 @@ async function normalBrowserWindowId() {
   return focused?.id ?? null;
 }
 
+let manualListingNavigationController = null;
+function requireManualListingNavigationController() {
+  if (!manualListingNavigationController) manualListingNavigationController = ManualListingNavigationController.create({
+    navigationPort: { normalBrowserWindowId, createAutomationTab, waitForTabComplete, chrome },
+    evidencePort: { getInventory, normalizeKnownPublicAdUrl, publicUrlForInventoryRecord, directPublicUrlForAdId },
+    diagnosticsPort: { logDiagnostic }
+  });
+  return manualListingNavigationController;
+}
 async function openEditAd(message) {
-  const adId = String(message?.adId || '');
-  if (!/^\d+$/.test(adId)) throw new Error('Anzeigen-ID ist ungültig.');
-  const url = `https://www.kleinanzeigen.de/p-anzeige-bearbeiten.html?adId=${encodeURIComponent(adId)}`;
-  const windowId = await normalBrowserWindowId();
-  const tab = await createAutomationTab({ ...(windowId ? { windowId } : {}), url, active: true });
-  if (!tab?.id) throw new Error('Bearbeiten-Tab konnte nicht geöffnet werden.');
-  if (windowId) await chrome.windows.update(windowId, { focused: true }).catch(() => {});
-  await logDiagnostic('info', 'EDIT_AD_OPENED', { adId, tabId: tab.id, windowId: tab.windowId ?? windowId }, { module: 'background', operation: 'open-edit-ad', context: { adId, tabId: tab.id } }).catch(() => {});
-  return { adId, tabId: tab.id };
+  return requireManualListingNavigationController().openEditAd(message);
 }
 
 let publicListingEvidenceService = null;
@@ -1421,58 +1368,7 @@ function requirePublicListingEvidenceService() {
 function normalizeKnownPublicAdUrl(rawUrl, expectedAdId) { return requirePublicListingEvidenceService().normalizeKnownPublicAdUrl(rawUrl, expectedAdId); }
 
 async function openReadOnlyAd(message) {
-  const adId = String(message?.adId || '');
-  if (!/^\d+$/.test(adId)) throw new Error('Anzeigen-ID ist ungültig.');
-
-  let url = '';
-  let urlSource = 'id-fallback';
-  const inventoryId = String(message?.inventoryId || '');
-  const inventoryRecord = inventoryId ? await getInventory(inventoryId).catch(() => null) : null;
-  if (inventoryRecord && String(inventoryRecord?.adId || '') === adId) {
-    url = normalizeKnownPublicAdUrl(publicUrlForInventoryRecord(inventoryRecord), adId);
-    if (url) urlSource = 'inventory-public-url';
-  }
-  if (!url) {
-    url = normalizeKnownPublicAdUrl(message?.publicUrl, adId);
-    if (url) urlSource = 'message-public-url';
-  }
-  if (!url) url = directPublicUrlForAdId(adId);
-
-  const windowId = await normalBrowserWindowId();
-  const tab = await createAutomationTab({ ...(windowId ? { windowId } : {}), url, active: true });
-  if (!tab?.id) throw new Error('Die öffentliche Anzeige konnte nicht geöffnet werden.');
-  if (windowId) await chrome.windows.update(windowId, { focused: true }).catch(() => {});
-  await logDiagnostic('info', 'READONLY_AD_OPENED', {
-    adId, inventoryId: inventoryId || null, tabId: tab.id, windowId: tab.windowId ?? windowId,
-    requestedUrl: url, urlSource
-  }, { module: 'background', operation: 'open-readonly-ad', context: { adId, tabId: tab.id } }).catch(() => {});
-
-  let finalTab = null;
-  try {
-    finalTab = await waitForTabComplete(tab.id, {
-      timeoutMs: 12000,
-      purpose: 'read-only-navigation',
-      label: 'Öffentliche Anzeige',
-      operation: 'open-readonly-ad',
-      context: { adId, tabId: tab.id }
-    });
-  } catch (error) {
-    finalTab = await chrome.tabs.get(tab.id).catch(() => null);
-    await logDiagnostic('info', 'READONLY_AD_NAVIGATION_PENDING', {
-      adId, tabId: tab.id, requestedUrl: url, urlSource,
-      currentUrl: String(finalTab?.url || '').slice(0, 1200),
-      message: String(error?.message || error || '').slice(0, 500)
-    }, { module: 'background', operation: 'open-readonly-ad', context: { adId, tabId: tab.id } }).catch(() => {});
-  }
-  if (finalTab?.url) {
-    const finalUrl = String(finalTab.url);
-    const finalPublicUrl = normalizeKnownPublicAdUrl(finalUrl, adId);
-    await logDiagnostic(finalPublicUrl ? 'info' : 'warning', 'READONLY_AD_NAVIGATION_RESOLVED', {
-      adId, tabId: tab.id, requestedUrl: url, urlSource, finalUrl: finalUrl.slice(0, 1200),
-      expectedAdConfirmed: Boolean(finalPublicUrl)
-    }, { module: 'background', operation: 'open-readonly-ad', context: { adId, tabId: tab.id } }).catch(() => {});
-  }
-  return { adId, tabId: tab.id, url, urlSource, finalUrl: finalTab?.url || null };
+  return requireManualListingNavigationController().openReadOnlyAd(message);
 }
 
 let tabLoadCoordinator = null;
