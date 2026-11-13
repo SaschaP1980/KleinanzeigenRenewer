@@ -1105,6 +1105,19 @@
         &&same(firstSite.context.profile,lastSite.context.profile);
       const browserTabsReconciled=Array.isArray(firstTabs)
         &&Array.isArray(lastTabs)&&same(firstTabs,lastTabs);
+      // A stable *wrong* authenticated account is still a contradiction.
+      // Historical P8 closure must not be presented as reconciled with the
+      // owner's current profile when PAGE_STATUS explicitly disagrees.
+      const contradictoryAccount=new Set([
+        'PROFILE_MISMATCH','PROFILE_CHANGED_DURING_READ',
+        'LIVE_ACCOUNT_PROFILE_NAME_MISMATCH','LIVE_ACCOUNT_TABS_DISAGREE',
+        'LIVE_ACCOUNT_PROFILE_CHANGED_DURING_READ',
+        'LIVE_ACCOUNT_STATUS_CHANGED_DURING_READ','LIVE_ACCOUNT_TABS_CHANGED'
+      ]);
+      const profileNotContradicted=observedProfile&&observedSite
+        &&firstProfile.context.profile.reason==='STORED_PROFILES_MATCH_BUT_LIVE_UNVERIFIED'
+        &&firstSite.context.profile.profileId===firstProfile.context.profile.profileId
+        &&!contradictoryAccount.has(firstSite.context.profile.reason);
       const historicalStable=first?.schema===1&&last?.schema===1
         &&typeof first.admissionJournalRevision==='string'
         &&first.admissionJournalRevision===last.admissionJournalRevision
@@ -1113,7 +1126,7 @@
         &&record(first.remoteAdmissionLineage)&&record(last.remoteAdmissionLineage)
         &&same(first.remoteAdmissionLineage,last.remoteAdmissionLineage)
         &&same(first.context?.worker,last.context?.worker)
-        &&observedProfile&&observedSite;
+        &&profileNotContradicted;
       const owners=Object.create(null);
       for(const name of names){
         const witness=individual[name];
