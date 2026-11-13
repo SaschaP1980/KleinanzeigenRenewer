@@ -150,6 +150,11 @@
       "path": ".github/workflows/kar-work-pr.yml",
       "status": "ci-active",
       "evidence": "PR exact-head Rolling Comment, runtime/safety, Windows and Chromium four-job gate"
+    },
+    {
+      "path": ".github/workflows/kar178-historical-stable-tag.yml",
+      "status": "release-active",
+      "evidence": "KAR-178 one-shot GitHub main-push historical tag publisher; verifies old merged source/archived SHA-256 and creates only an annotated non-force tag, without GitHub Release or product/updater changes."
     }
   ],
   "retired": [
