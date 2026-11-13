@@ -288,7 +288,7 @@ function renderTrash(records = currentTrashRecords) {
       body.dataset.loaded = 'true';
       const rows = [
         ['Im Papierkorb', formatDate(record.trash?.trashedAt)],
-        ['Automatische Löschung', formatDate(record.trash?.expiresAt)],
+        ['Automatische Löschung', record.trash?.retentionIndefinite === true ? 'Keine (unbegrenzt)' : formatDate(record.trash?.expiresAt)],
         ['Grund', trashReasonLabel(record)],
         ['Preis', displayPriceWithType(record)],
         ['Kategorie', categoryLabel(record)],
