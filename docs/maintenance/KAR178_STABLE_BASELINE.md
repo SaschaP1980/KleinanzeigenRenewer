@@ -26,3 +26,13 @@ The dedicated `.github/workflows/kar178-historical-stable-tag.yml` is a **one-sh
 ### Documentation package-parity boundary
 
 `CHANGELOG.md` is an **included member of the installable Chrome ZIP** in `scripts/package.py`. Editing it without creating a new properly versioned archive fails the mandatory exact-ZIP parity gate; it is therefore intentionally **unchanged** in KAR-178. This non-packaged maintenance note plus the Issue's canonical Rolling Comment retain the historical stable acceptance record without modifying current v1.23.89 package bytes or claiming a new release.
+
+## Separately owner-authorized GitHub Release publication (2026-11-13)
+
+After the immutable annotated historical tag was verified and KAR-178 initially closed, the owner explicitly requested a **separate GitHub Release for that existing tag**. Issue #178 was reopened to document and verify this publication without rewriting the prior evidence.
+
+The existing `.github/workflows/kar-release.yml` is restricted to the current `main` and an advancing version; it **must not** be used for a historical 1.23.48 Release. A new, narrow `.github/workflows/kar178-historical-stable-release.yml` publishes only when that workflow is **first added to `main`** in the expected four-file PR merge. It verifies the existing annotated tag's exact object SHA `99fcb135d6bac40a23287a370d373da35d856366`, peeled original merge SHA, all historical version/extension identity metadata, the original committed archive size/hash and Release absence.
+
+The workflow uses a draft for initial upload and verifies the only asset by name, size, remote-download byte parity and SHA-256 **before** making the Release visible. Publication explicitly specifies `make_latest=false` and readbacks the unchanged latest-release identity. No new tag, rebuild, current-version change, ZIP rewrite, approved/update-channel promotion or account mutation is permitted. A missing/incorrect tag or existing Release is a fail-closed block, **not** permission to recreate, move, force-push or overwrite it. If publication fails after draft creation, inspect the exact draft/asset state before further action; never blindly replay the one-shot workflow.
+
+The release notes must identify owner-reported approximately 60 real renewals on 2026-11-09 as historical native evidence, not as hosted CI results or independent per-Ad-ID logs; and list the historical commit, development path, ZIP bytes and SHA-256. Actual published Release URL, asset metadata/digest and latest-readback evidence belong in Issue #178's existing canonical Rolling Comment. This historical owner-approved exception does not alter the normal future-version `KAR Release` path.

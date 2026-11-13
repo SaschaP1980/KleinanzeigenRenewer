@@ -9,7 +9,7 @@ const inventory = JSON.parse(fs.readFileSync(abs('docs/maintenance/SCRIPT_WORKFL
 assert.equal(inventory.schema, 1);
 assert.equal(inventory.issue, 167);
 assert.equal(inventory.scripts.length, 24, 'S1 preserves exactly 24 current script files');
-assert.equal(inventory.workflows.length, 6, 'All 5 generic workflows and KAR-178 historic publication workflow are registered');
+assert.equal(inventory.workflows.length, 7, 'All 5 generic workflows and both KAR-178 historical publication workflows are registered');
 assert.ok(fs.existsSync(abs('scripts/README.md')), 'scripts/ consumer index missing');
 const actualScripts = fs.readdirSync(abs('scripts'), {withFileTypes:true})
   .filter(e => e.isFile() && e.name !== 'README.md').map(e => 'scripts/' + e.name).sort();
