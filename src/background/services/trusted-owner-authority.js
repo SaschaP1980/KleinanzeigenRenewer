@@ -308,6 +308,16 @@
       const tick = clock();
       if (!Number.isSafeInteger(tick) || tick < 0)
         throw denied('KR_OWNER_TIME_UNVERIFIED');
+      // KAR-171 W3: a verified source may legitimately stamp an observation
+      // AFTER its awaited read began. Compare it against a bounded clock
+      // sampled once that read has finished, never against the entry clock.
+      const capturedAt = () => {
+        const time = clock();
+        if (!Number.isSafeInteger(time) || time < tick ||
+            time - tick > MAX_AGE_MS)
+          throw denied('KR_OWNER_OBSERVATION_STALE');
+        return time;
+      };
       if (typeof readLiveAccountReadOnly !== 'function' ||
           typeof readBrowserTabsReadOnly !== 'function' ||
           typeof readOwnerSourceProofsReadOnly !== 'function')
@@ -317,17 +327,19 @@
       assertProfileState(firstLocal, req.expectedProfileId);
       checkJournals(firstLocal, req.expectedProfileId);
       const liveOne = await readLiveAccountReadOnly();
-      const identity = account(liveOne, req.expectedProfileId, tick);
+      const identity = account(liveOne, req.expectedProfileId, capturedAt());
       const tabs = await readBrowserTabsReadOnly();
       ensureTabs(tabs);
       const proofs = await readOwnerSourceProofsReadOnly();
+      const firstProofAt = capturedAt();
       if (!RECORD(proofs) || Object.keys(proofs).length !== owners.length ||
           !owners.every(name => Object.hasOwn(proofs,name)))
         throw denied('KR_OWNER_SOURCE_UNAVAILABLE');
       for (const name of owners)
-        sourceProof(proofs[name], name, req.expectedProfileId, tick);
+        sourceProof(proofs[name], name, req.expectedProfileId, firstProofAt);
       const liveTwo = await readLiveAccountReadOnly();
-      if (account(liveTwo,req.expectedProfileId,tick) !== identity)
+      if (account(liveTwo,req.expectedProfileId,capturedAt()) !== identity ||
+          liveTwo.observedAtMs < liveOne.observedAtMs)
         throw denied('KR_OWNER_LIVE_ACCOUNT_CHANGED');
       // F2A: owner proofs may take time even within the origin admission
       // lock. Recheck the *actual* Chrome/session tab producer at the end:
@@ -345,19 +357,24 @@
       // Read the private producer again. Mere test-provided "verified: true"
       // remains insufficient without real production adapters.
       const finalProofs = await readOwnerSourceProofsReadOnly();
+      const finalProofAt = capturedAt();
       if (!RECORD(finalProofs) || Object.keys(finalProofs).length !== owners.length ||
           !owners.every(name => Object.hasOwn(finalProofs,name)))
         throw denied('KR_OWNER_SOURCE_UNAVAILABLE');
       for (const name of owners)
-        sourceProof(finalProofs[name], name, req.expectedProfileId, tick);
+        sourceProof(finalProofs[name], name, req.expectedProfileId, finalProofAt);
       const evidenceSignature = set => JSON.stringify(owners.map(name => {
         const proof = set[name];
         return [name, proof.owner, proof.type, proof.verified, proof.workerGeneration,
-          proof.profileId, proof.observedAtMs, proof.unfinishedOperationCount,
+          proof.profileId, proof.unfinishedOperationCount,
           proof.durableCompletionVerified, proof.noUnresolvedRemoteMutation,
           proof.noPriorGenerationTask, proof.sourceRevision];
       }));
-      if (evidenceSignature(proofs) !== evidenceSignature(finalProofs))
+      // A second independent observation can have a later timestamp while
+      // verifying exactly the same durable revision. Time must not regress,
+      // and all substantive attestations are still required to match.
+      if (owners.some(name => finalProofs[name].observedAtMs < proofs[name].observedAtMs)
+          || evidenceSignature(proofs) !== evidenceSignature(finalProofs))
         throw denied('KR_OWNER_SOURCE_CHANGED');
 
       const secondLocal = await raw(storageLocal,'STORAGE_LOCAL');
