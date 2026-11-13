@@ -1,0 +1,27 @@
+name: KAR-171 W3D3B2 prior-worker remote chronology (temporary)
+
+on:
+  push:
+    branches: [work/KAR-171]
+
+permissions:
+  contents: read
+
+jobs:
+  focused:
+    name: W3D3B2 P8 completion vs remote outcome RED-GREEN
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Replay independent P8 and remote outcome chronology
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test tests/kar99-p13f2e2d2a-remote-admission-lineage.cjs
+          node tests/kar99-p7-integrated-owner-authority.cjs
