@@ -1,4 +1,5 @@
 name: KAR-161 isolated packaged startup diagnosis
+# Capture Chrome service worker and message router to distinguish UI vs runtime boot.
 on:
   push:
     branches: [work/KAR-161]
