@@ -1,9 +1,9 @@
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const root=path.join(__dirname,'..');
 const read=r=>fs.existsSync(path.join(root,r))?fs.readFileSync(path.join(root,r),'utf8'):'';
-const controller=read('src/app/inventory-capture-controller.js');
-const view=read('src/app/inventory-capture-view.js');
-const model=read('src/app/inventory-candidate-model.js');
+const controller=read('inventory-capture-controller.js');
+const view=read('inventory-capture-view.js');
+const model=read('inventory-candidate-model.js');
 const app=read('src/app/app.js');
 const html=read('app.html');
 let n=0;const p=(m,f)=>{f();n++;console.log('PASS '+m)};
