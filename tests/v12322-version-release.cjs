@@ -108,7 +108,7 @@ const kar175InventoryOwners = [
   ['src/background/controllers/manual-listing-navigation-controller.js','KRManualListingNavigationController'],
   ['src/background/services/diagnostic-correlation-service.js','KRDiagnosticCorrelationService'],
   ['src/background/services/listing-url-evidence-service.js','KRListingUrlEvidenceService'],
-  ['src/background/services/trash-template-publish-detection-service.js','KRTrashTemplatePublishDetectionService']]
+  ['src/background/services/trash-template-publish-detection-service.js','KRTrashTemplatePublishDetectionService']
 ].filter(([file, provider]) => files.includes(file) &&
   fs.readFileSync('src/background/background.js','utf8').includes("KRDeps.require('"+provider+"')") &&
   fs.readFileSync('scripts/package.py','utf8').includes("'"+file+"'")).length;
