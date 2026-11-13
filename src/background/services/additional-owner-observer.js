@@ -1069,6 +1069,7 @@
       };
       const firstProfile=await safe(persistedObserver?.observe?.bind(persistedObserver));
       const firstSite=await safe(observe);
+      const firstTabs=await safe(readVerifiedUnmanagedTabsReadOnly);
       const first=await safe(()=>observeAll(persistedObserver));
       const individual=Object.create(null);
       for(const name of names) {
@@ -1093,6 +1094,7 @@
         individual[name]=await safe(inspector);
       }
       const last=await safe(()=>observeAll(persistedObserver));
+      const lastTabs=await safe(readVerifiedUnmanagedTabsReadOnly);
       const lastProfile=await safe(persistedObserver?.observe?.bind(persistedObserver));
       const lastSite=await safe(observe);
       const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
@@ -1102,6 +1104,8 @@
       const observedSite=record(firstSite?.context?.profile)
         &&record(lastSite?.context?.profile)
         &&same(firstSite.context.profile,lastSite.context.profile);
+      const browserTabsReconciled=Array.isArray(firstTabs)
+        &&Array.isArray(lastTabs)&&same(firstTabs,lastTabs);
       const historicalStable=first?.schema===1&&last?.schema===1
         &&typeof first.admissionJournalRevision==='string'
         &&first.admissionJournalRevision===last.admissionJournalRevision
@@ -1153,6 +1157,9 @@
         schema:1,status:blocked?'blocked':'unverified',
         ownerCount:names.length,owners:Object.freeze(owners),
         sourcesStable:Boolean(historicalStable),
+        // Independent current Chrome/session evidence stays separate from
+        // historical P8 callbacks; missing/drifting tabs can never be IDLE.
+        browserTabsReconciled:Boolean(browserTabsReconciled),
         historicalCallbackCount:names.filter(name=>
           owners[name].status==='historical-callback-settled').length,
         sourceRevision:historicalStable?first.admissionJournalRevision:null,
