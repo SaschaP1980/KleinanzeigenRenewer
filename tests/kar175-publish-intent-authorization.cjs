@@ -11,7 +11,7 @@ const journalCalls=[],closed=[],requests=[];
 const fill={fillId:'abc',targetTabId:42,stage:'auto-publish-ready',status:'running',
   result:{complete:true,issues:[]},renewalId:'r',sourceAdId:'123'};
 const renewal={fillId:'abc',targetTabId:42,profileId:'P',sourceAdId:'123'};
-let profileId='P',seenName='User Account',validPresence=true,failPostReceipt=false,accountReadCount=0;
+let profileId='P',seenName='User Account',validPresence=true,reportedPagesScanned=3,failPostReceipt=false,accountReadCount=0;
 const options={
  sessionPort:{readArchiveInsertionSessions:async()=>({}),readRenewalSessions:async()=>({r:renewal}),
   readFillSessions:async()=>({abc:fill})},
@@ -22,7 +22,7 @@ const options={
   sendTabRequestWithBootstrap:async (id,msg)=>{
     requests.push(msg.type);
     if(msg.type==='MY_ADS_STATUS')return {isMyAdsPage:true,isProjectsTab:true,profileName:seenName};
-    if(msg.type==='FIND_OWN_AD_BY_ID')return {found:validPresence,adId:'456',page:2,pagesScanned:3,evidence:'found-in-my-ads-full-pagination-scan'};
+    if(msg.type==='FIND_OWN_AD_BY_ID')return {found:validPresence,adId:'456',page:2,pagesScanned:reportedPagesScanned,evidence:'found-in-my-ads-full-pagination-scan'};
     throw Error('unexpected message');
   },closeManagedWorkerTab:async id=>{closed.push(id);}},
  journalPort:{requireAutoPublishIntentJournal:()=>({
@@ -63,5 +63,11 @@ const receipt=Object.freeze({operationType:'AUTHORIZE_AUTOMATIC_PUBLISH'});
   seenName='Wrong Account';
   await assert.rejects(svc.verifyAutoPublishRemoteOutcomeFresh(intent,'456'),/PUBLISH_INTENT_UNVERIFIED/);
   assert.equal(closed.length,3,'account mismatch must close worker');
+  // KAR-171 W2: the source verifier itself must reject page evidence which
+  // claims a target on a page not covered by the independent pagination.
+  seenName='User Account';validPresence=true;reportedPagesScanned=1;
+  await assert.rejects(svc.verifyAutoPublishRemoteOutcomeFresh(intent,'456'),/PUBLISH_INTENT_UNVERIFIED/);
+  assert.equal(closed.length,4,'impossible page evidence is denied and worker is closed');
+  reportedPagesScanned=3;
   console.log('PASS KAR-175 Wave 5: immutable admission, sender/identity binding, journal receipt, independent ID evidence and fail-closed worker cleanup');
 })().catch(e=>{console.error(e);process.exitCode=1});
