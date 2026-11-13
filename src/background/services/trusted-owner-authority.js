@@ -44,7 +44,7 @@
   // Preserve KAR-117/KAR-99 immutable attempt/resolution ownership semantics.
   // A received "resolved" text is never proof; the matching independent
   // resolution receipt must have exact workflow, account and Ad-ID evidence.
-  function checkJournals(rows, expectedProfileId) {
+  function checkJournals(rows, expectedProfileId, captureStartedAtMs) {
     // Only a necessary LOCAL provenance check. Neither the P8 finish nor an
     // independently recorded remote resolution authorizes update/IDLE.
     const usedAdmissions = new Set();
@@ -59,6 +59,7 @@
           r.profileId.length <= 256 && validAd(r.sourceAdId) &&
           validAd(r.newAdId) && r.sourceAdId !== r.newAdId &&
           Number.isSafeInteger(r.createdAtMs) && r.createdAtMs >= 0 &&
+          r.createdAtMs <= captureStartedAtMs &&
           k === PHASE4 + r.renewalId + '_' + r.attemptId,
         validResolution: (r, k, original) => RECORD(r) && r.schema === 1 &&
           r.state === 'resolved-confirmed' && validId(r.workerInstanceId) &&
@@ -73,6 +74,7 @@
           r.targetFoundPage <= r.targetPagesScanned &&
           Number.isSafeInteger(r.verifiedAtMs) &&
           r.verifiedAtMs >= original.createdAtMs &&
+          r.verifiedAtMs <= captureStartedAtMs &&
           k === PHASE4_OK + r.renewalId + '_' + r.attemptId
       },
       {
@@ -87,6 +89,7 @@
           r.targetTabId > 0 && (validAd(r.sourceAdId) ||
           (r.kind === 'archive' && r.sourceAdId === '')) &&
           Number.isSafeInteger(r.createdAtMs) && r.createdAtMs >= 0 &&
+          r.createdAtMs <= captureStartedAtMs &&
           k === PUBLISH + r.fillId + '_' + r.attemptId,
         validResolution: (r, k, original) => RECORD(r) && r.schema === 1 &&
           r.state === 'resolved-confirmed' && original &&
@@ -101,6 +104,7 @@
           r.targetFoundPage <= r.targetPagesScanned &&
           Number.isSafeInteger(r.verifiedAtMs) &&
           r.verifiedAtMs >= original.createdAtMs &&
+          r.verifiedAtMs <= captureStartedAtMs &&
           k === PUBLISH_OK + r.fillId + '_' + r.attemptId
       }
     ];
@@ -147,12 +151,14 @@
           || start.workerInstanceId!==intent.workerInstanceId
           || !Number.isSafeInteger(start.startedAtMs) || start.startedAtMs<0
           || start.startedAtMs>intent.createdAtMs
+          || start.startedAtMs>captureStartedAtMs
           || finish.schema!==1 || finish.state!=='completed'
           || finish.token!==token
           || finish.workerInstanceId!==intent.workerInstanceId
           || !Number.isSafeInteger(finish.completedAtMs)
           || finish.completedAtMs<intent.createdAtMs
-          || finish.completedAtMs<start.startedAtMs)
+          || finish.completedAtMs<start.startedAtMs
+          || finish.completedAtMs>captureStartedAtMs)
           throw denied('KR_OWNER_JOURNAL_ADMISSION_UNVERIFIED');
       }
       if (attempts.some(([key]) => !Object.hasOwn(rows,
@@ -325,7 +331,7 @@
       const firstLocal = await raw(storageLocal,'STORAGE_LOCAL');
       const firstSession = await raw(storageSession,'STORAGE_SESSION');
       assertProfileState(firstLocal, req.expectedProfileId);
-      checkJournals(firstLocal, req.expectedProfileId);
+      checkJournals(firstLocal, req.expectedProfileId, tick);
       const liveOne = await readLiveAccountReadOnly();
       const identity = account(liveOne, req.expectedProfileId, capturedAt());
       const tabs = await readBrowserTabsReadOnly();
@@ -383,7 +389,7 @@
           JSON.stringify(firstSession) !== JSON.stringify(secondSession))
         throw denied('KR_OWNER_STATE_CHANGED');
       assertProfileState(secondLocal,req.expectedProfileId);
-      checkJournals(secondLocal, req.expectedProfileId);
+      checkJournals(secondLocal, req.expectedProfileId, tick);
       const completedAt = clock();
       if (!Number.isSafeInteger(completedAt) ||
           completedAt < tick || completedAt - tick > MAX_AGE_MS)
