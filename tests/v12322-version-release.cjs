@@ -121,6 +121,6 @@ if(reviewedNative) {
   const allowedAdditions=['src/app/native-update-check-ui.js','src/background/services/native-status-bridge.js','src/background/services/native-update-status-gateway.js'];
   for(const name of allowedAdditions)assert.ok(files.includes(name),name);
   assert.equal(files.filter(x=>allowedAdditions.includes(x)).length,3);
-  assert.match(fs.readFileSync('app.html','utf8'),/src\/app\/native-update-check-ui\.js/);
+  assert.match(fs.readFileSync('src/app/app.html','utf8'),/<script src="native-update-check-ui\.js"><\/script>/);
 } else assert.equal(tree.digest('hex'), arch.runtime.treeSha256);
 console.log('PASS v1.23.22 version, narrow correction scope, goldlines and runtime hashes');

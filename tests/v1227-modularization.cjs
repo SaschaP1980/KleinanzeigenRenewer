@@ -4,7 +4,7 @@ const layout=fs.readFileSync('app-layout-controller.js','utf8');
 const tabs=fs.readFileSync('tab-page-inspection-controller.js','utf8');
 const helpers=fs.readFileSync('shared-ui-helpers.js','utf8');
 let n=0;const pass=m=>{n++;console.log('PASS '+m)};
-assert.match(html,/<script src="src\/app\/app-layout-controller\.js"><\/script>[\s\S]*<script src="src\/app\/tab-page-inspection-controller\.js"><\/script>[\s\S]*<script src="src\/app\/shared-ui-helpers\.js"><\/script>[\s\S]*<script src="src\/app\/app\.js"><\/script>/);pass('new app modules load before app entrypoint');
+assert.match(html,/<script src="app-layout-controller\.js"><\/script>[\s\S]*<script src="tab-page-inspection-controller\.js"><\/script>[\s\S]*<script src="shared-ui-helpers\.js"><\/script>[\s\S]*<script src="app\.js"><\/script>/);pass('new app modules load before app entrypoint');
 for(const dep of ['KRAppLayoutController','KRTabPageInspectionController','KRSharedUiHelpers']) assert.match(app,new RegExp(`KRDeps\\.require\\('${dep}'\\)`)); pass('app consumes all three modules through KRDeps');
 assert.doesNotMatch(app,/let sidebarBottomLastWheelDeltaY|let sidebarBottomLastSnapshot|let stickyHeaderSyncFrame/);assert.match(layout,/let stickyHeaderSyncFrame/);assert.match(layout,/let lastBottomTop/);pass('sticky/sidebar anomaly state ownership remains in layout controller');
 assert.doesNotMatch(app,/chrome\.tabs\.sendMessage\(tabId, message/);assert.match(tabs,/chromeApi\.tabs\.sendMessage/);assert.match(tabs,/ENSURE_CONTENT_CONNECTION/);pass('tab message/recovery implementation moved out of app');

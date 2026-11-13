@@ -28,7 +28,7 @@ APP_ID_MATCH = re.search(r"Chrome Extension ID:\s*([a-p]{32})", APP_ID_TEXT)
 if not APP_ID_MATCH:
     raise SystemExit("APP_ID.txt enthält keine gültige feste Extension-ID.")
 EXTENSION_ID = APP_ID_MATCH.group(1)
-APP_URL = f"chrome-extension://{EXTENSION_ID}/app.html"
+APP_URL = f"chrome-extension://{EXTENSION_ID}/src/app/app.html"
 EXPECTED_VERSION = json.loads((EXTENSION_ROOT / "manifest.json").read_text(encoding="utf-8"))["version"]
 FAKE_LOGGED_OUT_HTML = """<!doctype html><html lang='de'><head><meta charset='utf-8'><title>Kleinanzeigen E2E Fixture</title></head><body><a href='/m-einloggen.html'>Einloggen</a><main data-e2e-fixture='logged-out'>E2E</main></body></html>"""
 
@@ -185,7 +185,19 @@ def scenario_boot_mv3(pw, browser_path, headless):
         require(any(url.endswith("/background.js") for url in workers), f"background.js-Service-Worker fehlt: {workers}")
         epoch = env.runtime({"type": "GET_BACKGROUND_EPOCH"})["result"].get("epoch")
         require(isinstance(epoch, str) and len(epoch) >= 20, "Background-Epoch fehlt")
-        return {"version": version, "serviceWorker": workers[0], "epoch": epoch}
+        # KAR-174: smoke the separately bundled launcher using its real packaged path.
+        # Do not click an entrypoint with user-account side effects; verify real HTML/CSS load.
+        launcher = env.context.new_page()
+        launcher.goto(f"chrome-extension://{EXTENSION_ID}/src/popup/popup.html",
+                      wait_until="domcontentloaded", timeout=12000)
+        require(launcher.title() == "kleinanzeigen Manager", "Launcher-Titel fehlt")
+        require(launcher.locator("#openAppButton").is_visible(), "Launcher-Button fehlt")
+        css_loaded = launcher.evaluate(
+            "() => [...document.styleSheets].some(s => s.href && s.href.endsWith('/src/popup/popup.css'))"
+        )
+        require(css_loaded, "Launcher-CSS nicht geladen")
+        launcher.close()
+        return {"version": version, "serviceWorker": workers[0], "epoch": epoch, "launcherSmoke": True}
     finally:
         env.close()
 

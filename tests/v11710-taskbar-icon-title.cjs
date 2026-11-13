@@ -5,7 +5,7 @@ const path = require('path');
 
 const root = path.join(__dirname, '..');
 const manifest = JSON.parse(fs.readFileSync(path.join(root, 'manifest.json'), 'utf8'));
-const appHtml = fs.readFileSync(path.join(root, 'app.html'), 'utf8');
+const appHtml = fs.readFileSync(path.join(root, 'src/app/app.html'), 'utf8');
 const background = fs.readFileSync(path.join(root, 'background.js'), 'utf8');
 const sha256 = file => crypto.createHash('sha256').update(fs.readFileSync(path.join(root, file))).digest('hex');
 const pass = message => console.log(`PASS: ${message}`);

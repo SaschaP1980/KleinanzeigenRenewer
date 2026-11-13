@@ -30,6 +30,9 @@ assert.equal(inv.stats.archive.zipCount,38);
 assert.equal(inv.stats.runtimeModules,103);
 assert.equal(inv.stats.windowsTools,7);
 assert.equal(inv.stats.libFiles,1);
+// #174: original KAR-167 Git records remain immutable historical provenance.
+// Only these four proven UI entrypoints intentionally moved; all other 794 historical paths stay guarded.
+const uiMoves=new Map([['app.html','src/app/app.html'],['app.css','src/app/app.css'],['popup.html','src/popup/popup.html'],['popup.css','src/popup/popup.css']]);
 const current=new Map(),groups={};
 for(const file of inv.files) {
   assert.match(file.path,/^[A-Za-z0-9_.\/-]+$/,'Invalid tracked path');
@@ -39,8 +42,15 @@ for(const file of inv.files) {
   assert.ok(inv.dispositions[file.disposition],'Undocumented R1 KEEP reason: '+file.path);
   assert.equal(file.reason,inv.dispositions[file.disposition],
     'R1 disposition and individual reason disagree: '+file.path);
-  assert.ok(fs.existsSync(abs(file.path)) && fs.statSync(abs(file.path)).isFile(),
-    'Previously tracked path disappeared without independently verified retirement: '+file.path);
+  if(uiMoves.has(file.path)) {
+    assert.ok(!fs.existsSync(abs(file.path)), 'Root UI entrypoint unexpectedly remains: '+file.path);
+    const relocated=uiMoves.get(file.path);
+    assert.ok(fs.existsSync(abs(relocated)) && fs.statSync(abs(relocated)).isFile(),
+      'KAR-174 proven UI relocation missing: '+file.path+' -> '+relocated);
+  } else {
+    assert.ok(fs.existsSync(abs(file.path)) && fs.statSync(abs(file.path)).isFile(),
+      'Previously tracked path disappeared without independently verified retirement: '+file.path);
+  }
   groups[file.disposition]=(groups[file.disposition]||0)+1;
 }
 const oldPaths=new Set();
@@ -88,9 +98,10 @@ assert.ok(packageSet.has(manifest.background.service_worker),'Chrome SW source a
 for(const cs of manifest.content_scripts||[])for(const p of cs.js||[]) {
   assert.ok(packageSet.has(p),'Manifest content script missing from Chrome package: '+p);
 }
-for(const html of ['app.html','popup.html']) {
+for(const html of ['src/app/app.html','src/popup/popup.html']) {
   for(const [,p] of read(html).matchAll(/<script[^>]+src=['"]([^'"]+\.js)['"]/g)) {
-    assert.ok(packageSet.has(p),'HTML script missing from Chrome package: '+html+' -> '+p);
+    const resolved=path.posix.normalize(path.posix.join(path.posix.dirname(html),p));
+    assert.ok(packageSet.has(resolved),'HTML script missing from Chrome package: '+html+' -> '+resolved);
   }
 }
 for(const guard of ['scripts/v12319-architecture-audit.cjs',

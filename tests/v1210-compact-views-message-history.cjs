@@ -37,11 +37,11 @@ assert.match(css, /\.global-view-controls/);
 assert.match(css, /\.inventory-list\.view-compact/);
 assert.match(css, /\.compact-list-row/);
 assert.match(css, /\.compact-icon-button/);
-assert.match(css, /mask-image:url\("icons\/action-new-listing\.svg"\)/);
-assert.match(css, /mask-image:url\("icons\/action-update\.svg"\)/);
-assert.match(css, /mask-image:url\("icons\/action-delete\.svg"\)/);
-assert.match(css, /mask-image:url\("icons\/action-retry\.svg"\)/);
-assert.match(css, /mask-image:url\("icons\/action-finish-renewal\.svg"\)/);
+assert.match(css, /mask-image:url\("\.\.\/\.\.\/icons\/action-new-listing\.svg"\)/);
+assert.match(css, /mask-image:url\("\.\.\/\.\.\/icons\/action-update\.svg"\)/);
+assert.match(css, /mask-image:url\("\.\.\/\.\.\/icons\/action-delete\.svg"\)/);
+assert.match(css, /mask-image:url\("\.\.\/\.\.\/icons\/action-retry\.svg"\)/);
+assert.match(css, /mask-image:url\("\.\.\/\.\.\/icons\/action-finish-renewal\.svg"\)/);
 assert.ok(!/compact-list-price[^}]*display\s*:\s*none/.test(css));
 assert.ok(!/compact-list-end[^}]*display\s*:\s*none/.test(css));
 

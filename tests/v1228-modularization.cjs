@@ -3,7 +3,7 @@ const app=fs.readFileSync('app.js','utf8'),html=fs.readFileSync('app.html','utf8
 const capture=fs.readFileSync('inventory-capture-controller.js','utf8');
 const renewal=fs.readFileSync('renewal-dialog-controller.js','utf8');
 let n=0;const pass=m=>{n++;console.log('PASS '+m)};
-assert.match(html,/<script src="src\/app\/renewal-dialog-controller\.js"><\/script>[\s\S]*<script src="src\/app\/inventory-capture-controller\.js"><\/script>[\s\S]*<script src="src\/app\/app\.js"><\/script>/);pass('inventory and renewal controllers load before app entrypoint');
+assert.match(html,/<script src="renewal-dialog-controller\.js"><\/script>[\s\S]*<script src="inventory-capture-controller\.js"><\/script>[\s\S]*<script src="app\.js"><\/script>/);pass('inventory and renewal controllers load before app entrypoint');
 assert.match(app,/KRDeps\.require\('KRRenewalDialogController'\)/);assert.match(app,/KRDeps\.require\('KRInventoryCaptureController'\)/);pass('app consumes both controllers through KRDeps');
 for(const name of ['inventoryCaptureMode','inventoryCaptureDialogState','inventoryCaptureCandidates','inventoryCaptureMembershipSnapshot','selectedInventoryCaptureAdId','activeSingleInventoryCapture','inventoryCaptureReentryTarget']){assert.doesNotMatch(app,new RegExp(`let\\s+${name}\\b`));assert.match(capture,new RegExp(`let\\s+${name}\\b`));}pass('inventory capture mutable state ownership moved out of app');
 for(const name of ['dialogMode','trackedRenewalId','trackedRenewalSourceAdId','trackedRenewalNewAdId','trackedRenewalSourceRecord','dialogResolve']){assert.doesNotMatch(app,new RegExp(`let\\s+${name}\\b`));assert.match(renewal,new RegExp(`let\\s+${name}\\b`));}pass('renewal dialog mutable state ownership moved out of app');

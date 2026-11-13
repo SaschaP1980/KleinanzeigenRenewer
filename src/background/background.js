@@ -80,7 +80,7 @@ const ACCOUNT_GATE_DIAGNOSTIC_STATE_KEY = "accountGateDiagnosticStateV1";
 const GALLERY_DIAGNOSTIC_RETENTION_MS = 24 * 60 * 60 * 1000;
 const MAX_GALLERY_DIAGNOSTICS = 8;
 const APP_WINDOW_SESSION_KEY = "appWindowId";
-const APP_PAGE = "app.html";
+const APP_PAGE = "src/app/app.html";
 const APP_WINDOW_INITIAL_WIDTH = 1180;
 const APP_WINDOW_INITIAL_HEIGHT = 900;
 const BULK_RETRY_TIMEOUT_MS = 90000;
@@ -2124,7 +2124,7 @@ function requireNativeStatusBridge() {
   nativeStatusBridge = NativeStatusBridge.create({
   gateway: nativeUpdateGateway,
   getExtensionId: () => chrome.runtime.id,
-  getAppUrl: () => chrome.runtime.getURL('app.html'),
+  getAppUrl: () => chrome.runtime.getURL(APP_PAGE),
   getAppWindowId: async () => {
     const value = await chrome.storage.session.get(APP_WINDOW_SESSION_KEY);
     return value?.[APP_WINDOW_SESSION_KEY];
