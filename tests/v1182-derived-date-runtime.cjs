@@ -76,9 +76,12 @@ console.log(`${passes} v1.18.2 derived-date runtime groups passed`);
 // expiration date, while the account-bound exact-ID own-ads card supplies it.
 // These are read-only fixtures: no live account, deletion or publication.
 const background = fs.readFileSync('background.js', 'utf8');
-assert.match(background,
+const inventoryRefresh = fs.readFileSync('src/background/services/inventory-refresh-service.js', 'utf8');
+assert.match(background, /InventoryRefreshService\.create\(/,
+  'background must compose the identity-bound inventory refresh owner');
+assert.match(inventoryRefresh,
   /requirePublicListingEvidenceService\(\)\.readInventoryRefreshOwnAdsEndDate\(/,
-  'background must delegate to owner-bound listing evidence service');
+  'inventory refresh owner must delegate to exact-ID account-bound listing evidence service');
 
 function expiryFixture({
   profile = 'Account One', expectedProfile = 'Account One', afterProfile = profile,
