@@ -19,8 +19,12 @@ assert.match(capture,/JPEG ist nur Thumbnail-Größe/);assert.match(capture,/lar
 console.log(`${n} v0.1.6 contract tests passed`);
 
 // Run the full historical suite on an isolated next-PATCH fixture, never on production metadata.
-if (process.env.KAR46_SYNTHETIC_PATCH !== '1' && isCurrentPatchVersion(manifest.version)) {
+if (process.env.KAR46_SYNTHETIC_PATCH !== '1' && isCurrentPatchVersion(manifest.version)
+    && manifest.version.startsWith('1.23.')) {
   require('./current-patch-next-release-regression.cjs');
-} else if (manifest.version === '1.24.0') {
-  console.log('KAR-46 synthetic NEXT-PATCH runner not applicable to approved 1.24.0 MINOR; historical PATCH policy regression remains active.');
+} else if (manifest.version.startsWith('1.24.')) {
+  // KAR-46's full speculative next-PATCH fixture is a historical 1.23
+  // correction-era test. Actual 1.24 releases still run the complete real
+  // runtime/coverage/architecture/ZIP/Chromium gates on their own exact HEAD.
+  console.log('KAR-46 historical 1.23 synthetic NEXT-PATCH runner does not apply to 1.24.x; strict current PATCH policy and full release gates remain active.');
 }
