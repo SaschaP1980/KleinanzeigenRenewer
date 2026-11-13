@@ -2,7 +2,7 @@
 const { includesActivePatch } = require('./current-patch-policy.cjs');
 const fs=require('node:fs'),assert=require('node:assert/strict');
 const spec=JSON.parse(fs.readFileSync('release/release-spec.json','utf8'));
-if (spec.version==='1.24.0') {
+if (/^1\.24\.(?:0|[1-9]\d*)$/.test(spec.version)) {
   assert.equal(spec.performanceRunRequired,false);
   assert.equal(spec.nativeSmokeRequired,true);
   assert.ok(spec.nativeSmokeChecks.some(x=>/retention|Aufbewahrung/i.test(x)));
