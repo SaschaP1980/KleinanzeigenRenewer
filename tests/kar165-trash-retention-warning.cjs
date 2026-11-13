@@ -9,7 +9,7 @@ const NOW = Date.parse('2026-11-11T17:00:00.000Z');
 const formattingModule = require('../src/app/inventory-formatting.js');
 const recordCardModule = require('../src/app/record-card-view.js');
 const trashCardModule = require('../src/app/trash-card-renderer.js');
-const css = fs.readFileSync(path.join(__dirname, '../app.css'), 'utf8');
+const css = fs.readFileSync(path.join(__dirname, '../src/app/app.css'), 'utf8');
 
 const helpers = {
   formatDate: value => String(value || '–'),
