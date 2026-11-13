@@ -18,7 +18,21 @@ assert.equal(includesActivePatch(['1.23.22', '1.23.23'], '1.23.25'), false);
 assert.equal(includesActivePatch(historicalEra, '1.24.0'), false);
 assert.equal(includesActivePatch(historicalEra, '1.23.025'), false);
 assert.deepEqual(historicalEra, ['1.23.20', '1.23.22', '1.23.23', '1.23.24']);
-const validNextPatch = clone(canonical);
+// The live product has moved to MINOR 1.24.0 under KAR-161. Preserve the
+// correction-era PATCH policy as a synthetic historical fixture, not by trying
+// to validate the current MINOR release through the obsolete PATCH predicate.
+const validCorrectionEra = clone(canonical);
+for (const name of ['manifest', 'pkg', 'lock', 'spec']) validCorrectionEra[name].version = '1.23.92';
+validCorrectionEra.pkg.displayVersion = '1.23.92';
+validCorrectionEra.lock.packages[''].version = '1.23.92';
+validCorrectionEra.spec.packageVersion = '1.23.92';
+validCorrectionEra.spec.nextPlannedBuild = '1.24.0';
+validCorrectionEra.spec.nextPlannedBuildGoal = 'EPIC-REF-003 – Mass Renewal Lifecycle Separation.';
+validCorrectionEra.spec.performanceRunRequired = true;
+validCorrectionEra.spec.performanceRule = 'v1.23.22 Fast-3er historical performance regression rule';
+assert.equal(assertCompatibleCurrentPatch(validCorrectionEra), '1.23.92');
+
+const validNextPatch = clone(validCorrectionEra);
 for (const name of ['manifest', 'pkg', 'lock', 'spec']) validNextPatch[name].version = '1.23.25';
 validNextPatch.pkg.displayVersion = '1.23.25';
 validNextPatch.lock.packages[''].version = '1.23.25';
@@ -26,7 +40,8 @@ validNextPatch.spec.packageVersion = '1.23.25';
 // Historical 1.23.25 fixture predates the reviewed v1.23.30 nativeMessaging permission.
 validNextPatch.manifest.permissions = validNextPatch.manifest.permissions.filter(p => p !== 'nativeMessaging');
 
-assert.equal(assertCompatibleCurrentPatch(canonical), canonical.manifest.version);
+assert.equal(canonical.manifest.version, '1.24.0', 'current minor is authorized independently');
+assert.equal(isCurrentPatchVersion(canonical.manifest.version), false, 'current MINOR is not a PATCH');
 assert.equal(assertCompatibleCurrentPatch(validNextPatch), '1.23.25',
   'compatible future PATCH must not require editing historical version lists');
 for (const [version, allowed] of [
