@@ -55,3 +55,12 @@ Historical QA and Windows documents now have **one canonical location** in `docs
 ## Authority / current state
 
 The actual current version, Work branch, Issue state, PR results and GitHub Releases are read **live** through GitHub. Do not infer current state from an old QA Wave, README release note or versioned architecture snapshot. GitHub Issues preserve implementation decisions and complete history.
+
+## Product documentation and version history
+
+- [Root product README](../README.md): original motivation, durable supported workflows, installation and limitations, not chronological release notes.
+- [Canonical changelog](../CHANGELOG.md): historical version/correction details and precise provenance.
+- [Legacy README guidance](history/README_GUIDANCE_PRE_KAR170.md): source-preserved passages from before KAR-170, **historical only**.
+- [KAR-170 migration ledger](maintenance/KAR170_CHANGELOG_MIGRATION.json): deterministic source-section/checksum audit, not an independent changelog.
+
+Documentation destinations and future edits follow [development guidelines](DEVELOPMENT_GUIDELINES.md) §12.

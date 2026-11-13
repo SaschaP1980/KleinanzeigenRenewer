@@ -15,8 +15,8 @@ ok(!/This module never submits or publishes the final ad\./.test(filler), 'templ
 ok(/automatic(?:ally)? publish|auto-publish|final publish/i.test(filler.slice(0, 700)), 'template-filler.js dokumentiert den verifizierten Auto-Publish-Pfad nicht am Modulanfang.');
 ok(!/Kleinanzeigen-Anzeigen werden nie gelöscht\./.test(readme), 'README enthält weiterhin die global falsche Aussage, Kleinanzeigen-Anzeigen würden nie gelöscht.');
 ok(!/Der Button wird weiterhin niemals automatisch geklickt\./.test(readme), 'README enthält weiterhin die global falsche Aussage, der Publish-Button werde niemals automatisch geklickt.');
-ok(/lokalen Aktionen[^\n]*keine Kleinanzeigen-Anzeige/i.test(readme), 'README grenzt lokale Löschaktionen nicht explizit von Remote-Löschung ab.');
-ok(/Renewal-Workflow[^\n]*Hard-Gate[^\n]*automatisch/i.test(readme), 'README dokumentiert die aktuelle Auto-Publish-Ausnahme hinter dem Renewal-Hard-Gate nicht eindeutig.');
+ok(/removing a local inventory or trash record[^\n]*does not delete an online ad/i.test(readme), 'README must distinguish local deletion from remote removal.');
+ok(/renewal workflow[^\n]*automatically[^\n]*hard-gate check/i.test(readme), 'README must document guarded automatic publish behind hard gates.');
 ok(/__pycache__/.test(packager) && /\.pyc/.test(packager), 'Source-Packaging schließt Python-Cacheartefakte nicht explizit aus.');
 
 console.log(`v1.22.2 focus/safety docs/package: ${pass}/9 PASS`);
