@@ -122,6 +122,8 @@
       trashRetentionRange: "#trashRetentionRange",
       trashRetentionValue: "#trashRetentionValue",
       trashRetentionDescription: "#trashRetentionDescription",
+      trashIntroFull: ".trash-intro-full",
+      trashIntroSticky: ".trash-intro-sticky",
     }),
     inventory: Object.freeze({
       inventoryButton: "#inventoryButton",

@@ -20,7 +20,13 @@ const stopOnErrorSelectors = ['massRenewalStopOnError', 'massRenewalStopOnErrorS
 const addedStopOnError = stopOnErrorSelectors.every(key => selectors.get(key) === '#' + key) ? 2 : 0;
 const massSearchSelectors = ['massRenewalSearchInput', 'massRenewalSearchClear'];
 const addedMassSearch = massSearchSelectors.every(key => selectors.get(key) === '#' + key) ? 2 : 0;
-ok(addedStopOnError === 2 && addedMassSearch === 2 && selectors.size === 235 + addedOccupancy + addedStopOnError + addedMassSearch,
+const retentionSelectors = ['trashRetentionRange','trashRetentionValue','trashRetentionDescription'];
+const addedRetention = retentionSelectors.filter(key => selectors.get(key) === '#' + key).length;
+const descriptions = ['trashIntroFull','trashIntroSticky'];
+const addedDescriptionTargets = descriptions.filter((key, i) => selectors.get(key) === ['.trash-intro-full','.trash-intro-sticky'][i]).length;
+assert.equal(addedRetention,3,'all seven-stop retention slider DOM bindings exist');
+assert.equal(addedDescriptionTargets,2,'both dynamic trash explanatory texts are centrally bound');
+ok(addedStopOnError === 2 && addedMassSearch === 2 && selectors.size === 235 + addedOccupancy + addedStopOnError + addedMassSearch + addedRetention + addedDescriptionTargets,
   `DOM binding contract retains 235 historical selectors plus ${addedOccupancy} occupancy, ${addedStopOnError} stop-on-error and ${addedMassSearch} mass-search bindings (got ${selectors.size})`);
 const routeSource=bg+'\n'+router;
 const routeTypes=[...routeSource.matchAll(/(?:message\?\.type\s*===\s*|['"])(['"])?([A-Z][A-Z0-9_]+)(?:\1)?/g)].map(m=>m[2]);
