@@ -21,3 +21,11 @@ jobs:
           node-version: '22'
       - name: Replay independent My Ads authentication and tab switch
         run: node tests/kar99-additional-owner-producers.cjs
+      - name: Install complete test dependencies
+        run: npm ci
+      - name: Full clean-tree unit/coverage/architecture/no-regression gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm .github/workflows/kar171-w3d3b3-focused.yml
+          bash scripts/coverage-gate.sh
