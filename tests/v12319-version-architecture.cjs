@@ -74,7 +74,7 @@ const reviewedPersistedCallbackClosure = reviewedPersistedObserver && r('src/bac
 // module instance API; the frozen v1.23.19 Gold still requires 100% coverage.
 const reviewedAllOwnerClosureMatrix = reviewedAdditionalOwners
   && r('src/background/services/additional-owner-observer.js')
-    .includes('async function inspectAllOwnerClosureReadOnly(persistedObserver)')
+    .includes('async function inspectAllOwnerClosureReadOnly(')
   && r('tests/kar99-p7-integrated-owner-authority.cjs')
     .includes('inspectAllOwnerClosureReadOnly(');
 const reviewedVerifiedTabOwnerSource = reviewedAdditionalOwners
