@@ -1052,7 +1052,118 @@
           sourceRevision:JSON.stringify([fence,detected.profileId,selected.profileId])
         });
     }
-    return Object.freeze({observe,observeAll,track,snapshotInFlight,readVerifiedUnmanagedTabsReadOnly,inspectDiagnosticExportClosureReadOnly,inspectTrashMutationClosureReadOnly,inspectSingleInventoryClosureReadOnly,inspectProfileTransitionClosureReadOnly,inspectAccountTransitionClosureReadOnly,inspectEmergencyRecoveryClosureReadOnly,inspectManagedTabsClosureReadOnly,inspectNativeUpdateTransactionClosureReadOnly});
+    // KAR-171 W3D1: compose the actual seven persisted and eight supplemental
+    // owner witnesses into a single READ-ONLY historical closure matrix. This
+    // is intentionally NOT an all-idle producer, update lease, apply route,
+    // authenticated current account certificate or old-worker termination
+    // oracle. Each owner still requires independent positive sources later.
+    async function inspectAllOwnerClosureReadOnly(persistedObserver) {
+      const names=[...PERSISTED_OWNERS,...OWNERS];
+      // Bracket all 15 independent owner inspectors with fresh, actual
+      // P8/remote observations plus both stored and live-profile producers.
+      // A worker restart, profile switch or remote admission during this
+      // interval invalidates every historical callback claim.
+      const safe=async action=>{
+        try {return typeof action==='function'?await action():null;}
+        catch {return null;}
+      };
+      const firstProfile=await safe(persistedObserver?.observe?.bind(persistedObserver));
+      const firstSite=await safe(observe);
+      const first=await safe(()=>observeAll(persistedObserver));
+      const individual=Object.create(null);
+      for(const name of names) {
+        const fn=PERSISTED_OWNERS.includes(name)
+          ? persistedObserver?.inspectPersistedOwnerCallbackClosureReadOnly
+          : null;
+        // The supplemental inspectors are closed-over first-party sources,
+        // never supplied by a caller or a runtime message.
+        const inspector=PERSISTED_OWNERS.includes(name)
+          ? (typeof fn==='function'
+            ?()=>fn.call(persistedObserver,name):null)
+          :()=>({
+            singleInventory:inspectSingleInventoryClosureReadOnly,
+            trashMutation:inspectTrashMutationClosureReadOnly,
+            managedTabs:inspectManagedTabsClosureReadOnly,
+            profileTransition:inspectProfileTransitionClosureReadOnly,
+            accountTransition:inspectAccountTransitionClosureReadOnly,
+            diagnosticExport:inspectDiagnosticExportClosureReadOnly,
+            emergencyRecovery:inspectEmergencyRecoveryClosureReadOnly,
+            nativeUpdateTransaction:inspectNativeUpdateTransactionClosureReadOnly
+          })[name]();
+        individual[name]=await safe(inspector);
+      }
+      const last=await safe(()=>observeAll(persistedObserver));
+      const lastProfile=await safe(persistedObserver?.observe?.bind(persistedObserver));
+      const lastSite=await safe(observe);
+      const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+      const observedProfile=record(firstProfile?.context?.profile)
+        &&record(lastProfile?.context?.profile)
+        &&same(firstProfile.context.profile,lastProfile.context.profile);
+      const observedSite=record(firstSite?.context?.profile)
+        &&record(lastSite?.context?.profile)
+        &&same(firstSite.context.profile,lastSite.context.profile);
+      const historicalStable=first?.schema===1&&last?.schema===1
+        &&typeof first.admissionJournalRevision==='string'
+        &&first.admissionJournalRevision===last.admissionJournalRevision
+        &&record(first.admissionHistory)&&record(last.admissionHistory)
+        &&same(first.admissionHistory,last.admissionHistory)
+        &&record(first.remoteAdmissionLineage)&&record(last.remoteAdmissionLineage)
+        &&same(first.remoteAdmissionLineage,last.remoteAdmissionLineage)
+        &&same(first.context?.worker,last.context?.worker)
+        &&observedProfile&&observedSite;
+      const owners=Object.create(null);
+      for(const name of names){
+        const witness=individual[name];
+        const before=first?.admissionHistory?.[name];
+        const after=last?.admissionHistory?.[name];
+        const states=[first?.observations?.[name]?.state,
+          last?.observations?.[name]?.state,
+          firstProfile?.observations?.[name]?.state,
+          lastProfile?.observations?.[name]?.state,
+          firstSite?.observations?.[name]?.state,
+          lastSite?.observations?.[name]?.state];
+        const active=states.includes('active')
+          ||before?.state==='unfinished'||after?.state==='unfinished'
+          ||witness?.status==='blocked';
+        const complete=historicalStable&&record(witness)
+          &&witness.schema===1&&witness.owner===name
+          &&witness.status==='callback-settled'&&witness.eligibleForLease===false
+          &&typeof witness.sourceRevision==='string'&&witness.sourceRevision.length>0
+          &&before?.state==='callback-finished'
+          &&Array.isArray(before.entries)&&before.entries.length>0
+          &&before.entries.length===witness.completedReceiptCount
+          &&after?.state==='callback-finished'
+          &&before.entries.every(row=>row.state==='callback-finished'
+            &&Array.isArray(row.owners)&&row.owners.includes(name));
+        const status=active?'blocked':complete?'historical-callback-settled':'unverified';
+        owners[name]=Object.freeze({
+          owner:name,status,
+          reason:active?'ACTIVE_OR_UNFINISHED_OWNER'
+            :complete?'DURABLE_HISTORICAL_CALLBACK_ONLY'
+              :'OWNER_OR_CROSS_SOURCE_UNVERIFIED',
+          sourceRevision:complete?witness.sourceRevision:null,
+          completedReceiptCount:complete?before.entries.length:0,
+          eligibleForLease:false,priorGenerationClosed:false,
+          currentLiveAccountVerified:false,remoteOutcomeVerified:false,
+          nativeHostOutcomeVerified:false
+        });
+      }
+      const blocked=names.some(name=>owners[name].status==='blocked');
+      return Object.freeze({
+        schema:1,status:blocked?'blocked':'unverified',
+        ownerCount:names.length,owners:Object.freeze(owners),
+        sourcesStable:Boolean(historicalStable),
+        historicalCallbackCount:names.filter(name=>
+          owners[name].status==='historical-callback-settled').length,
+        sourceRevision:historicalStable?first.admissionJournalRevision:null,
+        storedProfileId:historicalStable?firstProfile.context.profile.profileId??null:null,
+        liveAccountStatus:historicalStable?firstSite.context.profile.reason:null,
+        eligibleForLease:false,priorGenerationClosed:false,
+        currentLiveAccountVerified:false,remoteOutcomeVerified:false,
+        nativeHostOutcomeVerified:false
+      });
+    }
+    return Object.freeze({observe,observeAll,inspectAllOwnerClosureReadOnly,track,snapshotInFlight,readVerifiedUnmanagedTabsReadOnly,inspectDiagnosticExportClosureReadOnly,inspectTrashMutationClosureReadOnly,inspectSingleInventoryClosureReadOnly,inspectProfileTransitionClosureReadOnly,inspectAccountTransitionClosureReadOnly,inspectEmergencyRecoveryClosureReadOnly,inspectManagedTabsClosureReadOnly,inspectNativeUpdateTransactionClosureReadOnly});
   }
   const API=Object.freeze({create,OWNERS,ownersForOperation});
   globalThis.KRDeps?.register?.('KRAdditionalOwnerObserver',API);
