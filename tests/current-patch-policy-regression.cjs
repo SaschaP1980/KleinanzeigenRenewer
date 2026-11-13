@@ -16,8 +16,8 @@ assert.equal(includesActivePatch(historicalEra, '1.23.23'), true);
 assert.equal(includesActivePatch(historicalEra, '1.23.21'), false);
 assert.equal(includesActivePatch(['1.23.22', '1.23.23'], '1.23.25'), false);
 assert.equal(includesActivePatch(historicalEra, '1.24.0'), false);
-assert.equal(includesActivePatch(historicalEra, '1.24.1'), false,
-  '1.24.x must not inherit historical 1.23 performance requirements');
+assert.equal(includesActivePatch(historicalEra, '1.24.1'), true,
+  'historical release allowlists continue accepting strict PATCH successors');
 assert.equal(includesSupportedRelease(historicalEra, '1.24.1'), true,
   'approved 1.24.x PATCH must still satisfy historical UI/runtime gates');
 assert.equal(includesSupportedRelease(historicalEra, '1.24.01'), false,

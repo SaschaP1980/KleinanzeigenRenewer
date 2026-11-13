@@ -94,8 +94,7 @@ function expectedManifestPermissions(version) {
 function includesActivePatch(knownVersions, version) {
   assert.ok(Array.isArray(knownVersions), 'historical release predicate must remain an array');
   return knownVersions.includes(version) ||
-    (knownVersions.includes('1.23.24') && typeof version === 'string' &&
-      version.startsWith('1.23.') && isCurrentPatchVersion(version));
+    (knownVersions.includes('1.23.24') && isCurrentPatchVersion(version));
 }
 
 module.exports = { isCurrentPatchVersion, assertCompatibleCurrentPatch, includesActivePatch, includesSupportedRelease, expectedManifestPermissions };
