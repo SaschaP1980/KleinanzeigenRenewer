@@ -32,3 +32,11 @@
 - Final before/after UTF-8 **bytes**, characters, physical lines, full function map, module count, and verified tooling ceiling: pending.
 - Required **>=30%** reduction and preferred `<150,000` chars / `<2,500` lines: pending subsequent Waves.
 - Independent maximum-size CI guard: pending verification of actual external size limit.
+
+## Wave 2 — inventory public-status and edit-tab refresh coordination
+
+- Extract `checkInventoryOnlineStatus(message)` and `refreshInventoryRecord(message)` together. They share the same local inventory record identity, selected live-account gate, public evidence interpretation, diagnostics and persisted record updates.
+- New `src/background/services/inventory-refresh-service.js` exports exactly two observable operations via the existing `KRDeps` in-process factory. The entrypoint retains both original async facades and uses lazily composed explicit function and configuration dependencies.
+- Preserved without changes in the moved implementation: strict numeric ad ID, public evidence verification/uncertainty, live selected profile gate, concurrent bulk/renewal locks, edit-worker bootstrap and bounded retry, owner-card read-only expiry enrichment, atomic save through existing inventory owner, renewal re-verification and worker-tab cleanup on both success/error.
+- No new Chrome permissions/messages, storage format, account changes, updater authority or publication decisions. No new independent workflow owner or release.
+- Wave 2 dedicated observable tests cover preflight rejection, online confirmed/pending, locked operation and worker success/failure cleanup. Full CI/packaged browser proof is pending, not inferred from static ownership.

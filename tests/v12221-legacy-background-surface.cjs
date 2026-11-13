@@ -40,4 +40,6 @@ const router=fs.existsSync(routerPath)?fs.readFileSync(routerPath,'utf8'):'';
 const policy=fs.existsSync(policyPath)?fs.readFileSync(policyPath,'utf8'):'';
 const inventoryCapturePath=path.join(root,'src/background/services/inventory-capture-service.js');
 const inventoryCapture=fs.existsSync(inventoryCapturePath)?fs.readFileSync(inventoryCapturePath,'utf8'):'';
-module.exports=[policy,router,templateController,insertionLock,emergencyReset,background,inventoryCapture].filter(Boolean).join('\n');
+const inventoryRefreshPath=path.join(root,'src/background/services/inventory-refresh-service.js');
+const inventoryRefresh=fs.existsSync(inventoryRefreshPath)?fs.readFileSync(inventoryRefreshPath,'utf8'):'';
+module.exports=[policy,router,templateController,insertionLock,emergencyReset,background,inventoryCapture,inventoryRefresh].filter(Boolean).join('\n');
