@@ -1,0 +1,20 @@
+name: KAR-161 one-pass unit regression diagnosis
+on:
+  push:
+    branches: [work/KAR-161]
+    paths: [.github/workflows/kar161-one-pass-diagnostic.yml]
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm ci --ignore-scripts
+      - name: Collect independent offline unit/contract failures
+        run: node scripts/kar161-one-pass-diagnostic.cjs
