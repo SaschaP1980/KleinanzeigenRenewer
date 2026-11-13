@@ -836,6 +836,7 @@ function requireInventoryCaptureService() {
     templateSchemaCore: TemplateSchemaCore,
     logDiagnostic,
     commitInventory: (record, stagedImages) => requireInventoryRepository().commit(record, stagedImages),
+    getInventory,
     broadcastInventoryChanged
   });
   return inventoryCaptureService;

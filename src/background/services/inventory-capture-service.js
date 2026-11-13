@@ -7,9 +7,11 @@
       const TemplateSchemaCore = options.templateSchemaCore;
       const logDiagnostic = options.logDiagnostic;
       const commitInventory = options.commitInventory;
+      const getInventory = options.getInventory;
       const broadcastInventoryChanged = options.broadcastInventoryChanged;
       if (!TemplateSchemaCore?.buildSchema || !TemplateSchemaCore?.fingerprint ||
           typeof logDiagnostic !== 'function' || typeof commitInventory !== 'function' ||
+          typeof getInventory !== 'function' ||
           typeof broadcastInventoryChanged !== 'function') {
         throw new Error('KRInventoryCaptureService requires schema, diagnostic, commit and notification dependencies');
       }

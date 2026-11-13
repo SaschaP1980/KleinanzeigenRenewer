@@ -26,11 +26,13 @@ assert.match(pkg, /src\/background\/services\/inventory-capture-service\.js/);
 assert.ok(background.length < 213227, 'entrypoint must shrink relative to KAR-175 baseline');
 
 const events = [], commits = [], notifications = [];
+const existingRecords = new Map();
 let commit = async (record, images) => { commits.push({ record, images }); };
 const svc = provider.create({
   templateSchemaCore: { buildSchema: row => ({ categoryId: row.categoryId }), fingerprint: async () => 'safe-fingerprint' },
   logDiagnostic: async (_level, event) => { events.push(event); },
   commitInventory: (...args) => commit(...args),
+  getInventory: async id => existingRecords.get(String(id)) || null,
   broadcastInventoryChanged: (...args) => notifications.push(args)
 });
 (async () => {
@@ -44,6 +46,28 @@ const svc = provider.create({
   assert.equal(notifications[0][0], 'saved');
   assert.ok(events.includes('INVENTORY_SAVED'));
 
+  // KAR-134 L15: public/detail-only capture may retain a historical
+  // value-free snapshot only for the identical ad AND bound profile.
+  existingRecords.set('known', {
+    adId:'812', profileId:'profile-A',
+    templateSchema: { snapshot:{ categoryId:'9' }, fingerprint:'historical' }
+  });
+  const retained = await svc.saveInventory({
+    adId:'812', profileId:'profile-A', images:[],
+    extraction: { capturedFromEditView:false }
+  }, { inventoryIdOverride:'known' });
+  assert.equal(retained.schemaObservationStatus, 'not-observed');
+  assert.equal(retained.templateSchema.fingerprint, 'historical');
+
+  const mismatch = await svc.saveInventory({
+    adId:'813', profileId:'profile-B', images:[],
+    extraction: { capturedFromEditView:false }
+  }, { inventoryIdOverride:'known' });
+  assert.equal(mismatch.schemaObservationStatus, 'not-observed');
+  assert.equal(Object.hasOwn(mismatch, 'templateSchema'), false,
+    'a different ad/profile must never inherit historical evidence');
+  assert.equal(commits.length, 3);
+
   const url = 'https://img.kleinanzeigen.de/api/v1/prod-ads/images/ab/12345678-1234-1234-1234-1234567890ab';
   const image = { imageId:'id', downloadUrl:url, thumbnailWidth:250, thumbnailHeight:200 };
   const saved = await svc.saveInventory({ adId:'43', images:[image], extraction:{ requiresJpeg:true, requiresLargeJpeg:true } }, { inventoryIdOverride:'replacement-id' });
@@ -52,13 +76,13 @@ const svc = provider.create({
   assert.equal(saved.images[0].formatEvidence, 'file-signature-and-decode');
   assert.equal(saved.images[0].sha256.length, 64);
   assert.equal(saved.images[0].uploadReady, true);
-  assert.equal(commits[1].images[0].imageKey, 'replacement-id:0');
+  assert.equal(commits[3].images[0].imageKey, 'replacement-id:0');
   assert.ok(calls[0].url.includes('rule=%24_57.JPG'));
   assert.equal(calls[0].options.credentials, 'omit');
   assert.equal(calls[0].options.redirect, 'error');
 
   await assert.rejects(svc.saveInventory({ adId:'44', images:[{ imageId:'bad', downloadUrl:'https://evil.invalid/a.jpg' }] }), /Bild 1 konnte nicht gesichert werden/);
-  assert.equal(commits.length, 2, 'failed download cannot partially commit');
+  assert.equal(commits.length, 4, 'failed download cannot partially commit');
 
   let release;
   commit = () => new Promise(resolve => { release = resolve; });
