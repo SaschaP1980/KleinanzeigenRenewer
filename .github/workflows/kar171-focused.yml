@@ -26,3 +26,10 @@ jobs:
           node tests/kar99-phase4-outcome-reconciliation.cjs
           node tests/kar99-publish-outcome.cjs
           node tests/kar175-publish-intent-authorization.cjs
+      - name: Install complete test dependencies
+        run: npm ci
+      - name: Full unit, coverage and architecture regression gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash scripts/coverage-gate.sh
