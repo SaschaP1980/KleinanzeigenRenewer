@@ -14,6 +14,9 @@ assert.match(app, /startKnownSingleInventoryCapture\(/); pass('known published t
 assert.match(bg, /GET_TRASH_TEMPLATE_FILL_STATUS/); pass('background exposes trash-template status');
 assert.match(bg, /maybeDetectTrashTemplatePublishedAd\(/); pass('background passively detects manual publication');
 assert.match(bg, /chrome\.tabs(?:\?\.|\.)onUpdated(?:\?\.|\.)addListener[\s\S]*maybeDetectTrashTemplatePublishedAd/); pass('manual publication detection is wired to tab lifecycle');
-assert.match(bg, /TRASH_TEMPLATE_PUBLISHED_DETECTED/); pass('publication detection is diagnosed');
+const trashDetectionOwner = fs.readFileSync('src/background/services/trash-template-publish-detection-service.js','utf8');
+assert.match(bg,/requireTrashTemplatePublishDetectionService\(\)\.maybeDetectTrashTemplatePublishedAd\(/,
+  'background still delegates passive detection to exact-ID account-bound service');
+assert.match(trashDetectionOwner, /TRASH_TEMPLATE_PUBLISHED_DETECTED/); pass('publication detection is diagnosed');
 assert.match(css, /\.trash-template-dialog/); pass('guided template modal has dedicated styling hook');
 console.log(`${n} v1.17.6 guided trash-template contract groups passed`);
