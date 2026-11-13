@@ -1,6 +1,7 @@
 const fs = require('node:fs');
 const assert = require('node:assert/strict');
 const bg = require('./v12215-source-surface.cjs');
+const owner = fs.readFileSync('src/background/services/renewal-public-evidence-coordinator.js', 'utf8');
 const nav = require('../managed-navigation.js');
 let n=0; const pass=m=>{n++; console.log('PASS '+m);};
 assert.equal(typeof nav.assessPublicAd, 'function'); pass('managed navigation exposes public-ad id assessment');
@@ -11,15 +12,16 @@ assert.equal(nav.assessPublicAd({url:'https://www.kleinanzeigen.de/stadt/dorsten
 assert.match(bg,/async function probeFreshRenewalPublicUrl\(/); pass('phase3 has dedicated fresh public-url probe');
 assert.match(bg,/publicUrlVariant/); pass('public verification diagnostics identify URL variant');
 assert.match(bg,/directPublicUrlForAdId\(newAdId\)/); pass('phase3 uses id-direct fallback');
-const rs=bg.indexOf('async function resolveRenewalPublicEvidence'); const re=bg.indexOf('\nasync function extractReadOnlyMetadata',rs); assert.ok(rs>=0&&re>rs); const block=bg.slice(rs,re);
+assert.match(bg, /requireRenewalPublicEvidenceCoordinator\(\)\.resolveRenewalPublicEvidence\(/);
+const rs=owner.indexOf('async function resolveRenewalPublicEvidence'); const re=owner.indexOf('\n      return Object.freeze({',rs); assert.ok(rs>=0&&re>rs); const block=owner.slice(rs,re);
 assert.doesNotMatch(block,/workerTabId\s*=\s*null/); pass('public-evidence resolver no longer accepts a reusable worker tab');
 assert.match(block,/probeFreshRenewalPublicUrl\([^)]*'canonical'/s); pass('canonical public URL gets its own fresh probe');
 assert.match(block,/probeFreshRenewalPublicUrl\([^)]*'id-direct'/s); pass('id-direct URL gets its own fresh probe');
 assert.match(block,/findRenewalAdInMyAdsFresh\(/); pass('Meine Anzeigen lookup uses a separate fresh worker');
 
-const createStart=bg.indexOf('async function createFreshRenewalVerificationTab'); const createEnd=bg.indexOf('\nasync function closeFreshRenewalVerificationTab',createStart); const createBlock=bg.slice(createStart,createEnd);
+const createStart=owner.indexOf('async function createFreshRenewalVerificationTab'); const createEnd=owner.indexOf('\n      async function closeFreshRenewalVerificationTab',createStart); assert.ok(createStart>=0&&createEnd>createStart); const createBlock=owner.slice(createStart,createEnd);
 assert.match(createBlock,/navigation-safety-stop/); pass('failed fresh-tab navigation is closed even for non-retryable safety errors');
-const probeStart=bg.indexOf('async function probeFreshRenewalPublicUrl'); const probeEnd=bg.indexOf('\nasync function findRenewalAdInMyAdsFresh',probeStart); const probeBlock=bg.slice(probeStart,probeEnd);
+const probeStart=owner.indexOf('async function probeFreshRenewalPublicUrl'); const probeEnd=owner.indexOf('\n      async function findRenewalAdInMyAdsFresh',probeStart); assert.ok(probeStart>=0&&probeEnd>probeStart); const probeBlock=owner.slice(probeStart,probeEnd);
 assert.match(probeBlock,/finally \{[\s\S]*closeFreshRenewalVerificationTab/); pass('every public verification probe closes its fresh tab in finally');
 assert.match(bg,/renewalComparisonHasOnlyVisibilityUncertainty\(comparison\)/); pass('visibility transport uncertainty is retryable without weakening semantic mismatch checks');
 assert.match(bg,/verificationOrder: \['edit', 'fresh-canonical-public', 'fresh-id-direct-public', 'fresh-my-ads'\]/); pass('diagnostics expose the fresh Phase-3 verification order');
