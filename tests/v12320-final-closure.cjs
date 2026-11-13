@@ -62,9 +62,9 @@ const reviewedPersistedCallbackClosure = reviewedPersistedObserver && fs.readFil
 // KAR-171 W3D1: explicitly reviewed new 15-owner read-only instance API;
 // keep frozen historical Gold, while requiring current dynamic 100% closure.
 const reviewedAllOwnerClosureMatrix = reviewedAdditionalOwners
-  && r('src/background/services/additional-owner-observer.js')
+  && fs.readFileSync('src/background/services/additional-owner-observer.js','utf8')
     .includes('async function inspectAllOwnerClosureReadOnly(persistedObserver)')
-  && r('tests/kar99-p7-integrated-owner-authority.cjs')
+  && fs.readFileSync('tests/kar99-p7-integrated-owner-authority.cjs','utf8')
     .includes('inspectAllOwnerClosureReadOnly(');
 const reviewedVerifiedTabOwnerSource = reviewedAdditionalOwners
   && fs.readFileSync('src/background/services/additional-owner-observer.js','utf8').includes('async function readVerifiedUnmanagedTabsReadOnly()')
