@@ -76,9 +76,12 @@ function assertCompatibleCurrentPatch({ manifest, pkg, lock, spec } = {}) {
   return version;
 }
 
-// Historical contracts execute against the authorized 1.24.0 MINOR as well.
+// Historical 1.23 correction gates must not classify approved 1.24.x
+// feature-series releases as part of the older correction/performance run.
 function includesSupportedRelease(knownVersions, version) {
-  return includesActivePatch(knownVersions, version) || version === '1.24.0';
+  return includesActivePatch(knownVersions, version) || version === '1.24.0' ||
+    (typeof version === 'string' && version.startsWith('1.24.') &&
+      isCurrentPatchVersion(version));
 }
 
 function expectedManifestPermissions(version) {
@@ -91,7 +94,8 @@ function expectedManifestPermissions(version) {
 function includesActivePatch(knownVersions, version) {
   assert.ok(Array.isArray(knownVersions), 'historical release predicate must remain an array');
   return knownVersions.includes(version) ||
-    (knownVersions.includes('1.23.24') && isCurrentPatchVersion(version));
+    (knownVersions.includes('1.23.24') && typeof version === 'string' &&
+      version.startsWith('1.23.') && isCurrentPatchVersion(version));
 }
 
 module.exports = { isCurrentPatchVersion, assertCompatibleCurrentPatch, includesActivePatch, includesSupportedRelease, expectedManifestPermissions };
