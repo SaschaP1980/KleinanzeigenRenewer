@@ -11,11 +11,11 @@ const journalCalls=[],closed=[],requests=[];
 const fill={fillId:'abc',targetTabId:42,stage:'auto-publish-ready',status:'running',
   result:{complete:true,issues:[]},renewalId:'r',sourceAdId:'123'};
 const renewal={fillId:'abc',targetTabId:42,profileId:'P',sourceAdId:'123'};
-let profileId='P',seenName='User Account',validPresence=true,failPostReceipt=false;
+let profileId='P',seenName='User Account',validPresence=true,failPostReceipt=false,accountReadCount=0;
 const options={
  sessionPort:{readArchiveInsertionSessions:async()=>({}),readRenewalSessions:async()=>({r:renewal}),
   readFillSessions:async()=>({abc:fill})},
- accountPort:{assertSelectedProfileMatchesLiveAccount:async()=>({profileId:failPostReceipt?'other':profileId,displayName:'User Account'}),
+ accountPort:{assertSelectedProfileMatchesLiveAccount:async()=>({profileId:failPostReceipt && ++accountReadCount > 1 ? 'other' : profileId,displayName:'User Account'}),
   normalizeProfileName:x=>String(x||'').trim()},
  tabPort:{createManagedWorkerTab:async()=>({id:77}),
   waitForTabComplete:async()=>{},ensureContentConnection:async()=>{},
@@ -46,7 +46,7 @@ const receipt=Object.freeze({operationType:'AUTHORIZE_AUTOMATIC_PUBLISH'});
   const permit=await svc.authorizeAutomaticPublish({fillId:'abc'},sender,receipt);
   assert.equal(permit.authorized,true);assert.equal(permit.receiptId,'durable-attempt');
   assert.equal(journalCalls.length,1);assert.equal(journalCalls[0].sourceAdId,'123');
-  failPostReceipt=true;
+  failPostReceipt=true;accountReadCount=0;
   await assert.rejects(svc.authorizeAutomaticPublish({fillId:'abc'},sender,receipt),/ACCOUNT_CHANGED/);
   failPostReceipt=false;
   const matched=await svc.resolveManagedPublishIntent({fillId:'abc'},{adId:'456'});
