@@ -58,6 +58,34 @@ def main():
                 report["checks"]["startupController"] = page.evaluate("typeof globalThis.KRDeps?.require?.('KRTrashRetentionSettingsController')?.create")
                 report["checks"]["backgroundWorkers"] = [worker.url for worker in context.service_workers]
                 report["checks"]["domStatus"] = page.locator("#statusTitle").text_content()
+                if context.service_workers:
+                    worker = context.service_workers[0]
+                    worker.on("console", lambda entry: report["worker"].append({"type": entry.type, "message": entry.text}))
+                    worker.on("close", lambda _: report["worker"].append({"type": "closed"}))
+                    try:
+                        report["checks"]["backgroundInspection"] = worker.evaluate("""async () => {
+                          const timeout = ms => new Promise(resolve => setTimeout(() => resolve({timeout:true}), ms));
+                          const direct = await Promise.race([
+                            Promise.resolve().then(() => getTrashRetentionConfiguration())
+                              .then(result => ({result}), error => ({error:String(error), stack:error?.stack})),
+                            timeout(4000)
+                          ]);
+                          return {
+                            direct, serviceLoaded: typeof requireTrashService === 'function',
+                            route: MessageContractRegistry.route('GET_TRASH_RETENTION_CONFIGURATION','background'),
+                            epoch: currentDiagnosticSessionId()
+                          };
+                        }""")
+                    except Exception as error:
+                        report["checks"]["backgroundInspectionError"] = str(error)
+                report["checks"]["otherRoutes"] = page.evaluate("""async () => {
+                    async function send(type) { return Promise.race([
+                      new Promise(resolve => chrome.runtime.sendMessage({type}, reply =>
+                        resolve({reply, lastError:chrome.runtime.lastError?.message || null}))),
+                      new Promise(resolve => setTimeout(() => resolve({timeout:true}), 3500))
+                    ]); }
+                    return {epoch:await send('GET_BACKGROUND_EPOCH'), renewal:await send('GET_RENEWAL_CONFIGURATION')};
+                }""")
                 try:
                     report["checks"]["retentionConfig"] = page.evaluate("""async () => new Promise(resolve => {
                       const timer = setTimeout(() => resolve({timeout: true}), 5000);
