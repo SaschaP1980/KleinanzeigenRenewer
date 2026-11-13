@@ -21,3 +21,11 @@ jobs:
           node-version: '22'
       - name: Validate full private 15-owner proof timing test
         run: node --test tests/kar99-p13b-trusted-owner-authority.cjs
+      - name: Install complete test dependencies
+        run: npm ci
+      - name: Execute final clean-tree full regression and coverage gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm .github/workflows/kar171-w3-focused.yml
+          bash scripts/coverage-gate.sh
