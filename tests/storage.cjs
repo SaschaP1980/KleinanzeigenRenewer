@@ -9,6 +9,15 @@ const context = vm.createContext({indexedDB, IDBKeyRange, crypto:require('node:c
 vm.runInContext(fs.readFileSync(path.join(__dirname,'../tab-registry.js'),'utf8'),context);
 vm.runInContext(fs.readFileSync(path.join(__dirname,'../diagnostics-service.js'),'utf8'),context);
 vm.runInContext(fs.readFileSync(path.join(__dirname,'../inventory-repository.js'),'utf8'),context);
+// KAR-175: register the real inventory capture owner in the historical VM.
+// This test intentionally injects a fake downloader to isolate IndexedDB
+// transaction rollback. Keep production service source unchanged on disk;
+// only this test VM redirects the one download seam to its existing stub.
+const captureSource=fs.readFileSync(path.join(__dirname,'../src/background/services/inventory-capture-service.js'),'utf8');
+const downloadCall='await downloadInventoryImage(extracted.images[index],';
+assert.equal(captureSource.split(downloadCall).length,2,'one inventory capture download call');
+vm.runInContext(captureSource.replace(downloadCall,
+  'await globalThis.downloadInventoryImage(extracted.images[index],'),context);
 vm.runInContext(fs.readFileSync(path.join(__dirname,'../background.js'),'utf8'),context);
 const ad = images => ({adId:'123',title:'New',description:'Absatz 1.\n\n- Farbe: grau\n\nAbsatz 3.',images:images.map(url=>({url})),warnings:[]});
 context.downloadInventoryImage=async source=>{const url=typeof source==='string'?source:source.url;return {blob:new Blob([url],{type:'image/jpeg'}),size:url.length,mimeType:'image/jpeg',sourceUrl:url,fetchedUrl:url}};
