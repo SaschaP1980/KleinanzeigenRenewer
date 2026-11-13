@@ -113,6 +113,30 @@ function snapshot(){const gen='worker-one',profile='profile-one',now=123000;
    'a different MV3 worker cannot reserve using a stale all-idle generation');
  ok(Object.keys(staleStore.data).length===0,
    'stale worker denial leaves no durable reserved transaction');
+ // KAR-171 W1 regression: the independent observation is made AFTER entering
+ // the durable reservation critical section. An observation timestamp from
+ // that later capture is not a future timestamp relative to the request.
+ // This is a test-only 15-owner fixture, never a production source attestation.
+ const freshStore=disk(),freshWorker=make(freshStore,locks);
+ let freshClock=123000;
+ const freshGate=Fence.create({
+   storageLocal:freshStore,clock:()=>++freshClock,
+   newToken:()=> 'fresh_observation_token_1234567890',
+   atomicCoordinator:freshWorker,policy:Policy,
+   getOwnerSnapshot:async()=>{
+     const observedAtMs=++freshClock;
+     const base=snapshot();
+     return {...base,observedAtMs,owners:Object.fromEntries(
+       Object.entries(base.owners).map(([name,owner])=>[
+         name,{...owner,observedAtMs}
+       ]))};
+   }
+ });
+ const freshLease=await freshGate.reserve(request);
+ ok(freshLease.state==='reserved' && freshLease.createdAtMs>=123002,
+   'newly completed 15-owner observation is evaluated against a later current time');
+ ok(freshStore.data[Fence.STORAGE_KEY]?.token===freshLease.token,
+   'fresh all-owner fixture reservation is durably acknowledged without native apply');
  const approved=await gateOne.reserve(request);
  ok(approved.state==='reserved','positive test-only fake owner snapshot serialized');
  await reject(gateTwo.withAdmission('START_ARCHIVE',()=>true),'KR_UPDATE_FENCE_HELD',
