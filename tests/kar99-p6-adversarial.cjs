@@ -47,10 +47,17 @@ function journal(store,lock,verify,worker='worker-a'){
     verifyRemoteOutcome:verify});
 }
 const bg=fs.readFileSync('src/background/background.js','utf8');
-const open=bg.indexOf('async function verifyAutoPublishRemoteOutcomeFresh(');
-const close=bg.indexOf('async function resolveManagedPublishIntent(',open);
-assert(open>=0&&close>open,'production verification function must exist');
-const actualVerifier=bg.slice(open,close);
+// KAR-175: instantiate real registered publication proof owner, not the
+// thin background facade. All original adversarial My Ads and account tests
+// below must run against its actual production implementation.
+const authorizationOwnerSource=fs.readFileSync('src/background/services/publish-intent-authorization-service.js','utf8');
+assert.match(bg,/requirePublishIntentAuthorizationService\(\)\.verifyAutoPublishRemoteOutcomeFresh\(/);
+assert.match(bg,/requirePublishIntentAuthorizationService\(\)\.authorizeAutomaticPublish\(/);
+let authorizationOwner=null;
+vm.runInNewContext(authorizationOwnerSource,{
+  KRDeps:{register(name,api){assert.equal(name,'KRPublishIntentAuthorizationService');authorizationOwner=api;}}
+});
+assert.equal(typeof authorizationOwner?.create,'function');
 function environment(options={}){
   const expected={profileId:'profile-one',displayName:'Account One'};
   const session={fillId:'fill-one',profileId:expected.profileId,
@@ -105,8 +112,29 @@ function environment(options={}){
     MY_ADS_PROJECTS_URL:'https://www.kleinanzeigen.de/m-meine-anzeigen.html?tab=PROJECTS',
     TAB_LOAD_TIMEOUT_PHASE4_MS:10000
   };
-  const verify=vm.runInNewContext(actualVerifier+
-    '\nverifyAutoPublishRemoteOutcomeFresh;',sandbox);
+  const verify=authorizationOwner.create({
+    sessionPort:{
+      readRenewalSessions:sandbox.readRenewalSessions,
+      readArchiveInsertionSessions:sandbox.readArchiveInsertionSessions,
+      readFillSessions:async()=>({})
+    },
+    accountPort:{
+      normalizeProfileName:sandbox.normalizeProfileName,
+      assertSelectedProfileMatchesLiveAccount:sandbox.assertSelectedProfileMatchesLiveAccount
+    },
+    tabPort:{
+      createManagedWorkerTab:sandbox.createManagedWorkerTab,
+      waitForTabComplete:sandbox.waitForTabComplete,
+      ensureContentConnection:sandbox.ensureContentConnection,
+      sendTabRequestWithBootstrap:sandbox.sendTabRequestWithBootstrap,
+      closeManagedWorkerTab:sandbox.closeManagedWorkerTab
+    },
+    journalPort:{requireAutoPublishIntentJournal:()=>({})},
+    configPort:{
+      URL,MY_ADS_PROJECTS_URL:sandbox.MY_ADS_PROJECTS_URL,
+      TAB_LOAD_TIMEOUT_PHASE4_MS:sandbox.TAB_LOAD_TIMEOUT_PHASE4_MS
+    }
+  }).verifyAutoPublishRemoteOutcomeFresh;
   return {verify,state,session};
 }
 function input(kind='renewal'){
@@ -290,11 +318,8 @@ async function withAttempt(env,kind='renewal'){
   // Admission can take several awaited storage/lock steps after first live
   // account check. Switching the account between that check and the durable
   // receipt must not return a usable click authorization.
-  const authorizeStart=bg.indexOf('async function authorizeAutomaticPublish(');
-  const authorizeEnd=bg.indexOf('function requireRenewalWorkflowController()',authorizeStart);
-  assert(authorizeStart>=0&&authorizeEnd>authorizeStart,
-    'production automatic/manual publish handler must be present');
-  const actualAuthorize=bg.slice(authorizeStart,authorizeEnd);
+  assert.match(authorizationOwnerSource,/async function authorizeAutomaticPublish\(message, sender, admissionReceipt\)/,
+    'the real registered owner must retain original immutable receipt contract');
   function admissionRig(changeAfterJournal){
     let live='profile-one',checks=0,writes=0;
     const fill={fillId:'fill-one',targetTabId:99,status:'running',
@@ -310,25 +335,37 @@ async function withAttempt(env,kind='renewal'){
       operationType:'AUTHORIZE_AUTOMATIC_PUBLISH',
       workerInstanceId:'test-worker-one',startedAtMs:100
     });
-    const auth=vm.runInNewContext(actualAuthorize+
-      '\nauthorizeAutomaticPublish;',{
-      URL,
-      readFillSessions:async()=>({'fill-one':fill}),
-      readRenewalSessions:async()=>({'renew-one':renewal}),
-      readArchiveInsertionSessions:async()=>({}),
-      assertSelectedProfileMatchesLiveAccount:async()=>{
-        checks++;
-        if(live!=='profile-one')throw Error('live Kleinanzeigen account changed');
-        return {profileId:live,displayName:'Account One'};
+    const auth=authorizationOwner.create({
+      sessionPort:{
+        readFillSessions:async()=>({'fill-one':fill}),
+        readRenewalSessions:async()=>({'renew-one':renewal}),
+        readArchiveInsertionSessions:async()=>({})
       },
-      requireAutoPublishIntentJournal:()=>({begin:async request=>{
+      accountPort:{
+        normalizeProfileName:v=>String(v||'').trim(),
+        assertSelectedProfileMatchesLiveAccount:async()=>{
+          checks++;
+          if(live!=='profile-one')throw Error('live Kleinanzeigen account changed');
+          return {profileId:live,displayName:'Account One'};
+        }
+      },
+      tabPort:{
+        createManagedWorkerTab:async()=>({id:333}),
+        waitForTabComplete:async()=>{},
+        ensureContentConnection:async()=>{},
+        sendTabRequestWithBootstrap:async()=>({}),
+        closeManagedWorkerTab:async()=>{}
+      },
+      journalPort:{requireAutoPublishIntentJournal:()=>({begin:async request=>{
         assert.equal(request.admissionReceipt,admissionReceipt,
           'P8 worker-owned in-band receipt must reach immutable publish journal');
         writes++;
         if(changeAfterJournal)live='profile-two';
         return {attemptId:'durable-intent-1'};
-      }})
-    });
+      }})},
+      configPort:{URL,MY_ADS_PROJECTS_URL:'https://www.kleinanzeigen.de/m-meine-anzeigen.html',
+        TAB_LOAD_TIMEOUT_PHASE4_MS:10000}
+    }).authorizeAutomaticPublish;
     const message={fillId:'fill-one'};
     const sender={tab:{id:99},
       url:'https://www.kleinanzeigen.de/p-anzeige-aufgeben.html'};
