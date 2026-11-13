@@ -58,6 +58,9 @@ function init(db,verifyRemoteOutcome,worker='worker-new') {
     ['profile changed',r=>({...proof(r),profileId:'Different Account'})],
     ['target ID changed',r=>({...proof(r),newAdId:'33445566'})],
     ['proof incomplete',r=>({...proof(r),targetEvidence:'unknown'})],
+    // KAR-171 W2: full-pagination evidence cannot find an ad on a page
+    // beyond the actual number of pages scanned.
+    ['target page outside scanned range',r=>({...proof(r),targetPagesScanned:1,targetFoundPage:2})],
     ['verification unavailable',async()=>{throw Error('network error')}]
   ]) {
     const d=storage(),k=init(d,verifier),a=await k.begin(req);
@@ -65,6 +68,19 @@ function init(db,verifyRemoteOutcome,worker='worker-new') {
       'KR_PHASE4_JOURNAL_UNVERIFIED',name+' fails closed');
     ok(Object.keys(d.data).filter(x=>x.startsWith(Journal.RESOLUTION_KEY_PREFIX)).length===0,
       name+' never writes a false resolution');
+  }
+  // KAR-171 W2: a historically tampered local resolution is not an
+  // independent remote result and must never be accepted on worker reentry.
+  for (const [name,mutate] of [
+    ['target found after last scanned page',r=>{r.targetPagesScanned=1;r.targetFoundPage=2;}],
+    ['remote verification predates original intent',r=>{r.verifiedAtMs=intent.createdAtMs-1;}]
+  ]) {
+    const historical=storage();
+    Object.assign(historical.data,structuredClone(db.data));
+    const key=Object.keys(historical.data).find(x=>x.startsWith(Journal.RESOLUTION_KEY_PREFIX));
+    mutate(historical.data[key]);
+    await denied(init(historical,proof,'restarted-worker').observe(req.renewalId),
+      'KR_PHASE4_JOURNAL_CORRUPT','tampered Phase-4 '+name+' fails closed');
   }
   const absent=init(storage(),proof);
   await denied(absent.resolveVerified({renewalId:req.renewalId,attemptId:'missing'}),
