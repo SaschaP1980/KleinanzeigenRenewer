@@ -642,6 +642,7 @@ async function openOrFocusAppWindow() {
 let inventoryRepository = null;
 let inventoryImageStore = null;
 let trashManagementController = null;
+let diagnosticsService = null; // Required by eager diagnostic-session startup and runtime message error handling.
 
 function requireInventoryRepository() {
   if (inventoryRepository) return inventoryRepository;
