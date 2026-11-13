@@ -119,6 +119,9 @@
     }),
     misc: Object.freeze({
       configurationAccordion: "#configurationAccordion",
+      trashRetentionRange: "#trashRetentionRange",
+      trashRetentionValue: "#trashRetentionValue",
+      trashRetentionDescription: "#trashRetentionDescription",
     }),
     inventory: Object.freeze({
       inventoryButton: "#inventoryButton",
