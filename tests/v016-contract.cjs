@@ -19,4 +19,8 @@ assert.match(capture,/JPEG ist nur Thumbnail-Größe/);assert.match(capture,/lar
 console.log(`${n} v0.1.6 contract tests passed`);
 
 // Run the full historical suite on an isolated next-PATCH fixture, never on production metadata.
-if (process.env.KAR46_SYNTHETIC_PATCH !== '1') require('./current-patch-next-release-regression.cjs');
+if (process.env.KAR46_SYNTHETIC_PATCH !== '1' && isCurrentPatchVersion(manifest.version)) {
+  require('./current-patch-next-release-regression.cjs');
+} else if (manifest.version === '1.24.0') {
+  console.log('KAR-46 synthetic NEXT-PATCH runner not applicable to approved 1.24.0 MINOR; historical PATCH policy regression remains active.');
+}
