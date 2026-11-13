@@ -148,7 +148,9 @@
     "Open Konfiguration and verify all seven retention stops, keyboard and focus behaviour.",
     "Check persisted selection across Chrome restart, legacy 30-day default and infinity semantics.",
     "Verify warning/cancel/confirm with representative local-only trash fixtures and no remote mutations.",
-    "Verify the Papierkorb deadline and restart-period wording in compact and detailed views."
+    "Verify the Papierkorb deadline and restart-period wording in compact and detailed views.",
+    "Validate canonical all-profile affected-count preview and fail-closed cancellation when the active profile or trash snapshot changes.",
+    "Verify local-only atomic record-and-image deletion under exact inventory IDs, retention-reset boundaries and MV3 interruption; assert no remote Kleinanzeigen mutation."
   ],
   "packageVersion": "1.24.0",
   "directBasisNativePending": false,
