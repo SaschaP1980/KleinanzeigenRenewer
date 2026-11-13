@@ -9,6 +9,7 @@
       const confirmAction = typeof options.confirmAction === 'function' ? options.confirmAction : async () => false;
       const onConfigurationChanged = typeof options.onConfigurationChanged === 'function' ? options.onConfigurationChanged : () => {};
       const onError = typeof options.onError === 'function' ? options.onError : () => {};
+      const getTrashRetentionLabel = typeof options.getTrashRetentionLabel === 'function' ? options.getTrashRetentionLabel : () => '30 Tage';
       const safeMode = String(options.safeMode || 'safe');
       const fastMode = String(options.fastMode || 'fast');
       const defaultAttempts = Number.isFinite(Number(options.defaultAttempts)) ? Number(options.defaultAttempts) : 3;
@@ -76,7 +77,7 @@
           const confirmed = await confirmAction({
             title: 'Schnellprüfung aktivieren?',
             text: 'Bei der Schnellprüfung wird die zusätzliche Inhaltsprüfung der neu eingestellten Anzeige übersprungen.',
-            detail: 'Die App prüft weiterhin, ob die neue Anzeige erfolgreich erstellt wurde und ob die bisherige Anzeige nach dem Löschen nicht mehr vorhanden ist. Das Kleinanzeigen-Konto wird weiterhin geprüft und der 30-Tage-Papierkorb bleibt aktiv.',
+            detail: 'Die App prüft weiterhin, ob die neue Anzeige erfolgreich erstellt wurde und ob die bisherige Anzeige nach dem Löschen nicht mehr vorhanden ist. Das Kleinanzeigen-Konto wird weiterhin geprüft und die Papierkorb-Aufbewahrung (' + getTrashRetentionLabel() + ') bleibt aktiv.',
             confirmLabel: 'Schnellprüfung aktivieren'
           });
           if (!confirmed) return snapshot();
