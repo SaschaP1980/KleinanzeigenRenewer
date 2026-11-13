@@ -351,6 +351,24 @@
                   ||r.value.auth?.loggedIn!==true
                   ||label(r.value.profileName)!==initialNames[i]))
                 reason='LIVE_ACCOUNT_STATUS_CHANGED_DURING_READ';
+              // KAR-171 W3D3B3: second PAGE_STATUS can itself race a tab
+              // replacement or selected-profile change. Close that terminal
+              // read gap with independent fresh Chrome and storage witnesses.
+              // This is still ONLY a read-only historical account observation,
+              // not an atomic remote mutation check or updater IDLE proof.
+              if(reason==='LIVE_ACCOUNT_PROFILE_MATCH'){
+                const [finalTabs,finalProfiles]=await Promise.allSettled([
+                  Promise.resolve().then(()=>queryBrowserTabsReadOnly()),
+                  storageLocal.get([...PROFILE_KEYS,'profilesV1'])
+                ]);
+                const finalTabList=finalTabs.status==='fulfilled'
+                  ?tabList(finalTabs.value):null;
+                if(prior===null||finalTabList===null||prior!==finalTabList)
+                  reason='LIVE_ACCOUNT_TABS_CHANGED';
+                if(finalProfiles.status!=='fulfilled'||!record(finalProfiles.value)
+                  ||stableProfile(local)!==stableProfile(finalProfiles.value))
+                  reason='LIVE_ACCOUNT_PROFILE_CHANGED_DURING_READ';
+              }
             }
           }
         }
