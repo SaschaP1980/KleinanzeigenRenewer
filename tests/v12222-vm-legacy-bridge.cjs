@@ -54,10 +54,13 @@ try {
   legacySourcePathMap = { ...legacyUiEntrypoints, ...(layout.mapping || {}), 'diagnostic-export-service.js': 'src/background/services/diagnostic-export-service.js', 'account-session-controller.js': 'src/background/controllers/account-session-controller.js', 'profile-management-controller.js': 'src/background/controllers/profile-management-controller.js' };
 } catch { legacySourcePathMap = { ...legacyUiEntrypoints }; }
 
-function redirectLegacySourcePath(value) {
+function redirectLegacySourcePath(value, allowUiAlias = true) {
   if (typeof value !== 'string') return value;
   const absolute = path.resolve(value);
   for (const [legacy, current] of Object.entries(legacySourcePathMap)) {
+    // Existence and stat checks must observe the real old root path, not the
+    // test-only read alias; KAR-167/KAR-174 repository audits enforce absence.
+    if (!allowUiAlias && Object.prototype.hasOwnProperty.call(legacyUiEntrypoints, legacy)) continue;
     if (absolute === path.join(projectRoot, legacy)) return path.join(projectRoot, current);
   }
   return value;
@@ -76,8 +79,8 @@ fs.readFileSync = function patchedReadFileSync(file, ...args) {
   }
   return originalReadFileSync(redirectLegacySourcePath(file), ...args);
 };
-fs.existsSync = function patchedExistsSync(file) { return originalExistsSync(redirectLegacySourcePath(file)); };
-fs.statSync = function patchedStatSync(file, ...args) { return originalStatSync(redirectLegacySourcePath(file), ...args); };
+fs.existsSync = function patchedExistsSync(file) { return originalExistsSync(redirectLegacySourcePath(file, false)); };
+fs.statSync = function patchedStatSync(file, ...args) { return originalStatSync(redirectLegacySourcePath(file, false), ...args); };
 
 const originalResolveFilename = Module._resolveFilename;
 Module._resolveFilename = function patchedResolveFilename(request, parent, isMain, options) {
