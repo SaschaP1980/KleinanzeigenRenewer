@@ -10,7 +10,7 @@ const pkg = j('package.json');
 const lock = j('package-lock.json');
 const spec = j('release/release-spec.json');
 const arch = j('docs/history/architecture/architecture-progress-v1.23.22.json');
-const reviewedNative = /^1\.23\.(?:3\d|[4-9]\d|[1-9]\d{2,})$/.test(manifest.version);
+const reviewedNative = /^1\.23\.(?:3\d|[4-9]\d|[1-9]\d{2,})$/.test(manifest.version) || manifest.version==='1.24.0';
 const reviewedFence = fs.existsSync('src/background/services/update-workflow-fence.js') && fs.readFileSync('src/background/background.js','utf8').includes('"services/update-workflow-fence.js"');
 const reviewedPersistedObserver = fs.existsSync('src/background/services/persisted-owner-observer.js') && fs.readFileSync('src/background/background.js','utf8').includes('"services/persisted-owner-observer.js"');
 const reviewedPhase4Journal = fs.existsSync('src/background/services/phase4-uncertainty-journal.js') && fs.readFileSync('src/background/background.js','utf8').includes('"services/phase4-uncertainty-journal.js"');
@@ -20,11 +20,17 @@ const reviewedAutoPublishIntent = fs.existsSync('src/background/services/auto-pu
 const reviewedTrustedOwner = fs.existsSync('src/background/services/trusted-owner-authority.js') && fs.readFileSync('src/background/background.js','utf8').includes('"services/trusted-owner-authority.js"') && fs.readFileSync('src/background/background.js','utf8').includes("KRDeps.require('KRTrustedOwnerAuthority')") && fs.readFileSync('scripts/package.py','utf8').includes("'src/background/services/trusted-owner-authority.js'");
 const { assertCompatibleCurrentPatch } = require('./current-patch-policy.cjs');
 
-assert.equal(assertCompatibleCurrentPatch({ manifest, pkg, lock, spec }), manifest.version);
+if (manifest.version === '1.24.0') {
+  for (const version of [pkg.version, pkg.displayVersion, lock.version, lock.packages[''].version, spec.version, spec.packageVersion]) {
+    assert.equal(version, '1.24.0', 'minor-version metadata parity');
+  }
+  assert.match(spec.scope.join('\n'), /Dynamic Public Function Coverage 100 %/);
+  assert.match(spec.scope.join('\n'), /Architecture-No-Regression/);
+} else assert.equal(assertCompatibleCurrentPatch({ manifest, pkg, lock, spec }), manifest.version);
 assert.equal(manifest.version_name, undefined);
 
 assert.equal(spec.directBasis, '1.23.20_c1');
-assert.equal(spec.nextPlannedBuild, '1.24.0');
+assert.equal(spec.nextPlannedBuild, manifest.version==='1.24.0' ? 'TBD' : '1.24.0');
 assert.equal(arch.packageVersion, '1.23.22');
 assert.equal(arch.fix.newRuntimeBoundary, false);
 assert.equal(arch.fix.newMessageType, false);
@@ -37,7 +43,11 @@ assert.deepEqual(arch.runtime.changedVsV12320c1.sort(), ['src/content/template-f
 // rather than dropping the historical composition-root integrity invariant.
 const kar150App = fs.readFileSync('src/app/app.js', 'utf8');
 const kar150Ui = fs.readFileSync('src/app/mass-renewal-ui-controller.js', 'utf8');
-if (kar150App.includes('massRenewalOrderList, massRenewalStopOnError, massRenewalStopOnErrorStatus')) {
+if (manifest.version === '1.24.0') {
+  assert.match(kar150App, /KRTrashRetentionSettingsController/);
+  assert.match(pkg.scripts.test, /kar161-trash-retention\.cjs/);
+  assert.match(fs.readFileSync('src/app/app-elements.js','utf8'), /trashRetentionRange/);
+} else if (kar150App.includes('massRenewalOrderList, massRenewalStopOnError, massRenewalStopOnErrorStatus')) {
   assert.match(pkg.scripts.test, /tests\/kar150-stop-on-error\.cjs/);
   assert.match(pkg.scripts.test, /tests\/kar150-ui-preference\.cjs/);
   assert.match(kar150Ui, /massRenewalStopOnErrorPreferenceV1/);
@@ -112,7 +122,7 @@ const kar175InventoryOwners = [
 ].filter(([file, provider]) => files.includes(file) &&
   fs.readFileSync('src/background/background.js','utf8').includes("KRDeps.require('"+provider+"')") &&
   fs.readFileSync('scripts/package.py','utf8').includes("'"+file+"'")).length;
-assert.equal(files.length, (reviewedAutoPublishIntent ? 109 : reviewedAtomicArbiter ? 108 : reviewedAdditionalOwners ? 107 : reviewedPhase4Journal ? 106 : reviewedPersistedObserver ? 105 : reviewedFence ? 104 : reviewedNative ? 103 : 100) + (reviewedTrustedOwner ? 1 : 0) + kar134SchemaRuntime + kar175InventoryOwners);
+assert.equal(files.length, (reviewedAutoPublishIntent ? 109 : reviewedAtomicArbiter ? 108 : reviewedAdditionalOwners ? 107 : reviewedPhase4Journal ? 106 : reviewedPersistedObserver ? 105 : reviewedFence ? 104 : reviewedNative ? 103 : 100) + (reviewedTrustedOwner ? 1 : 0) + kar134SchemaRuntime + kar175InventoryOwners + (manifest.version==='1.24.0' ? 2 : 0));
 if(reviewedNative) {
   if(reviewedFence){ assert.ok(files.includes('src/background/services/update-workflow-fence.js')); assert.match(fs.readFileSync('src/background/background.js','utf8'), /KRDeps\.require\('KRUpdateWorkflowFence'\)/); }
   if(reviewedAdditionalOwners){ assert.ok(files.includes('src/background/services/additional-owner-observer.js')); assert.match(fs.readFileSync('src/background/background.js','utf8'), /KRDeps\.require\('KRAdditionalOwnerObserver'\)/); }

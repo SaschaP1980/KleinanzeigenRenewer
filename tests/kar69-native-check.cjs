@@ -73,7 +73,7 @@ async function run() {
  check(calls===1,'untrusted messages never trigger native transport');
  const manifest=JSON.parse(fs.readFileSync(path.join(root,'manifest.json'),'utf8'));
  const v=/^1\.23\.(0|[1-9]\d*)$/.exec(manifest.version);
- check(Boolean(v)&&Number(v[1])>=30,'reviewed Chrome ZIP version 1.23.30+ required');
+ check((Boolean(v)&&Number(v[1])>=30) || manifest.version==='1.24.0','reviewed Chrome ZIP 1.23.30+ or approved 1.24.0 MINOR');
  check(manifest.permissions.includes('nativeMessaging') && manifest.permissions.length===5,'reviewed nativeMessaging permission only');
  check(manifest.host_permissions.length===3,'existing host permissions unchanged');
  const router=fs.readFileSync(path.join(root,'src/background/background-message-router.js'),'utf8');
