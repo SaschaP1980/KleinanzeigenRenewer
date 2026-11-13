@@ -6,6 +6,8 @@ const fs=require('node:fs');
 const Atomic=require('../src/background/services/cross-worker-atomic-admission.js');
 const Fence=require('../src/background/services/update-workflow-fence.js');
 const Policy=require('../lib/update-idle-policy.js');
+const Persisted=require('../src/background/services/persisted-owner-observer.js');
+const Additional=require('../src/background/services/additional-owner-observer.js');
 let n=0,serial=0;
 function pass(ok,label){assert.ok(ok,label);n++;console.log('PASS KAR99-P8-RACE '+label);}
 async function deny(p,code,label){
@@ -206,6 +208,90 @@ function allIdle(worker='worker-current',profile='profile-A'){
  await deny(unknownGate.reserve({profileId:'profile-A',workerGeneration:'worker-current',transactionId:'tx'}),
    'KR_UPDATE_FENCE_NOT_IDLE','one unknown of fifteen owners blocks positive update permission');
  pass(!Object.hasOwn(testOnly.data,Fence.STORAGE_KEY),'unknown owner never creates lease');
+ // KAR-171 W3D3A RED: the SAME trusted origin Web Lock must span the
+ // entire actual 7+8 read-only owner capture, not just a preflight check.
+ // These are isolated storage/Chrome fixtures; no live account or NativeHost.
+ const lockedDisk=disk(),sharedOriginLocks=locks();
+ lockedDisk.data.activeDetectedProfileV1={profileId:'profile-A'};
+ lockedDisk.data.selectedInventoryProfileV1={profileId:'profile-A'};
+ const readOnlySession={async get(){return {};}};
+ const originCoordinator=make(lockedDisk,sharedOriginLocks,'worker-current');
+ const originPersisted=Persisted.create({
+   storageLocal:lockedDisk,storageSession:readOnlySession,
+   workerInstanceId:'worker-current',clock:()=>100000
+ });
+ const originAdditional=Additional.create({
+   storageLocal:lockedDisk,storageSession:readOnlySession,
+   workerInstanceId:'worker-current',clock:()=>100000,
+   getAtomicAdmissionCoordinator:()=>originCoordinator
+ });
+ let startedCapture=false,releaseCapture;
+ const paused=new Promise(resolve=>releaseCapture=resolve);
+ const waitingPersisted={
+   ...originPersisted,
+   async observe(){
+     if(!startedCapture){startedCapture=true;await paused;}
+     return originPersisted.observe();
+   }
+ };
+ const protectedCapture=originAdditional.inspectAllOwnerClosureReadOnly(
+   waitingPersisted,{requireAtomicAdmission:true}
+ );
+ await until(()=>startedCapture);
+ let rivalStarted=0;
+ await deny(make(lockedDisk,sharedOriginLocks,'rival-mv3-worker').withAdmission(
+   'CONCURRENT_REMOTE_START',()=>{rivalStarted++;}),
+   'KR_UPDATE_FENCE_ATOMIC_BUSY',
+   'origin Web Lock excludes second MV3 remote start during all-15 source capture');
+ pass(rivalStarted===0,'read-only 15-owner capture does not race new remote callback');
+ releaseCapture();
+ const protectedMatrix=await protectedCapture;
+ pass(protectedMatrix.ownerCount===15&&protectedMatrix.eligibleForLease===false
+   &&protectedMatrix.priorGenerationClosed===false
+   &&protectedMatrix.nativeHostOutcomeVerified===false,
+   'Web Lock-protected historical matrix cannot authorize idle or native update');
+ pass(Object.keys(lockedDisk.data).filter(key=>
+   key.startsWith(Atomic.START_PREFIX)||key.startsWith(Atomic.FINISH_PREFIX)).length===0,
+   'read-only origin-locked 15-owner inspection writes no admission journal rows');
+ pass(await make(lockedDisk,sharedOriginLocks,'rival-mv3-worker').withAdmission(
+   'AFTER_OBSERVATION',()=>true)===true,
+   'Web Lock is released when all 15 independent source reads finish');
+ const noCoordinator=Additional.create({
+   storageLocal:lockedDisk,storageSession:readOnlySession,
+   workerInstanceId:'worker-current',clock:()=>100000
+ });
+ await deny(noCoordinator.inspectAllOwnerClosureReadOnly(originPersisted,
+   {requireAtomicAdmission:true}), 'KR_UPDATE_FENCE_ATOMIC_UNAVAILABLE',
+   'missing real coordinator cannot turn an unlocked matrix into protected evidence');
+ const mismatchedCoordinator=Additional.create({
+   storageLocal:lockedDisk,storageSession:readOnlySession,
+   workerInstanceId:'different-generation',clock:()=>100000,
+   getAtomicAdmissionCoordinator:()=>originCoordinator
+ });
+ await deny(mismatchedCoordinator.inspectAllOwnerClosureReadOnly(originPersisted,
+   {requireAtomicAdmission:true}), 'KR_UPDATE_FENCE_ATOMIC_GENERATION',
+   'changed MV3 worker generation cannot borrow another worker Web Lock capture');
+ const stillActive=disk(),activeToken='unfinished_worker_12345';
+ stillActive.data.activeDetectedProfileV1={profileId:'profile-A'};
+ stillActive.data.selectedInventoryProfileV1={profileId:'profile-A'};
+ stillActive.data[Atomic.START_PREFIX+activeToken]={
+   schema:1,state:'admitted',token:activeToken,
+   operationType:'AUTONOMOUS:renewal-detached-verify',
+   workerInstanceId:'previous-worker',startedAtMs:99999
+ };
+ const activeCoordinator=make(stillActive,sharedOriginLocks,'worker-current');
+ const activePersisted=Persisted.create({storageLocal:stillActive,
+   storageSession:readOnlySession,workerInstanceId:'worker-current',
+   clock:()=>100000});
+ const activeAdditional=Additional.create({storageLocal:stillActive,
+   storageSession:readOnlySession,workerInstanceId:'worker-current',
+   clock:()=>100000,getAtomicAdmissionCoordinator:()=>activeCoordinator});
+ await deny(activeAdditional.inspectAllOwnerClosureReadOnly(activePersisted,
+   {requireAtomicAdmission:true}),'KR_UPDATE_FENCE_BUSY',
+   'unfinished prior-generation P8 callback blocks origin-locked owner capture');
+ pass(Object.keys(stillActive.data).filter(key=>
+   key.startsWith(Atomic.FINISH_PREFIX)).length===0,
+   'unresolved previous-worker receipt remains untouched by read-only inspector');
  const background=fs.readFileSync('src/background/background.js','utf8');
  pass(background.includes('workerInstanceId:ownerWorkerInstanceId')
    &&!background.includes('getOwnerSnapshot: () => requireAdditionalOwnerObserver()'),
