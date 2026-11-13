@@ -4,6 +4,13 @@ This is the canonical version-specific history for Kleinanzeigen Manager. Entrie
 
 All distinct historical section bodies from the former root README and CHANGELOG are preserved with source labels and line numbers. The [KAR-170 migration ledger](docs/maintenance/KAR170_CHANGELOG_MIGRATION.json) identifies their original Git blobs and body checksums. Overlapping versions retain distinct factual notes; older references to planned builds or native/CI acceptance are **historical**, not live status.
 
+## v1.23.92 — KAR-175 in-process background responsibility extraction (Work candidate)
+
+- Refactor `src/background/background.js` into nine cohesive in-process MV3 services and controllers for inventory capture, inventory refresh, fresh renewal evidence, guarded phase-1 retry, immutable publish-intent authorization and independent remote proof, manual listing navigation, diagnostics correlation, strict listing URL evidence and conservative trash-template publication detection. Keep existing message-routing facades and emergency-reset in-flight Set authority.
+- Reduce the entrypoint from 212,282 source characters / 3,586 lines in the initial Issue baseline to approximately 148,181 characters / 2,436 lines on the integrated v1.23.91 base (over 30% smaller). Add a durable 30% source-budget guard, explicit module registration/package closure, observable negative tests and preserved historical coverage contracts.
+- Preserve strict account/profile/ad-ID verification, existing fail-closed publish and deletion permissions, image trust and atomicity, diagnostics, Chrome extension key/ID and permissions, and all user-visible workflow behavior. Incorporate the previously released-file-path relocation of KAR-174 from `main` without reverting it.
+- This entry documents a **non-published Work candidate**. A new SHA-bound, reproducible installation ZIP and complete exact-head `KAR Work PR` jobs (including Chromium E2E and Windows updater safety) must be verified before any merge. No GitHub Release, native/live-account test, or product publishing decision is implied.
+
 ## v1.23.91 — KAR-174 bundled-changelog ZIP parity candidate
 
 - Continue the same manager/launcher file relocation from the unpublished v1.23.90 Work candidate, without changing Kleinanzeigen account behaviour, Chrome permissions or extension identity.
