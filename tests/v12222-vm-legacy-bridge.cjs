@@ -7,7 +7,15 @@ const projectRoot = path.resolve(__dirname, '..');
 const originalReadFileSync = fs.readFileSync.bind(fs);
 const originalExistsSync = fs.existsSync.bind(fs);
 const originalStatSync = fs.statSync.bind(fs);
-let legacySourcePathMap = {};
+// Only NODE_OPTIONS-loaded historical tests may resolve the original UI names.
+// The distributed extension has no compatibility files at these old root paths.
+const legacyUiEntrypoints=Object.freeze({
+  'app.html':'src/app/app.html',
+  'app.css':'src/app/app.css',
+  'popup.html':'src/popup/popup.html',
+  'popup.css':'src/popup/popup.css'
+});
+let legacySourcePathMap = { ...legacyUiEntrypoints };
 const legacyCompositeSourceMap = Object.freeze({
   'template-filler.js': [
     'src/content/template-category-flow.js',
@@ -43,8 +51,8 @@ const legacyCompositeSourceMap = Object.freeze({
 });
 try {
   const layout = JSON.parse(originalReadFileSync(path.join(projectRoot, 'scripts/source-layout.json'), 'utf8'));
-  legacySourcePathMap = { ...(layout.mapping || {}), 'diagnostic-export-service.js': 'src/background/services/diagnostic-export-service.js', 'account-session-controller.js': 'src/background/controllers/account-session-controller.js', 'profile-management-controller.js': 'src/background/controllers/profile-management-controller.js' };
-} catch { legacySourcePathMap = {}; }
+  legacySourcePathMap = { ...legacyUiEntrypoints, ...(layout.mapping || {}), 'diagnostic-export-service.js': 'src/background/services/diagnostic-export-service.js', 'account-session-controller.js': 'src/background/controllers/account-session-controller.js', 'profile-management-controller.js': 'src/background/controllers/profile-management-controller.js' };
+} catch { legacySourcePathMap = { ...legacyUiEntrypoints }; }
 
 function redirectLegacySourcePath(value) {
   if (typeof value !== 'string') return value;
