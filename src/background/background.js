@@ -1,4 +1,4 @@
-importScripts("../shared/runtime-deps.js", "../shared/message-contract-registry.js", "../shared/renewal-policy.js", "background-message-router.js", "services/native-update-status-gateway.js", "services/native-status-bridge.js", "services/update-workflow-fence.js", "repositories/profile-repository.js", "repositories/inventory-repository.js", "repositories/inventory-image-store.js", "services/inventory-capture-service.js", "services/inventory-refresh-service.js", "services/trash-service.js", "services/diagnostics-service.js", "services/diagnostic-correlation-service.js", "services/tab-registry.js", "services/managed-tab-worker-service.js", "services/content-connection-manager.js", "services/account-probe-service.js", "controllers/profile-management-controller.js", "controllers/account-session-controller.js", "controllers/manual-listing-navigation-controller.js", "controllers/platform-safety-controller.js", "controllers/tab-lifecycle-observer.js", "controllers/workflow-emergency-reset-controller.js", "lib/bulk-run-guard.js", "controllers/single-inventory-controller.js", "services/bulk-worker-service.js", "services/bulk-reconciliation-service.js", "controllers/bulk-inventory-controller.js", "controllers/mass-renewal-controller.js", "services/mass-renewal-watchdog-service.js", "controllers/mass-renewal-workflow-controller.js", "services/renewal-verification-flow.js", "services/renewal-reinventory-flow.js", "services/renewal-phase1-retry-service.js", "services/paid-checkout-recovery-service.js", "controllers/renewal-workflow-controller.js", "services/renewal-verification-service.js", "repositories/renewal-state-repository.js", "services/template-fill-service.js", "services/insertion-lock-service.js", "controllers/template-fill-controller.js", "services/archive-insertion-service.js", "services/archive-insertion-verification-service.js", "services/archive-insertion-recovery-service.js", "controllers/archive-insertion-controller.js", "services/remote-delete-replacement-service.js", "services/published-inventory-resolver.js", "services/diagnostic-export-service.js", "services/public-listing-evidence-service.js", "services/renewal-public-evidence-coordinator.js", "../shared/managed-navigation.js", "lib/inventory-reconciliation.js", "../shared/my-ads-readiness.js", "lib/inventory-scope.js", "../shared/platform-hardening.js", "services/tab-load-coordinator.js", "../shared/template-schema-core.js", "services/persisted-owner-observer.js", "services/additional-owner-observer.js", "services/phase4-uncertainty-journal.js", "services/cross-worker-atomic-admission.js", "services/auto-publish-intent-journal.js", "services/publish-intent-authorization-service.js");
+importScripts("../shared/runtime-deps.js", "../shared/message-contract-registry.js", "../shared/renewal-policy.js", "background-message-router.js", "services/native-update-status-gateway.js", "services/native-status-bridge.js", "services/update-workflow-fence.js", "repositories/profile-repository.js", "repositories/inventory-repository.js", "repositories/inventory-image-store.js", "services/inventory-capture-service.js", "services/inventory-refresh-service.js", "services/trash-service.js", "services/diagnostics-service.js", "services/diagnostic-correlation-service.js", "services/listing-url-evidence-service.js", "services/tab-registry.js", "services/managed-tab-worker-service.js", "services/content-connection-manager.js", "services/account-probe-service.js", "controllers/profile-management-controller.js", "controllers/account-session-controller.js", "controllers/manual-listing-navigation-controller.js", "controllers/platform-safety-controller.js", "controllers/tab-lifecycle-observer.js", "controllers/workflow-emergency-reset-controller.js", "lib/bulk-run-guard.js", "controllers/single-inventory-controller.js", "services/bulk-worker-service.js", "services/bulk-reconciliation-service.js", "controllers/bulk-inventory-controller.js", "controllers/mass-renewal-controller.js", "services/mass-renewal-watchdog-service.js", "controllers/mass-renewal-workflow-controller.js", "services/renewal-verification-flow.js", "services/renewal-reinventory-flow.js", "services/renewal-phase1-retry-service.js", "services/paid-checkout-recovery-service.js", "controllers/renewal-workflow-controller.js", "services/renewal-verification-service.js", "repositories/renewal-state-repository.js", "services/template-fill-service.js", "services/insertion-lock-service.js", "controllers/template-fill-controller.js", "services/trash-template-publish-detection-service.js", "services/archive-insertion-service.js", "services/archive-insertion-verification-service.js", "services/archive-insertion-recovery-service.js", "controllers/archive-insertion-controller.js", "services/remote-delete-replacement-service.js", "services/published-inventory-resolver.js", "services/diagnostic-export-service.js", "services/public-listing-evidence-service.js", "services/renewal-public-evidence-coordinator.js", "../shared/managed-navigation.js", "lib/inventory-reconciliation.js", "../shared/my-ads-readiness.js", "lib/inventory-scope.js", "../shared/platform-hardening.js", "services/tab-load-coordinator.js", "../shared/template-schema-core.js", "services/persisted-owner-observer.js", "services/additional-owner-observer.js", "services/phase4-uncertainty-journal.js", "services/cross-worker-atomic-admission.js", "services/auto-publish-intent-journal.js", "services/publish-intent-authorization-service.js");
 // Private updater policy/authority: no content/app IPC route; production proof
 // sources remain intentionally absent until each of 15 owners is grounded.
 importScripts("../../lib/update-idle-policy.js", "services/trusted-owner-authority.js");
@@ -22,6 +22,7 @@ const AdditionalOwnerObserver = KRDeps.require('KRAdditionalOwnerObserver');
 const Phase4UncertaintyJournal = KRDeps.require('KRPhase4UncertaintyJournal');
 const DiagnosticsService = KRDeps.require('KRDiagnosticsService');
 const DiagnosticCorrelationService = KRDeps.require('KRDiagnosticCorrelationService');
+const ListingUrlEvidenceService = KRDeps.require('KRListingUrlEvidenceService');
 const TabRegistry = KRDeps.require('KRTabRegistry');
 const ManagedNavigation = KRDeps.require('KRManagedNavigation');
 const InventoryReconciliation = KRDeps.require('KRInventoryReconciliation');
@@ -57,6 +58,7 @@ const RenewalPhase1RetryService = KRDeps.require('KRRenewalPhase1RetryService');
 const TemplateFillService = KRDeps.require('KRTemplateFillService');
 const InsertionLockService = KRDeps.require('KRInsertionLockService');
 const TemplateFillController = KRDeps.require('KRTemplateFillController');
+const TrashTemplatePublishDetectionService = KRDeps.require('KRTrashTemplatePublishDetectionService');
 const ArchiveInsertionService = KRDeps.require('KRArchiveInsertionService');
 const ArchiveInsertionController = KRDeps.require('KRArchiveInsertionController');
 const RemoteDeleteReplacementService = KRDeps.require('KRRemoteDeleteReplacementService');
@@ -1193,61 +1195,19 @@ async function sendTabRequestWithBootstrap(tabId, message) {
 
 const trashTemplatePublishDetectionInFlight = new Set();
 
+let trashTemplatePublishDetectionService = null;
+function requireTrashTemplatePublishDetectionService() {
+  if (!trashTemplatePublishDetectionService) trashTemplatePublishDetectionService = TrashTemplatePublishDetectionService.create({
+    sessionPort: { readFillSessions, writeFillSessions, withTemplateFillMutation },
+    tabPort: { tabRegistry, chrome, TAB_ROLES, registerShadowTab, ensureContentConnection, sendTabRequest },
+    evidencePort: { publishedAdCandidateFromUrl, URL },
+    diagnosticsPort: { logDiagnostic, sessionCorrelationContext, broadcastInventoryChanged },
+    statePort: { trashTemplatePublishDetectionInFlight }
+  });
+  return trashTemplatePublishDetectionService;
+}
 async function maybeDetectTrashTemplatePublishedAd(tabId, changeInfo = {}, tabHint = null) {
-  const id = Number(tabId || 0);
-  if (!id || trashTemplatePublishDetectionInFlight.has(id)) return false;
-  const candidateUrl = String(changeInfo?.url || tabHint?.url || '');
-  if (candidateUrl && !/(^|\.)kleinanzeigen\.de$/i.test((() => { try { return new URL(candidateUrl).hostname; } catch { return ''; } })())) return false;
-  const sessions = await readFillSessions().catch(() => ({}));
-  const session = Object.values(sessions).find(item => item?.templateOnly === true && Number(item?.targetTabId || 0) === id && String(item?.status || '') === 'complete' && !/^\d+$/.test(String(item?.newAdId || '')));
-  if (!session) return false;
-
-  trashTemplatePublishDetectionInFlight.add(id);
-  try {
-    const tab = tabHint?.id ? tabHint : await tabRegistry.getTabOrThrow(id, chrome.tabs, { label: 'Vorlagen-Tab', role: TAB_ROLES.TEMPLATE_TARGET, owner: { ownerType: 'trash-template', ownerId: session.fillId } });
-    const directCandidate = publishedAdCandidateFromUrl(changeInfo?.url || tab?.url || '', session.sourceAdId);
-    if (!directCandidate && changeInfo?.status !== 'complete') return false;
-    await ensureContentConnection({ tabId: id });
-    const [pageStatus, detected] = await Promise.all([
-      sendTabRequest(id, { type: 'PAGE_STATUS' }).catch(() => null),
-      sendTabRequest(id, { type: 'DETECT_PUBLISHED_AD', sourceAdId: session.sourceAdId }).catch(() => null)
-    ]);
-    const adId = String(detected?.adId || directCandidate?.adId || pageStatus?.adId || '');
-    if (!/^\d+$/.test(adId) || adId === String(session.sourceAdId || '')) return false;
-    const owned = pageStatus?.auth?.loggedIn === true && pageStatus?.auth?.ownAd === true;
-    const pageAdId = String(pageStatus?.adId || '');
-    if (!owned || (pageAdId && pageAdId !== adId)) return false;
-    const publishedUrl = String(detected?.publicUrl || directCandidate?.publicUrl || (directCandidate?.kind === 'public' ? directCandidate.url : '') || tab?.url || '');
-
-    let updated = null;
-    await withTemplateFillMutation(async () => {
-      const latest = await readFillSessions();
-      const current = latest[session.fillId];
-      if (!current?.templateOnly || Number(current.targetTabId || 0) !== id || /^\d+$/.test(String(current.newAdId || ''))) return;
-      current.newAdId = adId;
-      current.publishedUrl = publishedUrl || null;
-      current.publishedAt = new Date().toISOString();
-      current.stage = 'template-only-published';
-      current.updatedAt = current.publishedAt;
-      latest[current.fillId] = current;
-      await writeFillSessions(latest);
-      updated = current;
-    });
-    if (!updated) return false;
-    await registerShadowTab(id, TAB_ROLES.TEMPLATE_TARGET, { operationId: updated.operationId || null, fillId: updated.fillId, inventoryId: String(updated.inventoryId || ''), adId, ownerType: 'trash-template', ownerId: updated.fillId });
-    await logDiagnostic('info', 'TRASH_TEMPLATE_PUBLISHED_DETECTED', {
-      operationId: updated.operationId || null,
-      fillId: updated.fillId,
-      sourceAdId: updated.sourceAdId || null,
-      newAdId: adId,
-      targetTabId: id,
-      publishedUrl: publishedUrl || null
-    }, { module: 'background', operation: 'trash-template-publish-detection', context: sessionCorrelationContext(updated, { adId, targetTabId: id }) }).catch(() => {});
-    broadcastInventoryChanged('trash-template-published', { fillId: updated.fillId, inventoryId: updated.inventoryId || null, sourceAdId: updated.sourceAdId || null, newAdId: adId, targetTabId: id });
-    return true;
-  } finally {
-    trashTemplatePublishDetectionInFlight.delete(id);
-  }
+  return requireTrashTemplatePublishDetectionService().maybeDetectTrashTemplatePublishedAd(tabId, changeInfo, tabHint);
 }
 
 function isPhase4DeleteTransportInterruption(error) {
@@ -1412,18 +1372,13 @@ function publicAvailabilityPending(record) { return requirePublicListingEvidence
 
 function publicAvailabilitySnapshot(options = {}) { return requirePublicListingEvidenceService().publicAvailabilitySnapshot(options); }
 
+let listingUrlEvidenceService = null;
+function requireListingUrlEvidenceService() {
+  if (!listingUrlEvidenceService) listingUrlEvidenceService = ListingUrlEvidenceService.create({ URL });
+  return listingUrlEvidenceService;
+}
 function singleInventorySourceFromUrl(rawUrl) {
-  try {
-    const url = new URL(String(rawUrl || ''));
-    if (url.protocol !== 'https:' || !/^(?:www\.)?kleinanzeigen\.de$/i.test(url.hostname)) return null;
-    if (/\/p-anzeige-bearbeiten\.html$/i.test(url.pathname)) {
-      const adId = String(url.searchParams.get('adId') || '');
-      return /^\d+$/.test(adId) ? { adId, mode: 'edit', publicUrl: '' } : null;
-    }
-    const publicMatch = url.pathname.match(/\/s-anzeige\/[^/]+\/(\d+)-\d+-\d+(?:\/)?$/i);
-    if (publicMatch) return { adId: publicMatch[1], mode: 'public', publicUrl: `${url.origin}${url.pathname}` };
-  } catch { /* invalid URL */ }
-  return null;
+  return requireListingUrlEvidenceService().singleInventorySourceFromUrl(rawUrl);
 }
 
 async function extractSingleInventoryEdit(tabId, adId, correlation = {}, { ownedWorker = false } = {}) {
@@ -1454,29 +1409,7 @@ async function extractSingleInventoryEdit(tabId, adId, correlation = {}, { owned
 }
 
 function detectPublishedAdFromKnownUrl(rawUrl, sourceAdId = '') {
-  try {
-    const url = new URL(String(rawUrl || ''));
-    if (!/(^|\.)kleinanzeigen\.de$/i.test(url.hostname)) return null;
-    let adId = '';
-    let publicUrl = '';
-    let kind = '';
-    const publicMatch = url.pathname.match(/\/s-anzeige\/[^/]+\/(\d+)-\d+-\d+(?:\/)?$/i);
-    if (publicMatch) {
-      adId = publicMatch[1];
-      publicUrl = `${url.origin}${url.pathname}`;
-      kind = 'public';
-    } else if (/\/p-anzeige-bearbeiten\.html$/i.test(url.pathname)) {
-      adId = String(url.searchParams.get('adId') || '');
-      kind = 'edit';
-    } else if (/\/p-anzeige-aufgeben-bestaetigung\.html$/i.test(url.pathname)) {
-      adId = String(url.searchParams.get('addId') || url.searchParams.get('adId') || '');
-      kind = 'confirmation';
-    }
-    if (!/^\d+$/.test(adId) || adId === String(sourceAdId || '')) return null;
-    return { adId, publicUrl: publicUrl || null, candidateCount: 1, kind, detectionSource: 'tab-url' };
-  } catch {
-    return null;
-  }
+  return requireListingUrlEvidenceService().detectPublishedAdFromKnownUrl(rawUrl, sourceAdId);
 }
 
 async function detectPublishedAdForFill(tabId, sourceAdId) {

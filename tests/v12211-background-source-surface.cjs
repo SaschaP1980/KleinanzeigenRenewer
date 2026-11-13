@@ -25,6 +25,8 @@ module.exports = [
   readIfPresent('src/background/services/publish-intent-authorization-service.js'),
   readIfPresent('src/background/controllers/manual-listing-navigation-controller.js'),
   readIfPresent('src/background/services/diagnostic-correlation-service.js'),
+  readIfPresent('src/background/services/listing-url-evidence-service.js'),
+  readIfPresent('src/background/services/trash-template-publish-detection-service.js'),
   readIfPresent('src/background/services/bulk-worker-service.js'),
   readIfPresent('src/background/services/bulk-reconciliation-service.js'),
   readIfPresent('mass-renewal-controller.js'),
