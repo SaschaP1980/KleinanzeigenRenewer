@@ -258,6 +258,8 @@ async function waitUntil(predicate){for(let i=0;i<250&&!predicate();i++)await Pr
     ['different global P8 revision',parts=>{parts[0]='other-p8-revision';}],
     ['different per-owner receipt revision',parts=>{parts[1]='other-owner-revision';}],
     ['different stored profile witness',parts=>{parts[2]='other-profile';}],
+    ['different persisted workflow state',parts=>{parts[3]={fabricated:'local-storage'};}],
+    ['different persisted MV3 session',parts=>{parts[4]={fabricated:'session-storage'};}],
     ['malformed witness revision',()=>null]
   ]) {
     const tampered={
