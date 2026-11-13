@@ -24,3 +24,13 @@ jobs:
         run: |
           set -euo pipefail
           node tests/kar99-p8-adversarial-races.cjs
+      - name: Install complete test dependencies
+        run: npm ci
+      - name: Full regression and architecture coverage on final clean source tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          # W3D3A temporary workflow does not belong in KAR-167's
+          # strict repository inventory, so test its final cleanup state.
+          rm .github/workflows/kar171-w3d3a-focused.yml
+          bash scripts/coverage-gate.sh
