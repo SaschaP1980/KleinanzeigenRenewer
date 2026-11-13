@@ -5,6 +5,7 @@ on:
     branches: [work/KAR-161]
     paths:
       - .github/workflows/kar161-startup-probe.yml
+      - release/kleinanzeigen-renewal-chrome-v1.24.0.zip
 permissions:
   contents: read
 jobs:
