@@ -25,3 +25,12 @@ jobs:
           set -euo pipefail
           node --test tests/kar99-p13f2e2d2a-remote-admission-lineage.cjs
           node tests/kar99-p7-integrated-owner-authority.cjs
+      - name: Install complete test dependencies
+        run: npm ci
+      - name: Full final-tree regression, architecture and coverage gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          # KAR-167 production workflow inventory excludes temporary tests.
+          rm .github/workflows/kar171-w3d3b2-focused.yml
+          bash scripts/coverage-gate.sh
