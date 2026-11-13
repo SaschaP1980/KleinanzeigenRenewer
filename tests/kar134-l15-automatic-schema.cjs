@@ -10,6 +10,9 @@ const content = read('src/content/template-filler.js');
 const background = read('src/background/controllers/template-fill-controller.js');
 const service = read('src/background/services/template-fill-service.js');
 const root = read('src/background/background.js');
+// KAR-175: schema capture is now owned by the atomic inventory capture service;
+// assert the actual production owner, not its background composition facade.
+const capture = read('src/background/services/inventory-capture-service.js');
 
 assert.doesNotMatch(ui,/Kategorie prüfen|makeCategoryCheckActions|schemaTestScenario/,
   'standalone manual category checker must not be reachable in inventory UI');
@@ -58,10 +61,10 @@ assert.match(background,/request\.freshObservationCapturedAt/,
 assert.match(background,/previousFingerprint|oldFingerprint/,
   'real F3 must verify baseline compare-and-swap');
 
-assert.match(root,/capturedFromEditView\s*===\s*true/,
+assert.match(capture,/capturedFromEditView\s*===\s*true/,
   'only verified edit-form capture may establish saved schema');
-assert.match(root,/TemplateSchemaCore\.buildSchema\(extracted\)/);
-assert.match(root,/TemplateSchemaCore\.fingerprint\(snapshot\)/);
+assert.match(capture,/TemplateSchemaCore\.buildSchema\(extracted\)/);
+assert.match(capture,/TemplateSchemaCore\.fingerprint\(snapshot\)/);
 assert.match(root,/extractSingleInventoryEdit/,'existing capture and refresh worker retained');
 assert.doesNotMatch(ui.slice(ui.indexOf("details.addEventListener('toggle'"),
   ui.indexOf("details.addEventListener('toggle'")+450),
