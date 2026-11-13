@@ -35,7 +35,8 @@ if (isCurrentPatchVersion(manifest.version)) assertCompatibleCurrentPatch({
 });
 assert.ok(manifest.key, "Fester Manifest-Schlüssel fehlt");
 const reviewedPermissions = [...["activeTab", "storage", "unlimitedStorage", "scripting"],
-  ...((approvedMinorFeature || (isCurrentPatchVersion(manifest.version) && Number(manifest.version.split(".")[2]) >= 30)) ? ["nativeMessaging"] : [])];
+  ...((approvedMinorFeature || (isCurrentPatchVersion(manifest.version) &&
+    (Number(manifest.version.split(".")[1]) >= 24 || Number(manifest.version.split(".")[2]) >= 30))) ? ["nativeMessaging"] : [])];
 assert.deepEqual([...manifest.permissions].sort(), reviewedPermissions.sort());
 assert.ok(manifest.host_permissions.includes("https://www.kleinanzeigen.de/*"));
 assert.ok(manifest.host_permissions.includes("https://img.kleinanzeigen.de/*"));

@@ -1,11 +1,12 @@
 'use strict';
 // Test-only policy. Do not import from the Chrome extension runtime.
 // Historical version lists remain historical facts; this policy only validates
-// compatible *regular* PATCH releases of the current 1.23 correction series.
+// compatible *regular* PATCH releases of the approved 1.23 and 1.24 series.
 const assert = require('node:assert/strict');
 const { createHash } = require('node:crypto');
 
 const CURRENT_MINOR = '1.23';
+const CURRENT_FEATURE_MINOR = '1.24';
 const FIRST_CORRECTED_PATCH = 22;
 const MANIFEST_KEY_SHA256 = '70507977688f3465a60227cd0261bd07d92fad620625cd7ebff8f0856d9c5ed3';
 const PERMISSIONS = ['activeTab', 'scripting', 'storage', 'unlimitedStorage'];
@@ -16,14 +17,17 @@ const HOST_PERMISSIONS = [
 ];
 
 function isCurrentPatchVersion(version) {
-  if (typeof version !== 'string' || !/^1\.23\.(0|[1-9]\d*)$/.test(version)) return false;
-  const patch = Number(version.slice(CURRENT_MINOR.length + 1));
-  return Number.isSafeInteger(patch) && patch >= FIRST_CORRECTED_PATCH;
+  if (typeof version !== 'string' || !/^1\.(23|24)\.(0|[1-9]\d*)$/.test(version)) return false;
+  const minor = version.split('.').slice(0, 2).join('.');
+  const patch = Number(version.slice(minor.length + 1));
+  return Number.isSafeInteger(patch) &&
+    (minor === CURRENT_MINOR ? patch >= FIRST_CORRECTED_PATCH :
+      minor === CURRENT_FEATURE_MINOR && patch >= 1);
 }
 
 function assertCompatibleCurrentPatch({ manifest, pkg, lock, spec } = {}) {
   assert.ok(isCurrentPatchVersion(manifest?.version),
-    'Only strict, regular 1.23.22+ PATCH versions qualify; not a correction or another minor');
+    'Only strict, regular 1.23.22+ or 1.24.1+ PATCH versions qualify; not a correction or another minor');
   const version = manifest.version;
   assert.equal(manifest.manifest_version, 3);
   assert.equal(manifest.version_name, undefined,
@@ -36,13 +40,25 @@ function assertCompatibleCurrentPatch({ manifest, pkg, lock, spec } = {}) {
   assert.equal(spec?.packageVersion, version, 'release package version must match manifest');
   assert.equal(spec?.directBasis, '1.23.20_c1', 'correction direct basis must not drift');
   assert.equal(spec?.directBasisNativeGreen, true, 'verified direct basis must remain GREEN');
-  assert.equal(spec?.nextPlannedBuild, '1.24.0', 'next minor/EPIC scope must remain pinned');
-  assert.match(spec?.nextPlannedBuildGoal || '', /EPIC-REF-003|Mass Renewal Lifecycle Separation/);
+  if (version.startsWith(CURRENT_MINOR + '.')) {
+    assert.equal(spec?.nextPlannedBuild, '1.24.0', 'historical next-minor scope must remain pinned');
+    assert.match(spec?.nextPlannedBuildGoal || '', /EPIC-REF-003|Mass Renewal Lifecycle Separation/);
+  } else {
+    assert.equal(spec?.nextPlannedBuild, 'TBD', 'future minor scope must not be silently scheduled');
+    assert.match(spec?.nextPlannedBuildGoal || '', /Determined by separately authorized open GitHub Issues/);
+  }
   assert.equal(spec?.goldBaseline, '1.21.15', 'historical Gold baseline must not drift');
-  assert.equal(spec?.performanceRunRequired, true);
-  assert.match(spec?.performanceRule || '', /1\.23\.22|Fast-3er/,
-    'correction-series performance comparison must stay relevant');
-  const requiredPermissions = Number(version.split('.')[2]) >= 30
+  if (version.startsWith(CURRENT_MINOR + '.')) {
+    assert.equal(spec?.performanceRunRequired, true);
+    assert.match(spec?.performanceRule || '', /1\.23\.22|Fast-3er/,
+      'correction-series performance comparison must stay relevant');
+  } else {
+    assert.equal(spec?.performanceRunRequired, false);
+    assert.match(spec?.performanceRule || '', /KAR-161 trash retention/,
+      'the 1.24 source safety/performance baseline must remain unchanged');
+  }
+  const minor = Number(version.split('.')[1]);
+  const requiredPermissions = minor >= 24 || Number(version.split('.')[2]) >= 30
     ? [...PERMISSIONS, 'nativeMessaging'].sort()
     : PERMISSIONS;
   assert.deepEqual([...(manifest.permissions || [])].sort(), requiredPermissions);
@@ -67,7 +83,8 @@ function includesSupportedRelease(knownVersions, version) {
 
 function expectedManifestPermissions(version) {
   const historic = ['activeTab', 'storage', 'unlimitedStorage', 'scripting'];
-  return (version === '1.24.0' || (isCurrentPatchVersion(version) && Number(version.split('.')[2]) >= 30))
+  return (version === '1.24.0' || (isCurrentPatchVersion(version) &&
+    (Number(version.split('.')[1]) >= 24 || Number(version.split('.')[2]) >= 30)))
     ? [...historic, 'nativeMessaging'] : historic;
 }
 
