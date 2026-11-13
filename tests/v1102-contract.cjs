@@ -26,10 +26,10 @@ for (const file of ['icons/taskbar-16.png','icons/taskbar-32.png','icons/taskbar
   assert.ok(fs.existsSync(path.join(root, file)), file);
 }
 pass('manifest icon assets are present');
-assert.match(appHtml, /rel="icon" href="icons\/favicon\.ico"/);
+assert.match(appHtml, /rel="icon" href="\.\.\/\.\.\/icons\/favicon\.ico"/);
 assert.match(appHtml, /icons\/taskbar-32\.png/);
 assert.match(appHtml, /icons\/app-icon-128\.png/);
-assert.match(popupHtml, /rel="icon" href="icons\/favicon\.ico"/);
+assert.match(popupHtml, /rel="icon" href="\.\.\/\.\.\/icons\/favicon\.ico"/);
 assert.match(popupHtml, /icons\/taskbar-32\.png/);
 assert.match(popupHtml, /icons\/app-icon-128\.png/);
 pass('app and launcher pages publish favicon links');
