@@ -62,7 +62,7 @@ function assertCompatibleCurrentPatch({ manifest, pkg, lock, spec } = {}) {
 
 function expectedManifestPermissions(version) {
   const historic = ['activeTab', 'storage', 'unlimitedStorage', 'scripting'];
-  return isCurrentPatchVersion(version) && Number(version.split('.')[2]) >= 30
+  return (version === '1.24.0' || (isCurrentPatchVersion(version) && Number(version.split('.')[2]) >= 30))
     ? [...historic, 'nativeMessaging'] : historic;
 }
 

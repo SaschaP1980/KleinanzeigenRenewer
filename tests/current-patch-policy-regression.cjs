@@ -1,7 +1,7 @@
 'use strict';
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
-const { isCurrentPatchVersion, assertCompatibleCurrentPatch, includesActivePatch } = require('./current-patch-policy.cjs');
+const { isCurrentPatchVersion, assertCompatibleCurrentPatch, includesActivePatch, expectedManifestPermissions } = require('./current-patch-policy.cjs');
 const read = file => JSON.parse(fs.readFileSync(file, 'utf8'));
 const canonical = {
   manifest: read('manifest.json'),
@@ -16,6 +16,10 @@ assert.equal(includesActivePatch(historicalEra, '1.23.23'), true);
 assert.equal(includesActivePatch(historicalEra, '1.23.21'), false);
 assert.equal(includesActivePatch(['1.23.22', '1.23.23'], '1.23.25'), false);
 assert.equal(includesActivePatch(historicalEra, '1.24.0'), false);
+assert.deepEqual(expectedManifestPermissions('1.24.0').sort(), canonical.manifest.permissions.slice().sort(),
+  'approved minor must preserve the already granted nativeMessaging permission');
+assert.equal(expectedManifestPermissions('1.24.01').includes('nativeMessaging'), false,
+  'do not accept malformed MINOR values');
 assert.equal(includesActivePatch(historicalEra, '1.23.025'), false);
 assert.deepEqual(historicalEra, ['1.23.20', '1.23.22', '1.23.23', '1.23.24']);
 // The live product has moved to MINOR 1.24.0 under KAR-161. Preserve the
