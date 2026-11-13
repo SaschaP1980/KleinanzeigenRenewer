@@ -42,6 +42,7 @@
       &&row.targetEvidence==='found-in-my-ads-full-pagination-scan'
       &&Number.isSafeInteger(row.targetPagesScanned)&&row.targetPagesScanned>=1
       &&Number.isSafeInteger(row.targetFoundPage)&&row.targetFoundPage>=1
+      &&row.targetFoundPage<=row.targetPagesScanned
       &&Number.isSafeInteger(row.verifiedAtMs)&&row.verifiedAtMs>=intent.createdAtMs
       &&key===RESOLUTION_PREFIX+row.fillId+'_'+row.attemptId;
   }
@@ -163,7 +164,8 @@
         ||proof.sourceAdId!==intent.sourceAdId||proof.newAdId!==newAdId
         ||proof.targetPresent!==true||proof.targetEvidence!=='found-in-my-ads-full-pagination-scan'
         ||!Number.isSafeInteger(proof.targetPagesScanned)||proof.targetPagesScanned<1
-        ||!Number.isSafeInteger(proof.targetFoundPage)||proof.targetFoundPage<1)
+        ||!Number.isSafeInteger(proof.targetFoundPage)||proof.targetFoundPage<1
+        ||proof.targetFoundPage>proof.targetPagesScanned)
         throw denied('KR_PUBLISH_INTENT_UNVERIFIED');
       return atomic(async()=>{
         const after=await observe(fillId);
