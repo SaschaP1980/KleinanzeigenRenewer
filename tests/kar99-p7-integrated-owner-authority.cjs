@@ -230,6 +230,55 @@ async function waitUntil(predicate){for(let i=0;i<250&&!predicate();i++)await Pr
     &&completeMatrix.owners.nativeUpdateTransaction.status==='unverified'
     &&completeMatrix.eligibleForLease===false,
     'authentic prior-worker diagnostic callback is historical only, never all-owner idle');
+  // KAR-171 W3D2A: an old-worker autonomous P8 callback is historical
+  // ONLY when its per-owner witness references the EXACT same immutable
+  // P8 journal, owner subset and selected profile as the 15-owner bracket.
+  const renewalToken='prior_renewal_12345';
+  const renewalDb=db({
+    activeDetectedProfileV1:{profileId:'profile-A'},
+    selectedInventoryProfileV1:{profileId:'profile-A'},
+    [Atomic.START_PREFIX+renewalToken]:{schema:1,state:'admitted',
+      token:renewalToken,operationType:'AUTONOMOUS:renewal-detached-verify',
+      workerInstanceId:'worker-before-restart',startedAtMs:122500},
+    [Atomic.FINISH_PREFIX+renewalToken]:{schema:1,state:'completed',
+      token:renewalToken,workerInstanceId:'worker-before-restart',
+      completedAtMs:122700}
+  },{});
+  const realRenewal=Persisted.create({storageLocal:renewalDb.local,
+    storageSession:renewalDb.session,workerInstanceId:'worker-new',
+    clock:()=>123000});
+  const renewalAdditional=Additional.create({storageLocal:renewalDb.local,
+    storageSession:renewalDb.session,workerInstanceId:'worker-new',
+    clock:()=>123000});
+  const authenticRenewal=await renewalAdditional.inspectAllOwnerClosureReadOnly(realRenewal);
+  ok(authenticRenewal.owners.renewal.status==='historical-callback-settled'
+    &&authenticRenewal.owners.renewal.eligibleForLease===false,
+    'authentic persisted autonomous callback is only historically settled');
+  for(const [label,mutate] of [
+    ['different global P8 revision',parts=>{parts[0]='other-p8-revision';}],
+    ['different per-owner receipt revision',parts=>{parts[1]='other-owner-revision';}],
+    ['different stored profile witness',parts=>{parts[2]='other-profile';}],
+    ['malformed witness revision',()=>null]
+  ]) {
+    const tampered={
+      ...realRenewal,
+      async inspectPersistedOwnerCallbackClosureReadOnly(owner){
+        const actual=await realRenewal.inspectPersistedOwnerCallbackClosureReadOnly(owner);
+        if(owner!=='renewal'||actual.status!=='callback-settled')return actual;
+        const parts=JSON.parse(actual.sourceRevision);
+        const modified=mutate(parts);
+        return {...actual,sourceRevision:modified===null
+          ?'not-json-revision':JSON.stringify(parts)};
+      }
+    };
+    const result=await renewalAdditional.inspectAllOwnerClosureReadOnly(tampered);
+    ok(result.owners.renewal.status==='unverified'
+      &&result.owners.renewal.sourceRevision===null
+      &&result.eligibleForLease===false
+      &&result.sourcesStable===true,
+      label+' cannot borrow a stable aggregate P8 revision');
+  }
+  ok(renewalDb.writes===0,'cross-generation owner revision binding is strictly read-only');
   const wrongSite=Additional.create({storageLocal:completeStore.local,
     storageSession:completeStore.session,workerInstanceId:'worker-new',clock:()=>123000,
     queryBrowserTabsReadOnly:async()=>[{
