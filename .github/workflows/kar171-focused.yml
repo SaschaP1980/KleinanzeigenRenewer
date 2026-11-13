@@ -32,4 +32,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # KAR-167 forbids temporary workflows in the repository inventory.
+          # Validate the final *cleaned* source/test tree by removing only
+          # this disposable workflow from the checkout, never production code.
+          rm .github/workflows/kar171-focused.yml
           bash scripts/coverage-gate.sh
