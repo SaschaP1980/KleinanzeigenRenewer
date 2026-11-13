@@ -67,7 +67,7 @@
       }
 
       function project(record, days = currentDays) {
-        return { ...record, trash: { ...(record.trash || {}), expiresAt: configuredDeadline(record, days) } };
+        return { ...record, trash: { ...(record.trash || {}), expiresAt: configuredDeadline(record, days), retentionIndefinite: days === 'infinite' } };
       }
 
       function shouldSkipPurge(nowMs = clock()) {
