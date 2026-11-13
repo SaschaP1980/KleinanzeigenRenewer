@@ -63,6 +63,26 @@ for(const [owner,kind] of Object.entries(TYPES)){
   assert.equal(d.mutations.length,0);
  });
 }
+test('KAR-171 W3C RED: future prior-worker P8 receipts never claim callback settlement',async()=>{
+ for(const [label,startAt,finishAt] of [
+  ['future-start',100100,100200],['future-finish',900,100200]
+ ]) {
+  const d=disk(),token='future_'+label;
+  receipt(d,token,TYPES.renewal);
+  d.rows[Atomic.START_PREFIX+token].startedAtMs=startAt;
+  d.rows[Atomic.FINISH_PREFIX+token].completedAtMs=finishAt;
+  const o=observer(d);
+  const observed=await o.observe();
+  assert.equal(observed.eligibleForLease,false);
+  assert.equal(observed.admissionHistory.renewal.state,'unverified',
+    label+': raw prior-generation durable timestamps are not trusted evidence');
+  const closure=await o.inspectPersistedOwnerCallbackClosureReadOnly('renewal');
+  neverAuthorizes(closure,'renewal');
+  assert.equal(closure.status,'unverified',
+    label+': future prior-worker receipt cannot claim callback settlement');
+  assert.equal(d.mutations.length,0,'read-only source must never mutate receipts');
+ }
+});
 test('empty P8 journal cannot prove any persisted owner closure',async()=>{
  const d=disk(),o=observer(d);
  for(const owner of Persisted.OWNERS){
