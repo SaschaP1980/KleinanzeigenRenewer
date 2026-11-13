@@ -150,7 +150,7 @@
     "Verify warning/cancel/confirm with representative local-only trash fixtures and no remote mutations.",
     "Verify the Papierkorb deadline and restart-period wording in compact and detailed views."
   ],
-  "packageVersion": "1.23.92",
+  "packageVersion": "1.24.0",
   "directBasisNativePending": false,
   "architectureFiles": [
     {
