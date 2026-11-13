@@ -20,6 +20,13 @@ All distinct historical section bodies from the former root README and CHANGELOG
 
 The historical documents did not give an individually attributable release note for every intermediate 1.23.x source package. This reconciliation does not invent missing records: Git commits and their Issues are the authority for those intervening changes.
 
+## v1.23.48 — Owner-designated historical stable baseline (2026-11-09 native acceptance)
+
+- The owner reported approximately **60 successfully renewed live advertisements** with installed v1.23.48 on 2026-11-09, and separately confirmed that `Daten aktualisieren` works. This records owner acceptance, **not** 60 individual per-Ad-ID diagnostics or a GitHub CI real-account test. Provenance: [KAR-143](https://github.com/SaschaP1980/KleinanzeigenRenewer/issues/143#issuecomment-6748212424).
+- Original Work source merged in [PR #144](https://github.com/SaschaP1980/KleinanzeigenRenewer/pull/144) to historical `main@f2225155e403d89d07a674c9e20f397a4f86694d`; Work CI #42703769728 was 4/4 SUCCESS and historical main CI #42708145765 was 2/2 SUCCESS. These fixture-based checks supplement rather than replace the native owner report.
+- The original committed `release/kleinanzeigen-renewal-chrome-v1.23.48.zip` at that merge commit is **772,335 bytes**, SHA-256 `c709b084949891423ae36bd65fe8baa28278ee2725d5198fc26c7948987fa8d6`, independently recomputed during [KAR-178](https://github.com/SaschaP1980/KleinanzeigenRenewer/issues/178). That Issue governs the exact historical annotated `v1.23.48` tag. Tag presence must be verified separately; this Changelog entry does not imply a downloadable GitHub Release.
+- This is a **historical stable reference only**, not the moving default/latest build, updater channel, or a downgrade instruction. The literal three-part version is retained for history, with future four-part version comparison compatibility governed by [KAR-176](https://github.com/SaschaP1980/KleinanzeigenRenewer/issues/176).
+
 ## v1.23.22
 
 <!-- KAR170-BEGIN:CHANGELOG:1 -->
