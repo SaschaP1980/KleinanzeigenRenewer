@@ -65,21 +65,26 @@ const confirmationAdIdFallback = detectViaContent(
 );
 assert.strictEqual(confirmationAdIdFallback.adId, '3513234570');
 
+const listingUrlEvidence = fs.readFileSync(path.join(root,'src/background/services/listing-url-evidence-service.js'),'utf8');
 assert.ok(background.includes('function detectPublishedAdFromKnownUrl'));
-assert.ok(background.includes("url.searchParams.get('addId') || url.searchParams.get('adId')"));
+assert.ok(background.includes('requireListingUrlEvidenceService().detectPublishedAdFromKnownUrl'));
+assert.ok(listingUrlEvidence.includes('function detectPublishedAdFromKnownUrl'));
+assert.ok(listingUrlEvidence.includes("url.searchParams.get('addId') || url.searchParams.get('adId')"));
 assert.ok(background.includes('async function detectPublishedAdForFill'));
-assert.ok(background.includes("detectionSource: 'tab-url'"));
+assert.ok(listingUrlEvidence.includes("detectionSource: 'tab-url'"));
 assert.ok(background.includes('ARCHIVE_INSERT_NEW_ID_CONFIRMED'));
 assert.ok(background.includes('detectPublishedAdForFill(session.targetTabId, session.sourceAdId)'));
 assert.ok(background.includes('detectPublishedAdForFill(renewal.targetTabId, renewal.sourceAdId)'));
 assert.ok(background.includes('detectPublishedAdForFill(tabId, fill.sourceAdId)'));
 
-const helperStart = background.indexOf('function detectPublishedAdFromKnownUrl');
-const helperEnd = background.indexOf('\n\nasync function detectPublishedAdForFill', helperStart);
-assert.ok(helperStart >= 0 && helperEnd > helperStart, 'Background-URL-Parser konnte nicht isoliert werden.');
-const helperContext = { URL };
+const helperContext = { URL, KRDeps: { register(name, api) {
+  assert.strictEqual(name, 'KRListingUrlEvidenceService');
+  this.listingApi = api;
+} } };
 helperContext.globalThis = helperContext;
-vm.runInNewContext(`${background.slice(helperStart, helperEnd)}\nglobalThis.detectPublishedAdFromKnownUrlForTest = detectPublishedAdFromKnownUrl;`, helperContext);
+vm.runInNewContext(listingUrlEvidence, helperContext, {filename:'listing-url-evidence-service.js'});
+assert.strictEqual(typeof helperContext.KRDeps.listingApi?.create, 'function');
+helperContext.detectPublishedAdFromKnownUrlForTest = helperContext.KRDeps.listingApi.create({URL}).detectPublishedAdFromKnownUrl;
 const direct = helperContext.detectPublishedAdFromKnownUrlForTest(
   'https://www.kleinanzeigen.de/p-anzeige-aufgeben-bestaetigung.html?addId=3513234569&uuid=26a7f815-c904-499c-be63-854f0f03c399',
   '3509738343'
