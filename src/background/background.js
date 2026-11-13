@@ -655,6 +655,9 @@ function requireInventoryRepository() {
   return inventoryRepository;
 }
 
+// Retained public storage facade: renewal and legacy IndexedDB consumers use this.
+function openDatabase() { return requireInventoryRepository().openDatabase(); }
+
 function requireInventoryImageStore() {
   if (inventoryImageStore) return inventoryImageStore;
   if (!InventoryImageStore?.create) throw new Error('inventory-image-store.js must load before inventory images are used');

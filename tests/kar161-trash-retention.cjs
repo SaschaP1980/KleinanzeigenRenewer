@@ -6,6 +6,8 @@ const root = path.resolve(__dirname, '..');
 const read = name => fs.readFileSync(path.join(root, name), 'utf8');
 const html = read('src/app/app.html');
 const backgroundSource = read('src/background/background.js');
+assert.match(backgroundSource, /function openDatabase\(\) \{ return requireInventoryRepository\(\)\.openDatabase\(\); \}/,
+  'KAR-161 extraction must preserve the database facade used by renewal and inventory');
 assert.match(backgroundSource, /let diagnosticsService = null;/,
   'KAR-161: diagnostics singleton must exist before eager startup logging and message routing');
 assert.match(backgroundSource, /logDiagnostic\('info', 'DIAGNOSTIC_SESSION_STARTED'/,
