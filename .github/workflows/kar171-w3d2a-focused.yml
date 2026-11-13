@@ -1,0 +1,23 @@
+name: KAR-171 W3D2A owner revision witness (temporary)
+
+on:
+  push:
+    branches: [work/KAR-171]
+
+permissions:
+  contents: read
+
+jobs:
+  focused:
+    name: W3D2A independent P8 source revision RED-GREEN
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Focused 15-owner source witness regression
+        run: node tests/kar99-p7-integrated-owner-authority.cjs
