@@ -19,7 +19,9 @@ pass('v1.8.12 version aligned');
 assert.match(background, /const TRASH_RETENTION_MS = 30 \* 24 \* 60 \* 60 \* 1000/);
 assert.match(background, /recordKind: 'trash'/);
 assert.match(background, /expiresAt/);
-pass('trash records have a fixed 30-day retention contract');
+assert.match(background, /getRetentionDays/);
+assert.match(background, /deleteTrashIfEligible/);
+pass('legacy 30-day fallback and configurable finite/indefinite local trash retention are preserved');
 
 const deleteInventory = background.match(/async function deleteInventory\(inventoryId\) \{[\s\S]*?\n\}/)?.[0] || '';
 assert.match(deleteInventory, /moveInventoryToTrash/);
@@ -77,7 +79,7 @@ pass('expired trash is purged opportunistically on lifecycle startup and before 
 const clear = background.match(/async function clearInventories\(profileId\) \{[\s\S]*?\n\}\n\nasync function getBulkRunState/)?.[0] || '';
 assert.match(clear, /trashRecordFrom\(record, 'inventory-cleared'/);
 assert.doesNotMatch(clear, /objectStore\(IMAGE_STORE\)\.clear/);
-pass('clear-inventory now retains records/images in the 30-day trash instead of hard deleting');
+pass('clear-inventory retains records and images in the configurable local trash');
 
 assert.match(appHtml, /id="appNotice"/);
 assert.match(app, /GET_APP_NOTICE/);
