@@ -214,6 +214,8 @@ jobs:
           mkdir -p "$E2E_ROOT"
           unzip -q "$E2E_CHROME_ZIP" -d "$E2E_ROOT"
           export KR_E2E_EXTENSION_ROOT="$E2E_ROOT"
+          # KAR-161: do not accept a packaged ZIP that silently fails at service-worker bootstrap.
+          python3 tests/e2e/kar161-startup-smoke.py
           python3 tests/e2e/run_browser_e2e_supervisor.py --report "$EVIDENCE_DIR/browser-e2e-report.json"
           python3 tests/e2e/verify_pr_e2e_report.py --report "$EVIDENCE_DIR/browser-e2e-report.json" --zip "$E2E_CHROME_ZIP" --expected-head "$EXPECTED_WORK_HEAD" --out "$EVIDENCE_DIR/e2e-attestation.json"
       - name: Preserve real browser E2E evidence, including failures
