@@ -21,7 +21,19 @@ const trashEnd = [
 assert.match(bg.slice(trashStart, trashEnd), /requireTrashService\(\)\.list\(profileId\)/); assert.match(trash, /repository\.readForProfile\(profileId\)/); assert.doesNotMatch(bg.slice(trashStart, trashEnd), /readAllInventoryRecords/); pass('trash listing is profile-indexed instead of global getAll');
 const purgeStart = bg.indexOf('async function purgeExpiredTrash');
 const purgeEnd = bg.indexOf('\nasync function listInventories', purgeStart);
-assert.match(bg.slice(purgeStart, purgeEnd), /requireTrashService\(\)\.purgeExpired\(\)/); assert.match(trash, /repository\.readTrashExpiryState\(nowMs\)/); assert.match(repo, /index\(["']trashExpiresAt["']\)/); pass('trash expiry purge uses its index instead of scanning the inventory store');
+// KAR-161: retention changes make historical stored expiry values stale. The current
+// policy must be evaluated for each persisted trash item; exact-ID revalidation
+// and attached image removal occur atomically in IndexedDB, not by trusting
+// the legacy trashExpiresAt index as an authority to permanently delete.
+const owner = fs.readFileSync('src/background/controllers/trash-management-controller.js', 'utf8');
+assert.match(bg.slice(purgeStart, purgeEnd), /requireTrashManagementController\(\)\.purgeExpiredTrash\(\)/);
+assert.match(owner, /await service\.purgeExpired\(\)/);
+assert.match(trash, /await repository\.readAll\(\)/);
+assert.match(trash, /repository\.deleteTrashIfEligible\(/);
+assert.match(repo, /async function deleteTrashIfEligible\(/);
+assert.match(repo, /transaction\(\[inventoryStoreName, imageStoreName\], 'readwrite'\)/);
+assert.match(repo, /index\(["']trashExpiresAt["']\)/);
+pass('trash expiry reads the current policy and applies atomic ID/age/image guards instead of stale expiry-index assumptions');
 
 const countStart = bg.indexOf('async function countUnprofiledInventories');
 const countEnd = bg.indexOf('async function recognizeProfile', countStart);
