@@ -7,7 +7,12 @@ assert.equal(nav.publicAdIdFromUrl(canonical),'3515421759'); pass('canonical pub
 assert.equal(nav.publicAdIdFromUrl(direct),'3515421759'); pass('id-direct public URL is accepted as the same public ad identity');
 assert.equal(nav.assessPublicAd({url:canonical,status:'complete'},'3515421759').state,nav.STATES.READY); pass('canonical URL can provide target-bound public evidence');
 assert.equal(nav.assessPublicAd({url:direct,status:'complete'},'3515421759').state,nav.STATES.READY); pass('id-direct URL can provide target-bound public evidence');
-const r0=bg.indexOf('async function resolveRenewalPublicEvidence'); const r1=bg.indexOf('\nasync function extractReadOnlyMetadata',r0); const block=bg.slice(r0,r1); assert.ok(r0>=0&&r1>r0);
+const owner=fs.readFileSync('src/background/services/renewal-public-evidence-coordinator.js','utf8');
+assert.match(bg,/requireRenewalPublicEvidenceCoordinator\(\)\.resolveRenewalPublicEvidence\(newAdId, expectedProfileName, correlation\)/);
+const r0=owner.indexOf('async function resolveRenewalPublicEvidence');
+const r1=owner.indexOf('\n      return Object.freeze({',r0);
+const block=owner.slice(r0,r1);
+assert.ok(r0>=0&&r1>r0,'resolved public evidence must exist at its registered in-process owner');
 assert.match(block,/normalizeKnownPublicAdUrl\(knownPublicUrl, newAdId\)/); pass('resolver prefers a known canonical public URL when available');
 assert.match(block,/directPublicUrlForAdId\(newAdId\)/); pass('resolver has an ad-id direct fallback instead of depending on a slug');
 assert.match(block,/probeFreshRenewalPublicUrl\(canonicalKnownUrl, newAdId, 'canonical'/); pass('canonical verification uses a fresh dedicated public worker');
