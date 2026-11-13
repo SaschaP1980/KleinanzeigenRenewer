@@ -31,8 +31,8 @@ assert.match(bg, /function invalidateTrashPurgeSchedule\(/); assert.match(trash,
 const purgeStart = bg.indexOf('async function purgeExpiredTrash');
 const purgeEnd = bg.indexOf('\nasync function listInventories', purgeStart);
 const purgeBlock = bg.slice(purgeStart, purgeEnd);
-assert.match(purgeBlock, /requireTrashService\(\)\.purgeExpired\(\)/); assert.match(trash, /shouldSkipPurge\(nowMs\)/); pass('ordinary list reads skip expiry queries until the next due timestamp');
-assert.match(trash, /repository\.readTrashExpiryState\(nowMs\)/); assert.match(repo, /async function readTrashExpiryState[\s\S]*?index\('trashExpiresAt'\)[\s\S]*?openCursor\(\)/); pass('purge determines the next expiry from the indexed cursor');
+assert.match(purgeBlock, /requireTrashManagementController\(\)\.purgeExpiredTrash\(\)/); assert.match(trash, /shouldSkipPurge\(nowMs\)/); pass('ordinary reads skip redundant purge work until the next policy-derived due timestamp');
+assert.match(trash, /await repository\.readAll\(\)/); assert.match(trash, /repository\.deleteTrashIfEligible\(/); assert.match(repo, /async function deleteTrashIfEligible/); pass('policy-aware purge verifies actual trash age and deletion inside an atomic local transaction');
 
 assert.match(bg, /const DIAGNOSTIC_BATCH_FLUSH_MS = 1200;/); pass('routine diagnostic flush window is widened for lower write churn');
 assert.match(bg, /const DIAGNOSTIC_BATCH_MAX_PENDING = 120;/); pass('diagnostic pending buffer tolerates larger routine batches');
