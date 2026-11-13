@@ -5,7 +5,7 @@ const controller=read('src/app/inventory-capture-controller.js');
 const view=read('src/app/inventory-capture-view.js');
 const model=read('src/app/inventory-candidate-model.js');
 const app=read('src/app/app.js');
-const html=read('app.html');
+const html=read('src/app/app.html');
 let n=0;const p=(m,f)=>{f();n++;console.log('PASS '+m)};
 p('dedicated capture view and candidate model modules exist',()=>{assert.ok(view,'inventory-capture-view.js missing');assert.ok(model,'inventory-candidate-model.js missing')});
 p('candidate model owns pure candidate normalization and membership classification',()=>{assert.match(model,/function buildSingleInventoryCandidates\(/);assert.match(model,/function createMembershipSnapshot\(/);assert.match(model,/function storageState\(/);assert.doesNotMatch(model,/document\.|runtimeMessage\(|chrome\./)});
