@@ -12,6 +12,7 @@ const candidateFiles = [
   'archive-insertion-controller.js',
   'bulk-inventory-controller.js',
   'public-listing-evidence-service.js',
+  'src/background/services/renewal-public-evidence-coordinator.js',
   'diagnostic-export-service.js',
   'account-session-controller.js',
   'profile-management-controller.js',
