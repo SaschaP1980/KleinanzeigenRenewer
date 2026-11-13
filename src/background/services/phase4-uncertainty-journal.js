@@ -63,16 +63,19 @@
           (safeId(row.admissionToken) && row.admissionToken.length >= 12))
         && key === PREFIX + row.renewalId + '_' + row.attemptId;
     }
-    function validateResolution(row, key) {
+    function validateResolution(row, key, original) {
       return isRecord(row) && row.schema === SCHEMA && row.state === 'resolved-confirmed'
         && safeId(row.renewalId) && safeId(row.attemptId) && safeId(row.workerInstanceId)
         && typeof row.profileId === 'string' && row.profileId.trim().length > 0
         && row.profileId.length <= 256 && adId(row.sourceAdId) && adId(row.newAdId)
         && row.sourceAdId !== row.newAdId && Number.isSafeInteger(row.verifiedAtMs)
-        && row.verifiedAtMs >= 0 && Number.isSafeInteger(row.sourcePagesScanned)
+        && isRecord(original) && validate(original, PREFIX + row.renewalId + '_' + row.attemptId)
+        && row.verifiedAtMs >= original.createdAtMs
+        && Number.isSafeInteger(row.sourcePagesScanned)
         && row.sourcePagesScanned >= 1 && Number.isSafeInteger(row.targetPagesScanned)
         && row.targetPagesScanned >= 1 && Number.isSafeInteger(row.targetFoundPage)
-        && row.targetFoundPage >= 1 && row.sourceEvidence === 'not-in-my-ads-full-pagination-scan'
+        && row.targetFoundPage >= 1 && row.targetFoundPage <= row.targetPagesScanned
+        && row.sourceEvidence === 'not-in-my-ads-full-pagination-scan'
         && row.targetEvidence === 'found-in-my-ads-full-pagination-scan'
         && key === RESOLUTION_PREFIX + row.renewalId + '_' + row.attemptId;
     }
@@ -92,8 +95,8 @@
           if (row.renewalId === renewalId) attempts.push(Object.freeze({...row}));
         }
         if (key.startsWith(RESOLUTION_PREFIX)) {
-          if (!validateResolution(row, key)) throw denied('KR_PHASE4_JOURNAL_CORRUPT');
           const original = all[PREFIX + row.renewalId + '_' + row.attemptId];
+          if (!validateResolution(row, key, original)) throw denied('KR_PHASE4_JOURNAL_CORRUPT');
           if (!validate(original, PREFIX + row.renewalId + '_' + row.attemptId)
               || row.profileId !== original.profileId || row.sourceAdId !== original.sourceAdId
               || row.newAdId !== original.newAdId)
@@ -186,7 +189,8 @@
           || proof.targetEvidence !== 'found-in-my-ads-full-pagination-scan'
           || !Number.isSafeInteger(proof.sourcePagesScanned) || proof.sourcePagesScanned < 1
           || !Number.isSafeInteger(proof.targetPagesScanned) || proof.targetPagesScanned < 1
-          || !Number.isSafeInteger(proof.targetFoundPage) || proof.targetFoundPage < 1)
+          || !Number.isSafeInteger(proof.targetFoundPage) || proof.targetFoundPage < 1
+          || proof.targetFoundPage > proof.targetPagesScanned)
         throw denied('KR_PHASE4_JOURNAL_UNVERIFIED');
       // Always inspect the receipt again after the remote verification; neither
       // a changed account nor lost storage can become a positive outcome.
@@ -196,12 +200,12 @@
         throw denied('KR_PHASE4_JOURNAL_UNRESOLVED');
       if (after.resolutions.length) {
         const prior = after.resolutions[0];
-        if (!validateResolution(prior, RESOLUTION_PREFIX + renewalId + '_' + attemptId))
+        if (!validateResolution(prior, RESOLUTION_PREFIX + renewalId + '_' + attemptId, original))
           throw denied('KR_PHASE4_JOURNAL_CORRUPT');
         return prior; // Immutable, verified historical resolution.
       }
       const time = clock();
-      if (!Number.isSafeInteger(time) || time < 0)
+      if (!Number.isSafeInteger(time) || time < original.createdAtMs)
         throw denied('KR_PHASE4_JOURNAL_IDENTITY');
       const resolved = Object.freeze({
         schema: SCHEMA, state: 'resolved-confirmed', renewalId, attemptId,
@@ -219,7 +223,7 @@
       try { await storageLocal.set({[key]: resolved}); }
       catch { throw denied('KR_PHASE4_JOURNAL_STORAGE'); }
       const acknowledged = (await read([key]))[key];
-      if (!validateResolution(acknowledged, key) || !exactlySame(acknowledged, resolved))
+      if (!validateResolution(acknowledged, key, original) || !exactlySame(acknowledged, resolved))
         throw denied('KR_PHASE4_JOURNAL_STORAGE');
       const final = await observe(renewalId);
       if (final.resolutions.length !== 1 || !exactlySame(final.resolutions[0], resolved))
