@@ -41,7 +41,8 @@
   const ADMISSION_START = 'karAtomicAdmissionStartV1_';
   const ADMISSION_FINISH = 'karAtomicAdmissionFinishV1_';
   const RECEIPT_ID = /^[A-Za-z0-9_-]{1,128}$/;
-  function immutableOwnerReceipts(first, second) {
+  function immutableOwnerReceipts(first, second, inspectedAtMs) {
+    if (!Number.isSafeInteger(inspectedAtMs) || inspectedAtMs < 0) return null;
     if (!isRecord(first) || !isRecord(second)) return null;
     const pick = rows => Object.entries(rows)
       .filter(([key]) => key.startsWith(ADMISSION_START) || key.startsWith(ADMISSION_FINISH))
@@ -58,12 +59,14 @@
         if (key !== ADMISSION_START + row.token || row.state !== 'admitted'
           || typeof row.operationType !== 'string' || !row.operationType
           || row.operationType.length > 128
-          || !Number.isSafeInteger(row.startedAtMs) || row.startedAtMs < 0)
+          || !Number.isSafeInteger(row.startedAtMs) || row.startedAtMs < 0
+          || row.startedAtMs > inspectedAtMs)
           return null;
         starts.set(row.token, row);
       } else {
         if (key !== ADMISSION_FINISH + row.token || row.state !== 'completed'
-          || !Number.isSafeInteger(row.completedAtMs) || row.completedAtMs < 0)
+          || !Number.isSafeInteger(row.completedAtMs) || row.completedAtMs < 0
+          || row.completedAtMs > inspectedAtMs)
           return null;
         finishes.set(row.token, row);
       }
@@ -430,7 +433,10 @@
       }
       // F2D: independently re-read the actual immutable P8 journal. A
       // callback's stored finish certifies neither a remote result nor IDLE.
-      const receiptProof = immutableOwnerReceipts(firstRemote, remoteRecheck);
+      // KAR-171 W3C: independently double-read old-worker P8 history and
+      // timestamp it AFTER the second storage read. Future-dated receipts
+      // cannot become historical callback-finished proof after MV3 restart.
+      const receiptProof = immutableOwnerReceipts(firstRemote, remoteRecheck, clock());
       if (!receiptProof) {
         for (const name of OWNERS) {
           if (result[name].state !== 'active') set(name, unknown('DURABLE_ADMISSION_UNVERIFIED'));
