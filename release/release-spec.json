@@ -1,5 +1,5 @@
 {
-  "version": "1.24.0",
+  "version": "1.24.1",
   "project": "kleinanzeigen Manager / Kleinanzeigen Renewal",
   "epic": "KAR-161-configurable-local-trash-retention",
   "goldBaseline": "1.21.15",
@@ -152,7 +152,7 @@
     "Validate canonical all-profile affected-count preview and fail-closed cancellation when the active profile or trash snapshot changes.",
     "Verify local-only atomic record-and-image deletion under exact inventory IDs, retention-reset boundaries and MV3 interruption; assert no remote Kleinanzeigen mutation."
   ],
-  "packageVersion": "1.24.0",
+  "packageVersion": "1.24.1",
   "directBasisNativePending": false,
   "architectureFiles": [
     {
