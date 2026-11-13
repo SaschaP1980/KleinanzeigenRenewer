@@ -2,12 +2,18 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const assert = require('node:assert/strict');
 const source = fs.readFileSync('background.js','utf8');
-const start = source.indexOf('function publishedAdCandidateFromUrl');
-const end = source.indexOf('\nfunction ', start + 10);
-assert.ok(start >= 0 && end > start, 'publishedAdCandidateFromUrl must exist');
-const context = { URL };
+// KAR-175: retain the original runtime checks against the actual pure
+// registered URL evidence module, not the old background forwarding facade.
+const ownerSource=fs.readFileSync('src/background/services/listing-url-evidence-service.js','utf8');
+assert.match(source,/requireListingUrlEvidenceService\(\)\.publishedAdCandidateFromUrl\(rawUrl, sourceAdId\)/);
+let owner=null;
+const context={URL,KRDeps:{register(name,api){
+  assert.equal(name,'KRListingUrlEvidenceService');owner=api;
+}}};
 vm.createContext(context);
-vm.runInContext(`${source.slice(start,end)}; this.parsePublished = publishedAdCandidateFromUrl;`, context);
+vm.runInContext(ownerSource,context);
+assert.equal(typeof owner?.create,'function');
+context.parsePublished=owner.create({URL}).publishedAdCandidateFromUrl;
 let n=0; const pass=l=>{n++;console.log('PASS '+l);};
 let out = context.parsePublished('https://www.kleinanzeigen.de/s-anzeige/demo/3514872335-154-1234','3490630842');
 assert.equal(out.adId,'3514872335'); assert.equal(out.kind,'public'); pass('public published URL yields new ad id');
