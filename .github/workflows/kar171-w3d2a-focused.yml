@@ -21,3 +21,13 @@ jobs:
           node-version: '22'
       - name: Focused 15-owner source witness regression
         run: node tests/kar99-p7-integrated-owner-authority.cjs
+      - name: Install complete test dependencies
+        run: npm ci
+      - name: Full clean-tree regression, architecture, and V8 coverage gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          # The temporary focused runner is removed from the checkout to
+          # test the exact final production workflow inventory.
+          rm .github/workflows/kar171-w3d2a-focused.yml
+          bash scripts/coverage-gate.sh
