@@ -8,7 +8,7 @@ const tabload = fs.existsSync('tab-load-coordinator.js') ? fs.readFileSync('tab-
 let n=0; const pass=m=>{n++; console.log('PASS '+m)};
 assert.ok(activity); assert.match(activity,/KRAppActivityCenter/); assert.match(activity,/create\s*\(/); pass('app activity center exists as dedicated module');
 assert.ok(tabload); assert.match(tabload,/KRTabLoadCoordinator/); assert.match(tabload,/create\s*\(/); pass('background tab-load coordinator exists as dedicated module');
-assert.match(html,/<script src="src\/app\/app-activity-center\.js"><\/script>[\s\S]*<script src="src\/app\/app\.js"><\/script>/); pass('app activity module loads before app entrypoint');
+assert.match(html,/<script src="app-activity-center\.js"><\/script>[\s\S]*<script src="app\.js"><\/script>/); pass('app activity module loads before app entrypoint');
 assert.match(bg,/importScripts\([^\n]*"services\/tab-load-coordinator\.js"/); pass('background tab-load module loads before background entrypoint');
 assert.match(app,/KRDeps\.require\('KRAppActivityCenter'\)/); assert.match(bg,/KRDeps\.require\('KRTabLoadCoordinator'\)/); pass('entrypoints consume extracted modules through dependency registry');
 assert.doesNotMatch(app,/let uiActivityHistory\s*=\s*\[\]/); assert.doesNotMatch(app,/let uiCurrentActivity\s*=\s*null/); pass('activity mutable state no longer lives in app.js');

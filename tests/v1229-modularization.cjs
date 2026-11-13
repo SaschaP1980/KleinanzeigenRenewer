@@ -3,7 +3,7 @@ const app=fs.readFileSync('app.js','utf8'),html=fs.readFileSync('app.html','utf8
 const mass=fs.readFileSync('mass-renewal-ui-controller.js','utf8');
 const archive=fs.readFileSync('archive-trash-insertion-ui-controller.js','utf8');
 let n=0;const pass=m=>{n++;console.log('PASS '+m)};
-assert.match(html,/<script src="src\/app\/mass-renewal-ui-controller\.js"><\/script>[\s\S]*<script src="src\/app\/archive-trash-insertion-ui-controller\.js"><\/script>[\s\S]*<script src="src\/app\/app\.js"><\/script>/);pass('mass and archive-trash UI controllers load before app entrypoint');
+assert.match(html,/<script src="mass-renewal-ui-controller\.js"><\/script>[\s\S]*<script src="archive-trash-insertion-ui-controller\.js"><\/script>[\s\S]*<script src="app\.js"><\/script>/);pass('mass and archive-trash UI controllers load before app entrypoint');
 assert.match(app,/KRDeps\.require\('KRMassRenewalUiController'\)/);assert.match(app,/KRDeps\.require\('KRArchiveTrashInsertionUiController'\)/);pass('app consumes both controllers through KRDeps');
 for(const name of ['currentMassRenewalBatch','massRenewalSelectedIds','massRenewalOrderedIds','massRenewalDraggedId']){assert.doesNotMatch(app,new RegExp(`let\\s+${name}\\b`));assert.match(mass,new RegExp(`let\\s+${name}\\b`));}pass('mass renewal mutable UI state ownership moved out of app');
 for(const name of ['archiveDialogMode','archiveParsed','trackedArchiveInsertionId','trackedArchiveInsertionRevision','trashTemplateDialogMode','trackedTrashTemplateRecord']){assert.doesNotMatch(app,new RegExp(`let\\s+${name}\\b`));assert.match(archive,new RegExp(`let\\s+${name}\\b`));}pass('archive and trash insertion mutable UI state ownership moved out of app');
