@@ -1,0 +1,27 @@
+name: KAR-171 temporary isolated focused safety tests
+
+on:
+  push:
+    branches: [work/KAR-171]
+
+permissions:
+  contents: read
+
+jobs:
+  focused:
+    name: W2 remote outcome journal proof
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Focused independent remote journal proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tests/kar99-phase4-outcome-reconciliation.cjs
+          node tests/kar99-publish-outcome.cjs
