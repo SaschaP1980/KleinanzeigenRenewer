@@ -67,6 +67,70 @@ async function main() {
   assert.equal(policy,'infinite');
   assert.equal((await service.purgeExpired()).purged, 0);
   assert.equal((await service.list('profile-A'))[0].trash.expiresAt, null);
+  // New policy MUST NOT delete an old trash record inserted after preview but
+  // before the persisted setting is saved. This simulates a concurrent import
+  // or MV3 restart recovery while a destructive-change dialog was open.
+  let activePolicy = 30;
+  let liveRows = [
+    { inventoryId: 'consented', profileId: 'profile-A', recordKind: 'trash',
+      trash: { trashedAt: new Date(now - 12*DAY).toISOString() } }
+  ];
+  const forged = { inventoryId: 'unpreviewed', profileId: 'profile-B', recordKind: 'trash',
+    trash: { trashedAt: new Date(now - 360*DAY).toISOString() } };
+  const cleanupRepository = {
+    readAll: async () => liveRows.slice(),
+    readForProfile: async p => liveRows.filter(x=>x.profileId===p),
+    get: async id => liveRows.find(x=>x.inventoryId===id),
+    mutate: async () => { throw Error('not used'); },
+    deleteWithImages: async () => { throw Error('not used'); },
+    async deleteTrashIfEligible(id, expected, days, at) {
+      const row=liveRows.find(x=>x.inventoryId===id);
+      if (!row || row.profileId!==expected.profileId || row.trash.trashedAt!==expected.trashedAt) return false;
+      if (Date.parse(row.trash.trashedAt)+days*DAY>at) return false;
+      liveRows=liveRows.filter(x=>x.inventoryId!==id);
+      return true;
+    }
+  };
+  const isolated = factory.create({
+    inventoryRepository: cleanupRepository, now:()=>now, tokenFactory:()=> 'consent-token',
+    getSelectedProfileId: async()=> 'profile-A',
+    getRetentionDays: async()=>activePolicy,
+    setRetentionDays: async days=>{
+      activePolicy=days;
+      if (days===10) liveRows.push(forged); // arrives between commit validation and cleanup
+    }
+  });
+  const confirmedPreview=await isolated.previewRetentionChange(10,'profile-A');
+  assert.equal(confirmedPreview.affectedCount,1);
+  const consentedCommit=await isolated.commitRetentionChange({
+    token:confirmedPreview.token, retentionDays:10,selectedProfileId:'profile-A',confirmed:true
+  });
+  assert.equal(consentedCommit.deletedCount,1);
+  assert.deepEqual(liveRows.map(x=>x.inventoryId),['unpreviewed'],
+    'no record outside the explicit reviewed candidate set may be deleted by the commit');
+  assert.equal(activePolicy,10);
+
+  // Advancing time between preview and confirmation can make a previously
+  // ineligible existing item immediately due: stale dialogue must fail closed.
+  let fakeNow=now;
+  let agedPolicy=30;
+  const ageRecords=[{inventoryId:'threshold',profileId:'profile-A',recordKind:'trash',
+    trash:{trashedAt:new Date(now-10*DAY+60*1000).toISOString()}}];
+  const agedRepo={
+    ...cleanupRepository,
+    readAll: async()=>ageRecords.slice(),
+    readForProfile:async()=>ageRecords.slice(),
+    deleteTrashIfEligible:async()=>{throw Error('stale consent must not delete');}
+  };
+  const aged=factory.create({inventoryRepository:agedRepo,now:()=>fakeNow,
+    getRetentionDays:async()=>agedPolicy,setRetentionDays:async days=>{agedPolicy=days},
+    getSelectedProfileId:async()=> 'profile-A',tokenFactory:()=> 'age-token'});
+  const early=await aged.previewRetentionChange(10,'profile-A');
+  assert.equal(early.affectedCount,0);
+  fakeNow+=60*1000;
+  await assert.rejects(()=>aged.commitRetentionChange({token:early.token,retentionDays:10,
+    selectedProfileId:'profile-A'}),/veraltet|prüfen|Prüfung/i);
+  assert.equal(agedPolicy,30,'do not commit a shorter policy after new expiry without fresh preview');
   console.log('KAR-161 discrete policy, preview safety, profile isolation and infinity: PASS');
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });
