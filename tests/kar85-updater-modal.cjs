@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const path = require('node:path');
 const root = path.resolve(__dirname, '..');
-const html = fs.readFileSync(path.join(root, 'app.html'), 'utf8');
+const html = fs.readFileSync(path.join(root, 'src/app/app.html'), 'utf8');
 const js = fs.readFileSync(path.join(root, 'src/app/native-update-check-ui.js'), 'utf8');
 let passes = 0;
 function check(value, label) { assert.ok(value, label); passes++; console.log('PASS KAR85 ' + label); }

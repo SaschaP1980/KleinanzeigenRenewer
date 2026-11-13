@@ -4,6 +4,14 @@ This is the canonical version-specific history for Kleinanzeigen Manager. Entrie
 
 All distinct historical section bodies from the former root README and CHANGELOG are preserved with source labels and line numbers. The [KAR-170 migration ledger](docs/maintenance/KAR170_CHANGELOG_MIGRATION.json) identifies their original Git blobs and body checksums. Overlapping versions retain distinct factual notes; older references to planned builds or native/CI acceptance are **historical**, not live status.
 
+## v1.23.90 — KAR-174 relocate application and launcher HTML/CSS (source Work candidate)
+
+- Move the manager page and stylesheet from root to `src/app/app.html` and `src/app/app.css`, and the separately bundled launcher assets to `src/popup/popup.html` and `src/popup/popup.css`. The extension action opens the new manager URL; the launcher's manifest registration remains unchanged.
+- Rebase HTML script/style/icon and CSS mask URLs, architecture graph discovery, deterministic Chrome ZIP allowlist/closure, source validation, legacy UI tests and packaged Chromium smoke coverage to the actual page-relative resources.
+- Preserve the pinned KAR-167 historical repository snapshot, original archived releases, extension key and ID, Chrome permissions and guarded ad-operation behavior. Add independent executable checks that all four former root UI files are absent and new local assets are real and packaged.
+- **Compatibility boundary:** Existing external bookmarks or persisted absolute URLs targeting `chrome-extension://<id>/app.html` will not redirect after installation. Reopen using the extension action or update the bookmarked URL to `/src/app/app.html`. Native profile/bookmark migration has not been independently verified.
+- This is a source Work candidate, not a public GitHub Release. Merge, publishing and native-user acceptance remain separately gated.
+
 ## v1.23.89 — KAR-134 L15 automatic schema observation (source Work integration)
 
 - Integrate schema observations into verified capture/refresh/edit-form and normal republishing flows; remove the standalone `Kategorie prüfen` inventory action and legacy synthetic/runtime test session entrypoints.

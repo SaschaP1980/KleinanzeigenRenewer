@@ -105,7 +105,7 @@ async function run() {
  screen=boot((msg,cb)=>cb({ok:true,result:{...payload,installed:'1.23.30',approved:'1.23.30'}}));
  screen.button.handlers.click();await tick();
  check(screen.status.textContent.includes('entsprechen'),'matched approved and installed version');
- const appHtml=fs.readFileSync(path.join(root,'app.html'),'utf8');
+ const appHtml=fs.readFileSync(path.join(root,'src/app/app.html'),'utf8');
  check(appHtml.includes('native-update-check-ui.js')&&appHtml.includes('nativeUpdateCheckButton'),'packaged UI script and button');
  check(!appHtml.includes('nativeApplyUpdateButton'),'in-app apply deliberately absent');
  check(assertions>=27,'minimum Phase 2B safety assertions');
