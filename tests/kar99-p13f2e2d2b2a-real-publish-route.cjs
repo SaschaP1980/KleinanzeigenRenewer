@@ -132,5 +132,9 @@ test('B2A RED: production in-process router and account-validated before-click e
  assert.match(bg,/task\(admissionReceipt\)/);
  assert.match(bg,/async function authorizeAutomaticPublish\(message, sender, admissionReceipt\)/);
  assert.match(bg,/"AUTHORIZE_AUTOMATIC_PUBLISH":\s*\(message, sender, admissionReceipt\)\s*=>/);
- assert.match(bg,/targetTabId: tabId,\s*admissionReceipt/);
+ assert.match(bg,/requirePublishIntentAuthorizationService\(\)\.authorizeAutomaticPublish\(message, sender, admissionReceipt\)/,
+   'background must preserve the routed immutable P8 admission token at the trusted delegate');
+ const owner=fs.readFileSync('src/background/services/publish-intent-authorization-service.js','utf8');
+ assert.match(owner,/targetTabId: tabId,\s*admissionReceipt/,
+   'actual trusted publication owner must pass the P8 token to the durable journal');
 });
