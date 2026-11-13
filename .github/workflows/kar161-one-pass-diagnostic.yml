@@ -1,5 +1,5 @@
 name: KAR-161 one-pass unit regression diagnosis
-# Second pass: check archived release contracts after 1.24.0 characterization corrections.
+# Third pass: validate corrected historical PATCH synthetic fixture and six native smoke contracts.
 on:
   push:
     branches: [work/KAR-161]
