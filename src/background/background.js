@@ -134,7 +134,9 @@ const MASS_RENEWAL_MAX_ITEMS = 10;
 const MASS_RENEWAL_BATCH_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 const MASS_RENEWAL_WATCHDOG_STALE_MS = 5 * 60 * 1000;
 const MASS_RENEWAL_WATCHDOG_TICK_MS = 20 * 1000;
-const TRASH_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
+const TRASH_RETENTION_MS = 30 * 24 * 60 * 60 * 1000; // Legacy 30-day fallback for older contracts.
+const TRASH_RETENTION_KEY = 'trashRetentionDaysV1';
+const TRASH_RETENTION_STOPS = Object.freeze([10, 30, 60, 90, 180, 360, 'infinite']);
 const APP_NOTICE_KEY = "appNoticeV1";
 const PLATFORM_ACCESS_RESTRICTION_KEY = "platformAccessRestrictionV1";
 const PLATFORM_ACCESS_RESTRICTION_ERROR_CODE = "KR_PLATFORM_ACCESS_RESTRICTED";
@@ -669,7 +671,21 @@ function requireInventoryImageStore() {
 function requireTrashService() {
   if (trashService) return trashService;
   if (!TrashService?.create) throw new Error('trash-service.js must load before trash storage is used');
-  trashService = TrashService.create({ inventoryRepository: requireInventoryRepository(), retentionMs: TRASH_RETENTION_MS });
+  trashService = TrashService.create({
+    inventoryRepository: requireInventoryRepository(), retentionMs: TRASH_RETENTION_MS,
+    getRetentionDays: async () => {
+      const saved = (await chrome.storage.local.get(TRASH_RETENTION_KEY))[TRASH_RETENTION_KEY];
+      return TRASH_RETENTION_STOPS.includes(saved) ? saved : 30;
+    },
+    setRetentionDays: async days => {
+      if (!TRASH_RETENTION_STOPS.includes(days)) throw new Error('Ungültige Papierkorb-Aufbewahrung.');
+      await chrome.storage.local.set({ [TRASH_RETENTION_KEY]: days });
+    },
+    getSelectedProfileId: async () => {
+      const stored = await chrome.storage.local.get(SELECTED_PROFILE_KEY);
+      return String(stored?.[SELECTED_PROFILE_KEY]?.profileId || '');
+    }
+  });
   return trashService;
 }
 
@@ -814,6 +830,22 @@ async function purgeExpiredTrash() {
 async function listInventories(profileId) { await purgeExpiredTrash(); const records = (await readInventoryRecordsForProfile(profileId)).filter(record => !isTrashRecord(record)); return records.sort((a, b) => String(b.capturedAt || '').localeCompare(String(a.capturedAt || ''))); }
 
 async function listTrashEntries(profileId) { await purgeExpiredTrash(); return requireTrashService().list(profileId); }
+
+async function getTrashRetentionConfiguration() { return requireTrashService().getConfiguration(); }
+async function previewTrashRetentionChange(message) {
+  return requireTrashService().previewRetentionChange(message?.retentionDays, message?.selectedProfileId);
+}
+async function commitTrashRetentionChange(message) {
+  const result = await withAutonomousAdmission('trash-retention-commit', () => requireTrashService().commitRetentionChange({
+    token: message?.token, retentionDays: message?.retentionDays,
+    selectedProfileId: message?.selectedProfileId, confirmed: message?.confirmed === true
+  }));
+  await logDiagnostic('info', 'TRASH_RETENTION_CONFIGURATION_CHANGED', {
+    retentionDays: result.retentionDays, deletedCount: result.deletedCount
+  }, { module: 'background', operation: 'trash-retention-config' }).catch(() => {});
+  broadcastInventoryChanged('trash-retention-configured', { retentionDays: result.retentionDays, deletedCount: result.deletedCount });
+  return result;
+}
 
 async function setAccountGateDiagnosticState(message = {}) { return requireAccountSessionController().setAccountGateDiagnosticState(message); }
 
@@ -977,6 +1009,7 @@ async function discardRenewalDraft(message) {
 }
 
 async function clearInventories(profileId) {
+  const retention = (await getTrashRetentionConfiguration()).retentionDays;
   const active = await getBulkRunState();
   if (active?.status === "running" || active?.retryAdId) throw new Error("Die Inventarliste kann während einer laufenden Erfassung oder einer einzelnen Wiederholung nicht geleert werden.");
   const renewals = await readRenewalSessions().catch(() => ({}));
@@ -995,7 +1028,7 @@ async function clearInventories(profileId) {
       const store = tx.objectStore(INVENTORY_STORE);
       for (const record of records) store.put(trashRecordFrom(record, 'inventory-cleared', { source: 'clear-inventory' }, now));
     });
-    await logDiagnostic('info', 'INVENTORY_CLEARED_TO_TRASH', { count: records.length, profileId: profileId === UNASSIGNED_PROFILE_ID ? null : (profileId || null), unassigned: profileId === UNASSIGNED_PROFILE_ID, expiresAt: new Date(now.getTime() + TRASH_RETENTION_MS).toISOString() }).catch(() => {});
+    await logDiagnostic('info', 'INVENTORY_CLEARED_TO_TRASH', { count: records.length, profileId: profileId === UNASSIGNED_PROFILE_ID ? null : (profileId || null), unassigned: profileId === UNASSIGNED_PROFILE_ID, expiresAt: retention === 'infinite' ? null : new Date(now.getTime() + retention * 24 * 60 * 60 * 1000).toISOString() }).catch(() => {});
     broadcastInventoryChanged('cleared-to-trash', { count: records.length });
     return { cleared: true, movedToTrash: records.length };
   } finally { db.close(); }
@@ -2283,6 +2316,9 @@ const backgroundMessageRouter = BackgroundMessageRouter.create({
   "GET_TAB_REGISTRY_SNAPSHOT": (message, sender) => getTabRegistrySnapshot(),
   "REACTIVATE_DISCARDED_TABS": (message, sender) => reactivateDiscardedTabs(message),
   "GET_RENEWAL_CONFIGURATION": (message, sender) => getRenewalConfiguration(),
+  "GET_TRASH_RETENTION_CONFIGURATION": (message, sender) => getTrashRetentionConfiguration(),
+  "PREVIEW_TRASH_RETENTION_CHANGE": (message, sender) => previewTrashRetentionChange(message),
+  "COMMIT_TRASH_RETENTION_CHANGE": (message, sender) => commitTrashRetentionChange(message),
   "SET_RENEWAL_MODE": (message, sender) => setRenewalMode(message),
   "SET_RENEWAL_PHASE_ATTEMPTS": (message, sender) => setRenewalPhaseAttempts(message),
   "OPEN_EDIT_AD": (message, sender) => openEditAd(message),
@@ -2415,7 +2451,7 @@ chrome.action?.onClicked?.addListener(() => {
 void withAutonomousAdmission('tab-registry-boot', () => reconcileTabRegistry()).catch(() => {});
 chrome.runtime.onStartup?.addListener(() => { void withAutonomousAdmission('tab-registry-startup', () => reconcileTabRegistry()).catch(() => {}); });
 
-// The 30-day trash purge is locally mutating maintenance, not just a read.
+// Configurable local-trash expiry is mutating maintenance, not just a read.
 // All three autonomous launch paths must observe the persistent update fence.
 void withAutonomousAdmission('trash-purge-boot', () => purgeExpiredTrash()).catch(() => {});
 chrome.runtime.onStartup?.addListener(() => { void withAutonomousAdmission('trash-purge-startup', () => purgeExpiredTrash()).catch(() => {}); });
