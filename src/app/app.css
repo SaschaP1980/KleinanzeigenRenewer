@@ -76,6 +76,12 @@ button { font: inherit; }
 .configuration-row { display:flex; align-items:baseline; justify-content:space-between; gap:10px; }
 .configuration-value { color:#d8e1df; font-size:10px; font-weight:800; white-space:nowrap; }
 .configuration-range { width:100%; margin:1px 0 0; accent-color:#4de0b7; cursor:pointer; }
+.trash-retention-range-scale { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); margin-top:0; gap:1px; }
+.trash-retention-range-scale > span { text-align:center; }
+.trash-retention-range-scale > span:first-child { text-align:left; }
+.trash-retention-range-scale > span:last-child { text-align:right; }
+.trash-retention-settings { min-width:0; }
+.trash-retention-settings .configuration-range:focus-visible { outline:2px solid #4de0b7; outline-offset:3px; }
 .configuration-range-scale { display:flex; justify-content:space-between; margin-top:-4px; color:#667975; font-size:8px; font-variant-numeric:tabular-nums; }
 .control-section-label { color:#7f928f; font-size:9px; font-weight:800; letter-spacing:.09em; text-transform:uppercase; }
 .profile-switcher { display:grid; gap:7px; padding:1px 2px 12px; border-bottom:1px solid #2a3a39; }
