@@ -1,0 +1,46 @@
+name: KAR-161 exact-HEAD minor ZIP seal (temporary)
+on:
+  push:
+    branches: [work/KAR-161]
+    paths:
+      - .github/workflows/kar161-seal-minor-zip.yml
+permissions:
+  contents: write
+concurrency:
+  group: kar161-seal-minor-zip
+  cancel-in-progress: false
+jobs:
+  seal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Reproducible 1.24.0 Chrome ZIP rebuild with exact-base guard
+        env:
+          EXPECTED_MAIN: "2794fed99d244a8e6a794f50452c046ef2cbd7c7"
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" = work/KAR-161
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = "$EXPECTED_MAIN"
+          test "$(node -p "require('./manifest.json').version")" = 1.24.0
+          test "$(node -p "require('./package.json').version")" = 1.24.0
+          export BUILD_DIR="$RUNNER_TEMP/kar161-sealed-minor"
+          python3 scripts/package.py "$BUILD_DIR"
+          ZIP="release/kleinanzeigen-renewal-chrome-v1.24.0.zip"
+          test -s "$BUILD_DIR/kleinanzeigen-renewal-chrome-v1.24.0.zip"
+          mkdir -p release
+          cp "$BUILD_DIR/kleinanzeigen-renewal-chrome-v1.24.0.zip" "$ZIP"
+          unzip -t "$ZIP" >/dev/null
+          python3 scripts/verify_committed_chrome_zip.py --base-sha "$EXPECTED_MAIN"
+          git add -f -- "$ZIP"
+          test "$(git diff --cached --name-only)" = "$ZIP"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'build(KAR-161): seal exact 1.24.0 Chrome ZIP'
+          git push origin HEAD:refs/heads/work/KAR-161
+          echo "KAR-161 exact-source Chrome ZIP sealed. Pending full Work PR CI." 
