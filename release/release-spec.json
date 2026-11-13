@@ -1,26 +1,24 @@
 {
-  "version": "1.23.92",
+  "version": "1.24.0",
   "project": "kleinanzeigen Manager / Kleinanzeigen Renewal",
-  "epic": "EPIC-REF-003-preflight-correction",
+  "epic": "KAR-161-configurable-local-trash-retention",
   "goldBaseline": "1.21.15",
   "directBasis": "1.23.20_c1",
   "directBasisNativeGreen": true,
   "directBasisObservation": "v1.23.20_c1 ist RELEASE_GREEN und besitzt reale Fast-3er-Goldlinien. Zwei spätere reale Massenläufe vom 10.10.2026 zeigten jedoch einen flüchtigen Titel-Fill-/DOM-State-Fehler: Diagnose 11-22-33 (SHA-256 0ac5642d4fb6b69575c88d6e116fa2152ad0cd84c512f38198afddfa3c72a4df) mit 3/7 temporären Titel-Mismatches und Diagnose 12-03-51 (SHA-256 161cabb74e8a8eb454c91e3c35dc8158a7a782b9d0354fb4e003d12e487db641) mit 5/10. Unveränderte Titel konnten in späteren Versuchen erfolgreich sein; daher wird v1.23.22 als enger Correction-Build vor EPIC-REF-003 erstellt.",
   "scope": [
-    "Eng begrenzter Correction-Build für flüchtige Titel-Mismatches beim Template-Fill im Einzel-/Massen-Renewal.",
-    "Das aktive sichtbare Inserierformular wird für Titel-Readback und finale Scalar-Verifikation explizit aufgelöst; stale globale title-Knoten dürfen die Verifikation nicht mehr bestimmen.",
-    "Der Titel wird nach dem initialen Setzen bounded gelesen und bei einem Plattform-/Controlled-Input-Reset höchstens dreimal neu geschrieben. Unmittelbar vor der finalen Verifikation erfolgt ein weiterer Stabilitäts-Readback; nötige Reparaturen werden erneut bestätigt.",
-    "Exakte Titelgleichheit bleibt unverändert fail-closed. Es gibt keine Normalisierungslockerung, keinen Publish-Bypass und keine automatische Fortsetzung bei verbleibender Abweichung.",
-    "Neue Diagnoseevents TEMPLATE_TITLE_READBACK_MISMATCH, TEMPLATE_TITLE_READBACK_CONFIRMED und TEMPLATE_TITLE_STABILIZATION_FAILED liefern bei erneutem Auftreten Expected/Actual- und Feldkandidaten-Evidence.",
-    "Keine neue Runtime-/IPC-Grenze, kein neuer Message-Type, keine Änderung an Account-/Profil-/Delete-/Replacement-Safety.",
-    "EPIC-REF-003 wird nicht vorgezogen; nach nativer Abnahme von v1.23.22 bleibt v1.24.0 Mass Renewal Lifecycle Separation der nächste geplante Architektur-Build.",
-    "Dynamic Public Function Coverage muss 100 % bleiben; Line-/Branch-/Architecture-No-Regression gegen die bestehende Gold-Baseline bleibt Pflicht."
+    "Seven discrete retention choices (10,30,60,90,180,360 days and indefinite) under Konfiguration; default 30 days for existing installations.",
+    "Preview the canonical local trash state before changing policy; request modal confirmation only where a shorter retention would immediately delete existing records.",
+    "Reject stale/cancelled/duplicate/profile-changed confirmations without changing the saved setting; immediately re-read and revalidate exact record IDs and effective timestamps.",
+    "Evaluate expiry from trash placement or explicit retention reset. Indefinite retention suppresses age-based deletion.",
+    "Keep automatic cleanup local and guarded; never mutate real Kleinanzeigen listings or weaken renewal/ad-ID identity safety.",
+    "Full Issue-bound Work PR and CI validation required; native acceptance separately evidenced."
   ],
-  "nextPlannedBuild": "1.24.0",
-  "nextPlannedBuildGoal": "EPIC-REF-003 – Mass Renewal Lifecycle Separation.",
+  "nextPlannedBuild": "TBD",
+  "nextPlannedBuildGoal": "Determined by separately authorized open GitHub Issues.",
   "nativeSmokeRequired": true,
-  "performanceRunRequired": true,
-  "performanceRule": "Nach Installation von v1.23.22 zuerst einen realen Mass-Renewal-Smoke mit mindestens einem zuvor betroffenen Titel durchführen. Danach einen Fast-3er-Lauf 5/11/20 Bilder als Performance-/Stabilitätsvergleich gegen die passende Hardware-Goldlinie durchführen und Diagnose-ZIP direkt danach sichern. Rechnerübergreifende Werte nicht als alleinigen Regressionsbeweis verwenden.",
+  "performanceRunRequired": false,
+  "performanceRule": "No Mass Renewal performance comparison required for this local-only retention setting; retain existing hardware Gold reference lines.",
   "safety": {
     "runtimeSubmitCalls": 0,
     "runtimeRequestSubmitCalls": 0,
@@ -138,7 +136,7 @@
       }
     }
   },
-  "releaseSummary": "v1.23.22 stabilisiert den Kleinanzeigen-Titel-Fill gegen flüchtige Controlled-Input-/DOM-Resets, bindet die finale Verifikation an das aktive Formular und lässt sämtliche Publish-/Delete-Safety unverändert fail-closed.",
+  "releaseSummary": "KAR-161 v1.24.0 adds safely confirmed, configurable local Papierkorb retention under Konfiguration, including indefinite preservation. Source Work candidate; release and native acceptance not yet authorized.",
   "architectureHighlights": [
     "Keine neue Runtime-/IPC-Grenze; die Korrektur bleibt in den bestehenden Template-Fill-/Verification-Ownern.",
     "Title Readback/Rewrite ist bounded und repariert nur den exakt erwarteten Template-Titel; nach drei fehlgeschlagenen Versuchen bleibt der Ablauf needs-review/fail-closed.",
@@ -147,13 +145,10 @@
     "EPIC-REF-003 Lifecycle-Refactoring bleibt separat und beginnt erst mit v1.24.0."
   ],
   "nativeSmokeChecks": [
-    "v1.23.22 über v1.23.20_c1 laden; kein Boot-, Service-Worker-, Duplicate-dependency- oder Message-Contract-Fehler.",
-    "Einen echten Renewal/Massen-Renewal mit mindestens einem der zuvor betroffenen Titel durchführen. Es darf kein unbegründetes needs-review allein wegen „Titel stimmt nicht mit der Vorlage überein.“ auftreten.",
-    "Falls TEMPLATE_TITLE_READBACK_MISMATCH auftritt, muss derselbe Fill bounded repariert werden und TEMPLATE_TITLE_READBACK_CONFIRMED folgen; nach maximal drei erfolglosen Versuchen muss der Ablauf weiterhin fail-closed stoppen.",
-    "Diagnose prüfen: bei einem verbleibenden Titelproblem müssen Expected/Actual, Längen sowie Kandidatenzahlen verfügbar sein; keine Publish-/Delete-Fortsetzung nach nicht bestätigtem Titel.",
-    "Vor dem Performance-Vergleich Diagnose zurücksetzen und den realen Fast-3er-Lauf ausführen: IKEA Tischleuchte 5 Bilder, Weihnachtsfiguren 11 Bilder, Hartan Kinderwagen 20 Bilder.",
-    "Direkt nach dem Performance-Lauf Diagnose-ZIP exportieren und gegen die passende Hardware-Goldlinie vergleichen; Rechnerübergreifende Werte nicht als alleinigen Regressionsbeweis verwenden.",
-    "Nach dem Smoke Goldlinien-Performance-Matrix und neue v1.23.22-Messung im nächsten Handover fortführen."
+    "Open Konfiguration and verify all seven retention stops, keyboard and focus behaviour.",
+    "Check persisted selection across Chrome restart, legacy 30-day default and infinity semantics.",
+    "Verify warning/cancel/confirm with representative local-only trash fixtures and no remote mutations.",
+    "Verify the Papierkorb deadline and restart-period wording in compact and detailed views."
   ],
   "packageVersion": "1.23.92",
   "directBasisNativePending": false,
