@@ -6,7 +6,7 @@ vm.runInNewContext(fs.readFileSync('message-contract-registry.js','utf8'),ctx,{f
 const r=deps.get('KRMessageContractRegistry');
 let n=0; const ok=(name,fn)=>{fn();n++;console.log('PASS',name)};
 const nextVersion=JSON.parse(fs.readFileSync('manifest.json','utf8')).version;
-const reviewedNative=/^1\.23\.(?:3\d|[4-9]\d|[1-9]\d{2,})$/.test(nextVersion) || nextVersion==='1.24.0';
+const reviewedNative=/^1\.23\.(?:3\d|[4-9]\d|[1-9]\d{2,})$/.test(nextVersion) || /^1\.24\.(?:0|[1-9]\d*)$/.test(nextVersion);
 const newlyRegistered=reviewedNative?1:0;
 const publishIntent=r.has('AUTHORIZE_AUTOMATIC_PUBLISH','background')?1:0;
 const occupancyAdded=r.has('GET_DIAGNOSTIC_OCCUPANCY','background')?1:0;const retentionMessages=['GET_TRASH_RETENTION_CONFIGURATION','PREVIEW_TRASH_RETENTION_CHANGE','COMMIT_TRASH_RETENTION_CHANGE'];const retentionAdded=retentionMessages.filter(type=>r.has(type,'background')).length;assert.equal(retentionAdded,3,'all three configurable trash retention contracts must be registered');
