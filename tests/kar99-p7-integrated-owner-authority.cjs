@@ -183,6 +183,32 @@ async function waitUntil(predicate){for(let i=0;i<250&&!predicate();i++)await Pr
     &&REQUIRED.every(name=>emptyMatrix.owners[name]?.eligibleForLease===false
       &&emptyMatrix.owners[name]?.status==='unverified'),
     'all 15 real source owners remain unverified without prior completion or native oracle');
+  ok(emptyMatrix.browserTabsReconciled===false,
+    'absent Chrome tab reader cannot be upgraded to a verified current tab source');
+  const browserScope=db({
+    activeDetectedProfileV1:{profileId:'profile-A'},
+    selectedInventoryProfileV1:{profileId:'profile-A'}
+  },{tabRegistryV1:{},managedWorkerTabsV1:{}});
+  const browserPersisted=Persisted.create({storageLocal:browserScope.local,
+    storageSession:browserScope.session,workerInstanceId:'worker-new',clock:()=>123000});
+  const browserObserver=Additional.create({storageLocal:browserScope.local,
+    storageSession:browserScope.session,workerInstanceId:'worker-new',clock:()=>123000,
+    queryBrowserTabsReadOnly:async()=>[]});
+  const browserMatrix=await browserObserver.inspectAllOwnerClosureReadOnly(browserPersisted);
+  ok(browserMatrix.browserTabsReconciled===true
+    &&browserMatrix.eligibleForLease===false
+    &&browserMatrix.currentLiveAccountVerified===false,
+    'two independent real Chrome+session empty-tab checks reconcile without granting owner IDLE');
+  let tabReads=0;
+  const driftingBrowser=Additional.create({storageLocal:browserScope.local,
+    storageSession:browserScope.session,workerInstanceId:'worker-new',clock:()=>123000,
+    queryBrowserTabsReadOnly:async()=>{
+      tabReads++;
+      return tabReads<=2?[]:[{id:81,url:'https://www.kleinanzeigen.de/m-meine-anzeigen.html'}];
+    }});
+  const browserDrift=await driftingBrowser.inspectAllOwnerClosureReadOnly(browserPersisted);
+  ok(browserDrift.browserTabsReconciled===false&&browserDrift.eligibleForLease===false,
+    'new Chrome tab during 15-owner capture invalidates independent live-tab proof');
   const token='prior_diag_123456';
   const completedRows={
     activeDetectedProfileV1:{profileId:'profile-A'},
