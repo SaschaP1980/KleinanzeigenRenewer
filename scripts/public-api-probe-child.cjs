@@ -135,6 +135,23 @@ if(typeof api.create==='function') {
           get(target,prop){return Object.hasOwn(target,prop)?target[prop]:options[prop];},
           has:()=>true
         })
+      : rel.endsWith('/trash-retention-settings-controller.js')
+      ? new Proxy({
+          // A form value is not a callable proxy: the generic public-API
+          // fixture maps .value to '', which intentionally fails validation.
+          // Supply inert, typed DOM elements without weakening runtime guards.
+          elements: {
+            range: {
+              value: '1', disabled: false, title: '',
+              setAttribute(){}, addEventListener(){}, focus(){}
+            },
+            value: {textContent: ''},
+            description: {textContent: ''}
+          }
+        },{
+          get(target,prop){return Object.hasOwn(target,prop)?target[prop]:options[prop];},
+          has:()=>true
+        })
       : rel.endsWith('/renewal-phase1-retry-service.js')
       ? new Proxy({
           // Only the inert dynamic public-API probe needs these real types.
