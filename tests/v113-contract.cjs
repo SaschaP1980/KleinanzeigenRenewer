@@ -8,7 +8,7 @@ const build = fs.readFileSync(path.join(root, 'scripts/build.sh'), 'utf8');
 let n = 0;
 const pass = name => { n += 1; console.log('PASS ' + name); };
 
-assert.ok(/^(?:1\.1\.(?:[3-9]|[1-9]\d+)|1\.[234]\.0|1\.(?:[56789]|10|11|12|13|14|15|16|17|18|19|20|21|22|23)\.\d+)$/.test(manifest.version), `unexpected version ${manifest.version}`);
+assert.ok(/^(?:1\.1\.(?:[3-9]|[1-9]\d+)|1\.[234]\.0|1\.(?:[56789]|10|11|12|13|14|15|16|17|18|19|20|21|22|23|24)\.\d+)$/.test(manifest.version), `unexpected version ${manifest.version}`);
 assert.match(filler, /const LEGACY_ACTION_DELAY_MS = 100/);
 assert.match(filler, /function legacyActionWaitMs/);
 assert.match(filler, /await clickLegacyAction\(wizardChoice\.control, actionState\)/);

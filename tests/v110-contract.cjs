@@ -12,7 +12,7 @@ const platformSafety = fs.readFileSync(path.join(root, 'platform-safety-controll
 let n = 0;
 const pass = name => { n += 1; console.log('PASS ' + name); };
 
-assert.ok(/^1\.(?:1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20|21|22|23)\./.test(manifest.version));
+assert.ok(/^1\.(?:1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20|21|22|23|24)\./.test(manifest.version));
 assert.ok(manifest.content_scripts[0].js.includes('src/content/template-filler.js'));
 assert.match(packager, /template-filler\.js/);
 pass('v1.1.0 packages the template filler as a content script');
