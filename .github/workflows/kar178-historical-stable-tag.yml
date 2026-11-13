@@ -1,0 +1,131 @@
+# KAR-178: one-shot preservation of the 2026-11-09 owner-validated historical baseline.
+# The only permissible change is an immutable annotated tag on the proven old merge SHA.
+# This workflow fires only when the workflow itself is FIRST ADDED to main.
+# It MUST NOT dispatch kar-release.yml: that process publishes current main.
+name: KAR-178 historical v1.23.48 stable tag
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/kar178-historical-stable-tag.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: kar-178-v1-23-48-immutable-tag
+  cancel-in-progress: false
+
+jobs:
+  preserve:
+    name: Verify historical archive and create annotated immutable tag
+    if: github.repository == 'SaschaP1980/KleinanzeigenRenewer'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout full Git history (tag push uses this scoped token)
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Verify exact source, original ZIP and no prior tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          readonly TARGET='f2225155e403d89d07a674c9e20f397a4f86694d'
+          readonly TAG='v1.23.48'
+          readonly VERSION='1.23.48'
+          readonly ZIP_NAME='kleinanzeigen-renewal-chrome-v1.23.48.zip'
+          readonly ZIP_DIGEST='c709b084949891423ae36bd65fe8baa28278ee2725d5198fc26c7948987fa8d6'
+          readonly ZIP_BYTES='772335'
+          readonly WORKFLOW='.github/workflows/kar178-historical-stable-tag.yml'
+
+          # Do not permit an arbitrary subsequent workflow edit to re-authorize publication.
+          test "$(git diff --name-status "$GITHUB_SHA^" "$GITHUB_SHA" -- "$WORKFLOW")" = "$(printf 'A\t%s' "$WORKFLOW")"
+          test "$(git diff --name-only "$GITHUB_SHA^" "$GITHUB_SHA")" = "$(printf '%s\n' "$WORKFLOW" 'docs/maintenance/KAR178_STABLE_BASELINE.md' 'docs/maintenance/SCRIPT_WORKFLOW_INVENTORY.json' 'tests/kar167-script-closure.cjs')"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git rev-parse "$TARGET^{commit}")" = "$TARGET"
+          test -z "$(git status --porcelain)"
+
+          git show "$TARGET:manifest.json" > "$RUNNER_TEMP/kar178-manifest.json"
+          git show "$TARGET:package.json" > "$RUNNER_TEMP/kar178-package.json"
+          git show "$TARGET:package-lock.json" > "$RUNNER_TEMP/kar178-package-lock.json"
+          git show "$TARGET:release/release-spec.json" > "$RUNNER_TEMP/kar178-release-spec.json"
+          git show "$TARGET:APP_ID.txt" > "$RUNNER_TEMP/kar178-app-id.txt"
+          git show "$TARGET:release/$ZIP_NAME" > "$RUNNER_TEMP/$ZIP_NAME"
+
+          test "$(wc -c < "$RUNNER_TEMP/$ZIP_NAME" | tr -d '[:space:]')" = "$ZIP_BYTES"
+          test "$(sha256sum "$RUNNER_TEMP/$ZIP_NAME" | cut -d' ' -f1)" = "$ZIP_DIGEST"
+          unzip -t "$RUNNER_TEMP/$ZIP_NAME" >/dev/null
+          unzip -p "$RUNNER_TEMP/$ZIP_NAME" manifest.json > "$RUNNER_TEMP/kar178-zip-manifest.json"
+          cmp "$RUNNER_TEMP/kar178-manifest.json" "$RUNNER_TEMP/kar178-zip-manifest.json"
+
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          d = Path(os.environ["RUNNER_TEMP"])
+          files = ["manifest", "package", "package-lock", "release-spec", "zip-manifest"]
+          data = {name: json.loads((d / f"kar178-{name}.json").read_text()) for name in files}
+          assert all(data[name]["version"] == "1.23.48" for name in files), "historical version mismatch"
+          assert data["package-lock"]["packages"][""]["version"] == "1.23.48", "npm lock root mismatch"
+          key = data["manifest"]["key"]
+          assert key and key == data["zip-manifest"]["key"], "historical extension key mismatch"
+          assert key == json.loads(Path("manifest.json").read_text())["key"], "extension identity changed on current main"
+          app_id = (d / "kar178-app-id.txt").read_text()
+          assert "hafahjhhgiipdegfkgacchmnacgblnah" in app_id, "historical extension ID mismatch"
+          assert app_id == Path("APP_ID.txt").read_text(), "extension ID contract changed"
+          print("KAR178_HISTORICAL_IDENTITY_VERIFIED version=1.23.48 sha=f2225155e403d89d07a674c9e20f397a4f86694d")
+          PY
+
+          # A tag collision must FAIL, never be overwritten/moved; network/auth errors
+          # must also fail rather than being interpreted as no tag.
+          set +e
+          git ls-remote --exit-code origin "refs/tags/$TAG" > "$RUNNER_TEMP/kar178-preexisting-tag"
+          tag_lookup_rc=$?
+          set -e
+          if [ "$tag_lookup_rc" -ne 2 ]; then
+            echo "FAIL: existing remote tag or remote lookup error (exit=$tag_lookup_rc)" >&2
+            exit 1
+          fi
+
+          # A GitHub Release is a separate object. Do not duplicate or modify it.
+          set +e
+          release_probe="$(gh api -i "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" 2>&1)"
+          release_probe_rc=$?
+          set -e
+          if [ "$release_probe_rc" -eq 0 ]; then
+            echo "FAIL: GitHub Release already exists for $TAG" >&2
+            exit 1
+          fi
+          if ! printf '%s\n' "$release_probe" | grep -Eq 'HTTP/[0-9.]+ 404'; then
+            echo "FAIL: GitHub Release absence not verified (HTTP/auth error)" >&2
+            exit 1
+          fi
+
+          # Explicitly non-force tag creation on historical merged main source.
+          git -c user.name='github-actions[bot]' \
+              -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+              tag -a "$TAG" "$TARGET" \
+                -m "Kleinanzeigen Manager v1.23.48 — owner-validated historical stable baseline" \
+                -m "Owner reported approximately 60 successfully renewed live ads on 2026-11-09 (Issue #143). No per-Ad-ID logs claimed." \
+                -m "Historical main merge: $TARGET; existing ZIP: release/$ZIP_NAME; SHA-256: $ZIP_DIGEST; bytes: $ZIP_BYTES." \
+                -m "Historical source marker only. No GitHub Release, updater promotion, Chrome install, new build or live-account action."
+
+          readonly LOCAL_TAG_OBJECT="$(git rev-parse "refs/tags/$TAG")"
+          test "$(git rev-parse "$TAG^{commit}")" = "$TARGET"
+          test "$(git cat-file -t "$LOCAL_TAG_OBJECT")" = tag
+          git push origin "refs/tags/$TAG:refs/tags/$TAG"
+
+          # Read remote annotated tag AND dereferenced commit independently.
+          readonly REMOTE_TAG_OBJECT="$(git ls-remote origin "refs/tags/$TAG" | awk '{print $1}')"
+          readonly REMOTE_TARGET="$(git ls-remote origin "refs/tags/$TAG^{}" | awk '{print $1}')"
+          test "$REMOTE_TAG_OBJECT" = "$LOCAL_TAG_OBJECT"
+          test "$REMOTE_TARGET" = "$TARGET"
+          test "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG" --jq .object.type)" = tag
+          test "$(gh api "repos/$GITHUB_REPOSITORY/git/tags/$LOCAL_TAG_OBJECT" --jq .object.sha)" = "$TARGET"
+
+          echo "KAR178_HISTORICAL_TAG_CREATED tag=$TAG tag_object=$LOCAL_TAG_OBJECT peeled_commit=$REMOTE_TARGET zip_sha256=$ZIP_DIGEST zip_bytes=$ZIP_BYTES"
+          git for-each-ref "refs/tags/$TAG" --format='KAR178_TAGGER_DATE %(taggerdate:iso8601-strict)'
