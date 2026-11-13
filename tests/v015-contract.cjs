@@ -4,12 +4,15 @@ const form=fs.readFileSync(path.join(root,'form-extractor.js'),'utf8');
 const image=fs.readFileSync(path.join(root,'image-extractor.js'),'utf8');
 const content=fs.readFileSync(path.join(root,'content.js'),'utf8');
 const bg=fs.readFileSync(path.join(root,'background.js'),'utf8');
+// After KAR-175 the protected image downloader is an in-process service;
+// keep the original large-JPEG gate and source-URL assertions on its owner.
+const imageCapture=fs.readFileSync(path.join(root,'src/background/services/inventory-capture-service.js'),'utf8');
 let n=0;const pass=x=>{n++;console.log('PASS '+x)};
 assert.match(form,/attributeMap\\\[\(\[\^\\\]\]\+\)\\\]/);assert.match(form,/dynamicAttributes/);assert.match(form,/technicalName/);assert.match(form,/technicalValue/);assert.match(form,/displayValue/);pass('generic attributeMap model keeps technical and visible representations');
 for(const key of ['priceType','addressVisibility','locationId','buyNowEligible','posterType'])assert.ok(form.includes(key),key);pass('previously unmapped reconstruction fields explicitly classified');
 assert.match(form,/shippingOptions\\\[\(\\d\+\)\\\]\\\.id/);assert.match(form,/buildShippingOptions/);pass('shipping option ids are structured');
 assert.match(content,/requiresLargeJpeg:\s*true/);assert.match(content,/dynamicAttributes/);assert.match(content,/templateComplete:\s*edit\.blockingIssues\.length === 0/);pass('edit inventory uses canonical attributes and large-JPEG gate');
 assert.match(image,/adImages\\\[\(\\d\+\)\\\]\\\.url/);assert.ok(image.includes("'adImages-hidden'"));assert.match(image,/isPrimary/);pass('hidden full-image fallback sources remain UUID-paired while order/title image are preserved');
-assert.match(bg,/JPEG ist nur Thumbnail-Größe/);assert.match(bg,/source\.downloadUrl/);pass('background prefers full source and rejects thumbnails');
+assert.match(imageCapture,/JPEG ist nur Thumbnail-Größe/);assert.match(imageCapture,/source\.downloadUrl/);pass('background prefers full source and rejects thumbnails');
 assert.match(form,/\[redacted\]/);assert.match(image,/url\.search = ''/);pass('copy diagnostics redact personal values and signed image queries');
 console.log(`${n} v0.1.5 baseline contract tests passed`);
