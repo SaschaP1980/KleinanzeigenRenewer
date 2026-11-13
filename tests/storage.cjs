@@ -18,6 +18,11 @@ const downloadCall='await downloadInventoryImage(extracted.images[index],';
 assert.equal(captureSource.split(downloadCall).length,2,'one inventory capture download call');
 vm.runInContext(captureSource.replace(downloadCall,
   'await globalThis.downloadInventoryImage(extracted.images[index],'),context);
+// Isolated historical fixture has no real KAR-134 form-schema runtime.
+// Production has the actual KRTemplateSchemaCore provider loaded via importScripts.
+context.KRDeps.register('KRTemplateSchemaCore',{
+  buildSchema:()=>({}), fingerprint:async()=> 'fixture-only'
+});
 vm.runInContext(fs.readFileSync(path.join(__dirname,'../background.js'),'utf8'),context);
 const ad = images => ({adId:'123',title:'New',description:'Absatz 1.\n\n- Farbe: grau\n\nAbsatz 3.',images:images.map(url=>({url})),warnings:[]});
 context.downloadInventoryImage=async source=>{const url=typeof source==='string'?source:source.url;return {blob:new Blob([url],{type:'image/jpeg'}),size:url.length,mimeType:'image/jpeg',sourceUrl:url,fetchedUrl:url}};
