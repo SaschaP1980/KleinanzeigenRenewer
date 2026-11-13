@@ -204,6 +204,42 @@ function create(data, ports={}){return Additional.create({storageLocal:data.loca
     'LIVE_ACCOUNT_STATUS_CHANGED_DURING_READ',
     'failed second content readback must remain UNKNOWN, never a positive identity');
 
+  // KAR-171 W3D3B3 RED: a tab/profile may change AFTER the second
+  // PAGE_STATUS promise resolves. Every account witness must therefore be
+  // bracketed by a final independent Chrome tab AND stored-profile read.
+  let finalTabStatusCalls=0;
+  let finalTabSnapshot=structuredClone(myAdsTabs);
+  const finalTabSwap=await create(db(accountLocal),{
+    queryBrowserTabsReadOnly:async()=>structuredClone(finalTabSnapshot),
+    readAccountPageStatusReadOnly:async()=>{
+      const status=statusFor();
+      if(++finalTabStatusCalls===2)
+        finalTabSnapshot=[{id:78,url:adPageUrl}];
+      return status;
+    }
+  }).observe();
+  ok(finalTabStatusCalls===2
+    &&finalTabSwap.context.profile.reason==='LIVE_ACCOUNT_TABS_CHANGED'
+    &&finalTabSwap.context.profile.state==='unverified'
+    &&finalTabSwap.eligibleForLease===false,
+    'tab replaced as second PAGE_STATUS resolves must invalidate live account witness');
+  const finalProfileStore=db(structuredClone(accountLocal));
+  let finalProfileStatusCalls=0;
+  const finalProfileSwap=await create(finalProfileStore,{
+    queryBrowserTabsReadOnly:async()=>structuredClone(myAdsTabs),
+    readAccountPageStatusReadOnly:async()=>{
+      const status=statusFor();
+      if(++finalProfileStatusCalls===2)
+        finalProfileStore.localData.selectedInventoryProfileV1={profileId:'profile-B'};
+      return status;
+    }
+  }).observe();
+  ok(finalProfileStatusCalls===2
+    &&finalProfileSwap.context.profile.reason==='LIVE_ACCOUNT_PROFILE_CHANGED_DURING_READ'
+    &&finalProfileSwap.context.profile.state==='unverified'
+    &&finalProfileSwap.eligibleForLease===false,
+    'stored profile switch after second PAGE_STATUS must invalidate authenticated witness');
+
   // E3B: execute the actual MV3 content PAGE_STATUS handler in an isolated
   // read-only DOM fixture; no network, storage, navigation or account access.
   const vm=require('node:vm');
