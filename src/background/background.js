@@ -2206,7 +2206,10 @@ function requireAdditionalOwnerObserver() {
       storageLocal:chrome.storage.local,storageSession:chrome.storage.session,
       clock:()=>Date.now(),workerInstanceId:ownerWorkerInstanceId,
       queryBrowserTabsReadOnly:()=>chrome.tabs.query({}),
-      readAccountPageStatusReadOnly:tabId=>sendTabRequest(tabId,{type:'PAGE_STATUS'})
+      readAccountPageStatusReadOnly:tabId=>sendTabRequest(tabId,{type:'PAGE_STATUS'}),
+      // W3D3A: lazy first-party coordinator, used only for explicitly guarded
+      // private historical inspection. No new app IPC, apply or reserve route.
+      getAtomicAdmissionCoordinator:()=>requireAtomicMV3Admission()
     });
   }
   return additionalOwnerObserver;
