@@ -123,6 +123,18 @@ if(typeof api.create==='function') {
          ],evaluate:()=>({status:'blocked'})},
          clock:()=>123456,newToken:()=> 'coverage-probe-authority-12345',
          workerInstanceId:'coverage-probe-worker'}
+      : rel.endsWith('/inventory-refresh-service.js')
+      ? new Proxy({
+          RENEWAL_MODE_SAFE:'safe',
+          RENEWAL_DIRECT_READONLY_TIMEOUT_MS:3500,
+          READONLY_METADATA_TIMEOUT_MS:15000,
+          TAB_LOAD_TIMEOUT_RENEWAL_MS:45000,
+          BULK_RETRY_TIMEOUT_MS:90000,
+          BULK_RETRY_POLL_MS:500
+        },{
+          get(target,prop){return Object.hasOwn(target,prop)?target[prop]:options[prop];},
+          has:()=>true
+        })
       : options;
     instance=api.create(sourceOptions);
   } catch(e) { createError=String(e?.message||e); }
