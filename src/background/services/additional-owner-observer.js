@@ -1067,6 +1067,17 @@
         try {return typeof action==='function'?await action():null;}
         catch {return null;}
       };
+      // KAR-171 W3D2B: independently bracket the real persisted workflow
+      // and MV3 session stores used by the seven-owner inspectors. Their
+      // serialized local/session witness cannot substitute unrelated rows.
+      const persistedLocalKeys=[
+        'bulkInventoryRun','renewalSessionsV1','massRenewalBatchV1',
+        'templateFillSessions','archiveInsertionSessionsV1',
+        'activeDetectedProfileV1','selectedInventoryProfileV1'
+      ];
+      const persistedSessionKeys=['bulkRunRuntimeLeaseV1','runtimeEpochV1'];
+      const firstPersistedLocal=await safe(()=>storageLocal.get(persistedLocalKeys));
+      const firstPersistedSession=await safe(()=>storageSession.get(persistedSessionKeys));
       const firstProfile=await safe(persistedObserver?.observe?.bind(persistedObserver));
       const firstSite=await safe(observe);
       const firstTabs=await safe(readVerifiedUnmanagedTabsReadOnly);
@@ -1096,7 +1107,14 @@
       const lastTabs=await safe(readVerifiedUnmanagedTabsReadOnly);
       const lastProfile=await safe(persistedObserver?.observe?.bind(persistedObserver));
       const lastSite=await safe(observe);
+      const lastPersistedLocal=await safe(()=>storageLocal.get(persistedLocalKeys));
+      const lastPersistedSession=await safe(()=>storageSession.get(persistedSessionKeys));
       const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+      const persistedSourcesStable=record(firstPersistedLocal)
+        &&record(lastPersistedLocal)
+        &&record(firstPersistedSession)&&record(lastPersistedSession)
+        &&same(firstPersistedLocal,lastPersistedLocal)
+        &&same(firstPersistedSession,lastPersistedSession);
       const observedProfile=record(firstProfile?.context?.profile)
         &&record(lastProfile?.context?.profile)
         &&same(firstProfile.context.profile,lastProfile.context.profile);
@@ -1126,7 +1144,7 @@
         &&record(first.remoteAdmissionLineage)&&record(last.remoteAdmissionLineage)
         &&same(first.remoteAdmissionLineage,last.remoteAdmissionLineage)
         &&same(first.context?.worker,last.context?.worker)
-        &&profileNotContradicted;
+        &&profileNotContradicted&&persistedSourcesStable;
       // KAR-171 W3D2A: an owner-specific historical callback is acceptable
       // as HISTORY only if its independent inspector attests the exact same
       // P8 journal/owner-subset revision as both aggregate observations.
@@ -1146,7 +1164,9 @@
             &&parts[0]===first.admissionJournalRevision
             &&parts[1]===history.sourceRevision
             &&parts[2]===firstProfile?.context?.profile?.profileId
-            &&record(parts[3])&&record(parts[4]);
+            &&record(parts[3])&&record(parts[4])
+            &&same(parts[3],firstPersistedLocal)
+            &&same(parts[4],firstPersistedSession);
         }catch{return false;}
       };
       const owners=Object.create(null);
