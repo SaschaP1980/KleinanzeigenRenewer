@@ -73,7 +73,8 @@
               ||presence?.found!==true||String(presence.adId||'')!==newAdId
               ||presence.evidence!=='found-in-my-ads-full-pagination-scan'
               ||!Number.isSafeInteger(presence.pagesScanned)||presence.pagesScanned<1
-              ||!Number.isSafeInteger(presence.page)||presence.page<1)deny();
+              ||!Number.isSafeInteger(presence.page)||presence.page<1
+              ||presence.page>presence.pagesScanned)deny();
           return Object.freeze({
             fillId:intent.fillId,workflowId:intent.workflowId,kind:intent.kind,
             profileId:intent.profileId,sourceAdId:intent.sourceAdId,newAdId,
