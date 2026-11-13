@@ -12,7 +12,7 @@
     "Reject stale/cancelled/duplicate/profile-changed confirmations without changing the saved setting; immediately re-read and revalidate exact record IDs and effective timestamps.",
     "Evaluate expiry from trash placement or explicit retention reset. Indefinite retention suppresses age-based deletion.",
     "Keep automatic cleanup local and guarded; never mutate real Kleinanzeigen listings or weaken renewal/ad-ID identity safety.",
-    "Full Issue-bound Work PR and CI validation required; native acceptance separately evidenced."
+    "Full Issue-bound Work PR and CI: Dynamic Public Function Coverage 100 %, Architecture-No-Regression, line/branch coverage, package parity and Chromium E2E required; native acceptance separately evidenced."
   ],
   "nextPlannedBuild": "TBD",
   "nextPlannedBuildGoal": "Determined by separately authorized open GitHub Issues.",
