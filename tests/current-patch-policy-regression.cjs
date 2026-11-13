@@ -44,14 +44,24 @@ validNextPatch.spec.packageVersion = '1.23.25';
 // Historical 1.23.25 fixture predates the reviewed v1.23.30 nativeMessaging permission.
 validNextPatch.manifest.permissions = validNextPatch.manifest.permissions.filter(p => p !== 'nativeMessaging');
 
-assert.equal(canonical.manifest.version, '1.24.0', 'current minor is authorized independently');
-assert.equal(isCurrentPatchVersion(canonical.manifest.version), false, 'current MINOR is not a PATCH');
+assert.ok(['1.24.0', '1.24.1'].includes(canonical.manifest.version),
+  'only the approved KAR-161 MINOR and KAR-185 PATCH are current here');
+if (canonical.manifest.version === '1.24.0') {
+  assert.equal(isCurrentPatchVersion(canonical.manifest.version), false,
+    'the approved initial MINOR is not retroactively a PATCH');
+} else {
+  assert.equal(isCurrentPatchVersion(canonical.manifest.version), true,
+    'the follow-up 1.24.1 version is a strict PATCH');
+  assert.equal(assertCompatibleCurrentPatch(canonical), '1.24.1',
+    'current feature-series PATCH must satisfy exact existing safety metadata');
+}
 assert.equal(assertCompatibleCurrentPatch(validNextPatch), '1.23.25',
   'compatible future PATCH must not require editing historical version lists');
 for (const [version, allowed] of [
   ['1.23.22', true], ['1.23.23', true], ['1.23.24', true], ['1.23.25', true],
   ['1.23.26', true], ['1.23.21', false], ['1.23.20_c1', false],
-  ['1.24.0', false], ['2.0.0', false], ['1.23.025', false],
+  ['1.24.0', false], ['1.24.1', true], ['1.24.2', true],
+  ['1.24.01', false], ['1.25.0', false], ['2.0.0', false], ['1.23.025', false],
   ['1.23.-1', false], ['1.23.25-rc.1', false], ['1.23.25+meta', false],
   ['1.23.9007199254740992', false], ['', false], [null, false]
 ]) assert.equal(isCurrentPatchVersion(version), allowed, String(version));
