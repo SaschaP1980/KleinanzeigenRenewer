@@ -1,0 +1,33 @@
+name: KAR-161 temporary reproducible ZIP rebuild
+on:
+  push:
+    branches: [work/KAR-161]
+    paths: [.github/workflows/kar161-rebuild-zip.yml]
+permissions:
+  contents: write
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: work/KAR-161
+          persist-credentials: true
+      - name: Rebuild exact 1.24.0 package with corrected startup script
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git branch --show-current)" = "work/KAR-161"
+          test "$(node -p "require('./manifest.json').version")" = "1.24.0"
+          python3 scripts/package.py "$RUNNER_TEMP/kar161-package"
+          SOURCE="$RUNNER_TEMP/kar161-package/kleinanzeigen-renewal-chrome-v1.24.0.zip"
+          TARGET="release/kleinanzeigen-renewal-chrome-v1.24.0.zip"
+          test -s "$SOURCE"
+          unzip -t "$SOURCE" >/dev/null
+          cp "$SOURCE" "$TARGET"
+          git add -f "$TARGET"
+          git diff --cached --name-only | grep -Fx "$TARGET"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "build(KAR-161): rebuild v1.24.0 Chrome ZIP after startup correction"
+          git push origin HEAD:work/KAR-161
