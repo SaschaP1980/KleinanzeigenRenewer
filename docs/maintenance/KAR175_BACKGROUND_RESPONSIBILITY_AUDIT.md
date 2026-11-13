@@ -57,3 +57,10 @@
 - **Emergency-reset state authority preserved:** `renewalPhase1RetryInFlight` remains the same Set instance in background (also passed to `WorkflowEmergencyResetController`); injected into the service, never shadowed.
 - No publish-click, remote delete, account binding, update authority or storage schema changed. Dedicated test exercises positive/negative budget, already-published hard-stop, same-session record updates, failed tab open and retry-in-flight cleanup.
 - Source change does not infer native verification or final Chrome ZIP parity.
+
+## Wave 5 — publication intent authorization and independent proof
+
+- `KRPublishIntentAuthorizationService` now owns the same three strict, interdependent security actions: `authorizeAutomaticPublish` (admission receipt and account recheck before permit), `resolveManagedPublishIntent` (durable journal resolution) and `verifyAutoPublishRemoteOutcomeFresh` (independent exact-ID My Ads evidence). Original external signatures retained as lazy composition-root facades.
+- This is an explicit safety/receipt ownership boundary, not a generic utility move. Existing code was relocated unchanged, with explicit session, live-account, tab, journal and URL/config ports.
+- Maintains immutable admission receipt check, valid sender origin/page, same fill/workflow/profile/source binding, exact remote Ad ID, two independent account observations around journal begin and around full pagination scan, and fresh verification-tab `finally` close. No publish click was introduced and missing/ambiguous evidence still denies.
+- Focused tests cover invalid admission/source/sender/session, mismatched proof/account, durable journal permit and read-only verification cleanup. CI still required, no live account action undertaken.

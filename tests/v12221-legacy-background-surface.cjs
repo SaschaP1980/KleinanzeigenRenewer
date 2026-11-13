@@ -46,4 +46,6 @@ const renewalPublicEvidencePath=path.join(root,'src/background/services/renewal-
 const renewalPublicEvidence=fs.existsSync(renewalPublicEvidencePath)?fs.readFileSync(renewalPublicEvidencePath,'utf8'):'';
 const renewalPhase1RetryPath=path.join(root,'src/background/services/renewal-phase1-retry-service.js');
 const renewalPhase1Retry=fs.existsSync(renewalPhase1RetryPath)?fs.readFileSync(renewalPhase1RetryPath,'utf8'):'';
-module.exports=[policy,router,templateController,insertionLock,emergencyReset,background,inventoryCapture,inventoryRefresh,renewalPublicEvidence,renewalPhase1Retry].filter(Boolean).join('\n');
+const publishIntentAuthorizationPath=path.join(root,'src/background/services/publish-intent-authorization-service.js');
+const publishIntentAuthorization=fs.existsSync(publishIntentAuthorizationPath)?fs.readFileSync(publishIntentAuthorizationPath,'utf8'):'';
+module.exports=[policy,router,templateController,insertionLock,emergencyReset,background,inventoryCapture,inventoryRefresh,renewalPublicEvidence,renewalPhase1Retry,publishIntentAuthorization].filter(Boolean).join('\n');
