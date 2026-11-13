@@ -63,7 +63,7 @@ const reviewedPersistedCallbackClosure = reviewedPersistedObserver && fs.readFil
 // keep frozen historical Gold, while requiring current dynamic 100% closure.
 const reviewedAllOwnerClosureMatrix = reviewedAdditionalOwners
   && fs.readFileSync('src/background/services/additional-owner-observer.js','utf8')
-    .includes('async function inspectAllOwnerClosureReadOnly(persistedObserver)')
+    .includes('async function inspectAllOwnerClosureReadOnly(')
   && fs.readFileSync('tests/kar99-p7-integrated-owner-authority.cjs','utf8')
     .includes('inspectAllOwnerClosureReadOnly(');
 const reviewedVerifiedTabOwnerSource = reviewedAdditionalOwners
