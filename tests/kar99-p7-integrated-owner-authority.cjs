@@ -169,6 +169,75 @@ async function waitUntil(predicate){for(let i=0;i<250&&!predicate();i++)await Pr
   ok(restart.context.worker.state==='unverified'
     &&REQUIRED.every(x=>restart.observations[x].state!=='idle'),
     'worker generation disagreement cannot yield trusted all-idle');
+  // KAR-171 W3D1: a real, independently read 7+8 owner closure matrix
+  // must never promote a historical callback, missing Chromium witness,
+  // previous MV3 Worker, or a released local fence into updater permission.
+  ok(typeof additional.inspectAllOwnerClosureReadOnly==='function',
+    'private real 15-owner closure matrix is exposed without an app message route');
+  const emptyMatrix=await additional.inspectAllOwnerClosureReadOnly(persisted);
+  ok(emptyMatrix.schema===1&&emptyMatrix.eligibleForLease===false
+    &&emptyMatrix.priorGenerationClosed===false
+    &&emptyMatrix.currentLiveAccountVerified===false
+    &&emptyMatrix.nativeHostOutcomeVerified===false
+    &&Object.keys(emptyMatrix.owners).length===15
+    &&REQUIRED.every(name=>emptyMatrix.owners[name]?.eligibleForLease===false
+      &&emptyMatrix.owners[name]?.status==='unverified'),
+    'all 15 real source owners remain unverified without prior completion or native oracle');
+  const token='prior_diag_123456';
+  const completedRows={
+    activeDetectedProfileV1:{profileId:'profile-A'},
+    selectedInventoryProfileV1:{profileId:'profile-A'},
+    [Atomic.START_PREFIX+token]:{schema:1,state:'admitted',token,
+      operationType:'GET_DIAGNOSTIC_EXPORT',workerInstanceId:'worker-before-restart',
+      startedAtMs:122500},
+    [Atomic.FINISH_PREFIX+token]:{schema:1,state:'completed',token,
+      workerInstanceId:'worker-before-restart',completedAtMs:122700}
+  };
+  const completeStore=db(completedRows,{tabRegistryV1:{},managedWorkerTabsV1:{}});
+  const completeP=Persisted.create({storageLocal:completeStore.local,
+    storageSession:completeStore.session,workerInstanceId:'worker-new',clock:()=>123000});
+  const completeA=Additional.create({storageLocal:completeStore.local,
+    storageSession:completeStore.session,workerInstanceId:'worker-new',clock:()=>123000});
+  const completeMatrix=await completeA.inspectAllOwnerClosureReadOnly(completeP);
+  ok(completeMatrix.owners.diagnosticExport.status==='historical-callback-settled'
+    &&completeMatrix.owners.diagnosticExport.priorGenerationClosed===false
+    &&completeMatrix.owners.nativeUpdateTransaction.status==='unverified'
+    &&completeMatrix.eligibleForLease===false,
+    'authentic prior-worker diagnostic callback is historical only, never all-owner idle');
+  ok(completeStore.writes===0,'15-owner historical closure only reads actual storage');
+  const unfinishedRows={...completedRows};
+  delete unfinishedRows[Atomic.FINISH_PREFIX+token];
+  const unfinishedStore=db(unfinishedRows,{tabRegistryV1:{},managedWorkerTabsV1:{}});
+  const unfinishedP=Persisted.create({storageLocal:unfinishedStore.local,
+    storageSession:unfinishedStore.session,workerInstanceId:'worker-new',clock:()=>123000});
+  const unfinishedA=Additional.create({storageLocal:unfinishedStore.local,
+    storageSession:unfinishedStore.session,workerInstanceId:'worker-new',clock:()=>123000});
+  const unfinishedMatrix=await unfinishedA.inspectAllOwnerClosureReadOnly(unfinishedP);
+  ok(unfinishedMatrix.status==='blocked'
+    &&unfinishedMatrix.owners.diagnosticExport.status==='blocked'
+    &&unfinishedMatrix.eligibleForLease===false,
+    'unfinished prior-worker admission remains BUSY after service-worker restart');
+  let persistedReads=0;
+  const changingPersisted={
+    ...completeP,
+    async observe(){
+      persistedReads++;
+      if(persistedReads===2)
+        completedRows.selectedInventoryProfileV1={profileId:'different-profile'};
+      return completeP.observe();
+    }
+  };
+  const driftMatrix=await completeA.inspectAllOwnerClosureReadOnly(changingPersisted);
+  ok(driftMatrix.status==='unverified'
+    &&driftMatrix.owners.diagnosticExport.status!=='historical-callback-settled'
+    &&driftMatrix.eligibleForLease===false,
+    'mid-capture selected profile transition invalidates historical owner proof');
+  const absentSource=await completeA.inspectAllOwnerClosureReadOnly({
+    observe:()=>completeP.observe()
+  });
+  ok(absentSource.owners.renewal.status==='unverified'
+    &&absentSource.eligibleForLease===false,
+    'missing persisted per-owner source cannot be substituted by a policy-shaped idle snapshot');
   const missing=await additional.observeAll({observe:async()=>({schema:1,observations:{renewal:{state:'active',reason:'REAL_WORK'}}})});
   ok(missing.observations.renewal.state==='active'
     &&OLD.filter(x=>x!=='renewal').every(x=>missing.observations[x].state==='unknown'),
