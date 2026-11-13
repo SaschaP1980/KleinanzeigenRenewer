@@ -1071,26 +1071,25 @@
       const firstSite=await safe(observe);
       const firstTabs=await safe(readVerifiedUnmanagedTabsReadOnly);
       const first=await safe(()=>observeAll(persistedObserver));
+      // Each supplemental inspector is closed over first-party Chrome and
+      // durable storage ports; no user-controlled callback can impersonate it.
+      const supplementalInspectors=Object.freeze({
+        singleInventory:inspectSingleInventoryClosureReadOnly,
+        trashMutation:inspectTrashMutationClosureReadOnly,
+        managedTabs:inspectManagedTabsClosureReadOnly,
+        profileTransition:inspectProfileTransitionClosureReadOnly,
+        accountTransition:inspectAccountTransitionClosureReadOnly,
+        diagnosticExport:inspectDiagnosticExportClosureReadOnly,
+        emergencyRecovery:inspectEmergencyRecoveryClosureReadOnly,
+        nativeUpdateTransaction:inspectNativeUpdateTransactionClosureReadOnly
+      });
+      const persistedInspector=persistedObserver?.inspectPersistedOwnerCallbackClosureReadOnly;
       const individual=Object.create(null);
       for(const name of names) {
-        const fn=PERSISTED_OWNERS.includes(name)
-          ? persistedObserver?.inspectPersistedOwnerCallbackClosureReadOnly
-          : null;
-        // The supplemental inspectors are closed-over first-party sources,
-        // never supplied by a caller or a runtime message.
         const inspector=PERSISTED_OWNERS.includes(name)
-          ? (typeof fn==='function'
-            ?()=>fn.call(persistedObserver,name):null)
-          :()=>({
-            singleInventory:inspectSingleInventoryClosureReadOnly,
-            trashMutation:inspectTrashMutationClosureReadOnly,
-            managedTabs:inspectManagedTabsClosureReadOnly,
-            profileTransition:inspectProfileTransitionClosureReadOnly,
-            accountTransition:inspectAccountTransitionClosureReadOnly,
-            diagnosticExport:inspectDiagnosticExportClosureReadOnly,
-            emergencyRecovery:inspectEmergencyRecoveryClosureReadOnly,
-            nativeUpdateTransaction:inspectNativeUpdateTransactionClosureReadOnly
-          })[name]();
+          ? (typeof persistedInspector==='function'
+            ?()=>persistedInspector.call(persistedObserver,name):null)
+          : supplementalInspectors[name];
         individual[name]=await safe(inspector);
       }
       const last=await safe(()=>observeAll(persistedObserver));
