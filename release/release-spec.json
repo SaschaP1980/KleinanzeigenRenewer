@@ -18,7 +18,7 @@
   "nextPlannedBuildGoal": "Determined by separately authorized open GitHub Issues.",
   "nativeSmokeRequired": true,
   "performanceRunRequired": false,
-  "performanceRule": "No Mass Renewal performance comparison required for this local-only retention setting; retain existing hardware Gold reference lines.",
+  "performanceRule": "No new mass-renewal performance run is required for local-only KAR-161 trash retention. Historical v1.23.20 Gold-line matrix remains the reference, without claiming a new measurement.",
   "safety": {
     "runtimeSubmitCalls": 0,
     "runtimeRequestSubmitCalls": 0,
