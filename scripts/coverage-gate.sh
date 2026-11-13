@@ -17,6 +17,7 @@ node tests/kar167-script-closure.cjs
 node tests/kar167-icons-closure.cjs
 node tests/kar167-test-coverage-closure.cjs
 node tests/kar167-final-repository-closure.cjs
+node tests/kar174-ui-asset-relocation.cjs
 node tests/kar170-documentation-contract.cjs
 node scripts/v12319-coverage-report.cjs "$raw" coverage
 node scripts/v12319-architecture-audit.cjs >/dev/null

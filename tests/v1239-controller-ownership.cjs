@@ -4,7 +4,7 @@ const req=['src/app/control-accordion-controller.js','src/app/diagnostics-contro
 const app=fs.readFileSync('src/app/app.js','utf8');
 p('all three v1.23.9 controllers exist',()=>req.forEach(f=>assert.ok(fs.existsSync(f),f)));
 p('app resolves all three controllers through KRDeps',()=>{for(const dep of ['KRControlAccordionController','KRDiagnosticsControlsController','KRRenewalSettingsController']) assert.ok(app.includes(dep),dep)});
-p('app html loads controllers before app entrypoint',()=>{const html=fs.readFileSync('app.html','utf8');const appPos=html.indexOf('src/app/app.js');req.forEach(f=>assert.ok(html.indexOf(f)>0 && html.indexOf(f)<appPos,f))});
+p('app html loads controllers before app entrypoint',()=>{const html=fs.readFileSync('app.html','utf8');const appPos=html.indexOf('src="app.js"');req.forEach(f=>{const relative=f.replace(/^src\/app\//,'');const pos=html.indexOf('src="'+relative+'"');assert.ok(pos>0 && pos<appPos,f)})});
 p('heavy ownership moved out of app entrypoint',()=>{for(const token of ['const controlAccordionMotion = new WeakMap','let diagnosticResetInFlight = false','Schnellprüfung aktivieren?'])assert.ok(!app.includes(token),token)});
 p('packaging explicitly contains new runtime modules',()=>{const pkg=fs.readFileSync('scripts/package.py','utf8');req.forEach(f=>assert.ok(pkg.includes(`'${f}'`),f))});
 console.log(`${n}/${n} PASS v1.23.9 controller ownership`);

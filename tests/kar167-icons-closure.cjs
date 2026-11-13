@@ -106,7 +106,7 @@ for (const [owner, refs] of [
 ]) {
   for (const name of refs) assert.ok(packaged.has(name), owner + ' points to missing Chrome ZIP icon: ' + name);
 }
-for (const file of ['app.html','popup.html','app.css','popup.css']) {
+for (const file of ['src/app/app.html','src/popup/popup.html','src/app/app.css','src/popup/popup.css']) {
   const content = fs.readFileSync(full(file), 'utf8');
   for (const found of content.matchAll(/icons\/[a-z0-9-]+\.(?:png|svg|ico)/g)) {
     assert.ok(packaged.has(found[0]), file + ' uses non-packaged icon ' + found[0]);

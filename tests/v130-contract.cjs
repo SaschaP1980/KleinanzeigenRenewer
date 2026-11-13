@@ -19,7 +19,7 @@ if (includesActivePatch(['1.16.8','1.16.9','1.17.0','1.17.1','1.17.2','1.17.3','
 else assert.equal(manifest.action.default_popup, 'popup.html');
 pass('fixed permission surface remains unchanged while v1.16.8 may launch the app directly from the toolbar action');
 
-for (const file of ['app.html','app.css','app.js']) assert.ok(fs.existsSync(path.join(root, file)), file);
+for (const file of ['src/app/app.html','src/app/app.css','src/app/app.js']) assert.ok(fs.existsSync(path.join(root, file)), file);
 assert.match(packaging, /app\.html/);
 assert.match(packaging, /app\.css/);
 assert.match(packaging, /app\.js/);

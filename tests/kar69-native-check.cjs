@@ -8,7 +8,7 @@ const bridge = require('../src/background/services/native-status-bridge.js');
 const root = path.join(__dirname,'..');
 const runtimeVersion = JSON.parse(fs.readFileSync(path.join(root,'manifest.json'),'utf8')).version;
 const extensionId = 'hafahjhhgiipdegfkgacchmnacgblnah';
-const appUrl = 'chrome-extension://' + extensionId + '/app.html';
+const appUrl = 'chrome-extension://' + extensionId + '/src/app/app.html';
 // Regression from the real owner's Chrome type:popup app: Chrome supplies sender.tab.
 const sender = { id: extensionId, url: appUrl, origin: 'chrome-extension://' + extensionId, tab: { id: 111, windowId: 222 } };
 const sha = 'a'.repeat(64), commit = 'b'.repeat(40);
@@ -105,8 +105,8 @@ async function run() {
  screen=boot((msg,cb)=>cb({ok:true,result:{...payload,installed:'1.23.30',approved:'1.23.30'}}));
  screen.button.handlers.click();await tick();
  check(screen.status.textContent.includes('entsprechen'),'matched approved and installed version');
- const appHtml=fs.readFileSync(path.join(root,'app.html'),'utf8');
- check(appHtml.includes('src/app/native-update-check-ui.js')&&appHtml.includes('nativeUpdateCheckButton'),'packaged UI script and button');
+ const appHtml=fs.readFileSync(path.join(root,'src/app/app.html'),'utf8');
+ check(appHtml.includes('native-update-check-ui.js')&&appHtml.includes('nativeUpdateCheckButton'),'packaged UI script and button');
  check(!appHtml.includes('nativeApplyUpdateButton'),'in-app apply deliberately absent');
  check(assertions>=27,'minimum Phase 2B safety assertions');
  console.log('PASS KAR-69 in-app Native Messaging status tests: '+assertions+' assertions');

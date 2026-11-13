@@ -5,7 +5,7 @@ const path = require('path');
 const root = path.resolve(__dirname, '..');
 const read = name => fs.readFileSync(path.join(root, name), 'utf8');
 const manifest = JSON.parse(read('manifest.json'));
-const appHtml = read('app.html');
+const appHtml = read('src/app/app.html');
 const background = read('background.js');
 const content = read('content.js');
 const runtimePath = path.join(root, 'src/shared/runtime-deps.js');
@@ -27,9 +27,9 @@ check('content scripts and dynamic bootstrap load registry first', () => {
 });
 
 check('app loads registry before feature modules', () => {
-  const runtimePos = appHtml.indexOf('src="src/shared/runtime-deps.js"');
-  const appPos = appHtml.indexOf('src="src/app/app.js"');
-  const firstFeature = appHtml.indexOf('src="src/app/diagnostic-zip.js"');
+  const runtimePos = appHtml.indexOf('src="../shared/runtime-deps.js"');
+  const appPos = appHtml.indexOf('src="app.js"');
+  const firstFeature = appHtml.indexOf('src="diagnostic-zip.js"');
   assert.ok(runtimePos >= 0 && runtimePos < firstFeature && runtimePos < appPos);
 });
 
