@@ -40,3 +40,12 @@
 - Preserved without changes in the moved implementation: strict numeric ad ID, public evidence verification/uncertainty, live selected profile gate, concurrent bulk/renewal locks, edit-worker bootstrap and bounded retry, owner-card read-only expiry enrichment, atomic save through existing inventory owner, renewal re-verification and worker-tab cleanup on both success/error.
 - No new Chrome permissions/messages, storage format, account changes, updater authority or publication decisions. No new independent workflow owner or release.
 - Wave 2 dedicated observable tests cover preflight rejection, online confirmed/pending, locked operation and worker success/failure cleanup. Full CI/packaged browser proof is pending, not inferred from static ownership.
+
+## Wave 3 — fresh-tab public renewal evidence coordinator
+
+- A single cohesive owner `KRRenewalPublicEvidenceCoordinator` now coordinates **read-only** public verification: fresh tab creation, exact-ID/target navigation readiness, guarded read-only metadata, canonical/direct fallback, identity-bound My Ads proof and uncertainty classification. These operations previously occupied 21,916 characters across ten closely related functions in the entrypoint.
+- Internal helpers remain private; only three actual cross-owner operations are public: `probeFreshRenewalPublicUrl`, `renewalEvidenceFailureClass`, `resolveRenewalPublicEvidence`. Their previous `background.js` signatures and error behavior are thin compatibility facades.
+- Dependencies are explicit five-port in-process factory bindings (tab/navigation lifecycle, diagnostics/correlation, account/safety policy, existing read-only evidence, timeouts/constants), no new messaging or thread.
+- Important invariants moved unchanged: off-target failure classified fail-closed, platform restrictions propagate, fresh verification tab closed in `finally`, My Ads account-name and exact numeric ID checks, no public-not-found optimistic confirmation and no remote posting/deletion. The downstream inventory refresh's verified/uncertain logic remains unchanged.
+- Existing v1.23.19/v1.23.20/v1.23.22 source/module/public coverage guards now enumerate this explicitly registered/packaged owner rather than altering frozen historical Gold.
+- Full exact-head CI and packaged E2E **pending**, not presumed from this source extraction.

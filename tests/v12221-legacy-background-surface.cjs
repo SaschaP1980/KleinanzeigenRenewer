@@ -42,4 +42,6 @@ const inventoryCapturePath=path.join(root,'src/background/services/inventory-cap
 const inventoryCapture=fs.existsSync(inventoryCapturePath)?fs.readFileSync(inventoryCapturePath,'utf8'):'';
 const inventoryRefreshPath=path.join(root,'src/background/services/inventory-refresh-service.js');
 const inventoryRefresh=fs.existsSync(inventoryRefreshPath)?fs.readFileSync(inventoryRefreshPath,'utf8'):'';
-module.exports=[policy,router,templateController,insertionLock,emergencyReset,background,inventoryCapture,inventoryRefresh].filter(Boolean).join('\n');
+const renewalPublicEvidencePath=path.join(root,'src/background/services/renewal-public-evidence-coordinator.js');
+const renewalPublicEvidence=fs.existsSync(renewalPublicEvidencePath)?fs.readFileSync(renewalPublicEvidencePath,'utf8'):'';
+module.exports=[policy,router,templateController,insertionLock,emergencyReset,background,inventoryCapture,inventoryRefresh,renewalPublicEvidence].filter(Boolean).join('\n');
