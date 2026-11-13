@@ -4,6 +4,12 @@ This is the canonical version-specific history for Kleinanzeigen Manager. Entrie
 
 All distinct historical section bodies from the former root README and CHANGELOG are preserved with source labels and line numbers. The [KAR-170 migration ledger](docs/maintenance/KAR170_CHANGELOG_MIGRATION.json) identifies their original Git blobs and body checksums. Overlapping versions retain distinct factual notes; older references to planned builds or native/CI acceptance are **historical**, not live status.
 
+## v1.23.91 — KAR-174 bundled-changelog ZIP parity candidate
+
+- Continue the same manager/launcher file relocation from the unpublished v1.23.90 Work candidate, without changing Kleinanzeigen account behaviour, Chrome permissions or extension identity.
+- Package the canonical changelog and standalone UI-path test corrections together with the relocated runtime assets in a new, internally consistent `1.23.91` Chrome ZIP. The original `1.23.90` Work ZIP was not merged or published and is retained as an intermediate build.
+- Source and packaged Chromium acceptance, 100% Dynamic Public Function Coverage, Windows safety regression, exact-head PR checks and separate merge/publication authorization remain mandatory. This text does not claim unverified GREEN.
+
 ## v1.23.90 — KAR-174 relocate application and launcher HTML/CSS (source Work candidate)
 
 - Move the manager page and stylesheet from root to `src/app/app.html` and `src/app/app.css`, and the separately bundled launcher assets to `src/popup/popup.html` and `src/popup/popup.css`. The extension action opens the new manager URL; the launcher's manifest registration remains unchanged.
