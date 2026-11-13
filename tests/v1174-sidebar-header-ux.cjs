@@ -52,5 +52,5 @@ assert.match(css, /\.content-view-navigation/);
 assert.match(css, /\.content-refresh-button/);
 pass('inventory/trash navigation is docked above content and refresh is an icon content action');
 
-assert.ok(/^(?:1\.17\.(?:[4-9]|[1-9]\d+)|1\.18\.\d+|1\.19\.\d+|1\.20\.\d+|1\.21\.(?:[0-9]|1[0-5])|1\.22\.(?:[0-9]|[1-9]\d*)|1\.23\.\d+)$/.test(manifest.version));
+assert.ok(/^(?:1\.17\.(?:[4-9]|[1-9]\d+)|1\.18\.\d+|1\.19\.\d+|1\.20\.\d+|1\.21\.(?:[0-9]|1[0-5])|1\.22\.(?:[0-9]|[1-9]\d*)|1\.23\.\d+)$/.test(manifest.version) || manifest.version === '1.24.0');
 pass('manifest keeps v1.17.4+ sidebar/header contract');
