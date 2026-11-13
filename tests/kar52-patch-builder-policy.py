@@ -18,7 +18,20 @@ def reject(label, action):
         return
     raise AssertionError("wrongly accepted: " + label)
 
-original = m.load_meta() if hasattr(m,"load_meta") else {p:json.loads((ROOT/p).read_text()) for p in m.META}
+actual = m.load_meta() if hasattr(m,"load_meta") else {p:json.loads((ROOT/p).read_text()) for p in m.META}
+actual_snap = json.dumps(actual, sort_keys=True)
+original = copy.deepcopy(actual)
+# The PATCH builder must remain restricted to 1.23.x. On approved 1.24.0
+# MINOR sources, exercise its historical positive path with a synthetic
+# coherent PATCH-era metadata fixture; never make the builder accept 1.24.0.
+if actual["manifest.json"]["version"] == "1.24.0":
+    old_patch = "1.23.92"
+    for p in m.META:
+        original[p]["version"] = old_patch
+    original["package.json"]["displayVersion"] = old_patch
+    original["package-lock.json"]["packages"][""]["version"] = old_patch
+    original["release/release-spec.json"]["packageVersion"] = old_patch
+    original["release/release-spec.json"]["nextPlannedBuild"] = "1.24.0"
 snap = json.dumps(original, sort_keys=True)
 current, nxt, new = m.metadata_plan(original)
 assert nxt == m.successor(current)
@@ -66,7 +79,7 @@ for marker,changed,issue,base in [
     ("build(KAR-54): atomic PATCH base="+sha,"",54,sha)]:
     reject("unauthorized/nonempty guarded push",lambda a=marker,b=changed,c=issue,d=base:m.authorized_push(a,b,c,d))
     rejects+=1
-assert json.dumps({p:json.loads((ROOT/p).read_text()) for p in m.META},sort_keys=True)==snap
+assert json.dumps({p:json.loads((ROOT/p).read_text()) for p in m.META},sort_keys=True)==actual_snap
 
 # KAR-132: second Work PATCH before main merge. The previous immutable ZIP may
 # be sealed by an earlier exact-scope atomic build commit in this same Work
