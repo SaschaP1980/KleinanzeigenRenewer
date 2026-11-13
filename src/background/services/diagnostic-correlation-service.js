@@ -66,7 +66,7 @@
         const senderTabId = Number(sender?.tab?.id || 0) || null;
         const base = correlationContext(message?.context || {}, message?.details || {});
         if (base.operationId) return base;
-        const stored = await chrome.storage.local.get([
+        const stored = await storageLocal.get([
           'bulkInventoryRun', 'templateFillSessions', RENEWAL_SESSIONS_KEY,
           MASS_RENEWAL_BATCH_KEY, ARCHIVE_INSERTION_SESSIONS_KEY
         ]).catch(() => ({}));

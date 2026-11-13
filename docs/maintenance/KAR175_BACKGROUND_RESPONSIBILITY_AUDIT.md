@@ -77,3 +77,9 @@
 - `KRTrashTemplatePublishDetectionService` owns the existing template-only post-publication detection: verifies trusted Kleinanzeigen hostname, same target tab, complete template-only session, page `ownAd` login evidence, matching exact Ad ID and bounded re-read under `withTemplateFillMutation`, then updates local metadata and broadcasts unchanged events. It **never initiates publication** or treats URL alone as proof.
 - **Shared emergency-reset Set remains authoritative:** background retains `trashTemplatePublishDetectionInFlight` and injects that exact object, preserving `WorkflowEmergencyResetController` compatibility.
 - Public APIs are narrow: two pure URL methods and one publish detector method (plus factories); background retains original facades. Tests cover valid/invalid URLs, wrong account/ID, same-source/unfinished sessions, success, fail-safe finally/in-flight behavior.
+
+## Final Wave 7 follow-up — unifying a third pure URL candidate policy
+
+- `publishedAdCandidateFromUrl(rawUrl, sourceAdId)` is now a third method in the existing pure `KRListingUrlEvidenceService` (not a new module). It was the remaining independently verified HTTPS-only same-source-excluding published-ad URL parser; the existing background facade stays compatible.
+- `KRDiagnosticCorrelationService` now uses its explicitly injected `storageLocal` port rather than a hidden `chrome.storage.local` global, preserving original read-only storage behavior. CI Wave 6 surfaced this real DI omission; fixed without weakening diagnostics or storage permissions.
+- Both initial Issue baseline and refreshed current-main pre-wave footprints are enforced by a new npm/coverage-gate source-size regression test. This **planning target guard** does not claim the owner's external editor/tool maximum (unverified).

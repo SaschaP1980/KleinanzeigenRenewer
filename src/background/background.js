@@ -1857,31 +1857,8 @@ function insertionLockMessage(lock) { return requireInsertionLockService().inser
 async function assertInsertionStartAvailable(request = {}) { return await requireInsertionLockService().assertInsertionStartAvailable(request); }
 
 function publishedAdCandidateFromUrl(rawUrl, sourceAdId = '') {
-  try {
-    const url = new URL(String(rawUrl || ''));
-    if (url.protocol !== 'https:' || !/(^|\.)kleinanzeigen\.de$/i.test(url.hostname)) return null;
-    let adId = '';
-    let kind = '';
-    let publicUrl = '';
-    const publicMatch = url.pathname.match(/\/s-anzeige\/[^/]+\/(\d+)-\d+-\d+(?:\/)?$/i);
-    if (publicMatch) {
-      adId = publicMatch[1];
-      kind = 'public';
-      publicUrl = `${url.origin}${url.pathname}`;
-    } else if (/\/p-anzeige-bearbeiten\.html$/i.test(url.pathname)) {
-      adId = String(url.searchParams.get('adId') || '');
-      kind = 'edit';
-    } else if (/\/p-anzeige-aufgeben-bestaetigung\.html$/i.test(url.pathname)) {
-      adId = String(url.searchParams.get('addId') || url.searchParams.get('adId') || '');
-      kind = 'confirmation';
-    }
-    if (!/^\d+$/.test(adId) || adId === String(sourceAdId || '')) return null;
-    return { adId, kind, publicUrl, url: url.href };
-  } catch {
-    return null;
-  }
+  return requireListingUrlEvidenceService().publishedAdCandidateFromUrl(rawUrl, sourceAdId);
 }
-
 
 function recoverableTrashTemplateFill(session) { return requireTemplateFillController().recoverableTrashTemplateFill(session); }
 
