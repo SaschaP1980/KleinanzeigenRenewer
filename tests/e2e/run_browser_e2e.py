@@ -28,7 +28,7 @@ APP_ID_MATCH = re.search(r"Chrome Extension ID:\s*([a-p]{32})", APP_ID_TEXT)
 if not APP_ID_MATCH:
     raise SystemExit("APP_ID.txt enthält keine gültige feste Extension-ID.")
 EXTENSION_ID = APP_ID_MATCH.group(1)
-APP_URL = f"chrome-extension://{EXTENSION_ID}/app.html"
+APP_URL = f"chrome-extension://{EXTENSION_ID}/src/app/app.html"
 EXPECTED_VERSION = json.loads((EXTENSION_ROOT / "manifest.json").read_text(encoding="utf-8"))["version"]
 FAKE_LOGGED_OUT_HTML = """<!doctype html><html lang='de'><head><meta charset='utf-8'><title>Kleinanzeigen E2E Fixture</title></head><body><a href='/m-einloggen.html'>Einloggen</a><main data-e2e-fixture='logged-out'>E2E</main></body></html>"""
 

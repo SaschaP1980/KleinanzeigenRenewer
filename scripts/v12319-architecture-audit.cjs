@@ -27,7 +27,7 @@ const roots=new Set();
 const manifest=JSON.parse(fs.readFileSync(path.join(ROOT,'manifest.json'),'utf8'));
 if(manifest.background?.service_worker){const b=byBase.get(path.basename(manifest.background.service_worker));if(b)roots.add(b);}
 for(const cs of manifest.content_scripts||[])for(const j of cs.js||[]){const b=byBase.get(path.basename(j));if(b)roots.add(b);}
-for(const html of ['app.html','popup.html']){const p=path.join(ROOT,html);if(!fs.existsSync(p))continue;const s=fs.readFileSync(p,'utf8');for(const m of s.matchAll(/<script[^>]+src=['"]([^'"]+\.js)['"]/g)){const b=byBase.get(path.basename(m[1]));if(b)roots.add(b);}}
+for(const html of ['src/app/app.html','src/popup/popup.html']){const p=path.join(ROOT,html);if(!fs.existsSync(p))continue;const s=fs.readFileSync(p,'utf8');for(const m of s.matchAll(/<script[^>]+src=['"]([^'"]+\.js)['"]/g)){const b=byBase.get(path.basename(m[1]));if(b)roots.add(b);}}
 // Explicit script/import references and bootstrap lists make modules reachable from their owner.
 for(const [r,s] of texts){for(const m of s.matchAll(/['"]([^'"]+\.js)['"]/g)){const b=byBase.get(path.basename(m[1]));if(b)graph.get(r).add(b);}}
 const reachable=new Set(),stack=[...roots];while(stack.length){const r=stack.pop();if(reachable.has(r))continue;reachable.add(r);for(const n of graph.get(r)||[])stack.push(n);}
