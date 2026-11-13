@@ -53,8 +53,8 @@ function renderCompactTrashRow(record) {
   rememberCompactButtonDisabled(templateButton);
   const resetButton = makeCompactIconButton({
     icon: 'update',
-    label: '30 Tage neu starten',
-    title: 'Setzt die lokale Aufbewahrungsfrist dieses Papierkorb-Eintrags ab jetzt wieder auf volle 30 Tage.'
+    label: 'Frist neu starten',
+    title: 'Startet die konfigurierte lokale Aufbewahrungsfrist dieses Papierkorb-Eintrags ab jetzt erneut.'
   });
   rememberCompactButtonDisabled(resetButton);
   const exportButton = makeCompactIconButton({
@@ -73,12 +73,12 @@ function renderCompactTrashRow(record) {
   });
   resetButton.addEventListener('click', async () => {
     void logAppEvent('USER_TRASH_RETENTION_RESET_CLICK', { inventoryId: record.inventoryId, adId: record.adId || '', view: 'compact' });
-    if (!await confirmAction({ title: 'Aufbewahrung neu starten?', text: `„${record.title || record.adId}“ bleibt ab jetzt wieder 30 Tage im Papierkorb.`, detail: 'Der Eintrag bleibt im Papierkorb. Im Inventar und bei Kleinanzeigen wird nichts verändert.', confirmLabel: '30 Tage neu starten' })) return;
+    if (!await confirmAction({ title: 'Aufbewahrung neu starten?', text: `„${record.title || record.adId}“ wird ab jetzt erneut entsprechend der konfigurierten Dauer aufbewahrt.`, detail: 'Der Eintrag bleibt im Papierkorb. Im Inventar und bei Kleinanzeigen wird nichts verändert.', confirmLabel: 'Frist neu starten' })) return;
     setCompactButtonsBusy(peers, true);
     try {
       const result = await runtimeMessage({ type: 'RESET_TRASH_RETENTION', inventoryId: record.inventoryId });
       void logAppEvent('USER_TRASH_RETENTION_RESET_SUCCEEDED', { inventoryId: record.inventoryId, adId: record.adId || '', expiresAt: result?.expiresAt || null, view: 'compact' });
-      setStatus('ready', 'Aufbewahrung neu gestartet', 'Der Papierkorb-Eintrag bleibt ab jetzt wieder 30 Tage erhalten.');
+      setStatus('ready', 'Aufbewahrung neu gestartet', 'Die konfigurierte Aufbewahrungsfrist beginnt für diesen Eintrag erneut.');
       await refreshInventories();
     } catch (error) {
       setCompactButtonsBusy(peers, false);
@@ -224,16 +224,16 @@ function renderTrash(records = currentTrashRecords) {
     const resetButton = document.createElement('button');
     resetButton.type = 'button';
     resetButton.className = 'secondary compact-action';
-    resetButton.textContent = '30 Tage neu starten';
-    resetButton.title = 'Setzt die lokale Aufbewahrungsfrist dieses Papierkorb-Eintrags ab jetzt wieder auf volle 30 Tage.';
+    resetButton.textContent = 'Frist neu starten';
+    resetButton.title = 'Startet die konfigurierte lokale Aufbewahrungsfrist dieses Papierkorb-Eintrags ab jetzt erneut.';
     resetButton.addEventListener('click', async () => {
       void logAppEvent('USER_TRASH_RETENTION_RESET_CLICK', { inventoryId: record.inventoryId, adId: record.adId || '' });
-      if (!await confirmAction({ title: 'Aufbewahrung neu starten?', text: `„${record.title || record.adId}“ bleibt ab jetzt wieder 30 Tage im Papierkorb.`, detail: 'Der Eintrag bleibt im Papierkorb. Im Inventar und bei Kleinanzeigen wird nichts verändert.', confirmLabel: '30 Tage neu starten' })) return;
+      if (!await confirmAction({ title: 'Aufbewahrung neu starten?', text: `„${record.title || record.adId}“ wird ab jetzt erneut entsprechend der konfigurierten Dauer aufbewahrt.`, detail: 'Der Eintrag bleibt im Papierkorb. Im Inventar und bei Kleinanzeigen wird nichts verändert.', confirmLabel: 'Frist neu starten' })) return;
       resetButton.disabled = true;
       try {
         const result = await runtimeMessage({ type: 'RESET_TRASH_RETENTION', inventoryId: record.inventoryId });
         void logAppEvent('USER_TRASH_RETENTION_RESET_SUCCEEDED', { inventoryId: record.inventoryId, adId: record.adId || '', expiresAt: result?.expiresAt || null });
-        setStatus('ready', 'Aufbewahrung neu gestartet', 'Der Papierkorb-Eintrag bleibt ab jetzt wieder 30 Tage erhalten.');
+        setStatus('ready', 'Aufbewahrung neu gestartet', 'Die konfigurierte Aufbewahrungsfrist beginnt für diesen Eintrag erneut.');
         await refreshInventories();
       } catch (error) {
         resetButton.disabled = false;
