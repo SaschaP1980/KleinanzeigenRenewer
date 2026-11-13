@@ -1,0 +1,23 @@
+name: KAR-171 W3 focused safety evaluation (temporary)
+
+on:
+  push:
+    branches: [work/KAR-171]
+
+permissions:
+  contents: read
+
+jobs:
+  focused:
+    name: W3 private owner proof clock RED-GREEN
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate full private 15-owner proof timing test
+        run: node --test tests/kar99-p13b-trusted-owner-authority.cjs
