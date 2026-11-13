@@ -94,17 +94,17 @@ jobs:
           test -n "$LATEST_BEFORE"
           test "$LATEST_BEFORE" != "$TAG"
 
-          cat > "$RUNNER_TEMP/kar178-release-notes.md" <<EOF
+          cat > "$RUNNER_TEMP/kar178-release-notes.md" <<'EOF'
           ## Historical owner-validated stable baseline
 
           On 2026-11-09 the owner reported approximately **60 successfully renewed live advertisements** using **v1.23.48**. This is the owner's native acceptance report, not per-Ad-ID diagnostics or a claim that hosted CI touched a real Kleinanzeigen account.
 
           - Version/tag: `v1.23.48` (existing original annotated Git tag, not moved)
-          - Historical source commit: `$TARGET`
+          - Historical source commit: `f2225155e403d89d07a674c9e20f397a4f86694d`
           - Development path: `work` (historical PR #144, merged to the source commit)
-          - Chrome ZIP asset: `$ZIP_NAME`
-          - Chrome ZIP bytes: `$ZIP_BYTES`
-          - Chrome ZIP SHA-256: `$ZIP_SHA256`
+          - Chrome ZIP asset: `kleinanzeigen-renewal-chrome-v1.23.48.zip`
+          - Chrome ZIP bytes: `772335`
+          - Chrome ZIP SHA-256: `c709b084949891423ae36bd65fe8baa28278ee2725d5198fc26c7948987fa8d6`
           - Original ZIP: byte-identical archive from that historical source commit; **not rebuilt**
           - Historical work PR CI: [#42703769728](https://github.com/SaschaP1980/KleinanzeigenRenewer/actions/runs/42703769728) — 4/4 successful
           - Historical merged-main CI: [#42708145765](https://github.com/SaschaP1980/KleinanzeigenRenewer/actions/runs/42708145765) — 2/2 successful, including packaged local-fixture Chromium E2E
