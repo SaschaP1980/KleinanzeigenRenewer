@@ -21,3 +21,12 @@ jobs:
           node-version: '22'
       - name: Focused real owner observer regression
         run: node tests/kar99-p7-integrated-owner-authority.cjs
+      - name: Install complete test dependencies
+        run: npm ci
+      - name: Run final source-tree full regression and coverage gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          # The disposable workflow is not part of the production inventory.
+          rm .github/workflows/kar171-w3d1-focused.yml
+          bash scripts/coverage-gate.sh
