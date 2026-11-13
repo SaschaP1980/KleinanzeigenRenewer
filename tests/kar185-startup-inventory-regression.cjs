@@ -7,14 +7,14 @@ const vm = require('node:vm');
 // Execute the real app bootstrap slice under controlled async response failures.
 // No authenticated Chrome account or remote Kleinanzeigen mutations are used.
 const source = fs.readFileSync(path.join(__dirname, '../src/app/app.js'), 'utf8');
-const start = source.search(/Promise\\.all(?:Settled)?\\(\\[ensureUiActivityLoaded\\(\\)/);
+const start = source.search(/Promise\.all(?:Settled)?\(\[ensureUiActivityLoaded\(\)/);
 assert.notEqual(start, -1, 'startup load orchestration missing');
 const end = source.indexOf('schedulePageInspect(ACCOUNT_HEALTH_FALLBACK_MS);', start);
 assert.ok(end > start, 'startup health timer marker missing');
 const startup = source.slice(start, end);
 const inventoryFunction = source.slice(source.indexOf('async function refreshInventories('));
-assert.match(inventoryFunction, /scopedProfileMessage\\('LIST_INVENTORIES'\\)/, 'inventory profile read must exist');
-assert.match(inventoryFunction, /scopedProfileMessage\\('LIST_TRASH'\\)/, 'trash profile read must exist');
+assert.match(inventoryFunction, /scopedProfileMessage\('LIST_INVENTORIES'\)/, 'inventory profile read must exist');
+assert.match(inventoryFunction, /scopedProfileMessage\('LIST_TRASH'\)/, 'trash profile read must exist');
 
 async function run({ configError = false, inventoryError = false, inspectError = false } = {}) {
   const calls = [], notices = [];
