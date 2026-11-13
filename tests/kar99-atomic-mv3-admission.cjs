@@ -137,6 +137,26 @@ function snapshot(){const gen='worker-one',profile='profile-one',now=123000;
    'newly completed 15-owner observation is evaluated against a later current time');
  ok(freshStore.data[Fence.STORAGE_KEY]?.token===freshLease.token,
    'fresh all-owner fixture reservation is durably acknowledged without native apply');
+ // A changed sampling order must NOT launder old, future-dated or
+ // inconsistent source evidence into a positive update reservation.
+ for (const [label,observedAtMs] of [
+   ['stale',120999],['future',123005]
+ ]) {
+   const deniedStore=disk(),original=snapshot();
+   const deniedGate=Fence.create({
+     storageLocal:deniedStore,clock:()=>123000,
+     newToken:()=> 'invalid_observation_token_'+(++serial)+'_unique',
+     atomicCoordinator:make(deniedStore,locks),policy:Policy,
+     getOwnerSnapshot:async()=>({...original,observedAtMs,
+       owners:Object.fromEntries(Object.entries(original.owners).map(([name,row])=>[
+         name,{...row,observedAtMs}
+       ]))})
+   });
+   await reject(deniedGate.reserve(request),'KR_UPDATE_FENCE_NOT_IDLE',
+     label+' 15-owner snapshot is denied under the delayed-sampling policy');
+   ok(!Object.hasOwn(deniedStore.data,Fence.STORAGE_KEY),
+     label+' denied snapshot leaves no durable native lease');
+ }
  const approved=await gateOne.reserve(request);
  ok(approved.state==='reserved','positive test-only fake owner snapshot serialized');
  await reject(gateTwo.withAdmission('START_ARCHIVE',()=>true),'KR_UPDATE_FENCE_HELD',
