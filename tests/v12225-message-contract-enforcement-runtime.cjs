@@ -6,11 +6,11 @@ vm.runInNewContext(fs.readFileSync('message-contract-registry.js','utf8'),ctx,{f
 const r=deps.get('KRMessageContractRegistry');
 let n=0; const ok=(name,fn)=>{fn();n++;console.log('PASS',name)};
 const nextVersion=JSON.parse(fs.readFileSync('manifest.json','utf8')).version;
-const reviewedNative=/^1\.23\.(?:3\d|[4-9]\d|[1-9]\d{2,})$/.test(nextVersion);
+const reviewedNative=/^1\.23\.(?:3\d|[4-9]\d|[1-9]\d{2,})$/.test(nextVersion) || nextVersion==='1.24.0';
 const newlyRegistered=reviewedNative?1:0;
 const publishIntent=r.has('AUTHORIZE_AUTOMATIC_PUBLISH','background')?1:0;
-const occupancyAdded=r.has('GET_DIAGNOSTIC_OCCUPANCY','background')?1:0;
-ok('snapshot reports enforcement enabled with exact versioned contract inventory',()=>{assert.deepStrictEqual(JSON.parse(JSON.stringify(r.snapshot())),{schemaVersion:1,mode:'enforced',enforcement:true,totalTypes:102+newlyRegistered+publishIntent+occupancyAdded,byTarget:{background:82+newlyRegistered+publishIntent+occupancyAdded,content:10,'my-ads-content':7,app:3}});if(reviewedNative)assert.equal(r.has('GET_NATIVE_UPDATE_STATUS','background'),true);if(publishIntent){assert.equal(r.route('AUTHORIZE_AUTOMATIC_PUBLISH','background').action,'accept');assert.equal(r.route('AUTHORIZE_AUTOMATIC_PUBLISH','content').action,'ignore');}});
+const occupancyAdded=r.has('GET_DIAGNOSTIC_OCCUPANCY','background')?1:0;const retentionMessages=['GET_TRASH_RETENTION_CONFIGURATION','PREVIEW_TRASH_RETENTION_CHANGE','COMMIT_TRASH_RETENTION_CHANGE'];const retentionAdded=retentionMessages.filter(type=>r.has(type,'background')).length;assert.equal(retentionAdded,3,'all three configurable trash retention contracts must be registered');
+ok('snapshot reports enforcement enabled with exact versioned contract inventory',()=>{assert.deepStrictEqual(JSON.parse(JSON.stringify(r.snapshot())),{schemaVersion:1,mode:'enforced',enforcement:true,totalTypes:102+newlyRegistered+publishIntent+occupancyAdded+retentionAdded,byTarget:{background:82+newlyRegistered+publishIntent+occupancyAdded+retentionAdded,content:10,'my-ads-content':7,app:3}});if(reviewedNative)assert.equal(r.has('GET_NATIVE_UPDATE_STATUS','background'),true);if(publishIntent){assert.equal(r.route('AUTHORIZE_AUTOMATIC_PUBLISH','background').action,'accept');assert.equal(r.route('AUTHORIZE_AUTOMATIC_PUBLISH','content').action,'ignore');}});
 ok('known intended background request is accepted',()=>{const d=r.route('RESET_ACTIVE_WORKFLOWS','background');assert.equal(d.action,'accept');assert.equal(d.errorCode,null)});
 ok('known contract for co-resident other router is ignored',()=>{const d=r.route('MY_ADS_STATUS','content');assert.equal(d.action,'ignore');assert.equal(d.registered,true);assert.equal(d.targetRegistered,false)});
 ok('unknown contract is rejected fail-closed',()=>{const d=r.route('UNKNOWN_TEST_MESSAGE','background');assert.equal(d.action,'reject');assert.equal(d.errorCode,'KR_MESSAGE_CONTRACT_UNKNOWN')});
