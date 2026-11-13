@@ -1,6 +1,6 @@
 const {parseHTML}=require('linkedom');
 const fs=require('node:fs'), path=require('node:path'), assert=require('node:assert/strict');
-const {document,window}=parseHTML(fs.readFileSync(path.join(__dirname,'../app.html'),'utf8'));
+const {document,window}=parseHTML(fs.readFileSync(path.join(__dirname,'../src/app/app.html'),'utf8'));
 const RecordCardView=require('../src/app/record-card-view.js');
 
 const recordCardView=RecordCardView.create({
