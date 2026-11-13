@@ -230,6 +230,20 @@ async function waitUntil(predicate){for(let i=0;i<250&&!predicate();i++)await Pr
     &&completeMatrix.owners.nativeUpdateTransaction.status==='unverified'
     &&completeMatrix.eligibleForLease===false,
     'authentic prior-worker diagnostic callback is historical only, never all-owner idle');
+  const wrongSite=Additional.create({storageLocal:completeStore.local,
+    storageSession:completeStore.session,workerInstanceId:'worker-new',clock:()=>123000,
+    queryBrowserTabsReadOnly:async()=>[{
+      id:81,url:'https://www.kleinanzeigen.de/m-meine-anzeigen.html'
+    }],
+    readAccountPageStatusReadOnly:async()=>({
+      pageType:'my-ads',url:'https://www.kleinanzeigen.de/m-meine-anzeigen.html',
+      auth:{loggedIn:true},profileName:'Different signed-in account'
+    })});
+  const conflictingAccount=await wrongSite.inspectAllOwnerClosureReadOnly(completeP);
+  ok(conflictingAccount.sourcesStable===false
+    &&conflictingAccount.owners.diagnosticExport.status==='unverified'
+    &&conflictingAccount.eligibleForLease===false,
+    'live Kleinanzeigen account mismatch invalidates even locally settled callbacks');
   ok(completeStore.writes===0,'15-owner historical closure only reads actual storage');
   const unfinishedRows={...completedRows};
   delete unfinishedRows[Atomic.FINISH_PREFIX+token];
