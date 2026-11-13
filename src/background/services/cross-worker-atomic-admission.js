@@ -48,10 +48,15 @@
       if(!same(ack,value))throw denied('KR_UPDATE_FENCE_ATOMIC_STORAGE');
     }
     async function scan() {
-      const all=await get(null),starts=new Map(),finishes=new Map();
+      const all=await get(null);
+      // KAR-171 W3C: take the clock AFTER the durable source read, not before
+      // it. A complete historical prior-worker P8 record dated later than
+      // the actual inspection is UNKNOWN, never already-settled work.
+      const inspectedAtMs=now(),starts=new Map(),finishes=new Map();
       for(const [key,v] of Object.entries(all)){
         if(key.startsWith(START_PREFIX)){
-          if(!checkStart(v,key))throw denied('KR_UPDATE_FENCE_ATOMIC_STORAGE');
+          if(!checkStart(v,key)||v.startedAtMs>inspectedAtMs)
+            throw denied('KR_UPDATE_FENCE_ATOMIC_STORAGE');
           starts.set(v.token,v);
         }
         if(key.startsWith(FINISH_PREFIX)){
@@ -61,7 +66,8 @@
         }
       }
       for(const [token,row] of finishes)
-        if(!checkFinish(row,FINISH_PREFIX+token,starts.get(token)))
+        if(!checkFinish(row,FINISH_PREFIX+token,starts.get(token))
+          ||row.completedAtMs>inspectedAtMs)
           throw denied('KR_UPDATE_FENCE_ATOMIC_STORAGE');
       return {starts,finishes};
     }
