@@ -100,7 +100,10 @@ def main():
                 assert not report["pageErrors"], "browser reported JS startup error"
                 assert report["checks"]["sliderFound"], "new config range missing"
                 assert report["checks"]["startupController"] == "function", "settings script not loaded"
-                assert report["checks"].get("retentionConfig",{}).get("reply",{}).get("retentionDays") == 30, "background retention endpoint not operational"
+                assert report["checks"].get("retentionConfig",{}).get("reply",{}).get("ok") is True, "background retention endpoint did not answer"
+                assert report["checks"]["retentionConfig"]["reply"]["result"]["retentionDays"] == 30, "fresh install retention default not 30 days"
+                assert report["checks"].get("otherRoutes",{}).get("epoch",{}).get("reply",{}).get("ok") is True, "diagnostic startup or listener registration failed"
+                assert report["checks"].get("otherRoutes",{}).get("renewal",{}).get("reply",{}).get("ok") is True, "preexisting renewal message regression"
                 print("KAR-161 real Chromium install-and-open smoke: PASS")
             finally:
                 context.close()
