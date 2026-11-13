@@ -1,0 +1,165 @@
+# KAR-178: one-shot GitHub Release for the owner-validated historical v1.23.48 tag.
+# Never rebuild the archive, move/recreate the tag, or promote updater/latest.
+name: KAR-178 publish historical v1.23.48 GitHub Release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/kar178-historical-stable-release.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: kar-178-historical-v1-23-48-release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Verify historical identity, upload original ZIP, and publish non-latest Release
+    if: github.repository == 'SaschaP1980/KleinanzeigenRenewer'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout main and full historical tag/source
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Release only the original byte-identical archived Chrome ZIP
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          readonly TARGET='f2225155e403d89d07a674c9e20f397a4f86694d'
+          readonly TAG='v1.23.48'
+          readonly TAG_OBJECT='99fcb135d6bac40a23287a370d373da35d856366'
+          readonly VERSION='1.23.48'
+          readonly ZIP_NAME='kleinanzeigen-renewal-chrome-v1.23.48.zip'
+          readonly ZIP_BYTES='772335'
+          readonly ZIP_SHA256='c709b084949891423ae36bd65fe8baa28278ee2725d5198fc26c7948987fa8d6'
+          readonly WORKFLOW='.github/workflows/kar178-historical-stable-release.yml'
+          readonly ZIP="$RUNNER_TEMP/$ZIP_NAME"
+
+          # A later workflow edit must never republish or replace this historical Release.
+          test "$(git diff --name-status "$GITHUB_SHA^" "$GITHUB_SHA" -- "$WORKFLOW")" = "$(printf 'A\t%s' "$WORKFLOW")"
+          test "$(git diff --name-only "$GITHUB_SHA^" "$GITHUB_SHA")" = "$(printf '%s\n' "$WORKFLOW" 'docs/maintenance/KAR178_STABLE_BASELINE.md' 'docs/maintenance/SCRIPT_WORKFLOW_INVENTORY.json' 'tests/kar167-script-closure.cjs')"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(git status --porcelain)"
+
+          # Both the raw annotated tag object and the peeled historical commit are pinned.
+          test "$(git rev-parse "refs/tags/$TAG")" = "$TAG_OBJECT"
+          test "$(git cat-file -t "$TAG_OBJECT")" = tag
+          test "$(git rev-parse "$TAG^{commit}")" = "$TARGET"
+          test "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG" --jq .object.sha)" = "$TAG_OBJECT"
+          test "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG" --jq .object.type)" = tag
+          test "$(gh api "repos/$GITHUB_REPOSITORY/git/tags/$TAG_OBJECT" --jq .object.sha)" = "$TARGET"
+          test "$(gh api "repos/$GITHUB_REPOSITORY/git/tags/$TAG_OBJECT" --jq .object.type)" = commit
+
+          git show "$TARGET:manifest.json" > "$RUNNER_TEMP/kar178-manifest.json"
+          git show "$TARGET:package.json" > "$RUNNER_TEMP/kar178-package.json"
+          git show "$TARGET:package-lock.json" > "$RUNNER_TEMP/kar178-package-lock.json"
+          git show "$TARGET:release/release-spec.json" > "$RUNNER_TEMP/kar178-release-spec.json"
+          git show "$TARGET:APP_ID.txt" > "$RUNNER_TEMP/kar178-app-id.txt"
+          git show "$TARGET:release/$ZIP_NAME" > "$ZIP"
+
+          test "$(wc -c < "$ZIP" | tr -d '[:space:]')" = "$ZIP_BYTES"
+          test "$(sha256sum "$ZIP" | cut -d' ' -f1)" = "$ZIP_SHA256"
+          unzip -t "$ZIP" >/dev/null
+          unzip -p "$ZIP" manifest.json > "$RUNNER_TEMP/kar178-zip-manifest.json"
+          cmp "$RUNNER_TEMP/kar178-manifest.json" "$RUNNER_TEMP/kar178-zip-manifest.json"
+
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          d = Path(os.environ["RUNNER_TEMP"])
+          files = ("manifest", "package", "package-lock", "release-spec", "zip-manifest")
+          data = {key: json.loads((d / f"kar178-{key}.json").read_text()) for key in files}
+          assert all(data[key]["version"] == "1.23.48" for key in files)
+          assert data["package-lock"]["packages"][""]["version"] == "1.23.48"
+          assert data["manifest"]["key"] == data["zip-manifest"]["key"]
+          assert data["manifest"]["key"] == json.loads(Path("manifest.json").read_text())["key"]
+          app_id = (d / "kar178-app-id.txt").read_text()
+          assert "hafahjhhgiipdegfkgacchmnacgblnah" in app_id
+          assert app_id == Path("APP_ID.txt").read_text()
+          print("KAR178_HISTORICAL_RELEASE_IDENTITY_VERIFIED")
+          PY
+
+          # Fail closed on any existing published OR draft release for this tag.
+          gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" > "$RUNNER_TEMP/kar178-existing-releases.json"
+          test "$(jq --arg tag "$TAG" '[.[] | select(.tag_name == $tag)] | length' "$RUNNER_TEMP/kar178-existing-releases.json")" = 0
+          readonly LATEST_BEFORE="$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name)"
+          test -n "$LATEST_BEFORE"
+          test "$LATEST_BEFORE" != "$TAG"
+
+          cat > "$RUNNER_TEMP/kar178-release-notes.md" <<EOF
+          ## Historical owner-validated stable baseline
+
+          On 2026-11-09 the owner reported approximately **60 successfully renewed live advertisements** using **v1.23.48**. This is the owner's native acceptance report, not per-Ad-ID diagnostics or a claim that hosted CI touched a real Kleinanzeigen account.
+
+          - Version/tag: `v1.23.48` (existing original annotated Git tag, not moved)
+          - Historical source commit: `$TARGET`
+          - Development path: `work` (historical PR #144, merged to the source commit)
+          - Chrome ZIP asset: `$ZIP_NAME`
+          - Chrome ZIP bytes: `$ZIP_BYTES`
+          - Chrome ZIP SHA-256: `$ZIP_SHA256`
+          - Original ZIP: byte-identical archive from that historical source commit; **not rebuilt**
+          - Historical work PR CI: [#42703769728](https://github.com/SaschaP1980/KleinanzeigenRenewer/actions/runs/42703769728) — 4/4 successful
+          - Historical merged-main CI: [#42708145765](https://github.com/SaschaP1980/KleinanzeigenRenewer/actions/runs/42708145765) — 2/2 successful, including packaged local-fixture Chromium E2E
+          - Native real-account acceptance: owner-reported approximately 60 renewed ads on 2026-11-09; hosted CI performed no real-account mutation
+
+          This is a **historical reference**, not the current source version, the latest GitHub Release, the approved updater channel or an instruction to downgrade. No app/profile/inventory/advertisement changes are performed by this publication.
+
+          Provenance: [KAR-143](https://github.com/SaschaP1980/KleinanzeigenRenewer/issues/143), [KAR-178](https://github.com/SaschaP1980/KleinanzeigenRenewer/issues/178), [historical stable evidence](https://github.com/SaschaP1980/KleinanzeigenRenewer/blob/main/docs/maintenance/KAR178_STABLE_BASELINE.md).
+          EOF
+
+          # Publish atomically to users: create as DRAFT, upload + download/hash-check,
+          # then publish with make_latest=false only after the immutable asset matches.
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          p = Path(os.environ["RUNNER_TEMP"])
+          payload = {
+              "tag_name": "v1.23.48",
+              "target_commitish": "f2225155e403d89d07a674c9e20f397a4f86694d",
+              "name": "kleinanzeigen Manager v1.23.48 — historical owner-validated stable",
+              "body": (p / "kar178-release-notes.md").read_text(),
+              "draft": True,
+              "prerelease": False,
+              "make_latest": "false",
+              "generate_release_notes": False,
+          }
+          (p / "kar178-release-create.json").write_text(json.dumps(payload))
+          (p / "kar178-release-publish.json").write_text(json.dumps({"draft": False, "make_latest": "false"}))
+          PY
+
+          gh api -X POST "repos/$GITHUB_REPOSITORY/releases" \
+            --input "$RUNNER_TEMP/kar178-release-create.json" > "$RUNNER_TEMP/kar178-release-draft.json"
+          readonly RELEASE_ID="$(jq -r .id "$RUNNER_TEMP/kar178-release-draft.json")"
+          [[ "$RELEASE_ID" =~ ^[0-9]+$ ]]
+          test "$(jq -r .tag_name "$RUNNER_TEMP/kar178-release-draft.json")" = "$TAG"
+          test "$(jq -r .draft "$RUNNER_TEMP/kar178-release-draft.json")" = true
+
+          gh release upload "$TAG" "$ZIP"
+          gh api "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID/assets" > "$RUNNER_TEMP/kar178-uploaded-assets.json"
+          jq -e --arg name "$ZIP_NAME" --argjson size "$ZIP_BYTES" --arg digest "sha256:$ZIP_SHA256" \
+            'length == 1 and .[0].name == $name and .[0].size == $size and .[0].state == "uploaded" and ((.[0].digest // $digest) == $digest)' \
+            "$RUNNER_TEMP/kar178-uploaded-assets.json" >/dev/null
+
+          mkdir -p "$RUNNER_TEMP/kar178-verify-download"
+          gh release download "$TAG" --pattern "$ZIP_NAME" --dir "$RUNNER_TEMP/kar178-verify-download"
+          cmp "$ZIP" "$RUNNER_TEMP/kar178-verify-download/$ZIP_NAME"
+          test "$(sha256sum "$RUNNER_TEMP/kar178-verify-download/$ZIP_NAME" | cut -d' ' -f1)" = "$ZIP_SHA256"
+
+          gh api -X PATCH "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID" \
+            --input "$RUNNER_TEMP/kar178-release-publish.json" > "$RUNNER_TEMP/kar178-release-published.json"
+          test "$(jq -r .draft "$RUNNER_TEMP/kar178-release-published.json")" = false
+          test "$(jq -r .tag_name "$RUNNER_TEMP/kar178-release-published.json")" = "$TAG"
+          test "$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name)" = "$LATEST_BEFORE"
+          test "$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" --jq .id)" = "$RELEASE_ID"
+          test "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG" --jq .object.sha)" = "$TAG_OBJECT"
+          test "$(git rev-parse "$TAG^{commit}")" = "$TARGET"
+
+          echo "KAR178_HISTORICAL_RELEASE_PUBLISHED tag=$TAG release_id=$RELEASE_ID target=$TARGET asset=$ZIP_NAME bytes=$ZIP_BYTES sha256=$ZIP_SHA256 latest_unchanged=$LATEST_BEFORE"
