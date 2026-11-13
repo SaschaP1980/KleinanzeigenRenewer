@@ -164,7 +164,8 @@ function fixture(options = {}) {
   const gate = Trusted.create({
     storageLocal: local, storageSession: session, workerInstanceId: options.workerId || WORKER,
     lockManager: options.lockManager === undefined ? locks() : options.lockManager,
-    clock: () => options.now ?? NOW, newToken: nonce, ownerPolicy: Policy,
+    clock: () => typeof options.clock === 'function' ? options.clock() : (options.now ?? NOW),
+    newToken: nonce, ownerPolicy: Policy,
     ...observers
   });
   assert.equal(typeof gate.captureForReserve, 'function',
@@ -314,6 +315,44 @@ test('P1.3-F2E2B: re-read all fifteen owner source revisions at end of capture',
   assert.equal(result.status,'candidate-idle');
   assert.equal(calls().proofCalls,2,
     'first and final independently obtained owner-source snapshots required');
+});
+// KAR-171 W3: independent source readers observe at different real times.
+// A source refreshed AFTER the first await is not "future" evidence, but a
+// modified durable source revision or a regressing observedAtMs still denies.
+test('KAR-171 W3 RED: fresh independent 15-owner observations retain identical durable revisions',async()=>{
+  let wall=NOW;
+  const {gate,calls}=fixture({
+    clock:()=>wall,
+    ownerProofs:read=>{
+      wall=NOW+read;
+      return Object.fromEntries(Policy.requiredOwners.map(owner=>[
+        owner,{observedAtMs:wall}
+      ]));
+    }
+  });
+  const result=await gate.captureForReserve(request());
+  assert.equal(result.status,'candidate-idle','private fixture only; no NativeHost apply');
+  assert.equal(calls().proofCalls,2,'both source observations remain mandatory');
+  assert.equal(result.snapshot.observedAtMs,NOW+2);
+});
+test('KAR-171 W3: same-revision source clock regression denies candidate',async()=>{
+  let wall=NOW;
+  const {gate}=fixture({
+    clock:()=>wall,
+    ownerProofs:read=>{
+      wall=NOW+2;
+      return {renewal:{observedAtMs:read===1?NOW+1:NOW}};
+    }
+  });
+  await denied(()=>gate.captureForReserve(request()),'owner timestamp regressed despite stable revision');
+});
+test('KAR-171 W3: post-read future source time remains untrusted',async()=>{
+  let wall=NOW;
+  const {gate}=fixture({
+    clock:()=>wall,
+    ownerProofs:()=>({renewal:{observedAtMs:NOW+5000}})
+  });
+  await denied(()=>gate.captureForReserve(request()),'future owner-proof time');
 });
 test('P1.3-F2E2B RED: a new source revision while reading remote state denies reserve',async()=>{
   let ownerReads=0;
