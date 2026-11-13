@@ -569,7 +569,8 @@
         const base={historicalOnly:true,eligibleForLease:false,
           exactAttemptBound:false,priorGenerationClosed:false,
           liveRemoteVerified:false};
-        if(!validRemote||!sameStoredProfile||history?.state==='unverified'
+        if(!validRemote||!sameStoredProfile
+          ||!['callback-finished','no-records'].includes(history?.state)
           ||sources.some(source=>!['missing','resolved'].includes(source?.state)))
           return Object.freeze({...base,state:'unverified',entries:Object.freeze([])});
         const resolutions=sources.flatMap(source=>source.revisions)
@@ -600,9 +601,12 @@
             &&(row.admissionToken===null||receipt.token===row.admissionToken)
             &&Number.isSafeInteger(receipt.startedAtMs)
             &&receipt.startedAtMs<=row.intentCreatedAtMs
-            &&(receipt.completedAtMs===null
-              ||(Number.isSafeInteger(receipt.completedAtMs)
-                &&receipt.completedAtMs>=row.intentCreatedAtMs))
+            // A matching token with an unfinished P8 admission is not an
+            // old-worker completion. The independently verified remote
+            // result must also have existed no later than P8 finally().
+            &&receipt.state==='callback-finished'
+            &&Number.isSafeInteger(receipt.completedAtMs)
+            &&receipt.completedAtMs>=row.verifiedAtMs
           );
           return Object.freeze({
             owner,attemptId:row.attemptId,profileId:row.profileId,
