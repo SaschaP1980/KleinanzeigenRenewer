@@ -45,7 +45,7 @@ jobs:
 
           # Do not permit an arbitrary subsequent workflow edit to re-authorize publication.
           test "$(git diff --name-status "$GITHUB_SHA^" "$GITHUB_SHA" -- "$WORKFLOW")" = "$(printf 'A\t%s' "$WORKFLOW")"
-          test "$(git diff --name-only "$GITHUB_SHA^" "$GITHUB_SHA")" = "$(printf '%s\n' "$WORKFLOW" 'CHANGELOG.md' 'docs/maintenance/SCRIPT_WORKFLOW_INVENTORY.json' 'tests/kar167-script-closure.cjs')"
+          test "$(git diff --name-only "$GITHUB_SHA^" "$GITHUB_SHA")" = "$(printf '%s\n' "$WORKFLOW" 'docs/maintenance/KAR178_STABLE_BASELINE.md' 'docs/maintenance/SCRIPT_WORKFLOW_INVENTORY.json' 'tests/kar167-script-closure.cjs')"
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           test "$(git rev-parse "$TARGET^{commit}")" = "$TARGET"
           test -z "$(git status --porcelain)"
