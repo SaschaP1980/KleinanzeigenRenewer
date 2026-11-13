@@ -117,6 +117,43 @@ test('KAR-171 W3D3B1: exact P8-token-bound completed remote history remains non-
  assert.equal(matrix.priorGenerationClosed,false);
  assert.equal(matrix.eligibleForLease,false);
 });
+// KAR-171 W3D3B2: a durable P8 START is not a completed callback, even
+// when its frozen token matches a genuinely verified Phase-4 remote journal.
+test('KAR-171 W3D3B2 RED: exact token with unfinished old-worker P8 callback is not historical closure',async()=>{
+ const s=store(),token='unfinished-old-worker-remote-001';
+ admission(s,token,OLD,500,null);
+ await resolvedPhase4(s,OLD,token);
+ const {p,a}=consumers(s),all=await a.observeAll(p);
+ assertNonAuthorizing(all);
+ assert.equal(all.admissionHistory.renewal.state,'unfinished');
+ assert.equal(all.remoteAdmissionLineage.renewal.state,'unverified',
+   'a remote terminal row cannot substitute the missing durable P8 finish');
+ assert.deepEqual(all.remoteAdmissionLineage.renewal.entries,[]);
+ const matrix=await a.inspectAllOwnerClosureReadOnly(p);
+ assert.equal(matrix.owners.renewal.status,'blocked');
+ assert.equal(matrix.eligibleForLease,false);
+});
+test('KAR-171 W3D3B2 RED: remote verification after P8 finish cannot close the old worker',async()=>{
+ const s=store(),token='late-remote-after-finish-001';
+ admission(s,token,OLD,500,null);
+ await resolvedPhase4(s,OLD,token);
+ s.rows[Atomic.FINISH_PREFIX+token]={
+  schema:1,state:'completed',token,workerInstanceId:OLD,completedAtMs:1100
+ };
+ const remoteKey='karPhase4VerifiedResolutionV1_renewal-001_attempt-001';
+ assert.ok(s.rows[remoteKey],'real independently verified Phase-4 receipt exists');
+ s.rows[remoteKey].verifiedAtMs=1500;
+ const {p,a}=consumers(s),all=await a.observeAll(p);
+ assertNonAuthorizing(all);
+ assert.equal(all.admissionHistory.renewal.state,'callback-finished');
+ assert.equal(all.remoteAdmissionLineage.renewal.state,'unverified',
+   'a P8 finally timestamp before verified remote result cannot prove this callback');
+ assert.deepEqual(all.remoteAdmissionLineage.renewal.entries,[]);
+ const matrix=await a.inspectAllOwnerClosureReadOnly(p);
+ assert.equal(matrix.owners.renewal.status,'unverified');
+ assert.equal(matrix.owners.renewal.remoteOutcomeVerified,false);
+ assert.equal(matrix.eligibleForLease,false);
+});
 test('KAR-171 W3D3B1 RED: tokenless Phase4 resolution never claims historical remote owner closure',async()=>{
  const s=store();admission(s,'old-token-001');await resolvedPhase4(s);
  const {p,a}=consumers(s);
