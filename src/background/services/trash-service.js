@@ -145,7 +145,13 @@
         const token = tokenFactory();
         if (typeof token !== 'string' || !token) throw new Error('Prüfung konnte nicht vorbereitet werden.');
         previews.clear(); // A new preview invalidates previously opened dialogs, including duplicate callbacks.
-        previews.set(token, { current, proposedDays, profile, snapshot: JSON.stringify(snapshotOf(rows)), expires: clock() + 120000 });
+        previews.set(token, {
+          current, proposedDays, profile,
+          snapshot: JSON.stringify(snapshotOf(rows)),
+          // Exact records the user saw in the warning, not just their count.
+          affected: JSON.stringify(snapshotOf(affected)),
+          expires: clock() + 120000
+        });
         return { token, retentionDays: current, proposedDays, affectedCount: affected.length };
       }
 
@@ -159,16 +165,49 @@
         if (previous !== pending.current) throw new Error('Aufbewahrung wurde zwischenzeitlich geändert. Bitte erneut prüfen.');
         const rows = await repository.readAll();
         if (JSON.stringify(snapshotOf(rows)) !== pending.snapshot) throw new Error('Papierkorb wurde zwischenzeitlich verändert. Bitte erneut prüfen.');
-        const affected = candidates(rows, pending.proposedDays, previous, clock());
+        const evaluatedAt = clock();
+        const affected = candidates(rows, pending.proposedDays, previous, evaluatedAt);
+        // The clock can cross an expiry boundary while the confirmation dialog
+        // is open. That must require a fresh preview, even if the stored rows
+        // and their timestamps have not changed.
+        if (JSON.stringify(snapshotOf(affected)) !== pending.affected) {
+          throw new Error('Prüfung veraltet. Bitte die Einstellung erneut auswählen.');
+        }
         if (affected.length && !confirmed) throw new Error('Dauerhaftes Löschen erfordert eine ausdrückliche Bestätigung.');
+        if (affected.length && typeof repository.deleteTrashIfEligible !== 'function') {
+          throw new Error('Sichere Papierkorb-Bereinigung ist nicht verfügbar.');
+        }
+        if (affected.some(record => !String(record.inventoryId || ''))) {
+          throw new Error('Papierkorb-Eintrag ohne sichere Inventar-ID. Bitte erneut prüfen.');
+        }
         if (retentionDays === previous) return { retentionDays: previous, deletedCount: 0 };
         // Save first. A service-worker interruption after this point resumes only the
         // policy consented to by the user; deleting before the durable setting would not.
         await setRetentionDays(retentionDays);
         currentDays = retentionDays;
         invalidatePurgeSchedule();
-        const cleanup = await purgeExpired();
-        return { retentionDays, deletedCount: cleanup.purged };
+        // Only the exact candidates covered by this preview/confirmation may
+        // be removed by this commit. A general purge would also delete old
+        // records inserted by another profile/import after consent.
+        let deletedCount = 0;
+        for (const record of affected) {
+          const expected = {
+            profileId: String(record.profileId || ''),
+            trashedAt: String(record.trash?.trashedAt || ''),
+            retentionResetAt: record.trash?.retentionResetAt == null
+              ? undefined : String(record.trash.retentionResetAt)
+          };
+          const deleted = await repository.deleteTrashIfEligible(
+            String(record.inventoryId), expected, retentionDays, evaluatedAt
+          );
+          if (!deleted) {
+            // The setting is durable by now. Do not report success for a
+            // partially applied cleanup; callers refresh the persisted value.
+            throw new Error('Aufbewahrung gespeichert, aber ein Papierkorb-Eintrag wurde zwischenzeitlich verändert. Bitte erneut prüfen.');
+          }
+          deletedCount += 1;
+        }
+        return { retentionDays, deletedCount };
       }
 
       async function purgeExpired() {
