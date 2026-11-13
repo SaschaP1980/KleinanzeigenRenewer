@@ -70,6 +70,14 @@ const create=(store,manager,worker='worker-1',verify=proof)=>Journal.create({
   'KR_PUBLISH_INTENT_UNVERIFIED','wrong-profile remote proof cannot resolve');
  ok((await a.observe(request.fillId)).state==='unverified',
   'failed verifier never erases uncertainty');
+ // KAR-171 W2: a positive remote result must identify a found page that
+ // was actually inspected by the full-pagination scan.
+ const impossible=create(store,manager,'invalid-pagination',
+   async (i,newId)=>({...proof(i,newId),targetPagesScanned:1,targetFoundPage:2}));
+ await deny(impossible.resolveVerified({fillId:request.fillId,newAdId:'7890'}),
+   'KR_PUBLISH_INTENT_UNVERIFIED','found page outside scanned pages cannot confirm publication');
+ ok((await a.observe(request.fillId)).state==='unverified',
+   'impossible pagination leaves the original publication intent unresolved');
  manager.held.add(Atomic.LOCK_NAME);
  await deny(restart.resolveVerified({fillId:request.fillId,newAdId:'7890'}),
   'KR_PUBLISH_INTENT_ATOMIC_BUSY','cross-worker lock contention cannot commit a resolution');
@@ -91,6 +99,15 @@ const create=(store,manager,worker='worker-1',verify=proof)=>Journal.create({
  corrupt.rows[key].profileId='changed';
  await deny(create(corrupt,manager).observe(request.fillId),
   'KR_PUBLISH_INTENT_CORRUPT','corrupted resolution is fail-closed');
+ // Historical local receipts must also reject impossible pagination after
+ // worker restart, even when the new remote proof function is not invoked.
+ const impossibleHistory=disk();
+ Object.assign(impossibleHistory.rows,structuredClone(store.rows));
+ const impossibleKey=Object.keys(impossibleHistory.rows).find(x=>x.startsWith(Journal.RESOLUTION_KEY_PREFIX));
+ impossibleHistory.rows[impossibleKey].targetPagesScanned=1;
+ impossibleHistory.rows[impossibleKey].targetFoundPage=2;
+ await deny(create(impossibleHistory,manager).observe(request.fillId),
+   'KR_PUBLISH_INTENT_CORRUPT','historical publication receipt beyond scanned pages fails closed');
  // Exercise the actual capture listeners (not only source-text assertions).
  const original={KRDeps:globalThis.KRDeps,document:globalThis.document,
    Element:globalThis.Element,HTMLInputElement:globalThis.HTMLInputElement};
