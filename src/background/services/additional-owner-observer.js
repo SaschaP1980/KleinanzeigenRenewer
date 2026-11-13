@@ -91,7 +91,8 @@
   const ADMISSION_FINISH='karAtomicAdmissionFinishV1_';
   const RECEIPT_ID=/^[A-Za-z0-9_-]{1,128}$/;
   const validReceiptId=x=>typeof x==='string'&&RECEIPT_ID.test(x);
-  function ownerReceiptEvidence(first,second){
+  function ownerReceiptEvidence(first,second,inspectedAtMs){
+    if(!Number.isSafeInteger(inspectedAtMs)||inspectedAtMs<0)return null;
     if(!first||!second||typeof first!=='object'||typeof second!=='object'
       ||Array.isArray(first)||Array.isArray(second))return null;
     const select=rows=>Object.entries(rows).filter(([key])=>
@@ -107,11 +108,13 @@
         if(key!==ADMISSION_START+row.token||row.state!=='admitted'
           ||typeof row.operationType!=='string'||!row.operationType
           ||row.operationType.length>128
-          ||!Number.isSafeInteger(row.startedAtMs)||row.startedAtMs<0)return null;
+          ||!Number.isSafeInteger(row.startedAtMs)||row.startedAtMs<0
+          ||row.startedAtMs>inspectedAtMs)return null;
         starts.set(row.token,row);
       }else{
         if(key!==ADMISSION_FINISH+row.token||row.state!=='completed'
-          ||!Number.isSafeInteger(row.completedAtMs)||row.completedAtMs<0)return null;
+          ||!Number.isSafeInteger(row.completedAtMs)||row.completedAtMs<0
+          ||row.completedAtMs>inspectedAtMs)return null;
         finishes.set(row.token,row);
       }
     }
@@ -359,10 +362,13 @@
       // in-memory Map cannot see tasks abandoned by a terminated MV3 worker.
       // Double-read the raw journal; malformed/torn/unavailable stays UNKNOWN.
       let receiptProof=null;
+      // KAR-171 W3C: a historical source's time is sampled AFTER both
+      // independent reads. Future old-worker starts/finishes remain UNKNOWN.
+      const receiptClock=()=>{try{return clock();}catch{return null;}};
       try {
         const firstReceipts=await storageLocal.get(null);
         const secondReceipts=await storageLocal.get(null);
-        receiptProof=ownerReceiptEvidence(firstReceipts,secondReceipts);
+        receiptProof=ownerReceiptEvidence(firstReceipts,secondReceipts,receiptClock());
       }catch { /* no positive receipt authority from an unavailable source */ }
       if(!receiptProof){
         for(const n of OWNERS)if(o[n].state!=='active')
