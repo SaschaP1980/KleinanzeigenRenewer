@@ -43,7 +43,7 @@ function assertNonAuthorizing(all) {
  assert.equal(all.remoteAdmissionLineage.priorGenerationClosed,false);
  assert.equal(all.remoteAdmissionLineage.liveRemoteVerified,false);
 }
-async function resolvedPhase4(s,worker=OLD) {
+async function resolvedPhase4(s,worker=OLD,admissionToken=null) {
  const journal=Phase4.create({storageLocal:s,clock:()=>1000,newToken:()=> 'attempt-001',
   workerInstanceId:worker,...require('./helpers/phase4-locks.cjs')(),
   verifyRemoteOutcome:x=>({profileId:x.profileId,sourceAdId:x.sourceAdId,
@@ -51,8 +51,10 @@ async function resolvedPhase4(s,worker=OLD) {
    sourceEvidence:'not-in-my-ads-full-pagination-scan',
    targetEvidence:'found-in-my-ads-full-pagination-scan',
    sourcePagesScanned:3,targetPagesScanned:3,targetFoundPage:2})});
+ const admissionReceipt=admissionToken===null?null
+  :Object.freeze({...s.rows[Atomic.START_PREFIX+admissionToken]});
  const receipt=await journal.begin({renewalId:'renewal-001',profileId:PROFILE,
-  sourceAdId:'12345',newAdId:'56789'});
+  sourceAdId:'12345',newAdId:'56789',admissionReceipt});
  await journal.resolveVerified({renewalId:receipt.renewalId,attemptId:receipt.attemptId});
  return receipt;
 }
@@ -95,6 +97,26 @@ test('F2E2D2A RED: real Phase4 remote resolution + old P8 worker overlap is only
 // KAR-171 W3D3B1: independently verified P8 callback completion and even
 // verified REMOTE journal rows must not become reconciled old-worker ownership
 // when their transaction's P8 admission token is absent or ambiguous.
+test('KAR-171 W3D3B1: exact P8-token-bound completed remote history remains non-authorizing',async()=>{
+ const s=store(),token='token-bound-remote-001';
+ admission(s,token,OLD,500,null);
+ await resolvedPhase4(s,OLD,token);
+ s.rows[Atomic.FINISH_PREFIX+token]={
+  schema:1,state:'completed',token,workerInstanceId:OLD,completedAtMs:2200
+ };
+ const {p,a}=consumers(s);
+ const all=await a.observeAll(p);
+ assert.equal(all.remoteAdmissionLineage.renewal.state,'token-bound-historical');
+ assert.equal(all.remoteAdmissionLineage.renewal.entries.length,1);
+ assert.equal(all.remoteAdmissionLineage.renewal.entries[0].exactAttemptBound,true);
+ const matrix=await a.inspectAllOwnerClosureReadOnly(p);
+ assert.equal(matrix.owners.renewal.remoteLineageState,'token-bound-historical');
+ assert.equal(matrix.owners.renewal.status,'historical-callback-settled');
+ assert.equal(matrix.owners.renewal.remoteOutcomeVerified,false,
+   'exact historical remote source match is never a fresh account result');
+ assert.equal(matrix.priorGenerationClosed,false);
+ assert.equal(matrix.eligibleForLease,false);
+});
 test('KAR-171 W3D3B1 RED: tokenless Phase4 resolution never claims historical remote owner closure',async()=>{
  const s=store();admission(s,'old-token-001');await resolvedPhase4(s);
  const {p,a}=consumers(s);
