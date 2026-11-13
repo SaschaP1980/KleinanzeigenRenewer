@@ -93,6 +93,15 @@
               <input id="renewalRetryRange" class="configuration-range" type="range" min="1" max="5" step="1" value="3" aria-describedby="renewalRetryDescription">
               <div class="configuration-range-scale" aria-hidden="true"><span>1</span><span>5</span></div>
               <p id="renewalRetryDescription" class="configuration-description renewal-retry-description">Maximale Versuche je Phase · Standard: 3<br>Mehr Versuche erhöhen die Zuverlässigkeit, können den Ablauf aber verlängern.</p>
+              <section class="configuration-subsection trash-retention-settings" aria-labelledby="trashRetentionLabel">
+                <div class="configuration-row">
+                  <label class="configuration-label" id="trashRetentionLabel" for="trashRetentionRange">Papierkorb-Aufbewahrung</label>
+                  <output id="trashRetentionValue" class="configuration-value" for="trashRetentionRange">30 Tage</output>
+                </div>
+                <input id="trashRetentionRange" class="configuration-range" type="range" min="0" max="6" step="1" value="1" aria-describedby="trashRetentionDescription">
+                <div class="configuration-range-scale trash-retention-range-scale" aria-hidden="true"><span>10</span><span>30</span><span>60</span><span>90</span><span>180</span><span>360</span><span>∞</span></div>
+                <p id="trashRetentionDescription" class="configuration-description">Einträge werden nach 30 Tagen automatisch aus dem lokalen Papierkorb gelöscht.</p>
+              </section>
               <div class="configuration-subsection native-update-check" aria-label="Windows-Updater">
                 <div class="configuration-label">Windows-Updater</div>
                 <p id="nativeUpdateSummaryStatus" class="configuration-description" role="status" aria-live="polite">Update-Status derzeit nicht verfügbar.</p>
@@ -693,6 +702,7 @@
     <script src="control-accordion-controller.js"></script>
     <script src="diagnostics-controls-controller.js"></script>
     <script src="renewal-settings-controller.js"></script>
+    <script src="trash-retention-settings-controller.js"></script>
     <script src="app-layout-controller.js"></script>
     <script src="tab-page-inspection-controller.js"></script>
     <script src="shared-ui-helpers.js"></script>
