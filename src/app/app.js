@@ -1,6 +1,6 @@
 const AppElements = globalThis.KRDeps?.require?.('KRAppElements');
 if (!AppElements) throw new Error('app-elements.js must load before app.js');
-const { appVersion, controlStatus, statusDot, statusTitle, statusText, statusFacts, statusTime, statusAction, statusDismiss, messageHistoryOpen, messageHistoryDialog, messageHistoryClose, messageHistoryDone, messageHistoryClear, messageHistoryList, messageHistoryEmpty, profileSelect, profileManageButton, profileDetectedText, profileAccountStatusDot, profileManagerDialog, profileManagerClose, profileManagerDone, profileManagerList, profileManagerStatus, profileImportButton, profileBackupFileInput, renewalModeIndicator, renewalModeSafeButton, renewalModeFastButton, renewalModeDescription, renewalRetryRange, renewalRetryValue, diagnosticZipButton, diagnosticResetButton, emergencyWorkflowResetButton, diagnosticZipStatus, diagnosticResetBlockReasonElement, actionAvailability, actionAvailabilityTitle, actionAvailabilityText, actionsAccordion, configurationAccordion, diagnosticsAccordion, actionsActivityIndicator, inventoryButton, fullInventoryButton, archiveInsertButton, massRenewalButton, clearInventoryButton, refreshButton, inventoryList, progress, bulkRunStatus, inventoryCount, inventorySearchInput, inventorySortKey, inventorySortAsc, inventorySortDesc, inventorySection, trashSection, inventoryViewButton, trashViewButton, inventoryHeaderCount, trashHeaderCount, trashCount, trashList, globalViewDetailed, globalViewCompact, appHeader, controlPanel, inventoryStickySentinel, trashStickySentinel, inventoryStickyHeader, trashStickyHeader, inventoryStickySlot, trashStickySlot, inventoryStickyOcclusion, trashStickyOcclusion, primaryActions, appNotice, appNoticeTitle, appNoticeText, appNoticeTime, appNoticeDismiss, renewalStartDialog, renewalStartClose, renewalStartCancel, renewalStartConfirm, renewalStartCover, renewalStartTitle, renewalStartSourceId, renewalStartKicker, renewalStartDialogTitle, renewalStartDialogText, renewalStartSource, renewalStartSourceLabel, renewalStartSafety, renewalStartSafetyTitle, renewalStartSafetyText, renewalPhase1Label, renewalPhase2Label, renewalPhase3Label, renewalPhase4Label, renewalStartSteps, renewalStartActions, renewalProgressMessage, renewalProgressMessageTitle, renewalProgressMessageText, renewalBackgroundHint, renewalProgressActions, renewalProgressClose, renewalProgressView, renewalProgressEdit, renewalProgressShortcut, renewalProgressShortcutTitle, renewalProgressShortcutText, actionConfirmDialog, actionConfirmTitle, actionConfirmText, actionConfirmDetail, actionConfirmClose, actionConfirmCancel, actionConfirmSubmit, archiveInsertDialog, archiveInsertClose, archiveInsertCancel, archiveInsertConfirm, archiveInsertKicker, archiveInsertTitle, archiveInsertIntro, archiveDropzone, archiveFileInput, archiveChooseFile, archiveValidationStatus, archivePreview, archivePreviewCover, archivePreviewTitle, archivePreviewMeta, archiveInsertSafety, archiveInsertSteps, archivePhase3Label, archiveProgressMessage, archiveProgressMessageTitle, archiveProgressMessageText, archiveBackgroundHint, archiveInsertActions, archiveProgressActions, archiveProgressClose, archiveProgressView, archiveProgressEdit, trashTemplateDialog, trashTemplateClose, trashTemplateCancel, trashTemplateConfirm, trashTemplateCover, trashTemplateTitle, trashTemplateSourceTitle, trashTemplateSourceMeta, trashTemplateIntro, trashTemplateSteps, trashTemplateProgressMessage, trashTemplateProgressTitle, trashTemplateProgressText, trashTemplateConfirmActions, trashTemplateProgressActions, trashTemplateDone, trashTemplateRestart, trashTemplateTarget, trashTemplateInventory, massRenewalDialog, massRenewalClose, massRenewalCancel, massRenewalBack, massRenewalNext, massRenewalStart, massRenewalStopAfterCurrent, massRenewalDone, massRenewalKicker, massRenewalIntro, massRenewalSelectionPanel, massRenewalOrderPanel, massRenewalOrderList, massRenewalStopOnError, massRenewalStopOnErrorStatus, massRenewalProgressPanel, massRenewalSummaryPanel, massRenewalSelectionBody, massRenewalSelectionCount, massRenewalSearchInput, massRenewalSearchClear, massRenewalProgressTitle, massRenewalProgressCount, massRenewalProgressList, massRenewalSummaryCount, massRenewalSummaryList, inventoryCaptureDialog, inventoryCaptureClose, inventoryCaptureKicker, inventoryCaptureTitle, inventoryCaptureIntro, inventoryCaptureOptions, inventoryCaptureScopeAll, inventoryCaptureScopeNewOnly, inventoryCaptureScopeDescription, inventoryCaptureVerificationFast, inventoryCaptureVerificationSafe, inventoryCaptureVerificationDescription, inventoryCaptureModeNotice, inventoryCaptureModeScope, inventoryCaptureModeVerification, inventoryCaptureModeText, inventoryCaptureConfirmPanel, inventoryCaptureConfirmTitle, inventoryCaptureConfirmText, inventoryCaptureConfirmMeta, inventoryCaptureCandidateSection, inventoryCaptureCandidateList, inventoryCaptureSelectedCandidate, inventoryCaptureBulkCurrentCandidate, inventoryCaptureProgressPanel, inventoryCaptureProgressTitle, inventoryCaptureProgressText, inventoryCaptureProgressTrack, inventoryCaptureProgressFill, inventoryCaptureProgressCount, inventoryCaptureResultPanel, inventoryCaptureResult, inventoryCaptureResultTitle, inventoryCaptureResultText, inventoryCaptureResultMeta, inventoryCaptureResultDetails, inventoryCaptureCancel, inventoryCaptureStart, inventoryCaptureStopAfterCurrent, inventoryCaptureDone, inventoryCaptureProgressShortcut, inventoryCaptureProgressShortcutTitle, inventoryCaptureProgressShortcutText } = AppElements.collect(document).flat;
+const { appVersion, controlStatus, statusDot, statusTitle, statusText, statusFacts, statusTime, statusAction, statusDismiss, messageHistoryOpen, messageHistoryDialog, messageHistoryClose, messageHistoryDone, messageHistoryClear, messageHistoryList, messageHistoryEmpty, profileSelect, profileManageButton, profileDetectedText, profileAccountStatusDot, profileManagerDialog, profileManagerClose, profileManagerDone, profileManagerList, profileManagerStatus, profileImportButton, profileBackupFileInput, renewalModeIndicator, renewalModeSafeButton, renewalModeFastButton, renewalModeDescription, renewalRetryRange, renewalRetryValue, diagnosticZipButton, diagnosticResetButton, emergencyWorkflowResetButton, diagnosticZipStatus, diagnosticResetBlockReasonElement, actionAvailability, actionAvailabilityTitle, actionAvailabilityText, actionsAccordion, configurationAccordion, trashRetentionRange, trashRetentionValue, trashRetentionDescription, diagnosticsAccordion, actionsActivityIndicator, inventoryButton, fullInventoryButton, archiveInsertButton, massRenewalButton, clearInventoryButton, refreshButton, inventoryList, progress, bulkRunStatus, inventoryCount, inventorySearchInput, inventorySortKey, inventorySortAsc, inventorySortDesc, inventorySection, trashSection, inventoryViewButton, trashViewButton, inventoryHeaderCount, trashHeaderCount, trashCount, trashList, globalViewDetailed, globalViewCompact, appHeader, controlPanel, inventoryStickySentinel, trashStickySentinel, inventoryStickyHeader, trashStickyHeader, inventoryStickySlot, trashStickySlot, inventoryStickyOcclusion, trashStickyOcclusion, primaryActions, appNotice, appNoticeTitle, appNoticeText, appNoticeTime, appNoticeDismiss, renewalStartDialog, renewalStartClose, renewalStartCancel, renewalStartConfirm, renewalStartCover, renewalStartTitle, renewalStartSourceId, renewalStartKicker, renewalStartDialogTitle, renewalStartDialogText, renewalStartSource, renewalStartSourceLabel, renewalStartSafety, renewalStartSafetyTitle, renewalStartSafetyText, renewalPhase1Label, renewalPhase2Label, renewalPhase3Label, renewalPhase4Label, renewalStartSteps, renewalStartActions, renewalProgressMessage, renewalProgressMessageTitle, renewalProgressMessageText, renewalBackgroundHint, renewalProgressActions, renewalProgressClose, renewalProgressView, renewalProgressEdit, renewalProgressShortcut, renewalProgressShortcutTitle, renewalProgressShortcutText, actionConfirmDialog, actionConfirmTitle, actionConfirmText, actionConfirmDetail, actionConfirmClose, actionConfirmCancel, actionConfirmSubmit, archiveInsertDialog, archiveInsertClose, archiveInsertCancel, archiveInsertConfirm, archiveInsertKicker, archiveInsertTitle, archiveInsertIntro, archiveDropzone, archiveFileInput, archiveChooseFile, archiveValidationStatus, archivePreview, archivePreviewCover, archivePreviewTitle, archivePreviewMeta, archiveInsertSafety, archiveInsertSteps, archivePhase3Label, archiveProgressMessage, archiveProgressMessageTitle, archiveProgressMessageText, archiveBackgroundHint, archiveInsertActions, archiveProgressActions, archiveProgressClose, archiveProgressView, archiveProgressEdit, trashTemplateDialog, trashTemplateClose, trashTemplateCancel, trashTemplateConfirm, trashTemplateCover, trashTemplateTitle, trashTemplateSourceTitle, trashTemplateSourceMeta, trashTemplateIntro, trashTemplateSteps, trashTemplateProgressMessage, trashTemplateProgressTitle, trashTemplateProgressText, trashTemplateConfirmActions, trashTemplateProgressActions, trashTemplateDone, trashTemplateRestart, trashTemplateTarget, trashTemplateInventory, massRenewalDialog, massRenewalClose, massRenewalCancel, massRenewalBack, massRenewalNext, massRenewalStart, massRenewalStopAfterCurrent, massRenewalDone, massRenewalKicker, massRenewalIntro, massRenewalSelectionPanel, massRenewalOrderPanel, massRenewalOrderList, massRenewalStopOnError, massRenewalStopOnErrorStatus, massRenewalProgressPanel, massRenewalSummaryPanel, massRenewalSelectionBody, massRenewalSelectionCount, massRenewalSearchInput, massRenewalSearchClear, massRenewalProgressTitle, massRenewalProgressCount, massRenewalProgressList, massRenewalSummaryCount, massRenewalSummaryList, inventoryCaptureDialog, inventoryCaptureClose, inventoryCaptureKicker, inventoryCaptureTitle, inventoryCaptureIntro, inventoryCaptureOptions, inventoryCaptureScopeAll, inventoryCaptureScopeNewOnly, inventoryCaptureScopeDescription, inventoryCaptureVerificationFast, inventoryCaptureVerificationSafe, inventoryCaptureVerificationDescription, inventoryCaptureModeNotice, inventoryCaptureModeScope, inventoryCaptureModeVerification, inventoryCaptureModeText, inventoryCaptureConfirmPanel, inventoryCaptureConfirmTitle, inventoryCaptureConfirmText, inventoryCaptureConfirmMeta, inventoryCaptureCandidateSection, inventoryCaptureCandidateList, inventoryCaptureSelectedCandidate, inventoryCaptureBulkCurrentCandidate, inventoryCaptureProgressPanel, inventoryCaptureProgressTitle, inventoryCaptureProgressText, inventoryCaptureProgressTrack, inventoryCaptureProgressFill, inventoryCaptureProgressCount, inventoryCaptureResultPanel, inventoryCaptureResult, inventoryCaptureResultTitle, inventoryCaptureResultText, inventoryCaptureResultMeta, inventoryCaptureResultDetails, inventoryCaptureCancel, inventoryCaptureStart, inventoryCaptureStopAfterCurrent, inventoryCaptureDone, inventoryCaptureProgressShortcut, inventoryCaptureProgressShortcutTitle, inventoryCaptureProgressShortcutText } = AppElements.collect(document).flat;
 const DISMISSED_UI_MESSAGES_KEY = 'dismissedUiMessagesV1';
 const LEGACY_ARCHIVE_INSERT_STATUS_ID = 'status:Anzeige aus ZIP wird inseriert';
 const UI_ACTIVITY_CURRENT_KEY = 'uiCurrentActivityV1';
@@ -222,6 +222,7 @@ const ActionsDiagnosticsController = KRDeps.require('KRActionsDiagnosticsControl
 const ControlAccordionController = KRDeps.require('KRControlAccordionController');
 const DiagnosticsControlsController = KRDeps.require('KRDiagnosticsControlsController');
 const RenewalSettingsController = KRDeps.require('KRRenewalSettingsController');
+const TrashRetentionSettingsController = KRDeps.require('KRTrashRetentionSettingsController');
 const AppLayoutController = KRDeps.require('KRAppLayoutController');
 const TabPageInspectionController = KRDeps.require('KRTabPageInspectionController');
 const SharedUiHelpers = KRDeps.require('KRSharedUiHelpers');
@@ -304,6 +305,8 @@ let currentRenewalConfiguration = { renewalMode: RENEWAL_MODE_SAFE, fastModeAckn
 let controlAccordionController = null;
 let diagnosticsControlsController = null;
 let renewalSettingsController = null;
+let trashRetentionSettingsController = null;
+let currentTrashRetentionDays = 30;
 let currentBulkRunState = null;
 let bulkStartInFlight = false;
 let currentStatusAction = '';
@@ -933,6 +936,7 @@ function requireRenewalSettingsController() {
     safeMode: RENEWAL_MODE_SAFE, fastMode: RENEWAL_MODE_FAST, defaultAttempts: RENEWAL_PHASE_ATTEMPTS_DEFAULT,
     elements: { indicator: renewalModeIndicator, safeButton: renewalModeSafeButton, fastButton: renewalModeFastButton, description: renewalModeDescription, retryRange: renewalRetryRange, retryValue: renewalRetryValue },
     runtimeMessage, logEvent: logAppEvent, confirmAction,
+    getTrashRetentionLabel: () => trashRetentionDurationLabel(currentTrashRetentionDays),
     onError(title, error) { setStatus('error', title, friendlyErrorMessage(error)); },
     onConfigurationChanged(configuration) {
       currentRenewalConfiguration = configuration;
@@ -962,6 +966,53 @@ function setRenewalKicker(prefix, mode = null) {
 }
 
 async function refreshRenewalConfiguration() { currentRenewalConfiguration = await requireRenewalSettingsController().refresh(); return currentRenewalConfiguration; }
+
+function trashRetentionDurationLabel(days = currentTrashRetentionDays) {
+  return days === 'infinite' ? 'unbegrenzt' : days + ' Tage';
+}
+
+function refreshTrashRetentionExplanations(days = currentTrashRetentionDays) {
+  const period = trashRetentionDurationLabel(days);
+  const indefinite = days === 'infinite';
+  const full = document.querySelector('.trash-intro-full');
+  const sticky = document.querySelector('.trash-intro-sticky');
+  if (full) full.textContent = indefinite
+    ? 'Einträge im Papierkorb werden unbegrenzt lokal aufbewahrt, bis du sie ausdrücklich endgültig löschst. Du kannst sie als Vorlage für eine neue Anzeige verwenden. Die Anzeige bei Kleinanzeigen bleibt unverändert. Eine neue Anzeige wird nur vorbereitet und niemals automatisch veröffentlicht. Einträge können nicht zurück ins Inventar verschoben werden.'
+    : 'Einträge im Papierkorb werden ' + period + ' lokal aufbewahrt. Du kannst sie in dieser Zeit als Vorlage für eine neue Anzeige verwenden. Die Anzeige bei Kleinanzeigen bleibt unverändert. Eine neue Anzeige wird nur vorbereitet und niemals automatisch veröffentlicht. Einträge können nicht zurück ins Inventar verschoben werden.';
+  if (sticky) sticky.textContent = indefinite
+    ? 'Papierkorb: Einträge bleiben bis zur endgültigen Löschung erhalten.'
+    : 'Papierkorb: Einträge werden ' + period + ' lokal aufbewahrt.';
+  if (renewalStartSafetyText) {
+    const bold = document.createElement('b');
+    bold.textContent = 'Als Vorlage neu inserieren';
+    renewalStartSafetyText.replaceChildren(
+      document.createTextNode('Die bisherige Anzeige bleibt danach ' + period + ' als Sicherheitskopie im Papierkorb und kann dort über '),
+      bold,
+      document.createTextNode(' erneut als Vorlage verwendet werden.')
+    );
+  }
+}
+
+function requireTrashRetentionSettingsController() {
+  if (trashRetentionSettingsController) return trashRetentionSettingsController;
+  if (!TrashRetentionSettingsController?.create) throw new Error('trash-retention-settings-controller.js must load before app.js');
+  trashRetentionSettingsController = TrashRetentionSettingsController.create({
+    elements: { range: trashRetentionRange, value: trashRetentionValue, description: trashRetentionDescription },
+    runtimeMessage, confirmAction, getSelectedProfileId: () => selectedProfileId,
+    onChanged(days) {
+      currentTrashRetentionDays = days;
+      refreshTrashRetentionExplanations(days);
+      if (currentRecords.length || currentTrashRecords.length) void refreshInventories().catch(() => {});
+    },
+    onError(title, error) { setStatus('error', title, friendlyErrorMessage(error)); }
+  });
+  return trashRetentionSettingsController;
+}
+
+async function refreshTrashRetentionConfiguration() {
+  return requireTrashRetentionSettingsController().refresh();
+}
+
 
 function profileById(profileId, state = currentProfileState) { return profileAccountUiController.profileById(profileId, state); }
 
@@ -2792,6 +2843,7 @@ profileSelect?.addEventListener('change', () => {
 });
 
 requireRenewalSettingsController();
+requireTrashRetentionSettingsController();
 
 profileManageButton?.addEventListener('click', async () => {
   setProfileManagerStatus('');
@@ -3147,7 +3199,7 @@ appNoticeDismiss.addEventListener('click', async () => {
 clearInventoryButton.addEventListener('click', async () => {
   if (!currentRecords.length) return;
   void logAppEvent('USER_CLEAR_INVENTORY_CLICK', { count: currentRecords.length });
-  if (!await confirmAction({ title: 'Alle Anzeigen in den Papierkorb?', text: `Alle ${currentRecords.length} gespeicherten Anzeigen werden für 30 Tage in den Papierkorb verschoben.`, detail: 'Die Anzeigen bei Kleinanzeigen bleiben unverändert. Gespeicherte Bilder bleiben bis zum Ablauf erhalten.', confirmLabel: 'Alle in Papierkorb', danger: true })) {
+  if (!await confirmAction({ title: 'Alle Anzeigen in den Papierkorb?', text: `Alle ${currentRecords.length} gespeicherten Anzeigen werden ${currentTrashRetentionDays === 'infinite' ? 'unbegrenzt' : 'für ' + trashRetentionDurationLabel()} im Papierkorb aufbewahrt.`, detail: 'Die Anzeigen bei Kleinanzeigen bleiben unverändert. Gespeicherte Bilder bleiben bis zum Ablauf erhalten.', confirmLabel: 'Alle in Papierkorb', danger: true })) {
     void logAppEvent('USER_CLEAR_INVENTORY_CANCELLED', { count: currentRecords.length });
     return;
   }
@@ -3155,7 +3207,7 @@ clearInventoryButton.addEventListener('click', async () => {
   try {
     await runtimeMessage(scopedProfileMessage('CLEAR_INVENTORIES'));
     void logAppEvent('USER_CLEAR_INVENTORY_SUCCEEDED', {});
-    setStatus('ready', 'Alle Einträge in Papierkorb verschoben', 'Die Einträge bleiben 30 Tage als Vorlagen erhalten.');
+    setStatus('ready', 'Alle Einträge in Papierkorb verschoben', 'Die Einträge bleiben ${trashRetentionDurationLabel()} als Vorlagen erhalten.');
     await refreshInventories();
   } catch (error) {
     void logAppEvent('USER_CLEAR_INVENTORY_FAILED', { message: error.message }, 'error');
@@ -3314,7 +3366,7 @@ recordSidebarBottomDiagnostics('startup');
 syncActionsActivityIndicator();
 void detectBackgroundEpoch('startup').then(() => recordActionsStateSnapshot('startup', { force: true }));
 
-Promise.all([ensureUiActivityLoaded(), loadListViewModes(), refreshProfileState(), refreshRenewalConfiguration(), primeManagedWorkerTabCache()])
+Promise.all([ensureUiActivityLoaded(), loadListViewModes(), refreshProfileState(), refreshRenewalConfiguration(), refreshTrashRetentionConfiguration(), primeManagedWorkerTabCache()])
   .then(() => Promise.all([inspectPage(), refreshInventories(), refreshBulkStatus(), refreshMassRenewalBatchStatus({ forceOpen: false, recoveryOnly: true, source: 'startup' })]))
   .catch(error => setStatus('error', 'Inventar konnte nicht geladen werden', friendlyErrorMessage(error)));
 schedulePageInspect(ACCOUNT_HEALTH_FALLBACK_MS);
