@@ -3,7 +3,7 @@ const read=p=>fs.existsSync(path.join(root,p))?fs.readFileSync(path.join(root,p)
 let pass=0; function ok(c,m){assert.ok(c,m);pass++;console.log('PASS',m)}
 const targets=['src/app/app-elements.js','src/app/profile-account-ui-controller.js','src/background/background-message-router.js','src/shared/renewal-policy.js'];
 ok(targets.every(p=>fs.existsSync(path.join(root,p))), 'all four v1.23.12 owner modules exist');
-const app=read('src/app/app.js'), bg=read('src/background/background.js'), html=read('app.html'), layout=read('scripts/source-layout.json');
+const app=read('src/app/app.js'), bg=read('src/background/background.js'), html=read('src/app/app.html'), layout=read('scripts/source-layout.json');
 ok(!/^const\s+[A-Za-z_$][\w$]*\s*=\s*document\.querySelector\(/m.test(app) && /KRAppElements/.test(app), 'app.js delegates top-level DOM binding ownership to KRAppElements');
 ok(!/message\?\.type\s*===/.test(bg) && /KRBackgroundMessageRouter/.test(bg), 'background.js delegates message type routing to KRBackgroundMessageRouter');
 ok(!/let\s+currentProfile\s*=/.test(app) && !/liveAccountState|liveAccountAmbiguousNames/.test(app) && /KRProfileAccountUiController/.test(app), 'account/profile compatibility mirrors are removed behind profile account UI owner');
