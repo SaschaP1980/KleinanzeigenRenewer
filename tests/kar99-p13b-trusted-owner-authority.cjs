@@ -465,6 +465,26 @@ for (const kind of ['phase4','publish']) {
     assert.equal(proof.status,'candidate-idle',
       'PRIVATE fully mocked owner-source fixture only, not production update permission');
   });
+  // KAR-171 W3: a historical completion cannot be dated in the future.
+  // Even an internally matching token/worker/Ad-ID pair is not proof of
+  // a completed action that had not happened when the capture began.
+  for (const [label,mutate] of [
+    ['remote verification timestamp is in the future',({rows})=>{
+      const key=Object.keys(rows).find(k=>k.startsWith(
+        kind==='phase4'?'karPhase4VerifiedResolutionV1_':'karAutoPublishVerifiedResolutionV1_'));
+      rows[key].verifiedAtMs=NOW+2000;
+    }],
+    ['prior-worker P8 callback finish is in the future',({rows,token})=>{
+      rows['karAtomicAdmissionFinishV1_'+token].completedAtMs=NOW+2000;
+    }]
+  ]) {
+    test('KAR-171 W3 RED: '+kind+' '+label+' cannot authorize owner candidate',async()=>{
+      const data=tokenBoundRemote(kind);
+      mutate(data);
+      const {gate}=fixture({local:data.rows});
+      await denied(()=>gate.captureForReserve(request()),'future historical remote receipt');
+    });
+  }
   for(const [label,mutate] of [
     ['missing P8 start and finish',({rows,token})=>{
       delete rows['karAtomicAdmissionStartV1_'+token];
