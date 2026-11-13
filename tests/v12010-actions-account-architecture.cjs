@@ -4,7 +4,7 @@ const bg = fs.readFileSync('background.js','utf8') + '\n' + fs.readFileSync('dia
 const accountProbe = fs.readFileSync('account-probe-service.js','utf8');
 const html = fs.readFileSync('app.html','utf8');
 let n=0; const pass=l=>{n++;console.log('PASS '+l);};
-assert.match(html, /<script src="src\/app\/account-gate\.js"><\/script>[\s\S]*<script src="src\/app\/app\.js"><\/script>/); pass('app loads central account-gate authority before app.js');
+assert.match(html, /<script src="account-gate\.js"><\/script>[\s\S]*<script src="app\.js"><\/script>/); pass('app loads central account-gate authority before app.js');
 assert.match(bg, /importScripts\([^\n]*"\.\.\/shared\/managed-navigation\.js"/); pass('background loads managed navigation contract');
 assert.match(bg, /async function waitForExpectedTabComplete/); pass('target-bound navigation waiter exists');
 const probeStart=accountProbe.indexOf('async function probeLiveKleinanzeigenAccount'); const probeEnd=accountProbe.indexOf('\n      return Object.freeze',probeStart); assert.ok(probeStart>=0&&probeEnd>probeStart); const probe=accountProbe.slice(probeStart,probeEnd);
