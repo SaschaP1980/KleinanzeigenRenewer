@@ -174,7 +174,7 @@ Read `docs/PROJECT_CONTEXT.md` for the complete current list. At minimum never w
 - no unsafe `.submit()` / `requestSubmit()` bypass;
 - exact template/title/scalar verification;
 - recovery after service-worker/tab interruption;
-- 30-day local trash retention semantics;
+- configurable local trash retention (10/30/60/90/180/360 days or indefinite), defaulting to 30 days for legacy settings, with explicit destructive-change consent;
 - no real Kleinanzeigen mutation from hosted CI;
 - stable Chrome extension identity;
 - Dynamic Public Function Coverage = **100%**;
