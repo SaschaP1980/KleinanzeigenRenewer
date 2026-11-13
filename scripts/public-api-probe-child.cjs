@@ -123,6 +123,34 @@ if(typeof api.create==='function') {
          ],evaluate:()=>({status:'blocked'})},
          clock:()=>123456,newToken:()=> 'coverage-probe-authority-12345',
          workerInstanceId:'coverage-probe-worker'}
+      : rel.endsWith('/inventory-refresh-service.js')
+      ? new Proxy({
+          RENEWAL_MODE_SAFE:'safe',
+          RENEWAL_DIRECT_READONLY_TIMEOUT_MS:3500,
+          READONLY_METADATA_TIMEOUT_MS:15000,
+          TAB_LOAD_TIMEOUT_RENEWAL_MS:45000,
+          BULK_RETRY_TIMEOUT_MS:90000,
+          BULK_RETRY_POLL_MS:500
+        },{
+          get(target,prop){return Object.hasOwn(target,prop)?target[prop]:options[prop];},
+          has:()=>true
+        })
+      : rel.endsWith('/renewal-phase1-retry-service.js')
+      ? new Proxy({
+          // Only the inert dynamic public-API probe needs these real types.
+          // Production's fail-closed dependency validation is not relaxed.
+          configPort: {
+            crypto: {randomUUID:()=> 'coverage-probe-retry-id'},
+            TEMPLATE_TARGET_URL:'https://www.kleinanzeigen.de/p-anzeige-aufgeben.html',
+            TAB_ROLES:{RENEWAL_TARGET:'renewal-target'}
+          },
+          // The same real in-flight Set is supplied to the emergency-reset
+          // owner in production; an all-functions proxy cannot model it.
+          statePort: {renewalPhase1RetryInFlight:new Set()}
+        },{
+          get(target,prop){return Object.hasOwn(target,prop)?target[prop]:options[prop];},
+          has:()=>true
+        })
       : options;
     instance=api.create(sourceOptions);
   } catch(e) { createError=String(e?.message||e); }

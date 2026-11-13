@@ -6,9 +6,11 @@ const Policy = require('../src/shared/renewal-policy.js');
 const source = fs.readFileSync('background.js', 'utf8');
 const mutStart = source.indexOf('function beginRenewalPhaseAttempt');
 const mutEnd = source.indexOf('async function logRenewalPhaseAttemptStarted', mutStart);
-const phase1Start = source.indexOf('function phase1PublishBoundaryReached');
-const phase1End = source.indexOf('async function restartRenewalPhase1Attempt', phase1Start);
-assert.ok(mutStart >= 0 && mutEnd > mutStart && phase1Start >= 0 && phase1End > phase1Start);
+const phase1Source = fs.readFileSync('src/background/services/renewal-phase1-retry-service.js','utf8');
+assert.ok(mutStart >= 0 && mutEnd > mutStart);
+assert.match(source,/requireRenewalPhase1RetryService\(\)\.canRetryRenewalPhase1\(renewal, fill\)/);
+assert.match(phase1Source,/function phase1PublishBoundaryReached\(renewal, fill/);
+assert.match(phase1Source,/function canRetryRenewalPhase1\(renewal, fill/);
 
 let uuid = 0;
 const context = {
@@ -24,7 +26,26 @@ const context = {
 };
 vm.createContext(context);
 vm.runInContext(source.slice(mutStart, mutEnd), context);
-vm.runInContext(source.slice(phase1Start, phase1End), context);
+let retryOwner = null;
+context.KRDeps = {register(name,api){
+  assert.equal(name,'KRRenewalPhase1RetryService'); retryOwner=api;
+}};
+vm.runInContext(phase1Source, context);
+assert.equal(typeof retryOwner?.create,'function');
+const inert = async () => {};
+const service = retryOwner.create({
+  sessionPort:{readRenewalSessions:inert,readFillSessions:inert,writeFillSessions:inert,persistRenewalSession:inert},
+  policyPort:{renewalPhaseAttemptAvailable:Policy.renewalPhaseAttemptAvailable,
+    renewalAttemptState:Policy.renewalAttemptState,
+    beginRenewalPhaseAttempt:context.beginRenewalPhaseAttempt,
+    normalizeRenewalMode:Policy.normalizeRenewalMode,
+    renewalMaxPhaseAttempts:Policy.renewalMaxPhaseAttempts},
+  tabPort:{createAutomationTab:inert,registerShadowTab:inert,closeRegistryTab:inert,updateAutomationTab:inert},
+  diagnosticsPort:{correlationContext:()=>({}),sessionCorrelationContext:()=>({}),logDiagnostic:inert},
+  configPort:{crypto:context.crypto,TEMPLATE_TARGET_URL:'https://www.kleinanzeigen.de/p-anzeige-aufgeben.html',TAB_ROLES:{}},
+  statePort:{renewalPhase1RetryInFlight:new Set()}
+});
+context.canRetryRenewalPhase1 = service.canRetryRenewalPhase1;
 
 let n = 0;
 const pass = label => { n += 1; console.log(`PASS ${label}`); };

@@ -46,9 +46,12 @@ const create=(store,manager,worker='worker-1',verify=proof)=>Journal.create({
  ok(publish.includes("type: 'AUTHORIZE_AUTOMATIC_PUBLISH'")&&
    publish.includes('armPublishDetection(fillId)'),
   'manual and automatic managed submit use one journal authorization');
- ok(bg.includes('verifyAutoPublishRemoteOutcomeFresh(')&&
-   bg.includes("type:'MY_ADS_STATUS'")&&bg.includes("type:'FIND_OWN_AD_BY_ID'"),
-  'background owns independent exact-ID same-account My Ads result verifier');
+ const publishOwner=fs.readFileSync('src/background/services/publish-intent-authorization-service.js','utf8');
+ ok(bg.includes('requirePublishIntentAuthorizationService().verifyAutoPublishRemoteOutcomeFresh(intent, newAdId)') &&
+   publishOwner.includes('async function verifyAutoPublishRemoteOutcomeFresh(') &&
+   publishOwner.includes("type:'MY_ADS_STATUS'") &&
+   publishOwner.includes("type:'FIND_OWN_AD_BY_ID'"),
+  'trusted in-process owner independently verifies exact-ID and same-account My Ads evidence');
  const store=disk(),manager=locks(),a=create(store,manager);
  const receipt=await a.begin(request);
  ok(receipt.state==='outcome-unverified','durable original intent exists');

@@ -20,7 +20,24 @@ result=extract('<script type="application/ld+json">'+JSON.stringify([{'@type':'P
 result=extract(structured(['https://evil.invalid/a']));assert.equal(result.images.length,0);pass('non-CDN URLs excluded through public extract');
 result=extract(structured([url('a')+'&id=1',url('a')+'&id=2']));assert.equal(result.images.length,2);assert.notEqual(result.images[0].imageId,result.images[1].imageId);pass('unknown identity parameters retained through public extract');
 result=extract(structured([url('a')]));assert.equal(result.images[0].sourceFormatHint,'AUTO (Format unbekannt)');pass('AUTO never claimed as AVIF through public extract');
-const __session={}; const ctx={URL,Blob,AbortSignal,crypto:require('node:crypto').webcrypto,chrome:{storage:{session:{get:async()=>({...__session}),set:async patch=>Object.assign(__session,patch)}},runtime:{onMessage:{addListener(){}}}},importScripts(){}};vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../tab-registry.js'),'utf8'),ctx);vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../diagnostics-service.js'),'utf8'),ctx);vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../background.js'),'utf8'),ctx);
+// KAR-175: run MIME-signature and fetch-contract checks against their actual
+// extracted service. This VM makes private methods observable ONLY for tests;
+// the shipped production service still exports saveInventory alone.
+let captureProvider=null;
+const ctx={URL,Blob,AbortSignal,crypto:require('node:crypto').webcrypto,
+  KRDeps:{register(name,api){assert.equal(name,'KRInventoryCaptureService');captureProvider=api;}}};
+const originalCapture=fs.readFileSync(path.join(__dirname,'../src/background/services/inventory-capture-service.js'),'utf8');
+const privateReturn='return Object.freeze({ saveInventory });';
+assert.equal(originalCapture.split(privateReturn).length,2);
+vm.runInNewContext(originalCapture.replace(privateReturn,
+  'return Object.freeze({ saveInventory, detectImageMime, downloadInventoryImage });'),ctx);
+const capture=captureProvider.create({
+  templateSchemaCore:{buildSchema:()=>({}),fingerprint:async()=>''},
+  getInventory:async()=>null,logDiagnostic:async()=>{},
+  commitInventory:async()=>{},broadcastInventoryChanged:()=>{}
+});
+ctx.detectImageMime=capture.detectImageMime;
+ctx.downloadInventoryImage=capture.downloadInventoryImage;
 assert.equal(ctx.detectImageMime(Uint8Array.from([255,216,255])),'image/jpeg');assert.equal(ctx.detectImageMime(Uint8Array.from([137,80,78,71,13,10,26,10])),'image/png');assert.equal(ctx.detectImageMime(Buffer.from('GIF89a')),'image/gif');assert.equal(ctx.detectImageMime(Buffer.from('RIFF0000WEBP')),'image/webp');assert.equal(ctx.detectImageMime(Buffer.from([0,0,0,20,...Buffer.from('ftypavif0000avif')])),'image/avif');assert.equal(ctx.detectImageMime(Buffer.from('<html>error</html>')),null);pass('JPEG PNG GIF WebP AVIF signatures recognized; HTML rejected');
 (async()=>{
  ctx.fetch=async()=>({ok:true,blob:async()=>new Blob([Uint8Array.from([255,216,255,0])],{type:'image/avif'})});

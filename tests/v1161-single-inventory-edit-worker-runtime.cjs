@@ -3,12 +3,16 @@ const path = require('node:path');
 const assert = require('node:assert/strict');
 const vm = require('node:vm');
 const bg = fs.readFileSync(path.join(__dirname, '..', 'background.js'), 'utf8');
-const fn = bg.match(/function singleInventorySourceFromUrl\(rawUrl\) \{[\s\S]*?\n\}/)?.[0] || '';
-assert.ok(fn, 'singleInventorySourceFromUrl must exist');
-const context = { URL };
+const ownerSource = fs.readFileSync(path.join(__dirname, '..','src/background/services/listing-url-evidence-service.js'),'utf8');
+assert.match(bg,/requireListingUrlEvidenceService\(\)\.singleInventorySourceFromUrl\(rawUrl\)/);
+let owner=null;
+const context = { URL, KRDeps:{register(name,api){
+  assert.equal(name,'KRListingUrlEvidenceService');owner=api;
+}}};
 vm.createContext(context);
-vm.runInContext(`${fn}; this.parse = singleInventorySourceFromUrl;`, context);
-const parse = context.parse;
+vm.runInContext(ownerSource, context);
+assert.equal(typeof owner?.create,'function');
+const parse = owner.create({URL}).singleInventorySourceFromUrl;
 
 const pub = parse('https://www.kleinanzeigen.de/s-anzeige/kulturtasche/3514237118-156-1759');
 assert.equal(pub.adId, '3514237118');

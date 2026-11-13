@@ -1,4 +1,4 @@
-importScripts("../shared/runtime-deps.js", "../shared/message-contract-registry.js", "../shared/renewal-policy.js", "background-message-router.js", "services/native-update-status-gateway.js", "services/native-status-bridge.js", "services/update-workflow-fence.js", "repositories/profile-repository.js", "repositories/inventory-repository.js", "repositories/inventory-image-store.js", "services/trash-service.js", "services/diagnostics-service.js", "services/tab-registry.js", "services/managed-tab-worker-service.js", "services/content-connection-manager.js", "services/account-probe-service.js", "controllers/profile-management-controller.js", "controllers/account-session-controller.js", "controllers/platform-safety-controller.js", "controllers/tab-lifecycle-observer.js", "controllers/workflow-emergency-reset-controller.js", "lib/bulk-run-guard.js", "controllers/single-inventory-controller.js", "services/bulk-worker-service.js", "services/bulk-reconciliation-service.js", "controllers/bulk-inventory-controller.js", "controllers/mass-renewal-controller.js", "services/mass-renewal-watchdog-service.js", "controllers/mass-renewal-workflow-controller.js", "services/renewal-verification-flow.js", "services/renewal-reinventory-flow.js", "services/paid-checkout-recovery-service.js", "controllers/renewal-workflow-controller.js", "services/renewal-verification-service.js", "repositories/renewal-state-repository.js", "services/template-fill-service.js", "services/insertion-lock-service.js", "controllers/template-fill-controller.js", "services/archive-insertion-service.js", "services/archive-insertion-verification-service.js", "services/archive-insertion-recovery-service.js", "controllers/archive-insertion-controller.js", "services/remote-delete-replacement-service.js", "services/published-inventory-resolver.js", "services/diagnostic-export-service.js", "services/public-listing-evidence-service.js", "../shared/managed-navigation.js", "lib/inventory-reconciliation.js", "../shared/my-ads-readiness.js", "lib/inventory-scope.js", "../shared/platform-hardening.js", "services/tab-load-coordinator.js", "../shared/template-schema-core.js", "services/persisted-owner-observer.js", "services/additional-owner-observer.js", "services/phase4-uncertainty-journal.js", "services/cross-worker-atomic-admission.js", "services/auto-publish-intent-journal.js");
+importScripts("../shared/runtime-deps.js", "../shared/message-contract-registry.js", "../shared/renewal-policy.js", "background-message-router.js", "services/native-update-status-gateway.js", "services/native-status-bridge.js", "services/update-workflow-fence.js", "repositories/profile-repository.js", "repositories/inventory-repository.js", "repositories/inventory-image-store.js", "services/inventory-capture-service.js", "services/inventory-refresh-service.js", "services/trash-service.js", "services/diagnostics-service.js", "services/diagnostic-correlation-service.js", "services/listing-url-evidence-service.js", "services/tab-registry.js", "services/managed-tab-worker-service.js", "services/content-connection-manager.js", "services/account-probe-service.js", "controllers/profile-management-controller.js", "controllers/account-session-controller.js", "controllers/manual-listing-navigation-controller.js", "controllers/platform-safety-controller.js", "controllers/tab-lifecycle-observer.js", "controllers/workflow-emergency-reset-controller.js", "lib/bulk-run-guard.js", "controllers/single-inventory-controller.js", "services/bulk-worker-service.js", "services/bulk-reconciliation-service.js", "controllers/bulk-inventory-controller.js", "controllers/mass-renewal-controller.js", "services/mass-renewal-watchdog-service.js", "controllers/mass-renewal-workflow-controller.js", "services/renewal-verification-flow.js", "services/renewal-reinventory-flow.js", "services/renewal-phase1-retry-service.js", "services/paid-checkout-recovery-service.js", "controllers/renewal-workflow-controller.js", "services/renewal-verification-service.js", "repositories/renewal-state-repository.js", "services/template-fill-service.js", "services/insertion-lock-service.js", "controllers/template-fill-controller.js", "services/trash-template-publish-detection-service.js", "services/archive-insertion-service.js", "services/archive-insertion-verification-service.js", "services/archive-insertion-recovery-service.js", "controllers/archive-insertion-controller.js", "services/remote-delete-replacement-service.js", "services/published-inventory-resolver.js", "services/diagnostic-export-service.js", "services/public-listing-evidence-service.js", "services/renewal-public-evidence-coordinator.js", "../shared/managed-navigation.js", "lib/inventory-reconciliation.js", "../shared/my-ads-readiness.js", "lib/inventory-scope.js", "../shared/platform-hardening.js", "services/tab-load-coordinator.js", "../shared/template-schema-core.js", "services/persisted-owner-observer.js", "services/additional-owner-observer.js", "services/phase4-uncertainty-journal.js", "services/cross-worker-atomic-admission.js", "services/auto-publish-intent-journal.js", "services/publish-intent-authorization-service.js");
 // Private updater policy/authority: no content/app IPC route; production proof
 // sources remain intentionally absent until each of 15 owners is grounded.
 importScripts("../../lib/update-idle-policy.js", "services/trusted-owner-authority.js");
@@ -16,10 +16,13 @@ const UpdateIdlePolicy = KRDeps.require('KRUpdateIdlePolicy');
 const TrustedOwnerAuthority = KRDeps.require('KRTrustedOwnerAuthority');
 const AtomicMV3Admission = KRDeps.require('KRAtomicMV3Admission');
 const AutoPublishIntentJournal = KRDeps.require('KRAutoPublishIntentJournal');
+const PublishIntentAuthorizationService = KRDeps.require('KRPublishIntentAuthorizationService');
 const PersistedOwnerObserver = KRDeps.require('KRPersistedOwnerObserver');
 const AdditionalOwnerObserver = KRDeps.require('KRAdditionalOwnerObserver');
 const Phase4UncertaintyJournal = KRDeps.require('KRPhase4UncertaintyJournal');
 const DiagnosticsService = KRDeps.require('KRDiagnosticsService');
+const DiagnosticCorrelationService = KRDeps.require('KRDiagnosticCorrelationService');
+const ListingUrlEvidenceService = KRDeps.require('KRListingUrlEvidenceService');
 const TabRegistry = KRDeps.require('KRTabRegistry');
 const ManagedNavigation = KRDeps.require('KRManagedNavigation');
 const InventoryReconciliation = KRDeps.require('KRInventoryReconciliation');
@@ -31,12 +34,15 @@ const TabLoadCoordinator = KRDeps.require('KRTabLoadCoordinator');
 const ProfileRepository = KRDeps.require('KRProfileRepository');
 const InventoryRepository = KRDeps.require('KRInventoryRepository');
 const InventoryImageStore = KRDeps.require('KRInventoryImageStore');
+const InventoryCaptureService = KRDeps.require('KRInventoryCaptureService');
+const InventoryRefreshService = KRDeps.require('KRInventoryRefreshService');
 const TrashService = KRDeps.require('KRTrashService');
 const ManagedTabWorkerService = KRDeps.require('KRManagedTabWorkerService');
 const ContentConnectionManager = KRDeps.require('KRContentConnectionManager');
 const AccountProbeService = KRDeps.require('KRAccountProbeService');
 const ProfileManagementController = KRDeps.require('KRProfileManagementController');
 const AccountSessionController = KRDeps.require('KRAccountSessionController');
+const ManualListingNavigationController = KRDeps.require('KRManualListingNavigationController');
 const PlatformSafetyController = KRDeps.require('KRPlatformSafetyController');
 const WorkflowEmergencyResetController = KRDeps.require('KRWorkflowEmergencyResetController');
 const TabLifecycleObserver = KRDeps.require('KRTabLifecycleObserver');
@@ -48,15 +54,18 @@ const MassRenewalWorkflowController = KRDeps.require('KRMassRenewalWorkflowContr
 const RenewalVerificationService = KRDeps.require('KRRenewalVerificationService');
 const RenewalStateRepository = KRDeps.require('KRRenewalStateRepository');
 const RenewalWorkflowController = KRDeps.require('KRRenewalWorkflowController');
+const RenewalPhase1RetryService = KRDeps.require('KRRenewalPhase1RetryService');
 const TemplateFillService = KRDeps.require('KRTemplateFillService');
 const InsertionLockService = KRDeps.require('KRInsertionLockService');
 const TemplateFillController = KRDeps.require('KRTemplateFillController');
+const TrashTemplatePublishDetectionService = KRDeps.require('KRTrashTemplatePublishDetectionService');
 const ArchiveInsertionService = KRDeps.require('KRArchiveInsertionService');
 const ArchiveInsertionController = KRDeps.require('KRArchiveInsertionController');
 const RemoteDeleteReplacementService = KRDeps.require('KRRemoteDeleteReplacementService');
 const PublishedInventoryResolver = KRDeps.require('KRPublishedInventoryResolver');
 const DiagnosticExportService = KRDeps.require('KRDiagnosticExportService');
 const PublicListingEvidenceService = KRDeps.require('KRPublicListingEvidenceService');
+const RenewalPublicEvidenceCoordinator = KRDeps.require('KRRenewalPublicEvidenceCoordinator');
 
 const DB_NAME = "kleinanzeigen-renewal";
 const DB_VERSION = 2;
@@ -237,73 +246,17 @@ function sessionCorrelationContext(session, extra = {}) {
   return { ...correlationContext(session, extra), ...extra };
 }
 
-function correlationContextFromBindings(baseContext = {}, bindings = {}) {
-  let result = correlationContext(baseContext);
-  const fillSessions = Object.values(bindings.fillSessions || {}).filter(Boolean);
-  const renewalSessions = Object.values(bindings.renewalSessions || {}).filter(Boolean);
-  const archiveSessions = Object.values(bindings.archiveSessions || {}).filter(Boolean);
-  const bulkRun = bindings.bulkRun && typeof bindings.bulkRun === 'object' ? bindings.bulkRun : null;
-  const massBatch = bindings.massBatch && typeof bindings.massBatch === 'object' ? bindings.massBatch : null;
-  const senderTabId = Number(baseContext?.senderTabId || 0) || null;
-
-  const fill = fillSessions.find(item =>
-    (result.fillId && String(item?.fillId || '') === String(result.fillId)) ||
-    (result.renewalId && String(item?.renewalId || '') === String(result.renewalId)) ||
-    (senderTabId && Number(item?.targetTabId || 0) === senderTabId)
-  ) || null;
-  if (fill) result = correlationContext(result, fill);
-
-  const renewal = renewalSessions.find(item =>
-    (result.renewalId && String(item?.renewalId || '') === String(result.renewalId)) ||
-    (result.fillId && String(item?.fillId || '') === String(result.fillId)) ||
-    (fill?.renewalId && String(item?.renewalId || '') === String(fill.renewalId)) ||
-    (senderTabId && Number(item?.targetTabId || 0) === senderTabId)
-  ) || null;
-  if (renewal) result = correlationContext(result, renewal);
-
-  const archive = archiveSessions.find(item =>
-    (result.archiveInsertionId && String(item?.archiveInsertionId || '') === String(result.archiveInsertionId)) ||
-    (result.fillId && String(item?.fillId || '') === String(result.fillId)) ||
-    (senderTabId && Number(item?.targetTabId || 0) === senderTabId)
-  ) || null;
-  if (archive) result = correlationContext(result, archive);
-
-  const massBatchId = String(result.massBatchId || renewal?.massBatchId || fill?.massBatchId || '');
-  const massItems = Array.isArray(massBatch?.items) ? massBatch.items : [];
-  const massItem = massItems.find(item =>
-    (result.renewalId && String(item?.renewalId || '') === String(result.renewalId)) ||
-    (result.operationId && String(item?.operationId || '') === String(result.operationId))
-  ) || null;
-  if (massItem) result = correlationContext(result, massItem, { massBatchId: massBatch?.batchId || massBatchId });
-
-  const bulkMatches = bulkRun && (
-    (result.bulkRunId && String(bulkRun.bulkRunId || bulkRun.runId || '') === String(result.bulkRunId)) ||
-    (result.runId && String(bulkRun.runId || '') === String(result.runId)) ||
-    (senderTabId && [bulkRun.sourceTabId, bulkRun.workerTabId, bulkRun.metadataTabId].some(value => Number(value || 0) === senderTabId))
-  );
-  if (bulkMatches) result = correlationContext(result, bulkRun);
-
-  if (massBatch && (massBatchId && String(massBatch.batchId || '') === massBatchId || massItem)) {
-    result = correlationContext(result, { ...massBatch, massBatchId: massBatch.batchId || massBatchId });
-  }
-  return result;
-}
-
-async function resolveClientDiagnosticCorrelation(message = {}, sender = {}) {
-  const senderTabId = Number(sender?.tab?.id || 0) || null;
-  const base = correlationContext(message?.context || {}, message?.details || {});
-  if (base.operationId) return base;
-  const stored = await chrome.storage.local.get([
-    'bulkInventoryRun', 'templateFillSessions', RENEWAL_SESSIONS_KEY,
-    MASS_RENEWAL_BATCH_KEY, ARCHIVE_INSERTION_SESSIONS_KEY
-  ]).catch(() => ({}));
-  return correlationContextFromBindings({ ...base, senderTabId }, {
-    bulkRun: stored?.bulkInventoryRun || null,
-    fillSessions: stored?.templateFillSessions || {},
-    renewalSessions: stored?.[RENEWAL_SESSIONS_KEY] || {},
-    massBatch: stored?.[MASS_RENEWAL_BATCH_KEY] || null,
-    archiveSessions: stored?.[ARCHIVE_INSERTION_SESSIONS_KEY] || {}
+let diagnosticCorrelationService = null;
+function requireDiagnosticCorrelationService() {
+  if (!diagnosticCorrelationService) diagnosticCorrelationService = DiagnosticCorrelationService.create({
+    correlationContext,
+    storageLocal: chrome.storage.local,
+    RENEWAL_SESSIONS_KEY, MASS_RENEWAL_BATCH_KEY, ARCHIVE_INSERTION_SESSIONS_KEY
   });
+  return diagnosticCorrelationService;
+}
+async function resolveClientDiagnosticCorrelation(message = {}, sender = {}) {
+  return requireDiagnosticCorrelationService().resolveClientDiagnosticCorrelation(message, sender);
 }
 
 async function withInsertionStartGate(task) { return requireInsertionLockService().withInsertionStartGate(task); }
@@ -829,215 +782,19 @@ async function assignUnprofiledInventories(message) { return requireProfileManag
 
 if (chrome?.storage?.local) void logDiagnostic('info', 'DIAGNOSTIC_SESSION_STARTED', { sessionId: currentDiagnosticSessionId() }, { module: 'background', operation: 'diagnostic-session' }).catch(() => {});
 
-function isTrustedProdAdImageUrl(url) {
-  return url.protocol === "https:"
-    && url.hostname === "img.kleinanzeigen.de"
-    && /^\/api\/v1\/prod-ads\/images\/[0-9a-f]{2}\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(url.pathname);
+let inventoryCaptureService = null;
+function requireInventoryCaptureService() {
+  if (!inventoryCaptureService) inventoryCaptureService = InventoryCaptureService.create({
+    templateSchemaCore: TemplateSchemaCore,
+    logDiagnostic,
+    commitInventory: (record, stagedImages) => requireInventoryRepository().commit(record, stagedImages),
+    getInventory,
+    broadcastInventoryChanged
+  });
+  return inventoryCaptureService;
 }
-
-function jpegCandidates(rawUrl) {
-  const url = new URL(rawUrl);
-  if (url.protocol !== "https:" || url.hostname !== "img.kleinanzeigen.de") throw new Error("Unzulässige Bildquelle");
-  const candidates = [];
-  const rule = url.searchParams.get("rule");
-
-  // Kleinanzeigen' own prod-ads UUID endpoint is trusted. Real edit-form tests show
-  // that the hidden adImages[n].url may omit a visible rule while the same endpoint
-  // still supports the established large JPEG variant. Try that verified variant
-  // first, but only for this narrowly matched Kleinanzeigen CDN path.
-  if (isTrustedProdAdImageUrl(url) || rule) {
-    const large = new URL(url);
-    large.searchParams.set("rule", "$_57.JPG");
-    candidates.push(large.toString());
-  }
-
-  if (rule) {
-    const jpeg = new URL(url);
-    jpeg.searchParams.set("rule", rule.replace(/\.(AUTO|JPG|JPEG|PNG|WEBP|AVIF|GIF)$/i, ".JPG"));
-    candidates.push(jpeg.toString());
-  }
-  candidates.push(url.toString());
-  return [...new Set(candidates)];
-}
-
-function sourceUrlsForImage(source) {
-  if (typeof source === "string") return [source];
-  if (!source || typeof source !== "object") return [];
-  return [...new Set([
-    source.downloadUrl,
-    ...(Array.isArray(source.sourceUrls) ? source.sourceUrls : []),
-    source.url,
-    ...(Array.isArray(source.variants) ? source.variants : [])
-  ].filter(Boolean))];
-}
-
-function detectImageMime(bytes) {
-  const ascii = (start, end) => String.fromCharCode(...bytes.slice(start,end));
-  if (bytes[0]===255 && bytes[1]===216 && bytes[2]===255) return "image/jpeg";
-  if (bytes[0]===137 && ascii(1,4)==="PNG" && bytes[4]===13 && bytes[5]===10 && bytes[6]===26 && bytes[7]===10) return "image/png";
-  if (["GIF87a","GIF89a"].includes(ascii(0,6))) return "image/gif";
-  if (ascii(0,4)==="RIFF" && ascii(8,12)==="WEBP") return "image/webp";
-  if (ascii(4,8)==="ftyp") {
-    const boxSize = ((bytes[0]<<24) | (bytes[1]<<16) | (bytes[2]<<8) | bytes[3]) >>> 0;
-    for (let i=8;i+4<=Math.min(bytes.length,boxSize);i+=4) {
-      if (i!==12 && ["avif","avis"].includes(ascii(i,i+4))) return "image/avif";
-    }
-  }
-  return null;
-}
-
-function largeEnough(width, height, source) {
-  const thumbnailWidth = Number(source?.thumbnailWidth || 0);
-  const thumbnailHeight = Number(source?.thumbnailHeight || 0);
-  if (!thumbnailWidth || !thumbnailHeight) return { ok: true, evidence: "decoded-dimensions-no-thumbnail-baseline" };
-  const areaRatio = (width * height) / Math.max(1, thumbnailWidth * thumbnailHeight);
-  const edgeRatio = Math.max(width, height) / Math.max(1, Math.max(thumbnailWidth, thumbnailHeight));
-  return {
-    ok: areaRatio >= 4 && edgeRatio >= 1.5,
-    evidence: `decoded-vs-thumbnail:${width}x${height}/${thumbnailWidth}x${thumbnailHeight}`
-  };
-}
-
-async function downloadInventoryImage(source, requireJpeg = false, requireLarge = false) {
-  const sourceUrls = sourceUrlsForImage(source);
-  if (!sourceUrls.length) throw new Error("Keine zulässige Bildquelle vorhanden");
-  let lastError = null;
-  let fallback = null;
-  const attempted = new Set();
-  for (const rawUrl of sourceUrls) {
-    const candidates = source?.preferExactDownloadUrl === true && rawUrl === source?.downloadUrl
-      ? [rawUrl, ...jpegCandidates(rawUrl).filter(candidate => candidate !== rawUrl)]
-      : jpegCandidates(rawUrl);
-    for (const candidate of candidates) {
-      if (attempted.has(candidate)) continue;
-      attempted.add(candidate);
-      try {
-        const response = await fetch(candidate, { credentials: "omit", cache: "no-cache", redirect: "error", signal: AbortSignal.timeout(20000) });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const blob = await response.blob();
-        if (!blob.size || blob.size > (requireJpeg ? 12 : 20) * 1024 * 1024) throw new Error("Bild ist leer oder überschreitet das Dateigrößenlimit");
-        const signatureMime = detectImageMime(new Uint8Array(await blob.slice(0,256).arrayBuffer()));
-        if (!signatureMime) throw new Error("Bildformat anhand der Dateidaten nicht erkannt");
-        const value = {
-          blob: blob.slice(0, blob.size, signatureMime),
-          sourceUrl: rawUrl,
-          fetchedUrl: candidate,
-          mimeType: signatureMime,
-          responseMimeType: blob.type,
-          formatEvidence: "file-signature",
-          size: blob.size
-        };
-        if (signatureMime === "image/jpeg") {
-          if (requireJpeg || requireLarge) {
-            const bitmap = await createImageBitmap(value.blob);
-            try {
-              if (!bitmap.width || !bitmap.height) throw new Error("JPEG enthält keine gültigen Bildabmessungen");
-              value.width = bitmap.width;
-              value.height = bitmap.height;
-              value.formatEvidence = "file-signature-and-decode";
-              if (requireLarge) {
-                const large = largeEnough(bitmap.width, bitmap.height, source);
-                value.largeImageEvidence = large.evidence;
-                if (!large.ok) throw new Error(`JPEG ist nur Thumbnail-Größe (${bitmap.width}×${bitmap.height})`);
-              }
-            } finally {
-              bitmap.close();
-            }
-          }
-          const digest = await crypto.subtle.digest("SHA-256", await value.blob.arrayBuffer());
-          value.sha256 = [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, "0")).join("");
-          return value;
-        }
-        const digest = await crypto.subtle.digest("SHA-256", await value.blob.arrayBuffer());
-        value.sha256 = [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, "0")).join("");
-        fallback ||= value;
-      } catch (error) {
-        lastError = error;
-      }
-    }
-  }
-  if (fallback && !requireJpeg) return fallback;
-  if (requireLarge) throw lastError || new Error("Keine große dekodierbare JPEG-Version verfügbar");
-  if (requireJpeg && fallback) throw new Error("Keine dekodierbare JPEG-Version verfügbar (erkannt: " + fallback.mimeType + ")");
-  throw lastError || new Error("Bild konnte nicht geladen werden");
-}
-
-// Both stores commit together; a failed request rolls back deletes and puts.
-async function commitInventory(record, stagedImages) { return requireInventoryRepository().commit(record, stagedImages); }
-
-let inventorySaveRunning = false;
 async function saveInventory(extracted, options = {}) {
-  if (inventorySaveRunning) throw new Error("Eine Erfassung läuft bereits. Bitte warten.");
-  inventorySaveRunning = true;
-  try {
-    if (!extracted?.adId || !Array.isArray(extracted.images)) {
-      throw new Error("Keine eindeutige Anzeigen-ID oder Bildliste vorhanden.");
-    }
-    const inventoryId = String(options.inventoryIdOverride || extracted.adId);
-    const capturedAt = new Date().toISOString();
-    await logDiagnostic('info', 'INVENTORY_SAVE_STARTED', { inventoryId, adId: String(extracted.adId), imageCount: extracted.images.length }, { module: 'background', operation: 'inventory-save', context: { adId: String(extracted.adId) } }).catch(() => {});
-    const stagedImages = [];
-    const imageResults = [];
-    let totalBytes = 0;
-    for (let index = 0; index < extracted.images.length; index += 1) {
-      let downloaded;
-      await logDiagnostic('info', 'INVENTORY_IMAGE_DOWNLOAD_STARTED', { inventoryId, image: index + 1, total: extracted.images.length, imageId: extracted.images[index]?.imageId || null }, { module: 'background', operation: 'inventory-image', context: { adId: String(extracted.adId) } }).catch(() => {});
-      try {
-        downloaded = await downloadInventoryImage(extracted.images[index], extracted.extraction?.requiresJpeg === true, extracted.extraction?.requiresLargeJpeg === true);
-        if (extracted.extraction?.requiresJpeg && (downloaded.mimeType !== "image/jpeg" || downloaded.formatEvidence !== "file-signature-and-decode")) throw new Error("JPEG-Prüfung fehlgeschlagen");
-        await logDiagnostic('info', 'INVENTORY_IMAGE_DOWNLOAD_SUCCEEDED', { inventoryId, image: index + 1, total: extracted.images.length, mimeType: downloaded.mimeType, size: downloaded.size, width: downloaded.width || null, height: downloaded.height || null }, { module: 'background', operation: 'inventory-image', context: { adId: String(extracted.adId) } }).catch(() => {});
-      } catch (error) {
-        await logDiagnostic('error', 'INVENTORY_IMAGE_DOWNLOAD_FAILED', { inventoryId, image: index + 1, total: extracted.images.length, message: String(error.message || error).slice(0, 500), stack: String(error.stack || '').slice(0, 2000) }, { module: 'background', operation: 'inventory-image', context: { adId: String(extracted.adId) } }).catch(() => {});
-        throw new Error(`Bild ${index + 1} konnte nicht gesichert werden: ${error.message}. Vorhandenes Inventar bleibt erhalten.`);
-      }
-      totalBytes += downloaded.size;
-      if (totalBytes > 128 * 1024 * 1024) throw new Error("Bildbestand überschreitet 128 MiB. Vorhandenes Inventar bleibt erhalten.");
-      const imageKey = `${inventoryId}:${index}`;
-      stagedImages.push({ imageKey, inventoryId, position: index, ...downloaded, capturedAt });
-      const { blob, ...metadata } = downloaded;
-      imageResults.push({ imageId: extracted.images[index].imageId, identityType: extracted.images[index].identityType, sourceFormatHint: extracted.images[index].sourceFormatHint, variants: extracted.images[index].variants, isPrimary: Boolean(extracted.images[index].isPrimary || index === 0), downloadSource: extracted.images[index].downloadSource || null, ...metadata, imageKey, position: index, locallyStored: true, uploadReady: downloaded.mimeType === "image/jpeg" });
-    }
-    // KAR-134: derive category-scoped, value-free evidence before the same atomic inventory commit.
-    // Non-edit capture is not sufficient evidence to assert a saved posting-form schema.
-    const templateSchema = extracted.extraction?.capturedFromEditView === true
-      ? await (async () => {
-        const snapshot = TemplateSchemaCore.buildSchema(extracted);
-        return { snapshot, fingerprint: await TemplateSchemaCore.fingerprint(snapshot), capturedAt, source: 'edit-form' };
-      })()
-      : null;
-    // Without verified edit-form evidence retain only the same ad/profile's
-    // historical schema; never assert that a public detail page is a fresh match.
-    let priorTemplateSchema = null;
-    if (!templateSchema) {
-      const old = await getInventory(inventoryId).catch(() => null);
-      if (old?.templateSchema?.snapshot && String(old.adId || '') === String(extracted.adId || '') &&
-          extracted.profileId && String(old.profileId || '') === String(extracted.profileId))
-        priorTemplateSchema = old.templateSchema;
-      void logDiagnostic('info','KAR134_FORM_SCHEMA_NOT_OBSERVED',{
-        inventoryId, currentSchemaVerified:false, retainedHistoricalSnapshot:Boolean(priorTemplateSchema)
-      }).catch(() => {});
-    }
-    const record = {
-      ...extracted, ...(templateSchema || priorTemplateSchema ? { templateSchema: templateSchema || priorTemplateSchema } : {}),
-      schemaObservationStatus: templateSchema ? 'verified-edit-form' : 'not-observed',
-      inventoryId, schemaVersion: 2, capturedAt,
-      images: imageResults,
-      imageSummary: {
-        discovered: imageResults.length,
-        locallyStored: imageResults.length,
-        uploadReadyJpeg: imageResults.filter(image => image.uploadReady).length
-      }
-    };
-    await commitInventory(record, stagedImages);
-    // Diagnostics must never turn a completed commit into an apparent failure.
-    await logDiagnostic("info", "INVENTORY_SAVED", {
-      inventoryId, imageSummary: record.imageSummary, atomicCommit: true
-    }).catch(() => {});
-    broadcastInventoryChanged('saved', { inventoryId, adId: String(record.adId || inventoryId), capturedAt: record.capturedAt });
-    return record;
-  } finally {
-    inventorySaveRunning = false;
-  }
+  return requireInventoryCaptureService().saveInventory(extracted, options);
 }
 
 async function readAllInventoryRecords() { return requireInventoryRepository().readAll(); }
@@ -1438,61 +1195,19 @@ async function sendTabRequestWithBootstrap(tabId, message) {
 
 const trashTemplatePublishDetectionInFlight = new Set();
 
+let trashTemplatePublishDetectionService = null;
+function requireTrashTemplatePublishDetectionService() {
+  if (!trashTemplatePublishDetectionService) trashTemplatePublishDetectionService = TrashTemplatePublishDetectionService.create({
+    sessionPort: { readFillSessions, writeFillSessions, withTemplateFillMutation },
+    tabPort: { tabRegistry, chrome, TAB_ROLES, registerShadowTab, ensureContentConnection, sendTabRequest },
+    evidencePort: { publishedAdCandidateFromUrl, URL },
+    diagnosticsPort: { logDiagnostic, sessionCorrelationContext, broadcastInventoryChanged },
+    statePort: { trashTemplatePublishDetectionInFlight }
+  });
+  return trashTemplatePublishDetectionService;
+}
 async function maybeDetectTrashTemplatePublishedAd(tabId, changeInfo = {}, tabHint = null) {
-  const id = Number(tabId || 0);
-  if (!id || trashTemplatePublishDetectionInFlight.has(id)) return false;
-  const candidateUrl = String(changeInfo?.url || tabHint?.url || '');
-  if (candidateUrl && !/(^|\.)kleinanzeigen\.de$/i.test((() => { try { return new URL(candidateUrl).hostname; } catch { return ''; } })())) return false;
-  const sessions = await readFillSessions().catch(() => ({}));
-  const session = Object.values(sessions).find(item => item?.templateOnly === true && Number(item?.targetTabId || 0) === id && String(item?.status || '') === 'complete' && !/^\d+$/.test(String(item?.newAdId || '')));
-  if (!session) return false;
-
-  trashTemplatePublishDetectionInFlight.add(id);
-  try {
-    const tab = tabHint?.id ? tabHint : await tabRegistry.getTabOrThrow(id, chrome.tabs, { label: 'Vorlagen-Tab', role: TAB_ROLES.TEMPLATE_TARGET, owner: { ownerType: 'trash-template', ownerId: session.fillId } });
-    const directCandidate = publishedAdCandidateFromUrl(changeInfo?.url || tab?.url || '', session.sourceAdId);
-    if (!directCandidate && changeInfo?.status !== 'complete') return false;
-    await ensureContentConnection({ tabId: id });
-    const [pageStatus, detected] = await Promise.all([
-      sendTabRequest(id, { type: 'PAGE_STATUS' }).catch(() => null),
-      sendTabRequest(id, { type: 'DETECT_PUBLISHED_AD', sourceAdId: session.sourceAdId }).catch(() => null)
-    ]);
-    const adId = String(detected?.adId || directCandidate?.adId || pageStatus?.adId || '');
-    if (!/^\d+$/.test(adId) || adId === String(session.sourceAdId || '')) return false;
-    const owned = pageStatus?.auth?.loggedIn === true && pageStatus?.auth?.ownAd === true;
-    const pageAdId = String(pageStatus?.adId || '');
-    if (!owned || (pageAdId && pageAdId !== adId)) return false;
-    const publishedUrl = String(detected?.publicUrl || directCandidate?.publicUrl || (directCandidate?.kind === 'public' ? directCandidate.url : '') || tab?.url || '');
-
-    let updated = null;
-    await withTemplateFillMutation(async () => {
-      const latest = await readFillSessions();
-      const current = latest[session.fillId];
-      if (!current?.templateOnly || Number(current.targetTabId || 0) !== id || /^\d+$/.test(String(current.newAdId || ''))) return;
-      current.newAdId = adId;
-      current.publishedUrl = publishedUrl || null;
-      current.publishedAt = new Date().toISOString();
-      current.stage = 'template-only-published';
-      current.updatedAt = current.publishedAt;
-      latest[current.fillId] = current;
-      await writeFillSessions(latest);
-      updated = current;
-    });
-    if (!updated) return false;
-    await registerShadowTab(id, TAB_ROLES.TEMPLATE_TARGET, { operationId: updated.operationId || null, fillId: updated.fillId, inventoryId: String(updated.inventoryId || ''), adId, ownerType: 'trash-template', ownerId: updated.fillId });
-    await logDiagnostic('info', 'TRASH_TEMPLATE_PUBLISHED_DETECTED', {
-      operationId: updated.operationId || null,
-      fillId: updated.fillId,
-      sourceAdId: updated.sourceAdId || null,
-      newAdId: adId,
-      targetTabId: id,
-      publishedUrl: publishedUrl || null
-    }, { module: 'background', operation: 'trash-template-publish-detection', context: sessionCorrelationContext(updated, { adId, targetTabId: id }) }).catch(() => {});
-    broadcastInventoryChanged('trash-template-published', { fillId: updated.fillId, inventoryId: updated.inventoryId || null, sourceAdId: updated.sourceAdId || null, newAdId: adId, targetTabId: id });
-    return true;
-  } finally {
-    trashTemplatePublishDetectionInFlight.delete(id);
-  }
+  return requireTrashTemplatePublishDetectionService().maybeDetectTrashTemplatePublishedAd(tabId, changeInfo, tabHint);
 }
 
 function isPhase4DeleteTransportInterruption(error) {
@@ -1584,16 +1299,17 @@ async function normalBrowserWindowId() {
   return focused?.id ?? null;
 }
 
+let manualListingNavigationController = null;
+function requireManualListingNavigationController() {
+  if (!manualListingNavigationController) manualListingNavigationController = ManualListingNavigationController.create({
+    navigationPort: { normalBrowserWindowId, createAutomationTab, waitForTabComplete, chrome },
+    evidencePort: { getInventory, normalizeKnownPublicAdUrl, publicUrlForInventoryRecord, directPublicUrlForAdId },
+    diagnosticsPort: { logDiagnostic }
+  });
+  return manualListingNavigationController;
+}
 async function openEditAd(message) {
-  const adId = String(message?.adId || '');
-  if (!/^\d+$/.test(adId)) throw new Error('Anzeigen-ID ist ungültig.');
-  const url = `https://www.kleinanzeigen.de/p-anzeige-bearbeiten.html?adId=${encodeURIComponent(adId)}`;
-  const windowId = await normalBrowserWindowId();
-  const tab = await createAutomationTab({ ...(windowId ? { windowId } : {}), url, active: true });
-  if (!tab?.id) throw new Error('Bearbeiten-Tab konnte nicht geöffnet werden.');
-  if (windowId) await chrome.windows.update(windowId, { focused: true }).catch(() => {});
-  await logDiagnostic('info', 'EDIT_AD_OPENED', { adId, tabId: tab.id, windowId: tab.windowId ?? windowId }, { module: 'background', operation: 'open-edit-ad', context: { adId, tabId: tab.id } }).catch(() => {});
-  return { adId, tabId: tab.id };
+  return requireManualListingNavigationController().openEditAd(message);
 }
 
 let publicListingEvidenceService = null;
@@ -1612,58 +1328,7 @@ function requirePublicListingEvidenceService() {
 function normalizeKnownPublicAdUrl(rawUrl, expectedAdId) { return requirePublicListingEvidenceService().normalizeKnownPublicAdUrl(rawUrl, expectedAdId); }
 
 async function openReadOnlyAd(message) {
-  const adId = String(message?.adId || '');
-  if (!/^\d+$/.test(adId)) throw new Error('Anzeigen-ID ist ungültig.');
-
-  let url = '';
-  let urlSource = 'id-fallback';
-  const inventoryId = String(message?.inventoryId || '');
-  const inventoryRecord = inventoryId ? await getInventory(inventoryId).catch(() => null) : null;
-  if (inventoryRecord && String(inventoryRecord?.adId || '') === adId) {
-    url = normalizeKnownPublicAdUrl(publicUrlForInventoryRecord(inventoryRecord), adId);
-    if (url) urlSource = 'inventory-public-url';
-  }
-  if (!url) {
-    url = normalizeKnownPublicAdUrl(message?.publicUrl, adId);
-    if (url) urlSource = 'message-public-url';
-  }
-  if (!url) url = directPublicUrlForAdId(adId);
-
-  const windowId = await normalBrowserWindowId();
-  const tab = await createAutomationTab({ ...(windowId ? { windowId } : {}), url, active: true });
-  if (!tab?.id) throw new Error('Die öffentliche Anzeige konnte nicht geöffnet werden.');
-  if (windowId) await chrome.windows.update(windowId, { focused: true }).catch(() => {});
-  await logDiagnostic('info', 'READONLY_AD_OPENED', {
-    adId, inventoryId: inventoryId || null, tabId: tab.id, windowId: tab.windowId ?? windowId,
-    requestedUrl: url, urlSource
-  }, { module: 'background', operation: 'open-readonly-ad', context: { adId, tabId: tab.id } }).catch(() => {});
-
-  let finalTab = null;
-  try {
-    finalTab = await waitForTabComplete(tab.id, {
-      timeoutMs: 12000,
-      purpose: 'read-only-navigation',
-      label: 'Öffentliche Anzeige',
-      operation: 'open-readonly-ad',
-      context: { adId, tabId: tab.id }
-    });
-  } catch (error) {
-    finalTab = await chrome.tabs.get(tab.id).catch(() => null);
-    await logDiagnostic('info', 'READONLY_AD_NAVIGATION_PENDING', {
-      adId, tabId: tab.id, requestedUrl: url, urlSource,
-      currentUrl: String(finalTab?.url || '').slice(0, 1200),
-      message: String(error?.message || error || '').slice(0, 500)
-    }, { module: 'background', operation: 'open-readonly-ad', context: { adId, tabId: tab.id } }).catch(() => {});
-  }
-  if (finalTab?.url) {
-    const finalUrl = String(finalTab.url);
-    const finalPublicUrl = normalizeKnownPublicAdUrl(finalUrl, adId);
-    await logDiagnostic(finalPublicUrl ? 'info' : 'warning', 'READONLY_AD_NAVIGATION_RESOLVED', {
-      adId, tabId: tab.id, requestedUrl: url, urlSource, finalUrl: finalUrl.slice(0, 1200),
-      expectedAdConfirmed: Boolean(finalPublicUrl)
-    }, { module: 'background', operation: 'open-readonly-ad', context: { adId, tabId: tab.id } }).catch(() => {});
-  }
-  return { adId, tabId: tab.id, url, urlSource, finalUrl: finalTab?.url || null };
+  return requireManualListingNavigationController().openReadOnlyAd(message);
 }
 
 let tabLoadCoordinator = null;
@@ -1707,18 +1372,13 @@ function publicAvailabilityPending(record) { return requirePublicListingEvidence
 
 function publicAvailabilitySnapshot(options = {}) { return requirePublicListingEvidenceService().publicAvailabilitySnapshot(options); }
 
+let listingUrlEvidenceService = null;
+function requireListingUrlEvidenceService() {
+  if (!listingUrlEvidenceService) listingUrlEvidenceService = ListingUrlEvidenceService.create({ URL });
+  return listingUrlEvidenceService;
+}
 function singleInventorySourceFromUrl(rawUrl) {
-  try {
-    const url = new URL(String(rawUrl || ''));
-    if (url.protocol !== 'https:' || !/^(?:www\.)?kleinanzeigen\.de$/i.test(url.hostname)) return null;
-    if (/\/p-anzeige-bearbeiten\.html$/i.test(url.pathname)) {
-      const adId = String(url.searchParams.get('adId') || '');
-      return /^\d+$/.test(adId) ? { adId, mode: 'edit', publicUrl: '' } : null;
-    }
-    const publicMatch = url.pathname.match(/\/s-anzeige\/[^/]+\/(\d+)-\d+-\d+(?:\/)?$/i);
-    if (publicMatch) return { adId: publicMatch[1], mode: 'public', publicUrl: `${url.origin}${url.pathname}` };
-  } catch { /* invalid URL */ }
-  return null;
+  return requireListingUrlEvidenceService().singleInventorySourceFromUrl(rawUrl);
 }
 
 async function extractSingleInventoryEdit(tabId, adId, correlation = {}, { ownedWorker = false } = {}) {
@@ -1749,29 +1409,7 @@ async function extractSingleInventoryEdit(tabId, adId, correlation = {}, { owned
 }
 
 function detectPublishedAdFromKnownUrl(rawUrl, sourceAdId = '') {
-  try {
-    const url = new URL(String(rawUrl || ''));
-    if (!/(^|\.)kleinanzeigen\.de$/i.test(url.hostname)) return null;
-    let adId = '';
-    let publicUrl = '';
-    let kind = '';
-    const publicMatch = url.pathname.match(/\/s-anzeige\/[^/]+\/(\d+)-\d+-\d+(?:\/)?$/i);
-    if (publicMatch) {
-      adId = publicMatch[1];
-      publicUrl = `${url.origin}${url.pathname}`;
-      kind = 'public';
-    } else if (/\/p-anzeige-bearbeiten\.html$/i.test(url.pathname)) {
-      adId = String(url.searchParams.get('adId') || '');
-      kind = 'edit';
-    } else if (/\/p-anzeige-aufgeben-bestaetigung\.html$/i.test(url.pathname)) {
-      adId = String(url.searchParams.get('addId') || url.searchParams.get('adId') || '');
-      kind = 'confirmation';
-    }
-    if (!/^\d+$/.test(adId) || adId === String(sourceAdId || '')) return null;
-    return { adId, publicUrl: publicUrl || null, candidateCount: 1, kind, detectionSource: 'tab-url' };
-  } catch {
-    return null;
-  }
+  return requireListingUrlEvidenceService().detectPublishedAdFromKnownUrl(rawUrl, sourceAdId);
 }
 
 async function detectPublishedAdForFill(tabId, sourceAdId) {
@@ -1783,416 +1421,27 @@ async function detectPublishedAdForFill(tabId, sourceAdId) {
   return detected?.adId ? { ...detected, detectionSource: detected.detectionSource || 'content' } : null;
 }
 
-async function waitForRenewalPublicAdComplete(tabId, expectedAdId, options = {}) {
-  const timeoutMs = Math.max(1000, Number(options.timeoutMs || TAB_LOAD_TIMEOUT_RENEWAL_MS));
-  const purpose = String(options.purpose || 'renewal-public-verification').slice(0, 80);
-  const label = String(options.label || 'Öffentlicher Renewal-Prüftab').slice(0, 120);
-  const operation = String(options.operation || 'renewal-public-verification').slice(0, 80);
-  const context = options.context && typeof options.context === 'object' ? options.context : { tabId };
-  const started = Date.now();
-  const deadline = started + timeoutMs;
-  let lastAssessment = null;
-  while (Date.now() < deadline) {
-    await assertPlatformAccessAllowed({ operation, context });
-    const observedVersion = tabLoadSignalVersion(tabId);
-    const tab = await tabRegistry.getTabOrThrow(tabId, chrome.tabs, { label });
-    const assessment = ManagedNavigation.assessPublicAd(tab, expectedAdId);
-    lastAssessment = assessment;
-    if (assessment.state === ManagedNavigation.STATES.READY) {
-      await logDiagnostic('info', 'RENEWAL_PUBLIC_TARGET_LOAD_TIMING', {
-        tabId,
-        expectedAdId: String(expectedAdId || ''),
-        observedAdId: assessment.observedAdId || null,
-        purpose,
-        durationMs: Date.now() - started,
-        timeoutMs,
-        navigationReason: assessment.reason,
-        ...kleinanzeigenTabMeta(tab)
-      }, { module: 'background', operation, context }).catch(() => {});
-      return tab;
-    }
-    if (assessment.state === ManagedNavigation.STATES.OFF_TARGET) {
-      const error = new Error(`${label} hat nicht die erwartete öffentliche Anzeige erreicht.`);
-      error.code = 'KR_RENEWAL_PUBLIC_OFF_TARGET';
-      error.verificationClass = 'off-target';
-      error.navigationReason = assessment.reason;
-      error.currentUrl = assessment.currentUrl || assessment.pendingUrl || '';
-      error.observedAdId = assessment.observedAdId || '';
-      await logDiagnostic('warning', 'RENEWAL_PUBLIC_TARGET_OFF_TARGET', {
-        tabId,
-        expectedAdId: String(expectedAdId || ''),
-        observedAdId: error.observedAdId || null,
-        purpose,
-        durationMs: Date.now() - started,
-        navigationReason: assessment.reason,
-        currentUrl: String(error.currentUrl || '').slice(0, 1200),
-        ...kleinanzeigenTabMeta(tab)
-      }, { module: 'background', operation, context }).catch(() => {});
-      throw error;
-    }
-    const remainingMs = Math.max(1, deadline - Date.now());
-    await waitForTabLoadSignal(tabId, observedVersion, Math.min(TAB_LOAD_SAFETY_POLL_MS, remainingMs));
-  }
-  const lastTab = await chrome.tabs.get(tabId).catch(() => null);
-  const error = new Error(`${label} wurde nicht rechtzeitig auf der erwarteten öffentlichen Anzeige vollständig geladen.`);
-  error.code = 'KR_RENEWAL_PUBLIC_TIMEOUT';
-  error.verificationClass = 'temporarily-unavailable';
-  error.navigationReason = lastAssessment?.reason || 'timeout';
-  error.currentUrl = String(lastTab?.url || '');
-  await logDiagnostic('warning', 'RENEWAL_PUBLIC_TARGET_TIMEOUT', {
-    tabId,
-    expectedAdId: String(expectedAdId || ''),
-    purpose,
-    durationMs: Date.now() - started,
-    timeoutMs,
-    navigationReason: error.navigationReason,
-    ...(lastTab ? kleinanzeigenTabMeta(lastTab) : {})
-  }, { module: 'background', operation, context }).catch(() => {});
-  throw error;
+let renewalPublicEvidenceCoordinator = null;
+function requireRenewalPublicEvidenceCoordinator() {
+  if (!renewalPublicEvidenceCoordinator) renewalPublicEvidenceCoordinator = RenewalPublicEvidenceCoordinator.create({
+    tabPort: {
+      assertPlatformAccessAllowed, tabLoadSignalVersion, waitForTabLoadSignal, kleinanzeigenTabMeta, normalBrowserWindowId, createAutomationTab, registerManagedWorkerTab, updateAutomationTab, closeManagedWorkerTab, waitForExpectedTabComplete, ensureContentConnection, sendTabRequestWithBootstrap, tabRegistry, chrome, ManagedNavigation
+    },
+    diagnosticsPort: { logDiagnostic, correlationContext, sessionCorrelationContext },
+    policyPort: { renewalAttemptState, isNonRetryableRenewalSafetyError, normalizeProfileName },
+    evidencePort: { extractReadOnlyMetadata, normalizeKnownPublicAdUrl, directPublicUrlForAdId },
+    configPort: { TAB_LOAD_TIMEOUT_RENEWAL_MS, TAB_LOAD_SAFETY_POLL_MS, RENEWAL_PUBLIC_READONLY_READINESS_TIMEOUT_MS, READONLY_METADATA_TIMEOUT_MS, RENEWAL_DIRECT_READONLY_TIMEOUT_MS, MY_ADS_PROJECTS_URL }
+  });
+  return renewalPublicEvidenceCoordinator;
 }
-
-function renewalVerificationAttemptNumber(correlation = {}) {
-  return Math.max(1, Number(renewalAttemptState(correlation, 3).attempt || 1));
-}
-
-function classifyRenewalVerificationFailure(error) {
-  if (isNonRetryableRenewalSafetyError(error)) return 'platform-restricted';
-  const code = String(error?.code || '');
-  if (code === 'KR_RENEWAL_PUBLIC_OFF_TARGET' || code === 'KR_TAB_NAVIGATION_OFF_TARGET') return 'off-target';
-  if (code === 'KR_RENEWAL_PUBLIC_TIMEOUT' || code === 'KR_TAB_NAVIGATION_TIMEOUT') return 'temporarily-unavailable';
-  const text = String(error?.message || error || '');
-  if (/Navigation rejected|No tab with id|Receiving end does not exist|Could not establish connection|message port closed|message channel closed/i.test(text)) return 'transient-navigation-failure';
-  return String(error?.verificationClass || 'temporarily-unavailable');
-}
-
-async function createFreshRenewalVerificationTab(targetUrl, newAdId, publicUrlVariant, correlation = {}, { purpose = 'public' } = {}) {
-  const requestedUrl = String(targetUrl || '');
-  if (!requestedUrl) throw new Error('Ziel-URL der Renewal-Verifikation fehlt.');
-  const verificationAttempt = renewalVerificationAttemptNumber(correlation);
-  const windowId = await normalBrowserWindowId();
-  const tab = await createAutomationTab({ ...(windowId ? { windowId } : {}), url: 'about:blank', active: false });
-  if (!tab?.id) throw new Error('Frischer Renewal-Verifikationstab konnte nicht geöffnet werden.');
-  const owner = {
-    ...correlationContext(correlation),
-    ownerType: purpose === 'public' ? 'renewal-public-verification' : 'renewal-my-ads-verification',
-    ownerId: correlation?.renewalId || correlation?.operationId || newAdId,
-    adId: String(newAdId || ''),
-    verificationAttempt,
-    publicUrlVariant: String(publicUrlVariant || purpose)
-  };
-  await registerManagedWorkerTab(tab.id, purpose === 'public' ? 'renewal-public-verification' : 'renewal-my-ads-verification', owner);
-  await logDiagnostic('info', 'RENEWAL_VERIFICATION_TAB_CREATED', {
-    newAdId: String(newAdId || ''),
-    workerTabId: tab.id,
-    verificationAttempt,
-    purpose,
-    publicUrlVariant: String(publicUrlVariant || purpose),
-    requestedUrl,
-    freshTab: true,
-    initialUrl: 'about:blank'
-  }, { module: 'background', operation: 'renewal-verification-navigation', context: sessionCorrelationContext(correlation, { adId: String(newAdId || ''), workerTabId: tab.id }) }).catch(() => {});
-  try {
-    await updateAutomationTab(tab.id, { url: requestedUrl });
-    await logDiagnostic('info', 'RENEWAL_VERIFICATION_NAVIGATION_REQUESTED', {
-      newAdId: String(newAdId || ''),
-      workerTabId: tab.id,
-      verificationAttempt,
-      purpose,
-      publicUrlVariant: String(publicUrlVariant || purpose),
-      requestedUrl,
-      freshTab: true
-    }, { module: 'background', operation: 'renewal-verification-navigation', context: sessionCorrelationContext(correlation, { adId: String(newAdId || ''), workerTabId: tab.id }) }).catch(() => {});
-    return { tabId: tab.id, requestedUrl, verificationAttempt, purpose, publicUrlVariant: String(publicUrlVariant || purpose) };
-  } catch (error) {
-    const verificationClass = classifyRenewalVerificationFailure(error);
-    await logDiagnostic(isNonRetryableRenewalSafetyError(error) ? 'error' : 'warning', 'RENEWAL_VERIFICATION_NAVIGATION_REJECTED', {
-      newAdId: String(newAdId || ''),
-      workerTabId: tab.id,
-      verificationAttempt,
-      purpose,
-      publicUrlVariant: String(publicUrlVariant || purpose),
-      requestedUrl,
-      freshTab: true,
-      verificationClass,
-      message: String(error?.message || error || '').slice(0, 500)
-    }, { module: 'background', operation: 'renewal-verification-navigation', context: sessionCorrelationContext(correlation, { adId: String(newAdId || ''), workerTabId: tab.id }) }).catch(() => {});
-    error.verificationClass = verificationClass;
-    await closeFreshRenewalVerificationTab({
-      tabId: tab.id,
-      verificationAttempt,
-      purpose,
-      publicUrlVariant: String(publicUrlVariant || purpose)
-    }, newAdId, correlation, isNonRetryableRenewalSafetyError(error) ? 'navigation-safety-stop' : 'navigation-request-failed').catch(() => {});
-    throw error;
-  }
-}
-
-async function closeFreshRenewalVerificationTab(tabInfo, newAdId, correlation = {}, reason = 'verification-finished') {
-  const tabId = Number(tabInfo?.tabId || 0);
-  if (!tabId) return;
-  await logDiagnostic('info', 'RENEWAL_VERIFICATION_TAB_CLOSED', {
-    newAdId: String(newAdId || ''),
-    workerTabId: tabId,
-    verificationAttempt: tabInfo?.verificationAttempt ?? renewalVerificationAttemptNumber(correlation),
-    purpose: tabInfo?.purpose || null,
-    publicUrlVariant: tabInfo?.publicUrlVariant || null,
-    freshTab: true,
-    reason
-  }, { module: 'background', operation: 'renewal-verification-navigation', context: sessionCorrelationContext(correlation, { adId: String(newAdId || ''), workerTabId: tabId }) }).catch(() => {});
-  await closeManagedWorkerTab(tabId).catch(() => {});
-}
-
-async function waitForRenewalPublicReadOnlyReady(tabId, expectedAdId, timeoutMs = RENEWAL_PUBLIC_READONLY_READINESS_TIMEOUT_MS, correlation = {}) {
-  const started = Date.now();
-  const effectiveTimeoutMs = Math.max(READONLY_METADATA_TIMEOUT_MS, Number(timeoutMs || RENEWAL_PUBLIC_READONLY_READINESS_TIMEOUT_MS));
-  const context = sessionCorrelationContext(correlation, { adId: String(expectedAdId || ''), workerTabId: Number(tabId || 0) || null });
-  const result = await extractReadOnlyMetadata(tabId, expectedAdId, effectiveTimeoutMs, { silentFailures: true });
-  if (result.ok) {
-    await logDiagnostic('info', 'RENEWAL_PUBLIC_READONLY_READY', {
-      newAdId: String(expectedAdId || ''),
-      workerTabId: Number(tabId || 0) || null,
-      durationMs: result.durationMs ?? (Date.now() - started),
-      timeoutMs: effectiveTimeoutMs,
-      sameFreshTab: true
-    }, { module: 'background', operation: 'renewal-public-verification', context }).catch(() => {});
-    return result;
-  }
-  await logDiagnostic('warning', 'RENEWAL_PUBLIC_READONLY_TIMEOUT', {
-    newAdId: String(expectedAdId || ''),
-    workerTabId: Number(tabId || 0) || null,
-    durationMs: result.durationMs ?? (Date.now() - started),
-    timeoutMs: effectiveTimeoutMs,
-    sameFreshTab: true,
-    message: String(result.error || 'Read-only-Metadaten wurden nicht rechtzeitig erkannt.').slice(0, 500)
-  }, { module: 'background', operation: 'renewal-public-verification', context }).catch(() => {});
-  return result;
-}
-
 async function probeFreshRenewalPublicUrl(url, expectedAdId, publicUrlVariant, timeoutMs = READONLY_METADATA_TIMEOUT_MS, correlation = {}) {
-  let tabInfo = null;
-  try {
-    tabInfo = await createFreshRenewalVerificationTab(url, expectedAdId, publicUrlVariant, correlation, { purpose: 'public' });
-    const context = sessionCorrelationContext(correlation, { adId: String(expectedAdId || ''), workerTabId: tabInfo.tabId });
-    await waitForRenewalPublicAdComplete(tabInfo.tabId, expectedAdId, {
-      timeoutMs: TAB_LOAD_TIMEOUT_RENEWAL_MS,
-      purpose: `renewal-public-${publicUrlVariant}`,
-      label: 'Öffentlicher Renewal-Prüftab',
-      operation: 'renewal-public-verification',
-      context
-    });
-    await ensureContentConnection({ tabId: tabInfo.tabId });
-    const result = await waitForRenewalPublicReadOnlyReady(tabInfo.tabId, expectedAdId, Math.max(timeoutMs, RENEWAL_PUBLIC_READONLY_READINESS_TIMEOUT_MS), correlation);
-    const finalTab = await chrome.tabs.get(tabInfo.tabId).catch(() => null);
-    const finalAssessment = ManagedNavigation.assessPublicAd(finalTab || {}, expectedAdId);
-    if (!result.ok || finalAssessment.state !== ManagedNavigation.STATES.READY) {
-      const verificationClass = finalAssessment.state === ManagedNavigation.STATES.OFF_TARGET ? 'off-target' : 'temporarily-unavailable';
-      const failure = {
-        ...result,
-        ok: false,
-        requestedUrl: String(url),
-        finalUrl: String(finalTab?.url || ''),
-        observedAdId: finalAssessment.observedAdId || null,
-        verificationClass,
-        publicUrlVariant,
-        workerTabId: tabInfo.tabId,
-        freshTab: true
-      };
-      await logDiagnostic('warning', 'RENEWAL_PUBLIC_VERIFICATION_UNRESOLVED', {
-        newAdId: String(expectedAdId || ''),
-        workerTabId: tabInfo.tabId,
-        verificationAttempt: tabInfo.verificationAttempt,
-        publicUrlVariant,
-        requestedUrl: String(url),
-        finalUrl: failure.finalUrl,
-        observedAdId: failure.observedAdId,
-        verificationClass,
-        message: String(result.error || 'Read-only-Metadaten wurden nicht eindeutig bestätigt.').slice(0, 500),
-        freshTab: true
-      }, { module: 'background', operation: 'renewal-public-verification', context }).catch(() => {});
-      return failure;
-    }
-    const resolvedUrl = normalizeKnownPublicAdUrl(result.metadata?.sourceUrl || finalTab?.url || '', expectedAdId) || '';
-    const verified = {
-      ...result,
-      ok: true,
-      requestedUrl: String(url),
-      finalUrl: String(finalTab?.url || ''),
-      observedAdId: finalAssessment.observedAdId || String(expectedAdId),
-      verificationClass: 'confirmed',
-      publicUrlVariant,
-      workerTabId: tabInfo.tabId,
-      freshTab: true,
-      resolvedUrl
-    };
-    await logDiagnostic('info', 'RENEWAL_PUBLIC_VERIFICATION_CONFIRMED', {
-      newAdId: String(expectedAdId || ''),
-      workerTabId: tabInfo.tabId,
-      verificationAttempt: tabInfo.verificationAttempt,
-      publicUrlVariant,
-      requestedUrl: String(url),
-      finalUrl: verified.finalUrl,
-      resolvedUrl: resolvedUrl || null,
-      observedAdId: verified.observedAdId,
-      durationMs: result.durationMs ?? null,
-      freshTab: true
-    }, { module: 'background', operation: 'renewal-public-verification', context }).catch(() => {});
-    return verified;
-  } catch (error) {
-    if (isNonRetryableRenewalSafetyError(error)) throw error;
-    const verificationClass = classifyRenewalVerificationFailure(error);
-    const finalTab = tabInfo?.tabId ? await chrome.tabs.get(tabInfo.tabId).catch(() => null) : null;
-    await logDiagnostic('warning', 'RENEWAL_PUBLIC_VERIFICATION_FAILED', {
-      newAdId: String(expectedAdId || ''),
-      workerTabId: tabInfo?.tabId || null,
-      verificationAttempt: tabInfo?.verificationAttempt || renewalVerificationAttemptNumber(correlation),
-      publicUrlVariant,
-      requestedUrl: String(url),
-      finalUrl: String(finalTab?.url || ''),
-      verificationClass,
-      message: String(error?.message || error || '').slice(0, 500),
-      freshTab: true
-    }, { module: 'background', operation: 'renewal-public-verification', context: sessionCorrelationContext(correlation, { adId: String(expectedAdId || ''), workerTabId: tabInfo?.tabId || null }) }).catch(() => {});
-    return {
-      ok: false,
-      metadata: null,
-      durationMs: 0,
-      requestedUrl: String(url),
-      finalUrl: String(finalTab?.url || ''),
-      error: String(error?.message || error || '').slice(0, 500),
-      verificationClass,
-      publicUrlVariant,
-      workerTabId: tabInfo?.tabId || null,
-      freshTab: true
-    };
-  } finally {
-    if (tabInfo?.tabId) await closeFreshRenewalVerificationTab(tabInfo, expectedAdId, correlation, 'public-verification-finished');
-  }
+  return requireRenewalPublicEvidenceCoordinator().probeFreshRenewalPublicUrl(url, expectedAdId, publicUrlVariant, timeoutMs, correlation);
 }
-
-async function findRenewalAdInMyAdsFresh(adId, expectedProfileName, correlation = {}) {
-  let tabInfo = null;
-  try {
-    tabInfo = await createFreshRenewalVerificationTab(MY_ADS_PROJECTS_URL, adId, 'my-ads', correlation, { purpose: 'my-ads' });
-    const context = sessionCorrelationContext(correlation, { adId: String(adId || ''), workerTabId: tabInfo.tabId });
-    await waitForExpectedTabComplete(tabInfo.tabId, MY_ADS_PROJECTS_URL, {
-      timeoutMs: TAB_LOAD_TIMEOUT_RENEWAL_MS,
-      purpose: 'renewal-my-ads-fresh',
-      label: 'Frischer „Meine Anzeigen“-Prüftab',
-      operation: 'renewal-my-ads-fallback',
-      context
-    });
-    await ensureContentConnection({ tabId: tabInfo.tabId });
-    const status = await sendTabRequestWithBootstrap(tabInfo.tabId, { type: 'MY_ADS_STATUS' });
-    if (!status?.isMyAdsPage || !status?.isProjectsTab) throw new Error('„Meine Anzeigen“-Fallback befindet sich nicht eindeutig im PROJECTS-Tab.');
-    const expectedProfile = normalizeProfileName(expectedProfileName || '');
-    const actualProfile = normalizeProfileName(status?.profileName || '');
-    if (expectedProfile) {
-      if (!actualProfile) throw new Error('Das Kleinanzeigen-Konto konnte beim „Meine Anzeigen“-Fallback nicht eindeutig erkannt werden.');
-      if (expectedProfile.toLocaleLowerCase('de-DE') !== actualProfile.toLocaleLowerCase('de-DE')) {
-        throw new Error('Der „Meine Anzeigen“-Fallback ist mit einem anderen Kleinanzeigen-Konto angemeldet.');
-      }
-    }
-    const result = await sendTabRequestWithBootstrap(tabInfo.tabId, { type: 'FIND_OWN_AD_BY_ID', adId: String(adId), correlation: correlationContext(correlation) });
-    await logDiagnostic(result?.found ? 'info' : 'warning', result?.found ? 'RENEWAL_MY_ADS_FRESH_FOUND' : 'RENEWAL_MY_ADS_FRESH_NOT_FOUND', {
-      newAdId: String(adId || ''),
-      workerTabId: tabInfo.tabId,
-      verificationAttempt: tabInfo.verificationAttempt,
-      found: Boolean(result?.found),
-      page: result?.page ?? null,
-      pagesScanned: result?.pagesScanned ?? null,
-      publicUrl: result?.publicUrl || null,
-      freshTab: true
-    }, { module: 'background', operation: 'renewal-my-ads-fallback', context }).catch(() => {});
-    return { ...result, profileName: actualProfile || null, workerTabId: tabInfo.tabId, freshTab: true };
-  } finally {
-    if (tabInfo?.tabId) await closeFreshRenewalVerificationTab(tabInfo, adId, correlation, 'my-ads-verification-finished');
-  }
-}
-
 function renewalEvidenceFailureClass(results = []) {
-  const classes = results.map(item => String(item?.verificationClass || '')).filter(Boolean);
-  if (classes.includes('transient-navigation-failure')) return 'transient-navigation-failure';
-  if (classes.includes('off-target')) return 'off-target';
-  return 'temporarily-unavailable';
+  return requireRenewalPublicEvidenceCoordinator().renewalEvidenceFailureClass(results);
 }
-
 async function resolveRenewalPublicEvidence(newAdId, expectedProfileName, correlation = {}) {
-  const knownPublicUrl = String(correlation?.newPublicUrl || '');
-  const canonicalKnownUrl = normalizeKnownPublicAdUrl(knownPublicUrl, newAdId);
-  const directIdUrl = directPublicUrlForAdId(newAdId);
-  const attempts = [];
-
-  if (canonicalKnownUrl) {
-    const canonical = await probeFreshRenewalPublicUrl(canonicalKnownUrl, newAdId, 'canonical', RENEWAL_DIRECT_READONLY_TIMEOUT_MS, correlation);
-    attempts.push(canonical);
-    if (canonical.ok) {
-      return { readOnlyResult: canonical, publicUrl: canonical.resolvedUrl || canonicalKnownUrl, ownAdsPresence: null, myAds: null, method: 'canonical-fresh', verificationClass: 'confirmed', publicAttempts: attempts };
-    }
-  }
-
-  if (directIdUrl) {
-    const idDirect = await probeFreshRenewalPublicUrl(directIdUrl, newAdId, 'id-direct', READONLY_METADATA_TIMEOUT_MS, correlation);
-    attempts.push(idDirect);
-    if (idDirect.ok) {
-      return { readOnlyResult: idDirect, publicUrl: idDirect.resolvedUrl || canonicalKnownUrl || '', ownAdsPresence: null, myAds: null, method: 'id-direct-fresh', verificationClass: 'confirmed', publicAttempts: attempts };
-    }
-  }
-
-  let myAds = null;
-  try {
-    myAds = await findRenewalAdInMyAdsFresh(newAdId, expectedProfileName, correlation);
-  } catch (error) {
-    if (isNonRetryableRenewalSafetyError(error)) throw error;
-    const verificationClass = classifyRenewalVerificationFailure(error);
-    await logDiagnostic('warning', 'RENEWAL_MY_ADS_FRESH_FAILED', {
-      newAdId,
-      verificationAttempt: renewalVerificationAttemptNumber(correlation),
-      verificationClass,
-      message: String(error?.message || error || '').slice(0, 500),
-      freshTab: true
-    }, { module: 'background', operation: 'renewal-my-ads-fallback', context: sessionCorrelationContext(correlation, { adId: newAdId }) }).catch(() => {});
-    const fallbackResult = attempts.at(-1) || { ok: false, metadata: null, durationMs: 0, error: String(error?.message || error || '') };
-    return {
-      readOnlyResult: fallbackResult,
-      publicUrl: canonicalKnownUrl || '',
-      ownAdsPresence: null,
-      myAds: { found: null, error: String(error?.message || error || '').slice(0, 500) },
-      method: 'fresh-public+my-ads-error',
-      verificationClass: verificationClass === 'platform-restricted' ? verificationClass : renewalEvidenceFailureClass([...attempts, { verificationClass }]),
-      publicAttempts: attempts
-    };
-  }
-
-  const myAdsPublicUrl = normalizeKnownPublicAdUrl(myAds?.publicUrl || '', newAdId);
-  if (myAds?.found && myAdsPublicUrl && myAdsPublicUrl !== canonicalKnownUrl) {
-    const myAdsCanonical = await probeFreshRenewalPublicUrl(myAdsPublicUrl, newAdId, 'my-ads-canonical', READONLY_METADATA_TIMEOUT_MS, correlation);
-    attempts.push(myAdsCanonical);
-    if (myAdsCanonical.ok) {
-      return { readOnlyResult: myAdsCanonical, publicUrl: myAdsCanonical.resolvedUrl || myAdsPublicUrl, ownAdsPresence: true, myAds, method: 'my-ads-canonical-fresh', verificationClass: 'confirmed', publicAttempts: attempts };
-    }
-  }
-
-  const verificationClass = renewalEvidenceFailureClass(attempts);
-  const lastPublic = attempts.at(-1) || { ok: false, metadata: null, durationMs: 0, error: 'Öffentliche Verifikation lieferte kein eindeutiges Ergebnis.', verificationClass };
-  await logDiagnostic('warning', 'RENEWAL_PUBLIC_EVIDENCE_UNRESOLVED', {
-    newAdId,
-    verificationAttempt: renewalVerificationAttemptNumber(correlation),
-    verificationClass,
-    ownAdsPresence: myAds?.found === true ? true : (myAds?.found === false ? false : null),
-    myAdsPage: myAds?.page ?? null,
-    publicAttemptCount: attempts.length,
-    publicUrlVariants: attempts.map(item => item.publicUrlVariant).filter(Boolean),
-    freshTabsOnly: attempts.every(item => item.freshTab === true)
-  }, { module: 'background', operation: 'renewal-public-verification', context: sessionCorrelationContext(correlation, { adId: newAdId }) }).catch(() => {});
-  return {
-    readOnlyResult: lastPublic,
-    publicUrl: myAdsPublicUrl || canonicalKnownUrl || '',
-    ownAdsPresence: myAds?.found === true ? true : (myAds?.found === false ? false : null),
-    myAds,
-    method: myAds?.found ? 'my-ads-found-public-unresolved' : 'public-unresolved',
-    verificationClass,
-    publicAttempts: attempts
-  };
+  return requireRenewalPublicEvidenceCoordinator().resolveRenewalPublicEvidence(newAdId, expectedProfileName, correlation);
 }
 
 async function extractReadOnlyMetadata(tabId, expectedAdId, timeoutMs = READONLY_METADATA_TIMEOUT_MS, options = {}) { return requirePublicListingEvidenceService().extractReadOnlyMetadata(tabId, expectedAdId, timeoutMs, options); }
@@ -2205,225 +1454,53 @@ function mergeListingMetadata(extracted, existingMeta = {}, readOnlyResult = nul
 
 async function captureSingleInventory(message) { return requireSingleInventoryController().captureSingleInventory(message); }
 
-async function checkInventoryOnlineStatus(message) {
-  const inventoryId = String(message?.inventoryId || message?.adId || '');
-  const existing = await getInventory(inventoryId);
-  if (!existing) throw new Error('Lokaler Inventareintrag wurde nicht gefunden.');
-  if (existing?.profileId) await assertSelectedProfileMatchesLiveAccount({ expectedProfileId: existing.profileId, expectedProfileName: existing.profileName || '', purpose: 'inventory-online-status' });
-  const adId = String(existing.adId || message?.adId || '');
-  if (!/^\d+$/.test(adId)) throw new Error('Inventareintrag besitzt keine gültige Anzeigen-ID.');
-  if (!publicAvailabilityPending(existing)) return { online: true, pending: false, record: existing, alreadyResolved: true };
-  const run = await getBulkRunState().catch(() => null);
-  if (run?.status === 'running' || run?.retryAdId) throw new Error('Während einer laufenden Erfassung oder Wiederholung kann der Online-Status nicht geprüft werden.');
-
-  const operationId = crypto.randomUUID();
-  const canonicalUrl = normalizeKnownPublicAdUrl(publicUrlForInventoryRecord(existing), adId);
-  const directUrl = directPublicUrlForAdId(adId);
-  const attempts = [];
-  let confirmed = null;
-  await logDiagnostic('info', 'INVENTORY_ONLINE_STATUS_CHECK_STARTED', {
-    operationId, inventoryId, adId, canonicalUrlAvailable: Boolean(canonicalUrl), directUrlAvailable: Boolean(directUrl)
-  }, { module: 'background', operation: 'inventory-online-status', context: { operationId, adId } }).catch(() => {});
-
-  if (canonicalUrl) {
-    const canonical = await probeFreshRenewalPublicUrl(canonicalUrl, adId, 'canonical', RENEWAL_DIRECT_READONLY_TIMEOUT_MS, { operationId, adId });
-    attempts.push(canonical);
-    if (canonical.ok) confirmed = canonical;
-  }
-  if (!confirmed && directUrl) {
-    const direct = await probeFreshRenewalPublicUrl(directUrl, adId, 'id-direct', READONLY_METADATA_TIMEOUT_MS, { operationId, adId });
-    attempts.push(direct);
-    if (direct.ok) confirmed = direct;
-  }
-
-  const checkedAt = new Date().toISOString();
-  if (confirmed) {
-    const resolvedUrl = normalizeKnownPublicAdUrl(confirmed.resolvedUrl || confirmed.metadata?.sourceUrl || canonicalUrl, adId) || canonicalUrl || '';
-    existing.listingMeta = mergeListingMetadata(existing, existing.listingMeta || {}, confirmed, {
-      publicUrl: resolvedUrl || null,
-      source: 'online-status-check'
-    });
-    existing.listingMeta.publicAvailability = {
-      ...publicAvailabilitySnapshot({
-        online: true,
-        verificationClass: 'confirmed',
-        method: confirmed.publicUrlVariant || 'public-readonly',
-        publicUrl: resolvedUrl || null,
-        checkedAt
-      }),
-      status: 'online'
-    };
-    if (resolvedUrl) existing.publicUrl = resolvedUrl;
-    await putInventoryRecordOnly(existing);
-    await logDiagnostic('info', 'INVENTORY_ONLINE_STATUS_CONFIRMED', {
-      operationId, inventoryId, adId, publicUrl: resolvedUrl || null, attemptCount: attempts.length,
-      variants: attempts.map(item => item.publicUrlVariant).filter(Boolean)
-    }, { module: 'background', operation: 'inventory-online-status', context: { operationId, adId } }).catch(() => {});
-    broadcastInventoryChanged('inventory-online-status-confirmed', { inventoryId, adId });
-    return { online: true, pending: false, record: existing };
-  }
-
-  const verificationClass = renewalEvidenceFailureClass(attempts);
-  existing.listingMeta = {
-    ...(existing.listingMeta || {}),
-    publicAvailability: {
-      ...publicAvailabilitySnapshot({
-        online: false,
-        verificationClass,
-        method: attempts.at(-1)?.publicUrlVariant || null,
-        publicUrl: canonicalUrl || null,
-        checkedAt
-      }),
-      status: 'pending'
-    }
-  };
-  await putInventoryRecordOnly(existing);
-  await logDiagnostic('info', 'INVENTORY_ONLINE_STATUS_STILL_PENDING', {
-    operationId, inventoryId, adId, verificationClass, attemptCount: attempts.length,
-    variants: attempts.map(item => item.publicUrlVariant).filter(Boolean)
-  }, { module: 'background', operation: 'inventory-online-status', context: { operationId, adId } }).catch(() => {});
-  broadcastInventoryChanged('inventory-online-status-pending', { inventoryId, adId });
-  return { online: false, pending: true, record: existing, verificationClass };
+let inventoryRefreshService = null;
+function requireInventoryRefreshService() {
+  if (!inventoryRefreshService) inventoryRefreshService = InventoryRefreshService.create({
+    getInventory,
+    assertSelectedProfileMatchesLiveAccount,
+    publicAvailabilityPending,
+    getBulkRunState,
+    normalizeKnownPublicAdUrl,
+    publicUrlForInventoryRecord,
+    directPublicUrlForAdId,
+    logDiagnostic,
+    probeFreshRenewalPublicUrl,
+    mergeListingMetadata,
+    publicAvailabilitySnapshot,
+    putInventoryRecordOnly,
+    broadcastInventoryChanged,
+    renewalEvidenceFailureClass,
+    readRenewalSessions,
+    normalBrowserWindowId,
+    createAutomationTab,
+    extractReadOnlyMetadata,
+    waitForTabComplete,
+    ensureContentConnection,
+    sendTabRequestWithBootstrap,
+    delay,
+    requirePublicListingEvidenceService,
+    saveInventory,
+    normalizeRenewalMode,
+    compareRenewalRecords,
+    renewalOutcomeForComparison,
+    persistRenewalSession,
+    sessionCorrelationContext,
+    closeRegistryTabs,
+    RENEWAL_DIRECT_READONLY_TIMEOUT_MS,
+    READONLY_METADATA_TIMEOUT_MS,
+    TAB_LOAD_TIMEOUT_RENEWAL_MS,
+    BULK_RETRY_TIMEOUT_MS,
+    BULK_RETRY_POLL_MS,
+    RENEWAL_MODE_SAFE
+  });
+  return inventoryRefreshService;
 }
-
+async function checkInventoryOnlineStatus(message) {
+  return requireInventoryRefreshService().checkInventoryOnlineStatus(message);
+}
 async function refreshInventoryRecord(message) {
-  const inventoryId = String(message?.inventoryId || message?.adId || '');
-  const existing = await getInventory(inventoryId);
-  if (!existing) throw new Error('Lokaler Inventareintrag wurde nicht gefunden.');
-  if (existing?.profileId) await assertSelectedProfileMatchesLiveAccount({ expectedProfileId: existing.profileId, expectedProfileName: existing.profileName || '', purpose: 'inventory-refresh' });
-  const adId = String(existing.adId || message?.adId || '');
-  if (!/^\d+$/.test(adId)) throw new Error('Inventareintrag besitzt keine gültige Anzeigen-ID.');
-  const run = await getBulkRunState().catch(() => null);
-  if (run?.status === 'running' || run?.retryAdId) throw new Error('Während einer laufenden Erfassung oder Wiederholung kann eine Anzeige nicht aktualisiert werden.');
-  const renewals = await readRenewalSessions().catch(() => ({}));
-  if (Object.values(renewals).some(item => !['cancelled', 'replaced'].includes(String(item?.status || '')) && String(item?.sourceInventoryId || '') === inventoryId)) {
-    throw new Error('Die Quellanzeige ist während eines laufenden Renewal-Vorgangs gesperrt.');
-  }
-
-  let workerTabId = null;
-  let metadataTabId = null;
-  const publicUrl = publicUrlForInventoryRecord(existing);
-  await logDiagnostic('info', 'INVENTORY_REFRESH_STARTED', { inventoryId, adId, readOnlyMetadataRequested: Boolean(publicUrl) }, { module: 'background', operation: 'inventory-refresh', context: { adId } }).catch(() => {});
-  try {
-    const windowId = await normalBrowserWindowId();
-    const editPromise = createAutomationTab({ ...(windowId ? { windowId } : {}), url: `https://www.kleinanzeigen.de/p-anzeige-bearbeiten.html?adId=${encodeURIComponent(adId)}`, active: false });
-    const metadataPromise = publicUrl
-      ? createAutomationTab({ ...(windowId ? { windowId } : {}), url: publicUrl, active: false })
-      : Promise.resolve(null);
-    const [editResult, metadataResult] = await Promise.allSettled([editPromise, metadataPromise]);
-    if (editResult.status !== 'fulfilled' || !editResult.value?.id) throw new Error('Aktualisierungs-Worker konnte nicht geöffnet werden.');
-    workerTabId = editResult.value.id;
-    if (metadataResult.status === 'fulfilled' && metadataResult.value?.id) metadataTabId = metadataResult.value.id;
-
-    await logDiagnostic('info', 'INVENTORY_REFRESH_WORKERS_OPENED', { adId, workerTabId, metadataTabId, parallel: true }, { module: 'background', operation: 'inventory-refresh', context: { adId, workerTabId, metadataTabId } }).catch(() => {});
-    const readOnlyPromise = metadataTabId
-      ? extractReadOnlyMetadata(metadataTabId, adId)
-      : Promise.resolve({ ok: false, metadata: null, durationMs: 0, error: 'Keine öffentliche Detail-URL verfügbar.' });
-
-    await waitForTabComplete(workerTabId, { timeoutMs: TAB_LOAD_TIMEOUT_RENEWAL_MS, purpose: 'inventory-refresh-edit', label: 'Aktualisierungs-Worker', operation: 'inventory-refresh', context: { adId, workerTabId } });
-    await ensureContentConnection({ tabId: workerTabId });
-    const deadline = Date.now() + BULK_RETRY_TIMEOUT_MS;
-    let extracted = null;
-    let lastReason = '';
-    while (Date.now() < deadline) {
-      try {
-        extracted = await sendTabRequestWithBootstrap(workerTabId, { type: 'EXTRACT_CURRENT_AD' });
-        if (String(extracted?.adId || '') === adId) break;
-        lastReason = `Worker-Anzeige ${extracted?.adId || 'unbekannt'} entspricht nicht ${adId}.`;
-        extracted = null;
-      } catch (error) {
-        lastReason = String(error.message || error).slice(0, 300);
-      }
-      await delay(BULK_RETRY_POLL_MS);
-    }
-    if (!extracted) throw new Error(lastReason || 'Anzeige wurde nicht rechtzeitig inventarisierbar.');
-
-    const readOnlyResult = await readOnlyPromise;
-    let ownerCardEndDate = null;
-    // The public listing can have a posting date but no expiry. Only when
-    // the expiry is missing do we read the owner's exact card and reuse the
-    // existing bounded multi-page FIND_OWN_AD_BY_ID parser.
-    if (!readOnlyResult.ok || !readOnlyResult.metadata?.endDateDisplay) {
-      try {
-        ownerCardEndDate = await requirePublicListingEvidenceService().readInventoryRefreshOwnAdsEndDate(adId, existing.profileName || '', windowId);
-        await logDiagnostic('info', 'INVENTORY_REFRESH_OWN_AD_END_DATE_CONFIRMED', {
-          adId, source: ownerCardEndDate.evidence, pagesScanned: ownerCardEndDate.pagesScanned,
-          endDateDisplay: ownerCardEndDate.endDateDisplay
-        }, { module: 'background', operation: 'inventory-refresh-own-ads', context: { adId } }).catch(() => {});
-      } catch (error) {
-        // Read-only enrichment must never corrupt a complete edit snapshot or
-        // replace a known date with a guess on a wrong-account/absent card.
-        await logDiagnostic('warning', 'INVENTORY_REFRESH_OWN_AD_END_DATE_UNAVAILABLE', {
-          adId, message: String(error?.message || error).slice(0, 400)
-        }, { module: 'background', operation: 'inventory-refresh-own-ads', context: { adId } }).catch(() => {});
-      }
-    }
-    if (!readOnlyResult.ok) {
-      await logDiagnostic('warning', 'INVENTORY_REFRESH_READONLY_UNAVAILABLE', { adId, durationMs: readOnlyResult.durationMs, message: readOnlyResult.error }, { module: 'background', operation: 'inventory-refresh-readonly', context: { adId, metadataTabId } }).catch(() => {});
-    } else {
-      await logDiagnostic('info', 'INVENTORY_REFRESH_READONLY_SUCCEEDED', { adId, durationMs: readOnlyResult.durationMs, hasEndDate: Boolean(readOnlyResult.metadata?.endDateDisplay), hasListingDate: Boolean(readOnlyResult.metadata?.listingDateDisplay) }, { module: 'background', operation: 'inventory-refresh-readonly', context: { adId, metadataTabId } }).catch(() => {});
-    }
-    extracted.profileId = existing.profileId || null;
-    extracted.profileName = existing.profileName || null;
-    if (existing?.renewal?.renewalId || String(existing?.recordKind || '').startsWith('renewal-')) {
-      extracted.recordKind = existing.recordKind || 'renewal-candidate';
-      extracted.renewal = existing.renewal ? { ...existing.renewal, updatedAt: new Date().toISOString() } : null;
-    }
-    extracted.listingMeta = mergeListingMetadata(extracted, existing.listingMeta || {}, readOnlyResult, {
-      endDateDisplay: ownerCardEndDate?.endDateDisplay || existing.listingMeta?.endDateDisplay || existing.endDateDisplay || null,
-      endDateIso: ownerCardEndDate?.endDateIso || existing.listingMeta?.endDateIso || null,
-      publicUrl,
-      source: 'manual-inventory-refresh'
-    });
-    if (ownerCardEndDate) extracted.listingMeta.endDateSource = ownerCardEndDate.evidence;
-    let saved = await saveInventory(extracted, { inventoryIdOverride: inventoryId });
-    if (existing?.renewal?.renewalId) {
-      const sessions = await readRenewalSessions();
-      const session = sessions[String(existing.renewal.renewalId)];
-      if (session && String(session.skeletonInventoryId || '') === inventoryId) {
-        const source = await getInventory(session.sourceInventoryId);
-        if (!source) throw new Error('Quellinventar für die erneute Renewal-Verifikation wurde nicht gefunden.');
-        const safeFullVerification = normalizeRenewalMode(session.renewalMode) === RENEWAL_MODE_SAFE;
-        const comparison = await compareRenewalRecords(source, saved, {
-          onlineConfirmed: readOnlyResult.ok,
-          requirePublicAvailability: !safeFullVerification
-        });
-        session.comparison = comparison;
-        const outcome = renewalOutcomeForComparison(comparison);
-        session.status = outcome.status;
-        session.stage = outcome.stage;
-        if (safeFullVerification && comparison.status === 'match') {
-          session.status = 'verified';
-          session.stage = 'replacement-ready';
-          session.publicAvailabilityPending = !readOnlyResult.ok;
-          session.publicAvailability = publicAvailabilitySnapshot({
-            online: Boolean(readOnlyResult.ok),
-            verificationClass: readOnlyResult.ok ? 'confirmed' : 'temporarily-unavailable',
-            method: readOnlyResult.ok ? 'manual-refresh-readonly' : null,
-            publicUrl: publicUrl || null
-          });
-          saved.listingMeta = { ...(saved.listingMeta || {}), publicAvailability: { ...session.publicAvailability } };
-          await putInventoryRecordOnly(saved);
-        }
-        session.verifiedAt = comparison.status === 'match' ? new Date().toISOString() : null;
-        session.lastError = null;
-        await persistRenewalSession(session);
-        saved = await getInventory(inventoryId) || saved;
-        await logDiagnostic(comparison.status === 'match' ? 'info' : 'warning', 'RENEWAL_REFRESH_REVERIFIED', {
-          renewalId: session.renewalId, sourceAdId: session.sourceAdId, newAdId: session.newAdId, status: comparison.status, mismatchCount: comparison.mismatches.length, uncertaintyCount: comparison.uncertainties.length
-        }, { module: 'background', operation: 'renewal-refresh-verify', context: sessionCorrelationContext(session, { renewalId: session.renewalId, adId }) }).catch(() => {});
-      }
-    }
-    await closeRegistryTabs([workerTabId, metadataTabId], 'inventory-refresh-worker-finished', 'Aktualisierungs-Worker');
-    workerTabId = null;
-    metadataTabId = null;
-    await logDiagnostic('info', 'INVENTORY_REFRESH_SUCCEEDED', { inventoryId: saved.inventoryId, adId, imageCount: saved.imageSummary?.discovered || 0, readOnlyMetadata: readOnlyResult.ok }, { module: 'background', operation: 'inventory-refresh', context: { adId } }).catch(() => {});
-    return saved;
-  } catch (error) {
-    await closeRegistryTabs([workerTabId, metadataTabId], 'inventory-refresh-worker-failed', 'Aktualisierungs-Worker');
-    await logDiagnostic('error', 'INVENTORY_REFRESH_FAILED', { inventoryId, adId, message: String(error.message || error).slice(0, 600), stack: String(error.stack || '').slice(0, 2400) }, { module: 'background', operation: 'inventory-refresh', context: { adId, workerTabId, metadataTabId } }).catch(() => {});
-    throw error;
-  }
+  return requireInventoryRefreshService().refreshInventoryRecord(message);
 }
 
 function classifyBulkEditWorkerNavigation(tab, expectedAdId) { return requireBulkInventoryController().classifyBulkEditWorkerNavigation(tab, expectedAdId); }
@@ -2603,138 +1680,25 @@ function requireAutoPublishIntentJournal() {
 }
 // A caller-supplied new-ID redirect is only a candidate. Read-only My Ads
 // verification in an independent managed tab is the sole outcome authority.
-async function verifyAutoPublishRemoteOutcomeFresh(intent, newAdId) {
-  const deny = () => { throw Object.assign(new Error('KR_PUBLISH_INTENT_UNVERIFIED'),
-    {code:'KR_PUBLISH_INTENT_UNVERIFIED'}); };
-  if (!intent || !/^\d+$/.test(String(newAdId || ''))
-      || String(intent.sourceAdId || '') === String(newAdId) || !intent.workflowId) deny();
-  const archive = intent.kind === 'archive';
-  const session = archive
-    ? (await readArchiveInsertionSessions())[intent.workflowId]
-    : (await readRenewalSessions())[intent.workflowId];
-  if (!session || session.fillId !== intent.fillId
-      || String((archive ? session.targetProfileId : session.profileId) || '') !== intent.profileId
-      || String(session.sourceAdId || '') !== intent.sourceAdId
-      || Number(session.targetTabId) !== intent.targetTabId) deny();
-  const bound = await assertSelectedProfileMatchesLiveAccount({
-    expectedProfileId: intent.profileId,
-    ...(archive ? {expectedProfileName:String(session.targetProfileName || '')} : {}),
-    purpose:'publish-independent-result-verification'
+let publishIntentAuthorizationService = null;
+function requirePublishIntentAuthorizationService() {
+  if (!publishIntentAuthorizationService) publishIntentAuthorizationService = PublishIntentAuthorizationService.create({
+    sessionPort: { readArchiveInsertionSessions, readRenewalSessions, readFillSessions },
+    accountPort: { assertSelectedProfileMatchesLiveAccount, normalizeProfileName },
+    tabPort: { createManagedWorkerTab, waitForTabComplete, ensureContentConnection, sendTabRequestWithBootstrap, closeManagedWorkerTab },
+    journalPort: { requireAutoPublishIntentJournal },
+    configPort: { MY_ADS_PROJECTS_URL, TAB_LOAD_TIMEOUT_PHASE4_MS, URL }
   });
-  const expectedName = normalizeProfileName(bound?.displayName || '');
-  if (String(bound?.profileId || '') !== intent.profileId || !expectedName) deny();
-  let tabId = null;
-  try {
-    const tab = await createManagedWorkerTab({
-      url:MY_ADS_PROJECTS_URL,active:false
-    },'publish-independent-presence',{
-      ownerType:archive?'archive-insertion':'renewal',ownerId:intent.workflowId,
-      fillId:intent.fillId,adId:newAdId,phaseAttemptId:intent.attemptId
-    });
-    if (!Number.isSafeInteger(tab?.id) || tab.id<=0) deny();
-    tabId=tab.id;
-    await waitForTabComplete(tabId,{
-      timeoutMs:TAB_LOAD_TIMEOUT_PHASE4_MS,purpose:'publish-independent-presence',
-      label:'Unabhängige Veröffentlichungsprüfung',operation:'publish-verification',
-      context:{fillId:intent.fillId,adId:newAdId,workerTabId:tabId}
-    });
-    await ensureContentConnection({tabId});
-    const normalize=text=>normalizeProfileName(text).toLocaleLowerCase('de-DE');
-    const assertStatus=async()=>{
-      const status=await sendTabRequestWithBootstrap(tabId,{type:'MY_ADS_STATUS'});
-      if(status?.isMyAdsPage!==true||status?.isProjectsTab!==true
-          ||!status.profileName||normalize(status.profileName)!==normalize(expectedName))deny();
-    };
-    await assertStatus();
-    const presence=await sendTabRequestWithBootstrap(tabId,{
-      type:'FIND_OWN_AD_BY_ID',adId:newAdId,
-      correlation:{fillId:intent.fillId,
-        ...(archive?{archiveInsertionId:intent.workflowId}:{renewalId:intent.workflowId})}
-    });
-    await assertStatus(); // Also check account after navigation / full pagination.
-    const confirmed = await assertSelectedProfileMatchesLiveAccount({
-      expectedProfileId:intent.profileId,purpose:'publish-independent-result-readback'
-    });
-    if (String(confirmed?.profileId||'')!==intent.profileId
-        ||presence?.found!==true||String(presence.adId||'')!==newAdId
-        ||presence.evidence!=='found-in-my-ads-full-pagination-scan'
-        ||!Number.isSafeInteger(presence.pagesScanned)||presence.pagesScanned<1
-        ||!Number.isSafeInteger(presence.page)||presence.page<1)deny();
-    return Object.freeze({
-      fillId:intent.fillId,workflowId:intent.workflowId,kind:intent.kind,
-      profileId:intent.profileId,sourceAdId:intent.sourceAdId,newAdId,
-      targetPresent:true,targetEvidence:presence.evidence,
-      targetPagesScanned:presence.pagesScanned,targetFoundPage:presence.page
-    });
-  } finally {
-    if(tabId)await closeManagedWorkerTab(tabId).catch(()=>{});
-  }
+  return publishIntentAuthorizationService;
 }
-async function resolveManagedPublishIntent(fill,detected) {
-  const fillId=String(fill?.fillId||''),newAdId=String(detected?.adId||'');
-  const result=await requireAutoPublishIntentJournal().resolveVerified({fillId,newAdId});
-  if(result?.state!=='resolved-confirmed'||result.fillId!==fillId||result.newAdId!==newAdId)
-    throw Object.assign(new Error('KR_PUBLISH_INTENT_UNVERIFIED'),{code:'KR_PUBLISH_INTENT_UNVERIFIED'});
-  return result;
+async function verifyAutoPublishRemoteOutcomeFresh(intent, newAdId) {
+  return requirePublishIntentAuthorizationService().verifyAutoPublishRemoteOutcomeFresh(intent, newAdId);
+}
+async function resolveManagedPublishIntent(fill, detected) {
+  return requirePublishIntentAuthorizationService().resolveManagedPublishIntent(fill, detected);
 }
 async function authorizeAutomaticPublish(message, sender, admissionReceipt) {
-  if (!admissionReceipt || !Object.isFrozen(admissionReceipt)
-      || admissionReceipt.operationType !== 'AUTHORIZE_AUTOMATIC_PUBLISH')
-    throw Object.assign(new Error('KR_PUBLISH_INTENT_ADMISSION_UNVERIFIED'), {code:'KR_PUBLISH_INTENT_ADMISSION_UNVERIFIED'});
-  const fillId = String(message?.fillId || '');
-  const tabId = Number(sender?.tab?.id || 0);
-  if (!/^[A-Za-z0-9_-]{1,128}$/.test(fillId) || !Number.isSafeInteger(tabId) || tabId <= 0)
-    throw new Error('KR_PUBLISH_INTENT_IDENTITY');
-  // Never trust a claimed page URL from the message body.
-  let url;
-  try { url = new URL(String(sender?.url || '')); }
-  catch { throw new Error('KR_PUBLISH_INTENT_WRONG_PAGE'); }
-  if (!['www.kleinanzeigen.de','kleinanzeigen.de'].includes(url.hostname)
-      || !url.pathname.startsWith('/p-anzeige-aufgeben'))
-    throw new Error('KR_PUBLISH_INTENT_WRONG_PAGE');
-  const fill = (await readFillSessions())[fillId];
-  if (!fill || String(fill.fillId || '') !== fillId || Number(fill.targetTabId) !== tabId
-      || fill.templateOnly || fill.status !== 'running'
-      || !['auto-publish-ready','awaiting-publish','awaiting-manual-publish'].includes(fill.stage)
-      || fill?.result?.complete !== true || !Array.isArray(fill?.result?.issues)
-      || fill.result.issues.length !== 0
-      || Boolean(fill.renewalId) === Boolean(fill.archiveInsertionId))
-    throw new Error('KR_PUBLISH_INTENT_SESSION_UNVERIFIED');
-  const archive = Boolean(fill.archiveInsertionId);
-  const workflowId = String(archive ? fill.archiveInsertionId : fill.renewalId);
-  const session = archive
-    ? (await readArchiveInsertionSessions())[workflowId]
-    : (await readRenewalSessions())[workflowId];
-  const profileId = String((archive ? session?.targetProfileId : session?.profileId) || '');
-  const sourceAdId = String(session?.sourceAdId || '');
-  if (!session || !profileId || session.fillId !== fillId
-      || Number(session.targetTabId) !== tabId || session.newAdId
-      || String(fill.sourceAdId || '') !== sourceAdId
-      || (!archive && !/^\d+$/.test(sourceAdId)))
-    throw new Error('KR_PUBLISH_INTENT_WORKFLOW_UNVERIFIED');
-  const bound = await assertSelectedProfileMatchesLiveAccount({
-    expectedProfileId: profileId,
-    ...(archive ? {expectedProfileName: String(session.targetProfileName || '')} : {}),
-    purpose: 'automatic-publish-preflight'
-  });
-  if (!bound?.profileId || String(bound.profileId) !== profileId)
-    throw new Error('KR_PUBLISH_INTENT_ACCOUNT_UNVERIFIED');
-  const entry = await requireAutoPublishIntentJournal().begin({
-    fillId, workflowId, kind: archive ? 'archive' : 'renewal',
-    profileId, sourceAdId, targetTabId: tabId, admissionReceipt
-  });
-  // Web Locks serialize journal operations, but cannot freeze the external
-  // login while storage I/O is pending. Rebind immediately AFTER the durable
-  // receipt and BEFORE returning a usable click permit. A changed account
-  // leaves the immutable attempt unresolved and never authorizes publication.
-  const afterReceipt = await assertSelectedProfileMatchesLiveAccount({
-    expectedProfileId: profileId,
-    ...(archive ? {expectedProfileName: String(session.targetProfileName || '')} : {}),
-    purpose: 'publish-preclick-account-readback'
-  });
-  if (String(afterReceipt?.profileId || '') !== profileId)
-    throw new Error('KR_PUBLISH_INTENT_ACCOUNT_CHANGED');
-  return {authorized:true, receiptId:entry.attemptId};
+  return requirePublishIntentAuthorizationService().authorizeAutomaticPublish(message, sender, admissionReceipt);
 }
 function requireRenewalWorkflowController() {
   if (!renewalWorkflowController) {
@@ -2893,31 +1857,8 @@ function insertionLockMessage(lock) { return requireInsertionLockService().inser
 async function assertInsertionStartAvailable(request = {}) { return await requireInsertionLockService().assertInsertionStartAvailable(request); }
 
 function publishedAdCandidateFromUrl(rawUrl, sourceAdId = '') {
-  try {
-    const url = new URL(String(rawUrl || ''));
-    if (url.protocol !== 'https:' || !/(^|\.)kleinanzeigen\.de$/i.test(url.hostname)) return null;
-    let adId = '';
-    let kind = '';
-    let publicUrl = '';
-    const publicMatch = url.pathname.match(/\/s-anzeige\/[^/]+\/(\d+)-\d+-\d+(?:\/)?$/i);
-    if (publicMatch) {
-      adId = publicMatch[1];
-      kind = 'public';
-      publicUrl = `${url.origin}${url.pathname}`;
-    } else if (/\/p-anzeige-bearbeiten\.html$/i.test(url.pathname)) {
-      adId = String(url.searchParams.get('adId') || '');
-      kind = 'edit';
-    } else if (/\/p-anzeige-aufgeben-bestaetigung\.html$/i.test(url.pathname)) {
-      adId = String(url.searchParams.get('addId') || url.searchParams.get('adId') || '');
-      kind = 'confirmation';
-    }
-    if (!/^\d+$/.test(adId) || adId === String(sourceAdId || '')) return null;
-    return { adId, kind, publicUrl, url: url.href };
-  } catch {
-    return null;
-  }
+  return requireListingUrlEvidenceService().publishedAdCandidateFromUrl(rawUrl, sourceAdId);
 }
-
 
 function recoverableTrashTemplateFill(session) { return requireTemplateFillController().recoverableTrashTemplateFill(session); }
 
@@ -2952,115 +1893,24 @@ async function startTemplateFill(inventoryId, options = {}) { return await requi
 
 const renewalPhase1RetryInFlight = new Set();
 
-function phase1PublishBoundaryReached(renewal, fill = null) {
-  if (/^\d+$/.test(String(renewal?.newAdId || ''))) return true;
-  if (renewal?.publishClickedAt || fill?.publishClickedAt) return true;
-  const statuses = [renewal?.status, fill?.status].map(value => String(value || ''));
-  if (statuses.some(status => ['submitted', 'new-id-confirmed', 'reinventorizing', 'verifying', 'verified', 'replaced'].includes(status))) return true;
-  const stages = [renewal?.stage, fill?.stage].map(value => String(value || ''));
-  return stages.some(stage => ['publish-submitted', 'new-id-confirmed'].includes(stage));
+let renewalPhase1RetryService = null;
+function requireRenewalPhase1RetryService() {
+  if (!renewalPhase1RetryService) renewalPhase1RetryService = RenewalPhase1RetryService.create({
+    sessionPort: { readRenewalSessions, readFillSessions, writeFillSessions, persistRenewalSession },
+    policyPort: { renewalPhaseAttemptAvailable, renewalAttemptState, beginRenewalPhaseAttempt, normalizeRenewalMode, renewalMaxPhaseAttempts },
+    tabPort: { createAutomationTab, registerShadowTab, closeRegistryTab, updateAutomationTab },
+    diagnosticsPort: { correlationContext, sessionCorrelationContext, logDiagnostic },
+    configPort: { crypto, TEMPLATE_TARGET_URL, TAB_ROLES },
+    statePort: { renewalPhase1RetryInFlight }
+  });
+  return renewalPhase1RetryService;
 }
-
 function canRetryRenewalPhase1(renewal, fill = null) {
-  if (!renewal?.renewalId || phase1PublishBoundaryReached(renewal, fill)) return false;
-  if (['cancelled', 'replaced'].includes(String(renewal.status || ''))) return false;
-  return renewalPhaseAttemptAvailable(renewal, 1);
+  return requireRenewalPhase1RetryService().canRetryRenewalPhase1(renewal, fill);
 }
-
 async function restartRenewalPhase1Attempt(renewalId, failedFillId, reason = 'phase-1-fill-failed') {
-  const id = String(renewalId || '');
-  if (!id || renewalPhase1RetryInFlight.has(id)) return false;
-  renewalPhase1RetryInFlight.add(id);
-  try {
-    const [renewals, fills] = await Promise.all([readRenewalSessions(), readFillSessions()]);
-    const renewal = renewals[id];
-    const failedFill = fills[String(failedFillId || '')];
-    if (!renewal || !failedFill) return false;
-    if (String(renewal.fillId || '') !== String(failedFill.fillId || '')) return false;
-    if (!canRetryRenewalPhase1(renewal, failedFill)) return false;
-
-    const previousTargetTabId = Number(renewal.targetTabId || failedFill.targetTabId || 0) || null;
-    const previousAttempt = renewalAttemptState(renewal, 1);
-    const attemptState = beginRenewalPhaseAttempt(renewal, 1, { lastError: failedFill.result?.issues?.[0] || renewal.lastError || reason });
-    const fillId = crypto.randomUUID();
-    const tab = await createAutomationTab({ url: 'about:blank', active: false });
-    if (!tab?.id) throw new Error('Neuer Kleinanzeigen-Tab für den Phase-1-Wiederholungsversuch konnte nicht geöffnet werden.');
-
-    renewal.fillId = fillId;
-    renewal.targetTabId = tab.id;
-    renewal.status = 'draft';
-    renewal.stage = 'phase1-retry-started';
-    renewal.lastError = null;
-    renewal.updatedAt = new Date().toISOString();
-    await persistRenewalSession(renewal);
-
-    const nextFill = {
-      operationId: renewal.operationId || failedFill.operationId || null,
-      parentOperationId: renewal.parentOperationId || failedFill.parentOperationId || null,
-      fillId,
-      renewalId: id,
-      skeletonInventoryId: renewal.skeletonInventoryId,
-      inventoryId: renewal.sourceInventoryId,
-      sourceAdId: renewal.sourceAdId,
-      targetTabId: tab.id,
-      targetUrl: TEMPLATE_TARGET_URL,
-      renewalMode: normalizeRenewalMode(renewal.renewalMode),
-      maxPhaseAttempts: renewalMaxPhaseAttempts(renewal),
-      phase1Attempt: attemptState.attempt,
-      phase1AttemptId: attemptState.attemptId,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      status: 'waiting',
-      stage: 'tab-opened',
-      result: null,
-      autoReplacementAllowed: Boolean(renewal.autoReplacementAllowed),
-      startConfirmedAt: renewal.startConfirmedAt || failedFill.startConfirmedAt || null,
-      massBatchId: renewal.massBatchId || failedFill.massBatchId || null,
-      massBatchItemIndex: renewal.massBatchItemIndex ?? failedFill.massBatchItemIndex ?? null
-    };
-    fills[fillId] = nextFill;
-    await writeFillSessions(fills);
-    await registerShadowTab(tab.id, TAB_ROLES.RENEWAL_TARGET, { ...correlationContext(renewal), ownerType: 'renewal', ownerId: id, inventoryId: String(renewal.sourceInventoryId || ''), adId: String(renewal.sourceAdId || '') });
-
-    if (previousTargetTabId && previousTargetTabId !== tab.id) {
-      await closeRegistryTab(previousTargetTabId, 'renewal-phase1-retry', 'Vorheriger Phase-1-Zieltab').catch(() => {});
-    }
-
-    await updateAutomationTab(tab.id, { url: TEMPLATE_TARGET_URL, active: true });
-    await logDiagnostic('warning', 'RENEWAL_PHASE1_ATTEMPT_RESTARTED', {
-      renewalId: id,
-      sourceAdId: renewal.sourceAdId,
-      previousFillId: failedFill.fillId,
-      fillId,
-      previousAttempt: previousAttempt.attempt,
-      attempt: attemptState.attempt,
-      maxAttempts: renewalMaxPhaseAttempts(renewal),
-      phase1AttemptId: attemptState.attemptId,
-      reason: String(reason || '').slice(0, 300)
-    }, { module: 'background', operation: 'renewal-phase-1', context: sessionCorrelationContext(renewal, { renewalId: id, fillId, adId: renewal.sourceAdId, targetTabId: tab.id }) }).catch(() => {});
-    return true;
-  } catch (error) {
-    const renewals = await readRenewalSessions().catch(() => ({}));
-    const renewal = renewals[id];
-    if (renewal && !phase1PublishBoundaryReached(renewal)) {
-      renewal.status = 'verification-failed';
-      renewal.stage = 'phase1-retry-start-failed';
-      renewal.lastError = String(error.message || error).slice(0, 800);
-      await persistRenewalSession(renewal).catch(() => {});
-    }
-    await logDiagnostic('error', 'RENEWAL_PHASE1_RETRY_START_FAILED', {
-      renewalId: id,
-      fillId: failedFillId || null,
-      message: String(error.message || error).slice(0, 800)
-    }, { module: 'background', operation: 'renewal-phase-1', context: sessionCorrelationContext(renewal || { renewalId: id }, { renewalId: id }) }).catch(() => {});
-    return false;
-  } finally {
-    renewalPhase1RetryInFlight.delete(id);
-  }
+  return requireRenewalPhase1RetryService().restartRenewalPhase1Attempt(renewalId, failedFillId, reason);
 }
-
-
-
 
 async function deleteImagesByInventoryId(inventoryId) { return requireInventoryImageStore().deleteByInventoryId(inventoryId); }
 

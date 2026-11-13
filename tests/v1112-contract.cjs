@@ -51,11 +51,15 @@ assert.match(reinventory, /if \(workerTabId\) await closeManagedWorkerTab\(worke
 assert.match(reinventory, /resolveRenewalPublicEvidence\(newAdId,[\s\S]*session\)/);
 pass('phase 2 retires its edit worker and phase 3 starts an independent fresh verification worker per attempt');
 
-const publicWait = background.match(/async function waitForRenewalPublicAdComplete\(tabId, expectedAdId,[\s\S]*?\n\}/)?.[0] || '';
-const freshCreate = background.match(/async function createFreshRenewalVerificationTab\(targetUrl, newAdId,[\s\S]*?\n\}/)?.[0] || '';
-const freshProbe = background.match(/async function probeFreshRenewalPublicUrl\(url, expectedAdId,[\s\S]*?\n\}/)?.[0] || '';
-const myAds = background.match(/async function findRenewalAdInMyAdsFresh\(adId, expectedProfileName,[\s\S]*?\n\}/)?.[0] || '';
-const resolver = background.slice(background.indexOf('async function resolveRenewalPublicEvidence'), background.indexOf('\nasync function extractReadOnlyMetadata', background.indexOf('async function resolveRenewalPublicEvidence')));
+const publicEvidenceOwner = fs.readFileSync(path.join(root,'src/background/services/renewal-public-evidence-coordinator.js'),'utf8');
+assert.match(background,/requireRenewalPublicEvidenceCoordinator\(\)\.resolveRenewalPublicEvidence\(/,
+  'background must keep the existing renewal evidence facade wired to the registered owner');
+const ownerMethod = signature => publicEvidenceOwner.match(new RegExp(signature + '[\\s\\S]*?\\n      \\}'))?.[0] || '';
+const publicWait = ownerMethod('async function waitForRenewalPublicAdComplete\\(tabId, expectedAdId,');
+const freshCreate = ownerMethod('async function createFreshRenewalVerificationTab\\(targetUrl, newAdId,');
+const freshProbe = ownerMethod('async function probeFreshRenewalPublicUrl\\(url, expectedAdId,');
+const myAds = ownerMethod('async function findRenewalAdInMyAdsFresh\\(adId, expectedProfileName,');
+const resolver = ownerMethod('async function resolveRenewalPublicEvidence\\(newAdId, expectedProfileName,');
 assert.match(publicWait, /ManagedNavigation\.assessPublicAd\(tab, expectedAdId\)/);
 assert.match(freshCreate, /url: 'about:blank'/);
 assert.match(freshCreate, /registerManagedWorkerTab/);

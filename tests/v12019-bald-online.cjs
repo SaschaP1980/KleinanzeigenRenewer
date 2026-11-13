@@ -13,9 +13,13 @@ assert.match(css, /\.inventory-online-badge[^}]*Bald|\.inventory-online-badge\s*
 assert.match(app, /updateButton\.textContent\s*=\s*publicAvailabilityPending\(record\)\s*\?\s*'Online-Status prüfen'\s*:\s*'Daten aktualisieren'/); pass('refresh CTA changes while public availability is pending');
 assert.match(app, /type:\s*'CHECK_INVENTORY_ONLINE_STATUS'/); pass('pending CTA uses dedicated online-status action');
 assert.match(bg, /async function checkInventoryOnlineStatus\(message\)/); pass('background implements dedicated online-status check');
-const onlineStart = bg.indexOf('async function checkInventoryOnlineStatus');
-const onlineEnd = bg.indexOf('\nasync function ', onlineStart + 20);
-const online = bg.slice(onlineStart, onlineEnd > onlineStart ? onlineEnd : undefined);
+// KAR-175: production background remains the message facade; real online
+// evidence rules are now in the same in-process owner called by that facade.
+const refreshOwner = fs.readFileSync('src/background/services/inventory-refresh-service.js', 'utf8');
+assert.match(bg, /requireInventoryRefreshService\(\)\.checkInventoryOnlineStatus\(message\)/);
+const onlineStart = refreshOwner.indexOf('async function checkInventoryOnlineStatus');
+const onlineEnd = refreshOwner.indexOf('\nasync function ', onlineStart + 20);
+const online = refreshOwner.slice(onlineStart, onlineEnd > onlineStart ? onlineEnd : undefined);
 assert.match(online, /canonical/); pass('online-status check attempts canonical route');
 assert.match(online, /id-direct/); pass('online-status check attempts ID-direct route');
 assert.match(online, /status:\s*'online'/); pass('successful online-status check clears pending state by marking online');

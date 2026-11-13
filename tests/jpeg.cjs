@@ -1,8 +1,23 @@
+// KAR-175: exercise the original private JPEG helpers in the actual in-process
+// inventory owner. Only the isolated VM fixture exposes them; production API
+// deliberately remains saveInventory-only.
 const vm=require('node:vm'),fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
-const __session={}; const ctx={URL,Blob,AbortSignal,crypto:require('node:crypto').webcrypto,chrome:{storage:{session:{get:async()=>({...__session}),set:async patch=>Object.assign(__session,patch)}},runtime:{onMessage:{addListener(){}}}},importScripts(){}};
-vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../tab-registry.js'),'utf8'),ctx);
-vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../diagnostics-service.js'),'utf8'),ctx);
-vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../background.js'),'utf8'),ctx);
+let provider=null;
+const ctx={URL,Blob,AbortSignal,crypto:require('node:crypto').webcrypto,
+  KRDeps:{register(name,api){assert.equal(name,'KRInventoryCaptureService');provider=api;}}};
+const original=fs.readFileSync(path.join(__dirname,'../src/background/services/inventory-capture-service.js'),'utf8');
+const privateApi='return Object.freeze({ saveInventory });';
+assert.equal(original.split(privateApi).length,2,'single production private-API return contract');
+vm.runInNewContext(original.replace(privateApi,
+  'return Object.freeze({ saveInventory, jpegCandidates, downloadInventoryImage });'),ctx);
+assert.equal(typeof provider?.create,'function');
+const capture=provider.create({
+  templateSchemaCore:{buildSchema:()=>({}),fingerprint:async()=>''},
+  logDiagnostic:async()=>{},getInventory:async()=>null,
+  commitInventory:async()=>{},broadcastInventoryChanged:()=>{}
+});
+ctx.jpegCandidates=capture.jpegCandidates;
+ctx.downloadInventoryImage=capture.downloadInventoryImage;
 const uuid='6b7cd8ea-f4ec-43c0-ad14-1da4e76ef391';
 const signed=`https://img.kleinanzeigen.de/api/v1/prod-ads/images/6b/${uuid}?AccessKeyId=x&jwt=y`;
 const ruled='https://img.kleinanzeigen.de/api/v1/prod-ads/images/a?rule=$_2.AUTO';

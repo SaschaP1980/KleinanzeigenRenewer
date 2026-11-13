@@ -26,11 +26,13 @@ if (includesActivePatch(['1.20.12','1.20.13','1.20.14','1.20.15','1.20.16','1.20
 }
 
 // Read-only opening must prefer a known canonical public URL over the ambiguous ID-only fallback.
+const manualNav = fs.readFileSync(path.join(root,'src/background/controllers/manual-listing-navigation-controller.js'),'utf8');
 assert.match(background, /function normalizeKnownPublicAdUrl\(/);
-assert.match(background, /publicUrlForInventoryRecord\(inventoryRecord\)/);
-assert.match(background, /urlSource = 'inventory-public-url'/);
-assert.match(background, /READONLY_AD_NAVIGATION_RESOLVED/);
-assert.match(background, /finalUrl/);
+assert.match(background, /requireManualListingNavigationController\(\)\.openReadOnlyAd\(message\)/);
+assert.match(manualNav, /publicUrlForInventoryRecord\(inventoryRecord\)/);
+assert.match(manualNav, /urlSource = 'inventory-public-url'/);
+assert.match(manualNav, /READONLY_AD_NAVIGATION_RESOLVED/);
+assert.match(manualNav, /finalUrl/);
 assert.match(app, /OPEN_READONLY_AD', adId, inventoryId, publicUrl/);
 
 const normalizeStart = publicEvidence.indexOf('function normalizeKnownPublicAdUrl');
