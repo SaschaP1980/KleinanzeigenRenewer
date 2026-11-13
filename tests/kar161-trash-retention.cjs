@@ -5,6 +5,11 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const read = name => fs.readFileSync(path.join(root, name), 'utf8');
 const html = read('src/app/app.html');
+const backgroundSource = read('src/background/background.js');
+assert.match(backgroundSource, /let diagnosticsService = null;/,
+  'KAR-161: diagnostics singleton must exist before eager startup logging and message routing');
+assert.match(backgroundSource, /logDiagnostic\('info', 'DIAGNOSTIC_SESSION_STARTED'/,
+  'KAR-161: real worker bootstrap eagerly calls diagnostics (browser smoke required)');
 const serviceSource = read('src/background/services/trash-service.js');
 const { runInNewContext } = require('node:vm');
 
