@@ -4,6 +4,12 @@ This is the canonical version-specific history for Kleinanzeigen Manager. Entrie
 
 All distinct historical section bodies from the former root README and CHANGELOG are preserved with source labels and line numbers. The [KAR-170 migration ledger](docs/maintenance/KAR170_CHANGELOG_MIGRATION.json) identifies their original Git blobs and body checksums. Overlapping versions retain distinct factual notes; older references to planned builds or native/CI acceptance are **historical**, not live status.
 
+## v1.23.89 — KAR-134 L15 automatic schema observation (source Work integration)
+
+- Integrate schema observations into verified capture/refresh/edit-form and normal republishing flows; remove the standalone `Kategorie prüfen` inventory action and legacy synthetic/runtime test session entrypoints.
+- Retain value-level fail-closed publication preflight, verified F1/F2/F3 structural drift review, explicit safeguarded two-step real F3 baseline consent, category-405 legacy verification and safety/readback gates. Local `Details anzeigen` does not trigger site navigation or a schema crawl.
+- Add permanent L15 positive/negative regression coverage. This Work source version does **not** imply a published GitHub Release or native acceptance of a genuine F3 structural change; that remains open under [KAR-134](https://github.com/SaschaP1980/KleinanzeigenRenewer/issues/134).
+
 ## v1.23.88 — KAR-170 documentation consolidation
 
 - Source-side Work change: rewrite README around the two original purposes (reusable saved listings/images, and routine re-insertion instead of paid visibility promotion); migrate historical version notes here; introduce a permanent documentation destination/check contract. This note does **not** represent a published GitHub Release.
