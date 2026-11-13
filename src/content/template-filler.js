@@ -742,170 +742,38 @@
     return overlay;
   }
 
-  // Production category checks require genuine live structural evidence.
-  function assessIndependentCategoryCheck(categoryId, observed, results) {
-    const id = String(categoryId ?? '').trim();
-    const order = ['base', 'category', 'attributes'];
-    const stageStatuses = order.map(stage => String(results?.[stage]?.status || 'not-observed'));
-    const partialEvidence = observed?.category?.evidence === 'partial-ids' ||
-      stageStatuses.includes('not-fully-verified') || stageStatuses.includes('uncertain');
-    const rejected = reason => ({
-      categoryId: id, verdict: false, status: 'needs-review',
-      reason, stageStatuses, partialEvidence
+  // Real F1/F2/F3 review is part of the ordinary authenticated posting
+  // preflight, not a standalone category-test session.
+  async function reviewLivePostingSchema(session, observations, stages, report) {
+    const { fillId } = session;
+    const expectedCategoryId = String(session.template?.categoryId || '');
+    const { base: observedBaseSchema, category: observedCategorySchema,
+      attributes: observedAttributeSchema } = observations;
+    const { base: baseStageResult, category: categoryStageResult,
+      attributes: attributeStageResult } = stages;
+    const comparison = report?.comparison;
+    const reportChanged = comparison?.status === 'schema-changed' &&
+      Array.isArray(comparison.changes) && comparison.changes.length > 0;
+    const compared = { ...stages };
+    // Old template vs live form can differ even on first stage-monitor run.
+    // Such a comparison must not be mistaken for an adoptable F3 baseline.
+    if (reportChanged && compared.attributes?.status !== 'changed')
+      compared.attributes = { status: 'changed', changes: comparison.changes,
+        previousFingerprint: report.sourceFingerprint,
+        currentFingerprint: report.currentFingerprint };
+    const review = buildStageChangeReview(compared, {
+      categoryEvidence: observedCategorySchema?.evidence || null
     });
-    if (!/^[1-9][0-9]*$/.test(id)) return rejected('invalid-category-id');
-    if (!observed?.base || observed.base.stage !== 'base' ||
-        observed.base.formMode !== 'posting-create' ||
-        !Array.isArray(observed.base.fields) || !observed.base.fields.length)
-      return rejected('base-form-not-observed');
-    const navigation = observed.category;
-    if (!navigation || navigation.stage !== 'category' ||
-        navigation.categoryId !== id || navigation.observedPath !== true ||
-        navigation.leafConfirmed !== true || !Array.isArray(navigation.levels) ||
-        navigation.levels.length < 2 ||
-        navigation.levels[navigation.levels.length - 1]?.technicalId !== id)
-      return rejected('verified-category-path-missing');
-    const attributes = observed.attributes;
-    if (!attributes || attributes.categoryId !== id || !Array.isArray(attributes.fields) ||
-        !attributes.fields.some(field => field?.key?.startsWith('attribute:')))
-      return rejected('hydrated-category-attributes-missing');
-    const allowed = new Set(['reference-created', 'unchanged', 'not-fully-verified', 'changed', 'uncertain']);
-    if (!stageStatuses.every(status => allowed.has(status)))
-      return rejected('stage-monitor-incomplete');
-    return {
-      categoryId: id, verdict: true,
-      status: stageStatuses.includes('changed') ? 'checked-with-change' : 'checked',
-      reason: null, stageStatuses, partialEvidence
-    };
-  }
-
-  // Production read-only category schema check. No saved listing fields,
-  // image upload, wizard continuation, publish or source retirement.
-  async function runReadOnlySchemaTest(session) {
-    const scenario = session.schemaTestScenario;
-    const expectedCategoryId = String(session.template?.categoryId ?? '').trim();
-    // Generic category checks may inspect only bounded Art/Typ categorization
-    // hints. They are saved values, so the diagnostic must report this read.
-    // No title, price, description, other attributes, or images are copied.
-    const categoryHintRead = Array.isArray(session.template?.categoryNavigationHints) &&
-      session.template.categoryNavigationHints.length > 0;
-    if (scenario !== 'category-check' ||
-        !/^[1-9][0-9]*$/.test(expectedCategoryId) ||
-        !SchemaCore || !SchemaPreflight)
-      throw new Error('Schema-Prüfmodus ist nicht verfügbar oder die Kategorie stimmt nicht.');
-    const fillId = session.fillId;
-    updatePanel('Kategorieprüfung (nur Lesen)',
-      'Kategorie ' + expectedCategoryId + ' wird für den Strukturvergleich vorbereitet. Es werden keine Anzeigenwerte eingetragen und keine Anzeigen veröffentlicht.', [],
-      { safetyText: 'NUR FORMULARPRÜFUNG – keine Anzeigenwerte, kein Bild-Upload und keine Veröffentlichung.' });
-    await runtimeMessage({ type: 'UPDATE_TEMPLATE_FILL_SESSION', fillId, status: 'running', stage: 'schema-test-category' });
-    const preCategoryForm = await waitFor(() => resolveActivePostingForm(), { description: 'Aktives Schema-Basisformular' });
-    let observedBaseSchema = null;
-    let observedCategorySchema = null;
-    let observedAttributeSchema = null;
-    let baseStageResult = null, categoryStageResult = null, attributeStageResult = null;
-    const baseObservation = captureCategoryNeutralForm(preCategoryForm);
-    if (baseObservation.status === 'observed') {
-      observedBaseSchema = baseObservation.schema;
-      baseStageResult = await monitorSchemaStage('base', baseObservation.schema, fillId);
-    } else void diagnostic(fillId, 'KAR134_STAGE_MONITOR_SKIPPED',
-      { stage: 'base', reason: baseObservation.status });
-    stagedCategoryPathEvidence = null;
-    let categoryState;
-    try {
-      categoryState = await setCategory(session.template, fillId, session?.maxPhaseAttempts);
-    } catch (error) {
-      registerSchemaMonitorWarning('Kategoriehierarchie: Der bisherige Kategoriepfad konnte nicht bestätigt werden. Die Merkmalsprüfung wurde nicht erreicht.');
-      void diagnostic(fillId, 'KAR134_STAGE_MONITOR_SKIPPED',
-        { stage: 'category', reason: 'category-selection-failed', message: String(error?.message || error).slice(0, 200) }, 'warning');
-      const issues = ['Die Kategorieauswahl konnte nicht eindeutig bestätigt werden. Die Kategorieprüfung ist unvollständig.'];
-      void diagnostic(fillId, 'KAR134_CATEGORY_CHECK_RESULT', {
-        categoryId: expectedCategoryId, verdict: false, reason: 'category-selection-failed',
-        stageStatuses: [baseStageResult?.status || 'not-observed', 'not-observed', 'not-observed'],
-        remotePublishAttempted: false, archivedValuesRead: categoryHintRead,
-        categoryNavigationHintsRead: categoryHintRead, archivedNonCategoryValuesRead: false
-      }, 'warning');
-      await runtimeMessage({ type: 'UPDATE_TEMPLATE_FILL_SESSION', fillId,
-        status: 'needs-review', stage: 'schema-test-category-unreachable',
-        result: { complete: false, issues } });
-      updatePanel('Kategorieprüfung: Nicht vollständig', issues[0], issues,
-        { safetyText: 'Keine Anzeigenwerte übertragen, keine Veröffentlichung.' });
-      return { schemaTest: true, scenario, verdict: false, publishTriggered: false, issues };
-    }
-    if (categoryState?.pendingNavigation) return { pending: true, schemaTest: true };
-    if (stagedCategoryPathEvidence) {
-      observedCategorySchema = SchemaCore.buildCategorySchema(stagedCategoryPathEvidence);
-      categoryStageResult = await monitorSchemaStage('category', observedCategorySchema, fillId);
-    } else void diagnostic(fillId, 'KAR134_STAGE_MONITOR_SKIPPED',
-      { stage: 'category', reason: 'no-independent-navigation-evidence' });
-    const live = await SchemaPreflight.afterHydration({ categoryId: expectedCategoryId, dynamicAttributes: [] });
-    if (live.categoryId !== expectedCategoryId)
-      throw new Error('Aktuelle Kategorie stimmt nicht mit der ausgewählten Inventarkategorie überein.');
-    if (live.dynamicCount > 0) {
-      observedAttributeSchema = live.schema;
-      attributeStageResult = await monitorSchemaStage('attributes', live.schema, fillId);
-    } else void diagnostic(fillId, 'KAR134_STAGE_MONITOR_SKIPPED',
-      { stage: 'attributes', reason: 'no-dynamic-field-evidence' });
-
-    if (scenario === 'category-check') {
-      // Generic category monitoring: read only the live structure; DO NOT
-      // evaluate an archived ad, populate fields/images or request publishing.
-      const assessment = assessIndependentCategoryCheck(expectedCategoryId, {
-        base: observedBaseSchema,
-        category: observedCategorySchema,
-        attributes: observedAttributeSchema
-      }, {
-        base: baseStageResult, category: categoryStageResult,
-        attributes: attributeStageResult
-      });
-      const stageLabels = ['F1 (Basisformular)', 'F2 (Kategoriehierarchie)', 'F3 (Merkmale)'];
-      const statusLabels = {
-        'reference-created': 'Referenz angelegt', 'unchanged': 'Unverändert',
-        'not-fully-verified': 'Teilweise verifiziert', changed: 'Änderung erkannt',
-        uncertain: 'Nicht eindeutig', 'not-observed': 'Nicht erfasst',
-        'monitor-unavailable': 'Speicher nicht erreichbar',
-        'invalid-reference': 'Referenz ungültig'
-      };
-      const stagesDescription = assessment.stageStatuses.map((status, i) =>
-        stageLabels[i] + ': ' + (statusLabels[status] || 'Prüfung nicht vollständig')).join(' · ');
-      // A proven change is a successful *observation* but still requires
-      // human review. Acknowledgement never accepts/replaces the fingerprint.
-      const review = buildStageChangeReview({
-        base: baseStageResult, category: categoryStageResult,
-        attributes: attributeStageResult
-      }, { categoryEvidence: observedCategorySchema?.evidence || null });
-      const reviewRequired = review.hasProvenChange;
-      const issues = reviewRequired
-        ? ['Bestätigte Strukturänderungen müssen geprüft werden. Die bisherigen Referenzen bleiben unverändert.']
-        : assessment.verdict ? [] : [
-          'Nicht alle F1-/F2-/F3-Prüfungen waren vollständig möglich. Die Kategorie wird nicht als unverändert bestätigt.'
-        ];
-      void diagnostic(fillId, 'KAR134_CATEGORY_CHECK_RESULT', {
-        categoryId: expectedCategoryId, verdict: assessment.verdict,
-        status: assessment.status, reason: assessment.reason,
-        partialEvidence: assessment.partialEvidence,
-        stageStatuses: assessment.stageStatuses,
-        reviewRequired, referenceApproved: false,
-        changedStages: review.sections.filter(section => section.verified).map(section => section.stage),
-        remotePublishAttempted: false, archivedValuesRead: categoryHintRead,
-        categoryNavigationHintsRead: categoryHintRead, archivedNonCategoryValuesRead: false
-      }, assessment.verdict ? 'info' : 'warning');
-      await runtimeMessage({
-        type: 'UPDATE_TEMPLATE_FILL_SESSION', fillId,
-        status: assessment.verdict && !reviewRequired ? 'complete' : 'needs-review',
-        stage: reviewRequired ? 'schema-test-category-review-required'
-          : assessment.verdict ? 'schema-test-category-check' : 'schema-test-category-incomplete',
-        result: { complete: assessment.verdict && !reviewRequired, issues }
-      });
-      updatePanel(
-        reviewRequired ? 'Kategorieprüfung: Strukturänderung erkannt'
-          : assessment.verdict ? 'Kategorieprüfung abgeschlossen' : 'Kategorieprüfung: Nicht vollständig',
-        'Kategorie ' + expectedCategoryId + ' – ' + stagesDescription +
-          (assessment.partialEvidence
-            ? '. Technische IDs der Zwischenkategorien oder Auswahlwerte sind nicht vollständig belegt.' : '') +
-          ' Eine Veröffentlichung wurde nicht durchgeführt.',
-        issues, { safetyText: 'NUR STRUKTURPRÜFUNG – keine weiteren Anzeigenwerte, keine Bilder und keine Veröffentlichung.' }
-      );
-      if (reviewRequired) {
+    if (!review.hasProvenChange) return true;
+    const issues = ['Bestätigte Formularstrukturänderungen müssen geprüft werden. ' +
+      'Die bisherigen Referenzen bleiben unverändert.',
+      ...(!report?.complete ? (report?.issues || []).slice(0,10) : [])];
+    await runtimeMessage({ type:'UPDATE_TEMPLATE_FILL_SESSION', fillId,
+      status:'running', stage:'schema-reference-review-pending',
+      result:{ complete:false, issues } });
+    updatePanel('Formularstruktur geändert – Prüfung erforderlich',
+      'Die aktuelle Formularstruktur unterscheidet sich von einer gespeicherten Referenz.',
+      issues,{safetyText:'Keine Veröffentlichung vor bestätigter Prüfung.'});
         // Real reference approval is separate from mere acknowledgement and
         // from a simulated test. It is offered ONLY for a proven F3-only
         // structural change while F1 and F2 fingerprints remain stable.
@@ -953,6 +821,40 @@
           hasUncertainty: review.hasUncertainty, referenceApproved: false,
           remotePublishAttempted: false
         }, 'warning');
+    return new Promise(resolve => {
+      let decided = false;
+      const done = allow => {
+        if (decided) return;
+        decided = true;
+        if (allow) {
+          // Verify the same live schema once again before resuming filling.
+          void (async () => {
+            try {
+              const refreshed = await SchemaPreflight.afterHydration(session.template);
+              const verified = await SchemaPreflight.evaluate(session.template, refreshed);
+              if (!verified.complete || refreshed.categoryId !== expectedCategoryId ||
+                  verified.currentFingerprint !== report.currentFingerprint)
+                throw new Error('Formularstruktur oder gespeicherte Werte haben sich seit der Prüfung geändert.');
+              const resumed = await runtimeMessage({
+                type:'UPDATE_TEMPLATE_FILL_SESSION', fillId,
+                status:'running', stage:'form-ready'
+              });
+              resolve(resumed?.stage === 'form-ready' && resumed?.status === 'running');
+            } catch (error) {
+              void runtimeMessage({ type:'UPDATE_TEMPLATE_FILL_SESSION', fillId,
+                status:'needs-review', stage:'schema-reference-review-required',
+                result:{complete:false,issues:['Die erneute Formularprüfung konnte nicht bestätigt werden.']}
+              }).catch(() => {});
+              resolve(false);
+            }
+          })();
+          return;
+        }
+        void runtimeMessage({ type:'UPDATE_TEMPLATE_FILL_SESSION', fillId,
+          status:'needs-review', stage:'schema-reference-review-required',
+          result:{complete:false,issues:['Die Formularstrukturprüfung wurde angehalten.']}
+        }).then(() => resolve(false), () => resolve(false));
+      };
         showStageChangeReviewDialog(review, {
           realAdoptionPlan,
           onRealApprove: realAdoptionPlan ? () => {
@@ -1003,43 +905,44 @@
                 updatePanel('F3-Referenzübernahme nicht bestätigt',
                   'Der Nachweis ist veraltet, die Identität hat sich geändert oder der Referenzspeicher konnte nicht eindeutig bestätigt werden.',
                   [String(error?.message || error).slice(0,200)],{
-                    safetyText:'Keine automatische Übernahme oder Veröffentlichung; bitte den Kategorieprüflauf erneut starten.'
+                    safetyText:'Keine automatische Übernahme oder Veröffentlichung; bitte den Inserierungsvorgang erneut starten.'
                   });
-              }
+              } finally { done(false); }
             })();
           } : null,
           onAcknowledge: () => {
+            done(report?.complete === true);
             void diagnostic(fillId, 'KAR134_CHANGE_REVIEW_ACKNOWLEDGED', {
               categoryId: expectedCategoryId, referenceApproved: false,
               referenceWrites: 0, remotePublishAttempted: false
             });
           },
           onDefer: () => {
+            done(false);
             void diagnostic(fillId, 'KAR134_CHANGE_REVIEW_DEFERRED', {
               categoryId: expectedCategoryId, referenceApproved: false,
               referenceWrites: 0, remotePublishAttempted: false
             });
           }
         });
-      }
-      return { schemaTest: true, scenario, verdict: assessment.verdict,
-        reviewRequired, referenceApproved: false,
-        publishTriggered: false, issues };
-    }
-    throw new Error('Unbekannter Kategorieprüfmodus.');
+    });
   }
 
   async function runFillSession(session) {
     const { fillId, template } = session;
     const issues = [];
+    let observedBaseSchema = null, observedCategorySchema = null, observedAttributeSchema = null;
+    let baseStageResult = null, categoryStageResult = null, attributeStageResult = null;
     updatePanel('Anzeige wird ausgefüllt', 'Die gespeicherten Angaben werden in die neue Anzeige übernommen …');
     // Capture F1 before even setting the initial ad type or title. An already
     // selected category cannot supply a pre-category reference.
     if (SchemaCore) {
       const initialForm = await waitFor(() => resolveActivePostingForm(), { description: 'Aktives Schema-Basisformular' });
       const base = captureCategoryNeutralForm(initialForm);
-      if (base.status === 'observed')
-        await monitorSchemaStage('base', base.schema, fillId);
+      if (base.status === 'observed') {
+        observedBaseSchema = base.schema;
+        baseStageResult = await monitorSchemaStage('base', base.schema, fillId);
+      }
       else void diagnostic(fillId, 'KAR134_STAGE_MONITOR_SKIPPED', { stage: 'base', reason: base.status });
     }
     void diagnostic(fillId, 'TEMPLATE_FILL_EXECUTION_STARTED', { sourceAdId: template.sourceAdId || null, inventoryId: template.inventoryId || null });
@@ -1062,8 +965,10 @@
         { stage: 'category', reason: 'category-selection-failed', message: String(error?.message || error).slice(0, 200) }, 'warning');
     }
     if (categoryState?.pendingNavigation) return { pending: true, issues };
-    if (stagedCategoryPathEvidence && SchemaCore)
-      await monitorSchemaStage('category', SchemaCore.buildCategorySchema(stagedCategoryPathEvidence), fillId);
+    if (stagedCategoryPathEvidence && SchemaCore) {
+      observedCategorySchema = SchemaCore.buildCategorySchema(stagedCategoryPathEvidence);
+      categoryStageResult = await monitorSchemaStage('category', observedCategorySchema, fillId);
+    }
     else void diagnostic(fillId, 'KAR134_STAGE_MONITOR_SKIPPED',
       { stage: 'category', reason: 'no-independent-navigation-evidence' });
     // React may replace the entire posting form after the modal category commit.
@@ -1076,8 +981,10 @@
       try {
         if (!SchemaPreflight) throw new Error('Die Formularschema-Sicherheitsprüfung ist nicht verfügbar.');
         const live = await SchemaPreflight.afterHydration(template);
-        if (live.dynamicCount > 0)
-          await monitorSchemaStage('attributes', live.schema, fillId);
+        if (live.dynamicCount > 0) {
+          observedAttributeSchema = live.schema;
+          attributeStageResult = await monitorSchemaStage('attributes', live.schema, fillId);
+        }
         else void diagnostic(fillId, 'KAR134_STAGE_MONITOR_SKIPPED',
           { stage: 'attributes', reason: 'no-dynamic-field-evidence' });
         schemaPreflightReport = await SchemaPreflight.evaluate(template, live);
@@ -1094,6 +1001,18 @@
           ownerVerifiedCaseSizePairs: live.optionProbe?.ownerVerifiedPairCount || 0,
           ownerCaseSizeEvidence: live.optionProbe?.reason || null
         }, schemaPreflightReport.complete ? 'info' : 'warning');
+        // The normal posting workflow now owns the only structural-change
+        // review and optional F3 reference consent. No separate test tab.
+        const acknowledged = await reviewLivePostingSchema(session, {
+          base: observedBaseSchema, category: observedCategorySchema,
+          attributes: observedAttributeSchema
+        }, {
+          base: baseStageResult, category: categoryStageResult,
+          attributes: attributeStageResult
+        }, schemaPreflightReport);
+        if (!acknowledged) return { complete: false, reviewRequired: true,
+          referenceApproved: false, publishTriggered: false,
+          issues: schemaPreflightReport.issues || [] };
         if (!schemaPreflightReport.complete)
           return await stopForSchemaPreflight(session, schemaPreflightReport.issues, schemaPreflightReport);
       } catch (error) {
@@ -1217,14 +1136,11 @@
       armPublishDetection(session.fillId);
     }
     try {
-      // Test mode runs before all filling, continuation and publication branches.
-      if (session.schemaTestScenario) {
-        if (session.schemaTestScenario !== 'category-check')
-          throw new Error('Veralteter Schema-Testvorgang kann nicht ausgeführt werden.');
-        if (kind === 'category') return await runLegacyCategorySelection(session);
-        if (kind !== 'target') throw new Error('Schema-Test: unerwartete Formularseite.');
-        return await runReadOnlySchemaTest(session);
-      }
+      // Retired L15 test sessions never enter the normal publishing path.
+      if (session.schemaTestScenario) throw new Error('Veralteter Schema-Testvorgang kann nicht ausgeführt werden.');
+      // A reconnected tab may not silently skip an unacknowledged F3 review.
+      if (session.stage === 'schema-reference-review-pending')
+        throw new Error('Die laufende Formularstrukturprüfung muss zuerst abgeschlossen werden.');
       if (kind === 'paid-insertion-checkout') {
         const detection = paidInsertionDetection();
         if (detection.required) return await stopForPaidInsertion(session, detection, 'checkout-page');

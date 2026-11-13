@@ -423,7 +423,6 @@ function classifyKleinanzeigenInsertionErrorUrl(rawUrl, evidence = {}) {
   }
 }
 
-
 async function getRenewalConfiguration() {
   const stored = await chrome.storage.local.get([RENEWAL_MODE_KEY, RENEWAL_FAST_MODE_ACK_KEY, RENEWAL_PHASE_ATTEMPTS_KEY]);
   return {
@@ -455,7 +454,6 @@ async function setRenewalPhaseAttempts(message) {
   }, { module: 'background', operation: 'renewal-configuration' }).catch(() => {});
   return configuration;
 }
-
 
 let managedTabWorkerService = null;
 function requireManagedTabWorkerService() {
@@ -820,7 +818,6 @@ function requireProfileManagementController() {
 
 async function readProfiles() { return requireProfileManagementController().readProfiles(); }
 
-
 async function getProfileState() { return requireProfileManagementController().getProfileState(); }
 async function setSelectedProfile(message) { return requireProfileManagementController().setSelectedProfile(message); }
 async function prepareProfileBackupImport(message) { return requireProfileManagementController().prepareProfileBackupImport(message); }
@@ -1008,8 +1005,22 @@ async function saveInventory(extracted, options = {}) {
         return { snapshot, fingerprint: await TemplateSchemaCore.fingerprint(snapshot), capturedAt, source: 'edit-form' };
       })()
       : null;
+    // Without verified edit-form evidence retain only the same ad/profile's
+    // historical schema; never assert that a public detail page is a fresh match.
+    let priorTemplateSchema = null;
+    if (!templateSchema) {
+      const old = await getInventory(inventoryId).catch(() => null);
+      if (old?.templateSchema?.snapshot && String(old.adId || '') === String(extracted.adId || '') &&
+          extracted.profileId && String(old.profileId || '') === String(extracted.profileId))
+        priorTemplateSchema = old.templateSchema;
+      void logDiagnostic('info','KAR134_FORM_SCHEMA_NOT_OBSERVED',{
+        inventoryId, currentSchemaVerified:false, retainedHistoricalSnapshot:Boolean(priorTemplateSchema)
+      }).catch(() => {});
+    }
     const record = {
-      ...extracted, ...(templateSchema ? { templateSchema } : {}), inventoryId, schemaVersion: 2, capturedAt,
+      ...extracted, ...(templateSchema || priorTemplateSchema ? { templateSchema: templateSchema || priorTemplateSchema } : {}),
+      schemaObservationStatus: templateSchema ? 'verified-edit-form' : 'not-observed',
+      inventoryId, schemaVersion: 2, capturedAt,
       images: imageResults,
       imageSummary: {
         discovered: imageResults.length,
@@ -1033,7 +1044,6 @@ async function readAllInventoryRecords() { return requireInventoryRepository().r
 
 async function readInventoryRecordsForProfile(profileId) { return requireInventoryRepository().readForProfile(profileId); }
 
-
 function invalidateTrashPurgeSchedule() { requireTrashService().invalidatePurgeSchedule(); }
 
 async function purgeExpiredTrash() {
@@ -1048,9 +1058,7 @@ async function listInventories(profileId) { await purgeExpiredTrash(); const rec
 
 async function listTrashEntries(profileId) { await purgeExpiredTrash(); return requireTrashService().list(profileId); }
 
-
 async function setAccountGateDiagnosticState(message = {}) { return requireAccountSessionController().setAccountGateDiagnosticState(message); }
-
 
 let diagnosticExportService = null;
 function requireDiagnosticExportService() {
@@ -1341,7 +1349,6 @@ function normalizedBulkRosterIds(values) { return requireBulkInventoryController
 
 function bulkRosterEvidence(pages) { return requireBulkInventoryController().bulkRosterEvidence(pages); }
 
-
 async function recordBulkRosterPage(message, sender, options = {}) { return requireBulkInventoryController().recordBulkRosterPage(message, sender, options); }
 
 async function beginBulkReconciliation(message, sender) { return requireBulkInventoryController().beginBulkReconciliation(message, sender); }
@@ -1353,7 +1360,6 @@ async function moveReconciliationCandidatesToTrash(state, remoteIds) { return re
 async function finishBulkReconciliation(message, sender) { return requireBulkInventoryController().finishBulkReconciliation(message, sender); }
 
 function requireBulkSource(state, sender) { return requireBulkInventoryController().requireBulkSource(state, sender); }
-
 
 
 async function startBulkInventoryOperation(message = {}) { return requireBulkInventoryController().startBulkInventoryOperation(message); }
@@ -1696,7 +1702,6 @@ function slugifyListingTitle(value) { return requirePublicListingEvidenceService
 function publicUrlForInventoryRecord(record) { return requirePublicListingEvidenceService().publicUrlForInventoryRecord(record); }
 
 function directPublicUrlForAdId(adId) { return requirePublicListingEvidenceService().directPublicUrlForAdId(adId); }
-
 
 function publicAvailabilityPending(record) { return requirePublicListingEvidenceService().publicAvailabilityPending(record); }
 
@@ -2190,7 +2195,6 @@ async function resolveRenewalPublicEvidence(newAdId, expectedProfileName, correl
   };
 }
 
-
 async function extractReadOnlyMetadata(tabId, expectedAdId, timeoutMs = READONLY_METADATA_TIMEOUT_MS, options = {}) { return requirePublicListingEvidenceService().extractReadOnlyMetadata(tabId, expectedAdId, timeoutMs, options); }
 
 function normalizedCalendarParts(isoValue = '', displayValue = '') { return requirePublicListingEvidenceService().normalizedCalendarParts(isoValue, displayValue); }
@@ -2446,9 +2450,7 @@ async function finishBulkRun(message, sender) { return requireBulkInventoryContr
 
 async function failBulkRun(message, sender) { return requireBulkInventoryController().failBulkRun(message, sender); }
 
-
 async function retryBulkFailure(message) { return requireBulkInventoryController().retryBulkFailure(message); }
-
 
 let massRenewalController = null;
 function requireMassRenewalController() {
@@ -2529,7 +2531,6 @@ async function massRenewalWatchdogTick(message, sender) { return requireMassRene
 function resetMassRenewalWorkflowRuntimeState() { return requireMassRenewalWorkflowController().resetRuntimeState(); }
 
 
-
 async function readRenewalSessions() { return requireRenewalStateRepository().readRenewalSessions(); }
 async function writeRenewalSessions(sessions) { return requireRenewalStateRepository().writeRenewalSessions(sessions); }
 
@@ -2539,7 +2540,6 @@ function archiveInsertionPublicSnapshot(session) { return requireArchiveInsertio
 function broadcastArchiveInsertionState(session, reason = 'session-updated') { return requireArchiveInsertionService().broadcastArchiveInsertionState(session, reason); }
 async function persistArchiveInsertionSession(session, options = {}) { return requireArchiveInsertionService().persistArchiveInsertionSession(session, options); }
 async function getArchiveInsertionStatus(message) { return requireArchiveInsertionService().getArchiveInsertionStatus(message); }
-
 
 let archiveInsertionController = null;
 function requireArchiveInsertionController() {
@@ -3487,10 +3487,10 @@ const backgroundMessageRouter = BackgroundMessageRouter.create({
   "START_TEMPLATE_FILL": (message, sender) => startTemplateFill(message.inventoryId, { autoReplacementAllowed: message.autoReplacementAllowed === true, startConfirmationVersion: message.startConfirmationVersion }),
   "START_ARCHIVE_INSERTION": (message, sender) => startArchiveInsertion(message),
   "GET_ARCHIVE_INSERTION_STATUS": (message, sender) => getArchiveInsertionStatus(message),
-  "START_TRASH_TEMPLATE_FILL": (message, sender) => startTrashTemplateFill(message.inventoryId, {
-    supersedeFillId: message.supersedeFillId || null,
-    schemaTestScenario: message.schemaTestScenario || null
-  }),
+  "START_TRASH_TEMPLATE_FILL": (message, sender) => {
+    if (message?.schemaTestScenario != null) throw new Error('Manueller Schema-Prüfmodus wurde entfernt.');
+    return startTrashTemplateFill(message.inventoryId, { supersedeFillId: message.supersedeFillId || null });
+  },
   "GET_TRASH_TEMPLATE_FILL_STATUS": (message, sender) => getTrashTemplateFillStatus(message),
   "GET_RECOVERABLE_TRASH_TEMPLATE_FILL": (message, sender) => getRecoverableTrashTemplateFill(),
   "PREPARE_TRASH_TEMPLATE_INVENTORY_CAPTURE": (message, sender) => prepareTrashTemplateInventoryCapture(message),
