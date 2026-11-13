@@ -1185,7 +1185,27 @@
         const active=states.includes('active')
           ||before?.state==='unfinished'||after?.state==='unfinished'
           ||witness?.status==='blocked';
-        const complete=historicalStable&&record(witness)
+        // KAR-171 W3D3B1: a completed P8 callback is historical ONLY;
+        // if the same owner has real remote intent/resolution evidence,
+        // do not classify its ownership as reconciled merely because a
+        // previous worker and remote journal overlap in time. Require
+        // the observer's own independent immutable P8-token binding.
+        // Even token-bound-history NEVER proves current remote/account IDLE.
+        const remoteSensitive=name==='renewal'||name==='archiveInsertion';
+        const lineage=remoteSensitive?first?.remoteAdmissionLineage?.[name]:null;
+        const remoteLineageState=remoteSensitive
+          ?(historicalStable&&typeof lineage?.state==='string'
+            ?lineage.state:'unverified'):null;
+        const remoteHistoryCompatible=!remoteSensitive
+          ||remoteLineageState==='no-evidence'
+          ||(remoteLineageState==='token-bound-historical'
+            &&Array.isArray(lineage?.entries)&&lineage.entries.length>0
+            &&lineage.entries.every(entry=>entry?.owner===name
+              &&entry.exactAttemptBound===true
+              &&entry.state==='token-bound-historical'
+              &&typeof entry.admissionToken==='string'
+              &&entry.admissionToken.length>=12));
+        const complete=historicalStable&&remoteHistoryCompatible&&record(witness)
           &&witness.schema===1&&witness.owner===name
           &&witness.status==='callback-settled'&&witness.eligibleForLease===false
           &&witnessMatchesHistory(name,witness,before)
@@ -1199,8 +1219,10 @@
         owners[name]=Object.freeze({
           owner:name,status,
           reason:active?'ACTIVE_OR_UNFINISHED_OWNER'
-            :complete?'DURABLE_HISTORICAL_CALLBACK_ONLY'
-              :'OWNER_OR_CROSS_SOURCE_UNVERIFIED',
+            :remoteSensitive&&!remoteHistoryCompatible?'REMOTE_LINEAGE_UNVERIFIED'
+              :complete?'DURABLE_HISTORICAL_CALLBACK_ONLY'
+                :'OWNER_OR_CROSS_SOURCE_UNVERIFIED',
+          remoteLineageState,
           sourceRevision:complete?witness.sourceRevision:null,
           completedReceiptCount:complete?before.entries.length:0,
           eligibleForLease:false,priorGenerationClosed:false,
