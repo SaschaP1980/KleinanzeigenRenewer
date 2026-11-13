@@ -10,7 +10,7 @@ const clickEnd = js.indexOf("messageHistoryClose?.addEventListener", clickStart)
 assert.ok(clickStart >= 0 && clickEnd > clickStart);
 const click = js.slice(clickStart, clickEnd);
 assert.match(click, /async\s*\(\)\s*=>\s*\{[\s\S]*await ensureUiActivityLoaded\(\)[\s\S]*renderMessageHistory\(\)[\s\S]*showModal\(\)/); pass('opening message history waits for persisted activity history before rendering');
-const bootstrapStart = js.indexOf('Promise.all([ensureUiActivityLoaded()');
+const bootstrapStart = js.search(/Promise\.all(?:Settled)?\(\[ensureUiActivityLoaded\(\)/);
 assert.ok(bootstrapStart >= 0);
 const bootstrap = js.slice(bootstrapStart, bootstrapStart + 700);
 assert.match(bootstrap, /ensureUiActivityLoaded\(\)[\s\S]*refreshProfileState\(\)/); pass('app bootstrap proactively restores persisted activity-center state');
