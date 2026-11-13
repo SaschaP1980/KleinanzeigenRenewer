@@ -263,6 +263,21 @@ function allIdle(worker='worker-current',profile='profile-A'){
  await deny(noCoordinator.inspectAllOwnerClosureReadOnly(originPersisted,
    {requireAtomicAdmission:true}), 'KR_UPDATE_FENCE_ATOMIC_UNAVAILABLE',
    'missing real coordinator cannot turn an unlocked matrix into protected evidence');
+ await deny(noCoordinator.inspectAllOwnerClosureReadOnly(originPersisted,
+   {requireAtomicAdmission:false}), 'KR_UPDATE_FENCE_ATOMIC_UNAVAILABLE',
+   'explicit false lock requirement must not silently downgrade to unlocked evidence');
+ const missingOriginWebLock=Additional.create({
+   storageLocal:lockedDisk,storageSession:readOnlySession,
+   workerInstanceId:'worker-current',clock:()=>100000,
+   getAtomicAdmissionCoordinator:()=>Atomic.create({
+     storageLocal:lockedDisk,lockManager:null,
+     workerInstanceId:'worker-current',clock:()=>100000,
+     newToken:()=> 'separate_unique_token_12345'
+   })
+ });
+ await deny(missingOriginWebLock.inspectAllOwnerClosureReadOnly(originPersisted,
+   {requireAtomicAdmission:true}), 'KR_UPDATE_FENCE_ATOMIC_UNAVAILABLE',
+   'missing browser-origin Web Locks API fails closed before checking all owners');
  const mismatchedCoordinator=Additional.create({
    storageLocal:lockedDisk,storageSession:readOnlySession,
    workerInstanceId:'different-generation',clock:()=>100000,
@@ -296,5 +311,8 @@ function allIdle(worker='worker-current',profile='profile-A'){
  pass(background.includes('workerInstanceId:ownerWorkerInstanceId')
    &&!background.includes('getOwnerSnapshot: () => requireAdditionalOwnerObserver()'),
    'real MV3 admission and observer generation agree; no untrusted positive update snapshot is wired');
+ pass(background.includes('getAtomicAdmissionCoordinator:()=>requireAtomicMV3Admission()')
+   &&!background.includes('inspectAllOwnerClosureReadOnly('),
+   'real background lazily injects only first-party P8 lock and adds no public owner-inspection route');
  console.log('PASS KAR99 P8 adversarial races '+n+' checked');
 })().catch(e=>{console.error(e);process.exitCode=1});
