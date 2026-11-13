@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const html = fs.readFileSync('app.html', 'utf8');
 const css = fs.readFileSync('app.css', 'utf8');
 const js = require('./v12210-source-surface.cjs');
-const bg = [fs.readFileSync('background.js', 'utf8'), fs.readFileSync('bulk-inventory-controller.js', 'utf8'), fs.readFileSync('src/background/services/bulk-worker-service.js', 'utf8'), fs.readFileSync('public-listing-evidence-service.js', 'utf8')].join('\n');
+const bg = [fs.readFileSync('background.js', 'utf8'), fs.readFileSync('bulk-inventory-controller.js', 'utf8'), fs.readFileSync('src/background/services/bulk-worker-service.js', 'utf8'), fs.readFileSync('public-listing-evidence-service.js', 'utf8'), fs.readFileSync('src/background/controllers/trash-management-controller.js', 'utf8')].join('\n');
 const runner = fs.readFileSync('inventory-runner.js', 'utf8');
 const manifest = JSON.parse(fs.readFileSync('manifest.json', 'utf8'));
 const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
@@ -49,12 +49,12 @@ check('trash notice is centralized and repeated per-card note is removed', () =>
   assert.match(html, /Einträge können nicht zurück ins Inventar verschoben werden/);
   assert.doesNotMatch(js, /note\.textContent\s*=\s*['"]Einträge können nicht zurück ins Inventar verschoben werden/);
 });
-check('trash entries offer a 30-day retention restart action above permanent deletion', () => {
-  assert.match(js, /30 Tage neu starten/);
+check('trash entries restart the configured retention before a separate permanent-delete action', () => {
+  assert.match(js, /Frist neu starten/);
   assert.match(js, /RESET_TRASH_RETENTION/);
   assert.match(bg, /resetTrashRetention/);
   assert.match(bg, /TRASH_RETENTION_RESET/);
-  const resetIndex = js.indexOf("resetButton.textContent = '30 Tage neu starten'");
+  const resetIndex = js.indexOf("resetButton.textContent = 'Frist neu starten'");
   const deleteIndex = js.indexOf("deleteButton.textContent = 'Endgültig löschen'");
   assert.ok(resetIndex >= 0 && deleteIndex > resetIndex, 'reset action must be created before permanent delete action');
 });
