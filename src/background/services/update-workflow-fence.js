@@ -88,10 +88,15 @@
           throw denied('KR_UPDATE_FENCE_OWNER_UNAVAILABLE');
         ensureFree(await read());
         if (inFlight !== 0) throw denied('KR_UPDATE_FENCE_BUSY');
-        const tick = now();
         let snapshot;
         try { snapshot = await getOwnerSnapshot(); }
         catch { throw denied('KR_UPDATE_FENCE_NOT_IDLE'); }
+        // KAR-171 W1: the independent owner capture completes after entering
+        // the reservation lock. Sample policy time AFTER that awaited read, or
+        // a valid freshly produced observation is always misread as future.
+        // The policy still rejects stale/future proof, missing owners and
+        // mismatched generations; this does not enable any production apply.
+        const tick = now();
         const candidate = policy.evaluate(snapshot, { nowMs: tick });
         if (candidate?.status !== 'candidate-idle' || candidate?.reason !== 'ALL_OWNERS_IDLE'
           || snapshot.profileId !== request.profileId
