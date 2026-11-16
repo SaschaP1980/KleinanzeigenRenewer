@@ -11,7 +11,8 @@
     "Forward integration of #193 bounded pre-admission diagnostic reset retry and fail-closed post-execution outcome uncertainty from installed v1.24.5.",
     "Preserve #188 truthful startup inventory/trash loading and #164 retention-deadline sorting from merged main v1.25.1.",
     "Retain P8 Web Locks, durable start/finish journal, updater update leases, account/profile/Ad-ID safety and remote mutation policy; never clear inventory or trash.",
-    "Issue-bound RED/GREEN with runtime/architecture/100% public coverage, deterministic ZIP, real packaged Chromium and Windows Work PR CI; native acceptance and Release independently recorded."
+    "Issue-bound RED/GREEN with runtime/architecture/100% public coverage, deterministic ZIP, real packaged Chromium and Windows Work PR CI; native acceptance and Release independently recorded.",
+    "Dynamic Public Function Coverage remains 100 % and Architecture-No-Regression must remain PASS on the exact packaged source; line/branch, Windows and packaged Chromium E2E are mandatory."
   ],
   "nextPlannedBuild": "TBD",
   "nextPlannedBuildGoal": "Determined by separately authorized open GitHub Issues.",
