@@ -2101,11 +2101,11 @@ function isExpectedPostRecoveryBulkClose(error, message, run) {
 }
 
 let nativeStatusBridge = null;
+let nativeUpdateGateway = null;
 function requireNativeStatusBridge() {
-  // Instantiate on the first trusted app request: legacy VM fixtures deliberately
-  // load the background script without Chrome Native Messaging/these dependencies.
+  // Lazy: also used by private read-only native inspection.
   if (nativeStatusBridge) return nativeStatusBridge;
-  const nativeUpdateGateway = NativeUpdateStatusGateway.create({
+  nativeUpdateGateway = NativeUpdateStatusGateway.create({
   getPlatform: () => new Promise(resolve => {
     chrome.runtime.getPlatformInfo(info => {
       resolve(!chrome.runtime.lastError && info?.os === 'win' ? 'win' : 'unsupported');
@@ -2212,7 +2212,10 @@ function requireAdditionalOwnerObserver() {
       readAccountPageStatusReadOnly:tabId=>sendTabRequest(tabId,{type:'PAGE_STATUS'}),
       createManagedWorkerTab,waitForTabComplete,ensureContentConnection,closeManagedWorkerTab,
       myAdsProjectsUrl:MY_ADS_PROJECTS_URL,tabLoadTimeoutMs:TAB_LOAD_TIMEOUT_PHASE4_MS,
-      // Private coordinator; no updater activation.
+      readNativeTransactionReadOnly:async()=>{
+        requireNativeStatusBridge();
+        return nativeUpdateGateway.inspectReadOnly();
+      },
       getAtomicAdmissionCoordinator:()=>requireAtomicMV3Admission()
     });
   }
