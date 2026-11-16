@@ -1,5 +1,7 @@
 const AppElements = globalThis.KRDeps?.require?.('KRAppElements');
 if (!AppElements) throw new Error('app-elements.js must load before app.js');
+const InventoryLoadingState = globalThis.KRDeps?.require?.('KRInventoryLoadingState');
+if (!InventoryLoadingState?.create) throw new Error('inventory-loading-state.js must load before app.js');
 const { appVersion, controlStatus, statusDot, statusTitle, statusText, statusFacts, statusTime, statusAction, statusDismiss, messageHistoryOpen, messageHistoryDialog, messageHistoryClose, messageHistoryDone, messageHistoryClear, messageHistoryList, messageHistoryEmpty, profileSelect, profileManageButton, profileDetectedText, profileAccountStatusDot, profileManagerDialog, profileManagerClose, profileManagerDone, profileManagerList, profileManagerStatus, profileImportButton, profileBackupFileInput, renewalModeIndicator, renewalModeSafeButton, renewalModeFastButton, renewalModeDescription, renewalRetryRange, renewalRetryValue, diagnosticZipButton, diagnosticResetButton, emergencyWorkflowResetButton, diagnosticZipStatus, diagnosticResetBlockReasonElement, actionAvailability, actionAvailabilityTitle, actionAvailabilityText, actionsAccordion, configurationAccordion, trashRetentionRange, trashRetentionValue, trashRetentionDescription, trashIntroFull, trashIntroSticky, diagnosticsAccordion, actionsActivityIndicator, inventoryButton, fullInventoryButton, archiveInsertButton, massRenewalButton, clearInventoryButton, refreshButton, inventoryList, progress, bulkRunStatus, inventoryCount, inventorySearchInput, inventorySortKey, inventorySortAsc, inventorySortDesc, inventorySection, trashSection, inventoryViewButton, trashViewButton, inventoryHeaderCount, trashHeaderCount, trashCount, trashList, trashSortAsc, trashSortDesc, globalViewDetailed, globalViewCompact, appHeader, controlPanel, inventoryStickySentinel, trashStickySentinel, inventoryStickyHeader, trashStickyHeader, inventoryStickySlot, trashStickySlot, inventoryStickyOcclusion, trashStickyOcclusion, primaryActions, appNotice, appNoticeTitle, appNoticeText, appNoticeTime, appNoticeDismiss, renewalStartDialog, renewalStartClose, renewalStartCancel, renewalStartConfirm, renewalStartCover, renewalStartTitle, renewalStartSourceId, renewalStartKicker, renewalStartDialogTitle, renewalStartDialogText, renewalStartSource, renewalStartSourceLabel, renewalStartSafety, renewalStartSafetyTitle, renewalStartSafetyText, renewalPhase1Label, renewalPhase2Label, renewalPhase3Label, renewalPhase4Label, renewalStartSteps, renewalStartActions, renewalProgressMessage, renewalProgressMessageTitle, renewalProgressMessageText, renewalBackgroundHint, renewalProgressActions, renewalProgressClose, renewalProgressView, renewalProgressEdit, renewalProgressShortcut, renewalProgressShortcutTitle, renewalProgressShortcutText, actionConfirmDialog, actionConfirmTitle, actionConfirmText, actionConfirmDetail, actionConfirmClose, actionConfirmCancel, actionConfirmSubmit, archiveInsertDialog, archiveInsertClose, archiveInsertCancel, archiveInsertConfirm, archiveInsertKicker, archiveInsertTitle, archiveInsertIntro, archiveDropzone, archiveFileInput, archiveChooseFile, archiveValidationStatus, archivePreview, archivePreviewCover, archivePreviewTitle, archivePreviewMeta, archiveInsertSafety, archiveInsertSteps, archivePhase3Label, archiveProgressMessage, archiveProgressMessageTitle, archiveProgressMessageText, archiveBackgroundHint, archiveInsertActions, archiveProgressActions, archiveProgressClose, archiveProgressView, archiveProgressEdit, trashTemplateDialog, trashTemplateClose, trashTemplateCancel, trashTemplateConfirm, trashTemplateCover, trashTemplateTitle, trashTemplateSourceTitle, trashTemplateSourceMeta, trashTemplateIntro, trashTemplateSteps, trashTemplateProgressMessage, trashTemplateProgressTitle, trashTemplateProgressText, trashTemplateConfirmActions, trashTemplateProgressActions, trashTemplateDone, trashTemplateRestart, trashTemplateTarget, trashTemplateInventory, massRenewalDialog, massRenewalClose, massRenewalCancel, massRenewalBack, massRenewalNext, massRenewalStart, massRenewalStopAfterCurrent, massRenewalDone, massRenewalKicker, massRenewalIntro, massRenewalSelectionPanel, massRenewalOrderPanel, massRenewalOrderList, massRenewalStopOnError, massRenewalStopOnErrorStatus, massRenewalProgressPanel, massRenewalSummaryPanel, massRenewalSelectionBody, massRenewalSelectionCount, massRenewalSearchInput, massRenewalSearchClear, massRenewalProgressTitle, massRenewalProgressCount, massRenewalProgressList, massRenewalSummaryCount, massRenewalSummaryList, inventoryCaptureDialog, inventoryCaptureClose, inventoryCaptureKicker, inventoryCaptureTitle, inventoryCaptureIntro, inventoryCaptureOptions, inventoryCaptureScopeAll, inventoryCaptureScopeNewOnly, inventoryCaptureScopeDescription, inventoryCaptureVerificationFast, inventoryCaptureVerificationSafe, inventoryCaptureVerificationDescription, inventoryCaptureModeNotice, inventoryCaptureModeScope, inventoryCaptureModeVerification, inventoryCaptureModeText, inventoryCaptureConfirmPanel, inventoryCaptureConfirmTitle, inventoryCaptureConfirmText, inventoryCaptureConfirmMeta, inventoryCaptureCandidateSection, inventoryCaptureCandidateList, inventoryCaptureSelectedCandidate, inventoryCaptureBulkCurrentCandidate, inventoryCaptureProgressPanel, inventoryCaptureProgressTitle, inventoryCaptureProgressText, inventoryCaptureProgressTrack, inventoryCaptureProgressFill, inventoryCaptureProgressCount, inventoryCaptureResultPanel, inventoryCaptureResult, inventoryCaptureResultTitle, inventoryCaptureResultText, inventoryCaptureResultMeta, inventoryCaptureResultDetails, inventoryCaptureCancel, inventoryCaptureStart, inventoryCaptureStopAfterCurrent, inventoryCaptureDone, inventoryCaptureProgressShortcut, inventoryCaptureProgressShortcutTitle, inventoryCaptureProgressShortcutText } = AppElements.collect(document).flat;
 const DISMISSED_UI_MESSAGES_KEY = 'dismissedUiMessagesV1';
 const LEGACY_ARCHIVE_INSERT_STATUS_ID = 'status:Anzeige aus ZIP wird inseriert';
@@ -267,6 +269,12 @@ let fullInventoryTabId = null;
 let currentRecords = [];
 let currentTrashRecords = [];
 let currentView = 'inventory';
+const inventoryLoadState = InventoryLoadingState.create({
+  onChange(kind) {
+    if (kind === 'inventory') renderInventories(currentRecords);
+    else renderTrash(currentTrashRecords);
+  }
+});
 let currentAppNotice = null;
 let currentInsertionLock = { locked: false };
 const previewUrlCache = new Map();
@@ -1391,6 +1399,7 @@ function beginProfileSwitchAccountCheck() {
 async function selectInventoryProfile(profileId) {
   const id = String(profileId || '');
   if (!id || id === String(selectedProfileId || '')) return;
+  inventoryLoadState.begin('__pending_profile_switch__');
   setProfileManagerStatus('Inventaransicht wird gewechselt …');
   try {
     const state = await runtimeMessage({ type: 'SET_SELECTED_PROFILE', profileId: id });
@@ -1405,6 +1414,7 @@ async function selectInventoryProfile(profileId) {
   } catch (error) {
     renderProfileSwitcher(currentProfileState);
     setProfileManagerStatus('Das Profil konnte nicht ausgewählt werden.', true);
+    void refreshInventories().catch(() => {});
   }
 }
 
@@ -1422,6 +1432,7 @@ async function deleteManagedProfile(profile) {
     danger: true
   });
   if (!confirmed) return;
+  inventoryLoadState.begin('__pending_profile_switch__');
   setProfileManagerStatus('Profil wird entfernt …');
   try {
     const previousSelectedProfileId = selectedProfileId;
@@ -1434,6 +1445,7 @@ async function deleteManagedProfile(profile) {
     setProfileManagerStatus(Number(state?.unassignedRecords || 0) ? `Profil entfernt. ${state.unassignedRecords} lokale ${Number(state.unassignedRecords) === 1 ? 'Eintrag wurde' : 'Einträge wurden'} „Nicht zugeordnet“.` : 'Profil wurde aus der lokalen Verwaltung entfernt.');
   } catch (error) {
     setProfileManagerStatus('Profil konnte nicht entfernt werden.', true);
+    void refreshInventories().catch(() => {});
   }
 }
 
@@ -2208,11 +2220,70 @@ function requireInventoryRenderController() {
   return inventoryRenderController;
 }
 
+function renderListLoadStatus(kind) {
+  const trash = kind === 'trash';
+  const state = inventoryLoadState.snapshot(kind);
+  const currentProfileKey = String(selectedProfileId || '__no_profile_selected__');
+  const phase = state.profileId === currentProfileKey ? state.phase : 'loading';
+  const list = trash ? trashList : inventoryList;
+  const count = trash ? trashCount : inventoryCount;
+  const headerCount = trash ? trashHeaderCount : inventoryHeaderCount;
+  const label = trash ? 'Papierkorb' : 'Inventar';
+  const panel = document.createElement('div');
+  panel.className = 'list-load-state is-' + phase;
+  panel.setAttribute('role', 'status');
+  panel.setAttribute('aria-live', 'polite');
+  if (phase === 'loading') {
+    const spinner = document.createElement('span');
+    spinner.className = 'list-load-spinner';
+    spinner.setAttribute('aria-hidden', 'true');
+    panel.append(spinner);
+  }
+  const title = document.createElement('strong');
+  title.textContent = phase === 'loading' ? label + ' wird geladen …' : label + ' konnte nicht geladen werden.';
+  panel.append(title);
+  if (phase === 'error') {
+    const info = document.createElement('p');
+    info.textContent = 'Die gespeicherten Einträge wurden nicht verändert. Du kannst das Laden erneut versuchen.';
+    panel.append(info);
+    const retry = document.createElement('button');
+    retry.type = 'button';
+    retry.className = 'secondary list-load-retry';
+    retry.textContent = 'Erneut laden';
+    retry.addEventListener('click', () => {
+      void refreshInventories().catch(error => {
+        setStatus('error', 'Inventar oder Papierkorb konnte nicht geladen werden', friendlyErrorMessage(error));
+      });
+    });
+    panel.append(retry);
+  }
+  list.replaceChildren(panel);
+  const lastCount = state.profileId === currentProfileKey ? state.lastVerifiedCount : null;
+  headerCount.textContent = lastCount == null ? '…' : String(lastCount);
+  count.textContent = lastCount == null
+    ? phase === 'loading' ? 'Wird geladen …' : 'Laden fehlgeschlagen'
+    : 'Zuletzt ' + lastCount + ' ' + (lastCount === 1 ? 'Eintrag' : 'Einträge') + ' · ' + (phase === 'loading' ? 'Wird geladen …' : 'Laden fehlgeschlagen');
+  if (!trash) clearInventoryButton.disabled = true;
+}
+
+function syncUnverifiedListHeaderCounts() {
+  for (const kind of ['inventory', 'trash']) {
+    const state = inventoryLoadState.snapshot(kind);
+    if (state.phase === 'ready' && state.profileId === String(selectedProfileId || '__no_profile_selected__')) continue;
+    const count = state.profileId === String(selectedProfileId || '__no_profile_selected__') ? state.lastVerifiedCount : null;
+    (kind === 'trash' ? trashHeaderCount : inventoryHeaderCount).textContent = count == null ? '…' : String(count);
+  }
+}
+
 function renderInventories(records = currentRecords) {
+  const state = inventoryLoadState.snapshot('inventory');
+  if (state.phase !== 'ready' || state.profileId !== String(selectedProfileId || '__no_profile_selected__')) return renderListLoadStatus('inventory');
   currentRecords = Array.isArray(records) ? records : [];
   const controller = requireInventoryRenderController();
   controller.updateContext({ records: currentRecords, trashRecords: currentTrashRecords, selectedProfileId, globalListViewMode, inventoryViewState });
-  return controller.renderInventories(currentRecords);
+  const result = controller.renderInventories(currentRecords);
+  syncUnverifiedListHeaderCounts();
+  return result;
 }
 
 function trashReasonLabel(record) { return inventoryFormatting.trashReasonLabel(record); }
@@ -2222,10 +2293,14 @@ function trashRetentionLabel(record) { return inventoryFormatting.trashRetention
 function trashRetentionPresentation(record) { return inventoryFormatting.trashRetentionPresentation(record); }
 
 function renderTrash(records = currentTrashRecords) {
+  const state = inventoryLoadState.snapshot('trash');
+  if (state.phase !== 'ready' || state.profileId !== String(selectedProfileId || '__no_profile_selected__')) return renderListLoadStatus('trash');
   currentTrashRecords = Array.isArray(records) ? records : [];
   const controller = requireInventoryRenderController();
   controller.updateContext({ records: currentRecords, trashRecords: currentTrashRecords, selectedProfileId, globalListViewMode, inventoryViewState, trashViewState });
-  return controller.renderTrash(currentTrashRecords);
+  const result = controller.renderTrash(currentTrashRecords);
+  syncUnverifiedListHeaderCounts();
+  return result;
 }
 
 function bulkStateMatchesSelectedProfile(state, profileId = selectedProfileId) {
@@ -2474,28 +2549,85 @@ function syncRenewalProgressUi(records = currentRecords, notice = currentAppNoti
   }
 }
 
-async function refreshInventories({ profileState = null } = {}) {
-  const resolvedProfileState = profileState || await runtimeMessage({ type: 'GET_PROFILE_STATE' });
-  renderProfileSwitcher(resolvedProfileState);
-  const [records, trashRecords, notice, insertionLock] = await Promise.all([
-    runtimeMessage(scopedProfileMessage('LIST_INVENTORIES')),
-    runtimeMessage(scopedProfileMessage('LIST_TRASH')),
-    runtimeMessage({ type: 'GET_APP_NOTICE' }).catch(() => null),
-    runtimeMessage({ type: 'GET_INSERTION_LOCK_STATE' }).catch(() => ({ locked: false }))
-  ]);
-  currentRecords = Array.isArray(records) ? records : [];
-  currentTrashRecords = Array.isArray(trashRecords) ? trashRecords : [];
-  currentInsertionLock = insertionLock && typeof insertionLock === 'object' ? insertionLock : { locked: false };
-  if (massRenewalUiController) massRenewalUiController.updateContext({ records: currentRecords, trashRecords: currentTrashRecords, renewalConfiguration: currentRenewalConfiguration, insertionLock: currentInsertionLock });
-  if (archiveTrashInsertionUiController) archiveTrashInsertionUiController.updateContext({ renewalConfiguration: currentRenewalConfiguration, insertionLock: currentInsertionLock, selectedProfileId, trashRecords: currentTrashRecords });
-  syncArchiveInsertionUiFromLock();
-  syncActionsActivityIndicator();
-  inventoryHeaderCount.textContent = String(currentRecords.length);
-  trashHeaderCount.textContent = String(currentTrashRecords.length);
-  renderAppNotice(notice || currentAppNotice);
-  if (currentView === 'trash') renderTrash(currentTrashRecords);
-  else renderInventories(currentRecords);
-  syncRenewalProgressUi(currentRecords, notice || currentAppNotice);
+async function refreshInventories({ profileState = null, source = 'refresh' } = {}) {
+  // Start before the first awaited Chrome message. Only a verified list array
+  // may transition its own view to ready; the other view stays loading/error.
+  let ticket = inventoryLoadState.begin(selectedProfileId);
+  const startedAt = performance.now();
+  let profileReadMs = null, inventoryReadMs = null, trashReadMs = null;
+  try {
+    const resolvedProfileState = profileState || await runtimeMessage({ type: 'GET_PROFILE_STATE' });
+    if (!inventoryLoadState.isCurrent(ticket)) return;
+    renderProfileSwitcher(resolvedProfileState);
+    const expectedProfileId = String(selectedProfileId || '__no_profile_selected__');
+    if (ticket.profileId !== expectedProfileId) {
+      // The selected profile became known during startup. Discard all rows
+      // from the old profile and invalidate its pending generation.
+      currentRecords = [];
+      currentTrashRecords = [];
+      ticket = inventoryLoadState.begin(selectedProfileId);
+    }
+    profileReadMs = Math.round(performance.now() - startedAt);
+    async function readView(kind, message) {
+      try {
+        const records = await runtimeMessage(message);
+        if (!inventoryLoadState.isCurrent(ticket) ||
+            expectedProfileId !== String(selectedProfileId || '__no_profile_selected__')) return;
+        if (!Array.isArray(records)) throw new Error('Unbestätigte ' + kind + '-Antwort: keine Liste.');
+        if (kind === 'inventory') {
+          currentRecords = records;
+          inventoryReadMs = Math.round(performance.now() - startedAt);
+        } else {
+          currentTrashRecords = records;
+          trashReadMs = Math.round(performance.now() - startedAt);
+        }
+        inventoryLoadState.settle(ticket, kind, { records });
+      } catch (error) {
+        if (inventoryLoadState.isCurrent(ticket) &&
+            expectedProfileId === String(selectedProfileId || '__no_profile_selected__')) {
+          inventoryLoadState.settle(ticket, kind, { error });
+        }
+        throw error;
+      }
+    }
+    const [inventoryResult, trashResult, noticeResult, lockResult] = await Promise.allSettled([
+      readView('inventory', scopedProfileMessage('LIST_INVENTORIES')),
+      readView('trash', scopedProfileMessage('LIST_TRASH')),
+      runtimeMessage({ type: 'GET_APP_NOTICE' }),
+      runtimeMessage({ type: 'GET_INSERTION_LOCK_STATE' })
+    ]);
+    if (!inventoryLoadState.isCurrent(ticket) ||
+        expectedProfileId !== String(selectedProfileId || '__no_profile_selected__')) return;
+    const notice = noticeResult.status === 'fulfilled' ? noticeResult.value : null;
+    const insertionLock = lockResult.status === 'fulfilled' ? lockResult.value : { locked: false };
+    currentInsertionLock = insertionLock && typeof insertionLock === 'object' ? insertionLock : { locked: false };
+    if (massRenewalUiController) massRenewalUiController.updateContext({ records: currentRecords, trashRecords: currentTrashRecords, renewalConfiguration: currentRenewalConfiguration, insertionLock: currentInsertionLock });
+    if (archiveTrashInsertionUiController) archiveTrashInsertionUiController.updateContext({ renewalConfiguration: currentRenewalConfiguration, insertionLock: currentInsertionLock, selectedProfileId, trashRecords: currentTrashRecords });
+    syncArchiveInsertionUiFromLock();
+    syncActionsActivityIndicator();
+    renderAppNotice(notice || currentAppNotice);
+    syncRenewalProgressUi(currentRecords, notice || currentAppNotice);
+    if (source === 'startup') {
+      // One privacy-safe timing summary, not an extra polling/logging loop.
+      void logAppEvent('INVENTORY_LIST_LOAD_TIMING', {
+        profileReadMs, inventoryReadMs, trashReadMs,
+        totalMs: Math.round(performance.now() - startedAt),
+        inventoryStatus: inventoryLoadState.snapshot('inventory').phase,
+        trashStatus: inventoryLoadState.snapshot('trash').phase
+      });
+    }
+    if (inventoryResult.status === 'rejected') throw inventoryResult.reason;
+    if (trashResult.status === 'rejected') throw trashResult.reason;
+  } catch (error) {
+    if (inventoryLoadState.isCurrent(ticket)) {
+      for (const kind of ['inventory', 'trash']) {
+        if (inventoryLoadState.snapshot(kind).phase === 'loading') {
+          inventoryLoadState.settle(ticket, kind, { error });
+        }
+      }
+    }
+    throw error;
+  }
 }
 
 async function refreshRenewalProgressOnly() {
@@ -3431,14 +3563,16 @@ syncActionsActivityIndicator();
 void detectBackgroundEpoch('startup').then(() => recordActionsStateSnapshot('startup', { force: true }));
 
 // An optional configuration or background inspection failure must not hide persisted inventory/trash.
-Promise.allSettled([ensureUiActivityLoaded(), loadListViewModes(), refreshProfileState(), refreshRenewalConfiguration(), refreshTrashRetentionConfiguration(), primeManagedWorkerTabCache()])
-  .then(() => Promise.allSettled([inspectPage(), refreshInventories(), refreshBulkStatus(), refreshMassRenewalBatchStatus({ forceOpen: false, recoveryOnly: true, source: 'startup' })]))
-  .then(results => {
-    if (results[1]?.status === 'rejected') {
-      setStatus('error', 'Inventar konnte nicht geladen werden', friendlyErrorMessage(results[1].reason));
-    }
-  })
-  .catch(error => setStatus('error', 'Inventar konnte nicht geladen werden', friendlyErrorMessage(error)));
+// Local list loading starts immediately rather than behind optional background setup.
+void refreshInventories({ source: 'startup' }).catch(error => {
+  setStatus('error', 'Inventar oder Papierkorb konnte nicht geladen werden', friendlyErrorMessage(error));
+});
+void Promise.allSettled([
+  ensureUiActivityLoaded(), loadListViewModes(), refreshRenewalConfiguration(),
+  refreshTrashRetentionConfiguration(), primeManagedWorkerTabCache(),
+  inspectPage(), refreshBulkStatus(),
+  refreshMassRenewalBatchStatus({ forceOpen: false, recoveryOnly: true, source: 'startup' })
+]);
 schedulePageInspect(ACCOUNT_HEALTH_FALLBACK_MS);
 window.addEventListener('pagehide', () => {
   pagePollingStopped = true;

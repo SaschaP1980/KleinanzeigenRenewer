@@ -4,6 +4,13 @@ This is the canonical version-specific history for Kleinanzeigen Manager. Entrie
 
 All distinct historical section bodies from the former root README and CHANGELOG are preserved with source labels and line numbers. The [KAR-170 migration ledger](docs/maintenance/KAR170_CHANGELOG_MIGRATION.json) identifies their original Git blobs and body checksums. Overlapping versions retain distinct factual notes; older references to planned builds or native/CI acceptance are **historical**, not live status.
 
+## v1.25.1 — KAR-188 independent inventory and trash loading (Work integration, source only)
+
+- Integrate the owner-accepted inventory/trash startup loading UX from the original v1.24.3 Work branch with the merged v1.25.0 KAR-164 retention-deadline sort, without reverting or changing the latter's behavior.
+- Each view immediately displays an accessible loading state and unknown counters, completes a verified account/profile-bound list independently, displays a genuine empty view only after success, and offers non-destructive retry after read failure. Stale profile/refresh responses cannot overwrite current list content; optional settings and page inspection do not gate local list loading.
+- Preserve existing account/Ad-ID safety, Chrome extension identity, locked publish and delete workflows, local trash retention and v1.25.0 sort controls. Require a reproducible v1.25.1 Chrome ZIP, unchanged 100% dynamic public API coverage, historical architecture/line/branch no-regression, real packaged Chromium 9/9 E2E and hosted Windows fixtures.
+- Work-source entry, not proof of a GitHub Release or tag. The owner approved the prior v1.24.3 native behavior; final integrated build and CI still require separate readback before merging.
+
 ## v1.25.0 — KAR-164 local trash deadline sorting (Work candidate)
 
 - Add accessible **Im Papierkorb bis** ascending/descending controls to Papierkorb, independently of Inventar ordering. Default is descending.
