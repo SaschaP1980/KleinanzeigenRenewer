@@ -76,9 +76,10 @@
       }
 
       function render(days) {
-        // Retained for existing callers; never silently normalize an invalid
-        // or missing background response to a confirmed 30-day policy.
-        return setState('ready', days);
+        // Compatibility rendering must never invent a verified persisted policy
+        // or replace it with a value that was not read from the background.
+        if (state !== 'ready' || days !== current) return current;
+        return show(current);
       }
 
       function previewInput() {
