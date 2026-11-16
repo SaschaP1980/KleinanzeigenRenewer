@@ -44,7 +44,10 @@ assert.match(html, /id="trashSortDesc"[^>]*aria-pressed="true"/, 'descending con
 assert.match(html, /id="trashSortAsc"[\s\S]*?id="trashSortDesc"/, 'both directions offered together');
 assert.match(html, /Papierkorb bis/, 'sort criterion visible');
 assert.match(app, /function setTrashSortDirection\(direction\)/, 'separate trash sort state, not inventory sort');
-assert.match(app, /InventoryView\.deriveTrashView\(currentTrashRecords,\s*trashViewState\)/, 'view-only ordering before rendering');
+const trashRendererSource = read('src/app/trash-card-renderer.js');
+assert.match(app, /controller\.updateContext\(\{[^\n]*trashViewState\s*\}\)/, 'pass presentation-only direction to renderer');
+assert.match(app, /controller\.renderTrash\(currentTrashRecords\)/, 'preserve existing raw render facade');
+assert.match(trashRendererSource, /InventoryView\.deriveTrashView\(currentTrashRecords,\s*trashViewState\)/, 'renderer sorts a copy only');
 assert.match(app, /trashSortAsc\.addEventListener\('click',\s*\(\)\s*=>\s*\{[\s\S]*?setTrashSortDirection\('asc'\)/);
 assert.match(app, /trashSortDesc\.addEventListener\('click',\s*\(\)\s*=>\s*\{[\s\S]*?setTrashSortDirection\('desc'\)/);
 console.log('KAR-164 canonical expiry order, infinity/unknown, stable ties, read-only and UI bindings: PASS');

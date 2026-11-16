@@ -2224,8 +2224,8 @@ function trashRetentionPresentation(record) { return inventoryFormatting.trashRe
 function renderTrash(records = currentTrashRecords) {
   currentTrashRecords = Array.isArray(records) ? records : [];
   const controller = requireInventoryRenderController();
-  controller.updateContext({ records: currentRecords, trashRecords: currentTrashRecords, selectedProfileId, globalListViewMode, inventoryViewState });
-  return controller.renderTrash(InventoryView.deriveTrashView(currentTrashRecords, trashViewState));
+  controller.updateContext({ records: currentRecords, trashRecords: currentTrashRecords, selectedProfileId, globalListViewMode, inventoryViewState, trashViewState });
+  return controller.renderTrash(currentTrashRecords);
 }
 
 function bulkStateMatchesSelectedProfile(state, profileId = selectedProfileId) {
