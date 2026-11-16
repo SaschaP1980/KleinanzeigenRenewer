@@ -14,6 +14,11 @@ assert.doesNotMatch(cmd,/ExecutionPolicy\s+Bypass|Unblock-File|Start-ScheduledTa
 assert.doesNotMatch(cmd,/Invoke-WebRequest|DownloadString|curl |bitsadmin/i,'offline immutable kit');
 const zip=path.join(root,'release/kleinanzeigen-oneclick-einrichtung-v1.23.36.zip');
 assert.ok(fs.existsSync(zip),'KAR94_RED: committed deterministic setup ZIP required');
+const frozen=path.join(root,'tools/windows/archive/v1.23.36/KleinanzeigenRenewer-Updater.ps1');
+assert.ok(fs.existsSync(frozen),'KAR94: immutable legacy updater must remain available for historical package parity');
+assert.notEqual(fs.readFileSync(frozen,'utf8'),
+  fs.readFileSync(path.join(root,'tools/windows/KleinanzeigenRenewer-Updater.ps1'),'utf8'),
+  'R2 standalone updater changed while released 1.23.36 must remain frozen');
 const check=cp.spawnSync('python3',['scripts/package-oneclick-setup.py','--check'],{cwd:root,encoding:'utf8'});
 assert.equal(check.status,0,check.stderr||check.stdout||'KAR94 package reproducibility/contents fail');
 const guide=fs.readFileSync(path.join(root,'docs/user-manuals/windows-updater-einrichten.md'),'utf8');

@@ -17,12 +17,16 @@ NAMES = (
     'OneClick-Update-KleinanzeigenRenewer.cmd',
     'KleinanzeigenRenewer-Updater.ps1',
 )
+# Historical 1.23.36 setup ZIP is already released. Rebuilding that exact
+# artifact must use the immutable contemporaneous updater source, not current
+# unreleased R2 development work. Do NOT rewrite the published ZIP or SHA.
+FROZEN_UPDATER = ROOT / 'tools/windows/archive/v1.23.36/KleinanzeigenRenewer-Updater.ps1'
 
 def build() -> bytes:
     out = io.BytesIO()
     with ZipFile(out, mode='w', compression=ZIP_STORED, allowZip64=False) as z:
         for name in NAMES:
-            source = ROOT / 'tools' / 'windows' / name
+            source = FROZEN_UPDATER if name == 'KleinanzeigenRenewer-Updater.ps1' else ROOT / 'tools' / 'windows' / name
             contents = source.read_bytes()
             info = ZipInfo(name, (2020, 1, 1, 0, 0, 0))
             info.compress_type = ZIP_STORED
