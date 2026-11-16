@@ -26,8 +26,11 @@ const descriptions = ['trashIntroFull','trashIntroSticky'];
 const addedDescriptionTargets = descriptions.filter((key, i) => selectors.get(key) === ['.trash-intro-full','.trash-intro-sticky'][i]).length;
 assert.equal(addedRetention,3,'all seven-stop retention slider DOM bindings exist');
 assert.equal(addedDescriptionTargets,2,'both dynamic trash explanatory texts are centrally bound');
-ok(addedStopOnError === 2 && addedMassSearch === 2 && selectors.size === 235 + addedOccupancy + addedStopOnError + addedMassSearch + addedRetention + addedDescriptionTargets,
-  `DOM binding contract retains 235 historical selectors plus ${addedOccupancy} occupancy, ${addedStopOnError} stop-on-error and ${addedMassSearch} mass-search bindings (got ${selectors.size})`);
+const trashSortSelectors = ['trashSortAsc','trashSortDesc'];
+const addedTrashSort = trashSortSelectors.filter(key => selectors.get(key) === '#' + key).length;
+assert.equal(addedTrashSort, 2, 'KAR-164 exact selector registry includes both sort directions');
+ok(addedStopOnError === 2 && addedMassSearch === 2 && selectors.size === 235 + addedOccupancy + addedStopOnError + addedMassSearch + addedRetention + addedDescriptionTargets + addedTrashSort,
+  `DOM binding contract retains 235 historical selectors plus ${addedOccupancy} occupancy, ${addedStopOnError} stop-on-error and ${addedMassSearch} mass-search plus ${addedTrashSort} trash-sort bindings (got ${selectors.size})`);
 const routeSource=bg+'\n'+router;
 const routeTypes=[...routeSource.matchAll(/(?:message\?\.type\s*===\s*|['"])(['"])?([A-Z][A-Z0-9_]+)(?:\1)?/g)].map(m=>m[2]);
 const required=['PLATFORM_ACCESS_RESTRICTED','GET_PLATFORM_ACCESS_RESTRICTION','CLEAR_PLATFORM_ACCESS_RESTRICTION','OPEN_APP_WINDOW','GET_RENEWAL_CONFIGURATION','SET_RENEWAL_MODE','SET_RENEWAL_PHASE_ATTEMPTS','RECOGNIZE_PROFILE','GET_PROFILE_STATE','SET_SELECTED_PROFILE','DELETE_PROFILE','LIST_INVENTORIES','LIST_TRASH','START_BULK_INVENTORY_OPERATION','START_MASS_RENEWAL_BATCH','START_TEMPLATE_FILL','START_ARCHIVE_INSERTION','GET_DIAGNOSTICS'];
