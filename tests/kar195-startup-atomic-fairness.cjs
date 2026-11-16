@@ -64,12 +64,15 @@ async function burst(diagnosticCount) {
   assert.equal(waitingForFirstRead, true, 'first worker must acquire lock before fan-out');
   const pending = routes.map((route, i) =>
     firstWorker.withAdmission(route, async () => { started++; return i; }));
+  // Observe rejections immediately; RED must fail on the semantic assertion,
+  // not on Node's unhandled-rejection timing while the first lock is held.
+  const outcomesPromise = Promise.allSettled([first, ...pending]);
   // An independent worker must NOT steal the held lock during the burst.
   await assert.rejects(otherWorker.guardReserve(() => true),
     error => error?.code === 'KR_UPDATE_FENCE_ATOMIC_BUSY');
   await sleep(1550); // longer than the old 16-attempt synchronized retry budget
   releaseFirstRead();
-  const outcomes = await Promise.allSettled([first, ...pending]);
+  const outcomes = await outcomesPromise;
   assert.equal(outcomes.filter(x => x.status === 'rejected').length, 0,
     'same-worker burst must queue rather than exhaust Web Lock retry budget');
   assert.equal(started, routes.length + 1, 'every legitimate callback ran exactly once');
