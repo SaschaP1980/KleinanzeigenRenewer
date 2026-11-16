@@ -953,3 +953,6 @@ select:not([multiple]) { appearance:none; -webkit-appearance:none; background-im
   .native-update-versions > div { gap:4px; }
   .native-update-modal-footer button { min-width:0; flex:1 1 0; }
 }
+
+/* KAR-186: a not-yet-verified policy must not show the default 30-day slider thumb. */
+#trashRetentionRange[hidden] { display: none; }
