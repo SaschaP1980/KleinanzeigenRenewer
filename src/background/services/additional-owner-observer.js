@@ -161,7 +161,7 @@
     createManagedWorkerTab=null,waitForTabComplete=null,
     ensureContentConnection=null,closeManagedWorkerTab=null,
     myAdsProjectsUrl=null,tabLoadTimeoutMs=null,
-    getAtomicAdmissionCoordinator=null}={}) {
+    readNativeTransactionReadOnly=null,getAtomicAdmissionCoordinator=null}={}) {
     if(typeof storageLocal?.get!=='function'||typeof storageSession?.get!=='function'
        ||typeof clock!=='function')throw Error('supplemental owner observer requires read-only storage and clock');
     const pending=new Map(OWNERS.map(n=>[n,0]));
@@ -994,8 +994,36 @@
     // request native transport, write storage, or promote local release to IDLE.
     async function inspectNativeUpdateTransactionClosureReadOnly() {
       const owner='nativeUpdateTransaction';
+      // The actual Windows inspector is independent of Chrome's local fence.
+      // Only a *negative* authenticated NativeHost result can strengthen a
+      // BLOCKED observation. Neither a legacy receipt nor a missing journal
+      // supplies MV3 transaction ID, Worker generation, rollback or IDLE.
+      let nativeHostEvidence=null;
+      if(typeof readNativeTransactionReadOnly==='function'){
+        try{
+          const h=await readNativeTransactionReadOnly();
+          if(h?.ok===true&&h.operation==='inspect_transaction'
+            &&['blocked','unverified'].includes(h.status)
+            &&['present','absent','unknown'].includes(h.journal)
+            &&['present','absent','unknown'].includes(h.lock)
+            &&['present','absent','unknown'].includes(h.receipt)
+            &&h.identityBound===false&&h.nativeOutcomeVerified===false
+            &&h.rollbackVerified===false&&h.eligibleForLease===false){
+            nativeHostEvidence=Object.freeze({
+              status:h.status,journal:h.journal,lock:h.lock,receipt:h.receipt,
+              transactionPhase:h.transactionPhase,
+              journalFingerprint:h.journalFingerprint,
+              receiptFingerprint:h.receiptFingerprint,identityBound:false
+            });
+          }
+        }catch{/* Unavailable native source is unknown, never IDLE. */}
+      }
       const result=(status,reason,more={})=>Object.freeze({
-        schema:1,owner,status,reason,eligibleForLease:false,
+        schema:1,owner,
+        status:nativeHostEvidence?.status==='blocked'?'blocked':status,
+        reason:nativeHostEvidence?.status==='blocked'
+          ?'NATIVE_HOST_TRANSACTION_BLOCKED':reason,
+        eligibleForLease:false,nativeHostEvidence,
         transactionState:null,sourceRevision:null,localReleaseRecorded:false,
         nativeHostOutcomeVerified:false,noPendingApplyVerified:false,
         noPendingRollbackVerified:false,priorGenerationClosed:false,...more
