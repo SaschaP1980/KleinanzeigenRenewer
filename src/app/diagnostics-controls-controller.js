@@ -29,6 +29,13 @@
         ? options.exportTimeoutMs : 45000;
       const exportRetryDelayMs = Number.isSafeInteger(options.exportRetryDelayMs) && options.exportRetryDelayMs > 0
         ? options.exportRetryDelayMs : 300;
+      const resetTimeoutMs = Number.isSafeInteger(options.resetTimeoutMs) && options.resetTimeoutMs > 0
+        ? options.resetTimeoutMs : 45000;
+      const resetRetryDelayMs = Number.isSafeInteger(options.resetRetryDelayMs) && options.resetRetryDelayMs > 0
+        ? options.resetRetryDelayMs : 400;
+      const resetRetryAttempts = Number.isSafeInteger(options.resetRetryAttempts)
+        && options.resetRetryAttempts >= 1 && options.resetRetryAttempts <= 6
+        ? options.resetRetryAttempts : 4;
 
       // Never depend on the diagnostics writer to explain a diagnostics failure:
       // logging itself may be rejected by the same safety fence.
@@ -38,6 +45,8 @@
 
       function diagnosticFailure(error) {
         const code = String(error?.code || error?.message || '');
+        if (code.includes('KR_DIAGNOSTIC_RESET_OUTCOME_UNVERIFIED'))
+          return 'Reset-Ergebnis unbestätigt (KR_DIAGNOSTIC_RESET_OUTCOME_UNVERIFIED)';
         if (code.includes('KR_UPDATE_FENCE_ATOMIC_BUSY'))
           return 'Vorübergehend durch die Sicherheitsprüfung blockiert (KR_UPDATE_FENCE_ATOMIC_BUSY)';
         if (code.includes('KR_UPDATE_FENCE_HELD') || code.includes('KR_UPDATE_FENCE_BUSY'))
@@ -74,6 +83,25 @@
           }
         }
         throw new Error('KR_DIAGNOSTIC_EXPORT_UNAVAILABLE');
+      }
+
+      // A denied pre-admission reset may be retried: the P8 router guarantees
+      // atomic BUSY reaches this UI only if the reset handler never began.
+      // A timeout or uncertain completion must NEVER be replayed.
+      async function requestDiagnosticReset() {
+        for (let attempt = 0; attempt < resetRetryAttempts; attempt += 1) {
+          try {
+            return await boundedRequest({ type: 'RESET_DIAGNOSTICS' }, resetTimeoutMs);
+          } catch (error) {
+            if (error?.code !== 'KR_UPDATE_FENCE_ATOMIC_BUSY'
+              || attempt === resetRetryAttempts - 1) throw error;
+            if (elements.status) elements.status.textContent =
+              `Diagnose-Reset: Sicherheitsprüfung beschäftigt, erneuter Versuch ${attempt + 2} von ${resetRetryAttempts} …`;
+            await new Promise(resolve => setTimeout(resolve, resetRetryDelayMs * (attempt + 1)));
+          }
+        }
+        throw Object.assign(new Error('KR_UPDATE_FENCE_ATOMIC_BUSY'),
+          { code: 'KR_UPDATE_FENCE_ATOMIC_BUSY' });
       }
 
       function displayOccupancy(current, maximum) {
@@ -228,13 +256,27 @@
         if (elements.zipButton) elements.zipButton.disabled = true;
         if (elements.status) elements.status.textContent = 'Diagnose wird zurückgesetzt …';
         try {
-          await runtimeMessage({ type: 'RESET_DIAGNOSTICS' });
+          const result = await requestDiagnosticReset();
+          if (result?.reset !== true || typeof result.diagnosticBoundaryId !== 'string'
+            || !result.diagnosticBoundaryId.trim())
+            throw Object.assign(new Error('KR_DIAGNOSTIC_RESET_OUTCOME_UNVERIFIED'),
+              { code: 'KR_DIAGNOSTIC_RESET_OUTCOME_UNVERIFIED' });
           if (elements.status) elements.status.textContent = 'Diagnose zurückgesetzt. Der nächste Export enthält nur Daten ab jetzt.';
-          void logEvent('USER_DIAGNOSTIC_RESET_SUCCEEDED', {});
-          void refreshOccupancy();
+          // A failed diagnostics writer must not obscure an already-verified reset.
+          reportDiagnosticEvent('USER_DIAGNOSTIC_RESET_SUCCEEDED', {});
+          await refreshOccupancy();
         } catch (error) {
-          if (elements.status) elements.status.textContent = String(error?.message || 'Diagnose konnte nicht zurückgesetzt werden.');
-          void logEvent('USER_DIAGNOSTIC_RESET_FAILED', { message: error?.message || String(error) }, 'error');
+          const code = String(error?.code || error?.message || '');
+          const uncertain = code.includes('KR_DIAGNOSTIC_RESET_OUTCOME_UNVERIFIED')
+            || code.includes('KR_DIAGNOSTIC_REQUEST_TIMEOUT')
+            || /Extension context invalidated|Receiving end does not exist|Could not establish connection/i.test(code);
+          if (elements.status) elements.status.textContent = uncertain
+            ? `Diagnose-Reset nicht bestätigt: ${diagnosticFailure(error)}. Bitte erst die Belegung oder ein Diagnose-ZIP prüfen, bevor du erneut zurücksetzt.`
+            : `Diagnose nicht zurückgesetzt: ${diagnosticFailure(error)}. Später erneut versuchen.`;
+          // Exactly one best-effort failure event per user action; no retry/log loop.
+          reportDiagnosticEvent('USER_DIAGNOSTIC_RESET_FAILED', {
+            code: String(error?.code || 'UNKNOWN').slice(0, 80)
+          }, 'error');
         } finally {
           resetInFlight = false;
           if (elements.zipButton) elements.zipButton.disabled = false;
