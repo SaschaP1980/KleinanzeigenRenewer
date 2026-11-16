@@ -4,6 +4,16 @@ This is the canonical version-specific history for Kleinanzeigen Manager. Entrie
 
 All distinct historical section bodies from the former root README and CHANGELOG are preserved with source labels and line numbers. The [KAR-170 migration ledger](docs/maintenance/KAR170_CHANGELOG_MIGRATION.json) identifies their original Git blobs and body checksums. Overlapping versions retain distinct factual notes; older references to planned builds or native/CI acceptance are **historical**, not live status.
 
+## v1.25.5 — KAR-197 publish-intent Web Lock contention and truthful ZIP insertion recovery (Work source candidate)
+
+- Fix the independently reproduced v1.25.4 two-image ZIP Fast-mode failure after verified form fill: an unrelated P8 origin Web Lock holder could deny the distinct publish-intent journal immediately with `KR_PUBLISH_INTENT_ATOMIC_BUSY`.
+- Wait for transient pre-entry Web Lock contention with a strictly bounded 16-attempt retry, while retaining the exact origin-exclusive lock, P8 admission proof, immutable before-click receipt, storage readback and single guarded native publish action. No retry follows a persisted attempt, corrupt/unreadable journal, missing permission or uncertain remote publication.
+- Persist content-side automatic and manual authorization denials as recoverable `publish-intent-blocked` fill state. Reflect it in archive status `publish-blocked`, preserving the insertion lock, ZIP images, source template and unresolved remote outcome. Prevent an automatic Renewal Phase-1 retry in this state.
+- Replace misleading ZIP progress text `Inserieren läuft` with an explicit blocked/status-verification explanation in Fast and Safe modes, also on later UI/status recovery and worker restart. Never imply that publication occurred merely because the form was verified.
+- Record contention only when observed, using bounded wait/hold/attempt counters without account, tab, listing, token or worker identifiers; no per-acquisition diagnostic loop.
+- Exact-baseline GitHub CI **RED** was reproduced at `e4ccd55b283a541b05cb57a7c828aaa42f1da155` (run `43917272691`). The intended GREEN, 100% dynamic public-function coverage, no-regression checks, packaged Chromium and native owner Windows/Chrome acceptance are **not yet established** at this changelog entry.
+- This is Work-branch source candidate only; no merger, published Release/tag, real Kleinanzeigen mutation, or native owner acceptance is implied.
+
 ## v1.25.4 — KAR-195 targeted P8 receipt verification for native account startup (Work source candidate)
 
 - Correct the v1.25.3 native Windows/Chrome performance regression: the account gate required ~24 seconds from manager opening to confirmed. First-30s diagnostics showed 105 P8 journal phases, ~250ms per short lock hold and up to 6.25s of FIFO waiting. Do not present previous hosted GREEN as native acceptance.
