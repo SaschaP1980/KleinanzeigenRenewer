@@ -77,6 +77,47 @@ function InvalidateManualOnRecovery {
  $unbound.phase='recovery-unbound'
  SaveJson $ManualTransactionPath $unbound
 }
+# Only the explicit operator recovery command can clear a standalone
+# persisted manual PENDING record when pending.json was never written.
+# This path proves the old installed bytes are still intact; it does not
+# perform an MV3 update, native apply, browser reload or rollback attestation.
+function RecoverManualWithoutJournal {
+ RequireIdle
+ Require (-not (Test-Path -LiteralPath $JournalPath)) 'Legacy recovery journal exists'
+ $txn=ReadJson $ManualTransactionPath
+ Require ($txn.schema -eq 1 -and $txn.origin -ceq 'manual-operator' -and
+   [string]$txn.transactionId -cmatch '^[a-f0-9]{32}$' -and
+   [string]$txn.phase -ceq 'pending' -and
+   [string]$txn.command -in @('install','update','oneclick','rollback') -and
+   [string]$txn.targetVersion -match '^\d+\.\d+\.\d+$' -and
+   $null -eq $txn.workerGeneration -and $null -eq $txn.admissionToken -and
+   $null -eq $txn.receiptSha256 -and $null -eq $txn.completedUtc)
+   'Untrusted incomplete manual transaction; retain it for inspection'
+ $prior=[string]$txn.previousReceiptSha256
+ if ($prior) {
+  Require ($prior -cmatch '^[a-f0-9]{64}$') 'Invalid pre-transaction receipt fingerprint'
+  Require ((Test-Path -LiteralPath $ReceiptPath) -and
+    (Test-Path -LiteralPath $Live)) 'Previous Windows install is unavailable'
+  Require ((Digest $ReceiptPath) -ceq $prior) 'Original receipt changed during interrupted transaction'
+  $original=ReadJson $ReceiptPath
+  Proof $Live $original
+ } else {
+  Require ((-not (Test-Path -LiteralPath $ReceiptPath)) -and
+    (-not (Test-Path -LiteralPath $Live)))
+    'Unjournaled transaction may already have changed installed files'
+ }
+ InvalidateManualOnRecovery
+ Event 'RECOVERED_UNBOUND_MANUAL' 'Confirmed unchanged installed files; no MV3 or Chrome activation proof'
+}
+function RequireManualTransactionClear {
+ if (-not (Test-Path -LiteralPath $ManualTransactionPath)) { return }
+ $txn=ReadJson $ManualTransactionPath
+ Require ($txn.schema -eq 1 -and $txn.origin -ceq 'manual-operator' -and
+   [string]$txn.transactionId -cmatch '^[a-f0-9]{32}$' -and
+   [string]$txn.phase -in @('files-installed','recovery-unbound') -and
+   $null -eq $txn.workerGeneration -and $null -eq $txn.admissionToken)
+   'Unresolved Windows manual transaction: explicitly recover before retrying'
+}
 function RequireIdle {
  if (-not $TestMode) {
   Require (@(Get-Process -Name chrome -ErrorAction SilentlyContinue).Count -eq 0) 'Close ALL Chrome processes: no update may interrupt a running ad workflow'
@@ -224,6 +265,11 @@ function Apply-Install([string]$Ready,$Receipt) {
  $priorDigest=if ($hadOld) { Digest $ReceiptPath } else { $null }
  $manualTxn=NewManualTransaction $Command ([string]$Receipt.version) $priorDigest
  SaveJson $ManualTransactionPath $manualTxn
+ # CI sandbox crash window: a durable manual pending record may exist
+ # before the legacy recovery journal. Production never accepts this hook.
+ if ($TestMode -and $env:KAR_UPDATER_TEST_INTERRUPT -ceq 'after-manual-pending') {
+  throw 'KAR_UPDATER_TEST_INTERRUPTED_BEFORE_JOURNAL'
+ }
  SaveJson $JournalPath @{schema=1;backup=$backup;hadPrevious=$hadOld;receipt=$old;target=[string]$Receipt.version}
  try {
   RequireIdle
@@ -234,8 +280,13 @@ function Apply-Install([string]$Ready,$Receipt) {
   Move-Item -LiteralPath $Ready -Destination $Live
   Proof $Live $Receipt
   SaveJson $ReceiptPath $Receipt
-  Remove-Item -LiteralPath $JournalPath -Force
+  # Commit the durable manual receipt BEFORE deleting the recovery journal.
+  # An interruption on either side now has a safe, explicit recovery path.
   FinishManualTransaction $manualTxn
+  if ($TestMode -and $env:KAR_UPDATER_TEST_INTERRUPT -ceq 'after-terminal-before-journal-cleanup') {
+   return
+  }
+  Remove-Item -LiteralPath $JournalPath -Force
   Event 'FILES_INSTALLED_RELOAD_REQUIRED' ("version={0} zipSha256={1} commit={2}" -f $Receipt.version,$Receipt.sha256,$Receipt.commit)
  } catch {
   $problem=$_.Exception.Message
@@ -245,8 +296,14 @@ function Apply-Install([string]$Ready,$Receipt) {
 }
 try {
  $Lock=[IO.File]::Open((Join-Path $State 'updater.lock'),[IO.FileMode]::OpenOrCreate,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None)
- if ($Command -eq 'recover') { Consent 'Recover last program-file installation';RestoreJournal;return }
+ if ($Command -eq 'recover') {
+  Consent 'Recover last program-file installation'
+  if (Test-Path -LiteralPath $JournalPath) { RestoreJournal }
+  else { RecoverManualWithoutJournal }
+  return
+ }
  Require (-not (Test-Path -LiteralPath $JournalPath)) 'Interrupted transaction: run recover'
+ RequireManualTransactionClear
  if ($Command -eq 'verify' -or $Command -eq 'accept') {
   $active=ReadJson $ReceiptPath;Proof $Live $active
   if ($Command -eq 'accept') {
