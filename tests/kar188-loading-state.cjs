@@ -71,6 +71,9 @@ const delay = () => { let resolve; const promise = new Promise(done => {resolve=
   assert.match(app,/function renderListLoadStatus\(/);
   assert.match(app,/Erneut laden/);
   assert.match(css,/\.list-load-state/);
+  const mainCi=source('.github/workflows/kar-ci.yml');
+  assert.match(mainCi,/runs-on: ubuntu-24\.04/,'main Playwright/Chromium CI requires a supported runner');
+  assert.doesNotMatch(mainCi,/    runs-on: ubuntu-latest\n    timeout-minutes: 30/);
 
   const start=app.indexOf('async function refreshInventories(');
   const end=app.indexOf('\nasync function refreshRenewalProgressOnly(',start);
