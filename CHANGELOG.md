@@ -4,6 +4,13 @@ This is the canonical version-specific history for Kleinanzeigen Manager. Entrie
 
 All distinct historical section bodies from the former root README and CHANGELOG are preserved with source labels and line numbers. The [KAR-170 migration ledger](docs/maintenance/KAR170_CHANGELOG_MIGRATION.json) identifies their original Git blobs and body checksums. Overlapping versions retain distinct factual notes; older references to planned builds or native/CI acceptance are **historical**, not live status.
 
+## v1.24.3 — KAR-188 reliable Inventar/Papierkorb loading after app restart (Work patch; source changes only)
+
+- Show immediate, accessible `Inventar wird geladen …` and `Papierkorb wird geladen …` indicators, rather than a false initial empty state or an unverified 0 entry count. Each view has its own loading, verified-ready (populated or empty) and non-destructive read-error state with an explicit retry action.
+- Start profile-bound inventory/trash reads before optional background settings, account inspection and activity initialization, with independent read completion and stale async generation/profile guards. Keep previously verified same-profile counts on transient failures; never claim successful zero records unless the respective list request returned a valid array.
+- Add test-first RED/GREEN fixtures for delayed, failed and stale per-view reads and retain the related KAR-185/KAR-186 safety behavior. Also pin the standalone main CI's packaged Chromium runner to supported Ubuntu 24.04, preserving mandatory Playwright E2E tests after the prior Ubuntu 26.04 infrastructure failure.
+- This changelog documents work-branch source code only, not a published GitHub Release or completed native Windows/Chrome user acceptance. The owning Issue #188 retains the authoritative exact SHA/CI evidence.
+
 ## v1.24.2 — KAR-186 verify local trash retention after cold startup (Work patch; source changes only)
 
 - A denied `GET_TRASH_RETENTION_CONFIGURATION` during Windows/Chrome cold startup no longer presents the unverified legacy 30-day fallback as the saved retention policy. Until an authorized read completes, the slider is hidden and disabled, configuration/trash explanation text explicitly marks the duration as unknown, and manual local-trash moves/retention resets are guarded.

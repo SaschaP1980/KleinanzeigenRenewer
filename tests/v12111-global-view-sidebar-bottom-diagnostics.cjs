@@ -24,8 +24,10 @@ check('header owns one global tile/list/refresh control set', () => {
   assert.doesNotMatch(html, /id="inventoryViewDetailed"|id="inventoryViewCompact"|id="trashViewDetailed"|id="trashViewCompact"/);
 });
 check('inventory tab has a count badge matching trash semantics', () => {
-  assert.match(html, /Inventar\s*<span id="inventoryHeaderCount">0<\/span>/);
-  assert.match(html, /Papierkorb\s*<span id="trashHeaderCount">0<\/span>/);
+  // KAR-188: count badges exist, but startup counts are unknown until a
+  // profile-bound list response succeeds; a literal 0 would falsely imply loss.
+  assert.match(html, /Inventar\s*<span id="inventoryHeaderCount">…<\/span>/);
+  assert.match(html, /Papierkorb\s*<span id="trashHeaderCount">…<\/span>/);
 });
 check('one global persisted list view mode migrates legacy per-tab modes', () => {
   assert.match(js, /GLOBAL_LIST_VIEW_MODE_KEY\s*=\s*'globalListViewModeV1'/);
