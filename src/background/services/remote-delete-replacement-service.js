@@ -344,13 +344,20 @@ async function verifyPhase4RemoteOutcomeFresh(receipt) {
         context: {renewalId:receipt.renewalId,adId:id,workerTabId:tabId}
       });
       await ensureContentConnection({tabId});
-      const status = await sendTabRequestWithBootstrap(tabId,{type:'MY_ADS_STATUS'});
-      if (status?.isMyAdsPage !== true || status?.isProjectsTab !== true
-          || !status.profileName || normalized(status.profileName) !== normalized(expected))
-        throw new Error('KR_PHASE4_JOURNAL_UNVERIFIED');
-      return await sendTabRequestWithBootstrap(tabId,{
+      const assertSameAccount = async () => {
+        const status = await sendTabRequestWithBootstrap(tabId,{type:'MY_ADS_STATUS'});
+        if (status?.isMyAdsPage !== true || status?.isProjectsTab !== true
+            || !status.profileName || normalized(status.profileName) !== normalized(expected))
+          throw new Error('KR_PHASE4_JOURNAL_UNVERIFIED');
+      };
+      await assertSameAccount();
+      const result = await sendTabRequestWithBootstrap(tabId,{
         type:command,adId:id,correlation:{renewalId:receipt.renewalId}
       });
+      // Full-pagination navigation can outlive the first account observation.
+      // Never accept a result from a tab that subsequently switched accounts.
+      await assertSameAccount();
+      return result;
     } finally {
       if (tabId) await closeManagedWorkerTab(tabId).catch(() => {});
     }
@@ -364,7 +371,8 @@ async function verifyPhase4RemoteOutcomeFresh(receipt) {
   if (target?.found !== true || String(target.adId || '') !== targetId
       || target.evidence !== 'found-in-my-ads-full-pagination-scan'
       || !Number.isSafeInteger(target.pagesScanned) || target.pagesScanned < 1
-      || !Number.isSafeInteger(target.page) || target.page < 1)
+      || !Number.isSafeInteger(target.page) || target.page < 1
+      || target.page > target.pagesScanned)
     throw new Error('KR_PHASE4_JOURNAL_UNVERIFIED');
   return Object.freeze({
     profileId:receipt.profileId,sourceAdId:sourceId,newAdId:targetId,
