@@ -69,6 +69,17 @@
           const confirmed = await assertSelectedProfileMatchesLiveAccount({
             expectedProfileId:intent.profileId,purpose:'publish-independent-result-readback'
           });
+          // The account can remain logged in while the original workflow
+          // changes during a long full-pagination scan. Re-read actual session
+          // identity before using the result; a stale fill/Ad ID/tab/profile
+          // must never confirm the original publication attempt.
+          const latestSession=archive
+            ?(await readArchiveInsertionSessions())[intent.workflowId]
+            :(await readRenewalSessions())[intent.workflowId];
+          if(!latestSession||latestSession.fillId!==intent.fillId
+              ||String((archive?latestSession.targetProfileId:latestSession.profileId)||'')!==intent.profileId
+              ||String(latestSession.sourceAdId||'')!==intent.sourceAdId
+              ||Number(latestSession.targetTabId)!==intent.targetTabId)deny();
           if (String(confirmed?.profileId||'')!==intent.profileId
               ||presence?.found!==true||String(presence.adId||'')!==newAdId
               ||presence.evidence!=='found-in-my-ads-full-pagination-scan'
