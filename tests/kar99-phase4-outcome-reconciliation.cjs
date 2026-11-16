@@ -161,13 +161,13 @@ function init(db,verifyRemoteOutcome,worker='worker-new') {
     'r1-archive-fill':{fillId:'r1-archive-fill',targetTabId:52,sourceAdId:''}
   };
   let browserTab={id:81,url:'https://www.kleinanzeigen.de/m-meine-anzeigen.html'};
-  let loggedIn=true,liveName=accountName,readCount=0;
+  let loggedIn=true,commitLiveName=accountName,readCount=0;
   const observer=Additional.create({
     storageLocal:commitDb,storageSession:{async get(){return {};}},
     workerInstanceId:'worker-commit',clock:()=>123000,
     queryBrowserTabsReadOnly:async()=>browserTab?[structuredClone(browserTab)]:[],
     readAccountPageStatusReadOnly:async()=>{readCount++;return {
-      pageType:'my-ads',url:browserTab.url,auth:{loggedIn},profileName:liveName
+      pageType:'my-ads',url:browserTab.url,auth:{loggedIn},profileName:commitLiveName
     }}
   });
   const originalPhase={renewalId:'r1-remote',profileId:accountName,
@@ -187,10 +187,10 @@ function init(db,verifyRemoteOutcome,worker='worker-new') {
   ok(await observer.verifyRemoteCommitContextReadOnly(originalPhase,'phase4')===false,
     'R1: stale source Ad ID cannot pass live commit witness');
   commitDb.data.renewalSessionsV1['r1-remote'].sourceAdId='11223344';
-  liveName='Different Account';
+  commitLiveName='Different Account';
   ok(await observer.verifyRemoteCommitContextReadOnly(originalPublish,'publish')===false,
     'R1: changed authenticated account cannot pass commit witness');
-  liveName=accountName;loggedIn=false;
+  commitLiveName=accountName;loggedIn=false;
   ok(await observer.verifyRemoteCommitContextReadOnly(originalPhase,'phase4')===false,
     'R1: logout during independent account observation fails closed');
   loggedIn=true;browserTab=null;
