@@ -108,6 +108,68 @@ const create=(store,manager,worker='worker-1',verify=proof)=>Journal.create({
  impossibleHistory.rows[impossibleKey].targetFoundPage=2;
  await deny(create(impossibleHistory,manager).observe(request.fillId),
    'KR_PUBLISH_INTENT_CORRUPT','historical publication receipt beyond scanned pages fails closed');
+ // R1: A publication result with an original P8 admission must be tied
+ // to the real, unmodified START source throughout the independent scan.
+ // The same immutable attempt may be inspected by a later Worker.
+ async function originalP8Publish({kind='renewal',before,during}={}) {
+   const db=disk(),manager=locks(),token='original-publish-p8-token-001';
+   const original={schema:1,state:'admitted',token,
+     operationType:'AUTHORIZE_AUTOMATIC_PUBLISH',
+     workerInstanceId:'worker-origin',startedAtMs:100};
+   const key=Atomic.START_PREFIX+token;
+   db.rows[key]=structuredClone(original);
+   const input=kind==='archive'?{
+     fillId:'archive-fill',workflowId:'archive-workflow',kind:'archive',
+     profileId:'profile-1',sourceAdId:'',targetTabId:9
+   }:request;
+   const entry=await create(db,manager,'worker-origin').begin({
+     ...input,admissionReceipt:Object.freeze({...original})
+   });
+   if(before)before(db.rows,key,token,entry);
+   let probes=0;
+   const scanner=(i,id)=>{
+     probes++;
+     if(during)during(db.rows,key,token,entry);
+     return proof(i,id);
+   };
+   return {db,entry,token,get probes(){return probes;},
+     scan:()=>create(db,manager,'worker-after-restart',scanner)
+       .resolveVerified({fillId:input.fillId,newAdId:'7890'})};
+ }
+ for(const kind of ['renewal','archive']) {
+   const stable=await originalP8Publish({kind});
+   const result=await stable.scan();
+   ok(result.state==='resolved-confirmed'&&stable.probes===1
+     &&result.workerInstanceId==='worker-after-restart',
+     'R1: '+kind+' P8-token-bound exact publication verified after Worker restart');
+ }
+ for(const [label,mutate] of [
+   ['removed origin START',(rows,key)=>{delete rows[key];}],
+   ['replaced origin Worker',(rows,key)=>{rows[key].workerInstanceId='wrong-worker';}],
+   ['changed origin operation',(rows,key)=>{rows[key].operationType='GET_DIAGNOSTIC_EXPORT';}],
+   ['forged P8 FINISH',(rows,key,token,entry)=>{rows[Atomic.FINISH_PREFIX+token]={
+     schema:1,state:'completed',token,workerInstanceId:'wrong-worker',
+     completedAtMs:entry.createdAtMs+1};}]
+ ]) {
+   const x=await originalP8Publish({before:mutate});
+   await deny(x.scan,'KR_PUBLISH_INTENT_UNVERIFIED',
+     'R1: '+label+' fails before trusting publication');
+   ok(x.probes===0&&!Object.keys(x.db.rows).some(k=>k.startsWith(Journal.RESOLUTION_KEY_PREFIX)),
+     'R1: '+label+' cannot run remote verifier or persist success');
+ }
+ for(const [label,mutate] of [
+   ['Worker identity changes during scan',(rows,key)=>{rows[key].workerInstanceId='changed';}],
+   ['original P8 START disappears midscan',(rows,key)=>{delete rows[key];}],
+   ['P8 FINISH appears during scan',(rows,key,token,entry)=>{rows[Atomic.FINISH_PREFIX+token]={
+      schema:1,state:'completed',token,workerInstanceId:'worker-origin',
+      completedAtMs:entry.createdAtMs+1};}]
+ ]) {
+   const x=await originalP8Publish({during:mutate});
+   await deny(x.scan,'KR_PUBLISH_INTENT_UNVERIFIED',
+     'R1: '+label+' cannot commit original publication outcome');
+   ok(x.probes===1&&!Object.keys(x.db.rows).some(k=>k.startsWith(Journal.RESOLUTION_KEY_PREFIX)),
+     'R1: '+label+' leaves original publication attempt unresolved');
+ }
  // Exercise the actual capture listeners (not only source-text assertions).
  const original={KRDeps:globalThis.KRDeps,document:globalThis.document,
    Element:globalThis.Element,HTMLInputElement:globalThis.HTMLInputElement};
