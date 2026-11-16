@@ -10,11 +10,27 @@
   const ID=/^[A-Za-z0-9_-]{1,128}$/;
   const record=x=>x!==null&&typeof x==='object'&&!Array.isArray(x);
   const denied=code=>Object.assign(new Error(code),{code});
-  function create({storageLocal,lockManager,workerInstanceId,clock=()=>Date.now(),newToken}={}) {
+  function create({storageLocal,lockManager,workerInstanceId,clock=()=>Date.now(),newToken,onSample=null}={}) {
     if(typeof storageLocal?.get!=='function'||typeof storageLocal?.set!=='function'
        ||typeof clock!=='function'||typeof newToken!=='function'||!ID.test(workerInstanceId))
       throw denied('KR_UPDATE_FENCE_ATOMIC_UNAVAILABLE');
     const id=x=>typeof x==='string'&&ID.test(x);
+    // Bounded, callback-only, privacy-safe measurements. Never include a token,
+    // worker identifier, profile, tab, URL or raw error message. The sink
+    // executes only after the actual Web Lock request has settled.
+    const measuredMs=value=>Math.max(0,Math.min(60000,Math.round(Number(value)||0)));
+    function reportSample(route,phase,stats,outcome) {
+      if(typeof onSample!=='function')return;
+      const label=typeof route==='string'&&/^(?:[A-Z][A-Z0-9_]{0,63}|AUTONOMOUS:[a-z0-9-]{1,48})$/.test(route)
+        ?route:'OTHER';
+      const sample=Object.freeze({
+        phase,route:label,
+        holdMs:measuredMs(stats.holdMs),waitMs:measuredMs(stats.waitMs),
+        busyAttempts:Math.max(0,Math.min(16,Number(stats.busyAttempts)||0)),
+        outcome:outcome==='ok'?'ok':'denied'
+      });
+      try {onSample(sample);} catch { /* diagnostics cannot break P8 */ }
+    }
     const same=(x,y)=>record(x)&&record(y)&&Object.keys(x).length===Object.keys(y).length
       &&Object.keys(x).every(k=>x[k]===y[k]);
     function checkStart(row,key) {
@@ -65,7 +81,7 @@
           throw denied('KR_UPDATE_FENCE_ATOMIC_STORAGE');
       return {starts,finishes};
     }
-    async function exclusive(task) {
+    async function exclusive(task,stats=null) {
       if(typeof lockManager?.request!=='function')
         throw denied('KR_UPDATE_FENCE_ATOMIC_UNAVAILABLE');
       let entered=false,completed=false;
@@ -81,9 +97,14 @@
             if(!lock)throw denied('KR_UPDATE_FENCE_ATOMIC_BUSY');
             if(lock.name!==LOCK_NAME||lock.mode!=='exclusive')
               throw denied('KR_UPDATE_FENCE_ATOMIC_UNAVAILABLE');
-            const value=await task();
-            completed=true;
-            return value;
+            const heldAt=Date.now();
+            try {
+              const value=await task();
+              completed=true;
+              return value;
+            } finally {
+              if(stats)stats.holdMs=measuredMs(Date.now()-heldAt);
+            }
           }
         );
         // Also reject a provider that resolves *before* the awaited callback
@@ -112,18 +133,29 @@
     // durable receipts; remote handlers execute OUTSIDE this local queue.
     // A rejected entry must not poison or stall its successors.
     let workflowQueue=Promise.resolve();
-    function workflowExclusive(task) {
+    function workflowExclusive(task,route,phase) {
+      const enqueuedAt=Date.now();
       const run=async()=>{
-        const attempts=16;
-        for(let i=0;i<attempts;i++){
-          try {return await exclusive(task);}
-          catch(error){
-            if(error?.code!=='KR_UPDATE_FENCE_ATOMIC_BUSY'||i===attempts-1)
-              throw error;
-            await new Promise(resolve=>setTimeout(resolve,Math.min(20+i*10,100)));
+        const stats={holdMs:0,waitMs:Date.now()-enqueuedAt,busyAttempts:0};
+        let outcome='ok';
+        try {
+          const attempts=16;
+          for(let i=0;i<attempts;i++){
+            try {return await exclusive(task,stats);}
+            catch(error){
+              if(error?.code==='KR_UPDATE_FENCE_ATOMIC_BUSY')stats.busyAttempts++;
+              if(error?.code!=='KR_UPDATE_FENCE_ATOMIC_BUSY'||i===attempts-1)
+                throw error;
+              await new Promise(resolve=>setTimeout(resolve,Math.min(20+i*10,100)));
+            }
           }
+          throw denied('KR_UPDATE_FENCE_ATOMIC_BUSY');
+        } catch(error) {
+          outcome='denied';
+          throw error;
+        } finally {
+          reportSample(route,phase,stats,outcome);
         }
-        throw denied('KR_UPDATE_FENCE_ATOMIC_BUSY');
       };
       const current=workflowQueue.then(run,run);
       // Let the admitted handler schedule any immediately nested P8-shared
@@ -149,7 +181,7 @@
           startedAtMs:now()
         });
         await durable(START_PREFIX+token,entry);
-      });
+      },operationType,'start');
       // Only the admitted closure receives this frozen, storage-acknowledged
       // origin-Web-Lock receipt. No global mutable current token: concurrent
       // MV3 handlers must never borrow each other's operation provenance.
@@ -166,7 +198,7 @@
             completedAtMs:now()
           });
           await durable(FINISH_PREFIX+entry.token,completed);
-        });
+        },operationType,'finish');
       }
     }
     async function guardReserve(task, expectedWorkerInstanceId) {
@@ -176,7 +208,10 @@
       // if a test-only snapshot would otherwise pass the candidate policy.
       if(expectedWorkerInstanceId!==undefined&&expectedWorkerInstanceId!==workerInstanceId)
         throw denied('KR_UPDATE_FENCE_ATOMIC_GENERATION');
-      return exclusive(async()=>{
+      const stats={holdMs:0,waitMs:0,busyAttempts:0};
+      let outcome='ok';
+      try {
+        return await exclusive(async()=>{
         // P1.3-F2B: the raw crash-durable receipts must agree across two
         // complete independent reads while this origin Web Lock is held.
         // A new/removed/rewritten start or finish is UNKNOWN, never IDLE.
@@ -192,7 +227,14 @@
         for(const token of second.starts.keys())
           if(!second.finishes.has(token))throw denied('KR_UPDATE_FENCE_BUSY');
         return task();
-      });
+        },stats);
+      } catch(error) {
+        outcome='denied';
+        if(error?.code==='KR_UPDATE_FENCE_ATOMIC_BUSY')stats.busyAttempts++;
+        throw error;
+      } finally {
+        reportSample('RESERVE','reserve',stats,outcome);
+      }
     }
     return Object.freeze({withAdmission,guardReserve});
   }
