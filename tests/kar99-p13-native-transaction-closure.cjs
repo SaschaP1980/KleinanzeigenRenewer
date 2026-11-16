@@ -190,3 +190,64 @@ test('valid released local receipt cannot invoke native health/check or recovery
  invariant(p);assert.equal(p.nativeHostOutcomeVerified,false);
  assert.equal(d.writes,0);
 });
+
+test('R2 private Windows pending transaction blocks even without a local MV3 fence',async()=>{
+ const d=disk();let reads=0;
+ const observer=Owners.create({storageLocal:d,storageSession:{async get(){return {}}},
+  workerInstanceId:'current-worker',clock:()=>5000,
+  readNativeTransactionReadOnly:async()=>{
+   reads++;
+   return Object.freeze({ok:true,operation:'inspect_transaction',
+    status:'blocked',journal:'present',lock:'absent',receipt:'present',
+    journalFormat:'legacy-pending',journalFingerprint:'a'.repeat(64),
+    receiptFormat:'legacy-installed',receiptFingerprint:'b'.repeat(64),
+    transactionPhase:'pending-install-or-rollback',
+    identityBound:false,nativeOutcomeVerified:false,
+    rollbackVerified:false,eligibleForLease:false});
+  }});
+ const p=await observer.inspectNativeUpdateTransactionClosureReadOnly();
+ invariant(p);
+ assert.equal(reads,1);
+ assert.equal(p.status,'blocked');
+ assert.equal(p.reason,'NATIVE_HOST_TRANSACTION_BLOCKED');
+ assert.equal(p.nativeHostEvidence.status,'blocked');
+ assert.equal(p.nativeHostEvidence.journalFingerprint,'a'.repeat(64));
+ assert.equal(p.nativeHostEvidence.identityBound,false);
+ assert.equal(d.writes,0);
+});
+test('R2 valid native installed receipt cannot upgrade local release to terminal success',async()=>{
+ const d=disk();d.rows[KEY]=released();
+ const observer=Owners.create({storageLocal:d,storageSession:{async get(){return {}}},
+  workerInstanceId:'current-worker',clock:()=>5000,
+  readNativeTransactionReadOnly:async()=>({ok:true,operation:'inspect_transaction',
+   status:'unverified',journal:'absent',lock:'absent',receipt:'present',
+   journalFormat:'unknown',journalFingerprint:null,
+   receiptFormat:'legacy-installed',receiptFingerprint:'b'.repeat(64),
+   transactionPhase:'unknown',identityBound:false,nativeOutcomeVerified:false,
+   rollbackVerified:false,eligibleForLease:false})});
+ const p=await observer.inspectNativeUpdateTransactionClosureReadOnly();
+ invariant(p);
+ assert.equal(p.status,'local-release-recorded');
+ assert.equal(p.localReleaseRecorded,true);
+ assert.equal(p.nativeHostEvidence.receiptFingerprint,'b'.repeat(64));
+ assert.equal(p.nativeHostOutcomeVerified,false);
+ assert.equal(d.writes,0);
+});
+test('R2 native host unavailable, forged identity or false success never grants authority',async()=>{
+ for(const response of [
+   null,{ok:false,error:'HOST_UNAVAILABLE'},
+   {ok:true,operation:'inspect_transaction',status:'unverified',
+     identityBound:true,nativeOutcomeVerified:true,rollbackVerified:true,
+     eligibleForLease:true}
+ ]){
+   const d=disk();d.rows[KEY]=released();
+   const o=Owners.create({storageLocal:d,storageSession:{async get(){return {}}},
+     workerInstanceId:'current-worker',clock:()=>5000,
+     readNativeTransactionReadOnly:async()=>response});
+   const p=await o.inspectNativeUpdateTransactionClosureReadOnly();
+   invariant(p);
+   assert.equal(p.nativeHostEvidence,null);
+   assert.equal(p.status,'local-release-recorded');
+   assert.equal(d.writes,0);
+ }
+});

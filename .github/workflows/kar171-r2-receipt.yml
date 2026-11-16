@@ -6,6 +6,9 @@ on:
       - tools/windows/KleinanzeigenRenewer.NativeHost.cs
       - tests/windows-native-host-wave1.ps1
       - tests/kar68-native-status-gateway.cjs
+      - tests/kar99-p13-native-transaction-closure.cjs
+      - src/background/services/additional-owner-observer.js
+      - src/background/background.js
       - src/background/services/native-update-status-gateway.js
       - .github/workflows/kar171-r2-receipt.yml
 permissions:
@@ -19,7 +22,9 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: '22' }
       - name: R2 private authenticated read-only NativeHost transport
-        run: node tests/kar68-native-status-gateway.cjs
+        run: |
+          node tests/kar68-native-status-gateway.cjs
+          node --test tests/kar99-p13-native-transaction-closure.cjs
   native-receipt:
     runs-on: windows-latest
     timeout-minutes: 15
