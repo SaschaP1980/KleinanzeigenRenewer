@@ -48,16 +48,27 @@
       // A file fingerprint or missing journal cannot prove the P8 token.
       const fields=['protocol','requestId','ok','operation','status','journal','lock',
         'transactionPhase','journalFormat','journalFingerprint','receipt',
-        'receiptFormat','receiptFingerprint','receiptVersion','identityBound',
-        'nativeOutcomeVerified','rollbackVerified','eligibleForLease'];
+        'receiptFormat','receiptFingerprint','receiptVersion',
+        'manualPresence','manualTransaction','manualTransactionId',
+        'manualTransactionFingerprint','manualTransactionOrigin','manualReceiptMatches',
+        'identityBound','nativeOutcomeVerified','rollbackVerified','eligibleForLease'];
       const state=new Set(['present','absent','unknown']);
       const fingerprint=x=>x===null||(typeof x==='string'&&SHA.test(x));
+      const manualState=new Set([
+        'absent','unknown','pending','recovery-unbound',
+        'files-installed-unbound','mismatched-receipt'
+      ]);
+      const manualKnown=['pending','recovery-unbound','files-installed-unbound',
+        'mismatched-receipt'].includes(message.manualTransaction);
+      const manualBlocks=message.manualPresence==='present'
+        &&message.manualTransaction!=='files-installed-unbound';
       if (!sameKeys(message,fields) || message.operation!=='inspect_transaction'
         || !['blocked','unverified'].includes(message.status)
         || !state.has(message.journal)||!state.has(message.lock)
-        || !state.has(message.receipt)
+        || !state.has(message.receipt)||!state.has(message.manualPresence)
+        || !manualState.has(message.manualTransaction)
         || message.status!==(message.journal==='present'||message.lock==='present'
-          ?'blocked':'unverified')
+          ||manualBlocks?'blocked':'unverified')
         || message.transactionPhase!==(message.journal==='present'
           ?'pending-install-or-rollback':message.lock==='present'
             ?'lock-unverified':'unknown')
@@ -77,6 +88,28 @@
         || (message.receiptFormat==='legacy-installed'
           ?typeof message.receiptVersion!=='string'||!VERSION.test(message.receiptVersion)
           :message.receiptVersion!==null)
+        || !fingerprint(message.manualTransactionFingerprint)
+        || (message.manualPresence==='absent'
+          &&(message.manualTransaction!=='absent'||message.manualTransactionId!==null
+            ||message.manualTransactionFingerprint!==null))
+        || (message.manualPresence==='unknown'
+          &&(message.manualTransaction!=='unknown'||message.manualTransactionId!==null
+            ||message.manualTransactionFingerprint!==null))
+        || (message.manualPresence==='present'&&message.manualTransaction==='absent')
+        || (manualKnown
+          ?typeof message.manualTransactionId!=='string'
+            || !/^[a-f0-9]{32}$/.test(message.manualTransactionId)
+            || typeof message.manualTransactionFingerprint!=='string'
+            || !SHA.test(message.manualTransactionFingerprint)
+            || message.manualTransactionOrigin!=='manual-operator'
+          :message.manualTransactionId!==null||message.manualTransactionOrigin!==null)
+        || typeof message.manualReceiptMatches!=='boolean'
+        || message.manualReceiptMatches!==
+          (message.manualTransaction==='files-installed-unbound')
+        || (message.manualReceiptMatches
+          &&(message.receipt!=='present'
+            ||message.receiptFormat!=='legacy-installed'
+            ||message.receiptFingerprint===null))
         || message.identityBound!==false||message.nativeOutcomeVerified!==false
         || message.rollbackVerified!==false||message.eligibleForLease!==false)
         return failure('INVALID_RESPONSE');
@@ -87,6 +120,12 @@
         journalFormat:message.journalFormat,journalFingerprint:message.journalFingerprint,
         receipt:message.receipt,receiptFormat:message.receiptFormat,
         receiptFingerprint:message.receiptFingerprint,receiptVersion:message.receiptVersion,
+        manualPresence:message.manualPresence,
+        manualTransaction:message.manualTransaction,
+        manualTransactionId:message.manualTransactionId,
+        manualTransactionFingerprint:message.manualTransactionFingerprint,
+        manualTransactionOrigin:message.manualTransactionOrigin,
+        manualReceiptMatches:message.manualReceiptMatches,
         identityBound:false,nativeOutcomeVerified:false,
         rollbackVerified:false,eligibleForLease:false
       });
