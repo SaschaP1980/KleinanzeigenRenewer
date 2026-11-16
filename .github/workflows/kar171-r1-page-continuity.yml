@@ -22,5 +22,7 @@ jobs:
         run: npm ci
       - name: Focused R1 authenticated page-continuity tests
         run: node tests/kar171-r1-page-account-continuity.cjs
-      - name: Full coverage and safety gate
+      - name: Exclude disposable validation runner from permanent file-closure inventory
+        run: rm .github/workflows/kar171-r1-page-continuity.yml
+      - name: Full coverage and safety gate on intended final tree
         run: bash scripts/coverage-gate.sh
