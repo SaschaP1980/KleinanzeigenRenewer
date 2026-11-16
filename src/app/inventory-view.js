@@ -87,7 +87,7 @@
     if (typeof text !== 'string') return { rank: 2, value: null };
     // Only real ISO-8601 timestamps are sortable. Do not treat German display
     // dates or JS-normalized invalid calendar days as canonical expiry values.
-    const match = /^(\\d{4})-(\\d{2})-(\\d{2})T(\\d{2}):(\\d{2}):(\\d{2})(?:\\.(\\d{1,3}))?(Z|[+-]\\d{2}:\\d{2})$/.exec(text);
+    const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,3}))?(Z|[+-]\d{2}:\d{2})$/.exec(text);
     if (!match) return { rank: 2, value: null };
     const year = Number(match[1]), month = Number(match[2]), day = Number(match[3]);
     const hour = Number(match[4]), minute = Number(match[5]), second = Number(match[6]);
