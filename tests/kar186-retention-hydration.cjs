@@ -154,6 +154,13 @@ function fixture(initial = 'infinite') {
   assert.match(trashCard, /function requireVerifiedRetention/);
   assert.match(trashCard, /RESET_TRASH_RETENTION/);
   assert.match(app, /retryUnavailableTrashRetentionConfiguration/);
+  // KAR-186: the mandatory packaged browser job must not inherit a
+  // Playwright-unsupported OS from GitHub's moving ubuntu-latest alias.
+  const workPrYaml = read('.github/workflows/kar-work-pr.yml');
+  const browserJob = workPrYaml.split('  browser_e2e:')[1]?.split('  windows_updater:')[0] || '';
+  assert.match(browserJob, /runs-on: ubuntu-24[.]04/,
+    'Chrome ZIP E2E must run on the supported pinned runner');
+  assert.doesNotMatch(browserJob, /runs-on: ubuntu-latest/);
   assert.doesNotMatch(html, /Einträge werden nach 30 Tagen automatisch/, 'static settings description remains neutral');
 
   console.log('PASS KAR-186 cold-start 61/90 records, denied fence, verified recovery, finite/infinite/legacy, write guard and honest UI');
