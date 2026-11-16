@@ -67,5 +67,5 @@ jobs:
           test "$GITHUB_REF" = refs/heads/work/KAR-164
           test -z "$(git diff-tree --no-commit-id --name-only -r HEAD)"
           echo 'BEGIN_KAR164_VERSION_GUARDS'
-          grep -RnE 'includesActivePatch\(|isFeature24|approvedMinorFeature|manifest\.version.*1\.24\.0|1\.24\.0.*manifest\.version|assertCompatibleCurrentPatch' tests --include='*.cjs' --include='*.mjs' | cut -c 1-260 | head -180 || true
+          python3 -c 'from pathlib import Path; files = sorted(p for p in Path("tests").rglob("*") if p.suffix in (".cjs", ".mjs")); [(print(f"{p}:{i}:{s.strip()[:230]}")) for p in files for i, s in enumerate(p.read_text(encoding="utf-8").splitlines(), 1) if ("manifest.version" in s or "spec.version" in s or "featureSeries24" in s) and ("24" in s or "25" in s or "feature" in s)]' | head -150 || true
           echo 'END_KAR164_VERSION_GUARDS'
