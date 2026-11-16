@@ -154,6 +154,61 @@ internal static class Program {
         return "absent";
     }
 
+    // R2: bounded, independent READ-ONLY evidence from the actual legacy
+    // Windows updater journal. An authentic fingerprint proves only that
+    // particular bytes were observed twice; legacy journals contain no MV3
+    // transaction token or Worker generation and CANNOT prove terminality.
+    static byte[] ReadBoundedJournal(string path) {
+        using (FileStream file = new FileStream(path, FileMode.Open,
+            FileAccess.Read, FileShare.ReadWrite | FileShare.Delete)) {
+            if (file.Length > 32768 || file.Length < 0) throw new InvalidDataException();
+            byte[] bytes = new byte[(int)file.Length];
+            int offset = 0;
+            while (offset < bytes.Length) {
+                int n = file.Read(bytes, offset, bytes.Length - offset);
+                if (n <= 0) throw new EndOfStreamException();
+                offset += n;
+            }
+            if (file.ReadByte() != -1) throw new InvalidDataException();
+            return bytes;
+        }
+    }
+
+    static string LegacyJournalFormat(string path, out string fingerprint) {
+        fingerprint = null;
+        try {
+            byte[] first = ReadBoundedJournal(path);
+            byte[] second = ReadBoundedJournal(path);
+            if (first.Length != second.Length) return "unknown";
+            for (int i = 0; i < first.Length; i++)
+                if (first[i] != second[i]) return "unknown";
+            using (System.Security.Cryptography.SHA256 sha =
+                System.Security.Cryptography.SHA256.Create()) {
+                fingerprint = BitConverter.ToString(sha.ComputeHash(second))
+                    .Replace("-", "").ToLowerInvariant();
+            }
+            Dictionary<string, object> record;
+            try {
+                record = new JavaScriptSerializer {
+                    MaxJsonLength = 32768, RecursionLimit = 6
+                }.DeserializeObject(Utf8.GetString(second)) as Dictionary<string, object>;
+            } catch { return "malformed"; }
+            if (record == null || record.Count != 5 ||
+                !record.ContainsKey("schema") || !(record["schema"] is int) ||
+                (int)record["schema"] != 1 ||
+                !record.ContainsKey("backup") || !(record["backup"] is string) ||
+                !Regex.IsMatch((string)record["backup"], @"^backup-[a-f0-9]{32}$") ||
+                !record.ContainsKey("hadPrevious") || !(record["hadPrevious"] is bool) ||
+                !record.ContainsKey("receipt") || !record.ContainsKey("target") ||
+                !(record["target"] is string) ||
+                !Regex.IsMatch((string)record["target"], @"^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$") ||
+                ((bool)record["hadPrevious"] && !(record["receipt"] is Dictionary<string, object>)) ||
+                (!(bool)record["hadPrevious"] && record["receipt"] != null))
+                return "malformed";
+            return "legacy-pending";
+        } catch { fingerprint = null; return "unknown"; }
+    }
+
     static Dictionary<string, object> InspectTransaction(string requestId) {
         string journal = "unknown", nativeLock = "unknown";
         try {
@@ -172,12 +227,24 @@ internal static class Program {
                 nativeLock = CombineProof(lockFirst, lockSecond);
             }
         } catch { journal = "unknown"; nativeLock = "unknown"; }
+        string journalFingerprint = null;
+        string journalFormat = journal == "present"
+            ? LegacyJournalFormat(Path.Combine(InspectRoot(), "State", "pending.json"),
+                out journalFingerprint)
+            : "unknown";
+        string transactionPhase = journal == "present"
+            ? "pending-install-or-rollback"
+            : nativeLock == "present" ? "lock-unverified" : "unknown";
         string status = journal == "present" || nativeLock == "present"
             ? "blocked" : "unverified";
         return new Dictionary<string, object> {
             { "protocol", ProtocolVersion }, { "requestId", requestId },
             { "ok", true }, { "operation", "inspect_transaction" },
             { "status", status }, { "journal", journal }, { "lock", nativeLock },
+            { "transactionPhase", transactionPhase },
+            { "journalFormat", journalFormat },
+            { "journalFingerprint", journalFingerprint },
+            { "identityBound", false },
             { "nativeOutcomeVerified", false }, { "rollbackVerified", false },
             { "eligibleForLease", false }
         };
