@@ -79,14 +79,14 @@ function assertCompatibleCurrentPatch({ manifest, pkg, lock, spec } = {}) {
 // Historical 1.23 correction gates must not classify approved 1.24.x
 // feature-series releases as part of the older correction/performance run.
 function includesSupportedRelease(knownVersions, version) {
-  return includesActivePatch(knownVersions, version) || version === '1.24.0' ||
+  return includesActivePatch(knownVersions, version) || version === '1.24.0' || version === '1.25.0' ||
     (typeof version === 'string' && version.startsWith('1.24.') &&
       isCurrentPatchVersion(version));
 }
 
 function expectedManifestPermissions(version) {
   const historic = ['activeTab', 'storage', 'unlimitedStorage', 'scripting'];
-  return (version === '1.24.0' || (isCurrentPatchVersion(version) &&
+  return (version === '1.24.0' || version === '1.25.0' || (isCurrentPatchVersion(version) &&
     (Number(version.split('.')[1]) >= 24 || Number(version.split('.')[2]) >= 30)))
     ? [...historic, 'nativeMessaging'] : historic;
 }

@@ -21,6 +21,15 @@ def reject(label, action):
 actual = m.load_meta() if hasattr(m,"load_meta") else {p:json.loads((ROOT/p).read_text()) for p in m.META}
 actual_snap = json.dumps(actual, sort_keys=True)
 original = copy.deepcopy(actual)
+# KAR-164: the active 1.25.0 feature MINOR is not a PATCH. Retain the
+# strict 1.23/1.24 Work PATCH allowlist and test it against an explicit
+# synthetic 1.24.2 predecessor, preserving all negative checks below.
+if original["manifest.json"].get("version") == "1.25.0":
+    for p in m.META:
+        original[p]["version"] = "1.24.2"
+    original["package.json"]["displayVersion"] = "1.24.2"
+    original["package-lock.json"]["packages"][""]["version"] = "1.24.2"
+    original["release/release-spec.json"]["packageVersion"] = "1.24.2"
 # Verify the actual current 1.23.x/1.24.x metadata directly. Later series remain
 # denied until separately authorized; do not silently bypass the next-minor fence.
 snap = json.dumps(original, sort_keys=True)

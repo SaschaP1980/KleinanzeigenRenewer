@@ -7,7 +7,7 @@ const root = path.resolve(__dirname, '..');
 const current = JSON.parse(fs.readFileSync(path.join(root, 'manifest.json'), 'utf8')).version;
 // Historical PATCH successor logic is exercised against a synthetic historical
 // version after KAR-161 advances the active release to the approved 1.24 MINOR.
-const patchSeriesFixture = current === '1.24.0' ? '1.23.92' : current;
+const patchSeriesFixture = ['1.24.0', '1.25.0'].includes(current) ? '1.23.92' : current;
 const next = nextPatch(patchSeriesFixture);
 assert.equal(nextPatch('1.23.24'), '1.23.25');
 assert.equal(nextPatch('1.23.25'), '1.23.26');

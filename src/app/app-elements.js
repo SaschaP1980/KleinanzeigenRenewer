@@ -210,6 +210,8 @@
       trashHeaderCount: "#trashHeaderCount",
       trashCount: "#trashCount",
       trashList: "#trashList",
+      trashSortAsc: "#trashSortAsc",
+      trashSortDesc: "#trashSortDesc",
       trashStickySentinel: ".trash-sticky-sentinel",
       trashStickyHeader: ".trash-list-sticky-header",
       trashStickySlot: ".trash-sticky-slot",
