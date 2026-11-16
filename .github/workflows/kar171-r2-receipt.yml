@@ -7,6 +7,8 @@ on:
       - tests/windows-native-host-wave1.ps1
       - tests/kar68-native-status-gateway.cjs
       - tests/kar99-p13-native-transaction-closure.cjs
+      - tests/v12319-version-architecture.cjs
+      - tests/v12320-final-closure.cjs
       - src/background/services/additional-owner-observer.js
       - src/background/background.js
       - src/background/services/native-update-status-gateway.js
