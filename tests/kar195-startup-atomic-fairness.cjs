@@ -194,3 +194,78 @@ test('KAR-195 diagnostic-service aggregator stores a bounded startup-only lock w
     assert.equal(events[0].details.routes[0].name, 'LOG_DIAGNOSTIC_EVENT');
     assert.doesNotMatch(JSON.stringify(events), /private-secret-must-never-be-recorded/);
   });
+
+test('KAR-195 cross-worker reserve remains fail-closed on interrupted uncompleted P8 handler',
+  async () => {
+    const data = Object.create(null);
+    const storageLocal = {
+      async get(keys) {
+        const names = keys === null ? Object.keys(data) : Array.isArray(keys) ? keys : [keys];
+        return Object.fromEntries(names.filter(key => Object.hasOwn(data, key))
+          .map(key => [key, structuredClone(data[key])]));
+      },
+      async set(patch) { Object.assign(data, structuredClone(patch)); }
+    };
+    let held = false, sequence = 0;
+    const lockManager = {async request(name, opts, fn) {
+      assert.equal(name, Atomic.LOCK_NAME);
+      assert.deepEqual(opts, {mode:'exclusive', ifAvailable:true});
+      if (held) return fn(null);
+      held = true;
+      try { return await fn({name, mode:'exclusive'}); }
+      finally { held = false; }
+    }};
+    function make(workerInstanceId) {
+      return Atomic.create({
+        storageLocal, lockManager, workerInstanceId,
+        clock: () => Date.now(), newToken: () => 'synthetic_crash_token_' + (++sequence) + '_long'
+      });
+    }
+    const beforeRestart = make('synthetic_worker_before_restart');
+    const afterRestart = make('synthetic_worker_after_restart');
+    let signalStarted;
+    const started = new Promise(resolve => { signalStarted = resolve; });
+    const forever = new Promise(() => {});
+    // A simulated worker is terminated after durable start, before its task
+    // settles. No finish receipt may be invented and a fresh worker must deny reserve.
+    void beforeRestart.withAdmission('GET_BULK_RUN_STATUS', async () => {
+      signalStarted();
+      return forever;
+    });
+    await started;
+    await assert.rejects(afterRestart.guardReserve(() => 'idle'),
+      error => error?.code === 'KR_UPDATE_FENCE_BUSY');
+    assert.equal(Object.keys(data).filter(key => key.startsWith(Atomic.START_PREFIX)).length, 1);
+    assert.equal(Object.keys(data).filter(key => key.startsWith(Atomic.FINISH_PREFIX)).length, 0);
+  });
+
+test('KAR-195 a rejected admitted task cannot poison queued later P8 admissions',
+  async () => {
+    const data = Object.create(null);
+    let count = 0;
+    const coordinator = Atomic.create({
+      storageLocal: {
+        async get(keys) {
+          const names = keys === null ? Object.keys(data) : Array.isArray(keys) ? keys : [keys];
+          return Object.fromEntries(names.filter(key => Object.hasOwn(data,key))
+            .map(key => [key, structuredClone(data[key])]));
+        },
+        async set(patch) { Object.assign(data, structuredClone(patch)); }
+      },
+      lockManager: {async request(name,opts,fn) {
+        assert.equal(name,Atomic.LOCK_NAME);
+        assert.deepEqual(opts,{mode:'exclusive',ifAvailable:true});
+        return fn({name,mode:'exclusive'});
+      }},
+      workerInstanceId: 'synthetic_queue_rejection_worker',
+      clock: () => Date.now(),
+      newToken: () => 'synthetic_queue_token_' + (++count) + '_long'
+    });
+    await assert.rejects(coordinator.withAdmission('GET_BULK_RUN_STATUS', async () => {
+      throw new Error('EXPECTED_SYNTHETIC_HANDLER_FAILURE');
+    }), /EXPECTED_SYNTHETIC_HANDLER_FAILURE/);
+    assert.equal(await coordinator.withAdmission('LOG_DIAGNOSTIC_EVENT', async () => 'ok'), 'ok');
+    assert.equal(Object.keys(data).filter(key => key.startsWith(Atomic.START_PREFIX)).length, 2);
+    assert.equal(Object.keys(data).filter(key => key.startsWith(Atomic.FINISH_PREFIX)).length, 2);
+    assert.equal(await coordinator.guardReserve(() => 'idle'), 'idle');
+  });
