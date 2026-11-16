@@ -4,6 +4,13 @@ This is the canonical version-specific history for Kleinanzeigen Manager. Entrie
 
 All distinct historical section bodies from the former root README and CHANGELOG are preserved with source labels and line numbers. The [KAR-170 migration ledger](docs/maintenance/KAR170_CHANGELOG_MIGRATION.json) identifies their original Git blobs and body checksums. Overlapping versions retain distinct factual notes; older references to planned builds or native/CI acceptance are **historical**, not live status.
 
+## v1.24.4 — KAR-191 restore diagnostic occupancy and reliable ZIP export (Critical Work patch; source candidate)
+
+- Treat `GET_DIAGNOSTIC_OCCUPANCY` as a strictly read-only operation even during transient MV3 update/mutation admission contention; the existing platform gate, remote publish/delete safety and all mutating routes remain fail-closed. Continue treating diagnostic ZIP export as a durable P8 `diagnosticExport` owner, not an unfenced shortcut.
+- Retry only transient `KR_UPDATE_FENCE_ATOMIC_BUSY` for up to three bounded ZIP-export requests; avoid pre-export diagnostic click logging contention. Distinguish a genuinely empty diagnostic buffer (`0 / 2.500`) from an unavailable count; show persistent, actionable German error/retry messages and bounded response timeouts.
+- Add dedicated test-first RED/GREEN for routing, reset and mutation denial, transient/failed diagnostic requests, near-capacity event buffers, ZIP CRC/integrity, object URL download action and worker-response timeout. Preserve diagnostic records, Inventar, Papierkorb, profile settings and Chrome extension identity. Integrate v1.24.3 KAR-188 source changes only into the isolated issue-bound Work branch; KAR-188 remains subject to its separate native acceptance/merge gate.
+- This entry describes an unreleased Work-branch source candidate, **not** a GitHub Release, merged main, or owner Windows/Chrome native download proof. Exact ZIP/Chromium/Work PR evidence and native confirmation belong to Issue #191; no public release, real-account mutation or data reset is authorized.
+
 ## v1.24.3 — KAR-188 reliable Inventar/Papierkorb loading after app restart (Work patch; source changes only)
 
 - Show immediate, accessible `Inventar wird geladen …` and `Papierkorb wird geladen …` indicators, rather than a false initial empty state or an unverified 0 entry count. Each view has its own loading, verified-ready (populated or empty) and non-destructive read-error state with an explicit retry action.
