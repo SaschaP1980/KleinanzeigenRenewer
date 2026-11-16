@@ -49,7 +49,7 @@ function fixture({changedAt='',missingName=false,absent=false,reportedOnline=2,
       return [];
     },
     detectedProfileName: () => profile,
-    parseOnlineCount: () => ({online:1})
+    parseOnlineCount: () => missingHeader ? null : ({online:onlineCountDrift && page === 2 ? reportedOnline + 1 : reportedOnline})
   });
   return {
     ops,log,
