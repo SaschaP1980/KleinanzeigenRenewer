@@ -145,6 +145,54 @@ function init(db,verifyRemoteOutcome,worker='worker-new') {
     &&fresh.closed.join(',')==='1,2',
     'R1: valid independent source/target scans bracketed by two account reads each');
 
+  // R1: P8 source and generation must still match the immutable original
+  // Phase-4 attempt, including when a different Worker resumes verification.
+  const Atomic=require('../src/background/services/cross-worker-atomic-admission.js');
+  const token='r1-origin-p8-token-001';
+  async function originalAdmission({before=null,during=null}={}) {
+    const d=storage();
+    const start={schema:1,state:'admitted',token,
+      operationType:'AUTONOMOUS:renewal-auto-phase4',
+      workerInstanceId:'worker-origin',startedAtMs:122900};
+    const key=Atomic.START_PREFIX+token;
+    d.data[key]=structuredClone(start);
+    const original=await init(d,proof,'worker-origin').begin({
+      ...req,admissionReceipt:Object.freeze({...start})
+    });
+    if(before)before(d,key);
+    const verify=x=>{
+      if(during)during(d,key);
+      return proof(x);
+    };
+    return {d,promise:init(d,verify,'worker-restarted').resolveVerified({
+      renewalId:original.renewalId,attemptId:original.attemptId
+    })};
+  }
+  const authenticated=await originalAdmission();
+  const confirmedOrigin=await authenticated.promise;
+  ok(confirmedOrigin.state==='resolved-confirmed'
+    &&confirmedOrigin.workerInstanceId==='worker-restarted',
+    'R1: unchanged origin P8 token permits independently reverified read-only outcome after Worker restart');
+  for(const [name,mutation] of [
+    ['P8 start removed',(d,key)=>{delete d.data[key];}],
+    ['P8 origin worker replaced',(d,key)=>{d.data[key].workerInstanceId='worker-impersonator';}],
+    ['P8 operation substituted',(d,key)=>{d.data[key].operationType='GET_DIAGNOSTIC_EXPORT';}],
+    ['P8 finish forged',(d)=>{d.data[Atomic.FINISH_PREFIX+token]={
+      schema:1,state:'completed',token,workerInstanceId:'worker-other',
+      completedAtMs:122950};}]
+  ]) {
+    const changed=await originalAdmission({before:mutation});
+    await assert.rejects(changed.promise,/KR_PHASE4_JOURNAL_UNVERIFIED/);
+    ok(!Object.keys(changed.d.data).some(k=>k.startsWith(Journal.RESOLUTION_KEY_PREFIX)),
+      'R1: '+name+' cannot persist remote resolution');
+  }
+  const drifted=await originalAdmission({during:(d,key)=>{
+    d.data[key].workerInstanceId='worker-switch-during-scan';
+  }});
+  await assert.rejects(drifted.promise,/KR_PHASE4_JOURNAL_UNVERIFIED/);
+  ok(!Object.keys(drifted.d.data).some(k=>k.startsWith(Journal.RESOLUTION_KEY_PREFIX)),
+    'R1: origin P8 source changes during read-only remote probe cannot commit resolution');
+
   ok(remoteCode.includes("scanFresh('target',targetId,'FIND_OWN_AD_BY_ID')"),
     'real remote verifier independently finds published target by exact ID in My Ads');
   ok(remoteCode.includes("scanFresh('source',sourceId,'VERIFY_OWN_AD_ABSENT_BY_ID')"),
