@@ -1293,7 +1293,67 @@
       // callback; this is never a positive update lease.
       return coordinator.guardReserve(capture,worker);
     }
-    return Object.freeze({observe,observeAll,inspectAllOwnerClosureReadOnly,track,snapshotInFlight,readVerifiedUnmanagedTabsReadOnly,inspectDiagnosticExportClosureReadOnly,inspectTrashMutationClosureReadOnly,inspectSingleInventoryClosureReadOnly,inspectProfileTransitionClosureReadOnly,inspectAccountTransitionClosureReadOnly,inspectEmergencyRecoveryClosureReadOnly,inspectManagedTabsClosureReadOnly,inspectNativeUpdateTransactionClosureReadOnly});
+// R1 private, read-only COMMIT witness: this is account/profile continuity,
+// NEVER a 15-owner IDLE certificate or permission to reserve/apply updates.
+// It reads already-open authenticated My Ads tabs through the established
+// owner observer. No tab creation, profile mutation, NativeHost or IPC.
+async function verifyRemoteCommitContextReadOnly(original, sourceKind) {
+  const isRecord = x => x !== null && typeof x === 'object' && !Array.isArray(x);
+  if (!isRecord(original) || !['phase4','publish'].includes(sourceKind)) return false;
+  const keys = ['profilesV1', 'activeDetectedProfileV1',
+    'selectedInventoryProfileV1','renewalSessionsV1',
+    'archiveInsertionSessionsV1','templateFillSessions'];
+  let first, observed, last;
+  try {
+    first = await storageLocal.get(keys);
+    observed = await observe();
+    last = await storageLocal.get(keys);
+  } catch { return false; }
+  if (!isRecord(first) || !isRecord(last) ||
+      JSON.stringify(first) !== JSON.stringify(last) ||
+      observed?.schema !== 1 || observed.eligibleForLease !== false ||
+      observed.context?.profile?.state !== 'matched' ||
+      observed.context.profile.reason !== 'LIVE_ACCOUNT_PROFILE_MATCH' ||
+      observed.context.worker?.workerInstanceId !== worker)
+    return false;
+  const profileId = observed.context.profile.profileId;
+  const selected = first.selectedInventoryProfileV1;
+  const detected = first.activeDetectedProfileV1;
+  const profiles = first.profilesV1;
+  if (!isRecord(selected) || !isRecord(detected) ||
+      selected.profileId !== profileId || detected.profileId !== profileId ||
+      !Array.isArray(profiles)) return false;
+  const matchingProfiles = profiles.filter(p=>isRecord(p) && p.profileId === profileId);
+  if (matchingProfiles.length !== 1) return false;
+  const profile = matchingProfiles[0];
+  const normalize = x => label(x);
+  if (sourceKind === 'phase4') {
+    // Phase-4 legacy journal stores the *source display name*, while
+    // the workflow and profile store retain the stable profile ID.
+    const session = first.renewalSessionsV1?.[original.renewalId];
+    return isRecord(session) && session.profileId === profileId &&
+      normalize(original.profileId) !== '' &&
+      normalize(profile.displayName) === normalize(original.profileId) &&
+      String(session.sourceAdId || '') === original.sourceAdId &&
+      String(session.newAdId || '') === original.newAdId;
+  }
+  // Publish journal instead stores the stable profile ID.
+  if (original.profileId !== profileId) return false;
+  const archive = original.kind === 'archive';
+  if (!archive && original.kind !== 'renewal') return false;
+  const sessions = archive ? first.archiveInsertionSessionsV1 : first.renewalSessionsV1;
+  const session = sessions?.[original.workflowId];
+  const fill = first.templateFillSessions?.[original.fillId];
+  return isRecord(session) && isRecord(fill) &&
+    session.fillId === original.fillId && fill.fillId === original.fillId &&
+    String((archive ? session.targetProfileId : session.profileId) || '') === profileId &&
+    String(session.sourceAdId || '') === original.sourceAdId &&
+    Number(session.targetTabId) === original.targetTabId &&
+    Number(fill.targetTabId) === original.targetTabId &&
+    String(fill.sourceAdId || '') === original.sourceAdId;
+}
+
+    return Object.freeze({observe,observeAll,verifyRemoteCommitContextReadOnly,inspectAllOwnerClosureReadOnly,track,snapshotInFlight,readVerifiedUnmanagedTabsReadOnly,inspectDiagnosticExportClosureReadOnly,inspectTrashMutationClosureReadOnly,inspectSingleInventoryClosureReadOnly,inspectProfileTransitionClosureReadOnly,inspectAccountTransitionClosureReadOnly,inspectEmergencyRecoveryClosureReadOnly,inspectManagedTabsClosureReadOnly,inspectNativeUpdateTransactionClosureReadOnly});
   }
   const API=Object.freeze({create,OWNERS,ownersForOperation});
   globalThis.KRDeps?.register?.('KRAdditionalOwnerObserver',API);
