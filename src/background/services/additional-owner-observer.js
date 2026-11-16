@@ -1317,7 +1317,7 @@
           !Number.isSafeInteger(tabLoadTimeoutMs)||tabLoadTimeoutMs<=0||
           [createManagedWorkerTab,waitForTabComplete,ensureContentConnection,
             closeManagedWorkerTab,readAccountPageStatusReadOnly,
-            queryBrowserTabsReadOnly].some(fn=>typeof fn!=='function))
+            queryBrowserTabsReadOnly].some(fn=>typeof fn!=='function'))
         throw Error('KR_REMOTE_COMMIT_WITNESS_UNAVAILABLE');
       let tabId=null;
       try{
