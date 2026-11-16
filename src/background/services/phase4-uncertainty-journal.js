@@ -20,7 +20,7 @@
   const denied = code => Object.assign(new Error(code), {code});
   const safeId = value => typeof value === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(value);
   const adId = value => typeof value === 'string' && /^\d+$/.test(value);
-  function create({storageLocal, clock, newToken, workerInstanceId, verifyRemoteOutcome = null, lockManager = null, lockName = null} = {}) {
+  function create({storageLocal, clock, newToken, workerInstanceId, verifyRemoteOutcome = null, verifyCommitContext = null, requireCommitContext = false, lockManager = null, lockName = null} = {}) {
     if (typeof storageLocal?.get !== 'function' || typeof storageLocal?.set !== 'function'
         || typeof clock !== 'function' || typeof newToken !== 'function')
       throw denied('KR_PHASE4_JOURNAL_STORAGE');
@@ -196,6 +196,8 @@
     async function resolveVerified({renewalId, attemptId} = {}) {
       if (!safeId(renewalId) || !safeId(attemptId))
         throw denied('KR_PHASE4_JOURNAL_IDENTITY');
+      if (requireCommitContext && typeof verifyCommitContext !== 'function')
+        throw denied('KR_PHASE4_JOURNAL_UNVERIFIED');
       // Initial validation and final durable commit share the origin-wide
       // mutex with admission/reserve, but NEVER hold it over remote navigation.
       let originSignature;
@@ -229,6 +231,15 @@
         throw denied('KR_PHASE4_JOURNAL_UNRESOLVED');
       if (await originalP8Signature(original) !== originSignature)
         throw denied('KR_PHASE4_JOURNAL_UNVERIFIED');
+      // The last independent read-only authenticated account/session
+      // observation happens UNDER the shared origin lock, not during the
+      // remote scan. Missing, stale or contradictory evidence is UNKNOWN.
+      if (requireCommitContext) {
+        let accepted = false;
+        try { accepted = await verifyCommitContext(Object.freeze({...original})); }
+        catch { /* fail closed */ }
+        if (accepted !== true) throw denied('KR_PHASE4_JOURNAL_UNVERIFIED');
+      }
       if (after.resolutions.length) {
         const prior = after.resolutions[0];
         if (!validateResolution(prior, RESOLUTION_PREFIX + renewalId + '_' + attemptId, original))

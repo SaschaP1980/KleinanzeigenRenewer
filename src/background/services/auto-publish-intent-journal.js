@@ -47,7 +47,7 @@
       &&key===RESOLUTION_PREFIX+row.fillId+'_'+row.attemptId;
   }
   function create({storageLocal,lockManager,lockName,workerInstanceId,clock,newToken,
-    verifyRemoteOutcome=null}={}){
+    verifyRemoteOutcome=null,verifyCommitContext=null,requireCommitContext=false}={}){
     if(typeof storageLocal?.get!=='function'||typeof storageLocal?.set!=='function'
        ||typeof clock!=='function'||typeof newToken!=='function'||!id(workerInstanceId))
       throw denied('KR_PUBLISH_INTENT_STORAGE');
@@ -172,6 +172,8 @@
     }
     async function resolveVerified({fillId,newAdId}={}){
       if(!id(fillId)||!adId(newAdId))throw denied('KR_PUBLISH_INTENT_IDENTITY');
+      if(requireCommitContext&&typeof verifyCommitContext!=='function')
+        throw denied('KR_PUBLISH_INTENT_UNVERIFIED');
       let originSignature;
       const intent=await atomic(async()=>{
         const state=await observe(fillId);
@@ -200,6 +202,15 @@
           throw denied('KR_PUBLISH_INTENT_UNRESOLVED');
         if(await originalP8Signature(intent)!==originSignature)
           throw denied('KR_PUBLISH_INTENT_UNVERIFIED');
+        // Real production asks a private trusted, READ-ONLY account/session
+        // witness again with this exact origin Web Lock held, just before
+        // committing a positive result. No network navigation under this lock.
+        if(requireCommitContext){
+          let accepted=false;
+          try{accepted=await verifyCommitContext(Object.freeze({...intent}));}
+          catch{/* No positive evidence from an unavailable source. */}
+          if(accepted!==true)throw denied('KR_PUBLISH_INTENT_UNVERIFIED');
+        }
         if(after.resolutions.length){
           if(after.resolutions[0].newAdId!==newAdId)
             throw denied('KR_PUBLISH_INTENT_UNRESOLVED');
