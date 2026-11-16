@@ -437,6 +437,7 @@ internal static class Program {
             { "receiptFormat", receiptFormat },
             { "receiptFingerprint", receiptFingerprint },
             { "receiptVersion", receiptVersion },
+            { "manualPresence", manual },
             { "manualTransaction", manualPhase },
             { "manualTransactionId", manualId },
             { "manualTransactionFingerprint", manualFingerprint },

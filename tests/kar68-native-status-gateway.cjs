@@ -41,7 +41,7 @@ async function run() {
     transactionPhase:'unknown',journalFormat:'unknown',journalFingerprint:null,
     receipt:'present',receiptFormat:'legacy-installed',
     receiptFingerprint:'a'.repeat(64),receiptVersion:'1.24.2',
-    manualTransaction:'absent',manualTransactionId:null,
+    manualPresence:'absent',manualTransaction:'absent',manualTransactionId:null,
     manualTransactionFingerprint:null,manualTransactionOrigin:null,
     manualReceiptMatches:false,
     identityBound:false,nativeOutcomeVerified:false,
@@ -50,7 +50,7 @@ async function run() {
   // R2 manual origin is a host-observed file transaction, not the P8
   // admission/worker identity; even a matching receipt cannot grant lease.
   const manualResponse=id=>({
-    ...inspectReply(id),manualTransaction:'files-installed-unbound',
+    ...inspectReply(id),manualPresence:'present',manualTransaction:'files-installed-unbound',
     manualTransactionId:'a'.repeat(32),
     manualTransactionFingerprint:'b'.repeat(64),
     manualTransactionOrigin:'manual-operator',manualReceiptMatches:true
@@ -62,7 +62,7 @@ async function run() {
     &&manual.rollbackVerified===false&&manual.eligibleForLease===false,
     'R2 private native manual transaction is receipt-correlated but never MV3 terminal');
   const pendingManual=await create((_,q)=>({
-    ...inspectReply(q.requestId),status:'blocked',manualTransaction:'pending',
+    ...inspectReply(q.requestId),status:'blocked',manualPresence:'present',manualTransaction:'pending',
     manualTransactionId:'a'.repeat(32),manualTransactionFingerprint:'b'.repeat(64),
     manualTransactionOrigin:'manual-operator',manualReceiptMatches:false
   })).inspectReadOnly();
