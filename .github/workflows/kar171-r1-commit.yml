@@ -10,6 +10,7 @@ on:
       - src/background/background.js
       - src/background/services/additional-owner-observer.js
       - tests/v12319-version-architecture.cjs
+      - tests/v12320-final-closure.cjs
       - .github/workflows/kar171-r1-commit.yml
 permissions:
   contents: read
