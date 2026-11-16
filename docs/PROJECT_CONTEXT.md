@@ -100,6 +100,8 @@ A manually requested `RESET_DIAGNOSTICS` clears local diagnostic entries and sta
 
 The UI may retry only a bounded number of explicit `KR_UPDATE_FENCE_ATOMIC_BUSY` denials that occurred **before its reset handler started**. If the handler started and durable admission *completion* later fails with the same contention code, the router must mark the reset outcome `KR_DIAGNOSTIC_RESET_OUTCOME_UNVERIFIED`, not the pre-admission retryable error. A timeout, disconnected worker, missing authenticated `reset: true` and new diagnostic boundary ID, held lease, corrupt journal or other unknown outcome is not automatically repeatable. Show visible, persistent failure/uncertainty and allow read-only occupancy/ZIP verification before another manual decision. Do not claim reset success without the authenticated boundary; do not reset inventories, trash, profiles or unrelated workflow state. These are fail-closed P8 semantics, not a change to the updater's safety policy.
 
+A successful diagnostic reset does not establish that broad cross-route Web Lock contention has ended. Investigate repeated admission denials and concurrent startup requests independently, with bounded privacy-safe timing evidence and no weakening of the lock or P8 receipt contract.
+
 ## Hosted CI boundary
 
 GitHub-hosted CI must **never** perform real Kleinanzeigen account publication, deletion, replacement or other live mutation.
