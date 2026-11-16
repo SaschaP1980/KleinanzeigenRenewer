@@ -17,9 +17,45 @@
       const occupancy = elements.occupancy || doc?.getElementById?.('diagnosticOccupancy');
       const occupancyFill = elements.occupancyFill || doc?.getElementById?.('diagnosticOccupancyFill');
       const occupancyText = elements.occupancyText || doc?.getElementById?.('diagnosticOccupancyText');
+      const occupancyRetry = elements.occupancyRetry || doc?.getElementById?.('diagnosticOccupancyRetry');
+      const occupancyStatus = elements.occupancyStatus || doc?.getElementById?.('diagnosticOccupancyStatus');
       const accordion = elements.accordion || doc?.getElementById?.('diagnosticsAccordion');
       let occupancyMaximum = null;
       let occupancyRevision = 0;
+      const occupancyTimeoutMs = Number.isSafeInteger(options.occupancyTimeoutMs) && options.occupancyTimeoutMs > 0
+        ? options.occupancyTimeoutMs : 12000;
+      const exportTimeoutMs = Number.isSafeInteger(options.exportTimeoutMs) && options.exportTimeoutMs > 0
+        ? options.exportTimeoutMs : 45000;
+
+      // Never depend on the diagnostics writer to explain a diagnostics failure:
+      // logging itself may be rejected by the same safety fence.
+      function reportDiagnosticEvent(...args) {
+        try { Promise.resolve(logEvent(...args)).catch(() => {}); } catch {}
+      }
+
+      function diagnosticFailure(error) {
+        const code = String(error?.code || error?.message || '');
+        if (code.includes('KR_UPDATE_FENCE_ATOMIC_BUSY'))
+          return 'Vorübergehend durch die Sicherheitsprüfung blockiert (KR_UPDATE_FENCE_ATOMIC_BUSY)';
+        if (code.includes('KR_UPDATE_FENCE_HELD') || code.includes('KR_UPDATE_FENCE_BUSY'))
+          return 'Eine Aktualisierung oder ein anderer Vorgang hält die Sicherheitssperre';
+        if (code.includes('KR_DIAGNOSTIC_REQUEST_TIMEOUT'))
+          return 'Zeitüberschreitung (KR_DIAGNOSTIC_REQUEST_TIMEOUT)';
+        if (/Extension context invalidated|Receiving end does not exist|Could not establish connection/i.test(code))
+          return 'Verbindung zum Erweiterungsdienst unterbrochen';
+        const safeCode = code.match(/\bKR_[A-Z0-9_]{3,64}\b/)?.[0];
+        return safeCode ? `Fehlercode: ${safeCode}` : 'Diagnosedienst nicht erreichbar oder Antwort ungültig';
+      }
+
+      function boundedRequest(message, timeoutMs) {
+        let timer;
+        const deadline = new Promise((_, reject) => {
+          timer = setTimeout(() => reject(Object.assign(new Error('KR_DIAGNOSTIC_REQUEST_TIMEOUT'),
+            { code: 'KR_DIAGNOSTIC_REQUEST_TIMEOUT' })), timeoutMs);
+        });
+        return Promise.race([Promise.resolve().then(() => runtimeMessage(message)), deadline])
+          .finally(() => clearTimeout(timer));
+      }
 
       function displayOccupancy(current, maximum) {
         const valid = Number.isSafeInteger(current) && Number.isSafeInteger(maximum) && maximum > 0 && current >= 0;
@@ -29,6 +65,8 @@
           ? `${used.toLocaleString('de-DE')} / ${maximum.toLocaleString('de-DE')} Einträge`
           : '— / — Einträge';
         if (occupancyFill) occupancyFill.style.width = valid ? `${(used / maximum) * 100}%` : '0%';
+        if (occupancyRetry) occupancyRetry.hidden = valid;
+        if (occupancyStatus && valid) occupancyStatus.textContent = '';
         if (occupancy) {
           if (valid) {
             occupancy.setAttribute('aria-valuenow', String(used));
@@ -45,11 +83,21 @@
       async function refreshOccupancy() {
         if (!occupancy) return;
         const revision = ++occupancyRevision;
+        occupancy.setAttribute('aria-busy', 'true');
         try {
-          const result = await runtimeMessage({ type: 'GET_DIAGNOSTIC_OCCUPANCY' });
-          if (revision === occupancyRevision) displayOccupancy(result?.current, result?.maximum);
-        } catch {
-          if (revision === occupancyRevision) displayOccupancy(null, null);
+          const result = await boundedRequest({ type: 'GET_DIAGNOSTIC_OCCUPANCY' }, occupancyTimeoutMs);
+          if (!Number.isSafeInteger(result?.current) || !Number.isSafeInteger(result?.maximum)
+            || result.current < 0 || result.maximum <= 0)
+            throw new Error('KR_DIAGNOSTIC_INVALID_OCCUPANCY');
+          if (revision === occupancyRevision) displayOccupancy(result.current, result.maximum);
+        } catch (error) {
+          if (revision === occupancyRevision) {
+            displayOccupancy(null, null);
+            if (occupancyStatus) occupancyStatus.textContent =
+              `Diagnosebelegung konnte nicht geladen werden: ${diagnosticFailure(error)}. Erneut prüfen.`;
+          }
+        } finally {
+          if (revision === occupancyRevision) occupancy.setAttribute('aria-busy', 'false');
         }
       }
 
@@ -127,10 +175,11 @@
         if (!elements.zipButton) return;
         elements.zipButton.disabled = true;
         if (elements.status) elements.status.textContent = 'Diagnosedaten werden erstellt …';
-        void logEvent('USER_DIAGNOSTIC_ZIP_CLICK', {});
+        reportDiagnosticEvent('USER_DIAGNOSTIC_ZIP_CLICK', {});
         try {
-          const exported = await runtimeMessage({ type: 'GET_DIAGNOSTIC_EXPORT' });
-          const entries = (exported.files || []).map(file => ({ name: file.name, data: file.text }));
+          const exported = await boundedRequest({ type: 'GET_DIAGNOSTIC_EXPORT' }, exportTimeoutMs);
+          if (!Array.isArray(exported?.files)) throw new Error('KR_DIAGNOSTIC_INVALID_EXPORT');
+          const entries = exported.files.map(file => ({ name: file.name, data: file.text }));
           if (!entries.length) throw new Error('Diagnoseexport enthält keine Dateien.');
           const blob = await DiagnosticZip.createZip(entries);
           const url = URL.createObjectURL(blob);
@@ -142,10 +191,11 @@
           link.remove();
           setTimeout(() => URL.revokeObjectURL(url), 5000);
           if (elements.status) elements.status.textContent = `${entries.length} Diagnosedateien als ZIP erstellt.`;
-          void logEvent('USER_DIAGNOSTIC_ZIP_SUCCEEDED', { fileCount: entries.length, bytes: blob.size });
+          reportDiagnosticEvent('USER_DIAGNOSTIC_ZIP_SUCCEEDED', { fileCount: entries.length, bytes: blob.size });
         } catch (error) {
-          if (elements.status) elements.status.textContent = 'Diagnosedaten konnten nicht erstellt werden. Bitte versuche es erneut.';
-          void logEvent('USER_DIAGNOSTIC_ZIP_FAILED', { message: error?.message || String(error) }, 'error');
+          if (elements.status) elements.status.textContent =
+            `Diagnose-ZIP fehlgeschlagen: ${diagnosticFailure(error)}. Erneut versuchen; die Diagnose wurde nicht zurückgesetzt.`;
+          reportDiagnosticEvent('USER_DIAGNOSTIC_ZIP_FAILED', { code: String(error?.code || 'UNKNOWN').slice(0, 80) }, 'error');
         } finally {
           elements.zipButton.disabled = false;
         }
@@ -207,6 +257,7 @@
       }
 
       accordion?.addEventListener('toggle', () => { if (accordion.open) void refreshOccupancy(); });
+      occupancyRetry?.addEventListener('click', () => { void refreshOccupancy(); });
       const storageOnChanged = options.storageOnChanged || globalThis.chrome?.storage?.onChanged;
       storageOnChanged?.addListener?.((changes, areaName) => {
         if (areaName === 'local') onDiagnosticStorageChanged(changes);
