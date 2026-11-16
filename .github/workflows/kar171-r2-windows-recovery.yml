@@ -1,0 +1,25 @@
+name: KAR-171 R2 Windows interruption safety (temporary)
+on:
+  push:
+    branches: [work/KAR-171]
+    paths:
+      - tools/windows/KleinanzeigenRenewer-Updater.ps1
+      - tests/windows-updater-phase1.ps1
+      - .github/workflows/kar171-r2-windows-recovery.yml
+permissions:
+  contents: read
+jobs:
+  windows-r2:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    env:
+      CI: 'true'
+      KAR_UPDATER_TEST_MODE: '1'
+    steps:
+      - uses: actions/checkout@v5
+        with: { persist-credentials: false }
+      - name: Offline Windows updater transaction/crash regression
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & .\tests\windows-updater-phase1.ps1

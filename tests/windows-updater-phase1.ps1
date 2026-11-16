@@ -175,6 +175,53 @@ try {
    'R2 recovery from unbound legacy journal invalidates historic terminal record'
  Call 'post-crash restore verified' 'verify' $crash $null $null $true
  Check (-not (Test-Path (Join-Path $crash 'State\pending.json'))) 'successful crash recovery clears journal'
+ # R2: CI-only interruption windows must not mint MV3 update permission.
+ $orphan=NewRoot 'before-legacy-journal'
+ $env:KAR_UPDATER_TEST_INTERRUPT='after-manual-pending'
+ try { Call 'R2 crash before legacy journal write' 'install' $orphan $channel27 $oldZip $false }
+ finally { Remove-Item Env:KAR_UPDATER_TEST_INTERRUPT -ErrorAction SilentlyContinue }
+ $orphanPath=Join-Path $orphan 'State\manual-transaction.json'
+ $orphanProof=Get-Content -LiteralPath $orphanPath -Raw|ConvertFrom-Json
+ Check ($orphanProof.phase -ceq 'pending' -and
+   -not (Test-Path -LiteralPath (Join-Path $orphan 'State\pending.json')) -and
+   -not (Test-Path -LiteralPath (Join-Path $orphan 'Extension')))
+   'R2 earlier manual transaction exists without legacy pending journal'
+ Call 'R2 unrecovered early transaction blocks reattempt' 'install' $orphan $channel27 $oldZip $false
+ Call 'R2 explicit untouched state recovery' 'recover' $orphan $null $null $true
+ $orphanRecovered=Get-Content -LiteralPath $orphanPath -Raw|ConvertFrom-Json
+ Check ($orphanRecovered.phase -ceq 'recovery-unbound' -and
+   $null -eq $orphanRecovered.receiptSha256 -and
+   -not (Test-Path -LiteralPath (Join-Path $orphan 'State\pending.json')))
+   'R2 no-journal recovery is unbound and never a terminal MV3 proof'
+ Call 'R2 clean retry after manual recovery' 'install' $orphan $channel27 $oldZip $true
+
+ $oldRoot=NewRoot 'prior-install-orphan'
+ Call 'R2 prior install for interrupted update' 'install' $oldRoot $channel27 $oldZip $true
+ $oldHash=(Get-FileHash -LiteralPath (Join-Path $oldRoot 'State\active.json') -Algorithm SHA256).Hash.ToLowerInvariant()
+ $env:KAR_UPDATER_TEST_INTERRUPT='after-manual-pending'
+ try { Call 'R2 interrupted update before pending journal' 'update' $oldRoot $channel28 $newZip $false }
+ finally { Remove-Item Env:KAR_UPDATER_TEST_INTERRUPT -ErrorAction SilentlyContinue }
+ Call 'R2 orphan update blocks subsequent update' 'update' $oldRoot $channel28 $newZip $false
+ Call 'R2 untouched prior install manual recovery' 'recover' $oldRoot $null $null $true
+ Check ((Get-FileHash -LiteralPath (Join-Path $oldRoot 'State\active.json') -Algorithm SHA256).Hash.ToLowerInvariant() -ceq $oldHash)
+   'R2 original version bytes remain unchanged by orphan recovery'
+
+ $late=NewRoot 'after-terminal-before-cleanup'
+ Call 'R2 prior install for finalization crash' 'install' $late $channel27 $oldZip $true
+ $env:KAR_UPDATER_TEST_INTERRUPT='after-terminal-before-journal-cleanup'
+ try { Call 'R2 interrupt terminal before legacy journal deletion' 'update' $late $channel28 $newZip $true }
+ finally { Remove-Item Env:KAR_UPDATER_TEST_INTERRUPT -ErrorAction SilentlyContinue }
+ $terminal=Get-Content -LiteralPath (Join-Path $late 'State\manual-transaction.json') -Raw|ConvertFrom-Json
+ Check ($terminal.phase -ceq 'files-installed' -and
+   (Test-Path -LiteralPath (Join-Path $late 'State\pending.json')) -and
+   $terminal.receiptSha256 -ceq (Get-FileHash -LiteralPath (Join-Path $late 'State\active.json') -Algorithm SHA256).Hash.ToLowerInvariant())
+   'R2 durable terminal while pending journal remains recoverable'
+ Call 'R2 abandoned terminal prevents one-click' 'oneclick' $late $channel28 $null $false
+ Call 'R2 interrupted terminal recovery' 'recover' $late $null $null $true
+ $after=Get-Content -LiteralPath (Join-Path $late 'State\manual-transaction.json') -Raw|ConvertFrom-Json
+ Check ($after.phase -ceq 'recovery-unbound' -and
+   ((Get-Content -LiteralPath (Join-Path $late 'State\active.json') -Raw|ConvertFrom-Json).version -ceq '1.23.27'))
+   'R2 recovery revokes earlier terminal and restores previous Windows files'
  Check ($good -ge 24) 'minimum Windows negative and recovery checks'
  Write-Host ("PASS KAR-59 Windows Phase 1 suite: $good assertions, native end-user Chrome-profile acceptance PENDING")
 } finally {
