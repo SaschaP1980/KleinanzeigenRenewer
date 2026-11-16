@@ -51,11 +51,11 @@ validNextPatch.spec.packageVersion = '1.23.25';
 validNextPatch.manifest.permissions = validNextPatch.manifest.permissions.filter(p => p !== 'nativeMessaging');
 
 const isSyntheticNextPatch = process.env.KAR46_SYNTHETIC_PATCH === '1';
-assert.ok(['1.24.0', '1.24.1', '1.24.2', '1.24.3', '1.24.4', '1.24.5'].includes(canonical.manifest.version),
-  'only the approved KAR-161 MINOR, KAR-185/186/188/191/193 PATCH or isolated next-PATCH fixture are current');
-if (canonical.manifest.version === '1.24.0') {
+assert.ok(['1.24.0', '1.24.1', '1.24.2', '1.24.3', '1.25.0', '1.25.1', '1.25.2'].includes(canonical.manifest.version),
+  'only explicitly approved KAR-161/KAR-164 MINOR or KAR-185/KAR-186 PATCH candidates are current');
+if (canonical.manifest.version === '1.24.0' || canonical.manifest.version === '1.25.0') {
   assert.equal(isCurrentPatchVersion(canonical.manifest.version), false,
-    'the approved initial MINOR is not retroactively a PATCH');
+    'an authorized MINOR is not retroactively classified as a PATCH');
 } else {
   assert.equal(isCurrentPatchVersion(canonical.manifest.version), true,
     'the follow-up 1.24.1+ version is a strict PATCH');
@@ -67,8 +67,8 @@ assert.equal(assertCompatibleCurrentPatch(validNextPatch), '1.23.25',
 for (const [version, allowed] of [
   ['1.23.22', true], ['1.23.23', true], ['1.23.24', true], ['1.23.25', true],
   ['1.23.26', true], ['1.23.21', false], ['1.23.20_c1', false],
-  ['1.24.0', false], ['1.24.1', true], ['1.24.2', true], ['1.24.3', true], ['1.24.4', true], ['1.24.5', true],
-  ['1.24.01', false], ['1.25.0', false], ['2.0.0', false], ['1.23.025', false],
+  ['1.24.0', false], ['1.24.1', true], ['1.24.2', true], ['1.24.3', true],
+  ['1.24.01', false], ['1.25.0', false], ['1.25.1', true], ['1.25.2', true], ['2.0.0', false], ['1.23.025', false],
   ['1.23.-1', false], ['1.23.25-rc.1', false], ['1.23.25+meta', false],
   ['1.23.9007199254740992', false], ['', false], [null, false]
 ]) assert.equal(isCurrentPatchVersion(version), allowed, String(version));

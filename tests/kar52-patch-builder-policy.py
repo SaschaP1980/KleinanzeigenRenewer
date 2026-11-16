@@ -21,6 +21,15 @@ def reject(label, action):
 actual = m.load_meta() if hasattr(m,"load_meta") else {p:json.loads((ROOT/p).read_text()) for p in m.META}
 actual_snap = json.dumps(actual, sort_keys=True)
 original = copy.deepcopy(actual)
+# KAR-164: the active 1.25.0 feature MINOR is not a PATCH. Retain the
+# strict 1.23/1.24 Work PATCH allowlist and test it against an explicit
+# synthetic 1.24.2 predecessor, preserving all negative checks below.
+if original["manifest.json"].get("version") == "1.25.0":
+    for p in m.META:
+        original[p]["version"] = "1.24.2"
+    original["package.json"]["displayVersion"] = "1.24.2"
+    original["package-lock.json"]["packages"][""]["version"] = "1.24.2"
+    original["release/release-spec.json"]["packageVersion"] = "1.24.2"
 # Verify the actual current 1.23.x/1.24.x metadata directly. Later series remain
 # denied until separately authorized; do not silently bypass the next-minor fence.
 snap = json.dumps(original, sort_keys=True)
@@ -30,6 +39,8 @@ assert m.successor("1.23.25") == "1.23.26"
 assert m.successor("1.23.26") == "1.23.27"
 assert m.successor("1.24.0") == "1.24.1"
 assert m.successor("1.24.1") == "1.24.2"
+assert m.successor("1.25.0") == "1.25.1"
+assert m.successor("1.25.1") == "1.25.2"
 assert json.dumps(original, sort_keys=True) == snap
 assert new["manifest.json"]["key"] == original["manifest.json"]["key"]
 assert new["manifest.json"]["permissions"] == original["manifest.json"]["permissions"]
@@ -44,8 +55,8 @@ for p in m.META:
         if k not in ["version", "displayVersion", "packageVersion", "packages"]:
             assert before[k] == after[k], (p,k)
 rejects=0
-for value in ["1.23.21","1.23.025","1.23.25_c1","1.24.00","1.25.0","1.22.99",
-              "1.23.-1","1.23.2147483647","1.24.2147483647",None,{},123,""]:
+for value in ["1.23.21","1.23.025","1.23.25_c1","1.24.00","1.26.0","1.22.99",
+              "1.23.-1","1.23.2147483647","1.24.2147483647","1.25.2147483647",None,{},123,""]:
     reject("version "+repr(value), lambda v=value:m.successor(v)); rejects+=1
 for p,k in [("package.json","version"),("package.json","displayVersion"),
             ("package-lock.json","version"),("release/release-spec.json","packageVersion"),

@@ -14,7 +14,7 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parent.parent
 META = ("manifest.json", "package.json", "package-lock.json", "release/release-spec.json")
-VERSION = re.compile(r"^1\.(23|24)\.(0|[1-9][0-9]*)$")
+VERSION = re.compile(r"^1\.(23|24|25)\.(0|[1-9][0-9]*)$")
 HEX = re.compile(r"^[a-f0-9]{40}$")
 ISSUE = re.compile(r"^[1-9][0-9]*$")
 
@@ -30,9 +30,9 @@ def digest(data):
 
 def successor(version):
     require(isinstance(version, str) and VERSION.fullmatch(version),
-            "regular 1.23.x or 1.24.x PATCH required, no correction or minor jump")
+            "regular 1.23.x, 1.24.x or 1.25.x PATCH required, no correction or minor jump")
     minor, patch = map(int, version.split(".")[1:])
-    require((minor == 23 and patch >= 22 or minor == 24) and patch < 2147483647,
+    require((minor == 23 and patch >= 22 or minor in (24, 25)) and patch < 2147483647,
             "PATCH outside safe range")
     return "1." + str(minor) + "." + str(patch + 1)
 
