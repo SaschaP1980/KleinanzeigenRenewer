@@ -114,3 +114,50 @@ test('KAR-195 duplicate passive trash-template recovery queries coalesce while s
     controller.syncFromLock(); // stable empty result is briefly cached
     assert.equal(calls, 1, 'a verified empty recovery result must not immediately fan out again');
   });
+
+test('KAR-195 P8 timing hook exposes only bounded route, phase and aggregate-safe durations',
+  async () => {
+    const rows = Object.create(null);
+    let sequence = 0;
+    const storageLocal = {
+      async get(keys) {
+        const names = keys === null ? Object.keys(rows) : Array.isArray(keys) ? keys : [keys];
+        return Object.fromEntries(names.filter(k => Object.hasOwn(rows, k))
+          .map(k => [k, structuredClone(rows[k])]));
+      },
+      async set(patch) { Object.assign(rows, structuredClone(patch)); }
+    };
+    const lockManager = {async request(name, options, fn) {
+      assert.equal(name, Atomic.LOCK_NAME);
+      assert.deepEqual(options, {mode:'exclusive', ifAvailable:true});
+      return fn({name,mode:'exclusive'});
+    }};
+    const samples = [];
+    const coordinator = Atomic.create({
+      storageLocal, lockManager, workerInstanceId: 'private-worker-token',
+      clock: () => 1000, newToken: () => 'sensitive_token_' + (++sequence) + '_long',
+      onSample: sample => samples.push(sample)
+    });
+    assert.equal(await coordinator.withAdmission('LOG_DIAGNOSTIC_EVENT',
+      async () => 'ok'), 'ok');
+    assert.equal(await coordinator.guardReserve(() => 'idle'), 'idle');
+    assert.deepEqual(samples.map(s => s.phase), ['start','finish','reserve']);
+    assert.ok(samples.every(s => s.route === 'LOG_DIAGNOSTIC_EVENT' || s.route === 'RESERVE'));
+    for (const s of samples) {
+      assert.ok(Number.isSafeInteger(s.holdMs) && s.holdMs >= 0 && s.holdMs <= 60000);
+      assert.ok(Number.isSafeInteger(s.waitMs) && s.waitMs >= 0 && s.waitMs <= 60000);
+      assert.ok(Number.isSafeInteger(s.busyAttempts) && s.busyAttempts >= 0);
+      assert.ok(['ok','denied'].includes(s.outcome));
+      assert.deepEqual(Object.keys(s).sort(),
+        ['busyAttempts','holdMs','outcome','phase','route','waitMs'].sort(),
+        'no receipts, worker IDs or unbounded dynamic fields in the hook');
+      assert.doesNotMatch(JSON.stringify(s), /private-worker-token|sensitive_token/);
+    }
+    const throwing = Atomic.create({
+      storageLocal, lockManager, workerInstanceId: 'worker-with-throwing-hook',
+      clock: () => 1000, newToken: () => 'sensitive_token_' + (++sequence) + '_long',
+      onSample: () => { throw Error('telemetry hook failed'); }
+    });
+    assert.equal(await throwing.withAdmission('GET_BULK_RUN_STATUS', () => 5), 5,
+      'telemetry failure must never affect the safety-critical admitted operation');
+  });
