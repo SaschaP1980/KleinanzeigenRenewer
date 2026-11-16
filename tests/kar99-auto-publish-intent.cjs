@@ -42,7 +42,7 @@ function locks(){
   assert.equal(name,Atomic.LOCK_NAME);assert.equal(opts.mode,'exclusive');
   assert.equal(opts.ifAvailable,true);
   if(held.has(name))return fn(null);
-  held.add(name);try{return await fn({name})}finally{held.delete(name)}
+  held.add(name);try{return await fn({name,mode:'exclusive'})}finally{held.delete(name)}
  }};
 }
 let seq=0;
