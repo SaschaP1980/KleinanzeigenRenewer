@@ -1654,7 +1654,8 @@ function requirePhase4UncertaintyJournal() {
       newToken: () => crypto.randomUUID(), workerInstanceId: ownerWorkerInstanceId,
       verifyRemoteOutcome: receipt => requireRemoteDeleteReplacementService().verifyPhase4RemoteOutcomeFresh(receipt),
       requireCommitContext: true,
-      verifyCommitContext: receipt => requireAdditionalOwnerObserver().verifyRemoteCommitContextReadOnly(receipt,'phase4'),
+      prepareCommitContext: r => requireAdditionalOwnerObserver().prepareRemoteCommitContextReadOnly(r,'phase4'),
+      verifyCommitContext: (r,w) => requireAdditionalOwnerObserver().verifyRemoteCommitContextReadOnly(r,'phase4',w),
       lockName: AtomicMV3Admission.LOCK_NAME,
       lockManager: globalThis.navigator?.locks
     });
@@ -1671,13 +1672,13 @@ function requireAutoPublishIntentJournal() {
       lockManager: globalThis.navigator?.locks,
       verifyRemoteOutcome: (intent, newAdId) => verifyAutoPublishRemoteOutcomeFresh(intent, newAdId),
       requireCommitContext: true,
-      verifyCommitContext: intent => requireAdditionalOwnerObserver().verifyRemoteCommitContextReadOnly(intent,'publish')
+      prepareCommitContext: r => requireAdditionalOwnerObserver().prepareRemoteCommitContextReadOnly(r,'publish'),
+      verifyCommitContext: (r,w) => requireAdditionalOwnerObserver().verifyRemoteCommitContextReadOnly(r,'publish',w)
     });
   }
   return autoPublishIntentJournal;
 }
-// A caller-supplied new-ID redirect is only a candidate. Read-only My Ads
-// verification in an independent managed tab is the sole outcome authority.
+// Publication results require independent My Ads proof.
 let publishIntentAuthorizationService = null;
 function requirePublishIntentAuthorizationService() {
   if (!publishIntentAuthorizationService) publishIntentAuthorizationService = PublishIntentAuthorizationService.create({
@@ -2162,9 +2163,7 @@ function requireUpdateWorkflowFence() {
   }
   return updateWorkflowFence;
 }
-// This tracker covers positively identified autonomous paths only. Message
-// handlers, detached tasks and previous worker generations still need their
-// own complete proofs before KAR-97 can treat ANY owner as confirmed idle.
+// Owner observations and remote results never authorize updater IDLE.
 const ownerWorkerInstanceId = crypto.randomUUID();
 let persistedOwnerObserver = null;
 function requirePersistedOwnerObserver() {
@@ -2211,8 +2210,9 @@ function requireAdditionalOwnerObserver() {
       clock:()=>Date.now(),workerInstanceId:ownerWorkerInstanceId,
       queryBrowserTabsReadOnly:()=>chrome.tabs.query({}),
       readAccountPageStatusReadOnly:tabId=>sendTabRequest(tabId,{type:'PAGE_STATUS'}),
-      // W3D3A: lazy first-party coordinator, used only for explicitly guarded
-      // private historical inspection. No new app IPC, apply or reserve route.
+      createManagedWorkerTab,waitForTabComplete,ensureContentConnection,closeManagedWorkerTab,
+      myAdsProjectsUrl:MY_ADS_PROJECTS_URL,tabLoadTimeoutMs:TAB_LOAD_TIMEOUT_PHASE4_MS,
+      // Private coordinator; no updater activation.
       getAtomicAdmissionCoordinator:()=>requireAtomicMV3Admission()
     });
   }
