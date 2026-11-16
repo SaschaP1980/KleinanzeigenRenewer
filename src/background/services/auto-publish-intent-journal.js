@@ -197,6 +197,13 @@
         ||!Number.isSafeInteger(proof.targetFoundPage)||proof.targetFoundPage<1
         ||proof.targetFoundPage>proof.targetPagesScanned)
         throw denied('KR_PUBLISH_INTENT_UNVERIFIED');
+      // A fresh publication presence result can only confirm the exact
+      // originating P8 attempt (not another attempt with the same Ad IDs).
+      if(Object.hasOwn(intent,'admissionToken') &&
+         (proof.attemptId!==intent.attemptId||
+          proof.workerInstanceId!==intent.workerInstanceId||
+          proof.admissionToken!==intent.admissionToken))
+        throw denied('KR_PUBLISH_INTENT_UNVERIFIED');
       // A separately owned account tab is staged before entering the lock.
       let witness=null;
       if(requireCommitContext){

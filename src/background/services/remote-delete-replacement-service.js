@@ -376,6 +376,9 @@ async function verifyPhase4RemoteOutcomeFresh(receipt) {
     throw new Error('KR_PHASE4_JOURNAL_UNVERIFIED');
   return Object.freeze({
     profileId:receipt.profileId,sourceAdId:sourceId,newAdId:targetId,
+    attemptId:receipt.attemptId??null,
+    workerInstanceId:receipt.workerInstanceId??null,
+    admissionToken:receipt.admissionToken??null,
     sourceAbsent:true,targetPresent:true,
     sourceEvidence:source.evidence,targetEvidence:target.evidence,
     sourcePagesScanned:source.pagesScanned,targetPagesScanned:target.pagesScanned,

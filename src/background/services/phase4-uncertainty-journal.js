@@ -224,6 +224,13 @@
           || !Number.isSafeInteger(proof.targetFoundPage) || proof.targetFoundPage < 1
           || proof.targetFoundPage > proof.targetPagesScanned)
         throw denied('KR_PHASE4_JOURNAL_UNVERIFIED');
+      // A real independent source/target scan must carry the immutable
+      // original P8 attempt, Worker and token into the positive result.
+      if (Object.hasOwn(original,'admissionToken') &&
+          (proof.attemptId !== original.attemptId ||
+           proof.workerInstanceId !== original.workerInstanceId ||
+           proof.admissionToken !== original.admissionToken))
+        throw denied('KR_PHASE4_JOURNAL_UNVERIFIED');
       // Prepare an owned read-only My Ads tab OUTSIDE the origin lock.
       // No remote navigation is permitted in the locked commit section.
       let witness=null;

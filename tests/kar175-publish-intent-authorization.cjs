@@ -61,9 +61,14 @@ const receipt=Object.freeze({operationType:'AUTHORIZE_AUTOMATIC_PUBLISH'});
   assert.equal(matched.state,'resolved-confirmed');
   await assert.rejects(svc.verifyAutoPublishRemoteOutcomeFresh({kind:'renewal',workflowId:'r',
     fillId:'abc',targetTabId:42,sourceAdId:'123',profileId:'P',attemptId:'a'},'123'),/PUBLISH_INTENT_UNVERIFIED/);
-  const intent={kind:'renewal',workflowId:'r',fillId:'abc',targetTabId:42,sourceAdId:'123',profileId:'P',attemptId:'a'};
+  const intent={kind:'renewal',workflowId:'r',fillId:'abc',targetTabId:42,
+    sourceAdId:'123',profileId:'P',attemptId:'a',
+    workerInstanceId:'worker-original',admissionToken:'p8-original-token'};
   const evidence=await svc.verifyAutoPublishRemoteOutcomeFresh(intent,'456');
   assert.equal(evidence.targetPresent,true);assert.equal(evidence.targetPagesScanned,3);
+  assert.equal(evidence.attemptId,'a');
+  assert.equal(evidence.workerInstanceId,'worker-original');
+  assert.equal(evidence.admissionToken,'p8-original-token');
   assert.equal(closed.length,1);assert.deepEqual(requests,['MY_ADS_STATUS','FIND_OWN_AD_BY_ID','MY_ADS_STATUS']);
   validPresence=false;
   await assert.rejects(svc.verifyAutoPublishRemoteOutcomeFresh(intent,'456'),/PUBLISH_INTENT_UNVERIFIED/);

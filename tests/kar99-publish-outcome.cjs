@@ -201,7 +201,7 @@ const create=(store,manager,worker='worker-1',verify=proof)=>Journal.create({
    const x=await originalP8Publish({transformProof:mutate});
    await deny(x.scan,'KR_PUBLISH_INTENT_UNVERIFIED',
      'R1: independent publication proof '+label+' denied');
-   ok(x.probes===1&&!Object.keys(x.db.rows).some(k=>k.startsWith(Journal.RESOLUTION_PREFIX)),
+   ok(x.probes===1&&!Object.keys(x.db.rows).some(k=>k.startsWith(Journal.RESOLUTION_KEY_PREFIX)),
      'R1: '+label+' never commits a positive publication outcome');
  }
  for(const [label,mutate] of [

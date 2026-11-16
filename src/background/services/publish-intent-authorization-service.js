@@ -89,6 +89,9 @@
           return Object.freeze({
             fillId:intent.fillId,workflowId:intent.workflowId,kind:intent.kind,
             profileId:intent.profileId,sourceAdId:intent.sourceAdId,newAdId,
+            attemptId:intent.attemptId??null,
+            workerInstanceId:intent.workerInstanceId??null,
+            admissionToken:intent.admissionToken??null,
             targetPresent:true,targetEvidence:presence.evidence,
             targetPagesScanned:presence.pagesScanned,targetFoundPage:presence.page
           });
