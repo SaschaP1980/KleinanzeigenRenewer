@@ -6,6 +6,7 @@ globalThis.KRDeps={register(){}};
 const UI=require('../src/app/archive-insertion-ui-controller.js');
 const Lock=require('../src/background/services/insertion-lock-service.js');
 const Archive=require('../src/background/services/archive-insertion-service.js');
+const Diagnostics=require('../src/background/services/diagnostics-service.js');
 
 function element(){
   const classes=new Set();
@@ -82,4 +83,27 @@ test('KAR-197 archive status remains persisted, observable, and insertion-lock o
   assert.match(lock.insertionLockMessage(state),/Keine erneute Veröffentlichung|keine erneute Veröffentlichung/);
   await assert.rejects(lock.assertInsertionStartAvailable({kind:'archive-insertion'}),
     /ungeklärt/,'new listing must remain blocked until independent outcome verification');
+});
+
+test('KAR-197 journal contention telemetry emits bounded private-free sample only on observed BUSY', async()=>{
+  const rows=Object.create(null);
+  const store={
+    async get(keys){
+      const names=keys===null?Object.keys(rows):Array.isArray(keys)?keys:[keys];
+      return Object.fromEntries(names.filter(k=>Object.hasOwn(rows,k)).map(k=>[k,structuredClone(rows[k])]));
+    },
+    async set(patch){Object.assign(rows,structuredClone(patch));}
+  };
+  const diagnostics=Diagnostics.create({storageLocal:store,randomUUID:()=> 'synthetic-diagnostic',
+    maxDiagnostics:100,batchFlushMs:2});
+  await diagnostics.recordPublishIntentSample({phase:'begin',busyAttempts:0,outcome:'ok'});
+  await diagnostics.recordPublishIntentSample({phase:'begin',busyAttempts:2,waitMs:123,holdMs:17,
+    outcome:'ok',token:'SECRET_SYNTHETIC_TOKEN',profileId:'SECRET_PROFILE'});
+  await diagnostics.flush();
+  const events=(await diagnostics.read()).filter(row=>row.event==='PUBLISH_INTENT_LOCK_CONTENTION');
+  assert.equal(events.length,1,'no telemetry when lock acquisition did not contend');
+  assert.equal(events[0].details?.busyAttempts,2);
+  assert.equal(events[0].details?.waitMs,123);
+  assert.equal(events[0].details?.holdMs,17);
+  assert.ok(!JSON.stringify(events).includes('SECRET_'),'no account or intent token in diagnostics');
 });
