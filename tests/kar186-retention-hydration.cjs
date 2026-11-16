@@ -144,7 +144,7 @@ function fixture(initial = 'infinite') {
   assert.match(app, /onStateChanged/);
   assert.match(app, /refreshTrashRetentionExplanations\(/);
   assert.match(app, /currentTrashRetentionDays == null/);
-  assert.match(inventoryCard, /function requireVerifiedTrashRetention/);
+  assert.match(inventoryCard, /const requireVerifiedTrashRetention =/);
   assert.match(inventoryCard, /getTrashRetentionDays/);
   assert.doesNotMatch(inventoryCard, /30 Tage/, 'inventory actions must not announce hardcoded retention');
   assert.match(trashCard, /function requireVerifiedRetention/);
