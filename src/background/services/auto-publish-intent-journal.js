@@ -46,7 +46,7 @@
       &&key===RESOLUTION_PREFIX+row.fillId+'_'+row.attemptId;
   }
   function create({storageLocal,lockManager,lockName,workerInstanceId,clock,newToken,
-    verifyRemoteOutcome=null}={}){
+    verifyRemoteOutcome=null,onSample=null}={}){
     if(typeof storageLocal?.get!=='function'||typeof storageLocal?.set!=='function'
        ||typeof clock!=='function'||typeof newToken!=='function'||!id(workerInstanceId))
       throw denied('KR_PUBLISH_INTENT_STORAGE');
@@ -82,15 +82,66 @@
       if(!id(fillId))throw denied('KR_PUBLISH_INTENT_IDENTITY');
       return snapshot(await read(null),fillId);
     }
-    async function atomic(task){
+    // KAR-197: P8 and publication-intent receipts share the exact origin Web Lock.
+    // Retry ONLY a denial that occurred before entering any critical section.
+    // Each acquired attempt independently scans the complete immutable journal;
+    // an existing before-click receipt can never be replayed or overwritten.
+    async function atomic(task,phase='begin'){
       if(typeof lockManager?.request!=='function'||lockName!==SHARED_LOCK_NAME)
         throw denied('KR_PUBLISH_INTENT_ATOMIC_UNAVAILABLE');
+      const beganAt=Date.now();
+      let busyAttempts=0,holdMs=0,outcome='denied';
       try{
-        return await lockManager.request(SHARED_LOCK_NAME,{mode:'exclusive',ifAvailable:true},
-          async lock=>{if(!lock)throw denied('KR_PUBLISH_INTENT_ATOMIC_BUSY');return task();});
-      }catch(e){
-        if(typeof e?.code==='string'&&e.code.startsWith('KR_PUBLISH_INTENT_'))throw e;
-        throw denied('KR_PUBLISH_INTENT_ATOMIC_UNAVAILABLE');
+        const attempts=16;
+        for(let i=0;i<attempts;i++){
+          let entered=false,finished=false,preLockBusy=false;
+          try{
+            const value=await lockManager.request(SHARED_LOCK_NAME,
+              {mode:'exclusive',ifAvailable:true},async lock=>{
+                if(entered)throw denied('KR_PUBLISH_INTENT_ATOMIC_UNAVAILABLE');
+                entered=true;
+                if(!lock){
+                  preLockBusy=true;
+                  throw denied('KR_PUBLISH_INTENT_ATOMIC_BUSY');
+                }
+                if(lock.name!==SHARED_LOCK_NAME||lock.mode!=='exclusive')
+                  throw denied('KR_PUBLISH_INTENT_ATOMIC_UNAVAILABLE');
+                const heldAt=Date.now();
+                try{
+                  const result=await task();
+                  finished=true;
+                  return result;
+                }finally{holdMs=Math.min(60000,Math.max(0,Date.now()-heldAt));}
+              });
+            // A broken lock implementation must not resolve before the
+            // awaited journal write/readback and validated callback finish.
+            if(!entered||!finished)throw denied('KR_PUBLISH_INTENT_ATOMIC_UNAVAILABLE');
+            outcome='ok';
+            return value;
+          }catch(error){
+            if(preLockBusy&&error?.code==='KR_PUBLISH_INTENT_ATOMIC_BUSY'){
+              busyAttempts++;
+              if(i<attempts-1){
+                await new Promise(resolve=>setTimeout(resolve,Math.min(20+i*10,100)));
+                continue;
+              }
+            }
+            if(typeof error?.code==='string'&&error.code.startsWith('KR_PUBLISH_INTENT_'))
+              throw error;
+            throw denied('KR_PUBLISH_INTENT_ATOMIC_UNAVAILABLE');
+          }
+        }
+        throw denied('KR_PUBLISH_INTENT_ATOMIC_BUSY');
+      }finally{
+        // Only fixed phase, bounded timings and attempts: no fill/account/token
+        // identifiers. A telemetry hook cannot affect publish authorization.
+        if(typeof onSample==='function'){
+          try{onSample(Object.freeze({
+            phase,busyAttempts,
+            waitMs:Math.min(60000,Math.max(0,Date.now()-beganAt-holdMs)),
+            holdMs,outcome
+          }));}catch{}
+        }
       }
     }
     async function durable(key,entry){
@@ -142,7 +193,7 @@
         if(after.attempts.length!==1||!same(after.attempts[0],entry))
           throw denied('KR_PUBLISH_INTENT_STORAGE');
         return entry;
-      });
+      },'begin');
     }
     async function resolveVerified({fillId,newAdId}={}){
       if(!id(fillId)||!adId(newAdId))throw denied('KR_PUBLISH_INTENT_IDENTITY');
@@ -153,7 +204,7 @@
         if(state.resolutions.length&&state.resolutions[0].newAdId!==newAdId)
           throw denied('KR_PUBLISH_INTENT_UNRESOLVED');
         return state.attempts[0];
-      });
+      },'resolve-read');
       if(typeof verifyRemoteOutcome!=='function')throw denied('KR_PUBLISH_INTENT_UNVERIFIED');
       let proof;
       try{proof=await verifyRemoteOutcome(Object.freeze({...intent}),newAdId);}
@@ -192,7 +243,7 @@
           ||!same((await observe(fillId)).resolutions[0],result))
           throw denied('KR_PUBLISH_INTENT_STORAGE');
         return result;
-      });
+      },'resolve-write');
     }
     return Object.freeze({begin,observe,resolveVerified});
   }

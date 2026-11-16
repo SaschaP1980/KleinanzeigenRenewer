@@ -1667,6 +1667,7 @@ function requireAutoPublishIntentJournal() {
       newToken: () => crypto.randomUUID(), workerInstanceId: ownerWorkerInstanceId,
       lockName: AtomicMV3Admission.LOCK_NAME,
       lockManager: globalThis.navigator?.locks,
+      onSample: sample => requireDiagnosticsService().recordPublishIntentSample(sample),
       verifyRemoteOutcome: (intent, newAdId) => verifyAutoPublishRemoteOutcomeFresh(intent, newAdId)
     });
   }

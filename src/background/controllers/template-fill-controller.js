@@ -631,7 +631,7 @@ async function updateTemplateFillSession(message, sender) {
   const previousStage = session.stage;
   const requestedStage = typeof message.stage === 'string' ? message.stage.slice(0, 80) : '';
   const protectedPublishStage = Boolean(session.renewalId || session.archiveInsertionId) && ['publish-submitted', 'new-id-confirmed'].includes(String(previousStage || ''));
-  const stalePublishRegression = protectedPublishStage && ['form-verified', 'post-fill-continuing', 'awaiting-publish', 'awaiting-manual-publish', 'auto-publish-ready'].includes(requestedStage);
+  const stalePublishRegression = protectedPublishStage && ['form-verified', 'post-fill-continuing', 'awaiting-publish', 'awaiting-manual-publish', 'auto-publish-ready', 'publish-intent-blocked'].includes(requestedStage);
   if (stalePublishRegression) {
     await logDiagnostic('info', 'TEMPLATE_FILL_STALE_PUBLISH_STAGE_IGNORED', {
       fillId: session.fillId, previousStage, requestedStage, requestedStatus: message.status || null
@@ -686,6 +686,13 @@ async function updateTemplateFillSession(message, sender) {
       detectedAt: new Date().toISOString()
     };
   }
+  if (session.stage === 'publish-intent-blocked') {
+    // Only a presentation/recovery reason, NEVER authority that a click
+    // occurred or that replay is safe. Preserve full verified form evidence.
+    const reason = String(message.publishBlockReason || '');
+    session.publishBlockReason = /^KR_[A-Z0-9_]{1,100}$/.test(reason)
+      ? reason : 'KR_PUBLISH_INTENT_UNVERIFIED';
+  }
   session.updatedAt = new Date().toISOString();
   sessions[session.fillId] = session;
   await writeFillSessions(sessions);
@@ -703,7 +710,13 @@ async function updateTemplateFillSession(message, sender) {
         renewal.stage = session.stage;
       } else if (session.status === 'needs-review' || session.status === 'error') {
         const issue = session.result?.issues?.[0] || null;
-        if (session.stage === 'schema-preflight' || session.stage === 'schema-preflight-missing') {
+        if (session.stage === 'publish-intent-blocked') {
+          // A durable intent may already exist, even when authorization
+          // returned a transport/finalization error. Never Phase-1 retry.
+          renewal.status = 'verification-failed';
+          renewal.stage = 'publish-intent-blocked';
+          renewal.lastError = session.publishBlockReason || 'KR_PUBLISH_INTENT_UNVERIFIED';
+        } else if (session.stage === 'schema-preflight' || session.stage === 'schema-preflight-missing') {
           // A structural incompatibility must never trigger another automated Phase-1 attempt.
           renewal.status = 'verification-failed';
           renewal.stage = session.stage;
@@ -736,8 +749,16 @@ async function updateTemplateFillSession(message, sender) {
   if (session.archiveInsertionId && (session.status !== previousStatus || session.stage !== previousStage)) {
     const archiveSessions = await readArchiveInsertionSessions().catch(() => ({}));
     const archive = archiveSessions[session.archiveInsertionId];
-    if (archive && !['complete', 'needs-review', 'error'].includes(String(archive.status || ''))) {
-      if (session.status === 'needs-review' || session.status === 'error') {
+    if (archive && !['complete', 'needs-review', 'error', 'publish-blocked'].includes(String(archive.status || ''))) {
+      if (session.stage === 'publish-intent-blocked' && session.status === 'needs-review') {
+        // No verified remote outcome: retain the full ZIP staging, hold the
+        // insertion lock, and require independent status reconciliation.
+        archive.status = 'publish-blocked';
+        archive.stage = 'publish-intent-blocked';
+        archive.failurePhase = 1;
+        archive.remoteVerificationRequired = true;
+        archive.lastError = session.publishBlockReason || 'KR_PUBLISH_INTENT_UNVERIFIED';
+      } else if (session.status === 'needs-review' || session.status === 'error') {
         archive.status = 'error';
         archive.stage = 'error-phase-1';
         archive.failurePhase = 1;

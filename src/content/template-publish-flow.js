@@ -17,6 +17,23 @@
       updatePanel
     } = options;
 
+  // The UI and persisted workflow must never keep saying "running" after
+  // a denied before-click authorization. This is a status report, not
+  // publication evidence or permission to retry.
+  async function reportPublishIntentBlocked(fillId, error) {
+    const raw = String(error?.code || error?.message || error || '');
+    const reason = /^KR_[A-Z0-9_]{1,100}$/.test(raw)
+      ? raw : 'KR_PUBLISH_INTENT_UNVERIFIED';
+    try {
+      await runtimeMessage({
+        type: 'UPDATE_TEMPLATE_FILL_SESSION', fillId,
+        status: 'needs-review', stage: 'publish-intent-blocked',
+        publishBlockReason: reason
+      });
+    } catch { /* Lost worker reply is not proof of publication or safe retry. */ }
+    return reason;
+  }
+
   function armPublishDetection(fillId) {
     const key = `krRenewalPublishArmed_${fillId}`;
     if (globalThis[key]) return;
@@ -71,6 +88,7 @@
           detector.endApprovedClick();
         }
       } catch (error) {
+        await reportPublishIntentBlocked(fillId, error);
         void diagnostic(fillId, 'MANUAL_PUBLISH_INTENT_BLOCKED',
           { reason: String(error?.message || error).slice(0,180) }, 'warning');
         updatePanel('Veröffentlichung gesperrt',
@@ -271,6 +289,7 @@
       const detector = globalThis[`krRenewalPublishArmed_${fillId}`];
       if (!detector?.permitOnce?.(button)) throw new Error('KR_PUBLISH_INTENT_UNVERIFIED');
     } catch (error) {
+      await reportPublishIntentBlocked(fillId, error);
       updatePanel('Automatische Veröffentlichung gesperrt',
         'Der Veröffentlichungsversuch wurde nicht automatisch gestartet. Bitte den aktuellen Anzeigenstatus prüfen und keine automatische Wiederholung auslösen.',
         [String(error?.message || error).slice(0,240)],

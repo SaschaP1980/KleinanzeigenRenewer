@@ -62,7 +62,7 @@ function lockManager() {
   assert.equal(name,Atomic.LOCK_NAME);
   assert.deepEqual(options,{mode:'exclusive',ifAvailable:true});
   if(held)return fn(null);
-  held=true;try{return await fn({name});}finally{held=false;}
+  held=true;try{return await fn({name,mode:'exclusive'});}finally{held=false;}
  }};
 }
 async function resolvedPublish(s) {

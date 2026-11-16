@@ -1,18 +1,17 @@
 {
-  "version": "1.25.4",
+  "version": "1.25.5",
   "project": "kleinanzeigen Manager / Kleinanzeigen Renewal",
-  "epic": "KAR-191-193-diagnostics-recovery-integration",
+  "epic": "KAR-197-publish-intent-web-lock-and-zip-blocked-recovery",
   "goldBaseline": "1.21.15",
   "directBasis": "1.23.20_c1",
   "directBasisNativeGreen": true,
   "directBasisObservation": "v1.23.20_c1 ist RELEASE_GREEN und besitzt reale Fast-3er-Goldlinien. Zwei spätere reale Massenläufe vom 10.10.2026 zeigten jedoch einen flüchtigen Titel-Fill-/DOM-State-Fehler: Diagnose 11-22-33 (SHA-256 0ac5642d4fb6b69575c88d6e116fa2152ad0cd84c512f38198afddfa3c72a4df) mit 3/7 temporären Titel-Mismatches und Diagnose 12-03-51 (SHA-256 161cabb74e8a8eb454c91e3c35dc8158a7a782b9d0354fb4e003d12e487db641) mit 5/10. Unveränderte Titel konnten in späteren Versuchen erfolgreich sein; daher wird v1.23.22 als enger Correction-Build vor EPIC-REF-003 erstellt.",
   "scope": [
-    "Forward integration of owner-tested #191 read-only diagnostic occupancy and P8-guarded ZIP delivery from installed v1.24.4.",
-    "Forward integration of #193 bounded pre-admission diagnostic reset retry and fail-closed post-execution outcome uncertainty from installed v1.24.5.",
-    "Preserve #188 truthful startup inventory/trash loading and #164 retention-deadline sorting from merged main v1.25.1.",
-    "Retain P8 Web Locks, durable start/finish journal, updater update leases, account/profile/Ad-ID safety and remote mutation policy; never clear inventory or trash.",
-    "Issue-bound RED/GREEN with runtime/architecture/100% public coverage, deterministic ZIP, real packaged Chromium and Windows Work PR CI; native acceptance and Release independently recorded.",
-    "Dynamic Public Function Coverage remains 100 % and Architecture-No-Regression must remain PASS on the exact packaged source; line/branch, Windows and packaged Chromium E2E are mandatory."
+    "KAR-197: bound retry of transient shared P8/publish-intent journal Web Lock contention only before entering a journal critical section, retaining durable intent and exact P8 pre-click admission.",
+    "On automatic or manual publish authorization denial, persist recoverable fail-closed blocked state in template fill and archive session, with truthful ZIP Manager progress and no implicit re-insertion.",
+    "Preserve unresolved remote-outcome protection across MV3 and Manager restarts; keep ZIP staging, original records, identity checks and all existing paid-insertion gates.",
+    "Synthetic RED confirmed on v1.25.4 baseline GitHub CI; GREEN, source-identical Chromium, versioned ZIP parity and native owner acceptance pending independently.",
+    "Dynamic Public Function Coverage remains 100 % and Architecture-No-Regression must remain PASS on the exact packaged source; line/branch, Windows and packaged Chromium E2E are mandatory. No hosted CI Kleinanzeigen mutation."
   ],
   "nextPlannedBuild": "TBD",
   "nextPlannedBuildGoal": "Determined by separately authorized open GitHub Issues.",
@@ -152,7 +151,7 @@
     "Validate canonical all-profile affected-count preview and fail-closed cancellation when the active profile or trash snapshot changes.",
     "Verify local-only atomic record-and-image deletion under exact inventory IDs, retention-reset boundaries and MV3 interruption; assert no remote Kleinanzeigen mutation."
   ],
-  "packageVersion": "1.25.4",
+  "packageVersion": "1.25.5",
   "directBasisNativePending": false,
   "architectureFiles": [
     {

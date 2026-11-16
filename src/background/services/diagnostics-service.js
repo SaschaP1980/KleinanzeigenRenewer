@@ -258,6 +258,23 @@
         return Promise.resolve();
       }
 
+      // KAR-197: diagnostics ownership for journal contention samples. Emit only
+      // actual BUSY, once after lock release; never accept correlation, tokens
+      // or account information from the caller, and never recurse into P8 IPC.
+      function recordPublishIntentSample(sample) {
+        const busyAttempts = Math.max(0, Math.min(16, Number(sample?.busyAttempts) || 0));
+        if (!busyAttempts) return Promise.resolve();
+        const phase = ['begin', 'resolve-read', 'resolve-write'].includes(sample.phase)
+          ? sample.phase : 'other';
+        const bounded = value => Math.max(0, Math.min(60000, Number(value) || 0));
+        const outcome = sample.outcome === 'ok' ? 'ok' : 'denied';
+        return log(outcome === 'ok' ? 'info' : 'warning',
+          'PUBLISH_INTENT_LOCK_CONTENTION', {
+            participant: 'publish-intent-journal', phase, busyAttempts,
+            waitMs: bounded(sample.waitMs), holdMs: bounded(sample.holdMs), outcome
+          }, { module: 'background', operation: 'publish-intent-journal' });
+      }
+
       async function occupancy() {
         await flush();
         const retained = await loadStoredCache();
@@ -371,6 +388,7 @@
         log,
         storeGallery,
         recordAtomicSample,
+        recordPublishIntentSample,
         readRecentGallery,
         reset
       });
