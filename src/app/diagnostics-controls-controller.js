@@ -57,6 +57,22 @@
           .finally(() => clearTimeout(timer));
       }
 
+      // Export retains its durable P8 owner admission. Retry only transient
+      // Web Locks contention, never a held update lease or corrupt journal.
+      async function requestDiagnosticExport() {
+        for (let attempt = 0; attempt < 3; attempt += 1) {
+          try {
+            return await boundedRequest({ type: 'GET_DIAGNOSTIC_EXPORT' }, exportTimeoutMs);
+          } catch (error) {
+            if (error?.code !== 'KR_UPDATE_FENCE_ATOMIC_BUSY' || attempt === 2) throw error;
+            if (elements.status) elements.status.textContent =
+              `Diagnoseexport: Sicherheitsprüfung beschäftigt, erneuter Versuch ${attempt + 2} von 3 …`;
+            await new Promise(resolve => setTimeout(resolve, 300 * (attempt + 1)));
+          }
+        }
+        throw new Error('KR_DIAGNOSTIC_EXPORT_UNAVAILABLE');
+      }
+
       function displayOccupancy(current, maximum) {
         const valid = Number.isSafeInteger(current) && Number.isSafeInteger(maximum) && maximum > 0 && current >= 0;
         occupancyMaximum = valid ? maximum : null;
@@ -175,9 +191,10 @@
         if (!elements.zipButton) return;
         elements.zipButton.disabled = true;
         if (elements.status) elements.status.textContent = 'Diagnosedaten werden erstellt …';
-        reportDiagnosticEvent('USER_DIAGNOSTIC_ZIP_CLICK', {});
         try {
-          const exported = await boundedRequest({ type: 'GET_DIAGNOSTIC_EXPORT' }, exportTimeoutMs);
+          const exported = await requestDiagnosticExport();
+          // Recording the click before the request raced for the same Web Lock.
+          reportDiagnosticEvent('USER_DIAGNOSTIC_ZIP_CLICK', {});
           if (!Array.isArray(exported?.files)) throw new Error('KR_DIAGNOSTIC_INVALID_EXPORT');
           const entries = exported.files.map(file => ({ name: file.name, data: file.text }));
           if (!entries.length) throw new Error('Diagnoseexport enthält keine Dateien.');
