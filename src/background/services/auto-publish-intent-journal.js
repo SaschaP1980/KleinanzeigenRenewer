@@ -145,14 +145,41 @@
         return entry;
       });
     }
+    // R1: An original P8-bound publication intent may be reverified by a
+    // restarted Worker, but it must still identify the SAME durable origin.
+    // Acquire the existing origin Web Lock for each P8 source read, never
+    // throughout a network scan. Tokenless legacy records stay historical
+    // and do not themselves confer all-owner/update authority.
+    async function originalP8Signature(intent){
+      if(!Object.hasOwn(intent,'admissionToken'))return null;
+      const token=intent.admissionToken;
+      const rows=await read([P8_START+token,P8_FINISH+token]);
+      const start=rows[P8_START+token],finish=rows[P8_FINISH+token];
+      if(!object(start)||Object.keys(start).length!==6
+         ||start.schema!==1||start.state!=='admitted'
+         ||start.token!==token||!P8_ALLOWED.has(start.operationType)
+         ||start.workerInstanceId!==intent.workerInstanceId
+         ||!Number.isSafeInteger(start.startedAtMs)||start.startedAtMs<0
+         ||start.startedAtMs>intent.createdAtMs)
+        throw denied('KR_PUBLISH_INTENT_UNVERIFIED');
+      if(finish!==undefined&&(!object(finish)||Object.keys(finish).length!==5
+         ||finish.schema!==1||finish.state!=='completed'
+         ||finish.token!==token||finish.workerInstanceId!==start.workerInstanceId
+         ||!Number.isSafeInteger(finish.completedAtMs)
+         ||finish.completedAtMs<intent.createdAtMs))
+        throw denied('KR_PUBLISH_INTENT_UNVERIFIED');
+      return JSON.stringify([start,finish??null]);
+    }
     async function resolveVerified({fillId,newAdId}={}){
       if(!id(fillId)||!adId(newAdId))throw denied('KR_PUBLISH_INTENT_IDENTITY');
+      let originSignature;
       const intent=await atomic(async()=>{
         const state=await observe(fillId);
         if(state.attempts.length!==1)throw denied('KR_PUBLISH_INTENT_UNRESOLVED');
         if(state.attempts[0].sourceAdId===newAdId)throw denied('KR_PUBLISH_INTENT_IDENTITY');
         if(state.resolutions.length&&state.resolutions[0].newAdId!==newAdId)
           throw denied('KR_PUBLISH_INTENT_UNRESOLVED');
+        originSignature=await originalP8Signature(state.attempts[0]);
         return state.attempts[0];
       });
       if(typeof verifyRemoteOutcome!=='function')throw denied('KR_PUBLISH_INTENT_UNVERIFIED');
@@ -171,6 +198,8 @@
         const after=await observe(fillId);
         if(after.attempts.length!==1||!same(after.attempts[0],intent))
           throw denied('KR_PUBLISH_INTENT_UNRESOLVED');
+        if(await originalP8Signature(intent)!==originSignature)
+          throw denied('KR_PUBLISH_INTENT_UNVERIFIED');
         if(after.resolutions.length){
           if(after.resolutions[0].newAdId!==newAdId)
             throw denied('KR_PUBLISH_INTENT_UNRESOLVED');
