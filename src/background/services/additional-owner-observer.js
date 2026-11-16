@@ -998,8 +998,12 @@
       // Only a *negative* authenticated NativeHost result can strengthen a
       // BLOCKED observation. Neither a legacy receipt nor a missing journal
       // supplies MV3 transaction ID, Worker generation, rollback or IDLE.
-      let nativeHostEvidence=null;
-      if(typeof readNativeTransactionReadOnly==='function'){
+      // The trusted private NativeHost transport is checked *before* and
+      // *after* the independently repeated local fence/profile observations.
+      // A transaction that appears, disappears, or changes between these
+      // read-only probes must never be laundered through a stale local tombstone.
+      const readNativeEvidence=async()=>{
+        if(typeof readNativeTransactionReadOnly!=='function')return null;
         try{
           const h=await readNativeTransactionReadOnly();
           if(h?.ok===true&&h.operation==='inspect_transaction'
@@ -1009,7 +1013,7 @@
             &&['present','absent','unknown'].includes(h.receipt)
             &&h.identityBound===false&&h.nativeOutcomeVerified===false
             &&h.rollbackVerified===false&&h.eligibleForLease===false){
-            nativeHostEvidence=Object.freeze({
+            return Object.freeze({
               status:h.status,journal:h.journal,lock:h.lock,receipt:h.receipt,
               transactionPhase:h.transactionPhase,
               journalFingerprint:h.journalFingerprint,
@@ -1025,7 +1029,9 @@
             });
           }
         }catch{/* Unavailable native source is unknown, never IDLE. */}
-      }
+        return null;
+      };
+      let nativeHostEvidence=await readNativeEvidence();
       const result=(status,reason,more={})=>Object.freeze({
         schema:1,owner,
         status:nativeHostEvidence?.status==='blocked'?'blocked':status,
@@ -1109,6 +1115,25 @@
         ||prior?.observations?.nativeUpdateTransaction?.state==='active'
         ||again?.observations?.nativeUpdateTransaction?.state==='active')
         return result('unverified','NATIVE_FENCE_CONTEXT_UNVERIFIED');
+      // A local release is historical only. Still re-read the independent
+      // NativeHost source after storage/profile/tab reads: file-state changes,
+      // transport loss or a new pending Windows update invalidate that view.
+      if(typeof readNativeTransactionReadOnly==='function'){
+        const after=await readNativeEvidence();
+        if(nativeHostEvidence?.status==='blocked'||after?.status==='blocked'){
+          nativeHostEvidence=after?.status==='blocked'?after:nativeHostEvidence;
+          return result('blocked','NATIVE_HOST_TRANSACTION_BLOCKED');
+        }
+        if(!nativeHostEvidence||!after){
+          nativeHostEvidence=null;
+          return result('unverified','NATIVE_HOST_SOURCE_UNAVAILABLE');
+        }
+        if(JSON.stringify(nativeHostEvidence)!==JSON.stringify(after)){
+          nativeHostEvidence=null;
+          return result('unverified','NATIVE_HOST_SOURCE_CHANGED_DURING_READ');
+        }
+        nativeHostEvidence=after;
+      }
       return result('local-release-recorded',
         'DURABLE_LOCAL_NATIVE_FENCE_RELEASE_TOMBSTONE',{
           transactionState:'released',localReleaseRecorded:true,

@@ -247,7 +247,8 @@ test('R2 native host unavailable, forged identity or false success never grants 
    const p=await o.inspectNativeUpdateTransactionClosureReadOnly();
    invariant(p);
    assert.equal(p.nativeHostEvidence,null);
-   assert.equal(p.status,'local-release-recorded');
+   assert.equal(p.status,'unverified');
+   assert.equal(p.reason,'NATIVE_HOST_SOURCE_UNAVAILABLE');
    assert.equal(d.writes,0);
  }
 });
