@@ -16,7 +16,7 @@ const publisher = fs.readFileSync('src/background/services/publish-intent-author
 const runner = fs.readFileSync('src/content/inventory-runner.js', 'utf8');
 let count = 0;
 const ok = (condition, description) => {assert.ok(condition, description);count++;};
-function fixture({changedAt='',missingName=false,absent=false,reportedOnline=1,
+function fixture({changedAt='',missingName=false,absent=false,reportedOnline=2,
   missingHeader=false,onlineCountDrift=false,missingNext=false,duplicate=false,zero=false}={}) {
   let page = 1, profile = missingName ? '' : 'Real Profile', mutations = 0, log = [];
   // Mimic the actual My Ads header at each pagination boundary. A temporary
@@ -44,8 +44,9 @@ function fixture({changedAt='',missingName=false,absent=false,reportedOnline=1,
       log.push({page,profile});
       if (zero) return [];
       if (duplicate) return [{adId:'1234',root:{}}];
-      if (page === 1 && absent) return [{adId:'1234',root:{}}];
-      return page === 2 && !absent ? [{adId:'5678',root:{}}] : [];
+      if (page === 1) return [{adId:'1234',root:{}}];
+      if (page === 2) return [{adId:absent ? '2222' : '5678',root:{}}];
+      return [];
     },
     detectedProfileName: () => profile,
     parseOnlineCount: () => ({online:1})
@@ -77,7 +78,7 @@ function fixture({changedAt='',missingName=false,absent=false,reportedOnline=1,
     ok((await fixture({zero:true,reportedOnline:0}).absent()).verified===true,
       'genuine zero-online roster allows verified absence only after stable exhaustion');
     for (const [description, settings] of [
-      ['truncated roster against My Ads online count', {absent:true,reportedOnline:2}],
+      ['truncated roster against My Ads online count', {absent:true,reportedOnline:3}],
       ['missing My Ads online count', {absent:true,missingHeader:true}],
       ['pagination header count drifts', {absent:true,onlineCountDrift:true}],
       ['lost next-page control while online ads remain', {missingNext:true}],
