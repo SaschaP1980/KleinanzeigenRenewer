@@ -212,6 +212,7 @@ function init(db,verifyRemoteOutcome,worker='worker-new') {
   // READ-ONLY witness is prepared before the commit lock, verified under
   // that lock, and closed on every success/denial path.
   let stagedOpens=0,stagedCloses=0,stagedReady=0,openedDuringLock=false;
+  let stagedStatusReads=0,stagedLateAccountSwitchAt=null;
   const stagedOwner=Additional.create({
     storageLocal:commitDb,storageSession:{async get(){return {};}},
     workerInstanceId:'worker-commit',clock:()=>123000,
@@ -219,8 +220,11 @@ function init(db,verifyRemoteOutcome,worker='worker-new') {
     readAccountPageStatusReadOnly:async tabId=>{
       assert.equal(tabId,82);
       if(!browserTab)throw Error('tab closed');
+      stagedStatusReads++;
       return {pageType:'my-ads',url:browserTab.url,
-        auth:{loggedIn},profileName:commitLiveName};
+        auth:{loggedIn},
+        profileName:stagedStatusReads===stagedLateAccountSwitchAt
+          ?'Other authenticated account':commitLiveName};
     },
     createManagedWorkerTab:async(opts,purpose,owner)=>{
       stagedOpens++;openedDuringLock=lockHeld;
@@ -245,6 +249,19 @@ function init(db,verifyRemoteOutcome,worker='worker-new') {
     'R1: read-only witness is created and loaded outside origin lock');
   ok(await stagedOwner.verifyRemoteCommitContextReadOnly(originalPhase,'phase4',stage)===true,
     'R1: newly created authenticated My Ads witness enables genuine positive check');
+  ok(await stagedOwner.verifyRemoteCommitContextReadOnly({
+      ...originalPhase,workerInstanceId:'unrelated-worker'
+    },'phase4',stage)===false,
+    'R1: staged account witness is not reusable for different original Worker generation');
+  ok(await stagedOwner.verifyRemoteCommitContextReadOnly({
+      ...originalPhase,admissionToken:'unrelated-p8-token'
+    },'phase4',stage)===false,
+    'R1: staged account witness is not reusable for different P8 admission token');
+  stagedStatusReads=0;stagedLateAccountSwitchAt=4;
+  ok(await stagedOwner.verifyRemoteCommitContextReadOnly(originalPhase,'phase4',stage)===false,
+    'R1: tab changing authenticated account after observer read is rejected by final direct PAGE_STATUS');
+  stagedLateAccountSwitchAt=null;
+
   ok(await stagedOwner.verifyRemoteCommitContextReadOnly(originalPublish,'publish',stage)===false,
     'R1: staged witness cannot be reused for a different workflow identity');
   commitLiveName='different-account';

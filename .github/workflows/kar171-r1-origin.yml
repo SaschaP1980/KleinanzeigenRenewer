@@ -1,0 +1,20 @@
+name: KAR-171 R1 account witness origin continuity (temporary)
+on:
+  push:
+    branches: [work/KAR-171]
+    paths:
+      - tests/kar99-phase4-outcome-reconciliation.cjs
+      - src/background/services/additional-owner-observer.js
+      - .github/workflows/kar171-r1-origin.yml
+permissions:
+  contents: read
+jobs:
+  r1-account:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: R1 original Worker and P8 token account witness regressions
+        run: node tests/kar99-phase4-outcome-reconciliation.cjs
