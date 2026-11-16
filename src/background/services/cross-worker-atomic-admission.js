@@ -171,16 +171,24 @@
         ||typeof task!=='function')throw denied('KR_UPDATE_FENCE_ATOMIC_UNAVAILABLE');
       let entry;
       await workflowExclusive(async()=>{
-        const {starts,finishes}=await scan();
+        // KAR-195: a routine admitted request only needs to protect the two
+        // slots of its own collision-resistant receipt. Enumerating every
+        // diagnostic, inventory and image-storage key here held the origin
+        // Web Lock ~250ms per start on the owner's Windows/Chrome machine.
+        // The safety-critical reserve path BELOW still scans the complete
+        // cross-worker journal twice independently before granting idle.
         let token;
         try {token=newToken();}catch{throw denied('KR_UPDATE_FENCE_ATOMIC_STORAGE');}
-        if(!id(token)||token.length<12||starts.has(token)||finishes.has(token))
+        if(!id(token)||token.length<12)throw denied('KR_UPDATE_FENCE_ATOMIC_STORAGE');
+        const startKey=START_PREFIX+token,finishKey=FINISH_PREFIX+token;
+        const prior=await get([startKey,finishKey]);
+        if(Object.hasOwn(prior,startKey)||Object.hasOwn(prior,finishKey))
           throw denied('KR_UPDATE_FENCE_ATOMIC_STORAGE');
         entry=Object.freeze({
           schema:1,state:'admitted',token,operationType,workerInstanceId,
           startedAtMs:now()
         });
-        await durable(START_PREFIX+token,entry);
+        await durable(startKey,entry);
       },operationType,'start');
       // Only the admitted closure receives this frozen, storage-acknowledged
       // origin-Web-Lock receipt. No global mutable current token: concurrent
@@ -190,14 +198,18 @@
         // An interrupted worker never runs finally. Leave the start receipt
         // unresolved; an independent result probe is needed before clearance.
         await workflowExclusive(async()=>{
-          const {starts,finishes}=await scan();
-          if(!same(starts.get(entry.token),entry)||finishes.has(entry.token))
+          // Validate the exact source start and absence of any finish under
+          // the same origin Web Lock; a changed, missing or already finished
+          // receipt denies completion rather than inventing a clean outcome.
+          const startKey=START_PREFIX+entry.token,finishKey=FINISH_PREFIX+entry.token;
+          const prior=await get([startKey,finishKey]);
+          if(!same(prior[startKey],entry)||Object.hasOwn(prior,finishKey))
             throw denied('KR_UPDATE_FENCE_ATOMIC_STORAGE');
           const completed=Object.freeze({
             schema:1,state:'completed',token:entry.token,workerInstanceId,
             completedAtMs:now()
           });
-          await durable(FINISH_PREFIX+entry.token,completed);
+          await durable(finishKey,completed);
         },operationType,'finish');
       }
     }

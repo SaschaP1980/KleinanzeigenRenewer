@@ -21,9 +21,9 @@ async function burst(diagnosticCount) {
   const firstReadBarrier = new Promise(resolve => { releaseFirstRead = resolve; });
   const store = {
     async get(keys) {
-      if (keys === null && !waitingForFirstRead) {
+      if (!waitingForFirstRead) {
         waitingForFirstRead = true;
-        await firstReadBarrier; // deterministic long same-worker admission overlap
+        await firstReadBarrier; // deterministic slow first receipt read under exclusive lock
       }
       const names = keys === null ? Object.keys(data) : Array.isArray(keys) ? keys : [keys];
       return Object.fromEntries(names.filter(key => Object.hasOwn(data, key))

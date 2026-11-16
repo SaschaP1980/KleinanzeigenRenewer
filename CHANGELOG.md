@@ -4,6 +4,14 @@ This is the canonical version-specific history for Kleinanzeigen Manager. Entrie
 
 All distinct historical section bodies from the former root README and CHANGELOG are preserved with source labels and line numbers. The [KAR-170 migration ledger](docs/maintenance/KAR170_CHANGELOG_MIGRATION.json) identifies their original Git blobs and body checksums. Overlapping versions retain distinct factual notes; older references to planned builds or native/CI acceptance are **historical**, not live status.
 
+## v1.25.4 — KAR-195 targeted P8 receipt verification for native account startup (Work source candidate)
+
+- Correct the v1.25.3 native Windows/Chrome performance regression: the account gate required ~24 seconds from manager opening to confirmed. First-30s diagnostics showed 105 P8 journal phases, ~250ms per short lock hold and up to 6.25s of FIFO waiting. Do not present previous hosted GREEN as native acceptance.
+- Replace per-start and per-finish `storage.local.get(null)` full-store enumeration with an origin-Web-Lock-protected **targeted read of the operation's own start/finish keys**. Validate token collision before admission; keep independent durable write/readback and deny missing/modified/already completed receipts. Neither remote task execution nor update-leased reserve is moved into or out of the exclusive lock.
+- **Preserve `guardReserve` unchanged**: two complete independent journal reads under the exclusive Web Lock, with strict validation and refusal of unresolved previous-worker starts, inconsistent finish receipts or unreadable storage. No automatic reset, data deletion, lease bypass, or publication.
+- Test-first RED on exact v1.25.3 Work HEAD `6c80b2c` (12 concurrent route calls caused **24 full storage enumerations** in a deterministic 2498-entry fixture); add collision/tamper and cross-worker reserve fail-closed cases; compare the same fixture after the targeted change. Further packaged Chromium, Windows CI and owner native re-test remain mandatory before merge/release.
+- Work-source candidate only; no GitHub Release, merge or real Kleinanzeigen mutation is implied.
+
 ## v1.25.3 — KAR-195 bounded MV3 Web Lock startup contention and request deduplication (Work source candidate)
 
 - Serialize only the short in-worker P8 durable journal start/finish Web Lock critical sections with FIFO handoff, retaining the original browser-origin exclusive lock, 16-attempt cross-worker retry, durable start/finish readback, and completely unchanged `guardReserve` policy. Admitted remote handlers remain outside this queue. Yield between local critical sections so already admitted nested publish-intent checks can fairly acquire the shared Web Lock.
