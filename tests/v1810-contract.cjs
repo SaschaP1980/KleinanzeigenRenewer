@@ -72,8 +72,9 @@ assert.match(myAdsHelper, /createFreshRenewalVerificationTab\(MY_ADS_PROJECTS_UR
 assert.match(myAdsHelper, /finally \{[\s\S]*closeFreshRenewalVerificationTab/);
 pass('My Ads fallback stays profile-aware and now owns a fresh isolated worker that is closed after verification');
 
-const findRunner = runner.match(/async function findOwnAdById\(adId(?:, correlation = \{\})?(?:, \{ notFoundSeverity = 'warning', expectedAbsent = false \} = \{\})?\) \{[\s\S]*?\n\}/)?.[0] || '';
-assert.match(findRunner, /scanOwnAdsAcrossPages\(wanted\)/);
+const findRunner = runner.match(/async function findOwnAdById\([^\n]*\) \{[\s\S]*?\n\}/)?.[0] || '';
+assert.match(findRunner, /scanOwnAdsAcrossPages\(wanted, \{ expectedProfileName \}\)/);
+assert.match(findRunner, /expectedProfileName/, 'R1 read-only proof passes the authenticated account to each pagination page');
 assert.match(findRunner, /pagesScanned/);
 assert.match(findRunner, /publicUrl/);
 assert.match(runner, /message\?\.type === 'FIND_OWN_AD_BY_ID'/);
