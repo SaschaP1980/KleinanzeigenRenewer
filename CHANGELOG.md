@@ -4,6 +4,15 @@ This is the canonical version-specific history for Kleinanzeigen Manager. Entrie
 
 All distinct historical section bodies from the former root README and CHANGELOG are preserved with source labels and line numbers. The [KAR-170 migration ledger](docs/maintenance/KAR170_CHANGELOG_MIGRATION.json) identifies their original Git blobs and body checksums. Overlapping versions retain distinct factual notes; older references to planned builds or native/CI acceptance are **historical**, not live status.
 
+## v1.25.2 — KAR-191 and KAR-193 diagnostic occupancy, export and reset recovery (Work integration)
+
+- Forward-integrate the owner-validated v1.24.4/#191 diagnostic and v1.24.5/#193 reset fixes on top of merged v1.25.1/#188 and v1.25.0/#164. Preserve truthful inventory/trash loading and Papierkorb retention-deadline sorting.
+- Keep `GET_DIAGNOSTIC_OCCUPANCY` available as a non-mutating observation during lock contention, while preserving platform/message checks. Distinguish successful zero occupancy from unavailable/failed reads, and present a visible retry action.
+- Preserve P8 durable owner admission for `GET_DIAGNOSTIC_EXPORT`, with bounded retry only for brief atomic BUSY and reliable ZIP integrity/visible failure feedback.
+- Keep `RESET_DIAGNOSTICS` fully fenced. Retry only a pre-handler `KR_UPDATE_FENCE_ATOMIC_BUSY`; if the handler started, its completion is uncertain and must never be blindly retried. Verify new diagnostic boundary before reporting success.
+- Existing #188 and #164 acceptance, all safety/architecture/coverage gates, full package ZIP byte parity, isolated Chromium 9/9 and Windows Work PR checks must remain GREEN before merge. No real Kleinanzeigen mutation or local inventory/trash reset; systemic Web Lock contention is independently tracked under High [KAR-195](https://github.com/SaschaP1980/KleinanzeigenRenewer/issues/195).
+- The owner accepted the native Windows/Chrome behavior of the two fixes in installed v1.24.4 and v1.24.5; combined v1.25.2 source and Release are separate evidence classes.
+
 ## v1.25.1 — KAR-188 independent inventory and trash loading (Work integration, source only)
 
 - Integrate the owner-accepted inventory/trash startup loading UX from the original v1.24.3 Work branch with the merged v1.25.0 KAR-164 retention-deadline sort, without reverting or changing the latter's behavior.
@@ -18,6 +27,28 @@ All distinct historical section bodies from the former root README and CHANGELOG
 - Sort only an in-memory view, without changing storage, profile/account scope, existing actions, retention/expiry cleanup or remote Kleinanzeigen operations.
 - Add verified test-first RED/GREEN coverage, historical selector contract updates and preserve mandatory 100% dynamic public coverage and architecture/line/branch gates.
 - Source candidate only. An exact-head reproducible Chrome ZIP, Chromium/Windows Work PR GREEN, merge and native/public release approval remain separate.
+
+## v1.24.5 — KAR-193 bounded diagnostic reset recovery (isolated Work patch; source candidate)
+
+- Preserve durable P8 atomic admission and workflow-owner safety for the user-requested `RESET_DIAGNOSTICS` mutation. Retry only explicit `KR_UPDATE_FENCE_ATOMIC_BUSY` **before** the reset handler was invoked, using finite UI attempts and progressively delayed retries.
+- Distinguish a P8 finish/receipt failure **after** the reset handler started: translate it to `KR_DIAGNOSTIC_RESET_OUTCOME_UNVERIFIED` and never retry automatically; treat worker interruption and request timeout as unverified outcomes. Held update leases, corrupt journals and unavailable safety primitives remain fail-closed.
+- Show truthful progress and persistent error status; require the backend's `reset: true` and new diagnostic boundary ID before claiming success. Refresh authoritative occupancy afterward, with exactly one best-effort diagnostic log per user click and no feedback loop.
+- Focused six-case test-first RED/GREEN covers transient and sustained contention, held lease/storage error, missing boundary, hanging request and post-handler completion uncertainty. No inventory/trash/profile reset, account modification, lock bypass or live Kleinanzeigen operation.
+- This `work/KAR-193` branch is intentionally based on the owner-validated installed v1.24.4 source (#191), not current `main` v1.25.0. **Do not merge, publish or install over newer v1.25.x without a separately verified monotonic integration.** An issue-bound Chrome ZIP and mandatory Chromium/CI verification are recorded separately.
+
+## v1.24.4 — KAR-191 restore diagnostic occupancy and reliable ZIP export (Critical Work patch; source candidate)
+
+- Treat `GET_DIAGNOSTIC_OCCUPANCY` as a strictly read-only operation even during transient MV3 update/mutation admission contention; the existing platform gate, remote publish/delete safety and all mutating routes remain fail-closed. Continue treating diagnostic ZIP export as a durable P8 `diagnosticExport` owner, not an unfenced shortcut.
+- Retry only transient `KR_UPDATE_FENCE_ATOMIC_BUSY` for up to three bounded ZIP-export requests; avoid pre-export diagnostic click logging contention. Distinguish a genuinely empty diagnostic buffer (`0 / 2.500`) from an unavailable count; show persistent, actionable German error/retry messages and bounded response timeouts.
+- Add dedicated test-first RED/GREEN for routing, reset and mutation denial, transient/failed diagnostic requests, near-capacity event buffers, ZIP CRC/integrity, object URL download action and worker-response timeout. Preserve diagnostic records, Inventar, Papierkorb, profile settings and Chrome extension identity. Integrate v1.24.3 KAR-188 source changes only into the isolated issue-bound Work branch; KAR-188 remains subject to its separate native acceptance/merge gate.
+- This entry describes an unreleased Work-branch source candidate, **not** a GitHub Release, merged main, or owner Windows/Chrome native download proof. Exact ZIP/Chromium/Work PR evidence and native confirmation belong to Issue #191; no public release, real-account mutation or data reset is authorized.
+
+## v1.24.3 — KAR-188 reliable Inventar/Papierkorb loading after app restart (Work patch; source changes only)
+
+- Show immediate, accessible `Inventar wird geladen …` and `Papierkorb wird geladen …` indicators, rather than a false initial empty state or an unverified 0 entry count. Each view has its own loading, verified-ready (populated or empty) and non-destructive read-error state with an explicit retry action.
+- Start profile-bound inventory/trash reads before optional background settings, account inspection and activity initialization, with independent read completion and stale async generation/profile guards. Keep previously verified same-profile counts on transient failures; never claim successful zero records unless the respective list request returned a valid array.
+- Add test-first RED/GREEN fixtures for delayed, failed and stale per-view reads and retain the related KAR-185/KAR-186 safety behavior. Also pin the standalone main CI's packaged Chromium runner to supported Ubuntu 24.04, preserving mandatory Playwright E2E tests after the prior Ubuntu 26.04 infrastructure failure.
+- This changelog documents work-branch source code only, not a published GitHub Release or completed native Windows/Chrome user acceptance. The owning Issue #188 retains the authoritative exact SHA/CI evidence.
 
 ## v1.24.2 — KAR-186 verify local trash retention after cold startup (Work patch; source changes only)
 

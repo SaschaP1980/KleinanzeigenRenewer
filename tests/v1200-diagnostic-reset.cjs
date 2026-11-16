@@ -10,7 +10,8 @@ ok('diagnostics UI exposes a dedicated reset button', () => {
   assert.match(html, /id="diagnosticResetButton"[^>]*>\s*Diagnose zurücksetzen\s*</);
 });
 ok('reset has a dedicated runtime message and background handler', () => {
-  assert.match(app, /runtimeMessage\(\{\s*type:\s*['"]RESET_DIAGNOSTICS['"]\s*\}\)/);
+  assert.match(app, /(?:runtimeMessage|boundedRequest)\(\{\s*type:\s*['"]RESET_DIAGNOSTICS['"]\s*\}/,
+    'reset must use the existing registered RESET_DIAGNOSTICS route (direct or bounded timeout)');
   assert.match(bg, /(?:message\?\.type\s*===\s*["']RESET_DIAGNOSTICS["']|["']RESET_DIAGNOSTICS["']\s*:\s*Object\.freeze)/);
   assert.match(bg, /RESET_DIAGNOSTICS[\s\S]*resetDiagnostics/);
 });
