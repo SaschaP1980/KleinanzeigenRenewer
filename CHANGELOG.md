@@ -4,6 +4,14 @@ This is the canonical version-specific history for Kleinanzeigen Manager. Entrie
 
 All distinct historical section bodies from the former root README and CHANGELOG are preserved with source labels and line numbers. The [KAR-170 migration ledger](docs/maintenance/KAR170_CHANGELOG_MIGRATION.json) identifies their original Git blobs and body checksums. Overlapping versions retain distinct factual notes; older references to planned builds or native/CI acceptance are **historical**, not live status.
 
+## v1.24.5 — KAR-193 bounded diagnostic reset recovery (isolated Work patch; source candidate)
+
+- Preserve durable P8 atomic admission and workflow-owner safety for the user-requested `RESET_DIAGNOSTICS` mutation. Retry only explicit `KR_UPDATE_FENCE_ATOMIC_BUSY` **before** the reset handler was invoked, using finite UI attempts and progressively delayed retries.
+- Distinguish a P8 finish/receipt failure **after** the reset handler started: translate it to `KR_DIAGNOSTIC_RESET_OUTCOME_UNVERIFIED` and never retry automatically; treat worker interruption and request timeout as unverified outcomes. Held update leases, corrupt journals and unavailable safety primitives remain fail-closed.
+- Show truthful progress and persistent error status; require the backend's `reset: true` and new diagnostic boundary ID before claiming success. Refresh authoritative occupancy afterward, with exactly one best-effort diagnostic log per user click and no feedback loop.
+- Focused six-case test-first RED/GREEN covers transient and sustained contention, held lease/storage error, missing boundary, hanging request and post-handler completion uncertainty. No inventory/trash/profile reset, account modification, lock bypass or live Kleinanzeigen operation.
+- This `work/KAR-193` branch is intentionally based on the owner-validated installed v1.24.4 source (#191), not current `main` v1.25.0. **Do not merge, publish or install over newer v1.25.x without a separately verified monotonic integration.** An issue-bound Chrome ZIP and mandatory Chromium/CI verification are recorded separately.
+
 ## v1.24.4 — KAR-191 restore diagnostic occupancy and reliable ZIP export (Critical Work patch; source candidate)
 
 - Treat `GET_DIAGNOSTIC_OCCUPANCY` as a strictly read-only operation even during transient MV3 update/mutation admission contention; the existing platform gate, remote publish/delete safety and all mutating routes remain fail-closed. Continue treating diagnostic ZIP export as a durable P8 `diagnosticExport` owner, not an unfenced shortcut.
