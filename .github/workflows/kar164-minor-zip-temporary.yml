@@ -50,3 +50,22 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git commit -m 'build(KAR-164): reproducible v1.25.0 Chrome ZIP only'
           git push origin HEAD:refs/heads/work/KAR-164
+  audit:
+    if: github.event.head_commit.message == 'ci-KAR164-audit-version-guards'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Locate current-minor historical test guards
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = refs/heads/work/KAR-164
+          test -z "$(git diff-tree --no-commit-id --name-only -r HEAD)"
+          echo 'BEGIN_KAR164_VERSION_GUARDS'
+          grep -RnE 'includesActivePatch\(|isFeature24|approvedMinorFeature|manifest\.version.*1\.24\.0|1\.24\.0.*manifest\.version|assertCompatibleCurrentPatch' tests --include='*.cjs' --include='*.mjs' | cut -c 1-260 | head -180 || true
+          echo 'END_KAR164_VERSION_GUARDS'
