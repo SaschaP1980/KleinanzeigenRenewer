@@ -3,11 +3,12 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
+const InventoryLoadState = require('../src/app/inventory-loading-state.js');
 
 // Execute the real app bootstrap slice under controlled async response failures.
 // No authenticated Chrome account or remote Kleinanzeigen mutations are used.
 const source = fs.readFileSync(path.join(__dirname, '../src/app/app.js'), 'utf8');
-const start = source.search(/Promise\.all(?:Settled)?\(\[ensureUiActivityLoaded\(\)/);
+const start = source.indexOf('// An optional configuration or background inspection failure');
 assert.notEqual(start, -1, 'startup load orchestration missing');
 const end = source.indexOf('schedulePageInspect(ACCOUNT_HEALTH_FALLBACK_MS);', start);
 assert.ok(end > start, 'startup health timer marker missing');
@@ -53,7 +54,8 @@ async function verifyPersistedCounts() {
   const reads = [];
   let renderedInventory = [], renderedTrash = [], rejectTrash = false;
   const context = {
-    Promise, currentRecords: [], currentTrashRecords: [],
+    Promise, performance: { now: () => 100 }, logAppEvent: () => {},
+    currentRecords: [], currentTrashRecords: [],
     currentRenewalConfiguration: null, currentInsertionLock: { locked: false },
     currentAppNotice: null, currentView: 'inventory',
     selectedProfileId: 'profile-1',
@@ -84,6 +86,18 @@ async function verifyPersistedCounts() {
     renderInventories: records => { renderedInventory = records; },
     renderTrash: records => { renderedTrash = records; }
   };
+  context.inventoryLoadState = InventoryLoadState.create({
+    onChange(kind, snapshot) {
+      if (snapshot.phase !== 'ready') return;
+      if (kind === 'inventory') {
+        inventoryHeaderCount.textContent = String(snapshot.lastVerifiedCount);
+        renderedInventory = context.currentRecords;
+      } else {
+        trashHeaderCount.textContent = String(snapshot.lastVerifiedCount);
+        renderedTrash = context.currentTrashRecords;
+      }
+    }
+  });
   vm.runInNewContext(inventoryFunction, context, { filename: 'app.js refreshInventories', timeout: 1000 });
   await context.refreshInventories();
   assert.equal(inventoryHeaderCount.textContent, '61', 'inventory header must reflect saved inventory');
@@ -110,7 +124,7 @@ async function verifyPersistedCounts() {
     'optional settings failure is not an inventory load failure');
   result = await run({ inventoryError: true });
   assert.ok(result.calls.includes('inventories'), 'inventory read must be attempted');
-  assert.ok(result.notices.some(note => note[1] === 'Inventar konnte nicht geladen werden' && note[2] === 'inventory read failed'),
+  assert.ok(result.notices.some(note => note[1] === 'Inventar oder Papierkorb konnte nicht geladen werden' && note[2] === 'inventory read failed'),
     'actual inventory read failure must be explicit');
   result = await run({ inspectError: true });
   assert.ok(result.calls.includes('inventories'), 'inspection failure must not block inventory load');
