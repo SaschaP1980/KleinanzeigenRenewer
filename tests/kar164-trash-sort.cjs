@@ -37,6 +37,25 @@ assert.deepEqual(ids(view.deriveTrashView(input)), ['c','a','d','b','f','g','h',
 assert.notStrictEqual(view.deriveTrashView(input), input, 'derive view without sorting persisted array');
 assert.equal(JSON.stringify(input), baseline, 'sorting must leave all input records and deadlines unchanged');
 
+const timezoneCases = [
+  item('utc', '2026-12-31T23:30:00.000Z'),
+  item('plus-two', '2027-01-01T00:30:00.000+02:00'),
+  item('bad-month', '2027-13-01T00:00:00.000Z'),
+  item('minus-five', '2027-01-01T00:30:00.000-05:00')
+];
+assert.deepEqual(ids(view.deriveTrashView(timezoneCases, { direction: 'asc' })),
+  ['plus-two', 'utc', 'minus-five', 'bad-month'],
+  'timezone offsets cross the year boundary by instant, never localized display date');
+assert.deepEqual(ids(view.deriveTrashView(timezoneCases, { direction: 'desc' })),
+  ['minus-five', 'utc', 'plus-two', 'bad-month'],
+  'descending reverses canonical instants, not timezone strings');
+assert.deepEqual(ids(view.deriveTrashView([
+  item('infinite-even-with-stale-date', '2026-01-01T00:00:00Z', { retentionIndefinite: true }),
+  item('finite', '2027-01-01T00:00:00Z')
+])), ['finite', 'infinite-even-with-stale-date'],
+  'true unlimited retention overrides a stale deadline without synthesizing expiry');
+
+
 const html = read('src/app/app.html');
 const app = read('src/app/app.js');
 assert.match(html, /id="trashSortAsc"[^>]*aria-pressed="false"/, 'ascending control accessible and initially inactive');
