@@ -22,8 +22,8 @@
         </div>
         <nav class="content-view-navigation" aria-label="Inhaltsansicht">
           <div class="content-view-tabs" role="group" aria-label="Bereich auswählen">
-            <button id="inventoryViewButton" class="secondary view-switch-button active" type="button" aria-pressed="true">Inventar <span id="inventoryHeaderCount">0</span></button>
-            <button id="trashViewButton" class="secondary view-switch-button" type="button" aria-pressed="false">Papierkorb <span id="trashHeaderCount">0</span></button>
+            <button id="inventoryViewButton" class="secondary view-switch-button active" type="button" aria-pressed="true">Inventar <span id="inventoryHeaderCount">…</span></button>
+            <button id="trashViewButton" class="secondary view-switch-button" type="button" aria-pressed="false">Papierkorb <span id="trashHeaderCount">…</span></button>
           </div>
           <div class="global-view-controls" role="group" aria-label="Darstellung und Aktualisierung">
             <button id="globalViewDetailed" class="global-view-option active" type="button" aria-pressed="true" aria-label="Kachelansicht" title="Kachelansicht"><span class="list-view-mode-icon view-mode-detailed" aria-hidden="true"></span></button>
@@ -195,10 +195,10 @@
           <div class="section-title">
             <div>
               <h2>Gespeicherte Anzeigen</h2>
-              <p id="inventoryCount">0 Einträge</p>
+              <p id="inventoryCount">Wird geladen …</p>
             </div>
             <div class="section-actions">
-              <button id="clearInventoryButton" class="danger-button" type="button">Alle in Papierkorb</button>
+              <button id="clearInventoryButton" class="danger-button" type="button" disabled>Alle in Papierkorb</button>
             </div>
           </div>
         <div class="inventory-toolbar" aria-label="Inventarliste filtern und sortieren">
@@ -222,7 +222,7 @@
         </div>
           </div>
           </div>
-        <div id="inventoryList" class="inventory-list"></div>
+        <div id="inventoryList" class="inventory-list"><div class="list-load-state is-loading" role="status" aria-live="polite"><span class="list-load-spinner" aria-hidden="true"></span><strong>Inventar wird geladen …</strong></div></div>
       </section>
 
       <section id="trashSection" class="inventory-section hidden">
@@ -233,7 +233,7 @@
         <div class="section-title">
           <div>
             <h2>Papierkorb</h2>
-            <p id="trashCount">0 Einträge</p>
+            <p id="trashCount">Wird geladen …</p>
           </div>
           <div class="section-actions">
           </div>
@@ -241,7 +241,7 @@
         <div class="trash-intro"><span class="trash-intro-full">Die gespeicherte Papierkorb-Aufbewahrung wird ermittelt. Die Einträge bleiben sichtbar und können als Vorlage für eine neue Anzeige verwendet werden. Die Anzeige bei Kleinanzeigen bleibt unverändert. Eine neue Anzeige wird nur vorbereitet und niemals automatisch veröffentlicht. Einträge können nicht zurück ins Inventar verschoben werden.</span><span class="trash-intro-sticky">Papierkorb: Aufbewahrungsdauer wird ermittelt.</span></div>
         </div>
         </div>
-        <div id="trashList" class="inventory-list"></div>
+        <div id="trashList" class="inventory-list"><div class="list-load-state is-loading" role="status" aria-live="polite"><span class="list-load-spinner" aria-hidden="true"></span><strong>Papierkorb wird geladen …</strong></div></div>
       </section>
       </div>
     </main>
@@ -711,6 +711,7 @@
     <script src="inventory-card-renderer.js"></script>
     <script src="trash-card-renderer.js"></script>
     <script src="inventory-render-controller.js"></script>
+    <script src="inventory-loading-state.js"></script>
     <script src="renewal-dialog-controller.js"></script>
     <script src="inventory-candidate-model.js"></script>
     <script src="inventory-capture-view.js"></script>
