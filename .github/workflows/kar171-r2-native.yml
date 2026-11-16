@@ -23,3 +23,21 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           & .\tests\windows-native-host-wave1.ps1
+
+  full-gate:
+    name: Runtime, coverage and architecture against final clean tree
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: Install dependencies
+        run: npm ci
+      - name: Complete safety and coverage gate (exclude disposable workflow)
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm .github/workflows/kar171-r2-native.yml
+          bash scripts/coverage-gate.sh
