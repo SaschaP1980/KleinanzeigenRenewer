@@ -1125,8 +1125,11 @@
           return result('blocked','NATIVE_HOST_TRANSACTION_BLOCKED');
         }
         if(!nativeHostEvidence||!after){
+          const changed=Boolean(nativeHostEvidence);
           nativeHostEvidence=null;
-          return result('unverified','NATIVE_HOST_SOURCE_UNAVAILABLE');
+          return result('unverified',changed
+            ?'NATIVE_HOST_SOURCE_CHANGED_DURING_READ'
+            :'NATIVE_HOST_SOURCE_UNAVAILABLE');
         }
         if(JSON.stringify(nativeHostEvidence)!==JSON.stringify(after)){
           nativeHostEvidence=null;
