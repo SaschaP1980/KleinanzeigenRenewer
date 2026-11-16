@@ -32,7 +32,7 @@ jobs:
   one_shot_package:
     name: Owner-authorized exact-HEAD v1.24.4 Chrome ZIP only
     needs: diagnostic_tests
-    if: startsWith(github.event.head_commit.message, 'ci(KAR-191): build v1.24.4 base=')
+    if: "${{ startsWith(github.event.head_commit.message, 'ci(KAR-191): build v1.24.4 base=') }}"
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
