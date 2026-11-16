@@ -101,6 +101,7 @@ function init(db,verifyRemoteOutcome,worker='worker-new') {
   // live/account context INSIDE the origin Web Lock before durable commit.
   const strictDB=storage(),strictManager=require('./helpers/phase4-locks.cjs')();
   let lockHeld=false,liveName=req.profileId,networkReads=0,contextReads=0;
+  let stagedBeforeLock=0,stagedClosed=0,stagedVerify=0;
   const wrappedLocks={
     request:(name,opts,task)=>strictManager.lockManager.request(name,opts,async lock=>{
       lockHeld=true;try{return await task(lock);}finally{lockHeld=false;}
@@ -112,7 +113,16 @@ function init(db,verifyRemoteOutcome,worker='worker-new') {
       lockName:strictManager.lockName,workerInstanceId:'r1-commit-worker',
       clock:()=>123000,newToken:()=> 'r1-commit-attempt',
       verifyRemoteOutcome:entry=>{networkReads++;return proof(entry);},
-      requireCommitContext:true,verifyCommitContext:context
+      requireCommitContext:true,
+      prepareCommitContext:async original=>{
+        if(lockHeld||networkReads<1)throw Error('staging must follow remote proof outside lock');
+        stagedBeforeLock++;
+        return Object.freeze({tabId:82,close:async()=>{stagedClosed++;}});
+      },
+      verifyCommitContext:(original,witness)=>{
+        stagedVerify++;
+        return witness?.tabId===82&&context?.(original,witness)===true;
+      }
     });
   }
   const strictEntry=await strictPhase4(null).begin({...req,renewalId:'r1-commit'});
@@ -140,6 +150,8 @@ function init(db,verifyRemoteOutcome,worker='worker-new') {
   }).resolveVerified({renewalId:'r1-commit',attemptId:strictEntry.attemptId});
   ok(good.state==='resolved-confirmed'&&contextReads===1&&lockHeld===false,
     'R1: genuine read-only commit context is required inside origin Web Lock');
+  ok(stagedBeforeLock===stagedClosed&&stagedBeforeLock>=4&&stagedVerify>=4,
+    'R1: every staged live account witness is used under lock and closed on both denial and success');
   // R1: authenticated existing My Ads witness is a genuinely read-only
   // owner-source producer (no tab creation, account mutation or synthetic IDLE).
   const Additional=require('../src/background/services/additional-owner-observer.js');

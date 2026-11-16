@@ -4,6 +4,7 @@ on:
     branches: [work/KAR-171]
     paths:
       - tests/kar99-phase4-outcome-reconciliation.cjs
+      - tests/kar99-publish-outcome.cjs
       - src/background/services/additional-owner-observer.js
       - src/background/services/auto-publish-intent-journal.js
       - src/background/services/phase4-uncertainty-journal.js
@@ -20,4 +21,6 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: '22' }
       - name: R1 actual staged-account and negative source proof
-        run: node tests/kar99-phase4-outcome-reconciliation.cjs
+        run: |
+          node tests/kar99-phase4-outcome-reconciliation.cjs
+          node tests/kar99-publish-outcome.cjs

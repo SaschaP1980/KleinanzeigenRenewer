@@ -112,12 +112,21 @@ const create=(store,manager,worker='worker-1',verify=proof)=>Journal.create({
  // read-only live context bound inside the same origin Web Lock.
  const strictDisk=disk(),strictLocks=locks(),commitObservations=[];
  let liveContext='profile-1',remoteChecked=false;
+ let publishStaged=0,publishClosed=0;
  function strictPublish(commitProof){
    return Journal.create({storageLocal:strictDisk,lockManager:strictLocks,
      lockName:Atomic.LOCK_NAME,workerInstanceId:'r1-commit-worker',
      clock:()=>100000,newToken:()=> 'r1-commit-attempt',
      verifyRemoteOutcome:(i,id)=>{remoteChecked=true;return proof(i,id);},
-     requireCommitContext:true,verifyCommitContext:commitProof});
+     requireCommitContext:true,
+     prepareCommitContext:async()=>{
+       if(strictLocks.held.has(Atomic.LOCK_NAME)||!remoteChecked)
+         throw Error('commit witness prepared during lock or before remote');
+       publishStaged++;
+       return Object.freeze({tabId:88,close:async()=>{publishClosed++;}});
+     },
+     verifyCommitContext:(original,witness)=>
+       witness?.tabId===88&&commitProof?.(original,witness)===true});
  }
  const strictEntry=await strictPublish(null).begin({
    fillId:'r1-commit',workflowId:'r1-work',kind:'renewal',
@@ -142,6 +151,8 @@ const create=(store,manager,worker='worker-1',verify=proof)=>Journal.create({
  ok(strictConfirmed.state==='resolved-confirmed'&&commitObservations.length===1
     &&commitObservations[0].held===true&&commitObservations[0].attemptId===strictEntry.attemptId,
     'R1: stable live context is independently checked inside origin lock at durable commit');
+ ok(publishStaged===publishClosed&&publishStaged>=4,
+    'R1: staged read-only publication proof is always closed on deny or success');
  // R1: A publication result with an original P8 admission must be tied
  // to the real, unmodified START source throughout the independent scan.
  // The same immutable attempt may be inspected by a later Worker.
