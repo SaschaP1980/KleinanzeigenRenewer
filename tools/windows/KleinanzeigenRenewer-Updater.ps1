@@ -29,6 +29,7 @@ $StageRoot=Join-Path $Root 'Staging'
 $BackupRoot=Join-Path $Root 'Backups'
 $ReceiptPath=Join-Path $State 'active.json'
 $JournalPath=Join-Path $State 'pending.json'
+$ManualTransactionPath=Join-Path $State 'manual-transaction.json'
 $LogPath=Join-Path $State 'updater.jsonl'
 [void][IO.Directory]::CreateDirectory($State)
 $Lock=$null
@@ -50,6 +51,32 @@ function SaveJson([string]$File,$Data) {
  } finally { if (Test-Path -LiteralPath $temp) { Remove-Item -LiteralPath $temp -Force } }
 }
 function Digest([string]$File) { return (Get-FileHash -LiteralPath $File -Algorithm SHA256).Hash.ToLowerInvariant() }
+# R2: evidence produced only by the existing MANUAL Windows updater. The
+# origin is intentionally distinct from MV3. No P8 admission token, Worker
+# generation, NativeHost apply route or permission to activate the extension.
+# Every file mutation starts with a durable pending record; absence or crash
+# is never rewritten as a verified MV3 terminal result.
+function NewManualTransaction([string]$Action,$TargetVersion,$PriorDigest) {
+ return @{
+  schema=1;origin='manual-operator';transactionId=[Guid]::NewGuid().ToString('N')
+  command=$Action;phase='pending';workerGeneration=$null;admissionToken=$null
+  targetVersion=$TargetVersion;previousReceiptSha256=$PriorDigest
+  receiptSha256=$null;createdUtc=[DateTime]::UtcNow.ToString('o');completedUtc=$null
+ }
+}
+function FinishManualTransaction($Transaction) {
+ $Transaction.phase='files-installed'
+ $Transaction.receiptSha256=Digest $ReceiptPath
+ $Transaction.completedUtc=[DateTime]::UtcNow.ToString('o')
+ SaveJson $ManualTransactionPath $Transaction
+}
+function InvalidateManualOnRecovery {
+ # A legacy standalone pending.json contains no original MV3 transaction ID.
+ # Even a successful file restore must not replay an older terminal witness.
+ $unbound=NewManualTransaction 'recover' $null $null
+ $unbound.phase='recovery-unbound'
+ SaveJson $ManualTransactionPath $unbound
+}
 function RequireIdle {
  if (-not $TestMode) {
   Require (@(Get-Process -Name chrome -ErrorAction SilentlyContinue).Count -eq 0) 'Close ALL Chrome processes: no update may interrupt a running ad workflow'
@@ -161,6 +188,7 @@ function RestoreJournal {
  RequireIdle
  $j=ReadJson $JournalPath
  Require ($j.schema -eq 1 -and [string]$j.backup -cmatch '^backup-[a-f0-9]{32}$') 'Unsafe transaction journal'
+ InvalidateManualOnRecovery
  $previous=Join-Path $BackupRoot ([string]$j.backup)
  if ($j.hadPrevious -eq $true) {
   if (Test-Path -LiteralPath $previous) {
@@ -193,6 +221,9 @@ function Apply-Install([string]$Ready,$Receipt) {
  if ($hadOld) { $old=ReadJson $ReceiptPath;Proof $Live $old }
  $backup='backup-'+[Guid]::NewGuid().ToString('N')
  [void][IO.Directory]::CreateDirectory($BackupRoot)
+ $priorDigest=if ($hadOld) { Digest $ReceiptPath } else { $null }
+ $manualTxn=NewManualTransaction $Command ([string]$Receipt.version) $priorDigest
+ SaveJson $ManualTransactionPath $manualTxn
  SaveJson $JournalPath @{schema=1;backup=$backup;hadPrevious=$hadOld;receipt=$old;target=[string]$Receipt.version}
  try {
   RequireIdle
@@ -204,6 +235,7 @@ function Apply-Install([string]$Ready,$Receipt) {
   Proof $Live $Receipt
   SaveJson $ReceiptPath $Receipt
   Remove-Item -LiteralPath $JournalPath -Force
+  FinishManualTransaction $manualTxn
   Event 'FILES_INSTALLED_RELOAD_REQUIRED' ("version={0} zipSha256={1} commit={2}" -f $Receipt.version,$Receipt.sha256,$Receipt.commit)
  } catch {
   $problem=$_.Exception.Message
