@@ -1,0 +1,25 @@
+name: KAR-171 R2 manual transaction identity (temporary)
+on:
+  push:
+    branches: [work/KAR-171]
+    paths:
+      - tools/windows/KleinanzeigenRenewer-Updater.ps1
+      - tests/windows-updater-phase1.ps1
+      - .github/workflows/kar171-r2-manual.yml
+permissions:
+  contents: read
+jobs:
+  native-manual:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    env:
+      CI: 'true'
+      KAR_UPDATER_TEST_MODE: '1'
+    steps:
+      - uses: actions/checkout@v5
+        with: { persist-credentials: false }
+      - name: Windows offline transaction and interrupted recovery proof
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & .\tests\windows-updater-phase1.ps1
