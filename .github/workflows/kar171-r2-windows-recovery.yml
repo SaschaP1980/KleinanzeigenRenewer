@@ -5,6 +5,10 @@ on:
     paths:
       - tools/windows/KleinanzeigenRenewer-Updater.ps1
       - tests/windows-updater-phase1.ps1
+      - tools/windows/KleinanzeigenRenewer.NativeHost.cs
+      - tests/windows-native-host-wave1.ps1
+      - tests/v12319-version-architecture.cjs
+      - tests/v12320-final-closure.cjs
       - .github/workflows/kar171-r2-windows-recovery.yml
 permissions:
   contents: read
@@ -23,3 +27,37 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           & .\tests\windows-updater-phase1.ps1
+
+  native-host:
+    name: Independent Windows NativeHost negative oracle
+    runs-on: windows-latest
+    timeout-minutes: 15
+    env:
+      CI: 'true'
+      KAR_UPDATER_TEST_MODE: '1'
+      KAR_NATIVE_HOST_TEST_MODE: '1'
+    steps:
+      - uses: actions/checkout@v5
+        with: { persist-credentials: false }
+      - name: NativeHost read-only pending/install/rollback fixture
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & .\tests\windows-native-host-wave1.ps1
+  full-gate:
+    name: Full final-tree safety, runtime and coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: Install dependencies
+        run: npm ci
+      - name: Verify same source without temporary workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm .github/workflows/kar171-r2-windows-recovery.yml
+          bash scripts/coverage-gate.sh
