@@ -1371,8 +1371,16 @@
       if(typeof workflowId!=='string'||!PROFILE.test(workflowId)||
          typeof original.profileId!=='string'||!original.profileId.trim()||
          typeof original.sourceAdId!=='string')return null;
+      const workerId=original.workerInstanceId??null;
+      const p8Token=original.admissionToken??null;
+      if((workerId!==null&&(!PROFILE.test(workerId)||typeof workerId!=='string'))||
+         (p8Token!==null&&(!PROFILE.test(p8Token)||typeof p8Token!=='string')))
+        return null;
+      // The staged witness is owned by this EXACT persisted remote attempt.
+      // Origin Worker and P8 token cannot be substituted while reusing its tab.
       return JSON.stringify([sourceKind,workflowId,original.attemptId??null,
-        original.fillId??null,original.profileId,original.sourceAdId,
+        workerId,p8Token,original.fillId??null,
+        original.profileId,original.sourceAdId,
         original.newAdId??null,original.targetTabId??null]);
     }
     async function prepareRemoteCommitContextReadOnly(original,sourceKind){
@@ -1413,7 +1421,9 @@
           preparedRemoteWitnesses.delete(witness);
           await closeManagedWorkerTab(tabId);
         }});
-        preparedRemoteWitnesses.set(witness,Object.freeze({identity,url:status.url}));
+        preparedRemoteWitnesses.set(witness,Object.freeze({
+          identity,url:status.url,profileName:label(status.profileName)
+        }));
         return witness;
       }catch(e){
         if(tabId)await Promise.resolve().then(()=>closeManagedWorkerTab(tabId)).catch(()=>{});
@@ -1427,9 +1437,15 @@
           typeof queryBrowserTabsReadOnly!=='function')return false;
       try{
         const tabs=await queryBrowserTabsReadOnly();
-        return Array.isArray(tabs)&&tabs.length>0&&
-          tabs.filter(t=>record(t)&&t.id===witness.tabId&&
-            t.url===binding.url&&isMyAdsTab(t)).length===1;
+        if(!Array.isArray(tabs)||tabs.filter(t=>record(t)&&
+          t.id===witness.tabId&&t.url===binding.url&&isMyAdsTab(t)).length!==1)
+          return false;
+        // Browser URL identity alone is insufficient: the authenticated
+        // account may change while the same My Ads tab URL stays unchanged.
+        const status=await readAccountPageStatusReadOnly(witness.tabId);
+        return record(status)&&status.pageType==='my-ads'&&
+          status.url===binding.url&&status.auth?.loggedIn===true&&
+          label(status.profileName)===binding.profileName;
       }catch{return false;}
     }
 // R1 private, read-only COMMIT witness: this is account/profile continuity,
