@@ -1013,7 +1013,15 @@
               status:h.status,journal:h.journal,lock:h.lock,receipt:h.receipt,
               transactionPhase:h.transactionPhase,
               journalFingerprint:h.journalFingerprint,
-              receiptFingerprint:h.receiptFingerprint,identityBound:false
+              receiptFingerprint:h.receiptFingerprint,
+              // Manual updater evidence is separate from the immutable MV3
+              // origin token, P8 record and prior Worker generation.
+              manualTransaction:h.manualTransaction ?? null,
+              manualTransactionId:h.manualTransactionId ?? null,
+              manualTransactionFingerprint:h.manualTransactionFingerprint ?? null,
+              manualTransactionOrigin:h.manualTransactionOrigin ?? null,
+              manualReceiptMatches:h.manualReceiptMatches === true,
+              identityBound:false
             });
           }
         }catch{/* Unavailable native source is unknown, never IDLE. */}
