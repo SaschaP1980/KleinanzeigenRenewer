@@ -163,6 +163,33 @@
       return entry;
       });
     }
+    // R1: if the original intent carried a real P8 token, independently
+    // revalidate its durable origin (not a caller-supplied claimed generation)
+    // under the same origin lock before AND after remote navigation. A missing
+    // or changed original worker receipt must never produce a positive result.
+    // Historical tokenless receipts remain legible, but do not gain updater
+    // authority from this read-only verifier.
+    async function originalP8Signature(original) {
+      if (!Object.hasOwn(original,'admissionToken')) return null;
+      const token=original.admissionToken;
+      const rows=await read([P8_START+token,P8_FINISH+token]);
+      const start=rows[P8_START+token],finish=rows[P8_FINISH+token];
+      if (!isRecord(start) || Object.keys(start).length!==6
+          || start.schema!==1 || start.state!=='admitted'
+          || start.token!==token || !P8_ALLOWED.has(start.operationType)
+          || start.workerInstanceId!==original.workerInstanceId
+          || !Number.isSafeInteger(start.startedAtMs)
+          || start.startedAtMs<0 || start.startedAtMs>original.createdAtMs)
+        throw denied('KR_PHASE4_JOURNAL_UNVERIFIED');
+      if (finish!==undefined &&
+          (!isRecord(finish) || Object.keys(finish).length!==5
+            || finish.schema!==1 || finish.state!=='completed'
+            || finish.token!==token || finish.workerInstanceId!==start.workerInstanceId
+            || !Number.isSafeInteger(finish.completedAtMs)
+            || finish.completedAtMs<original.createdAtMs))
+        throw denied('KR_PHASE4_JOURNAL_UNVERIFIED');
+      return JSON.stringify([start,finish??null]);
+    }
     // Caller cannot supply its own proof. The worker-owned verifier performs
     // fresh My Ads source+target checks and returns a grounded result.
     // This remains distinct from cross-worker arbitration (P8).
@@ -171,10 +198,12 @@
         throw denied('KR_PHASE4_JOURNAL_IDENTITY');
       // Initial validation and final durable commit share the origin-wide
       // mutex with admission/reserve, but NEVER hold it over remote navigation.
+      let originSignature;
       const original = await withAtomic(async () => {
         const before = await observe(renewalId);
         if (before.attempts.length !== 1 || before.attempts[0].attemptId !== attemptId)
           throw denied('KR_PHASE4_JOURNAL_UNRESOLVED');
+        originSignature=await originalP8Signature(before.attempts[0]);
         return before.attempts[0];
       });
       if (typeof verifyRemoteOutcome !== 'function')
@@ -198,6 +227,8 @@
       const after = await observe(renewalId);
       if (after.attempts.length !== 1 || !exactlySame(after.attempts[0], original))
         throw denied('KR_PHASE4_JOURNAL_UNRESOLVED');
+      if (await originalP8Signature(original) !== originSignature)
+        throw denied('KR_PHASE4_JOURNAL_UNVERIFIED');
       if (after.resolutions.length) {
         const prior = after.resolutions[0];
         if (!validateResolution(prior, RESOLUTION_PREFIX + renewalId + '_' + attemptId, original))
