@@ -20,7 +20,16 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: R1 publication outcome journal and original P8 origin
+      - name: Install dependencies for full R1 safety gate
+        run: npm ci
+      - name: All focused R1 publication, replacement and origin lineage regressions
         run: |
           node tests/kar99-publish-outcome.cjs
           node tests/kar175-publish-intent-authorization.cjs
+          node tests/kar99-phase4-outcome-reconciliation.cjs
+          node --test tests/kar99-p13f2e2d2a-remote-admission-lineage.cjs
+      - name: Complete clean-tree runtime, coverage and architecture gates
+        shell: bash
+        run: |
+          rm .github/workflows/kar171-r1-publish.yml
+          bash scripts/coverage-gate.sh
