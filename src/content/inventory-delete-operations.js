@@ -178,13 +178,24 @@
     return false;
   }
 
-  async function scanOwnAdsAcrossPages(adId) {
+  async function scanOwnAdsAcrossPages(adId, { expectedProfileName = '' } = {}) {
     const wanted = String(adId || '');
+    // Only authenticated remote-outcome probes supply this expected account.
+    // The generic inventory lookup and delete flows retain their own account
+    // admission; no missing/changed page identity may confirm an R1 result.
+    const expectedAccount = normalizeKey(expectedProfileName);
+    const assertSameAccount = () => {
+      if (expectedAccount && (!isMyAdsProjectsUrl()
+          || normalizeKey(detectedProfileName(document)) !== expectedAccount))
+        throw new Error('KR_MY_ADS_ACCOUNT_CHANGED_DURING_SCAN');
+    };
     const seenPageStates = new Set();
     const pages = [];
     for (let pageGuard = 0; pageGuard < MAX_PHASE4_PAGES; pageGuard += 1) {
       if (!isMyAdsProjectsUrl()) throw new Error('Phase 4 hat die Ansicht „Meine Anzeigen“ / PROJECTS verlassen; Abbruch aus Sicherheitsgründen.');
+      assertSameAccount();
       const listings = await waitForListings();
+      assertSameAccount(); // Account can change while listings are loading.
       const page = currentPageNumber();
       const fingerprint = pageFingerprint();
       const stateKey = `${page}|${location.href}|${fingerprint}`;
@@ -201,6 +212,7 @@
       const beforeFingerprint = fingerprint;
       next.click();
       if (!await waitForPageChange(beforePage, beforeFingerprint)) throw new Error('Nächste Seite von „Meine Anzeigen“ konnte nicht geladen werden.');
+      assertSameAccount(); // Never continue a result across a changed login.
       await sleep(250);
     }
     throw new Error(`Mehr als ${MAX_PHASE4_PAGES} Seiten in „Meine Anzeigen“ erkannt; Abbruch aus Sicherheitsgründen.`);
@@ -301,11 +313,11 @@
     };
   }
 
-  async function findOwnAdById(adId, correlation = {}, { notFoundSeverity = 'warning', expectedAbsent = false } = {}) {
+  async function findOwnAdById(adId, correlation = {}, { notFoundSeverity = 'warning', expectedAbsent = false, expectedProfileName = '' } = {}) {
     const wanted = String(adId || '');
     if (!/^\d+$/.test(wanted)) throw new Error('Anzeigen-ID ist ungültig.');
     if (!isMyAdsProjectsUrl()) throw new Error('Anzeige kann nur über „Meine Anzeigen“ mit tab=PROJECTS gesucht werden.');
-    const scan = await scanOwnAdsAcrossPages(wanted);
+    const scan = await scanOwnAdsAcrossPages(wanted, { expectedProfileName });
     if (!scan.found) {
       diagnostic('RENEWAL_MY_ADS_FALLBACK_NOT_FOUND', { adId: wanted, pagesScanned: scan.pagesScanned, expectedAbsent: Boolean(expectedAbsent) }, notFoundSeverity, correlation);
       return { found: false, adId: wanted, pagesScanned: scan.pagesScanned, evidence: 'not-in-my-ads-full-pagination-scan' };
@@ -327,11 +339,11 @@
     return result;
   }
 
-  async function verifyOwnAdAbsentById(adId, correlation = {}) {
+  async function verifyOwnAdAbsentById(adId, correlation = {}, { expectedProfileName = '' } = {}) {
     const wanted = String(adId || '');
     if (!/^\d+$/.test(wanted)) throw new Error('Quell-Anzeigen-ID ist ungültig.');
     if (!isMyAdsProjectsUrl()) throw new Error('Quellanzeige kann nur über „Meine Anzeigen“ mit tab=PROJECTS verifiziert werden.');
-    const found = await findOwnAdById(wanted, correlation, { notFoundSeverity: 'info', expectedAbsent: true });
+    const found = await findOwnAdById(wanted, correlation, { notFoundSeverity: 'info', expectedAbsent: true, expectedProfileName });
     if (found.found) {
       diagnostic('RENEWAL_SOURCE_DELETE_VERIFICATION_FAILED', { adId: wanted, foundPage: found.page, pagesScanned: found.pagesScanned }, 'warning', correlation);
       return { verified: false, adId: wanted, foundPage: found.page, pagesScanned: found.pagesScanned, evidence: 'source-still-present' };
