@@ -88,9 +88,10 @@ const reviewedR1StagedCommitAccountSource = reviewedR1RemoteCommitAccountSource 
 const reviewedR2PrivateNativeInspector = 
   fs.readFileSync('src/background/services/native-update-status-gateway.js','utf8').includes("const inspectReadOnly=()=>requestInternal('inspect_transaction',true);") &&
   fs.readFileSync('src/background/background.js','utf8').includes('readNativeTransactionReadOnly:async()=>') &&
-  fs.readFileSync('src/background/services/additional-owner-observer.js','utf8').includes('nativeHostEvidence=Object.freeze(') &&
+  fs.readFileSync('src/background/services/additional-owner-observer.js','utf8').includes('const readNativeEvidence=async()=>') &&
   fs.readFileSync('tests/kar68-native-status-gateway.cjs','utf8').includes('privateInspector.inspectReadOnly()') &&
-  fs.readFileSync('tests/kar99-p13-native-transaction-closure.cjs','utf8').includes('R2 private Windows pending transaction blocks');
+  fs.readFileSync('tests/kar99-p13-native-transaction-closure.cjs','utf8').includes('R2 private Windows pending transaction blocks') &&
+  fs.readFileSync('tests/kar99-p13-native-transaction-closure.cjs','utf8').includes('native Windows transaction starting during five local reads');
 
 const kar134SchemaRuntime = fs.existsSync('src/shared/template-schema-core.js') && fs.existsSync('src/content/template-schema-preflight.js') ? 2 : 0;
 const kar134SchemaPublic = kar134SchemaRuntime && typeof require('../src/shared/template-schema-core.js').fingerprint === 'function' && typeof require('../src/content/template-schema-preflight.js').create === 'function' ? 8 : 0;
