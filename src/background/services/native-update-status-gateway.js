@@ -42,6 +42,55 @@
       return Object.freeze({ ok: true, operation: 'health', hostVersion: '1',
         capabilities: Object.freeze([...message.capabilities]) });
     }
+    if (operation === 'inspect_transaction') {
+      // Native-only, negative-authorization Windows inspection. Untrusted
+      // page/app messages never reach this path: request() remains health/check.
+      // A file fingerprint or missing journal cannot prove the P8 token.
+      const fields=['protocol','requestId','ok','operation','status','journal','lock',
+        'transactionPhase','journalFormat','journalFingerprint','receipt',
+        'receiptFormat','receiptFingerprint','receiptVersion','identityBound',
+        'nativeOutcomeVerified','rollbackVerified','eligibleForLease'];
+      const state=new Set(['present','absent','unknown']);
+      const fingerprint=x=>x===null||(typeof x==='string'&&SHA.test(x));
+      if (!sameKeys(message,fields) || message.operation!=='inspect_transaction'
+        || !['blocked','unverified'].includes(message.status)
+        || !state.has(message.journal)||!state.has(message.lock)
+        || !state.has(message.receipt)
+        || message.status!==(message.journal==='present'||message.lock==='present'
+          ?'blocked':'unverified')
+        || message.transactionPhase!==(message.journal==='present'
+          ?'pending-install-or-rollback':message.lock==='present'
+            ?'lock-unverified':'unknown')
+        || !['legacy-pending','malformed','unknown'].includes(message.journalFormat)
+        || !['legacy-installed','malformed','unknown'].includes(message.receiptFormat)
+        || !fingerprint(message.journalFingerprint)
+        || !fingerprint(message.receiptFingerprint)
+        || (message.journalFormat==='unknown'&&message.journalFingerprint!==null)
+        || (message.receiptFormat==='unknown'&&message.receiptFingerprint!==null)
+        || (message.journal!=='present' &&
+          (message.journalFormat!=='unknown'||message.journalFingerprint!==null))
+        || (message.receipt!=='present' &&
+          (message.receiptFormat!=='unknown'||message.receiptFingerprint!==null))
+        || (message.journalFormat!=='unknown'&&message.journalFingerprint===null)
+        || (message.receiptFormat!=='unknown'&&message.receiptFingerprint===null)
+        || (message.journalFormat==='legacy-pending'&&message.journal!=='present')
+        || (message.receiptFormat==='legacy-installed'
+          ?typeof message.receiptVersion!=='string'||!VERSION.test(message.receiptVersion)
+          :message.receiptVersion!==null)
+        || message.identityBound!==false||message.nativeOutcomeVerified!==false
+        || message.rollbackVerified!==false||message.eligibleForLease!==false)
+        return failure('INVALID_RESPONSE');
+      return Object.freeze({
+        ok:true,operation:'inspect_transaction',
+        status:message.status,journal:message.journal,lock:message.lock,
+        transactionPhase:message.transactionPhase,
+        journalFormat:message.journalFormat,journalFingerprint:message.journalFingerprint,
+        receipt:message.receipt,receiptFormat:message.receiptFormat,
+        receiptFingerprint:message.receiptFingerprint,receiptVersion:message.receiptVersion,
+        identityBound:false,nativeOutcomeVerified:false,
+        rollbackVerified:false,eligibleForLease:false
+      });
+    }
     if (!sameKeys(message, ['protocol', 'requestId', 'ok', 'operation', 'installed', 'approved', 'sha256', 'sourceCommit'])
       || message.operation !== 'check' || typeof message.installed !== 'string'
       || (message.installed !== 'not installed' && !VERSION.test(message.installed))
@@ -65,8 +114,10 @@
     let busy = false;
     const issued = new Set();
     const order = [];
-    async function request(operation) {
-      if (!allowed.has(operation)) return failure('OPERATION_DENIED');
+    async function requestInternal(operation, privatelyAuthorized = false) {
+      if (!allowed.has(operation) &&
+          !(privatelyAuthorized && operation === 'inspect_transaction'))
+        return failure('OPERATION_DENIED');
       if (busy) return failure('BUSY');
       busy = true;
       let timeoutId;
@@ -97,7 +148,10 @@
         busy = false;
       }
     }
-    return Object.freeze({ request });
+    // App status remains health/check-only; no untrusted IPC added.
+    const request=operation=>requestInternal(operation,false);
+    const inspectReadOnly=()=>requestInternal('inspect_transaction',true);
+    return Object.freeze({ request, inspectReadOnly });
   }
 
   const api = Object.freeze({ create, verify });
