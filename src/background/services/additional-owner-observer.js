@@ -158,11 +158,15 @@
   const unknown=reason=>Object.freeze({state:'unknown',reason});
   function create({storageLocal,storageSession,workerInstanceId=null,clock=()=>Date.now(),
     queryBrowserTabsReadOnly=null,readAccountPageStatusReadOnly=null,
+    createManagedWorkerTab=null,waitForTabComplete=null,
+    ensureContentConnection=null,closeManagedWorkerTab=null,
+    myAdsProjectsUrl=null,tabLoadTimeoutMs=null,
     getAtomicAdmissionCoordinator=null}={}) {
     if(typeof storageLocal?.get!=='function'||typeof storageSession?.get!=='function'
        ||typeof clock!=='function')throw Error('supplemental owner observer requires read-only storage and clock');
     const pending=new Map(OWNERS.map(n=>[n,0]));
     const worker=typeof workerInstanceId==='string'&&PROFILE.test(workerInstanceId)?workerInstanceId:null;
+    const preparedRemoteWitnesses=new WeakMap();
     function snapshotInFlight(){return Object.freeze(Object.fromEntries(OWNERS.map(n=>[n,pending.get(n)])));}
     const label=value=>typeof value==='string'?value.replace(/\s+/g,' ').trim().toLocaleLowerCase('de-DE'):'';
     function isMyAdsTab(tab){
@@ -1293,13 +1297,87 @@
       // callback; this is never a positive update lease.
       return coordinator.guardReserve(capture,worker);
     }
+    // R1: prepare a fresh, owned, authenticated My Ads context BEFORE the
+    // shared origin Web Lock is entered. No navigation or remote mutation is
+    // allowed while the lock is held. The short-lived handle never persists
+    // to storage, crosses a message boundary or authorizes updater IDLE.
+    function remoteCommitIdentity(original,sourceKind){
+      if(!record(original)||!['phase4','publish'].includes(sourceKind))return null;
+      const workflowId=sourceKind==='phase4'?original.renewalId:original.workflowId;
+      if(typeof workflowId!=='string'||!PROFILE.test(workflowId)||
+         typeof original.profileId!=='string'||!original.profileId.trim()||
+         typeof original.sourceAdId!=='string')return null;
+      return JSON.stringify([sourceKind,workflowId,original.attemptId??null,
+        original.fillId??null,original.profileId,original.sourceAdId,
+        original.newAdId??null,original.targetTabId??null]);
+    }
+    async function prepareRemoteCommitContextReadOnly(original,sourceKind){
+      const identity=remoteCommitIdentity(original,sourceKind);
+      if(!identity||typeof myAdsProjectsUrl!=='string'||!isMyAdsTab({url:myAdsProjectsUrl})||
+          !Number.isSafeInteger(tabLoadTimeoutMs)||tabLoadTimeoutMs<=0||
+          [createManagedWorkerTab,waitForTabComplete,ensureContentConnection,
+            closeManagedWorkerTab,readAccountPageStatusReadOnly,
+            queryBrowserTabsReadOnly].some(fn=>typeof fn!=='function))
+        throw Error('KR_REMOTE_COMMIT_WITNESS_UNAVAILABLE');
+      let tabId=null;
+      try{
+        const archive=sourceKind==='publish'&&original.kind==='archive';
+        const t=await createManagedWorkerTab({
+          url:myAdsProjectsUrl,active:false
+        },'r1-independent-commit-account',{
+          ownerType:archive?'archive-insertion':'renewal',
+          ownerId:sourceKind==='phase4'?original.renewalId:original.workflowId,
+          phaseAttemptId:original.attemptId,readOnly:true
+        });
+        if(!Number.isSafeInteger(t?.id)||t.id<=0)
+          throw Error('KR_REMOTE_COMMIT_WITNESS_UNVERIFIED');
+        tabId=t.id;
+        await waitForTabComplete(tabId,{timeoutMs:tabLoadTimeoutMs,
+          purpose:'r1-independent-commit-account',
+          label:'Unabhängiger Kontonachweis',operation:'read-only-account',
+          context:{workerTabId:tabId}});
+        await ensureContentConnection({tabId});
+        const status=await readAccountPageStatusReadOnly(tabId);
+        if(!record(status)||status.pageType!=='my-ads'||
+          status.auth?.loggedIn!==true||!label(status.profileName)||
+          !isMyAdsTab({url:status.url}))
+          throw Error('KR_REMOTE_COMMIT_WITNESS_UNVERIFIED');
+        let closed=false;
+        const witness=Object.freeze({tabId,close:async()=>{
+          if(closed)return;
+          closed=true;
+          preparedRemoteWitnesses.delete(witness);
+          await closeManagedWorkerTab(tabId);
+        }});
+        preparedRemoteWitnesses.set(witness,Object.freeze({identity,url:status.url}));
+        return witness;
+      }catch(e){
+        if(tabId)await Promise.resolve().then(()=>closeManagedWorkerTab(tabId)).catch(()=>{});
+        throw e;
+      }
+    }
+    async function stagedTabIsCurrent(witness,identity){
+      const binding=record(witness)?preparedRemoteWitnesses.get(witness):null;
+      if(!binding||binding.identity!==identity||
+          !Number.isSafeInteger(witness.tabId)||witness.tabId<=0||
+          typeof queryBrowserTabsReadOnly!=='function')return false;
+      try{
+        const tabs=await queryBrowserTabsReadOnly();
+        return Array.isArray(tabs)&&tabs.length>0&&
+          tabs.filter(t=>record(t)&&t.id===witness.tabId&&
+            t.url===binding.url&&isMyAdsTab(t)).length===1;
+      }catch{return false;}
+    }
 // R1 private, read-only COMMIT witness: this is account/profile continuity,
 // NEVER a 15-owner IDLE certificate or permission to reserve/apply updates.
 // It reads already-open authenticated My Ads tabs through the established
 // owner observer. No tab creation, profile mutation, NativeHost or IPC.
-async function verifyRemoteCommitContextReadOnly(original, sourceKind) {
+async function verifyRemoteCommitContextReadOnly(original, sourceKind, witness=null) {
   const isRecord = x => x !== null && typeof x === 'object' && !Array.isArray(x);
   if (!isRecord(original) || !['phase4','publish'].includes(sourceKind)) return false;
+  const identity=remoteCommitIdentity(original,sourceKind);
+  if(!identity||(witness!==null&&!(await stagedTabIsCurrent(witness,identity))))
+    return false;
   const keys = ['profilesV1', 'activeDetectedProfileV1',
     'selectedInventoryProfileV1','renewalSessionsV1',
     'archiveInsertionSessionsV1','templateFillSessions'];
@@ -1310,6 +1388,7 @@ async function verifyRemoteCommitContextReadOnly(original, sourceKind) {
     last = await storageLocal.get(keys);
   } catch { return false; }
   if (!isRecord(first) || !isRecord(last) ||
+      (witness!==null&&!(await stagedTabIsCurrent(witness,identity))) ||
       JSON.stringify(first) !== JSON.stringify(last) ||
       observed?.schema !== 1 || observed.eligibleForLease !== false ||
       observed.context?.profile?.state !== 'matched' ||
@@ -1353,7 +1432,7 @@ async function verifyRemoteCommitContextReadOnly(original, sourceKind) {
     String(fill.sourceAdId || '') === original.sourceAdId;
 }
 
-    return Object.freeze({observe,observeAll,verifyRemoteCommitContextReadOnly,inspectAllOwnerClosureReadOnly,track,snapshotInFlight,readVerifiedUnmanagedTabsReadOnly,inspectDiagnosticExportClosureReadOnly,inspectTrashMutationClosureReadOnly,inspectSingleInventoryClosureReadOnly,inspectProfileTransitionClosureReadOnly,inspectAccountTransitionClosureReadOnly,inspectEmergencyRecoveryClosureReadOnly,inspectManagedTabsClosureReadOnly,inspectNativeUpdateTransactionClosureReadOnly});
+    return Object.freeze({observe,observeAll,prepareRemoteCommitContextReadOnly,verifyRemoteCommitContextReadOnly,inspectAllOwnerClosureReadOnly,track,snapshotInFlight,readVerifiedUnmanagedTabsReadOnly,inspectDiagnosticExportClosureReadOnly,inspectTrashMutationClosureReadOnly,inspectSingleInventoryClosureReadOnly,inspectProfileTransitionClosureReadOnly,inspectAccountTransitionClosureReadOnly,inspectEmergencyRecoveryClosureReadOnly,inspectManagedTabsClosureReadOnly,inspectNativeUpdateTransactionClosureReadOnly});
   }
   const API=Object.freeze({create,OWNERS,ownersForOperation});
   globalThis.KRDeps?.register?.('KRAdditionalOwnerObserver',API);
