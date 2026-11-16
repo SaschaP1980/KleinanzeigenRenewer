@@ -251,3 +251,53 @@ test('R2 native host unavailable, forged identity or false success never grants 
    assert.equal(d.writes,0);
  }
 });
+
+test('R2 genuine manual Windows pending artifact blocks despite absent local P8 transaction',async()=>{
+ const d=disk();
+ const o=Owners.create({storageLocal:d,storageSession:{async get(){return {}}},
+   workerInstanceId:'current-worker',clock:()=>5000,
+   readNativeTransactionReadOnly:async()=>({
+     ok:true,operation:'inspect_transaction',status:'blocked',
+     journal:'absent',lock:'absent',receipt:'present',transactionPhase:'unknown',
+     journalFormat:'unknown',journalFingerprint:null,
+     receiptFormat:'legacy-installed',receiptFingerprint:'c'.repeat(64),
+     manualPresence:'present',manualTransaction:'pending',
+     manualTransactionId:'a'.repeat(32),manualTransactionFingerprint:'b'.repeat(64),
+     manualTransactionOrigin:'manual-operator',manualReceiptMatches:false,
+     identityBound:false,nativeOutcomeVerified:false,rollbackVerified:false,
+     eligibleForLease:false
+   })});
+ const proof=await o.inspectNativeUpdateTransactionClosureReadOnly();
+ invariant(proof);assert.equal(proof.status,'blocked');
+ assert.equal(proof.reason,'NATIVE_HOST_TRANSACTION_BLOCKED');
+ assert.equal(proof.nativeHostEvidence.manualTransaction,'pending');
+ assert.equal(proof.nativeHostEvidence.manualTransactionId,'a'.repeat(32));
+ assert.equal(proof.nativeHostEvidence.manualReceiptMatches,false);
+ assert.equal(d.writes,0);
+});
+test('R2 matching manual file-receipt evidence is never original Worker P8 terminality',async()=>{
+ const d=disk();d.rows[KEY]=released();
+ const o=Owners.create({storageLocal:d,storageSession:{async get(){return {}}},
+   workerInstanceId:'current-worker',clock:()=>5000,
+   readNativeTransactionReadOnly:async()=>({
+     ok:true,operation:'inspect_transaction',status:'unverified',
+     journal:'absent',lock:'absent',receipt:'present',transactionPhase:'unknown',
+     journalFormat:'unknown',journalFingerprint:null,
+     receiptFormat:'legacy-installed',receiptFingerprint:'c'.repeat(64),
+     manualPresence:'present',manualTransaction:'files-installed-unbound',
+     manualTransactionId:'a'.repeat(32),manualTransactionFingerprint:'b'.repeat(64),
+     manualTransactionOrigin:'manual-operator',manualReceiptMatches:true,
+     identityBound:false,nativeOutcomeVerified:false,rollbackVerified:false,
+     eligibleForLease:false
+   })});
+ const proof=await o.inspectNativeUpdateTransactionClosureReadOnly();
+ invariant(proof);
+ assert.equal(proof.status,'local-release-recorded');
+ assert.equal(proof.localReleaseRecorded,true);
+ assert.equal(proof.nativeHostEvidence.manualTransaction,'files-installed-unbound');
+ assert.equal(proof.nativeHostEvidence.manualReceiptMatches,true);
+ assert.equal(proof.nativeHostEvidence.manualTransactionOrigin,'manual-operator');
+ assert.equal(proof.nativeHostEvidence.manualTransactionId,'a'.repeat(32));
+ assert.equal(proof.nativeHostOutcomeVerified,false);
+ assert.equal(d.writes,0);
+});
