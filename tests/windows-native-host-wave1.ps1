@@ -166,11 +166,63 @@ try {
   Check ($proof.transactionPhase -ceq 'unknown' -and $proof.identityBound -eq $false -and
     $proof.journalFormat -ceq 'unknown' -and $null -eq $proof.journalFingerprint)
     'R2 no journal is unknown, not a verified terminal transaction'
+  Check ($proof.receipt -ceq 'absent' -and $proof.receiptFormat -ceq 'unknown' -and
+    $null -eq $proof.receiptFingerprint -and $null -eq $proof.receiptVersion -and
+    $proof.nativeOutcomeVerified -eq $false)
+    'R2 missing active.json is not a terminal native transaction'
   Check (-not (Test-Path -LiteralPath $inspectRoot)) 'native inspector never creates missing state root'
   $state=Join-Path $inspectRoot 'State'
   [void][IO.Directory]::CreateDirectory($state)
   $pending=Join-Path $state 'pending.json'
   $lockFile=Join-Path $state 'updater.lock'
+  # R2: the manual Windows updater writes active.json independently of MV3.
+  # Its exact stable bytes are observable, but it contains NO Worker token,
+  # original update transaction ID, or proof of browser activation.
+  $activePath=Join-Path $state 'active.json'
+  $activeSample=@{schema=1;version='1.24.2';sha256=('a'*64);bytes=4096;
+    commit=('b'*40);files=@(@{path='manifest.json';sha256=('c'*64)});
+    activation='reload-required';createdUtc='2026-11-16T05:00:00Z'}
+  [IO.File]::WriteAllText($activePath,($activeSample|ConvertTo-Json -Compress -Depth 8))
+  $receiptHash=(Get-FileHash -LiteralPath $activePath -Algorithm SHA256).Hash.ToLowerInvariant()
+  $activeProof=Run-Host $inspectRequest
+  Check ($activeProof.receipt -ceq 'present' -and
+    $activeProof.receiptFormat -ceq 'legacy-installed' -and
+    $activeProof.receiptVersion -ceq '1.24.2' -and
+    $activeProof.receiptFingerprint -ceq $receiptHash -and
+    $activeProof.nativeOutcomeVerified -eq $false -and
+    $activeProof.rollbackVerified -eq $false -and
+    $activeProof.identityBound -eq $false -and
+    $activeProof.eligibleForLease -eq $false)
+    'R2 authentic stable legacy installed receipt is evidence, never update terminality'
+  Check ((Get-FileHash -LiteralPath $activePath -Algorithm SHA256).Hash.ToLowerInvariant() -ceq $receiptHash)
+    'R2 NativeHost leaves active receipt bytes untouched'
+  $activeSample.version='1.24.3'
+  [IO.File]::WriteAllText($activePath,($activeSample|ConvertTo-Json -Compress -Depth 8))
+  $changedReceipt=Run-Host $inspectRequest
+  Check ($changedReceipt.receiptFingerprint -cne $receiptHash -and
+    $changedReceipt.receiptVersion -ceq '1.24.3' -and
+    $changedReceipt.nativeOutcomeVerified -eq $false)
+    'R2 changed active receipt revision does not prove update success'
+  [IO.File]::WriteAllText($activePath,'{"schema":1,"version":"1.24.3"}')
+  $malformedReceipt=Run-Host $inspectRequest
+  Check ($malformedReceipt.receipt -ceq 'present' -and
+    $malformedReceipt.receiptFormat -ceq 'malformed' -and
+    $null -eq $malformedReceipt.receiptVersion -and
+    $malformedReceipt.eligibleForLease -eq $false)
+    'R2 partial active receipt never attests native terminality'
+  [IO.File]::WriteAllText($activePath,('x'*65537))
+  $largeReceipt=Run-Host $inspectRequest
+  Check ($largeReceipt.receipt -ceq 'present' -and
+    $largeReceipt.receiptFormat -ceq 'unknown' -and
+    $null -eq $largeReceipt.receiptFingerprint -and
+    $largeReceipt.nativeOutcomeVerified -eq $false)
+    'R2 oversized native receipt cannot produce a fingerprint or success'
+  Remove-Item -LiteralPath $activePath
+  $vanishedReceipt=Run-Host $inspectRequest
+  Check ($vanishedReceipt.receipt -ceq 'absent' -and
+    $null -eq $vanishedReceipt.receiptVersion -and
+    $vanishedReceipt.nativeOutcomeVerified -eq $false)
+    'R2 active receipt disappearing cannot launder earlier terminal status'
   [IO.File]::WriteAllText($pending,'{malformed transaction journal')
   $journalHash=(Get-FileHash -LiteralPath $pending -Algorithm SHA256).Hash
   $proof=Run-Host $inspectRequest

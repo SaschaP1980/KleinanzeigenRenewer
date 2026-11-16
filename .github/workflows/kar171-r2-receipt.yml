@@ -1,0 +1,25 @@
+name: KAR-171 R2 native active receipt (temporary)
+on:
+  push:
+    branches: [work/KAR-171]
+    paths:
+      - tools/windows/KleinanzeigenRenewer.NativeHost.cs
+      - tests/windows-native-host-wave1.ps1
+      - .github/workflows/kar171-r2-receipt.yml
+permissions:
+  contents: read
+jobs:
+  native-receipt:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    env:
+      KAR_UPDATER_TEST_MODE: '1'
+      KAR_NATIVE_HOST_TEST_MODE: '1'
+    steps:
+      - uses: actions/checkout@v5
+        with: { persist-credentials: false }
+      - name: Execute NativeHost offline receipt proof on Windows PowerShell
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          & .\tests\windows-native-host-wave1.ps1
