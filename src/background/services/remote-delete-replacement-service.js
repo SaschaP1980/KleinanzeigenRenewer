@@ -352,7 +352,7 @@ async function verifyPhase4RemoteOutcomeFresh(receipt) {
       };
       await assertSameAccount();
       const result = await sendTabRequestWithBootstrap(tabId,{
-        type:command,adId:id,correlation:{renewalId:receipt.renewalId}
+        type:command,adId:id,expectedProfileName:expected,correlation:{renewalId:receipt.renewalId}
       });
       // Full-pagination navigation can outlive the first account observation.
       // Never accept a result from a tab that subsequently switched accounts.
