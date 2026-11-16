@@ -161,3 +161,36 @@ test('KAR-195 P8 timing hook exposes only bounded route, phase and aggregate-saf
     assert.equal(await throwing.withAdmission('GET_BULK_RUN_STATUS', () => 5), 5,
       'telemetry failure must never affect the safety-critical admitted operation');
   });
+
+test('KAR-195 diagnostic-service aggregator stores a bounded startup-only lock window',
+  async () => {
+    const Diagnostics = require('../src/background/services/diagnostics-service.js');
+    const rows = Object.create(null);
+    const store = {
+      async get(keys) {
+        const names = keys === null ? Object.keys(rows) : Array.isArray(keys) ? keys : [keys];
+        return Object.fromEntries(names.filter(k => Object.hasOwn(rows, k))
+          .map(k => [k, structuredClone(rows[k])]));
+      },
+      async set(patch) { Object.assign(rows, structuredClone(patch)); }
+    };
+    const d = Diagnostics.create({
+      storageLocal: store, randomUUID: () => 'synthetic-session',
+      atomicProfileWindowMs: 5, batchFlushMs: 2
+    });
+    for (let i = 0; i < 14; i++) {
+      d.recordAtomicSample({phase: 'start', route: 'LOG_DIAGNOSTIC_EVENT',
+        holdMs: i + 1, waitMs: 7, busyAttempts: 1, outcome: 'ok',
+        token: 'private-secret-must-never-be-recorded'});
+    }
+    await sleep(25);
+    await d.flush();
+    const events = (await d.read()).filter(e => e.event === 'P8_ATOMIC_ADMISSION_WINDOW');
+    assert.equal(events.length, 1);
+    assert.equal(events[0].details.samples, 14);
+    assert.equal(events[0].details.busyAttempts, 14);
+    assert.equal(events[0].details.maxHoldMs, 14);
+    assert.ok(Array.isArray(events[0].details.routes));
+    assert.equal(events[0].details.routes[0].name, 'LOG_DIAGNOSTIC_EVENT');
+    assert.doesNotMatch(JSON.stringify(events), /private-secret-must-never-be-recorded/);
+  });
