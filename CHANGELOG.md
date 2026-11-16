@@ -4,12 +4,20 @@ This is the canonical version-specific history for Kleinanzeigen Manager. Entrie
 
 All distinct historical section bodies from the former root README and CHANGELOG are preserved with source labels and line numbers. The [KAR-170 migration ledger](docs/maintenance/KAR170_CHANGELOG_MIGRATION.json) identifies their original Git blobs and body checksums. Overlapping versions retain distinct factual notes; older references to planned builds or native/CI acceptance are **historical**, not live status.
 
-## v1.24.3 — KAR-188 reliable Inventar/Papierkorb loading after app restart (Work patch; source changes only)
+## v1.25.1 — KAR-188 independent inventory and trash loading (Work integration, source only)
 
-- Show immediate, accessible `Inventar wird geladen …` and `Papierkorb wird geladen …` indicators, rather than a false initial empty state or an unverified 0 entry count. Each view has its own loading, verified-ready (populated or empty) and non-destructive read-error state with an explicit retry action.
-- Start profile-bound inventory/trash reads before optional background settings, account inspection and activity initialization, with independent read completion and stale async generation/profile guards. Keep previously verified same-profile counts on transient failures; never claim successful zero records unless the respective list request returned a valid array.
-- Add test-first RED/GREEN fixtures for delayed, failed and stale per-view reads and retain the related KAR-185/KAR-186 safety behavior. Also pin the standalone main CI's packaged Chromium runner to supported Ubuntu 24.04, preserving mandatory Playwright E2E tests after the prior Ubuntu 26.04 infrastructure failure.
-- This changelog documents work-branch source code only, not a published GitHub Release or completed native Windows/Chrome user acceptance. The owning Issue #188 retains the authoritative exact SHA/CI evidence.
+- Integrate the owner-accepted inventory/trash startup loading UX from the original v1.24.3 Work branch with the merged v1.25.0 KAR-164 retention-deadline sort, without reverting or changing the latter's behavior.
+- Each view immediately displays an accessible loading state and unknown counters, completes a verified account/profile-bound list independently, displays a genuine empty view only after success, and offers non-destructive retry after read failure. Stale profile/refresh responses cannot overwrite current list content; optional settings and page inspection do not gate local list loading.
+- Preserve existing account/Ad-ID safety, Chrome extension identity, locked publish and delete workflows, local trash retention and v1.25.0 sort controls. Require a reproducible v1.25.1 Chrome ZIP, unchanged 100% dynamic public API coverage, historical architecture/line/branch no-regression, real packaged Chromium 9/9 E2E and hosted Windows fixtures.
+- Work-source entry, not proof of a GitHub Release or tag. The owner approved the prior v1.24.3 native behavior; final integrated build and CI still require separate readback before merging.
+
+## v1.25.0 — KAR-164 local trash deadline sorting (Work candidate)
+
+- Add accessible **Im Papierkorb bis** ascending/descending controls to Papierkorb, independently of Inventar ordering. Default is descending.
+- Compare canonical timestamp values rather than display text or relative countdown. Tie-break equal timestamps by local inventory ID; finite dates first, then true **∞** retention, then missing/corrupt deadlines in both directions.
+- Sort only an in-memory view, without changing storage, profile/account scope, existing actions, retention/expiry cleanup or remote Kleinanzeigen operations.
+- Add verified test-first RED/GREEN coverage, historical selector contract updates and preserve mandatory 100% dynamic public coverage and architecture/line/branch gates.
+- Source candidate only. An exact-head reproducible Chrome ZIP, Chromium/Windows Work PR GREEN, merge and native/public release approval remain separate.
 
 ## v1.24.2 — KAR-186 verify local trash retention after cold startup (Work patch; source changes only)
 

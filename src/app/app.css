@@ -236,6 +236,12 @@ button { font: inherit; }
 .sort-direction-button { min-height:36px; padding:7px 10px; border:1px solid #425056; border-radius:8px; background:#1b2427; color:#b9c4c7; cursor:pointer; font-size:11px; font-weight:700; white-space:nowrap; }
 .sort-direction-button:hover { border-color:#58716a; color:#eef8f5; }
 .sort-direction-button.active, .sort-direction-button[aria-pressed="true"] { border-color:#4de0b7; background:#17322b; color:#c8fff0; }
+.sort-direction-button:focus-visible { outline:2px solid #4de0b7; outline-offset:2px; }
+.inventory-toolbar.trash-sort-toolbar { grid-template-columns:minmax(180px,1fr) auto; align-items:end; }
+.trash-sort-field { display:grid; gap:5px; min-width:0; }
+.trash-sort-field > span { color:#879399; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; }
+.trash-sort-field > strong { display:flex; align-items:center; min-height:36px; color:#edf2f3; font-size:12px; font-weight:700; }
+
 .summary-row { grid-template-columns:86px minmax(0,1fr); }
 .summary-row span { white-space:nowrap; }
 .inventory-summary-info > p { display:none; }
@@ -249,6 +255,7 @@ button { font: inherit; }
 }
 @media (max-width: 760px) {
   .inventory-toolbar { grid-template-columns:1fr; }
+  .inventory-toolbar.trash-sort-toolbar { grid-template-columns:1fr; }
   .inventory-sort-direction { grid-column:auto; flex-wrap:wrap; }
   .inventory-card-footer .record-details summary { padding-right:0; }
   .inventory-footer-meta { position:static; margin-top:5px; text-align:left; white-space:normal; }

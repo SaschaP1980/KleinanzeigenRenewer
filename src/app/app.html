@@ -239,6 +239,14 @@
           </div>
         </div>
         <div class="trash-intro"><span class="trash-intro-full">Die gespeicherte Papierkorb-Aufbewahrung wird ermittelt. Die Einträge bleiben sichtbar und können als Vorlage für eine neue Anzeige verwendet werden. Die Anzeige bei Kleinanzeigen bleibt unverändert. Eine neue Anzeige wird nur vorbereitet und niemals automatisch veröffentlicht. Einträge können nicht zurück ins Inventar verschoben werden.</span><span class="trash-intro-sticky">Papierkorb: Aufbewahrungsdauer wird ermittelt.</span></div>
+
+        <div class="inventory-toolbar trash-sort-toolbar" role="group" aria-label="Papierkorb nach Aufbewahrungsfrist sortieren">
+          <div class="trash-sort-field"><span>Sortieren nach</span><strong>Im Papierkorb bis</strong></div>
+          <div class="inventory-sort-direction" role="group" aria-label="Sortierrichtung im Papierkorb">
+            <button id="trashSortAsc" type="button" class="sort-direction-button" aria-pressed="false" aria-label="Aufsteigend – frühestes Ablaufdatum zuerst" title="Frühestes Ablaufdatum zuerst">↑ Aufsteigend</button>
+            <button id="trashSortDesc" type="button" class="sort-direction-button active" aria-pressed="true" aria-label="Absteigend – spätestes Ablaufdatum zuerst" title="Spätestes Ablaufdatum zuerst">↓ Absteigend</button>
+          </div>
+        </div>
         </div>
         </div>
         <div id="trashList" class="inventory-list"><div class="list-load-state is-loading" role="status" aria-live="polite"><span class="list-load-spinner" aria-hidden="true"></span><strong>Papierkorb wird geladen …</strong></div></div>

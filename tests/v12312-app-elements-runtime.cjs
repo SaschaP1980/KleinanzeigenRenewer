@@ -15,9 +15,12 @@ const retentionExtra=retentionKeys.filter(key=>result.flat[key]?.sel==='#'+key).
 const descriptionExtra=['trashIntroFull','trashIntroSticky'].filter((key,i)=>result.flat[key]?.sel===['.trash-intro-full','.trash-intro-sticky'][i]).length;
 assert.equal(retentionExtra,3,'seven-stop slider has three typed DOM bindings');
 assert.equal(descriptionExtra,2,'both trash texts use centralized DOM bindings');
-const expected = 235 + occupancyExtra + errorStopExtra + massSearchExtra + retentionExtra + descriptionExtra;
+const trashSortKeys = ['trashSortAsc', 'trashSortDesc'];
+const trashSortExtra = trashSortKeys.every(key => result.flat[key]?.sel === '#' + key) ? 2 : 0;
+assert.equal(trashSortExtra, 2, 'KAR-164 trash ascending and descending buttons have typed DOM bindings');
+const expected = 235 + occupancyExtra + errorStopExtra + massSearchExtra + retentionExtra + descriptionExtra + trashSortExtra;
 ok(errorStopExtra === 2 && massSearchExtra === 2, 'mass-renewal stop-on-error and two title-search bindings remain present');
-ok(Object.keys(result.flat).length===expected,'collects historical DOM bindings plus occupancy, stop-on-error and mass-search bindings');
+ok(Object.keys(result.flat).length===expected,'collects historical DOM bindings plus occupancy, stop-on-error, mass-search and trash-sort bindings');
 ok(seen.length===expected && new Set(seen).size===expected,'queries each selector exactly once');
 ok(Object.keys(result.groups).length>=8,'exposes structured element groups');
 ok(result.flat.profileSelect?.sel==='#profileSelect' && result.flat.inventoryCaptureDone?.sel==='#inventoryCaptureDone' && result.flat.trashTemplateRestart?.sel==='#trashTemplateRestart' && result.flat.trashTemplateTarget?.sel==='#trashTemplateTarget','preserves canonical selector mapping including target-loss and explicit target-open recovery');
