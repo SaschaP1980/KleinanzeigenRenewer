@@ -18,3 +18,21 @@ jobs:
         with: { node-version: '22' }
       - name: R2 real native inspection interrupted-during-local-read regression
         run: node --test tests/kar99-p13-native-transaction-closure.cjs
+
+  full-gate:
+    name: Complete runtime, architecture and coverage regression
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: Install dependencies
+        run: npm ci
+      - name: Full tests on eventual clean tree without temporary runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm .github/workflows/kar171-r2-native-continuity.yml
+          bash scripts/coverage-gate.sh
