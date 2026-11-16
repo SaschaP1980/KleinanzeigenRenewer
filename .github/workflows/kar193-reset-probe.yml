@@ -77,7 +77,7 @@ jobs:
           git merge-base --is-ancestor "$INTEGRATED_191" "$GITHUB_SHA"
           test "$(git rev-parse HEAD:release/kleinanzeigen-renewal-chrome-v1.24.4.zip)" = "$(git rev-parse "$INTEGRATED_191:release/kleinanzeigen-renewal-chrome-v1.24.4.zip")"
           test ! -e "$ZIP"
-          node scripts/kar-work-pr-preflight.cjs --issue 191 --head-sha "$GITHUB_SHA"
+          node scripts/kar-work-pr-preflight.cjs --issue 193 --head-sha "$GITHUB_SHA"
       - name: Metadata-only 1.24.4 to 1.24.5, deterministic Chrome ZIP, no publication
         shell: bash
         run: |
@@ -141,6 +141,6 @@ jobs:
           test "$(git rev-parse HEAD^)" = "$GITHUB_SHA"
           git push origin "HEAD:refs/heads/work/KAR-193"
           test "$(git ls-remote origin refs/heads/work/KAR-193 | cut -f1)" = "$NEW_SHA"
-          node scripts/kar-work-pr-preflight.cjs --issue 191 --head-sha "$NEW_SHA" --prior-sha "$GITHUB_SHA" --sync-head
+          node scripts/kar-work-pr-preflight.cjs --issue 193 --head-sha "$NEW_SHA" --prior-sha "$GITHUB_SHA" --sync-head
           echo "KAR193_VERIFIED_CHROME_ZIP_SHA256=$(sha256sum "$ZIP" | cut -d' ' -f1)"
           echo "KAR193_FINAL_WORK_SHA=$NEW_SHA"
