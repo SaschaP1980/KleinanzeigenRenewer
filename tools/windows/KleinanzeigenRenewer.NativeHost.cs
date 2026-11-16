@@ -201,7 +201,7 @@ internal static class Program {
                 !record.ContainsKey("hadPrevious") || !(record["hadPrevious"] is bool) ||
                 !record.ContainsKey("receipt") || !record.ContainsKey("target") ||
                 !(record["target"] is string) ||
-                !Regex.IsMatch((string)record["target"], @"^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$") ||
+                !Regex.IsMatch((string)record["target"], @"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$") ||
                 ((bool)record["hadPrevious"] && !(record["receipt"] is Dictionary<string, object>)) ||
                 (!(bool)record["hadPrevious"] && record["receipt"] != null))
                 return "malformed";
