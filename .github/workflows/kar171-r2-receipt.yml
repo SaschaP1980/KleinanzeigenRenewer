@@ -5,10 +5,21 @@ on:
     paths:
       - tools/windows/KleinanzeigenRenewer.NativeHost.cs
       - tests/windows-native-host-wave1.ps1
+      - tests/kar68-native-status-gateway.cjs
+      - src/background/services/native-update-status-gateway.js
       - .github/workflows/kar171-r2-receipt.yml
 permissions:
   contents: read
 jobs:
+  native-private-gateway:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: R2 private authenticated read-only NativeHost transport
+        run: node tests/kar68-native-status-gateway.cjs
   native-receipt:
     runs-on: windows-latest
     timeout-minutes: 15

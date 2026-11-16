@@ -32,6 +32,59 @@ async function run() {
     capabilities:['health','check','inspect_transaction','inspect_transaction']})).request('health')).error==='INVALID_RESPONSE',
     'duplicate extra native capability refused');
 
+  // R2: unlike the app-facing request(), a PRIVATE read-only transaction
+  // inspector has one fixed host command. It must NEVER grant lease/apply,
+  // and malformed or spoofed native status must fail closed.
+  const inspectReply=id=>({
+    protocol:1,requestId:id,ok:true,operation:'inspect_transaction',
+    status:'unverified',journal:'absent',lock:'absent',
+    transactionPhase:'unknown',journalFormat:'unknown',journalFingerprint:null,
+    receipt:'present',receiptFormat:'legacy-installed',
+    receiptFingerprint:'a'.repeat(64),receiptVersion:'1.24.2',
+    identityBound:false,nativeOutcomeVerified:false,
+    rollbackVerified:false,eligibleForLease:false
+  });
+  let inspectorCalls=0;
+  const privateInspector=create((host,message)=>{
+    inspectorCalls++;
+    check(host==='de.kleinanzeigenrenewer.updater'&&message.operation==='inspect_transaction'
+      &&Object.keys(message).sort().join()==='operation,protocol,requestId',
+      'R2 private native transport is fixed read-only operation and request envelope');
+    return inspectReply(message.requestId);
+  });
+  const inspect=await privateInspector.inspectReadOnly();
+  check(inspect.ok===true&&inspect.operation==='inspect_transaction'
+    &&inspect.receiptVersion==='1.24.2'
+    &&inspect.identityBound===false&&inspect.eligibleForLease===false
+    &&inspect.nativeOutcomeVerified===false&&inspect.rollbackVerified===false
+    &&Object.isFrozen(inspect),'R2 real schema validates native receipt without update authority');
+  check((await privateInspector.request('inspect_transaction')).error==='OPERATION_DENIED'
+    &&inspectorCalls===1,'R2 public status gateway still forbids transaction inspection');
+  for(const [name,mutate] of [
+    ['native claims terminal success',o=>({...o,nativeOutcomeVerified:true})],
+    ['native claims rollback done',o=>({...o,rollbackVerified:true})],
+    ['native claims update lease',o=>({...o,eligibleForLease:true})],
+    ['native claims P8 identity',o=>({...o,identityBound:true})],
+    ['injected updater operation',o=>({...o,operation:'apply_update'})],
+    ['unexpected command payload',o=>({...o,command:'run'})],
+    ['invalid receipt revision',o=>({...o,receiptFingerprint:'z'})],
+    ['mismatched native nonce',o=>({...o,requestId:'f'.repeat(32)})],
+    ['missing installed version',o=>({...o,receiptVersion:null})],
+    ['contradictory idle claim',o=>({...o,status:'idle'})],
+    ['inconsistent journal phase',o=>({...o,transactionPhase:'pending-install-or-rollback'})]
+  ]){
+    const response=await create((_,q)=>mutate(inspectReply(q.requestId))).inspectReadOnly();
+    check(response.ok===false&&response.error==='INVALID_RESPONSE',
+      'R2 fail closed on '+name);
+  }
+  const pending=await create((_,q)=>({
+    ...inspectReply(q.requestId),status:'blocked',journal:'present',
+    journalFormat:'legacy-pending',journalFingerprint:'b'.repeat(64),
+    transactionPhase:'pending-install-or-rollback'
+  })).inspectReadOnly();
+  check(pending.ok===true&&pending.status==='blocked'
+    &&pending.identityBound===false&&pending.eligibleForLease===false,
+    'R2 legacy pending journal is accepted only as negative evidence');
   check((await good.request('apply_update')).error==='OPERATION_DENIED','no update/apply operation');
   check((await good.request('rollback')).error==='OPERATION_DENIED','no rollback operation');
   check(calls===1,'unknown operations never reach transport');
