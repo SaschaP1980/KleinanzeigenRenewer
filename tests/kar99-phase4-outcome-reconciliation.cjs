@@ -97,6 +97,54 @@ function init(db,verifyRemoteOutcome,worker='worker-new') {
   unreadable.setReadFail(true);
   await denied(r.resolveVerified({renewalId:req.renewalId,attemptId:rIntent.attemptId}),
     'KR_PHASE4_JOURNAL_STORAGE','indeterminate readback must never count as verified');
+  // KAR-171 R1 LIVE SOURCE PROBE: exercise the actual independently loaded
+  // remote service, not a synthetic journal success callback.
+  async function scanFixture({sourceProfileAfter=null,targetProfileAfter=null,targetPage=2}={}) {
+    let nextTabId=0;
+    const statuses=Object.create(null),closed=[];
+    const service=Remote.create({
+      normalizeProfileName:value=>String(value||'').trim(),
+      createManagedWorkerTab:async()=>({id:++nextTabId}),
+      waitForTabComplete:async()=>{},
+      ensureContentConnection:async()=>{},
+      closeManagedWorkerTab:async id=>{closed.push(id);},
+      sendTabRequestWithBootstrap:async(tabId,message)=>{
+        if(message.type==='MY_ADS_STATUS'){
+          statuses[tabId]=(statuses[tabId]||0)+1;
+          const after=tabId===1?sourceProfileAfter:targetProfileAfter;
+          return {isMyAdsPage:true,isProjectsTab:true,
+            profileName:statuses[tabId]>1&&after?after:req.profileId};
+        }
+        if(message.type==='VERIFY_OWN_AD_ABSENT_BY_ID')return {
+          verified:true,adId:req.sourceAdId,
+          evidence:'not-in-my-ads-full-pagination-scan',pagesScanned:3
+        };
+        if(message.type==='FIND_OWN_AD_BY_ID')return {
+          found:true,adId:req.newAdId,
+          evidence:'found-in-my-ads-full-pagination-scan',
+          pagesScanned:2,page:targetPage
+        };
+        throw Error('unexpected probe message '+message.type);
+      }
+    });
+    const result=await service.verifyPhase4RemoteOutcomeFresh({...req,attemptId:'attempt-001'});
+    return {result,statuses,closed};
+  }
+  await assert.rejects(scanFixture({sourceProfileAfter:'Different Account'}),
+    /KR_PHASE4_JOURNAL_UNVERIFIED/);
+  ok(true,'R1: source account change during full-pagination scan fails closed');
+  await assert.rejects(scanFixture({targetProfileAfter:'Different Account'}),
+    /KR_PHASE4_JOURNAL_UNVERIFIED/);
+  ok(true,'R1: target account change during full-pagination scan fails closed');
+  await assert.rejects(scanFixture({targetPage:3}),
+    /KR_PHASE4_JOURNAL_UNVERIFIED/);
+  ok(true,'R1: target page beyond scanned pagination fails closed in actual verifier');
+  const fresh=await scanFixture();
+  ok(fresh.result.sourceAbsent===true&&fresh.result.targetPresent===true
+    &&fresh.statuses[1]===2&&fresh.statuses[2]===2
+    &&fresh.closed.join(',')==='1,2',
+    'R1: valid independent source/target scans bracketed by two account reads each');
+
   ok(remoteCode.includes("scanFresh('target',targetId,'FIND_OWN_AD_BY_ID')"),
     'real remote verifier independently finds published target by exact ID in My Ads');
   ok(remoteCode.includes("scanFresh('source',sourceId,'VERIFY_OWN_AD_ABSENT_BY_ID')"),
