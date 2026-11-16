@@ -196,6 +196,55 @@ function init(db,verifyRemoteOutcome,worker='worker-new') {
   loggedIn=true;browserTab=null;
   ok(await observer.verifyRemoteCommitContextReadOnly(originalPhase,'phase4')===false,
     'R1: missing already-open My Ads tab stays unverified without opening one');
+  // R1: no existing user's My Ads tab. A newly staged, separately owned
+  // READ-ONLY witness is prepared before the commit lock, verified under
+  // that lock, and closed on every success/denial path.
+  let stagedOpens=0,stagedCloses=0,stagedReady=0,openedDuringLock=false;
+  const stagedOwner=Additional.create({
+    storageLocal:commitDb,storageSession:{async get(){return {};}},
+    workerInstanceId:'worker-commit',clock:()=>123000,
+    queryBrowserTabsReadOnly:async()=>browserTab?[structuredClone(browserTab)]:[],
+    readAccountPageStatusReadOnly:async tabId=>{
+      assert.equal(tabId,82);
+      if(!browserTab)throw Error('tab closed');
+      return {pageType:'my-ads',url:browserTab.url,
+        auth:{loggedIn},profileName:commitLiveName};
+    },
+    createManagedWorkerTab:async(opts,purpose,owner)=>{
+      stagedOpens++;openedDuringLock=lockHeld;
+      assert.equal(opts.active,false);
+      assert.equal(owner.ownerType,'renewal');
+      browserTab={id:82,url:opts.url};
+      return {id:82};
+    },
+    waitForTabComplete:async()=>{stagedReady++;},
+    ensureContentConnection:async()=>{},
+    closeManagedWorkerTab:async id=>{
+      assert.equal(id,82);stagedCloses++;browserTab=null;
+    },
+    myAdsProjectsUrl:'https://www.kleinanzeigen.de/m-meine-anzeigen.html?tab=PROJECTS',
+    tabLoadTimeoutMs:30000
+  });
+  browserTab=null;
+  ok(await stagedOwner.verifyRemoteCommitContextReadOnly(originalPhase,'phase4')===false,
+    'R1: no pre-existing My Ads tab remains fail closed');
+  const stage=await stagedOwner.prepareRemoteCommitContextReadOnly(originalPhase,'phase4');
+  ok(stage.tabId===82&&stagedOpens===1&&stagedReady===1&&!openedDuringLock,
+    'R1: read-only witness is created and loaded outside origin lock');
+  ok(await stagedOwner.verifyRemoteCommitContextReadOnly(originalPhase,'phase4',stage)===true,
+    'R1: newly created authenticated My Ads witness enables genuine positive check');
+  ok(await stagedOwner.verifyRemoteCommitContextReadOnly(originalPublish,'publish',stage)===false,
+    'R1: staged witness cannot be reused for a different workflow identity');
+  commitLiveName='different-account';
+  ok(await stagedOwner.verifyRemoteCommitContextReadOnly(originalPhase,'phase4',stage)===false,
+    'R1: staged page changing account during commit is rejected');
+  commitLiveName=accountName;
+  await stage.close();
+  ok(stagedCloses===1&&browserTab===null&&
+     await stagedOwner.verifyRemoteCommitContextReadOnly(originalPhase,'phase4',stage)===false,
+    'R1: closing the stage revokes the witness and removes its managed tab');
+  await stage.close();
+  ok(stagedCloses===1,'R1: cleanup is idempotent even after restart-style retry');
   browserTab={id:81,url:'https://www.kleinanzeigen.de/m-meine-anzeigen.html'};
   commitDb.data.templateFillSessions['r1-fill'].targetTabId=100;
   ok(await observer.verifyRemoteCommitContextReadOnly(originalPublish,'publish')===false,
