@@ -1033,7 +1033,7 @@ async function refreshTrashRetentionConfiguration() {
   } catch (error) {
     // One bounded delayed recovery for a transient MV3 admission denial.
     // Never bypass the fence or run an unbounded background poll.
-    if (String(error?.code || error?.message || '').includes('KR_UPDATE_FENCE_ATOMIC_BUSY')) {
+    if ((String(error?.code || '') + ' ' + String(error?.message || '')).includes('KR_UPDATE_FENCE_ATOMIC_BUSY')) {
       setTimeout(() => {
         if (controller.status() === 'unavailable') void controller.refresh().catch(() => {});
       }, 2000);
@@ -2179,6 +2179,7 @@ function requireInventoryRenderController() {
       requireAccountBoundAction,
       confirmAction,
       confirmAutomatedRenewalStart,
+      getTrashRetentionDays: () => currentTrashRetentionDays,
       runtimeMessage,
       renderAppNotice,
       setStatus,
