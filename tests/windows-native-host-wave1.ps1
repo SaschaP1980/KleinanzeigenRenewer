@@ -163,6 +163,9 @@ try {
     $proof.journal -ceq 'absent' -and $proof.lock -ceq 'absent') 'missing native transaction artifacts are unverified, never idle'
   Check ($proof.nativeOutcomeVerified -eq $false -and $proof.rollbackVerified -eq $false -and
     $proof.eligibleForLease -eq $false) 'absent native artifacts never prove transaction or lease'
+  Check ($proof.transactionPhase -ceq 'unknown' -and $proof.identityBound -eq $false -and
+    $proof.journalFormat -ceq 'unknown' -and $null -eq $proof.journalFingerprint)
+    'R2 no journal is unknown, not a verified terminal transaction'
   Check (-not (Test-Path -LiteralPath $inspectRoot)) 'native inspector never creates missing state root'
   $state=Join-Path $inspectRoot 'State'
   [void][IO.Directory]::CreateDirectory($state)
@@ -174,6 +177,26 @@ try {
   Check ($proof.ok -eq $true -and $proof.status -ceq 'blocked' -and
     $proof.journal -ceq 'present' -and $proof.lock -ceq 'absent') 'malformed pending journal blocks NativeHost assessment'
   Check ((Get-FileHash -LiteralPath $pending -Algorithm SHA256).Hash -ceq $journalHash) 'NativeHost does not modify transaction journal bytes'
+  Check ($proof.transactionPhase -ceq 'pending-install-or-rollback' -and
+    $proof.journalFormat -ceq 'malformed' -and
+    $proof.journalFingerprint -ceq $journalHash.ToLowerInvariant() -and
+    $proof.identityBound -eq $false -and $proof.nativeOutcomeVerified -eq $false)
+    'R2 malformed durable journal fingerprint proves presence, never completion'
+  $legacy='{"schema":1,"backup":"backup-00000000000000000000000000000000","hadPrevious":false,"receipt":null,"target":"1.24.2"}'
+  [IO.File]::WriteAllText($pending,$legacy)
+  $legacyHash=(Get-FileHash -LiteralPath $pending -Algorithm SHA256).Hash.ToLowerInvariant()
+  $proof=Run-Host $inspectRequest
+  Check ($proof.status -ceq 'blocked' -and $proof.journalFormat -ceq 'legacy-pending' -and
+    $proof.journalFingerprint -ceq $legacyHash -and
+    $proof.transactionPhase -ceq 'pending-install-or-rollback' -and
+    $proof.nativeOutcomeVerified -eq $false -and $proof.eligibleForLease -eq $false)
+    'R2 native host reads immutable original legacy transaction journal, still no owner token'
+  [IO.File]::WriteAllText($pending,$legacy.Replace('1.24.2','1.24.3'))
+  $changed=Run-Host $inspectRequest
+  Check ($changed.journalFingerprint -cne $legacyHash -and
+    $changed.transactionPhase -ceq 'pending-install-or-rollback' -and
+    $changed.nativeOutcomeVerified -eq $false)
+    'R2 journal byte revision changes without laundering an update outcome'
   [IO.File]::WriteAllText($lockFile,'busy')
   $proof=Run-Host $inspectRequest
   Check ($proof.status -ceq 'blocked' -and $proof.journal -ceq 'present' -and
@@ -182,6 +205,9 @@ try {
   $proof=Run-Host $inspectRequest
   Check ($proof.status -ceq 'blocked' -and $proof.journal -ceq 'absent' -and
     $proof.lock -ceq 'present') 'native lock alone blocks, even without journal'
+  Check ($proof.transactionPhase -ceq 'lock-unverified' -and
+    $proof.identityBound -eq $false -and $null -eq $proof.journalFingerprint)
+    'R2 lock artifact never certifies terminal native update'
   Remove-Item -LiteralPath $lockFile
   $proof=Run-Host $inspectRequest
   Check ($proof.status -ceq 'unverified' -and $proof.journal -ceq 'absent' -and
@@ -193,6 +219,10 @@ try {
   Check ($proof.ok -eq $true -and $proof.status -ceq 'unverified' -and
     $proof.journal -ceq 'unknown' -and $proof.lock -ceq 'unknown' -and
     $proof.eligibleForLease -eq $false) 'out-of-TEMP CI root cannot redirect native inspection to real files'
+  Check ($proof.transactionPhase -ceq 'unknown' -and
+    $proof.identityBound -eq $false -and
+    $null -eq $proof.journalFingerprint)
+    'R2 path rejection preserves unknown transaction identity'
   $env:KAR_NATIVE_HOST_INSPECT_TEST_ROOT=$inspectRoot
   Expect-Deny ('{"protocol":1,"requestId":"'+$id+'","operation":"inspect_transaction","path":"C:\\\\unsafe"}') 'INVALID_REQUEST'
  } finally {
