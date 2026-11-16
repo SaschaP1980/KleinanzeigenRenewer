@@ -5,6 +5,8 @@ on:
     paths:
       - src/background/services/additional-owner-observer.js
       - tests/kar99-p13-native-transaction-closure.cjs
+      - tests/v12319-version-architecture.cjs
+      - tests/v12320-final-closure.cjs
       - .github/workflows/kar171-r2-native-continuity.yml
 permissions:
   contents: read
