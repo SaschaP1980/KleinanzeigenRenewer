@@ -92,3 +92,25 @@ test('KAR-195 fresh diagnostic session: same-worker startup burst must not starv
   {timeout: 12000}, async () => { console.log('KAR195 fixture', await burst(0)); });
 test('KAR-195 near-capacity diagnostics: equivalent startup burst retains cross-worker fencing',
   {timeout: 16000}, async () => { console.log('KAR195 fixture', await burst(2498)); });
+
+test('KAR-195 duplicate passive trash-template recovery queries coalesce while startup is in flight',
+  async () => {
+    const TrashTemplate = require('../src/app/trash-template-ui-controller.js');
+    let calls = 0, release;
+    const gate = new Promise(resolve => { release = resolve; });
+    const controller = TrashTemplate.create({
+      insertionLockActive: () => false,
+      runtimeMessage: async message => {
+        assert.equal(message.type, 'GET_RECOVERABLE_TRASH_TEMPLATE_FILL');
+        calls++;
+        await gate;
+        return null; // no active template session
+      }
+    });
+    for (let i = 0; i < 8; i++) controller.syncFromLock();
+    assert.equal(calls, 1, 'eight synchronous refreshes must send one recovery read');
+    release();
+    await new Promise(resolve => setImmediate(resolve));
+    controller.syncFromLock(); // stable empty result is briefly cached
+    assert.equal(calls, 1, 'a verified empty recovery result must not immediately fan out again');
+  });
