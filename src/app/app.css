@@ -194,6 +194,11 @@ button { font: inherit; }
 .diagnostic-actions { display:grid; grid-template-columns:minmax(0,1fr); gap:7px; align-items:stretch; }
 .diagnostic-actions .diagnostic-reset { width:100%; min-width:0; }
 .diagnostics .diagnostic-primary { border-color:#4de0b7; background:#17322b; color:#bffbea; font-weight:800; }
+.diagnostic-occupancy-recovery { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:6px; }
+#diagnosticOccupancyStatus { color:#f3bf80; margin:0; font-size:12px; }
+#diagnosticOccupancyStatus:empty { display:none; }
+#diagnosticOccupancyRetry { min-height:30px; font-size:12px; }
+#diagnosticOccupancyRetry[hidden] { display:none; }
 #diagnosticResetBlockReason, #diagnosticZipStatus { color:#9fb0b4; margin:6px 0 0; }
 #diagnosticResetBlockReason:empty, #diagnosticZipStatus:empty { display:none; }
 .content-column { min-width:0; }
