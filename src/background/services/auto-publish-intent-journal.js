@@ -47,7 +47,7 @@
       &&key===RESOLUTION_PREFIX+row.fillId+'_'+row.attemptId;
   }
   function create({storageLocal,lockManager,lockName,workerInstanceId,clock,newToken,
-    verifyRemoteOutcome=null,verifyCommitContext=null,requireCommitContext=false}={}){
+    verifyRemoteOutcome=null,verifyCommitContext=null,prepareCommitContext=null,requireCommitContext=false}={}){
     if(typeof storageLocal?.get!=='function'||typeof storageLocal?.set!=='function'
        ||typeof clock!=='function'||typeof newToken!=='function'||!id(workerInstanceId))
       throw denied('KR_PUBLISH_INTENT_STORAGE');
@@ -172,7 +172,8 @@
     }
     async function resolveVerified({fillId,newAdId}={}){
       if(!id(fillId)||!adId(newAdId))throw denied('KR_PUBLISH_INTENT_IDENTITY');
-      if(requireCommitContext&&typeof verifyCommitContext!=='function')
+      if(requireCommitContext&&(typeof verifyCommitContext!=='function'||
+          typeof prepareCommitContext!=='function'))
         throw denied('KR_PUBLISH_INTENT_UNVERIFIED');
       let originSignature;
       const intent=await atomic(async()=>{
@@ -196,7 +197,16 @@
         ||!Number.isSafeInteger(proof.targetFoundPage)||proof.targetFoundPage<1
         ||proof.targetFoundPage>proof.targetPagesScanned)
         throw denied('KR_PUBLISH_INTENT_UNVERIFIED');
-      return atomic(async()=>{
+      // A separately owned account tab is staged before entering the lock.
+      let witness=null;
+      if(requireCommitContext){
+        try{witness=await prepareCommitContext(Object.freeze({...intent}));}
+        catch{throw denied('KR_PUBLISH_INTENT_UNVERIFIED');}
+        if(!witness||!Number.isSafeInteger(witness.tabId)||witness.tabId<=0||
+            typeof witness.close!=='function')
+          throw denied('KR_PUBLISH_INTENT_UNVERIFIED');
+      }
+      try{return await atomic(async()=>{
         const after=await observe(fillId);
         if(after.attempts.length!==1||!same(after.attempts[0],intent))
           throw denied('KR_PUBLISH_INTENT_UNRESOLVED');
@@ -207,7 +217,7 @@
         // committing a positive result. No network navigation under this lock.
         if(requireCommitContext){
           let accepted=false;
-          try{accepted=await verifyCommitContext(Object.freeze({...intent}));}
+          try{accepted=await verifyCommitContext(Object.freeze({...intent}),witness);}
           catch{/* No positive evidence from an unavailable source. */}
           if(accepted!==true)throw denied('KR_PUBLISH_INTENT_UNVERIFIED');
         }
@@ -234,7 +244,9 @@
           ||!same((await observe(fillId)).resolutions[0],result))
           throw denied('KR_PUBLISH_INTENT_STORAGE');
         return result;
-      });
+      });}finally{
+        if(witness)await Promise.resolve().then(()=>witness.close()).catch(()=>{});
+      }
     }
     return Object.freeze({begin,observe,resolveVerified});
   }

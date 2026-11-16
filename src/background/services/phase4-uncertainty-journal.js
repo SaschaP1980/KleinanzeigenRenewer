@@ -20,7 +20,7 @@
   const denied = code => Object.assign(new Error(code), {code});
   const safeId = value => typeof value === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(value);
   const adId = value => typeof value === 'string' && /^\d+$/.test(value);
-  function create({storageLocal, clock, newToken, workerInstanceId, verifyRemoteOutcome = null, verifyCommitContext = null, requireCommitContext = false, lockManager = null, lockName = null} = {}) {
+  function create({storageLocal, clock, newToken, workerInstanceId, verifyRemoteOutcome = null, verifyCommitContext = null, prepareCommitContext = null, requireCommitContext = false, lockManager = null, lockName = null} = {}) {
     if (typeof storageLocal?.get !== 'function' || typeof storageLocal?.set !== 'function'
         || typeof clock !== 'function' || typeof newToken !== 'function')
       throw denied('KR_PHASE4_JOURNAL_STORAGE');
@@ -196,7 +196,8 @@
     async function resolveVerified({renewalId, attemptId} = {}) {
       if (!safeId(renewalId) || !safeId(attemptId))
         throw denied('KR_PHASE4_JOURNAL_IDENTITY');
-      if (requireCommitContext && typeof verifyCommitContext !== 'function')
+      if (requireCommitContext && (typeof verifyCommitContext !== 'function' ||
+          typeof prepareCommitContext !== 'function'))
         throw denied('KR_PHASE4_JOURNAL_UNVERIFIED');
       // Initial validation and final durable commit share the origin-wide
       // mutex with admission/reserve, but NEVER hold it over remote navigation.
@@ -223,9 +224,19 @@
           || !Number.isSafeInteger(proof.targetFoundPage) || proof.targetFoundPage < 1
           || proof.targetFoundPage > proof.targetPagesScanned)
         throw denied('KR_PHASE4_JOURNAL_UNVERIFIED');
+      // Prepare an owned read-only My Ads tab OUTSIDE the origin lock.
+      // No remote navigation is permitted in the locked commit section.
+      let witness=null;
+      if(requireCommitContext){
+        try{witness=await prepareCommitContext(Object.freeze({...original}));}
+        catch{throw denied('KR_PHASE4_JOURNAL_UNVERIFIED');}
+        if(!witness||!Number.isSafeInteger(witness.tabId)||witness.tabId<=0||
+            typeof witness.close!=='function')
+          throw denied('KR_PHASE4_JOURNAL_UNVERIFIED');
+      }
       // Always inspect the receipt again after the remote verification; neither
       // a changed account nor lost storage can become a positive outcome.
-      return withAtomic(async () => {
+      try{return await withAtomic(async () => {
       const after = await observe(renewalId);
       if (after.attempts.length !== 1 || !exactlySame(after.attempts[0], original))
         throw denied('KR_PHASE4_JOURNAL_UNRESOLVED');
@@ -236,7 +247,7 @@
       // remote scan. Missing, stale or contradictory evidence is UNKNOWN.
       if (requireCommitContext) {
         let accepted = false;
-        try { accepted = await verifyCommitContext(Object.freeze({...original})); }
+        try { accepted = await verifyCommitContext(Object.freeze({...original}),witness); }
         catch { /* fail closed */ }
         if (accepted !== true) throw denied('KR_PHASE4_JOURNAL_UNVERIFIED');
       }
@@ -271,7 +282,9 @@
       if (final.resolutions.length !== 1 || !exactlySame(final.resolutions[0], resolved))
         throw denied('KR_PHASE4_JOURNAL_STORAGE');
       return resolved;
-      });
+      });}finally{
+        if(witness)await Promise.resolve().then(()=>witness.close()).catch(()=>{});
+      }
     }
     return Object.freeze({begin, observe, resolveVerified});
   }
