@@ -2130,56 +2130,7 @@ function requireNativeStatusBridge() {
   return nativeStatusBridge;
 }
 
-// KAR-195: first 30s of MV3 startup only; at most six aggregated
-// informational diagnostic entries. Never route profiling through the
-// admission-fenced LOG_DIAGNOSTIC_EVENT message (no lock/log recursion).
-const atomicStartupProfile = {startedAt:Date.now(),windows:0,pending:null,timer:null};
-function recordAtomicAdmissionSample(sample) {
-  if(!sample||Date.now()-atomicStartupProfile.startedAt>30000
-    ||atomicStartupProfile.windows>=6)return;
-  if(!atomicStartupProfile.pending)atomicStartupProfile.pending={
-    count:0,busyAttempts:0,denied:0,maxHoldMs:0,maxWaitMs:0,
-    routes:Object.create(null)
-  };
-  const aggregate=atomicStartupProfile.pending;
-  if(aggregate.count>=128)return; // bounded even during pathological fan-out
-  const route=typeof sample.route==='string'&&/^(?:[A-Z][A-Z0-9_]{0,63}|AUTONOMOUS:[a-z0-9-]{1,48})$/.test(sample.route)
-    ?sample.route:'OTHER';
-  const normalizedRoute=Object.hasOwn(aggregate.routes,route)
-    ||Object.keys(aggregate.routes).length<12?route:'OTHER';
-  if(!aggregate.routes[normalizedRoute])aggregate.routes[normalizedRoute]={
-    count:0,busyAttempts:0,maxHoldMs:0,maxWaitMs:0
-  };
-  const row=aggregate.routes[normalizedRoute];
-  const hold=Math.max(0,Math.min(60000,Number(sample.holdMs)||0));
-  const wait=Math.max(0,Math.min(60000,Number(sample.waitMs)||0));
-  const busy=Math.max(0,Math.min(16,Number(sample.busyAttempts)||0));
-  aggregate.count++;row.count++;
-  aggregate.busyAttempts+=busy;row.busyAttempts+=busy;
-  if(sample.outcome==='denied')aggregate.denied++;
-  aggregate.maxHoldMs=Math.max(aggregate.maxHoldMs,hold);
-  aggregate.maxWaitMs=Math.max(aggregate.maxWaitMs,wait);
-  row.maxHoldMs=Math.max(row.maxHoldMs,hold);
-  row.maxWaitMs=Math.max(row.maxWaitMs,wait);
-  if(atomicStartupProfile.timer)return;
-  atomicStartupProfile.timer=setTimeout(()=>{
-    atomicStartupProfile.timer=null;
-    const current=atomicStartupProfile.pending;
-    atomicStartupProfile.pending=null;
-    if(!current?.count)return;
-    atomicStartupProfile.windows++;
-    const routes=Object.entries(current.routes)
-      .sort((a,b)=>b[1].count-a[1].count)
-      .slice(0,12).map(([name,counts])=>({name,...counts}));
-    // This callback is outside the actual Web Lock. Do not emit any journal
-    // tokens, worker IDs, ad IDs, URLs, profile labels or raw request payloads.
-    void logDiagnostic('info','P8_ATOMIC_ADMISSION_WINDOW',{
-      samples:current.count,denied:current.denied,
-      busyAttempts:current.busyAttempts,
-      maxHoldMs:current.maxHoldMs,maxQueueWaitMs:current.maxWaitMs,routes
-    },{module:'background',operation:'atomic-admission-profile'}).catch(()=>{});
-  },5000);
-}
+// KAR-195 P8 timing aggregation is owned by KRDiagnosticsService.
 // No trusted 15-owner snapshot provider exists yet: reserve always fails closed.
 let atomicMV3Admission = null;
 function requireAtomicMV3Admission() {
@@ -2190,7 +2141,7 @@ function requireAtomicMV3Admission() {
       storageLocal:chrome.storage.local,lockManager:globalThis.navigator?.locks,
       workerInstanceId:ownerWorkerInstanceId,clock:()=>Date.now(),
       newToken:()=>crypto.randomUUID(),
-      onSample:recordAtomicAdmissionSample
+      onSample:sample=>requireDiagnosticsService().recordAtomicSample(sample)
     });
   }
   return atomicMV3Admission;
