@@ -1,0 +1,26 @@
+name: KAR-171 R1 authenticated page continuity (temporary)
+on:
+  push:
+    branches:
+      - work/KAR-171
+permissions:
+  contents: read
+jobs:
+  r1_page_continuity:
+    name: R1 exact My Ads account proof
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Focused R1 authenticated page-continuity tests
+        run: node tests/kar171-r1-page-account-continuity.cjs
+      - name: Full coverage and safety gate
+        run: bash scripts/coverage-gate.sh
