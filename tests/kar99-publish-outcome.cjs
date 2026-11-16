@@ -125,7 +125,7 @@ const create=(store,manager,worker='worker-1',verify=proof)=>Journal.create({
        publishStaged++;
        return Object.freeze({tabId:88,close:async()=>{publishClosed++;}});
      },
-     verifyCommitContext:(original,witness)=>
+     verifyCommitContext:commitProof===null?null:(original,witness)=>
        witness?.tabId===88&&commitProof?.(original,witness)===true});
  }
  const strictEntry=await strictPublish(null).begin({

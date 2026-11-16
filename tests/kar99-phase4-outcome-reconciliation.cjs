@@ -119,7 +119,7 @@ function init(db,verifyRemoteOutcome,worker='worker-new') {
         stagedBeforeLock++;
         return Object.freeze({tabId:82,close:async()=>{stagedClosed++;}});
       },
-      verifyCommitContext:(original,witness)=>{
+      verifyCommitContext:context===null?null:(original,witness)=>{
         stagedVerify++;
         return witness?.tabId===82&&context?.(original,witness)===true;
       }
