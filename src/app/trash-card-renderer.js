@@ -23,6 +23,13 @@
       const confirmAction = options.confirmAction || (async () => false);
       const runtimeMessage = options.runtimeMessage || (async () => null);
       const setStatus = options.setStatus || (() => {});
+      const getTrashRetentionDays = options.getTrashRetentionDays || (() => null);
+      function requireVerifiedRetention() {
+        if (getTrashRetentionDays() != null) return true;
+        setStatus('error', 'Papierkorb-Aufbewahrung nicht verfügbar',
+          'Die gespeicherte Aufbewahrungsdauer muss vor dem Neustart der Frist erneut geprüft werden.');
+        return false;
+      }
       const refreshInventories = options.refreshInventories || (async () => {});
       const friendlyErrorMessage = options.friendlyErrorMessage || (error => String(error?.message || error || ''));
       const logAppEvent = options.logAppEvent || (async () => {});
@@ -72,8 +79,10 @@ function renderCompactTrashRow(record) {
     openTrashTemplateDialog(record);
   });
   resetButton.addEventListener('click', async () => {
+    if (!requireVerifiedRetention()) return;
     void logAppEvent('USER_TRASH_RETENTION_RESET_CLICK', { inventoryId: record.inventoryId, adId: record.adId || '', view: 'compact' });
     if (!await confirmAction({ title: 'Aufbewahrung neu starten?', text: `„${record.title || record.adId}“ wird ab jetzt erneut entsprechend der konfigurierten Dauer aufbewahrt.`, detail: 'Der Eintrag bleibt im Papierkorb. Im Inventar und bei Kleinanzeigen wird nichts verändert.', confirmLabel: 'Frist neu starten' })) return;
+    if (!requireVerifiedRetention()) return;
     setCompactButtonsBusy(peers, true);
     try {
       const result = await runtimeMessage({ type: 'RESET_TRASH_RETENTION', inventoryId: record.inventoryId });
@@ -227,8 +236,10 @@ function renderTrash(records = currentTrashRecords) {
     resetButton.textContent = 'Frist neu starten';
     resetButton.title = 'Startet die konfigurierte lokale Aufbewahrungsfrist dieses Papierkorb-Eintrags ab jetzt erneut.';
     resetButton.addEventListener('click', async () => {
+      if (!requireVerifiedRetention()) return;
       void logAppEvent('USER_TRASH_RETENTION_RESET_CLICK', { inventoryId: record.inventoryId, adId: record.adId || '' });
       if (!await confirmAction({ title: 'Aufbewahrung neu starten?', text: `„${record.title || record.adId}“ wird ab jetzt erneut entsprechend der konfigurierten Dauer aufbewahrt.`, detail: 'Der Eintrag bleibt im Papierkorb. Im Inventar und bei Kleinanzeigen wird nichts verändert.', confirmLabel: 'Frist neu starten' })) return;
+      if (!requireVerifiedRetention()) return;
       resetButton.disabled = true;
       try {
         const result = await runtimeMessage({ type: 'RESET_TRASH_RETENTION', inventoryId: record.inventoryId });
