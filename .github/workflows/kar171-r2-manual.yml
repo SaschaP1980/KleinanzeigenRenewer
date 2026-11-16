@@ -4,6 +4,9 @@ on:
     branches: [work/KAR-171]
     paths:
       - tools/windows/KleinanzeigenRenewer-Updater.ps1
+      - tools/windows/archive/v1.23.36/KleinanzeigenRenewer-Updater.ps1
+      - scripts/package-oneclick-setup.py
+      - tests/kar94-setup-package.cjs
       - tests/windows-updater-phase1.ps1
       - tests/windows-native-host-wave1.ps1
       - tests/kar68-native-status-gateway.cjs
@@ -56,7 +59,9 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: '22' }
       - name: Strict NativeHost manual transaction parsing in private extension gateway
-        run: node tests/kar68-native-status-gateway.cjs
+        run: |
+          node tests/kar68-native-status-gateway.cjs
+          node tests/kar94-setup-package.cjs
 
   node-native-owner:
     runs-on: ubuntu-latest
