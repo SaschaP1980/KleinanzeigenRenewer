@@ -97,7 +97,7 @@ const reviewedR1StagedCommitAccountSource = reviewedR1RemoteCommitAccountSource 
     .includes('stagedOwner.prepareRemoteCommitContextReadOnly(');
 
 const reviewedR2PrivateNativeInspector = 
-  r('src/background/services/native-update-status-gateway.js').includes('const inspectReadOnly=()=>requestInternal('inspect_transaction',true);') &&
+  r('src/background/services/native-update-status-gateway.js').includes("const inspectReadOnly=()=>requestInternal('inspect_transaction',true);") &&
   r('src/background/background.js').includes('readNativeTransactionReadOnly:async()=>') &&
   r('src/background/services/additional-owner-observer.js').includes('nativeHostEvidence=Object.freeze(') &&
   r('tests/kar68-native-status-gateway.cjs').includes('privateInspector.inspectReadOnly()') &&
