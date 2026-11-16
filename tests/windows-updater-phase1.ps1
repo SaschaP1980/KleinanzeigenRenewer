@@ -53,7 +53,11 @@ try {
  $firstHash=(Get-FileHash -LiteralPath (Join-Path $target 'State\active.json') -Algorithm SHA256).Hash.ToLowerInvariant()
  Check ($first.schema -eq 1 -and $first.origin -ceq 'manual-operator' -and
    $first.command -ceq 'install' -and $first.phase -ceq 'files-installed' -and
-   $first.transactionId -cmatch '^[a-f0-9]{32}
+   $first.transactionId -cmatch '^[a-f0-9]{32}$' -and
+   $first.targetVersion -ceq '1.23.27' -and $first.receiptSha256 -ceq $firstHash -and
+   $null -eq $first.workerGeneration -and $null -eq $first.admissionToken -and
+   $null -ne $first.completedUtc)
+   'R2 genuine manual updater terminal file transaction never claims MV3 identity'
  Call 'installed SHA-256 proof' 'verify' $target $null $null $true
  Call 'duplicate install refused' 'install' $target $channel27 $oldZip $false
  $priorReceipt=(Get-FileHash -LiteralPath (Join-Path $target 'State\active.json') -Algorithm SHA256).Hash
@@ -169,106 +173,6 @@ try {
    $null -eq $recovery.receiptSha256 -and
    $null -eq $recovery.workerGeneration -and $null -eq $recovery.admissionToken)
    'R2 recovery from unbound legacy journal invalidates historic terminal record'
- Call 'post-crash restore verified' 'verify' $crash $null $null $true
- Check (-not (Test-Path (Join-Path $crash 'State\pending.json'))) 'successful crash recovery clears journal'
- Check ($good -ge 24) 'minimum Windows negative and recovery checks'
- Write-Host ("PASS KAR-59 Windows Phase 1 suite: $good assertions, native end-user Chrome-profile acceptance PENDING")
-} finally {
- if (Test-Path -LiteralPath $base) { Remove-Item -LiteralPath $base -Recurse -Force -ErrorAction SilentlyContinue }
-}
- -and
-   $first.targetVersion -ceq '1.23.27' -and $first.receiptSha256 -ceq $firstHash -and
-   $null -eq $first.workerGeneration -and $null -eq $first.admissionToken -and
-   $null -ne $first.completedUtc)
-   'R2 genuine manual updater terminal file transaction never claims MV3 identity'
- Call 'installed SHA-256 proof' 'verify' $target $null $null $true
- Call 'duplicate install refused' 'install' $target $channel27 $oldZip $false
- $priorReceipt=(Get-FileHash -LiteralPath (Join-Path $target 'State\active.json') -Algorithm SHA256).Hash
- & $updater -Command oneclick -Yes -TestRoot $target -TestChannel $channel27
- $equalEvents=@(Get-Content -LiteralPath (Join-Path $target 'State\updater.jsonl') | ForEach-Object { $_ | ConvertFrom-Json } | Where-Object { $_.type -ceq 'BEREITS_AKTUELL' })
- Check (($equalEvents.Count -eq 1) -and ($equalEvents[0].detail -match 'Already up to date - no update required') -and
-        ((Get-FileHash -LiteralPath (Join-Path $target 'State\active.json') -Algorithm SHA256).Hash -ceq $priorReceipt)) 'oneclick equal is neutral and receipt unchanged'
- Call 'reinstall/downgrade refused' 'update' $target $channel27 $oldZip $false
- Call 'verified update' 'update' $target $channel28 $newZip $true
- & $updater -Command oneclick -Yes -TestRoot $target -TestChannel $channel27
- $olderEvents=@(Get-Content -LiteralPath (Join-Path $target 'State\updater.jsonl') | ForEach-Object { $_ | ConvertFrom-Json } | Where-Object { $_.type -ceq 'KEIN_NEUERES_UPDATE' })
- Check (($olderEvents.Count -eq 1) -and
-        ((Get-Content -LiteralPath (Join-Path $target 'State\active.json') -Raw | ConvertFrom-Json).version -eq '1.23.28')) 'oneclick older approval does not downgrade'
- $clickTarget=NewRoot 'oneclick-newer'
- Call 'oneclick fixture initial install' 'install' $clickTarget $channel27 $oldZip $true
- Call 'oneclick strictly newer approval installs' 'oneclick' $clickTarget $channel28 $newZip $true
- Check (((Get-Content -LiteralPath (Join-Path $clickTarget 'State\active.json') -Raw | ConvertFrom-Json).version -eq '1.23.28') -and
-        (Test-Path -LiteralPath (Join-Path $clickTarget 'Backups') -PathType Container)) 'oneclick newer retains backup and receipt'
- $current=(Get-Content -LiteralPath (Join-Path $target 'State\active.json') -Raw|ConvertFrom-Json)
- Check ($current.version -eq '1.23.28' -and $current.activation -eq 'reload-required') 'version advanced without claiming Chrome reload'
- Check (@(Get-ChildItem -LiteralPath (Join-Path $target 'Backups') -Directory).Count -ge 1) 'previous program-file backup retained'
- Call 'updated files verify' 'verify' $target $null $null $true
- $channel30=Channel 'approved30' '1.23.30' $nativeZip
- $nativeTarget=NewRoot 'reviewed-native-permission'
- Call 'reviewed nativeMessaging 1.23.30 permission install' 'install' $nativeTarget $channel30 $nativeZip $true
- Call 'reviewed nativeMessaging installed file verify' 'verify' $nativeTarget $null $null $true
-
- Call 'verified rollback' 'rollback' $target $null $null $true
- $recovered=(Get-Content -LiteralPath (Join-Path $target 'State\active.json') -Raw|ConvertFrom-Json)
- Check ($recovered.version -eq '1.23.27') 'rollback restored earlier version'
- Call 'rollback file proof' 'verify' $target $null $null $true
- [IO.File]::AppendAllText((Join-Path $target 'Extension\app.html'),'MODIFIED')
- Call 'tampered installed file refused' 'verify' $target $null $null $false
- $wrong=NewRoot 'sha'
- $badChannel=Channel 'wrong-sha' '1.23.28' $newZip ('0'*64)
- Call 'wrong approved digest fails closed' 'install' $wrong $badChannel $newZip $false
- Check (-not (Test-Path (Join-Path $wrong 'Extension'))) 'bad digest never activated'
- $trunc=Join-Path $base 'truncated.zip'
- [IO.File]::WriteAllBytes($trunc,[IO.File]::ReadAllBytes($newZip)[0..300])
- $truncChannel=Channel 'truncated' '1.23.28' $trunc
- Call 'truncated ZIP rejected' 'install' (NewRoot 'truncated') $truncChannel $trunc $false
- [void][Reflection.Assembly]::LoadWithPartialName('System.IO.Compression.FileSystem')
- $traversal=Join-Path $base 'traversal.zip'
- Copy-Item -LiteralPath $newZip -Destination $traversal
- $z=[IO.Compression.ZipFile]::Open($traversal,[IO.Compression.ZipArchiveMode]::Update)
- try {
-  $escape=$z.CreateEntry('../escape.js')
-  $stream=[IO.StreamWriter]::new($escape.Open())
-  try { $stream.Write('untrusted') } finally { $stream.Dispose() }
- } finally { $z.Dispose() }
- $traversalChannel=Channel 'traversal' '1.23.28' $traversal
- Call 'ZIP traversal rejected' 'install' (NewRoot 'traversal') $traversalChannel $traversal $false
- Check (-not (Test-Path (Join-Path $base 'escape.js'))) 'no ZIP extraction outside staging'
- $duplicate=Join-Path $base 'duplicate.zip'
- Copy-Item -LiteralPath $newZip -Destination $duplicate
- $z=[IO.Compression.ZipFile]::Open($duplicate,[IO.Compression.ZipArchiveMode]::Update)
- try { [void]$z.CreateEntry('app.html') } finally { $z.Dispose() }
- $duplicateChannel=Channel 'duplicate' '1.23.28' $duplicate
- Call 'duplicate ZIP entry rejected' 'install' (NewRoot 'duplicate') $duplicateChannel $duplicate $false
- $manifestAttack=Join-Path $base 'manifest-attack.zip'
- Copy-Item -LiteralPath $newZip -Destination $manifestAttack
- $z=[IO.Compression.ZipFile]::Open($manifestAttack,[IO.Compression.ZipArchiveMode]::Update)
- try {
-  $entry=$z.GetEntry('manifest.json')
-  $mStream=[IO.StreamReader]::new($entry.Open())
-  try { $manifestText=$mStream.ReadToEnd() } finally { $mStream.Dispose() }
-  $entry.Delete()
-  $m=$manifestText|ConvertFrom-Json
-  $m.permissions=@('storage')
-  $replacement=$z.CreateEntry('manifest.json')
-  $writer=[IO.StreamWriter]::new($replacement.Open())
-  try { $writer.Write(($m|ConvertTo-Json -Depth 15 -Compress)) } finally { $writer.Dispose() }
- } finally { $z.Dispose() }
- $attackChannel=Channel 'manifest-attack' '1.23.28' $manifestAttack
- Call 'wrong permissions rejected despite matching attacker ZIP SHA' 'install' (NewRoot 'permissions') $attackChannel $manifestAttack $false
- $noBackup=NewRoot 'no-backup'
- Call 'rollback without backup refused' 'rollback' $noBackup $null $null $false
- # Controlled crash fixture: simulate old Extension renamed to Backup AFTER journal was durably recorded.
- $crash=NewRoot 'crash'
- Call 'recovery fixture initial install' 'install' $crash $channel27 $oldZip $true
- $old=(Get-Content -LiteralPath (Join-Path $crash 'State\active.json') -Raw|ConvertFrom-Json)
- $backupName='backup-'+[Guid]::NewGuid().ToString('N')
- [void][IO.Directory]::CreateDirectory((Join-Path $crash 'Backups'))
- $journal=@{schema=1;backup=$backupName;hadPrevious=$true;receipt=$old;target='1.23.28'}
- [IO.File]::WriteAllText((Join-Path $crash 'State\pending.json'),($journal|ConvertTo-Json -Depth 12))
- Move-Item -LiteralPath (Join-Path $crash 'Extension') -Destination (Join-Path $crash ('Backups\'+$backupName))
- Call 'pending transaction blocks ordinary updates' 'update' $crash $channel28 $newZip $false
- Call 'journal crash recovery' 'recover' $crash $null $null $true
  Call 'post-crash restore verified' 'verify' $crash $null $null $true
  Check (-not (Test-Path (Join-Path $crash 'State\pending.json'))) 'successful crash recovery clears journal'
  Check ($good -ge 24) 'minimum Windows negative and recovery checks'
