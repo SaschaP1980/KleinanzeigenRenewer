@@ -107,6 +107,10 @@
       'GET_NATIVE_UPDATE_STATUS', 'GET_BACKGROUND_EPOCH',
       'GET_PLATFORM_ACCESS_RESTRICTION', 'PLATFORM_ACCESS_RESTRICTED',
       'GET_PROFILE_STATE', 'LIST_INVENTORIES', 'LIST_TRASH',
+      // Read-only occupancy must stay available under transient Web Locks
+      // contention. ZIP export is deliberately NOT exempt: its durable P8
+      // receipt is the diagnosticExport owner's cross-worker safety proof.
+      'GET_DIAGNOSTIC_OCCUPANCY',
       'OPEN_APP_WINDOW', 'GET_APP_NOTICE', 'GET_DIAGNOSTICS'
     ]);
     const withWorkflowAdmission = options.withWorkflowAdmission;
