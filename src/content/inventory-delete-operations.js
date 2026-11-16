@@ -189,6 +189,21 @@
           || normalizeKey(detectedProfileName(document)) !== expectedAccount))
         throw new Error('KR_MY_ADS_ACCOUNT_CHANGED_DURING_SCAN');
     };
+    // Absence is stronger than a not-found card: on the authenticated R1
+    // path, reconcile every scanned numeric Ad ID with the site's own online
+    // total. An unloaded page, missing navigation or changing roster must
+    // never be misreported as a complete source-absence observation.
+    const expectedOnline = expectedAccount
+      ? parseOnlineCount(document.body?.innerText || '')?.online : null;
+    const assertRosterCount = () => {
+      if (!expectedAccount) return;
+      const currentOnline = parseOnlineCount(document.body?.innerText || '')?.online;
+      if (!Number.isSafeInteger(currentOnline) || currentOnline < 0
+          || currentOnline !== expectedOnline)
+        throw new Error('KR_MY_ADS_ROSTER_INCOMPLETE');
+    };
+    assertRosterCount();
+    const seenAdIds = new Set();
     const seenPageStates = new Set();
     const pages = [];
     for (let pageGuard = 0; pageGuard < MAX_PHASE4_PAGES; pageGuard += 1) {
@@ -196,8 +211,23 @@
       assertSameAccount();
       const listings = await waitForListings();
       assertSameAccount(); // Account can change while listings are loading.
+      assertRosterCount(); // Count may change during a long pagination scan.
       const page = currentPageNumber();
       const fingerprint = pageFingerprint();
+      if (expectedAccount) {
+        // Starting on page 2 or skipping a page could produce false absence.
+        if (!Number.isSafeInteger(page) || page !== pageGuard + 1
+            || (expectedOnline > 0 && listings.length === 0))
+          throw new Error('KR_MY_ADS_ROSTER_INCOMPLETE');
+        for (const item of listings) {
+          const id = String(item?.adId || '');
+          if (!/^\d+$/.test(id) || seenAdIds.has(id))
+            throw new Error('KR_MY_ADS_ROSTER_INCOMPLETE');
+          seenAdIds.add(id);
+        }
+        if (seenAdIds.size > expectedOnline)
+          throw new Error('KR_MY_ADS_ROSTER_INCOMPLETE');
+      }
       const stateKey = `${page}|${location.href}|${fingerprint}`;
       if (seenPageStates.has(stateKey)) throw new Error('Seitennavigation in „Meine Anzeigen“ wiederholt sich; Abbruch aus Sicherheitsgründen.');
       seenPageStates.add(stateKey);
@@ -207,7 +237,14 @@
       if (listing) return { found: true, listing, page, pagesScanned: pages.length, pages };
 
       const next = nextPageButton();
-      if (isDisabledControl(next)) return { found: false, exhausted: true, pagesScanned: pages.length, pages };
+      if (isDisabledControl(next)) {
+        // A vanished/disabled pagination control is not a complete roster.
+        // In particular, zero loaded cards with N advertised online ads
+        // must never confirm that the original source Ad ID was deleted.
+        if (expectedAccount && seenAdIds.size !== expectedOnline)
+          throw new Error('KR_MY_ADS_ROSTER_INCOMPLETE');
+        return { found: false, exhausted: true, pagesScanned: pages.length, pages };
+      }
       const beforePage = page;
       const beforeFingerprint = fingerprint;
       next.click();
