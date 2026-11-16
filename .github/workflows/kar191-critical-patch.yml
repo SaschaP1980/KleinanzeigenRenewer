@@ -26,8 +26,14 @@ jobs:
         run: |
           node tests/kar191-diagnostic-recovery.cjs
           node tests/kar191-diagnostic-zip-integrity.cjs
-      - name: Full runtime, safety, dynamic coverage and architecture
-        run: bash scripts/coverage-gate.sh
+      - name: Full runtime, safety, dynamic coverage and architecture for final tree
+        run: |
+          set -euo pipefail
+          # The final commit must delete this one-time workflow. Validate that
+          # final tree, retaining every production workflow and quality gate.
+          test -f .github/workflows/kar191-critical-patch.yml
+          rm .github/workflows/kar191-critical-patch.yml
+          bash scripts/coverage-gate.sh
 
   one_shot_package:
     name: Owner-authorized exact-HEAD v1.24.4 Chrome ZIP only
@@ -98,6 +104,9 @@ jobs:
           cp "$RUNNER_TEMP/kar191-primary/kleinanzeigen-renewal-chrome-v1.24.4.zip" "$ZIP"
           unzip -t "$ZIP"
           sha256sum "$ZIP"
+          # Final published Work tree explicitly has no temporary runner.
+          test -f .github/workflows/kar191-critical-patch.yml
+          rm .github/workflows/kar191-critical-patch.yml
           bash scripts/coverage-gate.sh
       - name: Real isolated Chromium against the exact new v1.24.4 Chrome ZIP
         shell: bash
