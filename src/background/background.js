@@ -1645,6 +1645,66 @@ function renewalInsertionMeta(session) { return requireRenewalStateRepository().
 function renewalPublicSnapshot(session) { return requireRenewalStateRepository().renewalPublicSnapshot(session); }
 
 
+// R1 private, read-only COMMIT witness: this is account/profile continuity,
+// NEVER a 15-owner IDLE certificate or permission to reserve/apply updates.
+// It reads already-open authenticated My Ads tabs through the established
+// owner observer. No tab creation, profile mutation, NativeHost or IPC.
+async function verifyRemoteCommitAccountReadOnly(original, sourceKind) {
+  const isRecord = x => x !== null && typeof x === 'object' && !Array.isArray(x);
+  if (!isRecord(original) || !['phase4','publish'].includes(sourceKind)) return false;
+  const keys = ['profilesV1', 'activeDetectedProfileV1',
+    'selectedInventoryProfileV1','renewalSessionsV1',
+    'archiveInsertionSessionsV1','templateFillSessions'];
+  let first, observed, last;
+  try {
+    first = await chrome.storage.local.get(keys);
+    observed = await requireAdditionalOwnerObserver().observe();
+    last = await chrome.storage.local.get(keys);
+  } catch { return false; }
+  if (!isRecord(first) || !isRecord(last) ||
+      JSON.stringify(first) !== JSON.stringify(last) ||
+      observed?.schema !== 1 || observed.eligibleForLease !== false ||
+      observed.context?.profile?.state !== 'matched' ||
+      observed.context.profile.reason !== 'LIVE_ACCOUNT_PROFILE_MATCH' ||
+      observed.context.worker?.workerInstanceId !== ownerWorkerInstanceId)
+    return false;
+  const profileId = observed.context.profile.profileId;
+  const selected = first.selectedInventoryProfileV1;
+  const detected = first.activeDetectedProfileV1;
+  const profiles = first.profilesV1;
+  if (!isRecord(selected) || !isRecord(detected) ||
+      selected.profileId !== profileId || detected.profileId !== profileId ||
+      !Array.isArray(profiles)) return false;
+  const matchingProfiles = profiles.filter(p=>isRecord(p) && p.profileId === profileId);
+  if (matchingProfiles.length !== 1) return false;
+  const profile = matchingProfiles[0];
+  const normalize = x => normalizeProfileName(x || '').toLocaleLowerCase('de-DE');
+  if (sourceKind === 'phase4') {
+    // Phase-4 legacy journal stores the *source display name*, while
+    // the workflow and profile store retain the stable profile ID.
+    const session = first.renewalSessionsV1?.[original.renewalId];
+    return isRecord(session) && session.profileId === profileId &&
+      normalize(original.profileId) !== '' &&
+      normalize(profile.displayName) === normalize(original.profileId) &&
+      String(session.sourceAdId || '') === original.sourceAdId &&
+      String(session.newAdId || '') === original.newAdId;
+  }
+  // Publish journal instead stores the stable profile ID.
+  if (original.profileId !== profileId) return false;
+  const archive = original.kind === 'archive';
+  if (!archive && original.kind !== 'renewal') return false;
+  const sessions = archive ? first.archiveInsertionSessionsV1 : first.renewalSessionsV1;
+  const session = sessions?.[original.workflowId];
+  const fill = first.templateFillSessions?.[original.fillId];
+  return isRecord(session) && isRecord(fill) &&
+    session.fillId === original.fillId && fill.fillId === original.fillId &&
+    String((archive ? session.targetProfileId : session.profileId) || '') === profileId &&
+    String(session.sourceAdId || '') === original.sourceAdId &&
+    Number(session.targetTabId) === original.targetTabId &&
+    Number(fill.targetTabId) === original.targetTabId &&
+    String(fill.sourceAdId || '') === original.sourceAdId;
+}
+
 let renewalWorkflowController = null;
 let phase4Journal = null;
 function requirePhase4UncertaintyJournal() {
@@ -1653,6 +1713,8 @@ function requirePhase4UncertaintyJournal() {
       storageLocal: chrome.storage.local, clock: () => Date.now(),
       newToken: () => crypto.randomUUID(), workerInstanceId: ownerWorkerInstanceId,
       verifyRemoteOutcome: receipt => requireRemoteDeleteReplacementService().verifyPhase4RemoteOutcomeFresh(receipt),
+      requireCommitContext: true,
+      verifyCommitContext: receipt => verifyRemoteCommitAccountReadOnly(receipt,'phase4'),
       lockName: AtomicMV3Admission.LOCK_NAME,
       lockManager: globalThis.navigator?.locks
     });
@@ -1667,7 +1729,9 @@ function requireAutoPublishIntentJournal() {
       newToken: () => crypto.randomUUID(), workerInstanceId: ownerWorkerInstanceId,
       lockName: AtomicMV3Admission.LOCK_NAME,
       lockManager: globalThis.navigator?.locks,
-      verifyRemoteOutcome: (intent, newAdId) => verifyAutoPublishRemoteOutcomeFresh(intent, newAdId)
+      verifyRemoteOutcome: (intent, newAdId) => verifyAutoPublishRemoteOutcomeFresh(intent, newAdId),
+      requireCommitContext: true,
+      verifyCommitContext: intent => verifyRemoteCommitAccountReadOnly(intent,'publish')
     });
   }
   return autoPublishIntentJournal;
