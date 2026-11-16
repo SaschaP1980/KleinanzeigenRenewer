@@ -72,6 +72,8 @@ function fixture(initial = 'infinite') {
   const state = fixture();
   assert.equal(state.controller.status(), 'loading');
   assert.equal(state.controller.current(), null);
+  assert.equal(state.controller.render('infinite'), null, 'public render must not invent verified storage state');
+  assert.equal(state.controller.status(), 'loading');
   assert.equal(state.range.disabled, true);
   assert.equal(state.range.hidden, true, 'unverified slider knob must not imply 30 days');
   assert.doesNotMatch(state.value.textContent + state.description.textContent, /30 Tage/);
@@ -92,6 +94,8 @@ function fixture(initial = 'infinite') {
   await state.controller.refresh();
   assert.equal(state.controller.status(), 'ready');
   assert.equal(state.controller.current(), 'infinite');
+  assert.equal(state.controller.render(30), 'infinite', 'render cannot overwrite a verified policy without a storage read');
+  assert.equal(state.controller.render('infinite'), 'infinite');
   assert.equal(state.value.textContent, 'Unbegrenzt (∞)');
   assert.match(state.description.textContent, /ausdrücklichen endgültigen Löschung/);
   assert.equal(state.range.disabled, false);
