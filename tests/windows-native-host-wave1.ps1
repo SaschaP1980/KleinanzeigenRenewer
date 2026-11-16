@@ -196,6 +196,25 @@ try {
     'R2 authentic stable legacy installed receipt is evidence, never update terminality'
   Check ((Get-FileHash -LiteralPath $activePath -Algorithm SHA256).Hash.ToLowerInvariant() -ceq $receiptHash)
     'R2 NativeHost leaves active receipt bytes untouched'
+  $manualFile=Join-Path $state 'manual-transaction.json'
+  $manualId=[Guid]::NewGuid().ToString('N')
+  $manual=@{schema=1;origin='manual-operator';transactionId=$manualId;
+    command='update';phase='files-installed';workerGeneration=$null;
+    admissionToken=$null;targetVersion='1.24.2';
+    previousReceiptSha256=('d'*64);receiptSha256=$receiptHash;
+    createdUtc='2026-11-16T04:30:00Z';completedUtc='2026-11-16T05:00:00Z'}
+  [IO.File]::WriteAllText($manualFile,($manual|ConvertTo-Json -Compress -Depth 8))
+  $manualHash=(Get-FileHash -LiteralPath $manualFile -Algorithm SHA256).Hash.ToLowerInvariant()
+  $manualProof=Run-Host $inspectRequest
+  Check ($manualProof.manualTransaction -ceq 'files-installed-unbound' -and
+    $manualProof.manualTransactionId -ceq $manualId -and
+    $manualProof.manualTransactionFingerprint -ceq $manualHash -and
+    $manualProof.manualTransactionOrigin -ceq 'manual-operator' -and
+    $manualProof.manualReceiptMatches -eq $true -and
+    $manualProof.nativeOutcomeVerified -eq $false -and
+    $manualProof.rollbackVerified -eq $false -and
+    $manualProof.eligibleForLease -eq $false)
+    'R2 native inspector binds actual manual file-commit transaction to active receipt, never MV3'
   $activeSample.version='1.24.3'
   [IO.File]::WriteAllText($activePath,($activeSample|ConvertTo-Json -Compress -Depth 8))
   $changedReceipt=Run-Host $inspectRequest
@@ -203,6 +222,11 @@ try {
     $changedReceipt.receiptVersion -ceq '1.24.3' -and
     $changedReceipt.nativeOutcomeVerified -eq $false)
     'R2 changed active receipt revision does not prove update success'
+  Check ($changedReceipt.manualTransaction -ceq 'mismatched-receipt' -and
+    $changedReceipt.manualReceiptMatches -eq $false -and
+    $changedReceipt.status -ceq 'blocked' -and
+    $changedReceipt.identityBound -eq $false)
+    'R2 stale manual terminal file is contradicted by current installed receipt'
   [IO.File]::WriteAllText($activePath,'{"schema":1,"version":"1.24.3"}')
   $malformedReceipt=Run-Host $inspectRequest
   Check ($malformedReceipt.receipt -ceq 'present' -and
@@ -223,6 +247,33 @@ try {
     $null -eq $vanishedReceipt.receiptVersion -and
     $vanishedReceipt.nativeOutcomeVerified -eq $false)
     'R2 active receipt disappearing cannot launder earlier terminal status'
+  Check ($vanishedReceipt.manualReceiptMatches -eq $false -and
+    $vanishedReceipt.manualTransaction -ceq 'mismatched-receipt' -and
+    $vanishedReceipt.status -ceq 'blocked')
+    'R2 missing installed receipt invalidates still-present manual transaction'
+  $manual.phase='pending'
+  $manual.receiptSha256=$null
+  $manual.completedUtc=$null
+  [IO.File]::WriteAllText($manualFile,($manual|ConvertTo-Json -Compress -Depth 8))
+  $pendingManual=Run-Host $inspectRequest
+  Check ($pendingManual.manualTransaction -ceq 'pending' -and
+    $pendingManual.status -ceq 'blocked' -and
+    $pendingManual.manualReceiptMatches -eq $false -and
+    $pendingManual.nativeOutcomeVerified -eq $false)
+    'R2 standalone pending transaction blocks even when old pending.json is absent'
+  [IO.File]::WriteAllText($manualFile,'{bad manual transaction')
+  $badManual=Run-Host $inspectRequest
+  Check ($badManual.manualTransaction -ceq 'unknown' -and
+    $badManual.status -ceq 'blocked' -and
+    $null -eq $badManual.manualTransactionId -and
+    $badManual.eligibleForLease -eq $false)
+    'R2 malformed manual transaction remains blocked without claiming identity'
+  Remove-Item -LiteralPath $manualFile
+  $absentManual=Run-Host $inspectRequest
+  Check ($absentManual.manualTransaction -ceq 'absent' -and
+    $null -eq $absentManual.manualTransactionFingerprint -and
+    $absentManual.status -ceq 'unverified')
+    'R2 absence cannot be mistaken for transaction success'
   [IO.File]::WriteAllText($pending,'{malformed transaction journal')
   $journalHash=(Get-FileHash -LiteralPath $pending -Algorithm SHA256).Hash
   $proof=Run-Host $inspectRequest

@@ -5,6 +5,8 @@ on:
     paths:
       - tools/windows/KleinanzeigenRenewer-Updater.ps1
       - tests/windows-updater-phase1.ps1
+      - tests/windows-native-host-wave1.ps1
+      - tools/windows/KleinanzeigenRenewer.NativeHost.cs
       - .github/workflows/kar171-r2-manual.yml
 permissions:
   contents: read
@@ -23,3 +25,19 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           & .\tests\windows-updater-phase1.ps1
+
+  windows-native-oracle:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    env:
+      CI: 'true'
+      KAR_UPDATER_TEST_MODE: '1'
+      KAR_NATIVE_HOST_TEST_MODE: '1'
+    steps:
+      - uses: actions/checkout@v5
+        with: { persist-credentials: false }
+      - name: NativeHost authentic Windows manual transaction inspection
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          & .\tests\windows-native-host-wave1.ps1
