@@ -1,0 +1,24 @@
+name: KAR-193 temporary focused diagnostic reset verification
+
+on:
+  push:
+    branches:
+      - work/KAR-193
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  focused:
+    name: Focused reset safety RED-GREEN
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test the real unfixed or fixed diagnostic reset source
+        run: node --test tests/kar193-diagnostic-reset.cjs
