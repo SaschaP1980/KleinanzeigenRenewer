@@ -16,8 +16,16 @@ const publisher = fs.readFileSync('src/background/services/publish-intent-author
 const runner = fs.readFileSync('src/content/inventory-runner.js', 'utf8');
 let count = 0;
 const ok = (condition, description) => {assert.ok(condition, description);count++;};
-function fixture({changedAt='',missingName=false,absent=false}={}) {
+function fixture({changedAt='',missingName=false,absent=false,reportedOnline=1,
+  missingHeader=false,onlineCountDrift=false,missingNext=false,duplicate=false,zero=false}={}) {
   let page = 1, profile = missingName ? '' : 'Real Profile', mutations = 0, log = [];
+  // Mimic the actual My Ads header at each pagination boundary. A temporary
+  // disappearance of the next-page control must not prove full exhaustion.
+  globalThis.document = {body:{get innerText() {
+    if (missingHeader) return '';
+    const online = onlineCountDrift && page === 2 ? reportedOnline + 1 : reportedOnline;
+    return online + ' Anzeigen online';
+  }}};
   const ops = moduleApi.create({
     MAX_PHASE4_PAGES: 3,
     sleep: async () => {},
@@ -27,13 +35,16 @@ function fixture({changedAt='',missingName=false,absent=false}={}) {
     isMyAdsProjectsUrl: () => true,
     currentPageNumber: () => page,
     pageFingerprint: () => 'page-' + page,
-    nextPageButton: () => ({click() {page++; if (changedAt === 'navigation') profile = 'Other Account';}}),
-    isDisabledControl: () => page >= 2,
+    nextPageButton: () => missingNext && page === 1 ? null : ({click() {page++; if (changedAt === 'navigation') profile = 'Other Account';}}),
+    isDisabledControl: next => !next || (zero ? page >= 1 : page >= 2),
     waitForPageChange: async () => true,
     waitForListings: async () => {
       if (changedAt === 'wait-page-1' && page === 1) profile = 'Other Account';
       if (changedAt === 'wait-page-2' && page === 2) profile = 'Other Account';
       log.push({page,profile});
+      if (zero) return [];
+      if (duplicate) return [{adId:'1234',root:{}}];
+      if (page === 1 && absent) return [{adId:'1234',root:{}}];
       return page === 2 && !absent ? [{adId:'5678',root:{}}] : [];
     },
     detectedProfileName: () => profile,
@@ -63,6 +74,20 @@ function fixture({changedAt='',missingName=false,absent=false}={}) {
     const verified=await absent.absent();
     ok(verified.verified===true&&verified.pagesScanned===2,
       'read-only full-pagination absence on a stable account');
+    ok((await fixture({zero:true,reportedOnline:0}).absent()).verified===true,
+      'genuine zero-online roster allows verified absence only after stable exhaustion');
+    for (const [description, settings] of [
+      ['truncated roster against My Ads online count', {absent:true,reportedOnline:2}],
+      ['missing My Ads online count', {absent:true,missingHeader:true}],
+      ['pagination header count drifts', {absent:true,onlineCountDrift:true}],
+      ['lost next-page control while online ads remain', {missingNext:true}],
+      ['repeated ad IDs across separate pages', {absent:true,duplicate:true}]
+    ]) {
+      await assert.rejects(fixture(settings).absent(),
+        /KR_MY_ADS_ROSTER_INCOMPLETE/,
+        description+' must never become positive source absence');
+      ok(true,'fail-closed R1 source absence: '+description);
+    }
     for (const changedAt of ['navigation','wait-page-1','wait-page-2']) {
       const invalid=fixture({changedAt});
       await assert.rejects(invalid.find(), /KR_MY_ADS_ACCOUNT_CHANGED_DURING_SCAN/,
