@@ -306,7 +306,7 @@ let controlAccordionController = null;
 let diagnosticsControlsController = null;
 let renewalSettingsController = null;
 let trashRetentionSettingsController = null;
-let currentTrashRetentionDays = 30;
+let currentTrashRetentionDays = null;
 let currentBulkRunState = null;
 let bulkStartInFlight = false;
 let currentStatusAction = '';
@@ -968,14 +968,27 @@ function setRenewalKicker(prefix, mode = null) {
 async function refreshRenewalConfiguration() { currentRenewalConfiguration = await requireRenewalSettingsController().refresh(); return currentRenewalConfiguration; }
 
 function trashRetentionDurationLabel(days = currentTrashRetentionDays) {
-  return days === 'infinite' ? 'unbegrenzt' : days + ' Tage';
+  return days == null ? 'derzeit nicht ermittelt' : days === 'infinite' ? 'unbegrenzt' : days + ' Tage';
 }
 
-function refreshTrashRetentionExplanations(days = currentTrashRetentionDays) {
-  const period = trashRetentionDurationLabel(days);
-  const indefinite = days === 'infinite';
+function refreshTrashRetentionExplanations(days = currentTrashRetentionDays, status = days == null ? 'loading' : 'ready') {
   const full = trashIntroFull;
   const sticky = trashIntroSticky;
+  if (days == null) {
+    const unavailable = status === 'unavailable';
+    if (full) full.textContent = (unavailable
+      ? 'Die gespeicherte Papierkorb-Aufbewahrung konnte nicht ermittelt werden.'
+      : 'Die gespeicherte Papierkorb-Aufbewahrung wird ermittelt.') +
+      ' Die Einträge bleiben sichtbar und können als Vorlage für eine neue Anzeige verwendet werden. Die Anzeige bei Kleinanzeigen bleibt unverändert. Eine neue Anzeige wird nur vorbereitet und niemals automatisch veröffentlicht. Einträge können nicht zurück ins Inventar verschoben werden.';
+    if (sticky) sticky.textContent = unavailable
+      ? 'Papierkorb: Aufbewahrungsdauer nicht verfügbar.'
+      : 'Papierkorb: Aufbewahrungsdauer wird ermittelt.';
+    if (renewalStartSafetyText) renewalStartSafetyText.textContent =
+      'Die bisherige Anzeige bleibt danach als Sicherheitskopie im Papierkorb. Die derzeit geltende Aufbewahrungsdauer konnte noch nicht bestätigt werden.';
+    return;
+  }
+  const period = trashRetentionDurationLabel(days);
+  const indefinite = days === 'infinite';
   if (full) full.textContent = indefinite
     ? 'Einträge im Papierkorb werden unbegrenzt lokal aufbewahrt, bis du sie ausdrücklich endgültig löschst. Du kannst sie als Vorlage für eine neue Anzeige verwenden. Die Anzeige bei Kleinanzeigen bleibt unverändert. Eine neue Anzeige wird nur vorbereitet und niemals automatisch veröffentlicht. Einträge können nicht zurück ins Inventar verschoben werden.'
     : 'Einträge im Papierkorb werden ' + period + ' lokal aufbewahrt. Du kannst sie in dieser Zeit als Vorlage für eine neue Anzeige verwenden. Die Anzeige bei Kleinanzeigen bleibt unverändert. Eine neue Anzeige wird nur vorbereitet und niemals automatisch veröffentlicht. Einträge können nicht zurück ins Inventar verschoben werden.';
@@ -999,10 +1012,14 @@ function requireTrashRetentionSettingsController() {
   trashRetentionSettingsController = TrashRetentionSettingsController.create({
     elements: { range: trashRetentionRange, value: trashRetentionValue, description: trashRetentionDescription },
     runtimeMessage, confirmAction, getSelectedProfileId: () => selectedProfileId,
-    onChanged(days) {
-      currentTrashRetentionDays = days;
-      refreshTrashRetentionExplanations(days);
-      if (currentRecords.length || currentTrashRecords.length) void refreshInventories().catch(() => {});
+    onStateChanged({ status, retentionDays }) {
+      currentTrashRetentionDays = status === 'ready' ? retentionDays : null;
+      refreshTrashRetentionExplanations(currentTrashRetentionDays, status);
+    },
+    async onReconcile() {
+      // The background projects card deadlines from persisted retention. Only
+      // reveal the verified banner after any already-visible cards are refreshed.
+      if (currentRecords.length || currentTrashRecords.length) await refreshInventories();
     },
     onError(title, error) { setStatus('error', title, friendlyErrorMessage(error)); }
   });
@@ -1010,7 +1027,24 @@ function requireTrashRetentionSettingsController() {
 }
 
 async function refreshTrashRetentionConfiguration() {
-  return requireTrashRetentionSettingsController().refresh();
+  const controller = requireTrashRetentionSettingsController();
+  try {
+    return await controller.refresh();
+  } catch (error) {
+    // One bounded delayed recovery for a transient MV3 admission denial.
+    // Never bypass the fence or run an unbounded background poll.
+    if (String(error?.code || error?.message || '').includes('KR_UPDATE_FENCE_ATOMIC_BUSY')) {
+      setTimeout(() => {
+        if (controller.status() === 'unavailable') void controller.refresh().catch(() => {});
+      }, 2000);
+    }
+    throw error;
+  }
+}
+
+function retryUnavailableTrashRetentionConfiguration() {
+  const controller = trashRetentionSettingsController;
+  if (controller?.status?.() === 'unavailable') void controller.refresh().catch(() => {});
 }
 
 
@@ -3198,6 +3232,11 @@ appNoticeDismiss.addEventListener('click', async () => {
 
 clearInventoryButton.addEventListener('click', async () => {
   if (!currentRecords.length) return;
+  if (currentTrashRetentionDays == null) {
+    setStatus('error', 'Papierkorb-Aufbewahrung nicht verfügbar',
+      'Die Aufbewahrungsdauer muss vor dem Verschieben bestätigt werden. Fenster erneut aktivieren, um die Einstellung zu prüfen.');
+    return;
+  }
   void logAppEvent('USER_CLEAR_INVENTORY_CLICK', { count: currentRecords.length });
   if (!await confirmAction({ title: 'Alle Anzeigen in den Papierkorb?', text: `Alle ${currentRecords.length} gespeicherten Anzeigen werden ${currentTrashRetentionDays === 'infinite' ? 'unbegrenzt' : 'für ' + trashRetentionDurationLabel()} im Papierkorb aufbewahrt.`, detail: 'Die Anzeigen bei Kleinanzeigen bleiben unverändert. Gespeicherte Bilder bleiben bis zur gewählten Löschung erhalten.', confirmLabel: 'Alle in Papierkorb', danger: true })) {
     void logAppEvent('USER_CLEAR_INVENTORY_CANCELLED', { count: currentRecords.length });
@@ -3353,11 +3392,13 @@ window.addEventListener('resize', () => {
 window.addEventListener('focus', () => {
   sanitizeControlAccordionAnimations('window-focus');
   scheduleActionsResync('window-focus', 80);
+  retryUnavailableTrashRetentionConfiguration();
 });
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') {
     sanitizeControlAccordionAnimations('visibility-visible');
     scheduleActionsResync('visibility-visible', 80);
+    retryUnavailableTrashRetentionConfiguration();
   }
 });
 scheduleListStickyHeaderSync();
