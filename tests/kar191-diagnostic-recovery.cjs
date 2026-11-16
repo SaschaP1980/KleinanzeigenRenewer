@@ -91,14 +91,14 @@ test('KAR-191 denied ZIP export reports useful persistent status and re-enables 
   const ui = Object.fromEntries(['occupancy', 'occupancyFill', 'occupancyText', 'accordion',
     'zipButton', 'resetButton', 'emergencyButton', 'status'].map(name => [name, element()]));
   Controls.create({
-    elements: ui,
+    elements: ui, exportRetryDelayMs: 1,
     runtimeMessage: async request => {
       if (request.type === 'GET_DIAGNOSTIC_EXPORT') throw BUSY;
       return { current: 0, maximum: 2500 };
     }
   });
   ui.zipButton.fire('click');
-  await new Promise(resolve => setImmediate(resolve));
+  await new Promise(resolve => setTimeout(resolve, 35));
   assert.equal(ui.zipButton.disabled, false);
   assert.match(ui.status.textContent, /KR_UPDATE_FENCE_ATOMIC_BUSY|vorübergehend blockiert/i,
     'a denied download is visibly diagnosable even if the diagnostic system cannot log');
