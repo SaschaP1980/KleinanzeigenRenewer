@@ -11,7 +11,7 @@
     "On automatic or manual publish authorization denial, persist recoverable fail-closed blocked state in template fill and archive session, with truthful ZIP Manager progress and no implicit re-insertion.",
     "Preserve unresolved remote-outcome protection across MV3 and Manager restarts; keep ZIP staging, original records, identity checks and all existing paid-insertion gates.",
     "Synthetic RED confirmed on v1.25.4 baseline GitHub CI; GREEN, source-identical Chromium, versioned ZIP parity and native owner acceptance pending independently.",
-    "Maintain Dynamic Public Function Coverage 100% and line/branch/architecture no-regression safety gates. No real Kleinanzeigen mutation in hosted CI."
+    "Dynamic Public Function Coverage remains 100 % and Architecture-No-Regression must remain PASS on the exact packaged source; line/branch, Windows and packaged Chromium E2E are mandatory. No hosted CI Kleinanzeigen mutation."
   ],
   "nextPlannedBuild": "TBD",
   "nextPlannedBuildGoal": "Determined by separately authorized open GitHub Issues.",
