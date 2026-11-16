@@ -8,6 +8,8 @@ const root = path.resolve(__dirname, '..');
 const read = filename => fs.readFileSync(path.join(root, filename), 'utf8');
 const app = read('src/app/app.js');
 const html = read('src/app/app.html');
+const inventoryCard = read('src/app/inventory-card-renderer.js');
+const trashCard = read('src/app/trash-card-renderer.js');
 
 function element() {
   const listeners = new Map();
@@ -142,6 +144,13 @@ function fixture(initial = 'infinite') {
   assert.match(app, /onStateChanged/);
   assert.match(app, /refreshTrashRetentionExplanations\(/);
   assert.match(app, /currentTrashRetentionDays == null/);
+  assert.match(inventoryCard, /function requireVerifiedTrashRetention/);
+  assert.match(inventoryCard, /getTrashRetentionDays/);
+  assert.doesNotMatch(inventoryCard, /30 Tage/, 'inventory actions must not announce hardcoded retention');
+  assert.match(trashCard, /function requireVerifiedRetention/);
+  assert.match(trashCard, /RESET_TRASH_RETENTION/);
+  assert.match(app, /retryUnavailableTrashRetentionConfiguration/);
+  assert.doesNotMatch(html, /Einträge werden nach 30 Tagen automatisch/, 'static settings description remains neutral');
 
   console.log('PASS KAR-186 cold-start 61/90 records, denied fence, verified recovery, finite/infinite/legacy, write guard and honest UI');
 })().catch(error => { console.error(error); process.exitCode = 1; });
