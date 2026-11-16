@@ -21,7 +21,16 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Both remote commit-context regressions
+      - name: Install dependencies
+        run: npm ci
+      - name: R1 published/source commit and owner-lineage tests
         run: |
           node tests/kar99-publish-outcome.cjs
           node tests/kar99-phase4-outcome-reconciliation.cjs
+          node tests/kar175-publish-intent-authorization.cjs
+          node --test tests/kar99-p13f2e2d2a-remote-admission-lineage.cjs
+      - name: Full clean-tree coverage, architecture, no-regression
+        shell: bash
+        run: |
+          rm .github/workflows/kar171-r1-commit.yml
+          bash scripts/coverage-gate.sh
