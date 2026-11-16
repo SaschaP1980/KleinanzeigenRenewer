@@ -117,6 +117,7 @@ async function getInsertionLockState() {
 }
 
 function insertionLockMessage(lock) {
+  if (lock?.status === 'publish-blocked') return 'Die vorherige ZIP-Veröffentlichung ist gesperrt und der Online-Status ungeklärt. Bitte „Meine Anzeigen“ unabhängig prüfen; keine erneute Veröffentlichung oder ZIP-Einfügung starten.';
   const title = String(lock?.title || '').trim();
   const suffix = title ? ` („${title}“)` : '';
   return `Ein anderer Inserierungs-/Austauschvorgang läuft bereits${suffix}. Bitte schließe oder verwirf diesen Vorgang zuerst.`;
