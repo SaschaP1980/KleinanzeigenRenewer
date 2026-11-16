@@ -105,7 +105,7 @@ test('F2E2C RED: independently verified archive publish revision retains source,
    assert.equal(name,Atomic.LOCK_NAME);
    assert.deepEqual(opts,{mode:'exclusive',ifAvailable:true});
    if(held)return cb(null);
-   held=true;try{return await cb({name});}finally{held=false;}
+   held=true;try{return await cb({name,mode:'exclusive'});}finally{held=false;}
  }};
  const journal=Publish.create({
   storageLocal:s,lockManager,lockName:Atomic.LOCK_NAME,
