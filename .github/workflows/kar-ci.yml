@@ -18,7 +18,9 @@ jobs:
   ci:
     name: Runtime, safety, coverage, Chrome ZIP and packaged browser E2E
     if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    # Playwright 1.57.0 cannot install Chromium on Ubuntu 26.04 behind ubuntu-latest.
+    # Pin main CI package/E2E to supported Ubuntu 24.04 as Work PR.
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5

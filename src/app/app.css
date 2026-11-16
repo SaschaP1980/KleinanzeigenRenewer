@@ -156,6 +156,15 @@ button { font: inherit; }
 .inventory-section .section-title p::before { content:'·'; margin-right:7px; color:#62726f; }
 .inventory-list { display:grid; grid-template-columns:1fr; gap:12px; }
 .empty { grid-column:1/-1; padding:30px 18px; border:1px dashed #354044; border-radius:12px; color:#879399; text-align:center; font-size:13px; }
+/* KAR-188: separate honest loading/error state before a verified empty result. */
+.list-load-state { grid-column:1/-1; display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:10px; padding:25px 16px; border:1px dashed #435357; border-radius:12px; color:#b6c6c5; text-align:center; font-size:13px; line-height:1.5; }
+.list-load-state.is-error { border-color:#765450; color:#f2c5bf; }
+.list-load-state strong { font-weight:600; }
+.list-load-state p { flex-basis:100%; margin:0; color:#aab8b6; }
+.list-load-spinner { width:15px; height:15px; border:2px solid #607673; border-top-color:#63d3b6; border-radius:50%; animation:list-load-spin 1s linear infinite; }
+.list-load-retry { margin-left:5px; cursor:pointer; }
+@keyframes list-load-spin { to { transform:rotate(360deg); } }
+@media (prefers-reduced-motion:reduce) { .list-load-spinner { animation:none; } }
 .inventory-card { min-width:0; padding:13px; border:1px solid #303a3f; border-radius:11px; background:#171d20; }
 .inventory-card-clickable { cursor:pointer; transition:border-color .12s ease, background .12s ease, box-shadow .12s ease; }
 .inventory-card-clickable:hover { border-color:#47625c; background:#192124; }
