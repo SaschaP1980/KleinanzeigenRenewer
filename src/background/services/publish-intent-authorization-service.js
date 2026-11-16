@@ -62,6 +62,7 @@
           await assertStatus();
           const presence=await sendTabRequestWithBootstrap(tabId,{
             type:'FIND_OWN_AD_BY_ID',adId:newAdId,
+            expectedProfileName:expectedName,
             correlation:{fillId:intent.fillId,
               ...(archive?{archiveInsertionId:intent.workflowId}:{renewalId:intent.workflowId})}
           });
