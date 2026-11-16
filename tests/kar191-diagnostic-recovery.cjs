@@ -24,15 +24,22 @@ function dispatchFixture() {
   return { router, seen, handled, safety };
 }
 
-test('KAR-191 diagnostic occupancy and ZIP export remain available during a mutation admission fence', async () => {
+test('KAR-191 safe occupancy read is available during workflow mutation admission contention', async () => {
   const fx = dispatchFixture();
-  for (const type of ['GET_DIAGNOSTIC_OCCUPANCY', 'GET_DIAGNOSTIC_EXPORT']) {
-    const result = await fx.router.dispatch({ type }, {});
-    assert.equal(result.type, type);
-  }
-  assert.deepEqual(fx.seen, [], 'strictly diagnostic queries must not request mutating workflow admission');
-  assert.deepEqual(fx.handled, ['GET_DIAGNOSTIC_OCCUPANCY', 'GET_DIAGNOSTIC_EXPORT']);
+  const result = await fx.router.dispatch({ type: 'GET_DIAGNOSTIC_OCCUPANCY' }, {});
+  assert.equal(result.type, 'GET_DIAGNOSTIC_OCCUPANCY');
+  assert.deepEqual(fx.seen, [], 'read-only occupancy must not request durable mutation admission');
+  assert.deepEqual(fx.handled, ['GET_DIAGNOSTIC_OCCUPANCY']);
   assert.deepEqual(fx.safety, fx.handled, 'platform access safety still applies');
+});
+
+test('KAR-191 ZIP export retains durable P8 admission and owner tracking when its gate is busy', async () => {
+  const fx = dispatchFixture();
+  await assert.rejects(fx.router.dispatch({ type: 'GET_DIAGNOSTIC_EXPORT' }, {}),
+    /KR_UPDATE_FENCE_ATOMIC_BUSY/);
+  assert.deepEqual(fx.seen, ['GET_DIAGNOSTIC_EXPORT'],
+    'export must not bypass its existing durable diagnosticExport owner receipt');
+  assert.equal(fx.handled.length, 0, 'blocked export does not run without admission');
 });
 
 test('KAR-191 mutation admission remains fail-closed for reset, logging and remote operations', async () => {
