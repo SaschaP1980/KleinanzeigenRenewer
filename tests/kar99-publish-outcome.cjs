@@ -110,7 +110,7 @@ const create=(store,manager,worker='worker-1',verify=proof)=>Journal.create({
    'KR_PUBLISH_INTENT_CORRUPT','historical publication receipt beyond scanned pages fails closed');
  // R1: proof of publication is never commit-authoritative without a new
  // read-only live context bound inside the same origin Web Lock.
- const strictDisk=disk(),strictLocks=locks(),observed=[];
+ const strictDisk=disk(),strictLocks=locks(),commitObservations=[];
  let liveContext='profile-1',remoteChecked=false;
  function strictPublish(commitProof){
    return Journal.create({storageLocal:strictDisk,lockManager:strictLocks,
@@ -136,11 +136,11 @@ const create=(store,manager,worker='worker-1',verify=proof)=>Journal.create({
    'R1: denied publication has no persisted positive result');
  liveContext='profile-1';
  const strictConfirmed=await strictPublish(intent=>{
-   observed.push({held:strictLocks.held.has(Atomic.LOCK_NAME),attemptId:intent.attemptId});
+   commitObservations.push({held:strictLocks.held.has(Atomic.LOCK_NAME),attemptId:intent.attemptId});
    return liveContext===intent.profileId;
  }).resolveVerified({fillId:'r1-commit',newAdId:'7890'});
- ok(strictConfirmed.state==='resolved-confirmed'&&observed.length===1
-    &&observed[0].held===true&&observed[0].attemptId===strictEntry.attemptId,
+ ok(strictConfirmed.state==='resolved-confirmed'&&commitObservations.length===1
+    &&commitObservations[0].held===true&&commitObservations[0].attemptId===strictEntry.attemptId,
     'R1: stable live context is independently checked inside origin lock at durable commit');
  // R1: A publication result with an original P8 admission must be tied
  // to the real, unmodified START source throughout the independent scan.
