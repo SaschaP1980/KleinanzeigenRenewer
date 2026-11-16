@@ -245,24 +245,47 @@ async function restoreTrashTemplateRecord(inventoryId) {
   return trackedTrashTemplateRecord;
 }
 
+// Passive status synchronizations can arrive from many independent startup
+// render paths. Coalesce them without caching failures or silently suppressing
+// explicit user-initiated recovery/takeover.
+let passiveRecoveryInFlight = null;
+let lastVerifiedEmptyRecoveryMs = 0;
 async function recoverTrashTemplateSession({ forceOpen = false, allowTakeover = false } = {}) {
-  const requestRevision = trashTemplateDialogRevision;
-  const session = await runtimeMessage({ type: 'GET_RECOVERABLE_TRASH_TEMPLATE_FILL' }).catch(() => null);
-  if (!session?.fillId) { syncTrashTemplateRecoveryActivity(null); return null; }
-  if (!canAdoptTrashTemplateSession(session, { allowTakeover, requestRevision })) { syncTrashTemplateRecoveryActivity(session); return session; }
-  const inventoryId = String(session.trashInventoryId || session.inventoryId || '');
-  setTrashTemplateDialogOwner('session', { inventoryId, fillId: session.fillId });
-  trackedTrashTemplateFillId = String(session.fillId);
-  trackedTrashTemplateTabId = Number(session.targetTabId || 0) || null;
-  trackedTrashTemplateNewAdId = String(session.newAdId || '');
-  await restoreTrashTemplateRecord(inventoryId);
-  if (!trackedTrashTemplateRecord) return session;
-  renderTrashTemplateSource(trackedTrashTemplateRecord);
-  renderTrashTemplateFillStatus(session);
-  if (forceOpen && trashTemplateDialog && !trashTemplateDialog.open) trashTemplateDialog.showModal();
-  return session;
+  const passive = !forceOpen && !allowTakeover;
+  if (passive && passiveRecoveryInFlight) return passiveRecoveryInFlight;
+  if (passive && lastVerifiedEmptyRecoveryMs &&
+      Date.now() - lastVerifiedEmptyRecoveryMs < 1500) return null;
+  const task = (async () => {
+    const requestRevision = trashTemplateDialogRevision;
+    let lookupSucceeded = false;
+    const session = await runtimeMessage({ type: 'GET_RECOVERABLE_TRASH_TEMPLATE_FILL' })
+      .then(value => { lookupSucceeded = true; return value; }, () => null);
+    if (!session?.fillId) {
+      // Only a completed authoritative EMPTY read receives a short cache TTL;
+      // a transient P8 denial must not be mislabeled as a verified empty session.
+      if (lookupSucceeded) lastVerifiedEmptyRecoveryMs = Date.now();
+      syncTrashTemplateRecoveryActivity(null);
+      return null;
+    }
+    lastVerifiedEmptyRecoveryMs = 0;
+    if (!canAdoptTrashTemplateSession(session, { allowTakeover, requestRevision })) { syncTrashTemplateRecoveryActivity(session); return session; }
+    const inventoryId = String(session.trashInventoryId || session.inventoryId || '');
+    setTrashTemplateDialogOwner('session', { inventoryId, fillId: session.fillId });
+    trackedTrashTemplateFillId = String(session.fillId);
+    trackedTrashTemplateTabId = Number(session.targetTabId || 0) || null;
+    trackedTrashTemplateNewAdId = String(session.newAdId || '');
+    await restoreTrashTemplateRecord(inventoryId);
+    if (!trackedTrashTemplateRecord) return session;
+    renderTrashTemplateSource(trackedTrashTemplateRecord);
+    renderTrashTemplateFillStatus(session);
+    if (forceOpen && trashTemplateDialog && !trashTemplateDialog.open) trashTemplateDialog.showModal();
+    return session;
+  })();
+  if (!passive) return task;
+  passiveRecoveryInFlight = task;
+  try { return await task; }
+  finally { passiveRecoveryInFlight = null; }
 }
-
 async function reopenTrashTemplateSession() {
   const session = trackedTrashTemplateFillId && trashTemplateDialogOwner.kind === 'session'
     ? await refreshTrashTemplateDialogStatus({ forceOpen: false })

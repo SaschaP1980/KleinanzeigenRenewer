@@ -4,6 +4,22 @@ This is the canonical version-specific history for Kleinanzeigen Manager. Entrie
 
 All distinct historical section bodies from the former root README and CHANGELOG are preserved with source labels and line numbers. The [KAR-170 migration ledger](docs/maintenance/KAR170_CHANGELOG_MIGRATION.json) identifies their original Git blobs and body checksums. Overlapping versions retain distinct factual notes; older references to planned builds or native/CI acceptance are **historical**, not live status.
 
+## v1.25.4 — KAR-195 targeted P8 receipt verification for native account startup (Work source candidate)
+
+- Correct the v1.25.3 native Windows/Chrome performance regression: the account gate required ~24 seconds from manager opening to confirmed. First-30s diagnostics showed 105 P8 journal phases, ~250ms per short lock hold and up to 6.25s of FIFO waiting. Do not present previous hosted GREEN as native acceptance.
+- Replace per-start and per-finish `storage.local.get(null)` full-store enumeration with an origin-Web-Lock-protected **targeted read of the operation's own start/finish keys**. Validate token collision before admission; keep independent durable write/readback and deny missing/modified/already completed receipts. Neither remote task execution nor update-leased reserve is moved into or out of the exclusive lock.
+- **Preserve `guardReserve` unchanged**: two complete independent journal reads under the exclusive Web Lock, with strict validation and refusal of unresolved previous-worker starts, inconsistent finish receipts or unreadable storage. No automatic reset, data deletion, lease bypass, or publication.
+- Test-first RED on exact v1.25.3 Work HEAD `6c80b2c` (12 concurrent route calls caused **24 full storage enumerations** in a deterministic 2498-entry fixture); add collision/tamper and cross-worker reserve fail-closed cases; compare the same fixture after the targeted change. Further packaged Chromium, Windows CI and owner native re-test remain mandatory before merge/release.
+- Work-source candidate only; no GitHub Release, merge or real Kleinanzeigen mutation is implied.
+
+## v1.25.3 — KAR-195 bounded MV3 Web Lock startup contention and request deduplication (Work source candidate)
+
+- Serialize only the short in-worker P8 durable journal start/finish Web Lock critical sections with FIFO handoff, retaining the original browser-origin exclusive lock, 16-attempt cross-worker retry, durable start/finish readback, and completely unchanged `guardReserve` policy. Admitted remote handlers remain outside this queue. Yield between local critical sections so already admitted nested publish-intent checks can fairly acquire the shared Web Lock.
+- Avoid multiplying passive `GET_RECOVERABLE_TRASH_TEMPLATE_FILL` requests from synchronous startup/control-state updates: coalesce in-flight reads and cache only **confirmed empty** results for 1.5 seconds, never cache an unavailable/denied read or suppress explicit takeover.
+- Introduce short-lived, bounded diagnostic-service-owned startup instrumentation: sanitized operation/phase counts, queue wait, actual exclusive lock hold time, observed BUSY attempts and denied outcomes, aggregated into `P8_ATOMIC_ADMISSION_WINDOW` at most six times over the first 30 seconds. No raw receipts, worker IDs, profile/account identifiers, listing IDs, emails, tab IDs, URLs, or per-request payloads; never log through a fenced runtime diagnostic request.
+- Test-first synthetic startup bursts under fresh/near-capacity diagnostics (0 and 2498 rows), two workers, immutable receipts and starvation prevention, duplicate passive recovery and safe telemetry with no user data. Preserve all existing KAR-99/P8 updater, publish-intent, account/profile and reset/export safety regression gates.
+- This documents Work-branch source changes only. A verified forward-only versioned ZIP, exact-head Chromium/Windows CI, merge authorization and native Windows/Chrome validation are **separate** gates. Do not interpret hosted tests as proof of a real Kleinanzeigen account operation.
+
 ## v1.25.2 — KAR-191 and KAR-193 diagnostic occupancy, export and reset recovery (Work integration)
 
 - Forward-integrate the owner-validated v1.24.4/#191 diagnostic and v1.24.5/#193 reset fixes on top of merged v1.25.1/#188 and v1.25.0/#164. Preserve truthful inventory/trash loading and Papierkorb retention-deadline sorting.

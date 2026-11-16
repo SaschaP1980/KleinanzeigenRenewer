@@ -2130,6 +2130,7 @@ function requireNativeStatusBridge() {
   return nativeStatusBridge;
 }
 
+// KAR-195 P8 timing aggregation is owned by KRDiagnosticsService.
 // No trusted 15-owner snapshot provider exists yet: reserve always fails closed.
 let atomicMV3Admission = null;
 function requireAtomicMV3Admission() {
@@ -2139,7 +2140,8 @@ function requireAtomicMV3Admission() {
     atomicMV3Admission=AtomicMV3Admission.create({
       storageLocal:chrome.storage.local,lockManager:globalThis.navigator?.locks,
       workerInstanceId:ownerWorkerInstanceId,clock:()=>Date.now(),
-      newToken:()=>crypto.randomUUID()
+      newToken:()=>crypto.randomUUID(),
+      onSample:sample=>requireDiagnosticsService().recordAtomicSample(sample)
     });
   }
   return atomicMV3Admission;
