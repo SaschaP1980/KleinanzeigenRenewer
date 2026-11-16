@@ -301,3 +301,84 @@ test('R2 matching manual file-receipt evidence is never original Worker P8 termi
  assert.equal(proof.nativeHostOutcomeVerified,false);
  assert.equal(d.writes,0);
 });
+
+function nativePhase(overrides={}) {
+ return Object.freeze({
+  ok:true,operation:'inspect_transaction',status:'unverified',
+  journal:'absent',lock:'absent',receipt:'present',
+  transactionPhase:'unknown',journalFingerprint:null,
+  receiptFingerprint:'c'.repeat(64),
+  manualTransaction:'files-installed-unbound',
+  manualTransactionId:'a'.repeat(32),manualTransactionFingerprint:'b'.repeat(64),
+  manualTransactionOrigin:'manual-operator',manualReceiptMatches:true,
+  identityBound:false,nativeOutcomeVerified:false,rollbackVerified:false,
+  eligibleForLease:false,...overrides
+ });
+}
+function liveNativeObserver(d, fn) {
+ return Owners.create({storageLocal:d,storageSession:{async get(){return {}}},
+   workerInstanceId:'current-worker',clock:()=>5000,
+   readNativeTransactionReadOnly:fn});
+}
+test('R2: native Windows transaction starting during five local reads must block',async()=>{
+ const d=disk();d.rows[KEY]=released();
+ let reads=0;
+ const obs=liveNativeObserver(d,async()=>{
+  reads++;
+  return reads===1?nativePhase():nativePhase({
+   status:'blocked',journal:'present',
+   transactionPhase:'pending-install-or-rollback',
+   journalFingerprint:'e'.repeat(64)
+  });
+ });
+ const proof=await obs.inspectNativeUpdateTransactionClosureReadOnly();
+ invariant(proof);
+ assert.ok(reads>=2,'native host must be sampled again after durable local reads');
+ assert.equal(proof.status,'blocked');
+ assert.equal(proof.reason,'NATIVE_HOST_TRANSACTION_BLOCKED');
+ assert.equal(proof.nativeHostEvidence.journal,'present');
+ assert.equal(proof.localReleaseRecorded,false);
+ assert.equal(d.writes,0);
+});
+test('R2: native manual transaction fingerprint changes during local source read => unverified',async()=>{
+ const d=disk();d.rows[KEY]=released();let reads=0;
+ const obs=liveNativeObserver(d,async()=>{
+  reads++;
+  return nativePhase({manualTransactionFingerprint:(reads===1?'b':'d').repeat(64)});
+ });
+ const proof=await obs.inspectNativeUpdateTransactionClosureReadOnly();
+ invariant(proof);
+ assert.ok(reads>=2,'second native inspection required');
+ assert.equal(proof.status,'unverified');
+ assert.equal(proof.reason,'NATIVE_HOST_SOURCE_CHANGED_DURING_READ');
+ assert.equal(proof.nativeHostEvidence,null);
+ assert.equal(proof.localReleaseRecorded,false);
+ assert.equal(d.writes,0);
+});
+test('R2: interrupted/unavailable host after initial proof cannot certify local release',async()=>{
+ const d=disk();d.rows[KEY]=released();let reads=0;
+ const obs=liveNativeObserver(d,async()=>{
+  if(++reads===1)return nativePhase();
+  throw Error('native host disconnected');
+ });
+ const proof=await obs.inspectNativeUpdateTransactionClosureReadOnly();
+ invariant(proof);
+ assert.ok(reads>=2);
+ assert.equal(proof.status,'unverified');
+ assert.equal(proof.reason,'NATIVE_HOST_SOURCE_CHANGED_DURING_READ');
+ assert.equal(proof.nativeHostEvidence,null);
+ assert.equal(d.writes,0);
+});
+test('R2: stable twice verified NativeHost manual source remains only historical local receipt',async()=>{
+ const d=disk();d.rows[KEY]=released();let reads=0;
+ const obs=liveNativeObserver(d,async()=>{reads++;return nativePhase()});
+ const proof=await obs.inspectNativeUpdateTransactionClosureReadOnly();
+ invariant(proof);
+ assert.equal(reads,2);
+ assert.equal(proof.status,'local-release-recorded');
+ assert.equal(proof.localReleaseRecorded,true);
+ assert.equal(proof.nativeHostEvidence.manualTransactionFingerprint,'b'.repeat(64));
+ assert.equal(proof.nativeHostOutcomeVerified,false);
+ assert.equal(proof.eligibleForLease,false);
+ assert.equal(d.writes,0);
+});
