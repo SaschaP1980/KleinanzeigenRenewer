@@ -22,7 +22,7 @@ console.log(`${n} v0.1.6 contract tests passed`);
 if (process.env.KAR46_SYNTHETIC_PATCH !== '1' && isCurrentPatchVersion(manifest.version)
     && manifest.version.startsWith('1.23.')) {
   require('./current-patch-next-release-regression.cjs');
-} else if (manifest.version.startsWith('1.24.')) {
+} else if (['1.24.','1.25.'].some(prefix => manifest.version.startsWith(prefix))) {
   // KAR-46's full speculative next-PATCH fixture is a historical 1.23
   // correction-era test. Actual 1.24 releases still run the complete real
   // runtime/coverage/architecture/ZIP/Chromium gates on their own exact HEAD.
