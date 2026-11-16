@@ -31,8 +31,9 @@ ok('elevation exists only while header is pinned', () => {
 });
 
 ok('trash retention copy condenses only while sticky', () => {
-  assert.match(html, /class="trash-intro-full">Einträge im Papierkorb werden 30 Tage lokal aufbewahrt\./);
-  assert.match(html, /class="trash-intro-sticky">Papierkorb: Einträge werden 30 Tage lokal aufbewahrt\.<\/span>/);
+  // KAR-186: sticky and full introductory copy must be neutral before retention read.
+  assert.match(html, /class="trash-intro-full">Die gespeicherte Papierkorb-Aufbewahrung wird ermittelt\./);
+    assert.match(html, /class="trash-intro-sticky">Papierkorb: Aufbewahrungsdauer wird ermittelt\.<\/span>/);
   assert.match(css, /\.trash-intro-sticky\s*\{\s*display:none;/s);
   assert.match(css, /\.trash-list-sticky-header\.is-stuck \.trash-intro-full\s*\{\s*display:none;/s);
   assert.match(css, /\.trash-list-sticky-header\.is-stuck \.trash-intro-sticky\s*\{\s*display:inline;/s);
