@@ -51,7 +51,8 @@ function fixture({changedAt='',missingName=false,absent=false}={}) {
   };
 }
 (async () => {
-  const oldLocation = globalThis.location;
+  const oldLocation = globalThis.location, oldDocument = globalThis.document;
+  globalThis.document = {};
   globalThis.location = {href:'https://www.kleinanzeigen.de/m-meine-anzeigen.html?tab=PROJECTS'};
   try {
     const valid=fixture();
@@ -87,6 +88,6 @@ function fixture({changedAt='',missingName=false,absent=false}={}) {
       'content router passes read-only authenticated scan requirement');
     ok(valid.mutations===0&&absent.mutations===0,
       'account-continuity acceptance never invokes listing mutations');
-  } finally {globalThis.location = oldLocation;}
+  } finally {globalThis.location = oldLocation;globalThis.document = oldDocument;}
   console.log('PASS KAR171 R1 per-page account-continuity '+count+' assertions');
 })().catch(error => {console.error(error);process.exitCode=1;});
