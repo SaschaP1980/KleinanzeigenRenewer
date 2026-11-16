@@ -45,7 +45,10 @@ function env(){
   workerInstanceId:WORKER,clock};
  const phase=Phase4.create({...opts,newToken:()=> 'phase-attempt-1',
   verifyRemoteOutcome:row=>({profileId:row.profileId,sourceAdId:row.sourceAdId,
-   newAdId:row.newAdId,sourceAbsent:true,targetPresent:true,
+   newAdId:row.newAdId,
+   attemptId:row.attemptId,workerInstanceId:row.workerInstanceId,
+   admissionToken:row.admissionToken??null,
+   sourceAbsent:true,targetPresent:true,
    sourceEvidence:'not-in-my-ads-full-pagination-scan',
    targetEvidence:'found-in-my-ads-full-pagination-scan',
    sourcePagesScanned:2,targetPagesScanned:2,targetFoundPage:1})});
@@ -53,6 +56,8 @@ function env(){
   verifyRemoteOutcome:(intent,newAdId)=>({
    fillId:intent.fillId,workflowId:intent.workflowId,kind:intent.kind,
    profileId:intent.profileId,sourceAdId:intent.sourceAdId,newAdId,
+   attemptId:intent.attemptId,workerInstanceId:intent.workerInstanceId,
+   admissionToken:intent.admissionToken??null,
    targetPresent:true,targetEvidence:'found-in-my-ads-full-pagination-scan',
    targetPagesScanned:2,targetFoundPage:1})});
  const later=()=>{time+=40;return time;};

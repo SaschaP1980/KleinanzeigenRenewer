@@ -6,6 +6,7 @@ on:
       - tests/kar99-phase4-outcome-reconciliation.cjs
       - tests/kar99-publish-outcome.cjs
       - tests/kar175-publish-intent-authorization.cjs
+      - tests/kar99-p13f2e2d2b1-token-witness.cjs
       - tests/v12319-version-architecture.cjs
       - tests/v12320-final-closure.cjs
       - src/background/services/phase4-uncertainty-journal.js
