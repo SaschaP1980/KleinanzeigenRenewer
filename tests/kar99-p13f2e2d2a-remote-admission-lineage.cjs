@@ -47,7 +47,10 @@ async function resolvedPhase4(s,worker=OLD,admissionToken=null) {
  const journal=Phase4.create({storageLocal:s,clock:()=>1000,newToken:()=> 'attempt-001',
   workerInstanceId:worker,...require('./helpers/phase4-locks.cjs')(),
   verifyRemoteOutcome:x=>({profileId:x.profileId,sourceAdId:x.sourceAdId,
-   newAdId:x.newAdId,sourceAbsent:true,targetPresent:true,
+   newAdId:x.newAdId,
+   attemptId:x.attemptId,workerInstanceId:x.workerInstanceId,
+   admissionToken:x.admissionToken??null,
+   sourceAbsent:true,targetPresent:true,
    sourceEvidence:'not-in-my-ads-full-pagination-scan',
    targetEvidence:'found-in-my-ads-full-pagination-scan',
    sourcePagesScanned:3,targetPagesScanned:3,targetFoundPage:2})});
@@ -72,7 +75,10 @@ async function resolvedPublish(s) {
   lockName:Atomic.LOCK_NAME,workerInstanceId:OLD,clock:()=>1000,
   newToken:()=> 'publish-001',verifyRemoteOutcome:(i,newAdId)=>({
    fillId:i.fillId,workflowId:i.workflowId,kind:i.kind,profileId:i.profileId,
-   sourceAdId:i.sourceAdId,newAdId,targetPresent:true,
+   sourceAdId:i.sourceAdId,newAdId,
+   attemptId:i.attemptId,workerInstanceId:i.workerInstanceId,
+   admissionToken:i.admissionToken??null,
+   targetPresent:true,
    targetEvidence:'found-in-my-ads-full-pagination-scan',
    targetPagesScanned:2,targetFoundPage:1})});
  await journal.begin({fillId:'fill-001',workflowId:'archive-001',
