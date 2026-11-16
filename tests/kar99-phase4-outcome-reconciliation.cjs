@@ -140,6 +140,69 @@ function init(db,verifyRemoteOutcome,worker='worker-new') {
   }).resolveVerified({renewalId:'r1-commit',attemptId:strictEntry.attemptId});
   ok(good.state==='resolved-confirmed'&&contextReads===1&&lockHeld===false,
     'R1: genuine read-only commit context is required inside origin Web Lock');
+  // R1: authenticated existing My Ads witness is a genuinely read-only
+  // owner-source producer (no tab creation, account mutation or synthetic IDLE).
+  const Additional=require('../src/background/services/additional-owner-observer.js');
+  const commitDb=storage(),accountProfile='real-profile-one',accountName='Real Profile';
+  commitDb.data.activeDetectedProfileV1={profileId:accountProfile};
+  commitDb.data.selectedInventoryProfileV1={profileId:accountProfile};
+  commitDb.data.profilesV1=[{profileId:accountProfile,displayName:accountName}];
+  commitDb.data.renewalSessionsV1={
+    'r1-remote':{profileId:accountProfile,sourceAdId:'11223344',newAdId:'55667788'},
+    'r1-publish':{profileId:accountProfile,fillId:'r1-fill',
+      sourceAdId:'11223344',targetTabId:42}
+  };
+  commitDb.data.archiveInsertionSessionsV1={
+    'r1-archive':{targetProfileId:accountProfile,fillId:'r1-archive-fill',
+      sourceAdId:'',targetTabId:52}
+  };
+  commitDb.data.templateFillSessions={
+    'r1-fill':{fillId:'r1-fill',targetTabId:42,sourceAdId:'11223344'},
+    'r1-archive-fill':{fillId:'r1-archive-fill',targetTabId:52,sourceAdId:''}
+  };
+  let browserTab={id:81,url:'https://www.kleinanzeigen.de/m-meine-anzeigen.html'};
+  let loggedIn=true,liveName=accountName,readCount=0;
+  const observer=Additional.create({
+    storageLocal:commitDb,storageSession:{async get(){return {};}},
+    workerInstanceId:'worker-commit',clock:()=>123000,
+    queryBrowserTabsReadOnly:async()=>browserTab?[structuredClone(browserTab)]:[],
+    readAccountPageStatusReadOnly:async()=>{readCount++;return {
+      pageType:'my-ads',url:browserTab.url,auth:{loggedIn},profileName:liveName
+    }}
+  });
+  const originalPhase={renewalId:'r1-remote',profileId:accountName,
+    sourceAdId:'11223344',newAdId:'55667788'};
+  const originalPublish={kind:'renewal',workflowId:'r1-publish',fillId:'r1-fill',
+    profileId:accountProfile,sourceAdId:'11223344',targetTabId:42};
+  const originalArchive={kind:'archive',workflowId:'r1-archive',fillId:'r1-archive-fill',
+    profileId:accountProfile,sourceAdId:'',targetTabId:52};
+  const beforeReads=commitDb.data;
+  ok(await observer.verifyRemoteCommitContextReadOnly(originalPhase,'phase4')===true
+    &&readCount>=2,'R1: actual multi-read logged-in account matches source renewal at commit');
+  ok(await observer.verifyRemoteCommitContextReadOnly(originalPublish,'publish')===true,
+    'R1: trusted live account binds exact publish workflow, fill, target tab and Ad ID');
+  ok(await observer.verifyRemoteCommitContextReadOnly(originalArchive,'publish')===true,
+    'R1: archive publication binds actual target profile and corresponding fill');
+  commitDb.data.renewalSessionsV1['r1-remote'].sourceAdId='tampered';
+  ok(await observer.verifyRemoteCommitContextReadOnly(originalPhase,'phase4')===false,
+    'R1: stale source Ad ID cannot pass live commit witness');
+  commitDb.data.renewalSessionsV1['r1-remote'].sourceAdId='11223344';
+  liveName='Different Account';
+  ok(await observer.verifyRemoteCommitContextReadOnly(originalPublish,'publish')===false,
+    'R1: changed authenticated account cannot pass commit witness');
+  liveName=accountName;loggedIn=false;
+  ok(await observer.verifyRemoteCommitContextReadOnly(originalPhase,'phase4')===false,
+    'R1: logout during independent account observation fails closed');
+  loggedIn=true;browserTab=null;
+  ok(await observer.verifyRemoteCommitContextReadOnly(originalPhase,'phase4')===false,
+    'R1: missing already-open My Ads tab stays unverified without opening one');
+  browserTab={id:81,url:'https://www.kleinanzeigen.de/m-meine-anzeigen.html'};
+  commitDb.data.templateFillSessions['r1-fill'].targetTabId=100;
+  ok(await observer.verifyRemoteCommitContextReadOnly(originalPublish,'publish')===false,
+    'R1: changed fill tab cannot authorize previously verified publication');
+  commitDb.data.templateFillSessions['r1-fill'].targetTabId=42;
+  ok(await observer.verifyRemoteCommitContextReadOnly(originalPhase,'irrelevant')===false,
+    'R1: invalid remote context kind is never an account certificate');
   // KAR-171 R1 LIVE SOURCE PROBE: exercise the actual independently loaded
   // remote service, not a synthetic journal success callback.
   async function scanFixture({sourceProfileAfter=null,targetProfileAfter=null,targetPage=2}={}) {
