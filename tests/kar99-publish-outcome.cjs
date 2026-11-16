@@ -108,6 +108,40 @@ const create=(store,manager,worker='worker-1',verify=proof)=>Journal.create({
  impossibleHistory.rows[impossibleKey].targetFoundPage=2;
  await deny(create(impossibleHistory,manager).observe(request.fillId),
    'KR_PUBLISH_INTENT_CORRUPT','historical publication receipt beyond scanned pages fails closed');
+ // R1: proof of publication is never commit-authoritative without a new
+ // read-only live context bound inside the same origin Web Lock.
+ const strictDisk=disk(),strictLocks=locks(),observed=[];
+ let liveContext='profile-1',remoteChecked=false;
+ function strictPublish(commitProof){
+   return Journal.create({storageLocal:strictDisk,lockManager:strictLocks,
+     lockName:Atomic.LOCK_NAME,workerInstanceId:'r1-commit-worker',
+     clock:()=>100000,newToken:()=> 'r1-commit-attempt',
+     verifyRemoteOutcome:(i,id)=>{remoteChecked=true;return proof(i,id);},
+     requireCommitContext:true,verifyCommitContext:commitProof});
+ }
+ const strictEntry=await strictPublish(null).begin({
+   fillId:'r1-commit',workflowId:'r1-work',kind:'renewal',
+   profileId:'profile-1',sourceAdId:'1234',targetTabId:7});
+ await deny(()=>strictPublish(null).resolveVerified({fillId:'r1-commit',newAdId:'7890'}),
+   'KR_PUBLISH_INTENT_UNVERIFIED','R1: missing read-only commit context is rejected');
+ ok(!remoteChecked,'R1: absent commit-context source stops before remote scan');
+ await deny(()=>strictPublish(()=>false).resolveVerified({fillId:'r1-commit',newAdId:'7890'}),
+   'KR_PUBLISH_INTENT_UNVERIFIED','R1: negative authenticated context rejects remote success');
+ await deny(()=>strictPublish(()=>{throw Error('unavailable');}).resolveVerified({fillId:'r1-commit',newAdId:'7890'}),
+   'KR_PUBLISH_INTENT_UNVERIFIED','R1: failed live-source lookup is never positive');
+ liveContext='different-account';
+ await deny(()=>strictPublish(()=>liveContext==='profile-1').resolveVerified({fillId:'r1-commit',newAdId:'7890'}),
+   'KR_PUBLISH_INTENT_UNVERIFIED','R1: account switched after scan cannot confirm publication');
+ ok(Object.keys(strictDisk.rows).every(k=>!k.startsWith(Journal.RESOLUTION_KEY_PREFIX)),
+   'R1: denied publication has no persisted positive result');
+ liveContext='profile-1';
+ const strictConfirmed=await strictPublish(intent=>{
+   observed.push({held:strictLocks.held.has(Atomic.LOCK_NAME),attemptId:intent.attemptId});
+   return liveContext===intent.profileId;
+ }).resolveVerified({fillId:'r1-commit',newAdId:'7890'});
+ ok(strictConfirmed.state==='resolved-confirmed'&&observed.length===1
+    &&observed[0].held===true&&observed[0].attemptId===strictEntry.attemptId,
+    'R1: stable live context is independently checked inside origin lock at durable commit');
  // R1: A publication result with an original P8 admission must be tied
  // to the real, unmodified START source throughout the independent scan.
  // The same immutable attempt may be inspected by a later Worker.

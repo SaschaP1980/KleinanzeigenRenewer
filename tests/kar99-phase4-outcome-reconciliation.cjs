@@ -97,6 +97,49 @@ function init(db,verifyRemoteOutcome,worker='worker-new') {
   unreadable.setReadFail(true);
   await denied(r.resolveVerified({renewalId:req.renewalId,attemptId:rIntent.attemptId}),
     'KR_PHASE4_JOURNAL_STORAGE','indeterminate readback must never count as verified');
+  // R1: independent remote result must also revalidate the authoritative
+  // live/account context INSIDE the origin Web Lock before durable commit.
+  const strictDB=storage(),strictManager=require('./helpers/phase4-locks.cjs')();
+  let lockHeld=false,liveName=req.profileId,networkReads=0,contextReads=0;
+  const wrappedLocks={
+    request:(name,opts,task)=>strictManager.lockManager.request(name,opts,async lock=>{
+      lockHeld=true;try{return await task(lock);}finally{lockHeld=false;}
+    })
+  };
+  function strictPhase4(context){
+    return Journal.create({
+      storageLocal:strictDB,lockManager:wrappedLocks,
+      lockName:strictManager.lockName,workerInstanceId:'r1-commit-worker',
+      clock:()=>123000,newToken:()=> 'r1-commit-attempt',
+      verifyRemoteOutcome:entry=>{networkReads++;return proof(entry);},
+      requireCommitContext:true,verifyCommitContext:context
+    });
+  }
+  const strictEntry=await strictPhase4(null).begin({...req,renewalId:'r1-commit'});
+  await denied(strictPhase4(null).resolveVerified({
+    renewalId:'r1-commit',attemptId:strictEntry.attemptId
+  }),'KR_PHASE4_JOURNAL_UNVERIFIED',
+    'R1: missing read-only commit source cannot prove Phase-4 outcome');
+  ok(networkReads===0,'R1: missing trusted source denies before remote network verification');
+  await denied(strictPhase4(()=>false).resolveVerified({
+    renewalId:'r1-commit',attemptId:strictEntry.attemptId
+  }),'KR_PHASE4_JOURNAL_UNVERIFIED','R1: negative account attestation fails closed');
+  await denied(strictPhase4(()=>{throw Error('offline');}).resolveVerified({
+    renewalId:'r1-commit',attemptId:strictEntry.attemptId
+  }),'KR_PHASE4_JOURNAL_UNVERIFIED','R1: account source outage fails closed');
+  liveName='switched-profile';
+  await denied(strictPhase4(r=>r.profileId===liveName).resolveVerified({
+    renewalId:'r1-commit',attemptId:strictEntry.attemptId
+  }),'KR_PHASE4_JOURNAL_UNVERIFIED','R1: account switch at commit rejects remote evidence');
+  ok(Object.keys(strictDB.data).every(k=>!k.startsWith(Journal.RESOLUTION_KEY_PREFIX)),
+    'R1: no failed read-only identity proof persists a terminal receipt');
+  liveName=req.profileId;
+  const good=await strictPhase4(r=>{
+    contextReads++;
+    return lockHeld&&r.profileId===liveName&&r.sourceAdId===req.sourceAdId&&r.newAdId===req.newAdId;
+  }).resolveVerified({renewalId:'r1-commit',attemptId:strictEntry.attemptId});
+  ok(good.state==='resolved-confirmed'&&contextReads===1&&lockHeld===false,
+    'R1: genuine read-only commit context is required inside origin Web Lock');
   // KAR-171 R1 LIVE SOURCE PROBE: exercise the actual independently loaded
   // remote service, not a synthetic journal success callback.
   async function scanFixture({sourceProfileAfter=null,targetProfileAfter=null,targetPage=2}={}) {

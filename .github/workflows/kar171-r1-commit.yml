@@ -1,0 +1,27 @@
+name: KAR-171 R1 commit-account safety (temporary)
+on:
+  push:
+    branches: [work/KAR-171]
+    paths:
+      - tests/kar99-publish-outcome.cjs
+      - tests/kar99-phase4-outcome-reconciliation.cjs
+      - src/background/services/auto-publish-intent-journal.js
+      - src/background/services/phase4-uncertainty-journal.js
+      - src/background/background.js
+      - .github/workflows/kar171-r1-commit.yml
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Both remote commit-context regressions
+        run: |
+          node tests/kar99-publish-outcome.cjs
+          node tests/kar99-phase4-outcome-reconciliation.cjs
