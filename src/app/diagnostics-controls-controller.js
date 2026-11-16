@@ -8,6 +8,7 @@
       const runtimeMessage = typeof options.runtimeMessage === 'function' ? options.runtimeMessage : async () => ({});
       const logEvent = typeof options.logEvent === 'function' ? options.logEvent : async () => {};
       const DiagnosticZip = options.DiagnosticZip;
+      const objectUrlApi = options.objectUrlApi || URL;
       const profileTransferLocked = typeof options.profileTransferLocked === 'function' ? options.profileTransferLocked : () => false;
       const insertionLockActive = typeof options.insertionLockActive === 'function' ? options.insertionLockActive : () => false;
       const getInsertionLock = typeof options.getInsertionLock === 'function' ? options.getInsertionLock : () => ({ locked: false });
@@ -201,14 +202,14 @@
           const entries = exported.files.map(file => ({ name: file.name, data: file.text }));
           if (!entries.length) throw new Error('Diagnoseexport enthält keine Dateien.');
           const blob = await DiagnosticZip.createZip(entries);
-          const url = URL.createObjectURL(blob);
+          const url = objectUrlApi.createObjectURL(blob);
           const link = doc.createElement('a');
           link.href = url;
           link.download = exported.filename || `kleinanzeigen-renewal-diagnose-${new Date().toISOString().replace(/[:.]/g, '-')}.zip`;
           doc.body.append(link);
           link.click();
           link.remove();
-          setTimeout(() => URL.revokeObjectURL(url), 5000);
+          setTimeout(() => objectUrlApi.revokeObjectURL(url), 5000);
           if (elements.status) elements.status.textContent = `${entries.length} Diagnosedateien als ZIP erstellt.`;
           reportDiagnosticEvent('USER_DIAGNOSTIC_ZIP_SUCCEEDED', { fileCount: entries.length, bytes: blob.size });
         } catch (error) {
