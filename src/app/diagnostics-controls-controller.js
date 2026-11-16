@@ -26,6 +26,8 @@
         ? options.occupancyTimeoutMs : 12000;
       const exportTimeoutMs = Number.isSafeInteger(options.exportTimeoutMs) && options.exportTimeoutMs > 0
         ? options.exportTimeoutMs : 45000;
+      const exportRetryDelayMs = Number.isSafeInteger(options.exportRetryDelayMs) && options.exportRetryDelayMs > 0
+        ? options.exportRetryDelayMs : 300;
 
       // Never depend on the diagnostics writer to explain a diagnostics failure:
       // logging itself may be rejected by the same safety fence.
@@ -67,7 +69,7 @@
             if (error?.code !== 'KR_UPDATE_FENCE_ATOMIC_BUSY' || attempt === 2) throw error;
             if (elements.status) elements.status.textContent =
               `Diagnoseexport: Sicherheitsprüfung beschäftigt, erneuter Versuch ${attempt + 2} von 3 …`;
-            await new Promise(resolve => setTimeout(resolve, 300 * (attempt + 1)));
+            await new Promise(resolve => setTimeout(resolve, exportRetryDelayMs * (attempt + 1)));
           }
         }
         throw new Error('KR_DIAGNOSTIC_EXPORT_UNAVAILABLE');
