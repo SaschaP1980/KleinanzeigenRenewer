@@ -105,17 +105,29 @@
     // lease, corrupt storage, missing browser primitive, wrong profile or
     // unverified remote outcome. Every accepted start and finish is still
     // inside the exact exclusive Web Lock and durable journal readback.
-    async function workflowExclusive(task) {
-      const attempts=16;
-      for(let i=0;i<attempts;i++){
-        try {return await exclusive(task);}
-        catch(error){
-          if(error?.code!=='KR_UPDATE_FENCE_ATOMIC_BUSY'||i===attempts-1)
-            throw error;
-          await new Promise(resolve=>setTimeout(resolve,Math.min(20+i*10,100)));
+    // Only the short P8 journal start/finish critical sections are queued.
+    // Concurrent requests from this SAME MV3 worker must not race each other
+    // through the 16-attempt Web Lock retry budget. Every queued operation
+    // still acquires the real origin-exclusive Web Lock and verifies its own
+    // durable receipts; remote handlers execute OUTSIDE this local queue.
+    // A rejected entry must not poison or stall its successors.
+    let workflowQueue=Promise.resolve();
+    function workflowExclusive(task) {
+      const run=async()=>{
+        const attempts=16;
+        for(let i=0;i<attempts;i++){
+          try {return await exclusive(task);}
+          catch(error){
+            if(error?.code!=='KR_UPDATE_FENCE_ATOMIC_BUSY'||i===attempts-1)
+              throw error;
+            await new Promise(resolve=>setTimeout(resolve,Math.min(20+i*10,100)));
+          }
         }
-      }
-      throw denied('KR_UPDATE_FENCE_ATOMIC_BUSY');
+        throw denied('KR_UPDATE_FENCE_ATOMIC_BUSY');
+      };
+      const current=workflowQueue.then(run,run);
+      workflowQueue=current.then(()=>undefined,()=>undefined);
+      return current;
     }
     async function withAdmission(operationType,task) {
       if(typeof operationType!=='string'||!operationType||operationType.length>128
