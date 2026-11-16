@@ -29,7 +29,12 @@ assert.match(popupHtml, />Anzeigen erfassen<\/button>/);
 assert.match(popupHtml, /Alle in Papierkorb/);
 assert.match(popup, /Details anzeigen/);
 assert.match(popup, /Neu inserieren/);
-assert.match(popup, /30 Tage.*Papierkorb/i);
+// KAR-186 supersedes the historic fixed-30-day copy: deletion wording now
+// depends on a verified persisted policy and blocks unknown-policy actions.
+const inventoryCard = fs.readFileSync(path.join(root, 'src/app/inventory-card-renderer.js'), 'utf8');
+assert.match(inventoryCard, /trashRetentionPhrase/);
+assert.match(inventoryCard, /requireVerifiedTrashRetention/);
+assert.doesNotMatch(inventoryCard, /30 Tage.*Papierkorb/i);
 pass('inventory UI exposes clear, details, delete and reinsert actions');
 
 assert.match(filler, /scrollToPublishButton/);

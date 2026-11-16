@@ -51,14 +51,14 @@ validNextPatch.spec.packageVersion = '1.23.25';
 validNextPatch.manifest.permissions = validNextPatch.manifest.permissions.filter(p => p !== 'nativeMessaging');
 
 const isSyntheticNextPatch = process.env.KAR46_SYNTHETIC_PATCH === '1';
-assert.ok(['1.24.0', '1.24.1', ...(isSyntheticNextPatch ? ['1.24.2'] : [])].includes(canonical.manifest.version),
-  'only the approved KAR-161 MINOR, KAR-185 PATCH, or isolated next-PATCH fixture are current');
+assert.ok(['1.24.0', '1.24.1', '1.24.2'].includes(canonical.manifest.version),
+  'only the approved KAR-161 MINOR, KAR-185 PATCH, KAR-186 PATCH or isolated next-PATCH fixture are current');
 if (canonical.manifest.version === '1.24.0') {
   assert.equal(isCurrentPatchVersion(canonical.manifest.version), false,
     'the approved initial MINOR is not retroactively a PATCH');
 } else {
   assert.equal(isCurrentPatchVersion(canonical.manifest.version), true,
-    'the follow-up 1.24.1 version is a strict PATCH');
+    'the follow-up 1.24.1+ version is a strict PATCH');
   assert.equal(assertCompatibleCurrentPatch(canonical), canonical.manifest.version,
     'current feature-series PATCH must satisfy exact existing safety metadata');
 }
