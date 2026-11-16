@@ -1667,6 +1667,20 @@ function requireAutoPublishIntentJournal() {
       newToken: () => crypto.randomUUID(), workerInstanceId: ownerWorkerInstanceId,
       lockName: AtomicMV3Admission.LOCK_NAME,
       lockManager: globalThis.navigator?.locks,
+      // KAR-197: report only actual contention after releasing the Web Lock.
+      // No token, holder/account/tab IDs or event-per-quick-lock spam.
+      onSample: sample => {
+        if (!sample?.busyAttempts) return;
+        void logDiagnostic(sample.outcome === 'ok' ? 'info' : 'warning',
+          'PUBLISH_INTENT_LOCK_CONTENTION', {
+            participant: 'publish-intent-journal',
+            phase: sample.phase,
+            busyAttempts: sample.busyAttempts,
+            waitMs: sample.waitMs,
+            holdMs: sample.holdMs,
+            outcome: sample.outcome
+          }, {module:'background',operation:'publish-intent-journal'}).catch(() => {});
+      },
       verifyRemoteOutcome: (intent, newAdId) => verifyAutoPublishRemoteOutcomeFresh(intent, newAdId)
     });
   }
