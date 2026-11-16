@@ -4,6 +4,8 @@ on:
     branches: [work/KAR-171]
     paths:
       - tests/kar99-publish-outcome.cjs
+      - tests/kar175-publish-intent-authorization.cjs
+      - src/background/services/publish-intent-authorization-service.js
       - src/background/services/auto-publish-intent-journal.js
       - .github/workflows/kar171-r1-publish.yml
 permissions:
@@ -19,4 +21,6 @@ jobs:
         with:
           node-version: '22'
       - name: R1 publication outcome journal and original P8 origin
-        run: node tests/kar99-publish-outcome.cjs
+        run: |
+          node tests/kar99-publish-outcome.cjs
+          node tests/kar175-publish-intent-authorization.cjs

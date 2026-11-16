@@ -12,6 +12,7 @@ const fill={fillId:'abc',targetTabId:42,stage:'auto-publish-ready',status:'runni
   result:{complete:true,issues:[]},renewalId:'r',sourceAdId:'123'};
 const renewal={fillId:'abc',targetTabId:42,profileId:'P',sourceAdId:'123'};
 let profileId='P',seenName='User Account',validPresence=true,reportedPagesScanned=3,failPostReceipt=false,accountReadCount=0;
+let mutateSessionDuringScan=null;
 const options={
  sessionPort:{readArchiveInsertionSessions:async()=>({}),readRenewalSessions:async()=>({r:renewal}),
   readFillSessions:async()=>({abc:fill})},
@@ -22,7 +23,14 @@ const options={
   sendTabRequestWithBootstrap:async (id,msg)=>{
     requests.push(msg.type);
     if(msg.type==='MY_ADS_STATUS')return {isMyAdsPage:true,isProjectsTab:true,profileName:seenName};
-    if(msg.type==='FIND_OWN_AD_BY_ID')return {found:validPresence,adId:'456',page:2,pagesScanned:reportedPagesScanned,evidence:'found-in-my-ads-full-pagination-scan'};
+    if(msg.type==='FIND_OWN_AD_BY_ID'){
+      if(mutateSessionDuringScan){
+        const mutation=mutateSessionDuringScan;
+        mutateSessionDuringScan=null;
+        mutation();
+      }
+      return {found:validPresence,adId:'456',page:2,pagesScanned:reportedPagesScanned,evidence:'found-in-my-ads-full-pagination-scan'};
+    }
     throw Error('unexpected message');
   },closeManagedWorkerTab:async id=>{closed.push(id);}},
  journalPort:{requireAutoPublishIntentJournal:()=>({
@@ -69,5 +77,20 @@ const receipt=Object.freeze({operationType:'AUTHORIZE_AUTOMATIC_PUBLISH'});
   await assert.rejects(svc.verifyAutoPublishRemoteOutcomeFresh(intent,'456'),/PUBLISH_INTENT_UNVERIFIED/);
   assert.equal(closed.length,4,'impossible page evidence is denied and worker is closed');
   reportedPagesScanned=3;
+  // R1: account identity alone is insufficient if the original live
+  // workflow's source Ad ID, profile or tab changes while My Ads paginates.
+  for(const [field,value] of [
+    ['sourceAdId','999'],['profileId','Other Account'],['targetTabId',99],
+    ['fillId','replaced-fill']
+  ]){
+    const initial=renewal[field];
+    mutateSessionDuringScan=()=>{renewal[field]=value;};
+    await assert.rejects(svc.verifyAutoPublishRemoteOutcomeFresh(intent,'456'),
+      /KR_PUBLISH_INTENT_UNVERIFIED/,
+      'R1: changed '+field+' must invalidate remote publication proof');
+    assert.equal(mutateSessionDuringScan,null,'R1 test exercised real scan');
+    renewal[field]=initial;
+  }
+  assert.equal(closed.length,8,'R1 failed remote scans close all managed verifier tabs');
   console.log('PASS KAR-175 Wave 5: immutable admission, sender/identity binding, journal receipt, independent ID evidence and fail-closed worker cleanup');
 })().catch(e=>{console.error(e);process.exitCode=1});
