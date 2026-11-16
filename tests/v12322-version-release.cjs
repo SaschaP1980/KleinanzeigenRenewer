@@ -10,7 +10,7 @@ const pkg = j('package.json');
 const lock = j('package-lock.json');
 const spec = j('release/release-spec.json');
 const arch = j('docs/history/architecture/architecture-progress-v1.23.22.json');
-const isFeature24 = /^1\.24\.(?:0|[1-9]\d*)$/.test(manifest.version);
+const isFeature24 = /^1\.(?:24|25)\.(?:0|[1-9]\d*)$/.test(manifest.version);
 const reviewedNative = /^1\.23\.(?:3\d|[4-9]\d|[1-9]\d{2,})$/.test(manifest.version) || isFeature24;
 const reviewedFence = fs.existsSync('src/background/services/update-workflow-fence.js') && fs.readFileSync('src/background/background.js','utf8').includes('"services/update-workflow-fence.js"');
 const reviewedPersistedObserver = fs.existsSync('src/background/services/persisted-owner-observer.js') && fs.readFileSync('src/background/background.js','utf8').includes('"services/persisted-owner-observer.js"');
@@ -21,9 +21,9 @@ const reviewedAutoPublishIntent = fs.existsSync('src/background/services/auto-pu
 const reviewedTrustedOwner = fs.existsSync('src/background/services/trusted-owner-authority.js') && fs.readFileSync('src/background/background.js','utf8').includes('"services/trusted-owner-authority.js"') && fs.readFileSync('src/background/background.js','utf8').includes("KRDeps.require('KRTrustedOwnerAuthority')") && fs.readFileSync('scripts/package.py','utf8').includes("'src/background/services/trusted-owner-authority.js'");
 const { assertCompatibleCurrentPatch } = require('./current-patch-policy.cjs');
 
-if (manifest.version === '1.24.0') {
+if (manifest.version === '1.24.0' || manifest.version === '1.25.0') {
   for (const version of [pkg.version, pkg.displayVersion, lock.version, lock.packages[''].version, spec.version, spec.packageVersion]) {
-    assert.equal(version, '1.24.0', 'minor-version metadata parity');
+    assert.equal(version, manifest.version, 'minor-version metadata parity');
   }
   assert.match(spec.scope.join('\n'), /Dynamic Public Function Coverage 100 %/);
   assert.match(spec.scope.join('\n'), /Architecture-No-Regression/);

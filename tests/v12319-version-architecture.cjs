@@ -3,7 +3,7 @@ const { includesActivePatch, includesSupportedRelease } = require('./current-pat
 const fs=require('node:fs'),assert=require('node:assert/strict'),crypto=require('node:crypto');
 const j=p=>JSON.parse(fs.readFileSync(p,'utf8')), r=p=>fs.readFileSync(p,'utf8');
 const manifest=j('manifest.json'),pkg=j('package.json'),spec=j('release/release-spec.json'),arch=j('docs/history/architecture/architecture-progress-v1.23.19.json'),sum=j('coverage/coverage-summary.json'),audit=j('coverage/architecture-audit.json'),baseline=j('coverage/coverage-baseline-v1.23.19.json'),safety=j('coverage/safety-critical-public-apis.json');
-const isFeature24 = /^1\.24\.(?:0|[1-9]\d*)$/.test(manifest.version);
+const isFeature24 = /^1\.(?:24|25)\.(?:0|[1-9]\d*)$/.test(manifest.version);
 let n=0;const pass=(m,f)=>{f();n++;console.log('PASS '+m)};
 const reviewedNative = /^1\.23\.(?:3\d|[4-9]\d|[1-9]\d{2,})$/.test(manifest.version) || isFeature24;
 const reviewedFence = fs.existsSync('src/background/services/update-workflow-fence.js') && r('src/background/background.js').includes('"services/update-workflow-fence.js"');
