@@ -17,7 +17,9 @@ assert.match(app, /inventoryCaptureTitle\.textContent = 'Anzeigen erfassen'/);
 assert.match(app, /inventoryCaptureStart\.textContent = 'Erfassung starten'/);
 
 // Trash wording must describe the local state, not imply a Kleinanzeigen deletion.
-assert.match(html, /Einträge im Papierkorb werden 30 Tage lokal aufbewahrt\./);
+// KAR-186: initial HTML is not a verified 30-day preference until storage read succeeds.
+assert.match(html, /Die gespeicherte Papierkorb-Aufbewahrung wird ermittelt\./);
+assert.doesNotMatch(html, /Einträge im Papierkorb werden 30 Tage lokal aufbewahrt\./);
 assert.doesNotMatch(html, /Gelöschte Einträge bleiben 30 Tage im Papierkorb/);
 assert.match(app, /makeInfoLine\('Im Papierkorb'/);
 assert.match(app, /\['Im Papierkorb', formatDate\(record\.trash\?\.trashedAt\)\]/);
