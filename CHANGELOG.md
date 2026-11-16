@@ -4,6 +4,13 @@ This is the canonical version-specific history for Kleinanzeigen Manager. Entrie
 
 All distinct historical section bodies from the former root README and CHANGELOG are preserved with source labels and line numbers. The [KAR-170 migration ledger](docs/maintenance/KAR170_CHANGELOG_MIGRATION.json) identifies their original Git blobs and body checksums. Overlapping versions retain distinct factual notes; older references to planned builds or native/CI acceptance are **historical**, not live status.
 
+## v1.24.2 — KAR-186 verify local trash retention after cold startup (Work patch; source changes only)
+
+- A denied `GET_TRASH_RETENTION_CONFIGURATION` during Windows/Chrome cold startup no longer presents the unverified legacy 30-day fallback as the saved retention policy. Until an authorized read completes, the slider is hidden and disabled, configuration/trash explanation text explicitly marks the duration as unknown, and manual local-trash moves/retention resets are guarded.
+- Confirmed configurations (10, 30, 60, 90, 180, 360 days or unlimited) rehydrate the slider and descriptions only after the current persisted configuration has been read and the visible trash projections have been refreshed. Recovery from transient MV3 update-fence contention is bounded and never bypasses the fence or changes existing trash records.
+- A permanent regression test covers an initial `KR_UPDATE_FENCE_ATOMIC_BUSY`, preserved 61 inventory / 90 trash fixture entries, verified unlimited retention after recovery, legacy confirmed 30-day defaults and fail-closed actions. Historic UI gold-line tests now require unknown-policy startup copy rather than an unconditional 30-day statement.
+- This changelog entry records work-branch source changes, not a published GitHub Release or validated Windows/Chrome native acceptance. Installation ZIP/CI and owner acceptance are tracked in the owning Issue #186.
+
 ## v1.24.1 — KAR-185 preserve inventory/trash visibility after app restart (Fast Patch)
 
 - Isolate initial inventory/trash loading from optional settings and account-inspection failures. A temporary `KR_UPDATE_FENCE_ATOMIC_BUSY` on renewal or local retention configuration must no longer leave saved records visually empty until profile switching.
