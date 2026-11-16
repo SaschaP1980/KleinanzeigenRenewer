@@ -30,6 +30,8 @@ const request={fillId:'fill-main',workflowId:'renewal-main',kind:'renewal',
 const proof=(intent,newAdId)=>({
  fillId:intent.fillId,workflowId:intent.workflowId,kind:intent.kind,
  profileId:intent.profileId,sourceAdId:intent.sourceAdId,newAdId,
+ attemptId:intent.attemptId,workerInstanceId:intent.workerInstanceId,
+ admissionToken:intent.admissionToken??null,
  targetPresent:true,targetEvidence:'found-in-my-ads-full-pagination-scan',
  targetPagesScanned:3,targetFoundPage:2
 });
@@ -156,7 +158,7 @@ const create=(store,manager,worker='worker-1',verify=proof)=>Journal.create({
  // R1: A publication result with an original P8 admission must be tied
  // to the real, unmodified START source throughout the independent scan.
  // The same immutable attempt may be inspected by a later Worker.
- async function originalP8Publish({kind='renewal',before,during}={}) {
+ async function originalP8Publish({kind='renewal',before,during,transformProof=null}={}) {
    const db=disk(),manager=locks(),token='original-publish-p8-token-001';
    const original={schema:1,state:'admitted',token,
      operationType:'AUTHORIZE_AUTOMATIC_PUBLISH',
@@ -175,7 +177,8 @@ const create=(store,manager,worker='worker-1',verify=proof)=>Journal.create({
    const scanner=(i,id)=>{
      probes++;
      if(during)during(db.rows,key,token,entry);
-     return proof(i,id);
+     const result=proof(i,id);
+     return transformProof?transformProof(result):result;
    };
    return {db,entry,token,get probes(){return probes;},
      scan:()=>create(db,manager,'worker-after-restart',scanner)
@@ -188,6 +191,18 @@ const create=(store,manager,worker='worker-1',verify=proof)=>Journal.create({
      &&result.attemptId===stable.entry.attemptId
      &&result.fillId===stable.entry.fillId,
      'R1: '+kind+' P8-token-bound exact publication verified after Worker restart');
+ }
+ for(const [label,mutate] of [
+   ['attempt ID changed',r=>({...r,attemptId:'other-attempt'})],
+   ['origin Worker ID changed',r=>({...r,workerInstanceId:'other-worker'})],
+   ['original P8 token changed',r=>({...r,admissionToken:'other-token'})],
+   ['original P8 token absent',r=>({...r,admissionToken:null})]
+ ]) {
+   const x=await originalP8Publish({transformProof:mutate});
+   await deny(x.scan,'KR_PUBLISH_INTENT_UNVERIFIED',
+     'R1: independent publication proof '+label+' denied');
+   ok(x.probes===1&&!Object.keys(x.db.rows).some(k=>k.startsWith(Journal.RESOLUTION_PREFIX)),
+     'R1: '+label+' never commits a positive publication outcome');
  }
  for(const [label,mutate] of [
    ['removed origin START',(rows,key)=>{delete rows[key];}],

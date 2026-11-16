@@ -23,6 +23,8 @@ function storage() {
 const req={renewalId:'renewal-001',profileId:'Real Profile',sourceAdId:'11223344',newAdId:'55667788'};
 const proof=entry=>({
   profileId:entry.profileId, sourceAdId:entry.sourceAdId,newAdId:entry.newAdId,
+  attemptId:entry.attemptId,workerInstanceId:entry.workerInstanceId,
+  admissionToken:entry.admissionToken??null,
   sourceAbsent:true,targetPresent:true,
   sourceEvidence:'not-in-my-ads-full-pagination-scan',targetEvidence:'found-in-my-ads-full-pagination-scan',
   sourcePagesScanned:3,targetPagesScanned:2,targetFoundPage:2
@@ -311,7 +313,9 @@ function init(db,verifyRemoteOutcome,worker='worker-new') {
         throw Error('unexpected probe message '+message.type);
       }
     });
-    const result=await service.verifyPhase4RemoteOutcomeFresh({...req,attemptId:'attempt-001'});
+    const result=await service.verifyPhase4RemoteOutcomeFresh({...req,
+      attemptId:'attempt-001',workerInstanceId:'worker-origin',
+      admissionToken:'original-p8-token'});
     return {result,statuses,closed};
   }
   await assert.rejects(scanFixture({sourceProfileAfter:'Different Account'}),
@@ -325,6 +329,9 @@ function init(db,verifyRemoteOutcome,worker='worker-new') {
   ok(true,'R1: target page beyond scanned pagination fails closed in actual verifier');
   const fresh=await scanFixture();
   ok(fresh.result.sourceAbsent===true&&fresh.result.targetPresent===true
+    &&fresh.result.attemptId==='attempt-001'
+    &&fresh.result.workerInstanceId==='worker-origin'
+    &&fresh.result.admissionToken==='original-p8-token'
     &&fresh.statuses[1]===2&&fresh.statuses[2]===2
     &&fresh.closed.join(',')==='1,2',
     'R1: valid independent source/target scans bracketed by two account reads each');
@@ -333,7 +340,7 @@ function init(db,verifyRemoteOutcome,worker='worker-new') {
   // Phase-4 attempt, including when a different Worker resumes verification.
   const Atomic=require('../src/background/services/cross-worker-atomic-admission.js');
   const token='r1-origin-p8-token-001';
-  async function originalAdmission({before=null,during=null}={}) {
+  async function originalAdmission({before=null,during=null,transformProof=null}={}) {
     const d=storage();
     const start={schema:1,state:'admitted',token,
       operationType:'AUTONOMOUS:renewal-auto-phase4',
@@ -346,7 +353,8 @@ function init(db,verifyRemoteOutcome,worker='worker-new') {
     if(before)before(d,key);
     const verify=x=>{
       if(during)during(d,key);
-      return proof(x);
+      const result=proof(x);
+      return transformProof?transformProof(result):result;
     };
     return {d,promise:init(d,verify,'worker-restarted').resolveVerified({
       renewalId:original.renewalId,attemptId:original.attemptId
@@ -357,6 +365,18 @@ function init(db,verifyRemoteOutcome,worker='worker-new') {
   ok(confirmedOrigin.state==='resolved-confirmed'
     &&confirmedOrigin.workerInstanceId==='worker-restarted',
     'R1: unchanged origin P8 token permits independently reverified read-only outcome after Worker restart');
+  for(const [label,mutate] of [
+    ['attempt ID changed',r=>({...r,attemptId:'different-attempt'})],
+    ['origin Worker ID changed',r=>({...r,workerInstanceId:'unrelated-worker'})],
+    ['origin P8 token changed',r=>({...r,admissionToken:'unrelated-p8-token'})],
+    ['original P8 token absent',r=>({...r,admissionToken:null})]
+  ]){
+    const source=await originalAdmission({transformProof:mutate});
+    await assert.rejects(source.promise,/KR_PHASE4_JOURNAL_UNVERIFIED/,
+      'R1: Phase-4 rejects independent evidence from '+label);
+    ok(!Object.keys(source.d.data).some(k=>k.startsWith(Journal.RESOLUTION_KEY_PREFIX)),
+      'R1: '+label+' cannot commit positive source/target outcome');
+  }
   for(const [name,mutation] of [
     ['P8 start removed',(d,key)=>{delete d.data[key];}],
     ['P8 origin worker replaced',(d,key)=>{d.data[key].workerInstanceId='worker-impersonator';}],

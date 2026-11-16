@@ -1,0 +1,27 @@
+name: KAR-171 R1 independent remote proof provenance (temporary)
+on:
+  push:
+    branches: [work/KAR-171]
+    paths:
+      - tests/kar99-phase4-outcome-reconciliation.cjs
+      - tests/kar99-publish-outcome.cjs
+      - src/background/services/phase4-uncertainty-journal.js
+      - src/background/services/auto-publish-intent-journal.js
+      - src/background/services/remote-delete-replacement-service.js
+      - src/background/services/publish-intent-authorization-service.js
+      - .github/workflows/kar171-r1-proof-origin.yml
+permissions:
+  contents: read
+jobs:
+  remote-r1:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v5
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: Real Phase-4 original P8 source/target witness regression
+        run: node tests/kar99-phase4-outcome-reconciliation.cjs
+      - name: Real publication original P8 witness regression
+        run: node tests/kar99-publish-outcome.cjs
