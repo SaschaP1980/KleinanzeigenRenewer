@@ -36,7 +36,7 @@ function locks(){
     assert.deepEqual(opts,{mode:'exclusive',ifAvailable:true});
     if(held.has(name))return action(null);
     held.add(name);
-    try{return await action({name});}finally{held.delete(name);}
+    try{return await action({name,mode:'exclusive'});}finally{held.delete(name);}
   }};
 }
 let serial=0;
