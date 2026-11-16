@@ -126,7 +126,12 @@
         throw denied('KR_UPDATE_FENCE_ATOMIC_BUSY');
       };
       const current=workflowQueue.then(run,run);
-      workflowQueue=current.then(()=>undefined,()=>undefined);
+      // Let the admitted handler schedule any immediately nested P8-shared
+      // journal lock (e.g. before-click publish intent) before admitting
+      // another same-worker start. The yield is OUTSIDE the Web Lock, so
+      // unrelated operations and independent workers remain protected.
+      const handoff=()=>new Promise(resolve=>setTimeout(resolve,0));
+      workflowQueue=current.then(handoff,handoff);
       return current;
     }
     async function withAdmission(operationType,task) {
