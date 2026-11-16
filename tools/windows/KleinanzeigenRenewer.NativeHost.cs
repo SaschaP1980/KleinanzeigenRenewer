@@ -209,28 +209,108 @@ internal static class Program {
         } catch { fingerprint = null; return "unknown"; }
     }
 
+    // R2: independently inspect the installed Windows receipt written by
+    // the manual updater. Stable bytes and a validated legacy schema are NOT
+    // a terminal MV3 transaction witness: these receipts have no original
+    // transactionId, P8 token, Worker generation or Chrome activation proof.
+    static string LegacyInstalledReceipt(string path, out string fingerprint,
+        out string version) {
+        fingerprint = null;
+        version = null;
+        try {
+            byte[] first = ReadBoundedJournal(path);
+            byte[] second = ReadBoundedJournal(path);
+            if (first.Length != second.Length) return "unknown";
+            for (int i = 0; i < first.Length; i++)
+                if (first[i] != second[i]) return "unknown";
+            using (System.Security.Cryptography.SHA256 sha =
+                System.Security.Cryptography.SHA256.Create()) {
+                fingerprint = BitConverter.ToString(sha.ComputeHash(second))
+                    .Replace("-", "").ToLowerInvariant();
+            }
+            Dictionary<string, object> record;
+            try {
+                record = new JavaScriptSerializer {
+                    MaxJsonLength = 32768, RecursionLimit = 6
+                }.DeserializeObject(Utf8.GetString(second)) as Dictionary<string, object>;
+            } catch { return "malformed"; }
+            if (record == null || record.Count != 8 ||
+                !record.ContainsKey("schema") || !(record["schema"] is int) ||
+                (int)record["schema"] != 1 ||
+                !record.ContainsKey("version") || !(record["version"] is string) ||
+                !Regex.IsMatch((string)record["version"],
+                    @"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$") ||
+                !record.ContainsKey("sha256") || !(record["sha256"] is string) ||
+                !Regex.IsMatch((string)record["sha256"], "^[a-f0-9]{64}$") ||
+                !record.ContainsKey("commit") || !(record["commit"] is string) ||
+                !Regex.IsMatch((string)record["commit"], "^[a-f0-9]{40}$") ||
+                !record.ContainsKey("bytes") ||
+                !((record["bytes"] is int && (int)record["bytes"] > 0) ||
+                  (record["bytes"] is long && (long)record["bytes"] > 0L)) ||
+                !record.ContainsKey("files") || !(record["files"] is object[]) ||
+                !record.ContainsKey("activation") ||
+                !(record["activation"] is string) ||
+                ((string)record["activation"] != "reload-required" &&
+                 (string)record["activation"] != "operator-confirmed") ||
+                !record.ContainsKey("createdUtc") ||
+                !(record["createdUtc"] is string))
+                return "malformed";
+            DateTime created;
+            if (!DateTime.TryParse((string)record["createdUtc"],
+                CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out created))
+                return "malformed";
+            object[] files = (object[])record["files"];
+            if (files.Length == 0 || files.Length > 512) return "malformed";
+            HashSet<string> paths = new HashSet<string>(StringComparer.Ordinal);
+            foreach (object item in files) {
+                Dictionary<string, object> entry = item as Dictionary<string, object>;
+                if (entry == null || entry.Count != 2 ||
+                    !entry.ContainsKey("path") || !(entry["path"] is string) ||
+                    !entry.ContainsKey("sha256") || !(entry["sha256"] is string) ||
+                    !Regex.IsMatch((string)entry["sha256"], "^[a-f0-9]{64}$"))
+                    return "malformed";
+                string name = (string)entry["path"];
+                if (name.Length == 0 || name.Length > 256 || name.StartsWith("/") ||
+                    name.Contains("\\") || name.Contains("..") || name.Contains(":") ||
+                    !paths.Add(name)) return "malformed";
+            }
+            version = (string)record["version"];
+            return "legacy-installed";
+        } catch { fingerprint = null; version = null; return "unknown"; }
+    }
+
     static Dictionary<string, object> InspectTransaction(string requestId) {
-        string journal = "unknown", nativeLock = "unknown";
+        string journal = "unknown", nativeLock = "unknown", receipt = "unknown";
+        string stateRoot = null;
         try {
             string root = InspectRoot();
             if (root != null) {
-                string state = Path.Combine(root, "State");
-                string journalPath = Path.Combine(state, "pending.json");
-                string lockPath = Path.Combine(state, "updater.lock");
-                // Read independently twice; any observed artifact persists as
-                // blocked even if it disappears while the second read runs.
+                stateRoot = Path.Combine(root, "State");
+                string journalPath = Path.Combine(stateRoot, "pending.json");
+                string lockPath = Path.Combine(stateRoot, "updater.lock");
+                string activePath = Path.Combine(stateRoot, "active.json");
+                // An artifact observed in either pass must never disappear
+                // from the conservative combined result due to a race.
                 string journalFirst = ProbeFile(journalPath);
                 string lockFirst = ProbeFile(lockPath);
+                string receiptFirst = ProbeFile(activePath);
                 string journalSecond = ProbeFile(journalPath);
                 string lockSecond = ProbeFile(lockPath);
+                string receiptSecond = ProbeFile(activePath);
                 journal = CombineProof(journalFirst, journalSecond);
                 nativeLock = CombineProof(lockFirst, lockSecond);
+                receipt = CombineProof(receiptFirst, receiptSecond);
             }
-        } catch { journal = "unknown"; nativeLock = "unknown"; }
+        } catch { journal = "unknown"; nativeLock = "unknown"; receipt = "unknown"; }
         string journalFingerprint = null;
-        string journalFormat = journal == "present"
-            ? LegacyJournalFormat(Path.Combine(InspectRoot(), "State", "pending.json"),
+        string journalFormat = journal == "present" && stateRoot != null
+            ? LegacyJournalFormat(Path.Combine(stateRoot, "pending.json"),
                 out journalFingerprint)
+            : "unknown";
+        string receiptFingerprint = null, receiptVersion = null;
+        string receiptFormat = receipt == "present" && stateRoot != null
+            ? LegacyInstalledReceipt(Path.Combine(stateRoot, "active.json"),
+                out receiptFingerprint, out receiptVersion)
             : "unknown";
         string transactionPhase = journal == "present"
             ? "pending-install-or-rollback"
@@ -244,6 +324,10 @@ internal static class Program {
             { "transactionPhase", transactionPhase },
             { "journalFormat", journalFormat },
             { "journalFingerprint", journalFingerprint },
+            { "receipt", receipt },
+            { "receiptFormat", receiptFormat },
+            { "receiptFingerprint", receiptFingerprint },
+            { "receiptVersion", receiptVersion },
             { "identityBound", false },
             { "nativeOutcomeVerified", false }, { "rollbackVerified", false },
             { "eligibleForLease", false }
