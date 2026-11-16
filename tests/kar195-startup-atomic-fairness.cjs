@@ -269,3 +269,92 @@ test('KAR-195 a rejected admitted task cannot poison queued later P8 admissions'
     assert.equal(Object.keys(data).filter(key => key.startsWith(Atomic.FINISH_PREFIX)).length, 2);
     assert.equal(await coordinator.guardReserve(() => 'idle'), 'idle');
   });
+
+
+test('KAR-195 native 250ms full-store delay: routed admission uses targeted durable receipts, reserve remains independent full double-scan',
+  {timeout: 10000}, async () => {
+    const data = Object.create(null);
+    data.diagnostics = Array.from({length: 2498}, (_, sequence) => ({event:'SYNTHETIC', sequence}));
+    let fullReads = 0, targetedReads = 0, serial = 0;
+    const storageLocal = {
+      async get(keys) {
+        if (keys === null) {
+          fullReads++;
+          await sleep(10); // deterministic proxy for the expensive real native full-store scan
+        } else targetedReads++;
+        const names = keys === null ? Object.keys(data) : Array.isArray(keys) ? keys : [keys];
+        return Object.fromEntries(names.filter(key => Object.hasOwn(data, key))
+          .map(key => [key, structuredClone(data[key])]));
+      },
+      async set(patch) { Object.assign(data, structuredClone(patch)); }
+    };
+    const lockManager = {async request(name, options, fn) {
+      assert.equal(name, Atomic.LOCK_NAME);
+      assert.deepEqual(options, {mode:'exclusive', ifAvailable:true});
+      return fn({name,mode:'exclusive'});
+    }};
+    const coordinator = Atomic.create({
+      storageLocal, lockManager, workerInstanceId:'synthetic_native_worker',
+      clock: () => 123456, newToken: () => 'kar195_native_token_' + (++serial) + '_long'
+    });
+    const responses = await Promise.all(Array.from({length: 12}, (_, i) =>
+      coordinator.withAdmission('RECOGNIZE_PROFILE', async () => i)));
+    assert.deepEqual(responses, Array.from({length: 12}, (_, i) => i),
+      'all concurrent startup messages must complete under the real exclusive Web Lock');
+    assert.equal(fullReads, 0,
+      'common start/finish route must not copy the entire 2498-record diagnostic store for each receipt');
+    assert.ok(targetedReads >= 48,
+      'each start and finish must still independently read the token slot and verify durable write ACK');
+    assert.equal(Object.keys(data).filter(k => k.startsWith(Atomic.START_PREFIX)).length, 12);
+    assert.equal(Object.keys(data).filter(k => k.startsWith(Atomic.FINISH_PREFIX)).length, 12);
+    assert.equal(await coordinator.guardReserve(() => 'idle'), 'idle');
+    assert.equal(fullReads, 2,
+      'cross-worker reserve must still independently enumerate the complete durable journal twice');
+    data[Atomic.START_PREFIX + 'unresolved_prior_worker_token'] = {
+      schema:1,state:'admitted',token:'unresolved_prior_worker_token',
+      operationType:'REMOTE_PENDING',workerInstanceId:'older_worker',startedAtMs:123456
+    };
+    await assert.rejects(coordinator.guardReserve(() => 'unreachable'),
+      error => error?.code === 'KR_UPDATE_FENCE_BUSY',
+      'an interrupted prior-generation receipt must still block reserve after fast routed admissions');
+    data[Atomic.FINISH_PREFIX + 'unresolved_prior_worker_token'] = {bad:true};
+    await assert.rejects(coordinator.guardReserve(() => 'unreachable'),
+      error => error?.code === 'KR_UPDATE_FENCE_ATOMIC_STORAGE',
+      'malformed remote finish remains fail closed during the independent full-journal scan');
+  });
+
+test('KAR-195 targeted P8 receipt check fails closed on token collision or changed own start',
+  async () => {
+    const data = Object.create(null);
+    const token = 'synthetic_duplicate_token_123';
+    const store = {
+      async get(keys) {
+        const names = keys === null ? Object.keys(data) : Array.isArray(keys) ? keys : [keys];
+        return Object.fromEntries(names.filter(key => Object.hasOwn(data,key))
+          .map(key => [key,structuredClone(data[key])]));
+      },
+      async set(patch) { Object.assign(data,structuredClone(patch)); }
+    };
+    const lockManager = {async request(name,options,fn) {
+      assert.equal(name,Atomic.LOCK_NAME);
+      assert.deepEqual(options,{mode:'exclusive',ifAvailable:true});
+      return fn({name,mode:'exclusive'});
+    }};
+    const coordinator = Atomic.create({
+      storageLocal:store, lockManager, workerInstanceId:'synthetic_token_worker',
+      clock:()=>123456, newToken:()=>token
+    });
+    await coordinator.withAdmission('GET_PROFILE_STATE',()=>true);
+    await assert.rejects(coordinator.withAdmission('RECOGNIZE_PROFILE',()=>true),
+      error=>error?.code==='KR_UPDATE_FENCE_ATOMIC_STORAGE',
+      'a repeated receipt token must not overwrite a prior start/finish');
+    const different = Atomic.create({
+      storageLocal:store,lockManager,workerInstanceId:'synthetic_other_worker',
+      clock:()=>123456,newToken:()=>token+'_new'
+    });
+    await assert.rejects(different.withAdmission('RECOGNIZE_PROFILE', async receipt=>{
+      data[Atomic.START_PREFIX+receipt.token].startedAtMs++;
+    }),error=>error?.code==='KR_UPDATE_FENCE_ATOMIC_STORAGE',
+    'the changed durable start cannot be considered completed');
+    assert.equal(Object.hasOwn(data,Atomic.FINISH_PREFIX+token+'_new'), false);
+  });
