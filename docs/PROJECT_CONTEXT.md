@@ -88,6 +88,12 @@ Emergency reset may terminate local workflow state/locks, but must not fabricate
 - Trusted URL/CDN policy, MIME/dimension/size validation and hashing remain safety boundaries.
 - Inventory commits involving metadata/images are atomic where defined by current repository contracts.
 
+## Diagnostic read versus durable MV3 owner admission (KAR-191)
+
+Local diagnostic occupancy (`GET_DIAGNOSTIC_OCCUPANCY`) is a strictly read-only observation and must remain accessible during transient contention for the updater/workflow admission Web Lock. It still passes the normal platform/extension message-contract checks and must distinguish a failed or unavailable read from an authoritative zero retained events. A denied read must never erase the diagnostic buffer or fabricate a healthy zero.
+
+The diagnostic ZIP export (`GET_DIAGNOSTIC_EXPORT`) is **not** equivalent to a free read: it is already a durable, P8-journaled `diagnosticExport` owner. Keep its exact origin-worker start/finish receipts and the fail-closed lease safety barrier; do not exempt its handler from admission to make the download appear to work. The UI may retry only brief `KR_UPDATE_FENCE_ATOMIC_BUSY` contention a bounded number of times, without pre-export logging that competes for the same lock. Any other unavailable, timed-out or corrupt state remains explicit and recoverable without clearing diagnostic data. These constraints preserve KAR-99/KAR-171 update safety while fixing KAR-191.
+
 ## Hosted CI boundary
 
 GitHub-hosted CI must **never** perform real Kleinanzeigen account publication, deletion, replacement or other live mutation.
