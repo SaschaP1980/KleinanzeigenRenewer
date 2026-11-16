@@ -14,10 +14,10 @@
     "Maintain Dynamic Public Function Coverage 100% and line/branch/architecture no-regression safety gates. No real Kleinanzeigen mutation in hosted CI."
   ],
   "nextPlannedBuild": "TBD",
-  "nextPlannedBuildGoal": "Only after separate owner request following KAR-197 native validation.",
+  "nextPlannedBuildGoal": "Determined by separately authorized open GitHub Issues.",
   "nativeSmokeRequired": true,
   "performanceRunRequired": false,
-  "performanceRule": "No new Fast-3 performance measurement is claimed for the targeted publication authorization fix. Keep both historical hardware-specific v1.23.20_c1 Gold lines separate.",
+  "performanceRule": "No new mass-renewal performance run is required for local-only KAR-161 trash retention. Historical v1.23.20 Gold-line matrix remains the reference, without claiming a new measurement.",
   "safety": {
     "runtimeSubmitCalls": 0,
     "runtimeRequestSubmitCalls": 0,
@@ -151,7 +151,7 @@
     "Validate canonical all-profile affected-count preview and fail-closed cancellation when the active profile or trash snapshot changes.",
     "Verify local-only atomic record-and-image deletion under exact inventory IDs, retention-reset boundaries and MV3 interruption; assert no remote Kleinanzeigen mutation."
   ],
-  "packageVersion": "1.25.4",
+  "packageVersion": "1.25.5",
   "directBasisNativePending": false,
   "architectureFiles": [
     {
