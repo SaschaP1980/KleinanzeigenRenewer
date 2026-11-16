@@ -18,7 +18,9 @@ jobs:
   ci:
     name: Runtime, safety, coverage, Chrome ZIP and packaged browser E2E
     if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    # Playwright 1.57.0 Chromium installer does not support ubuntu26.04.
+    # Match the pinned Work PR packaged-browser E2E runner.
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
