@@ -6,6 +6,8 @@ on:
       - tools/windows/KleinanzeigenRenewer-Updater.ps1
       - tests/windows-updater-phase1.ps1
       - tests/windows-native-host-wave1.ps1
+      - tests/kar68-native-status-gateway.cjs
+      - src/background/services/native-update-status-gateway.js
       - tools/windows/KleinanzeigenRenewer.NativeHost.cs
       - .github/workflows/kar171-r2-manual.yml
 permissions:
@@ -41,3 +43,13 @@ jobs:
         run: |
           $ErrorActionPreference='Stop'
           & .\tests\windows-native-host-wave1.ps1
+
+  node-native-readonly:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: Strict NativeHost manual transaction parsing in private extension gateway
+        run: node tests/kar68-native-status-gateway.cjs

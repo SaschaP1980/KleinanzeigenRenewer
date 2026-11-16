@@ -41,9 +41,47 @@ async function run() {
     transactionPhase:'unknown',journalFormat:'unknown',journalFingerprint:null,
     receipt:'present',receiptFormat:'legacy-installed',
     receiptFingerprint:'a'.repeat(64),receiptVersion:'1.24.2',
+    manualTransaction:'absent',manualTransactionId:null,
+    manualTransactionFingerprint:null,manualTransactionOrigin:null,
+    manualReceiptMatches:false,
     identityBound:false,nativeOutcomeVerified:false,
     rollbackVerified:false,eligibleForLease:false
   });
+  // R2 manual origin is a host-observed file transaction, not the P8
+  // admission/worker identity; even a matching receipt cannot grant lease.
+  const manualResponse=id=>({
+    ...inspectReply(id),manualTransaction:'files-installed-unbound',
+    manualTransactionId:'a'.repeat(32),
+    manualTransactionFingerprint:'b'.repeat(64),
+    manualTransactionOrigin:'manual-operator',manualReceiptMatches:true
+  });
+  const manual=await create((_,q)=>manualResponse(q.requestId)).inspectReadOnly();
+  check(manual.ok===true&&manual.manualTransaction==='files-installed-unbound'
+    &&manual.manualReceiptMatches===true&&manual.manualTransactionId==='a'.repeat(32)
+    &&manual.nativeOutcomeVerified===false&&manual.identityBound===false
+    &&manual.rollbackVerified===false&&manual.eligibleForLease===false,
+    'R2 private native manual transaction is receipt-correlated but never MV3 terminal');
+  const pendingManual=await create((_,q)=>({
+    ...inspectReply(q.requestId),status:'blocked',manualTransaction:'pending',
+    manualTransactionId:'a'.repeat(32),manualTransactionFingerprint:'b'.repeat(64),
+    manualTransactionOrigin:'manual-operator',manualReceiptMatches:false
+  })).inspectReadOnly();
+  check(pendingManual.ok===true&&pendingManual.status==='blocked'
+    &&pendingManual.eligibleForLease===false,
+    'R2 pending manually initiated updater transaction independently blocks');
+  for(const [name,mutate] of [
+    ['forged manual worker identity',x=>({...x,workerGeneration:'old-worker'})],
+    ['wrong manual source origin',x=>({...x,manualTransactionOrigin:'mv3-worker'})],
+    ['replayed short transaction ID',x=>({...x,manualTransactionId:'short'})],
+    ['missing manual fingerprint',x=>({...x,manualTransactionFingerprint:null})],
+    ['missing receipt correlation',x=>({...x,manualReceiptMatches:false})],
+    ['wrong manual receipt status',x=>({...x,receipt:'absent'})],
+    ['unsafe fake manual idle',x=>({...x,status:'idle'})]
+  ]){
+    const p=await create((_,q)=>mutate(manualResponse(q.requestId))).inspectReadOnly();
+    check(p.ok===false&&p.error==='INVALID_RESPONSE',
+      'R2 private inspector denies '+name);
+  }
   let inspectorCalls=0;
   const privateInspector=create((host,message)=>{
     inspectorCalls++;
