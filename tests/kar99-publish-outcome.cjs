@@ -140,7 +140,8 @@ const create=(store,manager,worker='worker-1',verify=proof)=>Journal.create({
    const stable=await originalP8Publish({kind});
    const result=await stable.scan();
    ok(result.state==='resolved-confirmed'&&stable.probes===1
-     &&result.workerInstanceId==='worker-after-restart',
+     &&result.attemptId===stable.entry.attemptId
+     &&result.fillId===stable.entry.fillId,
      'R1: '+kind+' P8-token-bound exact publication verified after Worker restart');
  }
  for(const [label,mutate] of [
