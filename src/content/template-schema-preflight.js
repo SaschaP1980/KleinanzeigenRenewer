@@ -282,11 +282,40 @@
         // is NOT an empty optional field. Otherwise a legacy archive can
         // silently lose that selection even with an unchanged live schema.
         if (!hasValue(attribute.technicalValue)) {
-          const capturedVisibleValue = clean(attribute.displayValue || '').length > 0 &&
-            attribute.status !== 'empty';
-          if (capturedVisibleValue || ['captured', 'technical-only'].includes(attribute.status)) {
+          const label = clean(attribute.displayValue || '');
+          const capturedVisibleValue = label.length > 0 && attribute.status !== 'empty';
+          const liveKey = 'attribute:' + attribute.key;
+          const liveField = fields.get(liveKey);
+          const peer = observed.form?.ownerDocument?.getElementById?.(attribute.key);
+          const inputs = [...(observed.form?.querySelectorAll?.('[name^="attributeMap["]') || [])]
+            .filter(input => input.name === 'attributeMap[' + attribute.key + ']');
+          // KAR-201 native category-246 evidence: linked React combobox options
+          // have labels but no technical IDs until an owner-like option click.
+          // Only permit an in-memory recovery attempt; this is NOT proof of
+          // compatibility and cannot authorize publication by itself.
+          const canAttemptExactDisplayRecovery =
+            comparison?.status === 'legacy-unversioned' && capturedVisibleValue &&
+            !/^(bitte wählen|auswählen|select)$/i.test(label) &&
+            liveField?.kind === 'combobox' &&
+            inputs.length === 1 && inputs[0].type === 'hidden' &&
+            peer && observed.form.contains(peer) && peer.tagName === 'BUTTON' &&
+            peer.getAttribute('role') === 'combobox' &&
+            peer.getAttribute('aria-disabled') !== 'true' &&
+            peer.getAttribute('disabled') === null;
+          if (canAttemptExactDisplayRecovery) {
+            valueEvidence.push({ key: attribute.key, status: 'unverified',
+              reason: 'display-only-exact-selection-required', controlKind: 'combobox',
+              optionSource: 'linked-native-popup-pending', optionCount: null });
+            represented.add(liveKey);
+            warnings.push('Merkmal „' + clean(attribute.label || attribute.key) +
+              '“: Die ältere Vorlage speichert nur „' + label +
+              '“ ohne technischen Wert. Die Auswahl wird nur bei eindeutigem Treffer versucht und muss anschließend technisch und sichtbar bestätigt werden.');
+          } else if (capturedVisibleValue || ['captured', 'technical-only'].includes(attribute.status)) {
             issues.push('Gespeichertes Merkmal „' + clean(attribute.label || attribute.key) +
               '“ hat einen sichtbaren Auswahlwert ohne eindeutig gespeicherten technischen Wert. Bitte Vorlage neu erfassen oder manuell prüfen.');
+            valueEvidence.push({ key: attribute.key, status: 'incompatible',
+              reason: 'display-only-unsafe-control', controlKind: liveField?.kind || null,
+              optionSource: 'unsupported', optionCount: null });
           }
           continue;
         }
