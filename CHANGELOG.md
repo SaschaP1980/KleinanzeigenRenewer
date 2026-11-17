@@ -4,6 +4,15 @@ This is the canonical version-specific history for Kleinanzeigen Manager. Entrie
 
 All distinct historical section bodies from the former root README and CHANGELOG are preserved with source labels and line numbers. The [KAR-170 migration ledger](docs/maintenance/KAR170_CHANGELOG_MIGRATION.json) identifies their original Git blobs and body checksums. Overlapping versions retain distinct factual notes; older references to planned builds or native/CI acceptance are **historical**, not live status.
 
+## v1.25.6 — KAR-199 Phase-4 bounded source retirement and truthful uncertain-outcome reporting (Work source candidate)
+
+- Prevent indefinite pending `MY_ADS_STATUS` callbacks after a successful Phase-4 My Ads content handshake. Use bounded, step-specific status requests before and after durable delete intent; record low-cardinality request start/finish/timeout evidence without account, tab, worker, listing, URL or journal-token data.
+- Bound the `DELETE_OWN_AD_BY_ID` response and independently performed full-pagination readbacks. A missing response **after dispatch** is an unknown remote outcome, never permission for a second DELETE. Preserve exact P8/Phase-4 intent and independent source-absence plus target-presence verification.
+- Persist `source-delete-status-unverified` or `source-delete-outcome-unverified` on a blocked Phase-4 boundary, keep original and candidate local records intact, and show a non-destructive owner-visible warning: “Neue Anzeige bestätigt; alte Anzeige noch nicht nachweislich gelöscht.” Block local candidate removal from unresolved Phase 4. Never equate `source-delete-started` with a proven delete.
+- Host-tested first failing regression: three deterministic post-handshake no-response cases were **RED** on unfixed v1.25.5 with `TEST_UNBOUNDED_AWAIT` ([run 44023339709](https://github.com/SaschaP1980/KleinanzeigenRenewer/actions/runs/44023339709)); the same three cases subsequently passed in Work validation before older source-contract updates. Two additional persistent-unknown-state tests exercise truthful recovery/no automatic retry; full final-head GREEN and ZIP parity are separate requirements.
+- The owner's private v1.25.5 ZIP from 2026-11-17T05:15:21Z showed no Phase-4 milestone after content readiness at 05:07:12Z for over eight minutes, with no logged delete, failure or independent source absence. It does **not** establish the exact Chrome callback that hung or the current remote source's presence.
+- Source candidate only: no merge, published GitHub Release/tag, or real Kleinanzeigen-account deletion is implied. Native Windows/Chrome owner acceptance and privacy-safe later diagnostics remain pending.
+
 ## v1.25.5 — KAR-197 publish-intent Web Lock contention and truthful ZIP insertion recovery (Work source candidate)
 
 - Fix the independently reproduced v1.25.4 two-image ZIP Fast-mode failure after verified form fill: an unrelated P8 origin Web Lock holder could deny the distinct publish-intent journal immediately with `KR_PUBLISH_INTENT_ATOMIC_BUSY`.
