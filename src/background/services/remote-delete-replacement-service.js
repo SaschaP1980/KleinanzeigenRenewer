@@ -47,7 +47,7 @@
       function phase4Milestone(event, step, requestType, limit, started) {
         // Low-cardinality only: no account/ad/tab/worker IDs, URLs or tokens.
         // Best effort without an awaited competing diagnostic P8 owner.
-        void Promise.resolve().then(() => logDiagnostic('info',event,{
+        void Promise.resolve().then(() => logDiagnostic(/TIMEOUT|FAILED$/.test(event) ? 'warning' : 'info',event,{
           step,requestType,timeoutMs:limit,elapsedMs:Math.max(0,Date.now()-started)
         },{module:'background',operation:'renewal-phase-4'})).catch(() => {});
       }
@@ -513,7 +513,9 @@ async function preverifyAndTriggerRenewalSourceDeleteAttempt(session, expectedPr
         correlation: correlationContext(session)
       }, 'delete-response', PHASE4_DELETE_RESPONSE_TIMEOUT_MS, 'KR_PHASE4_DELETE_RESPONSE_TIMEOUT');
     } catch (error) {
-      if (error?.code !== 'KR_PHASE4_DELETE_RESPONSE_TIMEOUT' && !isPhase4DeleteTransportInterruption(error)) throw error;
+      if (error?.code !== 'KR_PHASE4_DELETE_RESPONSE_TIMEOUT') {
+        if (!isPhase4DeleteTransportInterruption(error)) throw error;
+      }
       transportInterrupted = true;
       await logDiagnostic('info', 'RENEWAL_SOURCE_DELETE_TRANSPORT_INTERRUPTED', {
         renewalId: session.renewalId,
@@ -547,22 +549,22 @@ async function markPhase4Unverified(session, code) {
   session.sourceDeleteUnverifiedAt = new Date().toISOString();
   await persistRenewalSession(session);
   const text = 'Neue Anzeige bestätigt; alte Anzeige noch nicht nachweislich gelöscht. Bitte zunächst beide Anzeigen in „Meine Anzeigen“ prüfen. Kein automatischer zweiter Löschversuch.';
-  await Promise.allSettled([
-    setAppNotice({
-      id: crypto.randomUUID(),
-      kind: 'warning',
-      event: 'renewal-phase4-unverified',
-      title: 'Austausch nicht abgeschlossen',
-      text,
-      renewalId: session.renewalId,
-      sourceAdId: session.sourceAdId,
-      newAdId: session.newAdId
-    }),
-    logDiagnostic('warning', 'RENEWAL_PHASE4_UNVERIFIED', {
-      reasonCode: String(code || 'UNKNOWN'), stage:session.stage,
-      beforeDeleteProven: !journalUncertain
-    }, {module:'background',operation:'renewal-phase-4'})
-  ]);
+  // Do not await a diagnostic write; it can contend for the very same P8
+  // admission lock whose transient delay led here.
+  void Promise.resolve().then(() => logDiagnostic('warning', 'RENEWAL_PHASE4_UNVERIFIED', {
+    reasonCode: String(code || 'UNKNOWN'), stage:session.stage,
+    beforeDeleteProven: !journalUncertain
+  }, {module:'background',operation:'renewal-phase-4'})).catch(() => {});
+  await setAppNotice({
+    id: crypto.randomUUID(),
+    kind: 'warning',
+    event: 'renewal-phase4-unverified',
+    title: 'Austausch nicht abgeschlossen',
+    text,
+    renewalId: session.renewalId,
+    sourceAdId: session.sourceAdId,
+    newAdId: session.newAdId
+  }).catch(() => {});
 }
 
 async function finishRenewalReplacement(message, admissionReceipt = null) {
