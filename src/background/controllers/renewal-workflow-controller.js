@@ -21,6 +21,7 @@
         ensureContentConnection,
         evaluateCheckoutRecoveryProof,
         finishRenewalReplacement,
+        recoverEmergencyResetCandidateAtomic,
         withAutonomousAdmission,
         resolvePublishIntent,
         flushDiagnosticBuffer,
@@ -93,6 +94,7 @@
         ensureContentConnection,
         evaluateCheckoutRecoveryProof,
         finishRenewalReplacement,
+        recoverEmergencyResetCandidateAtomic,
         withAutonomousAdmission,
         flushDiagnosticBuffer,
         getInventory,
@@ -417,6 +419,16 @@ async function resumePendingRenewals() {
     try {
       const checkoutRecovery = await tryRecoverAbortedPaidCheckout(renewal, 'service-worker-resume');
       if (checkoutRecovery.recovered) continue;
+      // Also repair sessions reset on an older version. No remote scan or DELETE
+      // is triggered here: only independently stored, previously verified
+      // candidate data is detached into a second local inventory entry.
+      if (String(renewal?.status || '') === 'cancelled'
+          && String(renewal?.stage || '') === 'emergency-reset-unverified'
+          && /^\d+$/.test(String(renewal?.newAdId || ''))
+          && renewal?.comparison?.ownAdsPresence === true) {
+        await recoverEmergencyResetCandidateAtomic(renewal);
+        continue;
+      }
       if (isSafeLegacyManualEmergencyReset(renewal)) {
         renewal.status = 'cancelled';
         renewal.stage = 'manual-emergency-reset';
