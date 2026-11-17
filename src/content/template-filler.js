@@ -999,6 +999,7 @@
     if (paidAfterCategory.required) return await stopForPaidInsertion(session, paidAfterCategory, 'after-category');
 
     let schemaPreflightReport = null;
+    const recoveredDisplayOnly = new Map();
     if (String(form.querySelector('input[name="categoryId"]')?.value || '') === String(template.categoryId || '')) {
       try {
         if (!SchemaPreflight) throw new Error('Die Formularschema-Sicherheitsprüfung ist nicht verfügbar.');
@@ -1065,7 +1066,6 @@
       // Display-only legacy values are recovered transiently, never written
       // back into the original archive. Only the exact clicked option and the
       // React-owned hidden input may supply a technical value.
-      const recoveredDisplayOnly = new Map();
       const attributeIssues = await fillDynamicAttributes(mappedFillTemplate, fillId, proof => {
         if (!proof?.key || !proof.technicalValue || !proof.displayValue ||
             recoveredDisplayOnly.has(proof.key))
@@ -1108,7 +1108,7 @@
     }
     // Recovered technical values are allowed for final verification *only*
     // after a unique native option click. Preserve source record unchanged.
-    const recovered = typeof recoveredDisplayOnly !== 'undefined' ? recoveredDisplayOnly : new Map();
+    const recovered = recoveredDisplayOnly;
     const finalTemplate = recovered.size
       ? { ...template, dynamicAttributes: (template.dynamicAttributes || []).map(attribute => {
           const proof = recovered.get(attribute.key);
