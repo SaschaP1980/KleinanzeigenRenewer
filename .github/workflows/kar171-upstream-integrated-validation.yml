@@ -34,6 +34,9 @@ jobs:
           set -e
           test "$status" -eq 1
           python3 docs/maintenance/KAR171_MAIN_SYNC_RESOLVER.py
+          # Disposable workflows are NOT part of a product source tree. Remove
+          # them in the runner before executing the immutable closure gate.
+          git rm -f .github/workflows/kar171-upstream-drymerge.yml .github/workflows/kar171-upstream-integrated-validation.yml
           git diff --cached --check
           test -z "$(git diff --name-only --diff-filter=U)"
           for file in src/background/background.js src/background/services/auto-publish-intent-journal.js src/background/services/phase4-uncertainty-journal.js src/background/services/remote-delete-replacement-service.js src/content/inventory-delete-operations.js src/content/inventory-runner.js; do
