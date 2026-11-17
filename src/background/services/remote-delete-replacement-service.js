@@ -352,7 +352,12 @@ async function verifyPhase4RemoteOutcomeFresh(receipt) {
       };
       await assertSameAccount();
       const result = await sendTabRequestWithBootstrap(tabId,{
-        type:command,adId:id,expectedProfileName:expected,correlation:{renewalId:receipt.renewalId}
+        type:command,adId:id,expectedProfileName:expected,
+        // Only original R1 source/target outcome closure requires full
+        // authenticated pagination even if the target is found on page 1.
+        // Publication-presence checks elsewhere preserve their fast path.
+        requireCompleteRoster: kind === 'target',
+        correlation:{renewalId:receipt.renewalId}
       });
       // Full-pagination navigation can outlive the first account observation.
       // Never accept a result from a tab that subsequently switched accounts.
