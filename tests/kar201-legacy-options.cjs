@@ -116,6 +116,6 @@ function case246({ colorOptions = null, materialOptions = null, duplicateColorLa
   const service=fs.readFileSync(require.resolve('../src/background/services/template-fill-service.js'),'utf8');
   assert.match(filler,/valueCompatibility/,'fill must log and persist truthful value evidence');
   assert.match(controller,/valueCompatibility/,'failed fill proof must persist separately from publish authority');
-  assert.match(service,/schemaPreflight.*verified/,'recovery must carry proof with explicit verified gate');
+  assert.match(service,/schemaPreflight: session.result.schemaPreflight/,'recovery must carry verified and unverified proof separately');
   console.log('PASS KAR-201: preflight evidence survives failed-fill persistence');
 })().catch(error=>{ console.error(error); process.exitCode=1; });
