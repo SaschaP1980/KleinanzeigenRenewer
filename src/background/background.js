@@ -1182,6 +1182,10 @@ async function sendTabRequestWithBootstrap(tabId, message) {
   } catch (error) {
     const text = String(error?.message || error || '');
     if (!/Receiving end does not exist|Could not establish connection|message port closed/i.test(text)) throw error;
+    // A closed reply port can mean the source deletion already happened.
+    // Never transparently resend the destructive DELETE across bootstrap.
+    // Phase-4 journal + independent readback owns this unknown outcome.
+    if (message?.type === 'DELETE_OWN_AD_BY_ID') throw error;
     await ensureContentConnection({ tabId });
     return sendTabRequest(tabId, message);
   }
