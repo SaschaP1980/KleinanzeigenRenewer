@@ -1,6 +1,6 @@
 # KAR-171 / R1 — Owner-controlled read-only My Ads acceptance protocol
 
-**Status:** Stage 0 owner-PC P8-candidate preflight **PASSED** (2026-11-17, v1.25.5: 2 original publication candidates). Stage 1 historical lineage correlation **NOT EXECUTED** on owner-PC; the full authenticated source+target Phase-4 outcome proof **NOT EXECUTED**. R1 **NOT ACCEPTED**. No owner-PC installation, real-account verification, updater reserve, NativeHost apply, Chrome reload or Kleinanzeigen mutation is authorized by this document.
+**Status:** Stage 0 owner-PC original P8 publication-candidate check **PASSED**; Stage 1 owner-PC historical P8 → publication → renewal/fill correlation **PASSED** (`PUBLISH_LINEAGE_MATCHED`, 2 matched renewals on v1.25.7). Stage 2 Phase4 original-P8 and historical remote-result correlation **READY FOR OPTIONAL OWNER-PC READ-ONLY CHECK** on installed v1.25.8; original Phase4 live same-account source/target recheck **NOT EXECUTED**. R1 **NOT ACCEPTED**. No owner-PC installation, real-account verification, updater reserve, NativeHost apply, Chrome reload or Kleinanzeigen mutation is authorized by this document.
 
 ## Purpose and evidence boundary
 
@@ -35,6 +35,20 @@ This non-mutating **preflight only** can be carried out on an already installed 
 The owner's later v1.25.7 private diagnostic ZIP documents `cancelled / emergency-reset-unverified` and a locally recovered replacement record, while the original card was manually moved to the local trash. Neither of those actions establishes remote deletion. The actual Phase-4 deletion defect and its repair belong to [#199](https://github.com/SaschaP1980/KleinanzeigenRenewer/issues/199), not this R1 subcase.
 
 **Outcome boundary:** Stage 1 `PUBLISH_LINEAGE_MATCHED` is a publication-lineage checkpoint only. The mandatory full R1 native evidence still requires the original Phase-4 P8 attempt, an independently authenticated, fresh full-pagination source-absence/target-presence scan under the correct account and the other R1 negative/restart criteria. Keep `R1 NOT ACCEPTED` until the entire R1 exit list is positively grounded; do not silently advance to R2.
+
+## Stage 2 — original Phase-4 P8 and historical remote outcome lineage (read-only)
+
+**Preconditions:** The separate [#199](https://github.com/SaschaP1980/KleinanzeigenRenewer/issues/199) was closed and merged into `main@d23f830ea0fa552aaee72be0705841d7411b0a4c`, extension v1.25.8. This is NOT itself evidence of a successful remote deletion. The owner's prior Stage 0 and Stage 1 checks are already complete and must **not** be repeated. Stage 2 is intended to inspect the *existing* legitimate phase-4 journal of a completed renewal, if available. **Do not create, renew, delete, reset, restart or edit any listing solely for this probe.**
+
+The standalone [Stage 2 read-only source](KAR171_R1_PHASE4_LINEAGE_READ_ONLY.js) is a separately reviewed DevTools script, **not included in the released extension or its runtime**. It recognizes the original P8 admission START and FINISH, Phase-4 immutable intent, historical source-absence/target-presence verified resolution and the separately original P8-backed publish intent and matching target resolution. It permits a later verifying worker ID in the resolution, but the immutable original worker must match its original P8 admission. Invalid, tokenless, missing, contradictory and orphan cases are fail-closed. Tested offline in `tests/kar171-r1-phase4-lineage-preflight.cjs`.
+
+1. On the **already installed v1.25.8** extension, inspect `chrome://extensions` → Kleinanzeigen Manager → **Service Worker → Untersuchen**. Confirm the stable extension ID `hafahjhhgiipdegfkgacchmnacgblnah`.
+2. Inspect the source file at the above link, then paste its full source **once** into that extension's *Service Worker DevTools Console*. Never execute in a Kleinanzeigen web tab or another extension.
+3. Share only the **single sanitized output** beginning `KAR171_R1_PHASE4_LINEAGE_V1`. It prints the extension version, status and aggregate counts; never share full storage, account emails, raw session details, tokens, URLs or personal identifiers.
+4. `PHASE4_P8_PUBLISH_LINEAGE_MATCHED` shows a genuine structurally and chronologically consistent historical P8-backed Phase-4 outcome with matching P8-backed publication; it **does not** independently reread live Kleinanzeigen, certify the current logged-in account, or accept R1. `PHASE4_LINEAGE_NOT_CONFIRMED` indicates insufficient/contradictory original evidence, while `NO_PHASE4_INTENT` means no matching Phase-4 intent keys were present in the one storage snapshot. `WRONG_EXTENSION_CONTEXT` or `READ_FAILED` mean no reliable observation. If receipts have been garbage-collected or were never captured, this is **not** proof that a previous renewal failed.
+5. Stop after the result. The source performs **one** `chrome.storage.local.get(null)` read, no writes, Web Locks, Chrome tab commands, network fetch, updater action, remote publish or delete. It also does **not** mark any workflow complete or repair local inventories.
+
+**Evidence boundary:** Stage 2 is an *immutable historical provenance* inspection, NOT the fresh authenticated, complete same-account My Ads source-absence and target-presence scan required by the original R1 exit. R1 remains **NOT ACCEPTED** until that separate owner-controlled, non-mutating remote observation and original-attempt association are obtained. Do not install the old divergent `work/KAR-171` runtime over the stable extension to gather evidence without an explicit reviewed integration/isolation plan.
 
 ## Preconditions (all mandatory)
 
