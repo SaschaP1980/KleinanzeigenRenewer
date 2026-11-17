@@ -82,13 +82,22 @@ async function resetActiveWorkflows() {
     renewals[renewalId] = { ...emergencyResetRenewalState(renewal, { now, issue }), emergencyResetGeneration: resetGeneration };
     renewalsChanged = true; affected += 1;
   }
-  if (renewalsChanged) await writeRenewalSessions(renewals).catch(() => {});
+  // Never detach a candidate if the cancellation tombstone failed to commit.
+  let cancellationCommitted=!renewalsChanged;
+  if (renewalsChanged) {
+    try {await writeRenewalSessions(renewals);cancellationCommitted=true;}
+    catch (error) {
+      await logDiagnostic('warning','RENEWAL_EMERGENCY_RESET_STATE_WRITE_FAILED',{
+        reason:String(error?.message || error).slice(0,200)
+      },{module:'background',operation:'workflow-emergency-reset'}).catch(()=>{});
+    }
+  }
 
   // The reset is local-only. A previously confirmed published target must not
   // retain an active renewal-candidate snapshot after the session was cancelled.
   // The atomic recovery copies FAST-mode source images, keeps both ads, and
   // never touches any remote DELETE or immutable Phase-4 journal receipt.
-  for (const renewal of Object.values(renewals || {})) {
+  for (const renewal of cancellationCommitted ? Object.values(renewals || {}) : []) {
     if (String(renewal?.status || '') !== 'cancelled'
         || String(renewal?.stage || '') !== 'emergency-reset-unverified'
         || !/^\d+$/.test(String(renewal?.newAdId || ''))
