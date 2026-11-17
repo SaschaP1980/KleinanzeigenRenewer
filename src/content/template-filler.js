@@ -356,6 +356,27 @@
     throw new Error(`Titelfeld blieb nach ${maxAttempts} Versuchen instabil.`);
   }
 
+  // Record privacy-safe provenance only. Failed preflights cannot authorize publishing.
+  function persistedSchemaPreflight(report, template, verified = false) {
+    if (!report) return null;
+    return {
+      verified: verified === true,
+      categoryId: String(template?.categoryId || ''),
+      sourceFingerprint: report.sourceFingerprint || null,
+      currentFingerprint: report.currentFingerprint || null,
+      comparisonStatus: String(report.comparison?.status || 'unresolved'),
+      valueCompatibility: String(report.valueCompatibility || 'unverified'),
+      valueEvidence: (report.valueEvidence || []).slice(0, 50).map(item => ({
+        key: String(item.key || '').slice(0, 128),
+        status: String(item.status || 'unverified').slice(0, 30),
+        reason: String(item.reason || 'unknown').slice(0, 80),
+        controlKind: String(item.controlKind || 'unknown').slice(0, 30),
+        optionSource: String(item.optionSource || 'unknown').slice(0, 30),
+        optionCount: Number.isSafeInteger(item.optionCount) ? item.optionCount : null
+      }))
+    };
+  }
+
   async function stopForSchemaPreflight(session, issues, report = null) {
     const unique = [...new Set(issues.map(String))];
     updatePanel('Formular wurde geändert – Neu-Einstellen angehalten',
@@ -375,7 +396,8 @@
     }, 'warning');
     await runtimeMessage({ type: 'UPDATE_TEMPLATE_FILL_SESSION', fillId: session.fillId,
       status: 'needs-review', stage: 'schema-preflight',
-      result: { complete: false, issues: unique.slice(0, 50) } });
+      result: { complete: false, issues: unique.slice(0, 50),
+         schemaPreflight: persistedSchemaPreflight(report, session.template, false) } });
     return { complete: false, issues: unique, schemaPreflightBlocked: true };
   }
 
@@ -998,9 +1020,18 @@
           mapped: schemaPreflightReport.mappings.map(item => ({ from: item.oldKey, to: item.newKey })),
           legacy: schemaPreflightReport.comparison?.status === 'legacy-unversioned',
           issueCount: schemaPreflightReport.issues.length,
+          valueCompatibility: schemaPreflightReport.valueCompatibility,
+          valueEvidence: (schemaPreflightReport.valueEvidence || []).map(item => ({
+            key: item.key, status: item.status, reason: item.reason,
+            optionSource: item.optionSource, optionCount: item.optionCount
+          })).slice(0, 50),
           ownerVerifiedCaseSizePairs: live.optionProbe?.ownerVerifiedPairCount || 0,
           ownerCaseSizeEvidence: live.optionProbe?.reason || null
         }, schemaPreflightReport.complete ? 'info' : 'warning');
+        // A new category monitor reference is not historical template evidence.
+        // Show the uncertainty before attempting the selected controls.
+        for (const warning of (schemaPreflightReport.warnings || []).slice(0, 4))
+          registerSchemaMonitorWarning(warning);
         // The normal posting workflow now owns the only structural-change
         // review and optional F3 reference consent. No separate test tab.
         const acknowledged = await reviewLivePostingSchema(session, {
@@ -1087,11 +1118,7 @@
       uniqueIssues
     );
     void diagnostic(fillId, 'TEMPLATE_FILL_VERIFIED', { complete, issueCount: uniqueIssues.length, imagesComplete, imageStates: imageOutcome.states?.map(state => ({ index: state.index, status: state.status })) || [] }, complete ? 'info' : 'warning');
-    const schemaPreflight = complete && schemaPreflightReport
-      ? { verified: true, categoryId: String(template.categoryId),
-          sourceFingerprint: schemaPreflightReport.sourceFingerprint,
-          currentFingerprint: schemaPreflightReport.currentFingerprint }
-      : null;
+    const schemaPreflight = persistedSchemaPreflight(schemaPreflightReport, template, complete);
     const verifiedResult = { complete, issues: uniqueIssues.slice(0, 50), schemaPreflight };
     await runtimeMessage({
       type: 'UPDATE_TEMPLATE_FILL_SESSION',
