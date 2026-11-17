@@ -4,6 +4,13 @@ This is the canonical version-specific history for Kleinanzeigen Manager. Entrie
 
 All distinct historical section bodies from the former root README and CHANGELOG are preserved with source labels and line numbers. The [KAR-170 migration ledger](docs/maintenance/KAR170_CHANGELOG_MIGRATION.json) identifies their original Git blobs and body checksums. Overlapping versions retain distinct factual notes; older references to planned builds or native/CI acceptance are **historical**, not live status.
 
+## v1.25.11 — KAR-201 partial archive prefill with manual selection review (Work candidate, not yet released)
+
+- Correct the owner-observed v1.25.10 archive insertion from category 246: the source contains eleven saved images, but saved display-only style and brand controls failed the legacy schema preflight and aborted the entire insertion *before any image transfer started*. No evidence of failed image upload existed in that diagnostic.
+- A legacy category-matched form with only isolated, **optional**, proven per-attribute selection gaps may now continue filling all other safe fields, the unchanged archived listing text and price, and all eleven archived images. The unsafe attributes are left for manual selection; source archive values are neither guessed nor rewritten.
+- Keep hard stops for altered/invalid fingerprint or category, required/structural incompatibilities and paid insertion. Final preflight issues remain visible and durable; a partial fill is always `needs-review`, `complete:false` and **never** authorized to auto-publish, advance, delete or consume source inventory.
+- Synthetic category-246 regression exercises the actual `runFillSession` with eleven archive images, image progression, correct manual review and no automated publication, plus hard-stop cases. Existing image-completeness and ZIP archive validation contracts remain intact. Native owner verification is still required.
+
 ## v1.25.10 — KAR-201 native legacy display-only option recovery (Work candidate, not yet released)
 
 - Extend the KAR-201 legacy template fix with a safe recovery path for owner-observed category-246 “Stil” and “Marke”: archive capture may preserve a human-readable option label but no technical option ID, even though the native posting form presents an exact label.
