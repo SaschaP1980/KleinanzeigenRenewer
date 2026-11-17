@@ -18,10 +18,14 @@ for (const label of [
   'Schema-Drift testen', 'Fingerprint-Warnung testen', 'Kategorie prüfen'
 ]) assert.ok(!ui.includes(label), 'development-only UI action remains: '+label);
 
-for (const scenario of ['compatible', 'incompatible', 'stage-drift', 'isolated-review']) {
+for (const scenario of ['compatible', 'stage-drift', 'isolated-review']) {
   const exact = new RegExp("['\\\"]" + scenario + "['\\\"]");
   assert.doesNotMatch(runtime, exact, 'development-only runtime scenario '+scenario);
 }
+// KAR-201 classifies actual saved technical options as 'incompatible'.
+ // That outcome is production evidence, not the retired development scenario.
+assert.doesNotMatch(runtime, /(?:schemaTestScenario|testScenario|scenario)\s*(?:===?|:)\s*['"]incompatible['"]/,
+  'retired synthetic incompatible scenario must not be reachable');
 for (const obsolete of [
   'assessSyntheticCaseSize', 'assessSyntheticRemovedField',
   'createIsolatedStageReview', 'assessSyntheticStageDrift',
