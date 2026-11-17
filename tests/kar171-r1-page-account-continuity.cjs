@@ -66,8 +66,8 @@ function fixture({changedAt='',missingName=false,absent=false,reportedOnline=2,
   return {
     ops,log,
     get mutations() {return mutations;},
-    async find(expectedProfileName='Real Profile') {
-      return ops.findOwnAdById('5678',{}, {expectedProfileName});
+    async find(expectedProfileName='Real Profile', targetId='5678') {
+      return ops.findOwnAdById(targetId,{}, {expectedProfileName});
     },
     async absent(expectedProfileName='Real Profile') {
       return ops.verifyOwnAdAbsentById('5678',{}, {expectedProfileName});
@@ -83,6 +83,26 @@ function fixture({changedAt='',missingName=false,absent=false,reportedOnline=2,
     const found=await valid.find();
     ok(found.found===true&&found.page===2&&found.pagesScanned===2,
       'read-only, exact-Ad-ID full-pagination result on a stable account');
+    // R1 full-roster target presence must not be accepted early from page
+    // one if the remaining pages may still be incomplete or belong to
+    // another account. Legacy non-authenticated lookups stay fast.
+    const early=fixture();
+    const firstPage=await early.find('Real Profile','1234');
+    ok(firstPage.found===true && firstPage.page===1 && firstPage.pagesScanned===2,
+      'authenticated first-page match is returned only after full-roster exhaustion');
+    for (const [label,options,reason] of [
+      ['next button missing after early target', {missingNext:true}, /KR_MY_ADS_ROSTER_INCOMPLETE/],
+      ['account changes on later page after early target', {changedAt:'wait-page-2'}, /KR_MY_ADS_ACCOUNT_CHANGED_DURING_SCAN/],
+      ['duplicate IDs on later page after early target', {duplicate:true}, /KR_MY_ADS_ROSTER_INCOMPLETE/],
+      ['count changes on later page after early target', {onlineCountDrift:true}, /KR_MY_ADS_ROSTER_INCOMPLETE/]
+    ]) {
+      await assert.rejects(fixture(options).find('Real Profile','1234'), reason,
+        label+' cannot authenticate a partial target-presence result');
+      ok(true,'fail-closed R1 early target: '+label);
+    }
+    const genericFirst=await fixture({missingNext:true}).find('','1234');
+    ok(genericFirst.found===true&&genericFirst.pagesScanned===1,
+      'legacy untrusted/non-authenticated lookup stops at exact matching card');
     const absent=fixture({absent:true});
     const verified=await absent.absent();
     ok(verified.verified===true&&verified.pagesScanned===2,
