@@ -41,6 +41,24 @@ jobs:
           echo "CONFLICT_DETAILS_BEGIN"
           git ls-files -u | awk '{print $4}' | sort -u
           echo "CONFLICT_DETAILS_END"
+          echo "CONFLICT_HUNKS_BEGIN"
+          python3 - <<'PY'
+          import re,subprocess
+          paths=subprocess.run(["git","diff","--name-only","--diff-filter=U"],capture_output=True,text=True,check=True).stdout.splitlines()
+          for name in paths:
+              print("FILE",name)
+              raw=open(name,encoding="utf-8").read()
+              items=list(re.finditer(r'(?ms)^<<<<<<< HEAD\n(.*?)^=======\n(.*?)^>>>>>>> [^\n]+\n',raw))
+              print("HUNKS",len(items))
+              for idx,match in enumerate(items,1):
+                  ours=match.group(1).splitlines()
+                  theirs=match.group(2).splitlines()
+                  print(f"  HUNK {idx} ours_lines={len(ours)} main_lines={len(theirs)}")
+                  for which,lines in (("WORK",ours),("MAIN",theirs)):
+                      clip=lines[:11]+(["..."] if len(lines)>16 else [])+(lines[-4:] if len(lines)>16 else lines[11:])
+                      print("   "+which+": "+" / ".join(x[:160] for x in clip)[:1650])
+          PY
+          echo "CONFLICT_HUNKS_END"
           echo "STAGED_SUMMARY_BEGIN"
           git diff --cached --stat | tail -n 65
           echo "STAGED_SUMMARY_END"
