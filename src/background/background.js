@@ -903,8 +903,6 @@ async function removeReplacementReadyLocal(message) { return requireRemoteDelete
 
 async function recoverEmergencyResetCandidateAtomic(session) { return requireRemoteDeleteReplacementService().recoverEmergencyResetCandidateAtomic(session); }
 
-async function promoteRenewalCandidateAtomic(session) { return requireRemoteDeleteReplacementService().promoteRenewalCandidateAtomic(session); }
-
 function renewalTargetTabStillOwned(tab, session) { return requireRemoteDeleteReplacementService().renewalTargetTabStillOwned(tab, session); }
 
 function renewalPublishedTargetTabStillOwned(tab, session) { return requireRemoteDeleteReplacementService().renewalPublishedTargetTabStillOwned(tab, session); }
