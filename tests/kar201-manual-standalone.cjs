@@ -33,7 +33,7 @@ const build=()=>{
   targetTabId:tabId,sourceAdId:'12345',status:'needs-review',stage:'verified',
   createdAt:new Date().toISOString(),inventoryId:'archive:'+archiveId,targetProfileId:'profile-1',
   result:{complete:false,issues:['Merkmal Marke muss manuell geprüft werden.'],
-   manualStandaloneReviewEligible:true,
+   manualStandaloneReviewEligible:true,manualImageCount:3,
    schemaPreflight:{verified:false,categoryId:'246',comparisonStatus:'legacy-unversioned'}}}};
  const archives={[archiveId]:{archiveInsertionId:archiveId,fillId,sourceAdId:'12345',
   targetProfileId:'profile-1',targetProfileName:'Testkonto',targetTabId:tabId,
