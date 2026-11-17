@@ -234,10 +234,21 @@
       pages.push({ page, fingerprint, listingCount: listings.length });
 
       const listing = listings.find(item => String(item.adId) === wanted);
-      if (listing) return { found: true, listing, page, pagesScanned: pages.length, pages };
+      if (listing) {
+        // Card lookup itself reads live DOM. Revalidate at the actual
+        // positive-result boundary, not only before scanning the page.
+        assertSameAccount();
+        assertRosterCount();
+        return { found: true, listing, page, pagesScanned: pages.length, pages };
+      }
 
       const next = nextPageButton();
-      if (isDisabledControl(next)) {
+      const exhausted = isDisabledControl(next);
+      // The pagination control and online-count header can update during
+      // the last card/next-button read. Never turn that race into absence.
+      assertSameAccount();
+      assertRosterCount();
+      if (exhausted) {
         // A vanished/disabled pagination control is not a complete roster.
         // In particular, zero loaded cards with N advertised online ads
         // must never confirm that the original source Ad ID was deleted.
