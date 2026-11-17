@@ -60,7 +60,7 @@ const build=()=>{
 const reject=async(label,mutate)=>{
  const f=build();mutate(f);
  const originalRemoteId=f.archives[f.archiveId].newAdId;
- await assert.rejects(()=>f.approve({manualStandaloneApproval:{action:'prepare'}},f.session,f.fills,f.sender),/KR_MANUAL_|nicht|ungültig/i,label);
+ await assert.rejects(()=>f.approve({manualStandaloneApproval:{action:'prepare'}},f.fills[f.fillId],f.fills,f.sender),/KR_MANUAL_|nicht|ungültig/i,label);
  assert.equal(f.fills[f.fillId].manualPublishDetachedAt,undefined);
  assert.equal(f.archives[f.archiveId].newAdId,originalRemoteId,
    'denied preparation must never invent/overwrite a remote listing identity');
@@ -73,11 +73,11 @@ const reject=async(label,mutate)=>{
  await reject('image verification absent',f=>{f.session.result.manualStandaloneReviewEligible=false});
  await reject('malicious paid checkout page',f=>{f.sender.tab.url='https://www.kleinanzeigen.de/m-bestellung-aufnehmen.html';f.sender.url=f.sender.tab.url});
  const f=build();
- const prep=await f.approve({manualStandaloneApproval:{action:'prepare'}},f.session,f.fills,f.sender);
+ const prep=await f.approve({manualStandaloneApproval:{action:'prepare'}},f.fills[f.fillId],f.fills,f.sender);
  assert.equal(prep.pending,true);assert.equal(prep.authorized,false);
  assert.equal(f.archives[f.archiveId].status,'error');
- await assert.rejects(()=>f.approve({manualStandaloneApproval:{action:'commit',token:'wrong'}},f.session,f.fills,f.sender),/KR_MANUAL_/);
- const result=await f.approve({manualStandaloneApproval:{action:'commit',token:prep.token}},f.session,f.fills,f.sender);
+ await assert.rejects(()=>f.approve({manualStandaloneApproval:{action:'commit',token:'wrong'}},f.fills[f.fillId],f.fills,f.sender),/KR_MANUAL_/);
+ const result=await f.approve({manualStandaloneApproval:{action:'commit',token:prep.token}},f.fills[f.fillId],f.fills,f.sender);
  assert.equal(result.manualDetached,true);
  assert.equal(result.autoPublishAllowed,false);
  assert.equal(f.fills[f.fillId].stage,'manual-standalone');
@@ -86,6 +86,6 @@ const reject=async(label,mutate)=>{
  assert.equal(f.archives[f.archiveId].stage,'manual-standalone');
  assert.equal(f.archives[f.archiveId].newAdId,null);
  assert.deepEqual(f.archives[f.archiveId].sourceRecord.images.length,3);
- await assert.rejects(()=>f.approve({manualStandaloneApproval:{action:'commit',token:prep.token}},f.session,f.fills,f.sender),/KR_MANUAL_/);
+ await assert.rejects(()=>f.approve({manualStandaloneApproval:{action:'commit',token:prep.token}},f.fills[f.fillId],f.fills,f.sender),/KR_MANUAL_/);
  console.log('PASS KAR-201: 2-click manual detach, 6 deny cases, no source retire/publish/retry');
 })().catch(e=>{console.error(e);process.exitCode=1});
