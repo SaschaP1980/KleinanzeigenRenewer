@@ -38,7 +38,7 @@ jobs:
           # them in the runner before executing the immutable closure gate.
           git rm -f .github/workflows/kar171-upstream-drymerge.yml .github/workflows/kar171-upstream-integrated-validation.yml
           python3 docs/maintenance/KAR171_PREVIEW_VERSION.py
-          git add manifest.json package.json CHANGELOG.md
+          git add manifest.json package.json package-lock.json release/release-spec.json CHANGELOG.md
           git diff --cached --check
           test -z "$(git diff --name-only --diff-filter=U)"
           for file in src/background/background.js src/background/services/auto-publish-intent-journal.js src/background/services/phase4-uncertainty-journal.js src/background/services/remote-delete-replacement-service.js src/content/inventory-delete-operations.js src/content/inventory-runner.js; do
