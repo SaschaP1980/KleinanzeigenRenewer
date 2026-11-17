@@ -67,7 +67,7 @@ async function fixture({mode='fast',existingTarget=false,missingImage=false,sess
     inventoryId:'200',adId:'200',profileId:'profile-1',recordKind:'inventory',
     title:'existing independent listing',images:[],schemaVersion:2
   });
-  for(let i=0;i<2;i++) seedTx.objectStore('images').put(row('100',i));
+  for(let i=0;i<2;i++)if(!missingImage || i===0)seedTx.objectStore('images').put(row('100',i));
   if(mode==='safe')for(let i=0;i<2;i++)seedTx.objectStore('images').put(row('renewal:r199',i));
   await transactionPromise(seedTx);db.close();
   const changes=[],notices=[],diagnostics=[],remoteCommands=[];
@@ -135,17 +135,14 @@ test('KAR-199: unfinished/unknown publication is not silently converted',async()
   assert.ok(await f.get('inventories','renewal:r199'));
   assert.equal(f.remoteCommands.length,0);
 });
-test('KAR-199: missing source JPEG rolls back the whole detachment',async()=>{
+test('KAR-199: missing source JPEG rolls back the entire candidate transaction',async()=>{
   const f=await fixture({missingImage:true});
-  // Remove an expected source blob before attempting the atomic transaction.
-  const db=await database('unused'); db.close(); // database test setup independent
-  // Execute the positive fixture with an invalid missing key in the candidate.
-  const realDb=await f.get('inventories','renewal:r199');
-  const variant={...realDb,images:[realDb.images[0],{...realDb.images[1],imageKey:'100:999'}]};
-  const method=f.instance.recoverEmergencyResetCandidateAtomic;
-  // candidate edit is only in the synthetic fixture; recovery must reject.
-  // IndexedDB name is fixture-private, so use a dedicated branch in the seed method below.
-  assert.ok(typeof method==='function');
+  const before=await f.get('inventories','renewal:r199');
+  await assert.rejects(f.instance.recoverEmergencyResetCandidateAtomic(f.sess),/Bild|image|JPEG|missing|fehlt/i);
+  assert.deepEqual(await f.get('inventories','renewal:r199'),before);
+  assert.equal(await f.get('inventories','200'),undefined);
+  assert.ok(await f.get('images','100:0'));
+  assert.equal(f.remoteCommands.length,0);
 });
 test('KAR-199: SAFE-mode candidate blobs cloned without altering original blobs',async()=>{
   const f=await fixture({mode:'safe',sess:session({renewalMode:'safe',comparison:{ownAdsPresence:true,status:'verified'}})});
