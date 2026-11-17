@@ -1062,7 +1062,16 @@
           return approved ? { ...attribute, displayValue: approved.expectedDisplayLabel } : attribute;
         }) }
         : template;
-      const attributeIssues = await fillDynamicAttributes(mappedFillTemplate, fillId);
+      // Display-only legacy values are recovered transiently, never written
+      // back into the original archive. Only the exact clicked option and the
+      // React-owned hidden input may supply a technical value.
+      const recoveredDisplayOnly = new Map();
+      const attributeIssues = await fillDynamicAttributes(mappedFillTemplate, fillId, proof => {
+        if (!proof?.key || !proof.technicalValue || !proof.displayValue ||
+            recoveredDisplayOnly.has(proof.key))
+          throw new Error('Nicht eindeutiger wiederhergestellter Auswahlwert.');
+        recoveredDisplayOnly.set(proof.key, proof);
+      });
       issues.push(...attributeIssues);
       void diagnostic(fillId, 'TEMPLATE_DYNAMIC_ATTRIBUTES_FINISHED', { configured: (template.dynamicAttributes || []).length, issueCount: attributeIssues.length }, attributeIssues.length ? 'warning' : 'info');
       const shippingIssues = await fillShipping(template);
@@ -1097,7 +1106,30 @@
         ...titleReadbackEvidence(template.title || '', actual, verificationForm)
       }, 'error');
     }
-    issues.push(...(session.archiveInsertionId ? verifyArchiveTemplate(template, verificationForm) : verify(template, verificationForm)));
+    // Recovered technical values are allowed for final verification *only*
+    // after a unique native option click. Preserve source record unchanged.
+    const recovered = typeof recoveredDisplayOnly !== 'undefined' ? recoveredDisplayOnly : new Map();
+    const finalTemplate = recovered.size
+      ? { ...template, dynamicAttributes: (template.dynamicAttributes || []).map(attribute => {
+          const proof = recovered.get(attribute.key);
+          return proof ? { ...attribute, technicalValue: proof.technicalValue } : attribute;
+        }) }
+      : template;
+    issues.push(...(session.archiveInsertionId ? verifyArchiveTemplate(finalTemplate, verificationForm)
+      : verify(finalTemplate, verificationForm)));
+    // The hidden value alone cannot prove the originally saved visible choice.
+    // Check the displayed label again after uploads and possible React re-renders.
+    for (const proof of recovered.values()) {
+      const hidden = [...(verificationForm?.querySelectorAll?.('[name^="attributeMap["]') || [])]
+        .filter(input => input.name === 'attributeMap[' + proof.key + ']' && input.type === 'hidden');
+      const control = verificationForm?.ownerDocument?.getElementById?.(proof.key);
+      const shown = verificationForm?.ownerDocument?.getElementById?.(proof.key + '-selected-option');
+      if (hidden.length !== 1 || String(hidden[0].value) !== proof.technicalValue ||
+          !control || control.getAttribute('role') !== 'combobox' ||
+          !shown || !control.contains(shown) ||
+          clean(shown.textContent) !== proof.displayValue)
+        issues.push('Merkmal „' + proof.key + '“: sichtbarer und technischer Auswahlwert konnten nicht gemeinsam bestätigt werden.');
+    }
     if (schemaPreflightReport) {
       try {
         const finalObserved = SchemaPreflight.inspectForm(verificationForm, template.categoryId);
@@ -1112,6 +1144,17 @@
     const uniqueIssues = [...new Set(issues)];
     const imagesComplete = imageOutcome.complete === true;
     const complete = uniqueIssues.length === 0 && imagesComplete;
+    if (complete && schemaPreflightReport && recovered.size) {
+      for (const item of schemaPreflightReport.valueEvidence || []) {
+        if (item.reason === 'display-only-exact-selection-required' && recovered.has(item.key)) {
+          item.status = 'confirmed';
+          item.reason = 'exact-display-and-react-technical-readback';
+          item.optionSource = 'linked-native-popup-click-readback';
+        }
+      }
+      if ((schemaPreflightReport.valueEvidence || []).every(item => item.status === 'confirmed'))
+        schemaPreflightReport.valueCompatibility = 'confirmed';
+    }
     updatePanel(
       complete ? 'Vorlage vollständig übernommen' : 'Vorlage übernommen – Prüfung nötig',
       complete ? 'Alle kontrollierten Vorlagenwerte stimmen mit dem neuen Formular überein.' : `${uniqueIssues.length} Punkt(e) konnten nicht eindeutig bestätigt werden.`,
