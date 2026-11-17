@@ -116,9 +116,50 @@ def merged_fragment(filename, index, ours, main):
         "tests/v12319-version-architecture.cjs",
         "tests/v12320-final-closure.cjs",
     ):
-        # Upstream immutable gold count incorporates KAR-164, 186, 188,
-        # 195, 197 and 201. R1 delta remains in other nonconflicting files.
-        require("pass(" in main or "const " in main, "missing main gold baseline")
+        # Keep main v1.25.12's dynamic API contract (+KAR-164/186/188/
+        # 195/197/199/201), but reconcile the FOUR reviewed KAR-171 API
+        # methods and the TWO freshly extracted renewal-policy helpers.
+        # This preserves the exact 100% measured-public-functions assertion.
+        require("const expectedPublic =" in main, "missing upstream public API gate")
+        require("reviewedAllOwnerClosureMatrix" in ours,
+                "Work KAR-171 owner API flag removed")
+        require("reviewedR1RemoteCommitAccountSource" in ours,
+                "Work KAR-171 remote account flag removed")
+        require("reviewedR1StagedCommitAccountSource" in ours,
+                "Work KAR-171 staged account flag removed")
+        require("reviewedR2PrivateNativeInspector" in ours,
+                "Work historical private native inspector flag removed")
+        anchor = " + (reviewedPersistedCallbackClosure ? 1 : 0)"
+        require(main.count(anchor) == 1,
+                "upstream public expectation layout changed")
+        extras = (
+            " + (reviewedAllOwnerClosureMatrix ? 1 : 0)"
+            " + (reviewedR1RemoteCommitAccountSource ? 1 : 0)"
+            " + (reviewedR1StagedCommitAccountSource ? 1 : 0)"
+            " + (reviewedR2PrivateNativeInspector ? 1 : 0)"
+        )
+        main = main.replace(anchor, anchor + extras, 1)
+        # Each extracted function is registered on the same previously
+        # existing KRRenewalPolicy source module and dynamically executed.
+        # The two flags must not turn into a blanket count exemption.
+        marker = "pass('"
+        require(marker in main, "missing historical test section")
+        policy_check = (
+            "const reviewedKAR171PhaseAttemptPolicy = "
+            "fs.readFileSync('src/shared/renewal-policy.js','utf8')"
+            ".includes('    beginRenewalPhaseAttempt,') && "
+            "fs.readFileSync('src/shared/renewal-policy.js','utf8')"
+            ".includes('    recordRenewalPhaseAttemptError,') && "
+            "fs.existsSync('tests/v1171-phase-retry-policy-runtime.cjs');\n"
+        )
+        # Insert before the first pass in this conflict, but after all main
+        # policy feature declarations so there is no duplicate declaration.
+        main = main.replace(marker, policy_check + marker, 1)
+        appendix = " + (kar201ManualStandalonePublic ? 1 : 0)"
+        require(main.count(appendix) == 1,
+                "upstream public expected count suffix changed")
+        main = main.replace(
+            appendix, appendix + " + (reviewedKAR171PhaseAttemptPolicy ? 2 : 0)", 1)
         return main
 
     raise RuntimeError("Unsupported merge conflict: " + filename)
