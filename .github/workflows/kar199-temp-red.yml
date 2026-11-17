@@ -1,0 +1,20 @@
+# Disposable KAR-199 test-first RED proof; remove after verifying the unfixed failure.
+name: KAR199 temporary Phase4 RED
+on:
+  push:
+    branches:
+      - work/KAR-199
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  unfixed-red:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Unfixed status and delete wait regression must fail (RED)
+        run: node --test tests/kar199-phase4-bounded-runtime.cjs
