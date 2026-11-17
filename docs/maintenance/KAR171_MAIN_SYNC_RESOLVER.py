@@ -166,6 +166,13 @@ def resolve():
             merged = CONFLICT_PATTERN.sub(substitute, body)
             require("<<<<<<<" not in merged and ">>>>>>>" not in merged,
                     "unresolved marker in " + name)
+            # One upstream #199 nonsemantic trailing space is added by
+            # Git's merge and rejected by git diff --check. Drop exactly it.
+            if name == "src/background/services/remote-delete-replacement-service.js":
+                old = "        try {tx.abort();} catch {} " + "\n"
+                require(merged.count(old) == 1,
+                        "unexpected upstream cleanup whitespace context")
+                merged = merged.replace(old, "        try {tx.abort();} catch {}" + "\n")
             path.write_text(merged, encoding="utf-8")
         subprocess.run(["git", "add", "--", name], check=True)
         print("RESOLVED", name)
