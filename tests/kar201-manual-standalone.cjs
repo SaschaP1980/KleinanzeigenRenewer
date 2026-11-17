@@ -77,7 +77,8 @@ const reject=async(label,mutate)=>{
  assert.equal(prep.pending,true);assert.equal(prep.authorized,false);
  assert.equal(f.archives[f.archiveId].status,'error');
  await assert.rejects(()=>f.approve({manualStandaloneApproval:{action:'commit',token:'wrong'}},f.fills[f.fillId],f.fills,f.sender),/KR_MANUAL_/);
- const result=await f.approve({manualStandaloneApproval:{action:'commit',token:prep.token}},f.fills[f.fillId],f.fills,f.sender);
+ await assert.rejects(()=>f.approve({manualStandaloneApproval:{action:'commit',token:prep.token,ownerReviewed:false}},f.fills[f.fillId],f.fills,f.sender),/KR_MANUAL_CONSENT_UNVERIFIED/);
+ const result=await f.approve({manualStandaloneApproval:{action:'commit',token:prep.token,ownerReviewed:true}},f.fills[f.fillId],f.fills,f.sender);
  assert.equal(result.manualDetached,true);
  assert.equal(result.autoPublishAllowed,false);
  assert.equal(f.fills[f.fillId].stage,'manual-standalone');
