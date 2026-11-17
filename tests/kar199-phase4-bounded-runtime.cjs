@@ -5,7 +5,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const Remote = require('../src/background/services/remote-delete-replacement-service.js');
 
-function fixture(statusPlan, deletePlan = 'resolve') {
+function fixture(statusPlan, deletePlan = 'resolve', journalPlan = 'resolve') {
   const sent = [];
   const diagnostics = [];
   const closed = [];
@@ -18,6 +18,7 @@ function fixture(statusPlan, deletePlan = 'resolve') {
     phase4StatusRequestTimeoutMs: 35,
     phase4DeleteRequestTimeoutMs: 35,
     phase4ReadOnlyRequestTimeoutMs: 35,
+    phase4JournalTimeoutMs: 35,
     sendTabRequestWithBootstrap: async (tabId, message) => {
       assert.equal(tabId, 73);
       sent.push(message.type);
@@ -34,7 +35,7 @@ function fixture(statusPlan, deletePlan = 'resolve') {
     },
     normalizeProfileName: value => String(value || '').trim(),
     closeManagedWorkerTab: async id => { closed.push(id); },
-    beginPhase4Attempt: async () => { begins++; return {attemptId:'intent-1'}; },
+    beginPhase4Attempt: async () => { begins++; if (journalPlan === 'never') return new Promise(() => {}); return {attemptId:'intent-1'}; },
     logDiagnostic: async (severity, event, details) => { diagnostics.push({severity,event,details}); },
     renewalMaxPhaseAttempts: () => 3,
     sessionCorrelationContext: () => ({}),
@@ -79,4 +80,13 @@ test('KAR-199 after DELETE dispatch, missing response is transport uncertainty, 
   assert.equal(f.begins, 1);
   assert.equal(f.sent.filter(x => x === 'DELETE_OWN_AD_BY_ID').length, 1);
   assert.deepEqual(f.closed, [73]);
+});
+
+test('KAR-199 hung durable intent fails closed even if a late receipt could persist', {timeout:3000},async () => {
+  const f=fixture(['ready'],'resolve','never');
+  await assert.rejects(boundedTest(f.call()), e=>e?.code==='KR_PHASE4_JOURNAL_BEGIN_TIMEOUT');
+  assert.equal(f.begins,1);
+  assert.equal(f.sent.filter(x=>x==='DELETE_OWN_AD_BY_ID').length,0);
+  assert.deepEqual(f.closed,[73]);
+  assert.equal(f.diagnostics.some(x=>x.event==='RENEWAL_PHASE4_JOURNAL_BEGIN_TIMEOUT'),true);
 });
