@@ -714,7 +714,8 @@ async function finishRenewalReplacement(message, admissionReceipt = null) {
       // An immutable Phase-4 intent was already written before the possible
       // DELETE. A still-visible original is NOT proof that replaying DELETE is
       // safe; report unknown outcome and require independent reconciliation.
-      throw Object.assign(new Error('KR_PHASE4_JOURNAL_REMOTE_UNVERIFIED'), {
+      const pageText = verification?.foundPage ? ` (gefunden auf Seite ${verification.foundPage})` : '';
+      throw Object.assign(new Error(`Quellanzeige ist nach der Löschaktion weiterhin in „Meine Anzeigen“ vorhanden${pageText}.`), {
         code:'KR_PHASE4_JOURNAL_REMOTE_UNVERIFIED'
       });
     } catch (error) {
