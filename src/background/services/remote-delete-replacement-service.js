@@ -143,6 +143,158 @@ async function removeReplacementReadyLocal(message) {
   return { removed: true, renewalId, candidateInventoryId: candidateId || null, trashed: Boolean(trashedCandidate), trashExpiresAt: trashedCandidate?.trash?.expiresAt || null };
 }
 
+// KAR-199: local-only detachment for a cancelled post-publish emergency reset.
+// Unlike a completed Phase-4 replacement, BOTH real ads remain independent
+// inventory records; do not trash the source, issue DELETE, or touch P8 journal.
+async function recoverEmergencyResetCandidateAtomic(session) {
+  const sourceId=String(session?.sourceInventoryId || '');
+  const sourceAdId=String(session?.sourceAdId || '');
+  const candidateId=String(session?.skeletonInventoryId || '');
+  const targetId=String(session?.newAdId || '');
+  const profileId=String(session?.profileId || '');
+  if (String(session?.status || '')!=='cancelled'
+      || String(session?.stage || '')!=='emergency-reset-unverified'
+      || session?.remoteVerificationRequired!==true
+      || !String(session?.emergencyResetAt || '')
+      || !String(session?.newIdConfirmedAt || '')
+      || session?.comparison?.ownAdsPresence!==true
+      || !/^\d+$/.test(sourceAdId) || !/^\d+$/.test(targetId)
+      || sourceAdId===targetId || sourceId===targetId
+      || candidateId===sourceId || !candidateId.startsWith('renewal:')
+      || !String(session?.renewalId || '') || !profileId) {
+    throw new Error('KAR199_RECOVERY_NOT_ELIGIBLE: Abbruch ist nicht eindeutig als bestätigte neue Anzeige nachgewiesen.');
+  }
+  const db=await openDatabase();
+  const recoveredAt=new Date().toISOString();
+  let outcome;
+  try {
+    outcome=await new Promise((resolve,reject)=>{
+      const tx=db.transaction([INVENTORY_STORE,IMAGE_STORE],'readwrite');
+      const inventories=tx.objectStore(INVENTORY_STORE);
+      const images=tx.objectStore(IMAGE_STORE);
+      let failure=null;
+      let candidate=null,source=null,destination=null,loaded=0,started=false,result=null;
+      const abort=error=>{
+        failure=error instanceof Error?error:new Error(String(error));
+        try {tx.abort();} catch {} 
+      };
+      tx.onerror=()=>{failure ||= tx.error;};
+      tx.onabort=()=>reject(failure || tx.error || new Error('KAR199_RECOVERY_ATOMIC_ABORT'));
+      tx.oncomplete=()=>resolve(result);
+      function processLoaded() {
+        if (++loaded!==3 || started) return;
+        started=true;
+        try {
+          if (destination) {
+            if (!candidate && destination.recordKind==='inventory'
+                && destination.recovery?.renewalId===String(session.renewalId)
+                && String(destination.adId || '')===targetId) {
+              result={recovered:true,alreadyRecovered:true,inventoryId:targetId};
+              return;
+            }
+            throw new Error('KAR199_RECOVERY_COLLISION: Für die neue Anzeigen-ID existiert bereits ein anderer Inventareintrag.');
+          }
+          if (!source || String(source.adId || '')!==sourceAdId
+              || String(source.profileId || '')!==profileId || isTrashRecord(source))
+            throw new Error('KAR199_RECOVERY_SOURCE_MISMATCH: Original ist nicht eindeutig als regulärer Inventareintrag vorhanden.');
+          if (!candidate || candidate.recordKind!=='renewal-candidate'
+              || String(candidate.adId || '')!==targetId
+              || String(candidate.profileId || '')!==profileId
+              || String(candidate.renewal?.renewalId || '')!==String(session.renewalId)
+              || String(candidate.renewal?.sourceAdId || '')!==sourceAdId
+              || String(candidate.renewal?.newAdId || '')!==targetId
+              || String(candidate.renewal?.status || '')!=='verified')
+            throw new Error('KAR199_RECOVERY_CANDIDATE_MISMATCH: Verifizierter Renewal-Kandidat stimmt nicht mit dem Reset überein.');
+          const refs=Array.isArray(candidate.images)?candidate.images:[];
+          if (!refs.length || refs.some(image=>!String(image?.imageKey || '')))
+            throw new Error('KAR199_RECOVERY_IMAGE_MISSING: Bildreferenzen sind nicht vollständig.');
+          const fastMode=normalizeRenewalMode(session.renewalMode)===RENEWAL_MODE_FAST;
+          const imageOwnerId=fastMode?sourceId:candidateId;
+          const rows=[],cursor=images.index('inventoryId').openCursor(IDBKeyRange.only(imageOwnerId));
+          cursor.onerror=()=>abort(cursor.error || new Error('KAR199_RECOVERY_IMAGE_READ_FAILED'));
+          cursor.onsuccess=()=>{
+            try {
+              const current=cursor.result;
+              if (current) {rows.push(current.value);current.continue();return;}
+              const sourceByKey=new Map(rows.map(row=>[String(row.imageKey),row]));
+              const targetKeys=new Set();
+              const copied=[];
+              const nextImages=[];
+              for (let i=0;i<refs.length;i++) {
+                const ref=refs[i];
+                const row=sourceByKey.get(String(ref.imageKey || ''));
+                if (!row || row.blob==null)
+                  throw new Error('KAR199_RECOVERY_IMAGE_MISSING: Mindestens ein lokales Bild fehlt.');
+                const position=Number.isSafeInteger(Number(ref.position)) && Number(ref.position)>=0
+                  ? Number(ref.position) : i;
+                const key=`${targetId}:${position}`;
+                if (targetKeys.has(key))
+                  throw new Error('KAR199_RECOVERY_IMAGE_COLLISION: Bildposition ist nicht eindeutig.');
+                targetKeys.add(key);
+                copied.push({...row,imageKey:key,inventoryId:targetId,position});
+                nextImages.push({...ref,imageKey:key,position,locallyStored:true});
+              }
+              // No stale or foreign image row may be overwritten at the new ID.
+              const collision=images.index('inventoryId').openCursor(IDBKeyRange.only(targetId));
+              collision.onerror=()=>abort(collision.error || new Error('KAR199_RECOVERY_IMAGE_COLLISION'));
+              collision.onsuccess=()=>{
+                try {
+                  if (collision.result) throw new Error('KAR199_RECOVERY_IMAGE_COLLISION: Zielbildschlüssel ist bereits belegt.');
+                  for (const row of copied) images.put(row);
+                  if (!fastMode) for (const row of rows) images.delete(row.imageKey);
+                  const independent={
+                    ...candidate,
+                    inventoryId:targetId,
+                    adId:targetId,
+                    recordKind:'inventory',
+                    images:nextImages,
+                    recovery:{
+                      kind:'emergency-reset-candidate',
+                      renewalId:String(session.renewalId),
+                      sourceAdId,
+                      recoveredAt,
+                      remoteVerification:'unverified'
+                    }
+                  };
+                  delete independent.renewal;
+                  inventories.put(independent);
+                  inventories.delete(candidateId);
+                  result={recovered:true,alreadyRecovered:false,inventoryId:targetId,imageCount:copied.length};
+                } catch(error) {abort(error);}
+              };
+            } catch(error) {abort(error);}
+          };
+        } catch(error) {abort(error);}
+      }
+      for(const [key,assign] of [
+        [candidateId,value=>{candidate=value;}],
+        [sourceId,value=>{source=value;}],
+        [targetId,value=>{destination=value;}]
+      ]) {
+        const request=inventories.get(key);
+        request.onerror=()=>abort(request.error || new Error('KAR199_RECOVERY_INVENTORY_READ_FAILED'));
+        request.onsuccess=()=>{assign(request.result || null);processLoaded();};
+      }
+    });
+  } finally {db.close();}
+  if(outcome?.recovered && !outcome.alreadyRecovered) {
+    broadcastInventoryChanged('renewal-emergency-candidate-recovered',{
+      inventoryId:targetId,sourceInventoryId:sourceId,renewalId:String(session.renewalId)
+    });
+    void Promise.resolve().then(()=>logDiagnostic('warning','RENEWAL_EMERGENCY_CANDIDATE_RECOVERED',{
+      renewalId:String(session.renewalId),sourceAdId,newAdId:targetId,
+      imageCount:outcome.imageCount,remoteVerified:false,sourceTrashed:false
+    },{module:'background',operation:'renewal-emergency-recovery'})).catch(()=>{});
+    await setAppNotice({
+      id:crypto.randomUUID(),kind:'warning',event:'renewal-emergency-candidate-recovered',
+      title:'Austausch abgebrochen – beide Anzeigen gesichert',
+      text:'Original und neue Anzeige sind jetzt getrennte Inventareinträge. Ihre aktuellen Online-Status wurden beim lokalen Reset nicht erneut geprüft. Keine Anzeige wurde gelöscht.',
+      renewalId:String(session.renewalId),sourceAdId,newAdId:targetId
+    }).catch(()=>{});
+  }
+  return outcome;
+}
+
 async function promoteRenewalCandidateAtomic(session) {
   const sourceInventoryId = String(session?.sourceInventoryId || '');
   const candidateInventoryId = String(session?.skeletonInventoryId || '');
@@ -907,7 +1059,7 @@ async function finishRenewalReplacement(message, admissionReceipt = null) {
 }
 
       return Object.freeze({
-        removeReplacementReadyLocal, promoteRenewalCandidateAtomic, renewalTargetTabStillOwned, renewalPublishedTargetTabStillOwned,
+        removeReplacementReadyLocal, recoverEmergencyResetCandidateAtomic, promoteRenewalCandidateAtomic, renewalTargetTabStillOwned, renewalPublishedTargetTabStillOwned,
         closePublishedRenewalTargetTab, retirePublishedRenewalTargetTab, closeCompletedRenewalTargetTab,
         verifyRenewalSourceAbsenceFresh, verifyPhase4RemoteOutcomeFresh,
         preverifyAndTriggerRenewalSourceDeleteAttempt, finishRenewalReplacement
