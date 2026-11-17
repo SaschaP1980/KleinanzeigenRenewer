@@ -4,6 +4,34 @@ This is the canonical version-specific history for Kleinanzeigen Manager. Entrie
 
 All distinct historical section bodies from the former root README and CHANGELOG are preserved with source labels and line numbers. The [KAR-170 migration ledger](docs/maintenance/KAR170_CHANGELOG_MIGRATION.json) identifies their original Git blobs and body checksums. Overlapping versions retain distinct factual notes; older references to planned builds or native/CI acceptance are **historical**, not live status.
 
+## v1.25.12 — KAR-201 explicit owner-approved standalone manual posting (Work candidate, not yet released)
+
+- Following the owner's native v1.25.11 confirmation that eleven archive images and the recoverable fields were transferred and all remaining category attributes were manually entered, add an **explicit, human-only final route**. This is not automatic publication, not automatic ZIP completion and never a replacement/source-deletion workflow.
+- Only a terminal `needs-review` ZIP archive insertion with a legacy-unversioned, image-stable category-and-title-matched partial form may offer “Eigenständig veröffentlichen …”. Require an owner review button, a second confirmation dialog with a checked full-form review acknowledgement, and a fresh short-lived background consent token.
+- Under the existing fenced `UPDATE_TEMPLATE_FILL_SESSION` route, independently verify actual sender tab/page, exact archive source identity, source category/image count, selected authenticated profile, empty competing insertion lock, unexpired single-use consent, and durable readback. Mark managed archive/fill `manual-standalone` terminal with no new-ad ID, without deleting/consuming the ZIP source, its images or any existing listing.
+- After that durable consent, accept **one genuine browser-trusted click** on Kleinanzeigen's native “Anzeige aufgeben” control, without a synthetic auto-click or `RENEWAL_PUBLISH_CLICKED`. Do not claim remote success; the owner later opens the new listing and independently uses “Geöffnete Anzeige erfassen”.
+- Synthetic tests prove denied wrong-tab/profile/non-archive/already-published/missing-image/paid-page cases, invalid or reused tokens, preserved archive source images, no remote identity fabrication, and a strict no-automatic-publish boundary. Real Chrome/account acceptance remains pending.
+
+## v1.25.11 — KAR-201 partial archive prefill with manual selection review (Work candidate, not yet released)
+
+- Correct the owner-observed v1.25.10 archive insertion from category 246: the source contains eleven saved images, but saved display-only style and brand controls failed the legacy schema preflight and aborted the entire insertion *before any image transfer started*. No evidence of failed image upload existed in that diagnostic.
+- A legacy category-matched form with only isolated, **optional**, proven per-attribute selection gaps may now continue filling all other safe fields, the unchanged archived listing text and price, and all eleven archived images. The unsafe attributes are left for manual selection; source archive values are neither guessed nor rewritten.
+- Keep hard stops for altered/invalid fingerprint or category, required/structural incompatibilities and paid insertion. Final preflight issues remain visible and durable; a partial fill is always `needs-review`, `complete:false` and **never** authorized to auto-publish, advance, delete or consume source inventory.
+- Synthetic category-246 regression exercises the actual `runFillSession` with eleven archive images, image progression, correct manual review and no automated publication, plus hard-stop cases. Existing image-completeness and ZIP archive validation contracts remain intact. Native owner verification is still required.
+
+## v1.25.10 — KAR-201 native legacy display-only option recovery (Work candidate, not yet released)
+
+- Extend the KAR-201 legacy template fix with a safe recovery path for owner-observed category-246 “Stil” and “Marke”: archive capture may preserve a human-readable option label but no technical option ID, even though the native posting form presents an exact label.
+- The current Kleinanzeigen UI exposes a button combobox with `aria-controls` pointing to its own listbox, with unlabeled technical IDs on the rendered options. Never derive an ID from option order or a guessed mapping: click only one exact, unique, enabled option in the correctly linked listbox and accept only the **React-owned hidden technical value plus exact visible readback**, repeated at the final form verification after uploads.
+- Preserve original archived values, all image and account ownership, and previous verified publishing gates. Missing/duplicate labels, mislinked dropdowns or unconfirmed hidden/display pairs fail closed; do not silently omit populated selections.
+- Six synthetic native-ARIA tests based on the owner-observed menu shape contain no account credentials, listing data or signed image URLs. Original owner HTML remains private, and true site acceptance is still pending.
+
+## v1.25.9 — KAR-201 legacy schema/value provenance (Work candidate, not yet released)
+
+- Separate missing historical fingerprints, first-observed category monitor references and independently proven option compatibility. Classify unknown, incomplete, incompatible, confirmed or ambiguous technical/visible selection evidence instead of treating null option catalogs as proof of compatibility.
+- Surface actionable German warnings on legacy selections before slow retries, retain a sanitized per-attribute option evidence trail and preserve failed-fill preflight outcomes across MV3 reconnect. Unverified reports never grant publish authority.
+- Provide synthetic category-246 value-drift and session-persistence regressions; keep the verified historic category-405 alias and image/archive publish guards intact.
+
 ## v1.25.8 — KAR-199 transient Phase-4 journal Web Lock contention (Work source candidate)
 
 - Fix a second owner-observed Phase-4 failure: publishing and independent Schnellprüfung succeeded, but the shared durable Phase-4 journal rejected the origin Web Lock as `KR_PHASE4_JOURNAL_ATOMIC_BUSY` in 18 ms, before any remote `DELETE_OWN_AD_BY_ID` was sent. The previous v1.25.7 fix correctly showed an unverified outcome instead of hanging, but it did not tolerate a momentary Web Lock owner.

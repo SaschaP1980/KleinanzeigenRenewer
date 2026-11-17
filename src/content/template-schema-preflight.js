@@ -63,7 +63,8 @@
         entry.push(element);
         grouped.set(key, entry);
       }
-      const dynamicAttributes = [], readbacks = Object.create(null), optionLabels = Object.create(null);
+      const dynamicAttributes = [], readbacks = Object.create(null), optionLabels = Object.create(null),
+        optionProvenance = Object.create(null);
       for (const [key, controls] of grouped) {
         const type = String(controls[0].getAttribute('type') || controls[0].tagName || '').toLowerCase();
         if (controls.length > 1 && !(type === 'radio' && controls.every(c => c.getAttribute('type') === 'radio')))
@@ -86,13 +87,20 @@
         const requiredKnown = typeof definition?.required === 'boolean' || required;
         dynamicAttributes.push({
           key, controlType: actualKind, required, requiredKnown,
-          optionsComplete: Boolean(liveOptions) || type === 'radio' || controls[0].tagName === 'SELECT',
+          // A zero-row custom catalog may still be hydrating; never treat it as
+          // authoritative proof that the saved choice has been removed.
+          optionsComplete: Boolean(liveOptions?.length) || type === 'radio' || controls[0].tagName === 'SELECT',
           options
         });
         readbacks[key] = type === 'checkbox' ? Boolean(controls[0].checked)
           : type === 'radio' ? controls.find(control => control.checked)?.value ?? null
             : controls[0].value ?? null;
         optionLabels[key] = options.map(option => ({ value: String(option.value), label: option.label }));
+        optionProvenance[key] = { source: liveOptions ? 'structured' : type === 'radio' ? 'radio'
+          : controls[0].tagName === 'SELECT' ? 'native-select' : 'unknown',
+          completeness: liveOptions && !liveOptions.length && actualKind === 'combobox'
+            ? 'hydrating-or-empty' : options.length ? 'enumerated' : 'unknown',
+          count: options.length };
       }
       const fields = [];
       const core = new Set(['title', 'description', 'priceAmount', 'priceType', 'adType', 'buyNow']);
@@ -108,7 +116,7 @@
         readbacks['field:' + element.name] = element.type === 'checkbox' ? Boolean(element.checked) : element.value;
       }
       return { schema: Schema.buildSchema({ categoryId, fields, dynamicAttributes }),
-        readbacks, optionLabels, categoryId, dynamicCount: dynamicAttributes.length, form };
+        readbacks, optionLabels, optionProvenance, categoryId, dynamicCount: dynamicAttributes.length, form };
     }
     // KAR-134 owner-only read-only probe: a custom 405 combobox may render
     // its options only AFTER opening a popup. Only inspect the exact case-size
@@ -267,18 +275,47 @@
         warnings.push('Ältere Vorlage ohne Formularschema-Fingerprint. Merkmale werden einzeln überprüft.');
       }
       const fields = new Map(observed.schema.fields.map(field => [field.key, field]));
-      const represented = new Set();
+      const represented = new Set(), valueEvidence = [];
       for (const attribute of template.dynamicAttributes || []) {
         if (!attribute?.key) continue;
         // A formerly visible saved selection with no recoverable technical ID
         // is NOT an empty optional field. Otherwise a legacy archive can
         // silently lose that selection even with an unchanged live schema.
         if (!hasValue(attribute.technicalValue)) {
-          const capturedVisibleValue = clean(attribute.displayValue || '').length > 0 &&
-            attribute.status !== 'empty';
-          if (capturedVisibleValue || ['captured', 'technical-only'].includes(attribute.status)) {
+          const label = clean(attribute.displayValue || '');
+          const capturedVisibleValue = label.length > 0 && attribute.status !== 'empty';
+          const liveKey = 'attribute:' + attribute.key;
+          const liveField = fields.get(liveKey);
+          const peer = observed.form?.ownerDocument?.getElementById?.(attribute.key);
+          const inputs = [...(observed.form?.querySelectorAll?.('[name^="attributeMap["]') || [])]
+            .filter(input => input.name === 'attributeMap[' + attribute.key + ']');
+          // KAR-201 native category-246 evidence: linked React combobox options
+          // have labels but no technical IDs until an owner-like option click.
+          // Only permit an in-memory recovery attempt; this is NOT proof of
+          // compatibility and cannot authorize publication by itself.
+          const canAttemptExactDisplayRecovery =
+            comparison?.status === 'legacy-unversioned' && capturedVisibleValue &&
+            !/^(bitte wählen|auswählen|select)$/i.test(label) &&
+            liveField?.kind === 'combobox' &&
+            inputs.length === 1 && inputs[0].type === 'hidden' &&
+            peer && observed.form.contains(peer) && peer.tagName === 'BUTTON' &&
+            peer.getAttribute('role') === 'combobox' &&
+            peer.getAttribute('aria-disabled') !== 'true' &&
+            peer.getAttribute('disabled') === null;
+          if (canAttemptExactDisplayRecovery) {
+            valueEvidence.push({ key: attribute.key, status: 'unverified',
+              reason: 'display-only-exact-selection-required', controlKind: 'combobox',
+              optionSource: 'linked-native-popup-pending', optionCount: null });
+            represented.add(liveKey);
+            warnings.push('Merkmal „' + clean(attribute.label || attribute.key) +
+              '“: Die ältere Vorlage speichert nur „' + label +
+              '“ ohne technischen Wert. Die Auswahl wird nur bei eindeutigem Treffer versucht und muss anschließend technisch und sichtbar bestätigt werden.');
+          } else if (capturedVisibleValue || ['captured', 'technical-only'].includes(attribute.status)) {
             issues.push('Gespeichertes Merkmal „' + clean(attribute.label || attribute.key) +
               '“ hat einen sichtbaren Auswahlwert ohne eindeutig gespeicherten technischen Wert. Bitte Vorlage neu erfassen oder manuell prüfen.');
+            valueEvidence.push({ key: attribute.key, status: 'incompatible',
+              reason: 'display-only-unsafe-control', controlKind: liveField?.kind || null,
+              optionSource: 'unsupported', optionCount: null });
           }
           continue;
         }
@@ -290,12 +327,73 @@
         }
         if (!liveField) {
           issues.push('Gespeichertes Merkmal „' + clean(attribute.label || attribute.key) + '“ ist im neuen Formular nicht vorhanden.');
+          valueEvidence.push({ key: attribute.key, status: 'incompatible', reason: 'missing-field',
+            controlKind: null, optionSource: 'not-present', optionCount: 0 });
           continue;
         }
         const value = attribute.technicalValue;
-        if (liveField.optionValues && !liveField.optionValues.includes(String(value))) {
+        const effectiveKey = liveKey.slice('attribute:'.length);
+        const provenance = observed.optionProvenance?.[effectiveKey] || {};
+        const available = observed.optionLabels?.[effectiveKey] || [];
+        // Historic category-405 aliases may intentionally translate a visible label
+        // (e.g. 44 -> 44mm). Use the independently proven present label for
+        // mapped fields; the later alias gate still requires one exact pair.
+        const mappedOptions = mapped ? available.filter(option =>
+          option.value === String(value) && clean(option.label)) : [];
+        const sourceLabel = mapped
+          ? mappedOptions.length === 1 ? clean(mappedOptions[0].label) : ''
+          : clean(attribute.displayValue || '');
+        const sourceLabelFolded = sourceLabel.toLocaleLowerCase('de-DE');
+        const isSelection = ['combobox', 'select', 'radio', 'structured'].includes(liveField.kind);
+        const catalog = liveField.optionValues;
+        const optionKnown = Array.isArray(catalog);
+        let status = 'unverified', reason = optionKnown ? 'visible-selection-not-proven' : 'technical-options-unknown';
+        // Structure fingerprint, live technical option membership and rendered
+        // label uniqueness are independent evidence, including for legacy records.
+        if (optionKnown && !catalog.includes(String(value))) {
+          status = 'incompatible';
+          reason = 'technical-value-not-offered';
           issues.push('Gespeicherter Wert für „' + clean(attribute.label || attribute.key) + '“ wird im neuen Formular nicht angeboten.');
-          continue;
+        } else if (optionKnown && isSelection && sourceLabel) {
+          const sameLabel = available.filter(option =>
+            clean(option.label).toLocaleLowerCase('de-DE') === sourceLabelFolded);
+          const exactPair = sameLabel.filter(option => option.value === String(value));
+          const labelsComplete = available.length === catalog.length &&
+            available.every(option => clean(option.label));
+          if (labelsComplete && sameLabel.length > 1) {
+            status = 'ambiguous';
+            reason = 'duplicate-visible-label';
+            issues.push('Merkmal „' + clean(attribute.label || attribute.key) +
+              '“: Auswahl „' + sourceLabel + '“ wird mehrfach angeboten und ist nicht eindeutig.');
+          } else if (labelsComplete && exactPair.length === 0) {
+            status = 'incompatible';
+            reason = 'saved-technical-label-pair-missing';
+            issues.push('Merkmal „' + clean(attribute.label || attribute.key) +
+              '“: Der gespeicherte Wert „' + sourceLabel + '“ passt nicht eindeutig zu den aktuellen Auswahlwerten.');
+          } else if (exactPair.length === 1) {
+            status = 'confirmed';
+            reason = 'exact-technical-and-visible-option';
+          }
+        } else if (optionKnown && (!isSelection || !sourceLabel)) {
+          status = 'confirmed';
+          reason = 'exact-technical-option';
+        }
+        if (!optionKnown && isSelection && sourceLabel &&
+            String(observed.readbacks?.[effectiveKey] ?? '') === String(value)) {
+          const peer = observed.form?.ownerDocument?.getElementById?.(effectiveKey);
+          const actualLabel = clean(peer?.textContent || peer?.getAttribute?.('aria-valuetext') || '');
+          if (actualLabel === sourceLabel) {
+            status = 'confirmed';
+            reason = 'already-selected-exact-readback';
+          }
+        }
+        valueEvidence.push({ key: attribute.key, status, reason, controlKind: liveField.kind,
+          optionSource: provenance.source || 'unknown', optionCount: provenance.count ?? null });
+        if (status === 'incompatible' || status === 'ambiguous') continue;
+        if (status === 'unverified' && isSelection) {
+          warnings.push('Merkmal „' + clean(attribute.label || attribute.key) +
+            '“: Die gespeicherte Auswahl „' + sourceLabel +
+            '“ ist im aktuellen Formular noch nicht nachgewiesen. Der Wert wird kontrolliert gesetzt und danach erneut geprüft.');
         }
         if (mapped) {
           // A category-scoped rule alone is never proof. Exact present option ID AND label
@@ -328,8 +426,43 @@
       if (comparison?.status === 'category-mismatch') issues.push('Das aktuelle Formular gehört zu einer anderen Kategorie.');
       if (comparison?.status === 'schema-changed')
         warnings.push('Kleinanzeigen hat Felder oder Auswahlmöglichkeiten verändert. Alle gespeicherten Werte müssen bestätigt werden.');
-      return { complete: issues.length === 0, issues: [...new Set(issues)], warnings,
-        comparison, sourceFingerprint: provided || null,
+      const valueCompatibility = valueEvidence.some(item => ['incompatible', 'ambiguous'].includes(item.status))
+        ? 'incompatible' : valueEvidence.some(item => item.status === 'unverified')
+          ? 'unverified' : 'confirmed';
+      // KAR-201: Preflight failure and safe *partial* prefill are different
+      // outcomes. Unknown optional selections may require manual review while
+      // title, description, proven attributes and archive images are still
+      // valuable. Only legacy category-matched, per-attribute selection
+      // problems can defer; structural drift, fingerprint defects, unknown
+      // required fields and account/category mismatch still block early.
+      const manualOnlyReasons = new Set([
+        'display-only-unsafe-control', 'missing-field',
+        'technical-value-not-offered', 'duplicate-visible-label',
+        'saved-technical-label-pair-missing'
+      ]);
+      const manualOnlyEvidence = valueEvidence.filter(item =>
+        ['incompatible', 'ambiguous'].includes(item.status) &&
+        manualOnlyReasons.has(item.reason));
+      const actualCategory = String(observed.form?.querySelector?.('input[name="categoryId"]')?.value || '');
+      const uniqueIssues = [...new Set(issues)];
+      const partialContinuationEligible =
+        comparison?.status === 'legacy-unversioned' &&
+        actualCategory === String(template.categoryId || '') &&
+        manualOnlyEvidence.length > 0 &&
+        // Each admitted issue must be precisely one identified, optional
+        // selection gap, not a broad "ignore every preflight error" switch.
+        manualOnlyEvidence.length === issues.length &&
+        uniqueIssues.length === issues.length &&
+        manualOnlyEvidence.every(item => {
+          const field = fields.get('attribute:' + item.key);
+          return field?.requiredState !== 'required';
+        });
+      const partialSkipKeys = partialContinuationEligible
+        ? manualOnlyEvidence.map(item => item.key) : [];
+      return { complete: issues.length === 0, issues: uniqueIssues, warnings,
+        comparison, valueCompatibility, valueEvidence,
+        partialContinuationEligible, partialSkipKeys,
+        sourceFingerprint: provided || null,
         currentFingerprint: await Schema.fingerprint(observed.schema), mappings };
     }
     function verifyAfterFill(report, observed) {

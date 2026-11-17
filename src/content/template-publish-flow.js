@@ -43,6 +43,8 @@
     let acceptedSubmitter = null;
     let approvedClickInProgress = false;
     let nativeSubmitConsumed = false;
+    let manualDetached = false;
+    let manualOffer = null;
     const isPublishControl = element => {
       if (!(element instanceof Element) || !visible(element) || element.disabled) return false;
       const value = element instanceof HTMLInputElement ? element.value : element.textContent;
@@ -63,6 +65,22 @@
       },
       endApprovedClick() {
         approvedClickInProgress = false;
+      },
+      offerManualStandalone(openReview) {
+        if (submitted || manualDetached || typeof openReview !== 'function') return false;
+        manualOffer = openReview;
+        return true;
+      },
+      enableManualStandalone(result) {
+        // Only the backend's persisted, account-bound terminal detachment
+        // unlocks one genuine human click. No automatic publish authority.
+        if (submitted || authorizing || manualDetached ||
+            result?.manualDetached !== true || result?.autoPublishAllowed !== false ||
+            result?.sourcePreserved !== true || result?.stage !== 'manual-standalone')
+          return false;
+        manualDetached = true;
+        manualOffer = null;
+        return true;
       }
     });
     globalThis[key] = detector;
@@ -74,6 +92,10 @@
     }
     async function authorizeManual(control) {
       if (submitted || authorizing) return;
+      if (manualOffer && !manualDetached) {
+        manualOffer();
+        return;
+      }
       authorizing = true;
       try {
         const approval = await runtimeMessage({ type: 'AUTHORIZE_AUTOMATIC_PUBLISH', fillId });
@@ -103,6 +125,25 @@
       const control = event.target instanceof Element
         ? event.target.closest('button,input[type="submit"]') : null;
       if (!isPublishControl(control)) return;
+      if (manualDetached) {
+        // A second synthetic .click() is NOT a human standalone decision.
+        // No RENEWAL_PUBLISH_CLICKED, no managed archive promotion/delete.
+        if (!event.isTrusted || submitted) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          return;
+        }
+        acceptedSubmitter = control;
+        submitted = true;
+        approvedClickInProgress = true;
+        void diagnostic(fillId, 'MANUAL_STANDALONE_PUBLISH_CLICKED', {
+          ownerClick: true, archiveAutoFlow: false, remoteResultUnverified: true
+        }, 'warning');
+        updatePanel('Manuelle Veröffentlichung ausgelöst',
+          'Bitte prüfe nun die tatsächliche neue Online-Anzeigen-ID. Der Manager hat diese Anzeige weder automatisch veröffentlicht noch erfasst.',
+          [], { safetyText: 'Kein automatischer Austausch oder Löschen der bisherigen Anzeige.' });
+        return;
+      }
       if (permitted === control && approvedClickInProgress && !submitted) {
         permitted = null;
         acceptedSubmitter = control;
@@ -117,6 +158,17 @@
     }, true);
     document.addEventListener('submit', event => {
       const submitter = event.submitter;
+      if (manualDetached) {
+        if (submitted && approvedClickInProgress &&
+            submitter === acceptedSubmitter && !nativeSubmitConsumed) {
+          nativeSubmitConsumed = true;
+          approvedClickInProgress = false;
+          return; // Sole browser-native submit following the trusted owner click.
+        }
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        return;
+      }
       // Allow at most ONE native submit synchronously produced by the single
       // authorized click. After the click has returned, even the same button
       // and implicit Enter submits are never permitted again.
@@ -137,6 +189,144 @@
       event.stopImmediatePropagation();
       void authorizeManual(submitter);
     }, true);
+  }
+
+  function offerManualStandaloneRelease({ fillId, expectedCategoryId, expectedTitle, imageCount } = {}) {
+    // Deliberately *not* a publish action. Only the human presses the native
+    // Kleinanzeigen button after a background-attested detached owner consent.
+    const detector = globalThis[`krRenewalPublishArmed_${fillId}`];
+    const panel = document.getElementById('kr-template-fill-status');
+    if (!detector?.offerManualStandalone || !panel || !fillId ||
+        !/^\d+$/.test(String(expectedCategoryId || '')) ||
+        !Number.isSafeInteger(imageCount) || imageCount < 1)
+      return false;
+    const confirmCurrentForm = () => {
+      if (location.pathname !== '/p-anzeige-aufgeben-schritt2.html')
+        throw new Error('Die Freigabe ist nur im ursprünglichen Inserierungsformular möglich.');
+      const forms = [...document.querySelectorAll('form')].filter(form =>
+        String(form.querySelector('input[name="categoryId"]')?.value || '') ===
+          String(expectedCategoryId) &&
+        String(form.querySelector('input[name="title"]')?.value || '') ===
+          String(expectedTitle || ''));
+      if (forms.length !== 1 || paidInsertionDetection().required)
+        throw new Error('Formular, Titel, Endkategorie oder Kostenfreiheit nicht eindeutig bestätigt.');
+      return forms[0];
+    };
+    let busy = false, granted = false;
+    const openReview = async () => {
+      if (busy || granted) return;
+      busy = true;
+      button.disabled = true;
+      try {
+        confirmCurrentForm();
+        const prepared = await runtimeMessage({
+          type: 'UPDATE_TEMPLATE_FILL_SESSION', fillId,
+          manualStandaloneApproval: { action: 'prepare' }
+        });
+        if (prepared?.pending !== true || prepared.authorized !== false ||
+            !prepared.token || !prepared.expiresAt)
+          throw new Error('Die Vorbereitung der manuellen Freigabe ist nicht bestätigt.');
+        const shade = document.createElement('div');
+        shade.id = 'kr201-manual-standalone-consent';
+        shade.style.cssText = 'position:fixed;inset:0;z-index:2147483647;background:rgba(0,0,0,.76);display:flex;align-items:center;justify-content:center;padding:20px';
+        const dialog = document.createElement('section');
+        dialog.setAttribute('role','dialog');
+        dialog.setAttribute('aria-modal','true');
+        dialog.setAttribute('aria-label','Manuelle Veröffentlichung bestätigen');
+        dialog.style.cssText = 'background:#152023;color:white;max-width:560px;width:100%;padding:20px;border:1px solid #7b8e86;border-radius:10px;font:14px/1.5 system-ui';
+        const title = document.createElement('h2');
+        title.textContent = 'Anzeige eigenständig veröffentlichen?';
+        title.style.cssText = 'font-size:19px;margin:0 0 12px';
+        const warning = document.createElement('p');
+        warning.textContent = 'Der Manager konnte einzelne historische Merkmale nicht technisch bestätigen. Prüfe alle Angaben, die ' +
+          imageCount + ' Bilder, Preis und Versand selbst. Die vorhandene Quelle bleibt unverändert. Nach dieser Freigabe ' +
+          'musst du selbst auf „Anzeige aufgeben“ klicken und die neue Online-Anzeige später über „Geöffnete Anzeige erfassen“ übernehmen.';
+        const checkLabel = document.createElement('label');
+        checkLabel.style.cssText = 'display:flex;gap:10px;align-items:flex-start;margin:16px 0';
+        const check = document.createElement('input');
+        check.type = 'checkbox';
+        const checkText = document.createElement('span');
+        checkText.textContent = 'Ich habe die vollständige Anzeige einschließlich Bilder und Merkmale selbst geprüft. ' +
+          'Ich möchte sie unabhängig vom automatischen Erneuerungsprozess manuell veröffentlichen.';
+        checkLabel.append(check, checkText);
+        const controls = document.createElement('div');
+        controls.style.cssText = 'display:flex;gap:10px;justify-content:flex-end';
+        const cancel = document.createElement('button');
+        cancel.type = 'button'; cancel.textContent = 'Abbrechen';
+        const accept = document.createElement('button');
+        accept.type = 'button'; accept.textContent = 'Eigenständige Veröffentlichung freigeben';
+        accept.disabled = true;
+        for (const control of [cancel,accept]) {
+          control.style.cssText = 'border:1px solid #869f9b;border-radius:6px;background:#27413d;color:white;padding:9px;cursor:pointer';
+        }
+        check.addEventListener('change', () => { accept.disabled = !check.checked; });
+        cancel.addEventListener('click', () => {
+          shade.remove(); busy = false; button.disabled = false;
+        });
+        accept.addEventListener('click', async event => {
+          if (!event.isTrusted || !check.checked || accept.disabled) return;
+          accept.disabled = true; cancel.disabled = true;
+          try {
+            confirmCurrentForm();
+            const approved = await runtimeMessage({
+              type: 'UPDATE_TEMPLATE_FILL_SESSION', fillId,
+              manualStandaloneApproval: {
+                action: 'commit', token: prepared.token, ownerReviewed: true
+              }
+            });
+            if (!detector.enableManualStandalone(approved))
+              throw new Error('Die dauerhafte, eigenständige Freigabe konnte nicht bestätigt werden.');
+            granted = true;
+            shade.remove();
+            updatePanel('Manuelle Veröffentlichung freigegeben',
+              'Du kannst jetzt selbst auf „Anzeige aufgeben“ klicken. Es erfolgt keine automatische ' +
+                'Anzeigenerfassung, Erneuerung oder Löschung. Öffne die neue Online-Anzeige danach ' +
+                'und verwende „Geöffnete Anzeige erfassen“.',
+              [], { safetyText: 'Nur dein eigener Klick darf die Veröffentlichung auslösen.' });
+            void diagnostic(fillId, 'MANUAL_STANDALONE_OWNER_CONSENT_CONFIRMED', {
+              imageCount, autoPublishAllowed: false, sourcePreserved: true
+            }, 'warning');
+          } catch (error) {
+            shade.remove();
+            updatePanel('Manuelle Freigabe nicht bestätigt',
+              'Der vorherige Vorgang bleibt gesperrt. Bitte Online-Status und Diagnose prüfen.',
+              [String(error?.message || error).slice(0,240)],
+              { safetyText: 'Keine erneute Veröffentlichung auf Verdacht auslösen.' });
+            void diagnostic(fillId, 'MANUAL_STANDALONE_OWNER_CONSENT_DENIED', {
+              reason: String(error?.code || error?.message || error).slice(0,120)
+            }, 'warning');
+          } finally { busy = false; }
+        });
+        controls.append(cancel,accept);
+        dialog.append(title,warning,checkLabel,controls);
+        shade.append(dialog);
+        document.documentElement.append(shade);
+      } catch (error) {
+        updatePanel('Manuelle Freigabe nicht möglich',
+          'Bitte den aktuellen Formular- und Kontostatus prüfen.',
+          [String(error?.message || error).slice(0,240)],
+          { safetyText: 'Automatische Veröffentlichung bleibt gesperrt.' });
+        void diagnostic(fillId, 'MANUAL_STANDALONE_PREPARE_DENIED', {
+          reason: String(error?.code || error?.message || error).slice(0,120)
+        }, 'warning');
+      } finally {
+        if (!document.getElementById('kr201-manual-standalone-consent') && !granted) {
+          button.disabled = false; busy = false;
+        }
+      }
+    };
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.id = 'kr201-manual-standalone-open';
+    button.textContent = 'Eigenständig veröffentlichen …';
+    button.style.cssText = 'margin-top:12px;padding:10px;width:100%;border:1px solid #81bbb1;border-radius:7px;background:#205a50;color:white;font-weight:600;cursor:pointer';
+    button.addEventListener('click', event => {
+      if (!event.isTrusted) return;
+      void openReview();
+    });
+    panel.querySelector('#kr201-manual-standalone-open')?.remove();
+    panel.append(button);
+    return detector.offerManualStandalone(openReview);
   }
 
   function scrollToPublishButton() {
@@ -407,6 +597,7 @@
 
     return Object.freeze({
       armPublishDetection,
+      offerManualStandaloneRelease,
       scrollToPublishButton,
       paidInsertionDetection,
       stopForPaidInsertion,

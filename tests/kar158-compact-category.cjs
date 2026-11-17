@@ -98,7 +98,7 @@ check('long full path remains accessible via tooltip',
   record('Very long item', ['Familie, Kind & Baby', 'Baby- & Kinderkleidung', 'Oberbekleidung & Sets'], [field('Typ', 'Unterwäsche')]),
   'Familie, Kind & Baby › Baby- & Kinderkleidung › Oberbekleidung & Sets › Unterwäsche');
 
-const css = fs.readFileSync(path.join(root, 'app.css'), 'utf8');
+const css = fs.readFileSync(path.join(root, 'src/app/app.css'), 'utf8');
 assert.match(css, /\.compact-list-row\s*\{[^}]*minmax\(0,1fr\)/s, 'compact grid keeps min-width-safe content column');
 assert.match(css, /\.compact-list-category-line\s*\{[^}]*overflow:hidden;[^}]*text-overflow:ellipsis;[^}]*white-space:nowrap;/s,
   'long classification remains a single truncated line');

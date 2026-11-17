@@ -186,7 +186,7 @@
     : null;
 
   const {
-    armPublishDetection, scrollToPublishButton, paidInsertionDetection, stopForPaidInsertion,
+    armPublishDetection, offerManualStandaloneRelease, scrollToPublishButton, paidInsertionDetection, stopForPaidInsertion,
     autoPublishVerifiedRenewal, advanceAfterVerifiedFill
   } = KRDeps.require('KRTemplatePublishFlow').create({
     PaidInsertionGuard, clean, sleep, runtimeMessage, diagnostic, visible, visibleText, waitFor, updatePanel
@@ -356,6 +356,27 @@
     throw new Error(`Titelfeld blieb nach ${maxAttempts} Versuchen instabil.`);
   }
 
+  // Record privacy-safe provenance only. Failed preflights cannot authorize publishing.
+  function persistedSchemaPreflight(report, template, verified = false) {
+    if (!report) return null;
+    return {
+      verified: verified === true,
+      categoryId: String(template?.categoryId || ''),
+      sourceFingerprint: report.sourceFingerprint || null,
+      currentFingerprint: report.currentFingerprint || null,
+      comparisonStatus: String(report.comparison?.status || 'unresolved'),
+      valueCompatibility: String(report.valueCompatibility || 'unverified'),
+      valueEvidence: (report.valueEvidence || []).slice(0, 50).map(item => ({
+        key: String(item.key || '').slice(0, 128),
+        status: String(item.status || 'unverified').slice(0, 30),
+        reason: String(item.reason || 'unknown').slice(0, 80),
+        controlKind: String(item.controlKind || 'unknown').slice(0, 30),
+        optionSource: String(item.optionSource || 'unknown').slice(0, 30),
+        optionCount: Number.isSafeInteger(item.optionCount) ? item.optionCount : null
+      }))
+    };
+  }
+
   async function stopForSchemaPreflight(session, issues, report = null) {
     const unique = [...new Set(issues.map(String))];
     updatePanel('Formular wurde geändert – Neu-Einstellen angehalten',
@@ -375,7 +396,8 @@
     }, 'warning');
     await runtimeMessage({ type: 'UPDATE_TEMPLATE_FILL_SESSION', fillId: session.fillId,
       status: 'needs-review', stage: 'schema-preflight',
-      result: { complete: false, issues: unique.slice(0, 50) } });
+      result: { complete: false, issues: unique.slice(0, 50),
+         schemaPreflight: persistedSchemaPreflight(report, session.template, false) } });
     return { complete: false, issues: unique, schemaPreflightBlocked: true };
   }
 
@@ -977,6 +999,8 @@
     if (paidAfterCategory.required) return await stopForPaidInsertion(session, paidAfterCategory, 'after-category');
 
     let schemaPreflightReport = null;
+    let partialPrefill = false;
+    const recoveredDisplayOnly = new Map();
     if (String(form.querySelector('input[name="categoryId"]')?.value || '') === String(template.categoryId || '')) {
       try {
         if (!SchemaPreflight) throw new Error('Die Formularschema-Sicherheitsprüfung ist nicht verfügbar.');
@@ -998,9 +1022,18 @@
           mapped: schemaPreflightReport.mappings.map(item => ({ from: item.oldKey, to: item.newKey })),
           legacy: schemaPreflightReport.comparison?.status === 'legacy-unversioned',
           issueCount: schemaPreflightReport.issues.length,
+          valueCompatibility: schemaPreflightReport.valueCompatibility,
+          valueEvidence: (schemaPreflightReport.valueEvidence || []).map(item => ({
+            key: item.key, status: item.status, reason: item.reason,
+            optionSource: item.optionSource, optionCount: item.optionCount
+          })).slice(0, 50),
           ownerVerifiedCaseSizePairs: live.optionProbe?.ownerVerifiedPairCount || 0,
           ownerCaseSizeEvidence: live.optionProbe?.reason || null
         }, schemaPreflightReport.complete ? 'info' : 'warning');
+        // A new category monitor reference is not historical template evidence.
+        // Show the uncertainty before attempting the selected controls.
+        for (const warning of (schemaPreflightReport.warnings || []).slice(0, 4))
+          registerSchemaMonitorWarning(warning);
         // The normal posting workflow now owns the only structural-change
         // review and optional F3 reference consent. No separate test tab.
         const acknowledged = await reviewLivePostingSchema(session, {
@@ -1013,8 +1046,25 @@
         if (!acknowledged) return { complete: false, reviewRequired: true,
           referenceApproved: false, publishTriggered: false,
           issues: schemaPreflightReport.issues || [] };
-        if (!schemaPreflightReport.complete)
-          return await stopForSchemaPreflight(session, schemaPreflightReport.issues, schemaPreflightReport);
+        if (!schemaPreflightReport.complete) {
+          if (schemaPreflightReport.partialContinuationEligible !== true)
+            return await stopForSchemaPreflight(session, schemaPreflightReport.issues, schemaPreflightReport);
+          partialPrefill = true;
+          // Keep all preflight review issues throughout the remaining pipeline.
+          // Partial filling is NOT verified or a publication authority.
+          issues.push(...schemaPreflightReport.issues);
+          updatePanel('Vorlage teilweise übernehmen – Merkmale später prüfen',
+            'Bekannte Angaben und Bilder werden übernommen. Einzelne Auswahlen benötigen deine manuelle Ergänzung.',
+            schemaPreflightReport.issues, {
+              safetyText: 'Keine automatische Veröffentlichung. Bitte fehlende Merkmale im Formular manuell prüfen.'
+            });
+          void diagnostic(fillId, 'TEMPLATE_SCHEMA_PREFLIGHT_PARTIAL_CONTINUATION', {
+            status: schemaPreflightReport.comparison?.status || 'unresolved',
+            issueCount: schemaPreflightReport.issues.length,
+            skippedAttributeKeys: schemaPreflightReport.partialSkipKeys.slice(0, 30),
+            autoPublishAllowed: false
+          }, 'warning');
+        }
       } catch (error) {
         return await stopForSchemaPreflight(session, [
           'Kategorieabhängige Felder konnten nicht sicher geprüft werden: ' + String(error.message || error).slice(0, 250)
@@ -1031,7 +1081,22 @@
           return approved ? { ...attribute, displayValue: approved.expectedDisplayLabel } : attribute;
         }) }
         : template;
-      const attributeIssues = await fillDynamicAttributes(mappedFillTemplate, fillId);
+      // Skip only individually evidenced unsafe legacy attributes, never
+      // invent a technical ID or change the source. Preserve other fields.
+      const manualKeys = new Set(partialPrefill ? schemaPreflightReport.partialSkipKeys : []);
+      const safeFillTemplate = manualKeys.size
+        ? { ...mappedFillTemplate, dynamicAttributes:
+            (mappedFillTemplate.dynamicAttributes || []).filter(item => !manualKeys.has(item.key)) }
+        : mappedFillTemplate;
+      // Display-only legacy values are recovered transiently, never written
+      // back into the original archive. Only the exact clicked option and the
+      // React-owned hidden input may supply a technical value.
+      const attributeIssues = await fillDynamicAttributes(safeFillTemplate, fillId, proof => {
+        if (!proof?.key || !proof.technicalValue || !proof.displayValue ||
+            recoveredDisplayOnly.has(proof.key))
+          throw new Error('Nicht eindeutiger wiederhergestellter Auswahlwert.');
+        recoveredDisplayOnly.set(proof.key, proof);
+      });
       issues.push(...attributeIssues);
       void diagnostic(fillId, 'TEMPLATE_DYNAMIC_ATTRIBUTES_FINISHED', { configured: (template.dynamicAttributes || []).length, issueCount: attributeIssues.length }, attributeIssues.length ? 'warning' : 'info');
       const shippingIssues = await fillShipping(template);
@@ -1044,6 +1109,9 @@
       issues.push('Kategorieabhängige Merkmale wurden nicht gesetzt, weil die Kategorie nicht bestätigt wurde.');
     }
 
+    // Category and attribute choices may replace the whole React form. Use
+    // its current owner before writing the other safe fields and images.
+    form = resolveActivePostingForm(form);
     try { setTextField(form.querySelector('textarea[name="description"]'), template.description || ''); await settleAfterInteraction(fillId, 'description'); void diagnostic(fillId, 'TEMPLATE_DESCRIPTION_SET', { length: String(template.description || '').length }); } catch (error) { issues.push(`Beschreibung: ${error.message}`); void diagnostic(fillId, 'TEMPLATE_DESCRIPTION_FAILED', { message: error.message }, 'warning'); }
     try { setTextField(form.querySelector('input[name="priceAmount"]'), template.price?.value || ''); await settleAfterInteraction(fillId, 'price'); void diagnostic(fillId, 'TEMPLATE_PRICE_SET', { hasValue: Boolean(template.price?.value) }); } catch (error) { issues.push(`Preis: ${error.message}`); void diagnostic(fillId, 'TEMPLATE_PRICE_FAILED', { message: error.message }, 'warning'); }
     const priceTypeIssues = await fillPriceType(template);
@@ -1066,7 +1134,30 @@
         ...titleReadbackEvidence(template.title || '', actual, verificationForm)
       }, 'error');
     }
-    issues.push(...(session.archiveInsertionId ? verifyArchiveTemplate(template, verificationForm) : verify(template, verificationForm)));
+    // Recovered technical values are allowed for final verification *only*
+    // after a unique native option click. Preserve source record unchanged.
+    const recovered = recoveredDisplayOnly;
+    const finalTemplate = recovered.size
+      ? { ...template, dynamicAttributes: (template.dynamicAttributes || []).map(attribute => {
+          const proof = recovered.get(attribute.key);
+          return proof ? { ...attribute, technicalValue: proof.technicalValue } : attribute;
+        }) }
+      : template;
+    issues.push(...(session.archiveInsertionId ? verifyArchiveTemplate(finalTemplate, verificationForm)
+      : verify(finalTemplate, verificationForm)));
+    // The hidden value alone cannot prove the originally saved visible choice.
+    // Check the displayed label again after uploads and possible React re-renders.
+    for (const proof of recovered.values()) {
+      const hidden = [...(verificationForm?.querySelectorAll?.('[name^="attributeMap["]') || [])]
+        .filter(input => input.name === 'attributeMap[' + proof.key + ']' && input.type === 'hidden');
+      const control = verificationForm?.ownerDocument?.getElementById?.(proof.key);
+      const shown = verificationForm?.ownerDocument?.getElementById?.(proof.key + '-selected-option');
+      if (hidden.length !== 1 || String(hidden[0].value) !== proof.technicalValue ||
+          !control || control.getAttribute('role') !== 'combobox' ||
+          !shown || !control.contains(shown) ||
+          clean(shown.textContent) !== proof.displayValue)
+        issues.push('Merkmal „' + proof.key + '“: sichtbarer und technischer Auswahlwert konnten nicht gemeinsam bestätigt werden.');
+    }
     if (schemaPreflightReport) {
       try {
         const finalObserved = SchemaPreflight.inspectForm(verificationForm, template.categoryId);
@@ -1080,26 +1171,69 @@
 
     const uniqueIssues = [...new Set(issues)];
     const imagesComplete = imageOutcome.complete === true;
-    const complete = uniqueIssues.length === 0 && imagesComplete;
+    const complete = !partialPrefill && uniqueIssues.length === 0 && imagesComplete;
+    if (complete && schemaPreflightReport && recovered.size) {
+      for (const item of schemaPreflightReport.valueEvidence || []) {
+        if (item.reason === 'display-only-exact-selection-required' && recovered.has(item.key)) {
+          item.status = 'confirmed';
+          item.reason = 'exact-display-and-react-technical-readback';
+          item.optionSource = 'linked-native-popup-click-readback';
+        }
+      }
+      if ((schemaPreflightReport.valueEvidence || []).every(item => item.status === 'confirmed'))
+        schemaPreflightReport.valueCompatibility = 'confirmed';
+    }
     updatePanel(
-      complete ? 'Vorlage vollständig übernommen' : 'Vorlage übernommen – Prüfung nötig',
-      complete ? 'Alle kontrollierten Vorlagenwerte stimmen mit dem neuen Formular überein.' : `${uniqueIssues.length} Punkt(e) konnten nicht eindeutig bestätigt werden.`,
-      uniqueIssues
+      complete ? 'Vorlage vollständig übernommen'
+        : partialPrefill ? 'Vorlage teilweise übernommen – Merkmale manuell ergänzen'
+          : 'Vorlage übernommen – Prüfung nötig',
+      complete ? 'Alle kontrollierten Vorlagenwerte stimmen mit dem neuen Formular überein.'
+        : partialPrefill
+          ? 'Verfügbare Angaben und Bilder wurden bearbeitet. Bitte prüfe die unten genannten Merkmale und ergänze sie bei Bedarf direkt im Formular.'
+          : `${uniqueIssues.length} Punkt(e) konnten nicht eindeutig bestätigt werden.`,
+      uniqueIssues,
+      partialPrefill ? { safetyText: 'Nicht automatisch veröffentlicht. Manuelle Prüfung bleibt erforderlich.' } : undefined
     );
     void diagnostic(fillId, 'TEMPLATE_FILL_VERIFIED', { complete, issueCount: uniqueIssues.length, imagesComplete, imageStates: imageOutcome.states?.map(state => ({ index: state.index, status: state.status })) || [] }, complete ? 'info' : 'warning');
-    const schemaPreflight = complete && schemaPreflightReport
-      ? { verified: true, categoryId: String(template.categoryId),
-          sourceFingerprint: schemaPreflightReport.sourceFingerprint,
-          currentFingerprint: schemaPreflightReport.currentFingerprint }
-      : null;
-    const verifiedResult = { complete, issues: uniqueIssues.slice(0, 50), schemaPreflight };
-    await runtimeMessage({
+    const schemaPreflight = persistedSchemaPreflight(schemaPreflightReport, template, complete);
+    // KAR-201: partial archive review is a distinct *manual-only* admission,
+    // not a weakened schema/publish gate. Title/category must still match
+    // exactly, and every source image must have completed stable upload.
+    const reviewForm = resolveActivePostingForm(verificationForm);
+    const sourceImages = Array.isArray(template.images) ? template.images : [];
+    const manualStandaloneReviewEligible = Boolean(
+      partialPrefill && !complete && imagesComplete &&
+      session.archiveInsertionId && !session.renewalId &&
+      sourceImages.length > 0 &&
+      imageOutcome.states?.length === sourceImages.length &&
+      String(reviewForm?.querySelector?.('input[name="categoryId"]')?.value || '') === String(template.categoryId || '') &&
+      String(reviewForm?.querySelector?.('input[name="title"]')?.value || '') === String(template.title || '') &&
+      schemaPreflight?.comparisonStatus === 'legacy-unversioned' &&
+      schemaPreflight?.verified === false
+    );
+    const verifiedResult = {
+      complete, issues: uniqueIssues.slice(0, 50), schemaPreflight,
+      manualStandaloneReviewEligible,
+      manualImageCount: manualStandaloneReviewEligible ? sourceImages.length : 0
+    };
+    const persisted = await runtimeMessage({
       type: 'UPDATE_TEMPLATE_FILL_SESSION',
       fillId,
       status: complete ? 'running' : 'needs-review',
       stage: complete ? 'form-verified' : 'verified',
       result: verifiedResult
     });
+    if (manualStandaloneReviewEligible &&
+        persisted?.status === 'needs-review' && persisted?.stage === 'verified') {
+      const shown = offerManualStandaloneRelease({
+        fillId, expectedCategoryId: template.categoryId,
+        expectedTitle: template.title, imageCount: sourceImages.length
+      });
+      void diagnostic(fillId, 'MANUAL_STANDALONE_REVIEW_OFFERED', {
+        shown: Boolean(shown), imageCount: sourceImages.length,
+        needsManualOwnerConsent: true, automaticPublishAllowed: false
+      }, 'warning');
+    }
     if (complete) {
       const continuation = await advanceAfterVerifiedFill({ fillId, renewalId: session.renewalId || null, templateOnly: Boolean(session.templateOnly), archiveInsertionId: session.archiveInsertionId || null, trashInventoryId: session.trashInventoryId || null, stage: 'form-verified', result: verifiedResult });
       return { complete, issues: uniqueIssues, ...continuation };

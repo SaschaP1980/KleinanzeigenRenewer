@@ -617,12 +617,143 @@ async function adoptVerifiedSchemaReference(message, session, sessions, sender) 
     realReferenceWrites: 1, remotePublishAttempted: false };
 }
 
+async function approveManualStandaloneRelease(message, session, sessions, sender) {
+  // KAR-201: explicitly detach a *failed ZIP archive prefill* for the OWNER's
+  // independent manual posting. This never authorizes the automatic publish
+  // journal, never creates a remote ad or new inventory ID, and cannot retire
+  // the original. The existing P8-admitted UPDATE_TEMPLATE_FILL_SESSION route
+  // serializes this narrowly scoped background-state transition.
+  const req = message?.manualStandaloneApproval || {};
+  const deny = reason => {
+    const error = new Error('KR_MANUAL_' + reason);
+    error.code = 'KR_MANUAL_' + reason;
+    throw error;
+  };
+  const action = String(req.action || '');
+  if (!['prepare','commit'].includes(action) || !session?.fillId ||
+      session.renewalId || session.templateOnly || !session.archiveInsertionId ||
+      session.schemaTestScenario || session.status !== 'needs-review' ||
+      session.stage !== 'verified' || session?.result?.complete !== false ||
+      session.result.manualStandaloneReviewEligible !== true ||
+      session.result.schemaPreflight?.verified !== false ||
+      session.result.schemaPreflight?.comparisonStatus !== 'legacy-unversioned')
+    deny('SESSION_UNVERIFIED');
+  let target, page;
+  try {
+    target = new URL(TEMPLATE_TARGET_URL);
+    page = new URL(String(sender?.url || sender?.tab?.url || ''));
+  } catch { deny('PAGE_UNVERIFIED'); }
+  if (page.origin !== target.origin || page.pathname !== target.pathname ||
+      Number(sender?.tab?.id || 0) !== Number(session.targetTabId || -1))
+    deny('PAGE_UNVERIFIED');
+  const archiveSessions = await readArchiveInsertionSessions();
+  const archive = archiveSessions[session.archiveInsertionId];
+  const source = archive?.sourceRecord;
+  const sourceCategory = String(source?.category?.id ?? source?.categoryIdFromUrl ?? '');
+  const checkedCategory = String(session.result.schemaPreflight.categoryId || '');
+  const sourceImageCount = Array.isArray(source?.images) ? source.images.length : -1;
+  if (!archive || archive.archiveInsertionId !== session.archiveInsertionId ||
+      archive.fillId !== session.fillId || Number(archive.targetTabId) !== Number(session.targetTabId) ||
+      !archive.targetProfileId || String(archive.targetProfileId) !== String(session.targetProfileId) ||
+      archive.status !== 'error' || archive.stage !== 'error-phase-1' ||
+      archive.newAdId || archive.newPublicUrl || archive.newEditUrl ||
+      String(archive.sourceAdId || '') !== String(session.sourceAdId || '') ||
+      !source?.title || String(source.title) !== String(session.archiveTemplate?.title || source.title) ||
+      !/^\d+$/.test(sourceCategory) || sourceCategory !== checkedCategory ||
+      sourceImageCount < 1 || sourceImageCount !== session.result.manualImageCount)
+    deny('ARCHIVE_UNVERIFIED');
+  const lock = await getInsertionLockState();
+  if (lock?.locked !== false) deny('CONCURRENT_WORKFLOW');
+  const profile = await assertSelectedProfileMatchesLiveAccount({
+    expectedProfileId: archive.targetProfileId,
+    expectedProfileName: String(archive.targetProfileName || ''),
+    purpose: 'manual-standalone-archive-owner-consent'
+  });
+  if (String(profile?.profileId || '') !== String(archive.targetProfileId))
+    deny('ACCOUNT_UNVERIFIED');
+  // The operation is not a direct publication. Only a second explicit
+  // browser-owned confirmation can consume the short-lived preparation token.
+  if (action === 'prepare') {
+    const token = cryptoApi.randomUUID();
+    const expiresAt = new Date(Date.now() + 120000).toISOString();
+    session.pendingManualStandaloneConsent = {
+      token, expiresAt, archiveInsertionId: archive.archiveInsertionId,
+      targetTabId: session.targetTabId, targetProfileId: archive.targetProfileId
+    };
+    session.updatedAt = new Date().toISOString();
+    sessions[session.fillId] = session;
+    await writeFillSessions(sessions);
+    const persisted = (await readFillSessions())[session.fillId]?.pendingManualStandaloneConsent;
+    if (!persisted || persisted.token !== token || persisted.expiresAt !== expiresAt)
+      deny('PREPARE_UNVERIFIED');
+    return { pending: true, authorized: false, token, expiresAt };
+  }
+  const pending = session.pendingManualStandaloneConsent;
+  if (req.ownerReviewed !== true || !pending ||
+      typeof req.token !== 'string' || !req.token ||
+      pending.token !== req.token ||
+      Date.now() >= Date.parse(pending.expiresAt || 0) ||
+      pending.archiveInsertionId !== archive.archiveInsertionId ||
+      Number(pending.targetTabId) !== Number(session.targetTabId) ||
+      pending.targetProfileId !== archive.targetProfileId)
+    deny('CONSENT_UNVERIFIED');
+  // No automatic re-insertion, no image removal, no source trash changes.
+  // Archive is terminal for the managed process, so restart recovery cannot
+  // claim a published ID or resume managed insertion after this approval.
+  const detachedAt = new Date().toISOString();
+  archive.status = 'needs-review';
+  archive.stage = 'manual-standalone';
+  archive.lastError = null;
+  archive.failurePhase = null;
+  archive.manualPublishDetachedAt = detachedAt;
+  archive.remoteVerificationRequired = true;
+  await persistArchiveInsertionSession(archive, { reason: 'manual-standalone-owner-consent' });
+  session.status = 'needs-review';
+  session.stage = 'manual-standalone';
+  session.manualPublishDetachedAt = detachedAt;
+  delete session.pendingManualStandaloneConsent;
+  session.updatedAt = detachedAt;
+  sessions[session.fillId] = session;
+  await writeFillSessions(sessions);
+  const saved = (await readFillSessions())[session.fillId];
+  const savedArchive = (await readArchiveInsertionSessions())[archive.archiveInsertionId];
+  if (!saved || !savedArchive ||
+      saved.manualPublishDetachedAt !== detachedAt ||
+      saved.stage !== 'manual-standalone' ||
+      savedArchive.manualPublishDetachedAt !== detachedAt ||
+      savedArchive.status !== 'needs-review' || savedArchive.newAdId)
+    deny('DETACH_UNVERIFIED');
+  const again = await assertSelectedProfileMatchesLiveAccount({
+    expectedProfileId: archive.targetProfileId,
+    expectedProfileName: String(archive.targetProfileName || ''),
+    purpose: 'manual-standalone-final-account-readback'
+  });
+  if (String(again?.profileId || '') !== String(archive.targetProfileId))
+    deny('ACCOUNT_CHANGED');
+  await logDiagnostic('warning', 'MANUAL_STANDALONE_ARCHIVE_DETACHED', {
+    fillId: session.fillId, archiveInsertionId: archive.archiveInsertionId,
+    sourcePreserved: true, automaticPublishAuthorized: false,
+    newAdIdConfirmed: false, imageCount: sourceImageCount
+  }, { module: 'background', operation: 'template-fill',
+    context: sessionCorrelationContext(session, { targetTabId: session.targetTabId }) }).catch(() => {});
+  broadcastInventoryChanged('archive-insertion-manual-standalone', {
+    archiveInsertionId: archive.archiveInsertionId, fillId: session.fillId,
+    status: 'needs-review', stage: 'manual-standalone'
+  });
+  return { manualDetached: true, autoPublishAllowed: false,
+    sourcePreserved: true, stage: 'manual-standalone' };
+}
+
 async function updateTemplateFillSession(message, sender) {
   return withTemplateFillMutation(async () => {
   const tabId = sender?.tab?.id;
   const sessions = await readFillSessions();
   const session = sessions[message.fillId];
   if (!session || session.targetTabId !== tabId) throw new Error("Vorlagen-Sitzung gehört nicht zu diesem Tab.");
+  // Only this explicit consent route may inspect a terminal needs-review
+  // archive fill. It cannot turn the ordinary automatic publish gate green.
+  if (message?.manualStandaloneApproval)
+    return approveManualStandaloneRelease(message, session, sessions, sender);
   // Real F3 consent is an authenticated mutation on a pending production
   // posting review; only explicit UI decision may resume or terminate it.
   if (message?.referenceAdoption)
@@ -671,10 +802,51 @@ async function updateTemplateFillSession(message, sender) {
           currentFingerprint: String(incomingProof.currentFingerprint),
           sourceFingerprint: incomingProof.sourceFingerprint || null, checkedAt: new Date().toISOString() }
       : existingProof;
+    // Keep *non-authoritative* evidence when an incomplete Fill is exported.
+    // Never turn an unverified or legacy report into a publish-capable proof.
+    const reviewProof = incomingProof?.verified === false &&
+      /^\d+$/.test(String(incomingProof.categoryId || ''))
+      ? {
+          verified: false, categoryId: String(incomingProof.categoryId),
+          sourceFingerprint: /^[a-f0-9]{64}$/.test(String(incomingProof.sourceFingerprint || ''))
+            ? String(incomingProof.sourceFingerprint) : null,
+          currentFingerprint: /^[a-f0-9]{64}$/.test(String(incomingProof.currentFingerprint || ''))
+            ? String(incomingProof.currentFingerprint) : null,
+          comparisonStatus: /^[a-z-]{1,50}$/.test(String(incomingProof.comparisonStatus || ''))
+            ? String(incomingProof.comparisonStatus) : 'unresolved',
+          valueCompatibility: ['confirmed', 'incompatible', 'unverified'].includes(incomingProof.valueCompatibility)
+            ? incomingProof.valueCompatibility : 'unverified',
+          valueEvidence: (Array.isArray(incomingProof.valueEvidence) ? incomingProof.valueEvidence : [])
+            .slice(0, 50).map(item => ({
+              key: /^[a-zA-Z0-9_.:-]{1,128}$/.test(String(item?.key || ''))
+                ? String(item.key) : 'unknown',
+              status: ['confirmed', 'unverified', 'incompatible', 'ambiguous'].includes(item?.status)
+                ? item.status : 'unverified',
+              reason: /^[a-z-]{1,80}$/.test(String(item?.reason || ''))
+                ? item.reason : 'unknown',
+              controlKind: /^[a-z-]{1,30}$/.test(String(item?.controlKind || ''))
+                ? item.controlKind : 'unknown',
+              optionSource: /^[a-z-]{1,30}$/.test(String(item?.optionSource || ''))
+                ? item.optionSource : 'unknown',
+              optionCount: Number.isSafeInteger(item?.optionCount) && item.optionCount >= 0 &&
+                item.optionCount <= 10000 ? item.optionCount : null
+            }))
+        } : null;
     session.result = {
       complete: Boolean(message.result.complete),
       issues: Array.isArray(message.result.issues) ? message.result.issues.slice(0, 50).map(value => String(value).slice(0, 300)) : [],
-      schemaPreflight: Boolean(message.result.complete) ? proof : null
+      schemaPreflight: Boolean(message.result.complete) ? proof : reviewProof,
+      // A reviewable *manual-only* archive handoff is not a verified publish
+      // result. Never persist this admission for renewals or other stages.
+      manualStandaloneReviewEligible: requestedStatus === 'needs-review' &&
+        requestedStage === 'verified' && !session.renewalId &&
+        Boolean(session.archiveInsertionId) &&
+        reviewProof?.verified === false &&
+        reviewProof?.comparisonStatus === 'legacy-unversioned' &&
+        message.result.manualStandaloneReviewEligible === true,
+      manualImageCount: Number.isSafeInteger(message.result.manualImageCount) &&
+        message.result.manualImageCount >= 1 && message.result.manualImageCount <= 100
+        ? message.result.manualImageCount : 0
     };
   }
   if (session.stage === 'paid-insertion-required' && message.paidInsertion && typeof message.paidInsertion === 'object') {

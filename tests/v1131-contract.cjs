@@ -78,7 +78,11 @@ function loadZipWriter() {
   assert.ok(filler.includes('(session?.renewalId || session?.archiveInsertionId)'));
   assert.ok(filler.includes("['publish-submitted', 'new-id-confirmed'].includes"));
   assert.ok(filler.includes('archiveInsertionId: session.archiveInsertionId || null'));
-  assert.match(filler, /session\.archiveInsertionId\s*\?\s*verifyArchiveTemplate\(template(?:,\s*verificationForm)?\)\s*:\s*verify\(template(?:,\s*verificationForm)?\)/);
+  // KAR-201 keeps ZIP-specific extended verification while using an immutable
+  // transient model for independently recovered display-only technical IDs.
+  assert.match(filler, /session\.archiveInsertionId\s*\?\s*verifyArchiveTemplate\((?:template|finalTemplate)(?:,\s*verificationForm)?\)\s*:\s*verify\((?:template|finalTemplate)(?:,\s*verificationForm)?\)/);
+  assert.match(filler, /const finalTemplate = recovered\.size/);
+  assert.match(filler, /String\(hidden\[0\]\.value\) !== proof\.technicalValue/);
   assert.match(filler, /function verifyArchiveTemplate\(template(?:,\s*root\s*=\s*document)?\)/);
   assert.ok(filler.includes('ZIP-Neu-Inserat läuft'));
 

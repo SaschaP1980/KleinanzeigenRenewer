@@ -141,7 +141,11 @@ function fixture({ category='405', caseSize=true, label='44mm', caseValue='44',
     assert.ok(report.issues.some(x=>x.includes('Pflichtmerkmal')));
   });
   await check('matching fingerprint never bypasses exact saved-value checks',async()=>{
-    const f=fixture({savedKey:'wearables.case_size',savedValue:'46'}),{report}=await f.complete();
+    const f=fixture({savedKey:'wearables.case_size',savedValue:'46'});
+    // A saved technical ID 46 must carry its matching visible selection label.
+    // The former fixture incorrectly paired 46 with the 44 display label.
+    f.template.dynamicAttributes[0].displayValue = '46mm';
+    const {report}=await f.complete();
     assert.equal(report.complete,true);
     assert.equal(report.comparison.status,'schema-changed'); // differing snapshot field option evidence
     f.document.querySelector('input[name="attributeMap[wearables.case_size]"]').value='44';

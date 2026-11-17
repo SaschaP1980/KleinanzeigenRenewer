@@ -1,5 +1,5 @@
 {
-  "version": "1.25.8",
+  "version": "1.25.12",
   "project": "kleinanzeigen Manager / Kleinanzeigen Renewal",
   "epic": "KAR-197-publish-intent-web-lock-and-zip-blocked-recovery",
   "goldBaseline": "1.21.15",
@@ -151,7 +151,7 @@
     "Validate canonical all-profile affected-count preview and fail-closed cancellation when the active profile or trash snapshot changes.",
     "Verify local-only atomic record-and-image deletion under exact inventory IDs, retention-reset boundaries and MV3 interruption; assert no remote Kleinanzeigen mutation."
   ],
-  "packageVersion": "1.25.8",
+  "packageVersion": "1.25.12",
   "directBasisNativePending": false,
   "architectureFiles": [
     {
