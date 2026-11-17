@@ -178,12 +178,16 @@
     return false;
   }
 
-  async function scanOwnAdsAcrossPages(adId, { expectedProfileName = '' } = {}) {
+  async function scanOwnAdsAcrossPages(adId, { expectedProfileName = '', requireCompleteRoster = false } = {}) {
     const wanted = String(adId || '');
     // Only authenticated remote-outcome probes supply this expected account.
     // The generic inventory lookup and delete flows retain their own account
     // admission; no missing/changed page identity may confirm an R1 result.
     const expectedAccount = normalizeKey(expectedProfileName);
+    // R1 independently certified target presence requires full cardinality;
+    // ordinary publication lookups may trust a matching authenticated card
+    // without paying the cost of visiting every remaining My Ads page.
+    const completeTargetRoster = Boolean(expectedAccount && requireCompleteRoster);
     const assertSameAccount = () => {
       if (expectedAccount && (!isMyAdsProjectsUrl()
           || normalizeKey(detectedProfileName(document)) !== expectedAccount))
@@ -239,7 +243,11 @@
         // Non-R1 inventory/delete lookups retain their original early return:
         // only trusted read-only remote evidence with an expected account
         // must prove that the FULL advertised roster was scanned.
-        if (!expectedAccount) return { found: true, listing, page, pagesScanned: pages.length, pages };
+        if (!completeTargetRoster) {
+          assertSameAccount();
+          assertRosterCount();
+          return { found: true, listing, page, pagesScanned: pages.length, pages };
+        }
         // Snapshot scalar data before changing pages; holding a DOM root from
         // a prior page is neither necessary nor safe for read-only evidence.
         if (matchedReadOnlyListing) throw new Error('KR_MY_ADS_ROSTER_INCOMPLETE');
@@ -378,11 +386,11 @@
     };
   }
 
-  async function findOwnAdById(adId, correlation = {}, { notFoundSeverity = 'warning', expectedAbsent = false, expectedProfileName = '' } = {}) {
+  async function findOwnAdById(adId, correlation = {}, { notFoundSeverity = 'warning', expectedAbsent = false, expectedProfileName = '', requireCompleteRoster = false } = {}) {
     const wanted = String(adId || '');
     if (!/^\d+$/.test(wanted)) throw new Error('Anzeigen-ID ist ungültig.');
     if (!isMyAdsProjectsUrl()) throw new Error('Anzeige kann nur über „Meine Anzeigen“ mit tab=PROJECTS gesucht werden.');
-    const scan = await scanOwnAdsAcrossPages(wanted, { expectedProfileName });
+    const scan = await scanOwnAdsAcrossPages(wanted, { expectedProfileName, requireCompleteRoster });
     if (!scan.found) {
       diagnostic('RENEWAL_MY_ADS_FALLBACK_NOT_FOUND', { adId: wanted, pagesScanned: scan.pagesScanned, expectedAbsent: Boolean(expectedAbsent) }, notFoundSeverity, correlation);
       return { found: false, adId: wanted, pagesScanned: scan.pagesScanned, evidence: 'not-in-my-ads-full-pagination-scan' };
