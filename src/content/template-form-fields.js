@@ -426,6 +426,57 @@
     };
   }
 
+  // KAR-201: native category-246 listboxes render human labels without an
+  // option 'value'. Never synthesize a technical ID from an index or label.
+  // Only a React-owned hidden-field transition AND exact displayed label
+  // after clicking one unique, linked, enabled li[role=option] may recover it.
+  async function recoverExactDisplayOnlyOption(input, attribute, technicalName) {
+    const key = technicalName.slice('attributeMap['.length, -1);
+    const label = clean(attribute.displayValue || '');
+    if (!label || /^(bitte wählen|auswählen|select)$/i.test(label) ||
+        !input || input.type !== 'hidden')
+      throw new Error('Gespeicherte Auswahl hat keinen sicheren Textwert.');
+    const control = document.getElementById(key);
+    if (!control || !visible(control) || control.tagName !== 'BUTTON' ||
+        control.getAttribute('role') !== 'combobox' || control.disabled ||
+        control.getAttribute('aria-disabled') === 'true')
+      throw new Error('Eindeutiges Dropdown für „' + (attribute.label || key) + '“ fehlt.');
+    const labelNode = document.getElementById(key + '-selected-option');
+    if (!labelNode || !control.contains(labelNode))
+      throw new Error('Anzeigetext des Auswahlfeldes ist nicht eindeutig zugeordnet.');
+    control.focus?.();
+    if (control.getAttribute('aria-expanded') !== 'true') control.click();
+    const menu = await waitFor(() => {
+      const linked = String(control.getAttribute('aria-controls') || '').trim();
+      if (!linked || /\s/.test(linked)) return null;
+      const root = document.getElementById(linked);
+      if (!root || !visible(root) || root.getAttribute('role') !== 'listbox' ||
+          root.getAttribute('aria-labelledby') !== key || control.getAttribute('aria-expanded') !== 'true')
+        return null;
+      return root;
+    }, { timeout: 1800, interval: 70, description: 'Eindeutige Auswahlliste „' + key + '“' });
+    const choices = [...menu.querySelectorAll('[role="option"]')]
+      .filter(option => visible(option) && option.getAttribute('aria-disabled') !== 'true' &&
+        clean(visibleText(option)).toLocaleLowerCase('de-DE') === label.toLocaleLowerCase('de-DE'));
+    if (choices.length !== 1)
+      throw new Error('Auswahl „' + label + '“ ist nicht genau einmal im zugehörigen Dropdown vorhanden.');
+    const before = String(input.value || '');
+    choices[0].click();
+    const confirmed = await waitFor(() => {
+      const refreshed = exactDynamicInput(technicalName);
+      const shown = document.getElementById(key + '-selected-option');
+      const activeControl = document.getElementById(key);
+      const resolved = String(refreshed?.value || '');
+      if (!resolved || !shown || !activeControl?.contains(shown) ||
+          clean(shown.textContent) !== label || activeControl.getAttribute('aria-expanded') === 'true')
+        return null;
+      // Re-read the React-owned value, never assign it ourselves. A nonempty
+      // preexisting hidden value is allowed only if final label also matches.
+      return { technicalValue: resolved, displayValue: label, previousValueChanged: before !== resolved };
+    }, { timeout: 1800, interval: 70, description: 'Sichtbarer und technischer Auswahlwert „' + key + '“' });
+    return confirmed;
+  }
+
   async function fillDynamicAttributeWithRetries(attribute, fillId) {
     const name = resolvedAttributeName(attribute);
     const isSmartwatches = String(document.querySelector('form input[name="categoryId"]')?.value) === '405';
@@ -437,8 +488,18 @@
       interval: 60,
       description: 'Merkmal „' + (attribute.label || attribute.key) + '“'
     });
-    const technicalValue = String(attribute.technicalValue);
+    const hasTechnicalValue = attribute.technicalValue !== null &&
+      attribute.technicalValue !== undefined && attribute.technicalValue !== '';
+    const technicalValue = hasTechnicalValue ? String(attribute.technicalValue) : null;
     const displayValue = attribute.displayValue || technicalValue;
+    if (!hasTechnicalValue) {
+      // Preflight must have admitted this strictly legacy display-only case.
+      // Do not consume three full selector retries where the exact list is absent.
+      const recovered = await recoverExactDisplayOnlyOption(initial, attribute, name);
+      return { attempt: 1, alreadySet: false, controlType: 'hidden',
+        technicalName: name, recoveredTechnicalValue: recovered.technicalValue,
+        verifiedDisplayValue: recovered.displayValue };
+    }
     let lastError = null;
 
     for (let attempt = 1; attempt <= LOCAL_ATTRIBUTE_SELECTION_ATTEMPTS; attempt += 1) {
@@ -505,17 +566,26 @@
     throw lastError || new Error('Merkmal „' + (attribute.label || attribute.key) + '“ konnte nicht gesetzt werden.');
   }
 
-  async function fillDynamicAttributes(template, fillId) {
+  async function fillDynamicAttributes(template, fillId, onRecoveredDisplayOnly = null) {
     const issues = [];
     for (const attribute of template.dynamicAttributes || []) {
-      if (!attribute?.key || attribute.technicalValue === null || attribute.technicalValue === undefined || attribute.technicalValue === '') continue;
+      if (!attribute?.key) continue;
+      const hasTechnical = attribute.technicalValue !== null &&
+        attribute.technicalValue !== undefined && attribute.technicalValue !== '';
+      const hasDisplay = clean(attribute.displayValue || '').length > 0 && attribute.status !== 'empty';
+      if (!hasTechnical && !hasDisplay) continue;
       try {
         const result = await fillDynamicAttributeWithRetries(attribute, fillId);
+        if (result.recoveredTechnicalValue && typeof onRecoveredDisplayOnly === 'function') {
+          onRecoveredDisplayOnly({ key: attribute.key, technicalValue: result.recoveredTechnicalValue,
+            displayValue: result.verifiedDisplayValue });
+        }
         void diagnostic(fillId, 'TEMPLATE_ATTRIBUTE_SET', {
           key: attribute.key,
           label: attribute.label || attribute.key,
           controlType: attribute.controlType || null,
-          technicalValue: String(attribute.technicalValue),
+          technicalValue: result.recoveredTechnicalValue ? null : String(attribute.technicalValue),
+          displayOnlyRecovered: Boolean(result.recoveredTechnicalValue),
           attempt: result.attempt,
           maxAttempts: LOCAL_ATTRIBUTE_SELECTION_ATTEMPTS,
           localRetryRecovered: result.attempt > 1,
