@@ -75,6 +75,7 @@ async function fixture({mode='fast',existingTarget=false,missingImage=false,sess
     openDatabase:()=>database(name),
     IDBKeyRangeCtor:IDBKeyRange,
     IMAGE_STORE:'images',INVENTORY_STORE:'inventories',
+    isTrashRecord:record=>record?.recordKind==='trash',
     normalizeRenewalMode:x=>x,RENEWAL_MODE_FAST:'fast',
     logDiagnostic:async (...v)=>{diagnostics.push(v);},
     setAppNotice:async v=>{notices.push(v);},
