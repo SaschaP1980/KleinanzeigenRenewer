@@ -901,6 +901,8 @@ async function deleteInventory(inventoryId) {
 
 async function removeReplacementReadyLocal(message) { return requireRemoteDeleteReplacementService().removeReplacementReadyLocal(message); }
 
+async function recoverEmergencyResetCandidateAtomic(session) { return requireRemoteDeleteReplacementService().recoverEmergencyResetCandidateAtomic(session); }
+
 async function promoteRenewalCandidateAtomic(session) { return requireRemoteDeleteReplacementService().promoteRenewalCandidateAtomic(session); }
 
 function renewalTargetTabStillOwned(tab, session) { return requireRemoteDeleteReplacementService().renewalTargetTabStillOwned(tab, session); }
@@ -1710,7 +1712,7 @@ function requireRenewalWorkflowController() {
       isSafeLegacyManualEmergencyReset, logDiagnostic, logRenewalPhaseAttemptFailed, logRenewalPhaseAttemptStarted,
       massRenewalBatchCounts, massRenewalTerminalOutcome, mergeListingMetadata, mutateMassRenewalBatch,
       normalBrowserWindowId, normalizeKnownPublicAdUrl, normalizeProfileName, normalizeRenewalMode, normalizeRenewalPhaseAttempts,
-      persistArchiveInsertionSession, publicAvailabilitySnapshot, putInventoryRecordOnly, queueMassRenewalProgress,
+      persistArchiveInsertionSession, publicAvailabilitySnapshot, putInventoryRecordOnly, recoverEmergencyResetCandidateAtomic, queueMassRenewalProgress,
       readArchiveInsertionSessions, readDiagnostics, readFillSessions, readInventoryRecordsForProfile, readProfiles,
       readRenewalSessions, reconcileMassRenewalBatchSession, renewalAttemptState, renewalComparisonWaitsOnlyForOnline,
       renewalInsertionMeta, renewalMaxPhaseAttempts, renewalAttemptDetails, renewalOutcomeForComparison, renewalPhaseAttemptAvailable,
@@ -2079,6 +2081,7 @@ function requireWorkflowEmergencyResetController() {
       RenewalStateRepository, readRenewalSessions, writeRenewalSessions, renewalHoldsInsertionLock,
       isSafeLegacyManualEmergencyReset, isSafePrePublishPaidInsertion, emergencyResetRenewalState,
       readArchiveInsertionSessions, writeArchiveInsertionSessions, readMassRenewalBatch, writeMassRenewalBatch,
+      recoverEmergencyResetCandidateAtomic,
       touchMassRenewalItemProgress, getTabRegistrySnapshot, TAB_STATES,
       logDiagnostic, sessionCorrelationContext, broadcastInventoryChanged
     });
