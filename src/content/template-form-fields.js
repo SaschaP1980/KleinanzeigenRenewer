@@ -392,6 +392,40 @@
     return null; // never infer a boolean from display text or a truthy string
   }
 
+  // Read-only evidence for a failed choice. Observe only the exact linked menu
+  // (if exposed); unrelated popups and incomplete/virtualized rows never prove
+  // that a technical value has been removed. No raw DOM or option lists are logged.
+  function readCurrentOptionEvidence(attribute, input) {
+    const name = resolvedAttributeName(attribute);
+    const effectiveKey = name.slice('attributeMap['.length, -1);
+    const control = input && findAttributeControl(input, { ...attribute, key: effectiveKey,
+      controlId: effectiveKey !== attribute.key ? effectiveKey : attribute.controlId });
+    const links = String(control?.getAttribute?.('aria-controls') ||
+      control?.getAttribute?.('aria-owns') || '').split(/\s+/).filter(Boolean);
+    const linked = links.map(id => document.getElementById(id)).filter(root => root && visible(root));
+    const root = linked.length === 1 ? linked[0] : null;
+    const options = root ? [...root.querySelectorAll('[role="option"],[role="menuitem"]')]
+      .filter(element => visible(element)) : [];
+    const wanted = clean(attribute.displayValue || attribute.technicalValue).toLocaleLowerCase('de-DE');
+    const matches = options.filter(element => visibleText(element).toLocaleLowerCase('de-DE') === wanted);
+    const values = options.map(element => element.getAttribute('data-value') ??
+      element.getAttribute('value')).filter(value => value !== null && value !== '');
+    const virtualized = Boolean(root?.querySelector?.('[data-virtualizer],[data-virtual]')) ||
+      options.some(element => Number(element.getAttribute('aria-setsize')) > options.length);
+    return {
+      technicalKey: effectiveKey.slice(0, 128),
+      controlKind: control?.getAttribute?.('role') || control?.tagName?.toLowerCase() || 'unknown',
+      controlPresent: Boolean(control),
+      controlDisabled: Boolean(control?.disabled || control?.getAttribute?.('aria-disabled') === 'true'),
+      expanded: control?.getAttribute?.('aria-expanded') || 'unknown',
+      linkedPopupCount: linked.length, visibleOptionCount: options.length,
+      matchingLabelCount: matches.length, explicitTechnicalIdCount: values.length,
+      optionEvidence: !root ? 'unknown' : virtualized || !options.length || values.length !== options.length
+        ? 'partial-or-hydrating' : 'enumerated',
+      technicalReadbackMatch: Boolean(input && String(input.value) === String(attribute.technicalValue))
+    };
+  }
+
   async function fillDynamicAttributeWithRetries(attribute, fillId) {
     const name = resolvedAttributeName(attribute);
     const isSmartwatches = String(document.querySelector('form input[name="categoryId"]')?.value) === '405';
@@ -450,6 +484,14 @@
         }
       }
 
+      if (lastError && typeof readCurrentOptionEvidence === 'function') {
+        try {
+          void diagnostic(fillId, 'TEMPLATE_ATTRIBUTE_OPTION_EVIDENCE', {
+            key: attribute.key, attempt, maxAttempts: LOCAL_ATTRIBUTE_SELECTION_ATTEMPTS,
+            ...readCurrentOptionEvidence(attribute, input)
+          }, 'warning');
+        } catch (_) { /* diagnostic observation may never change fill outcome */ }
+      }
       if (attempt < LOCAL_ATTRIBUTE_SELECTION_ATTEMPTS) {
         void diagnostic(fillId, 'TEMPLATE_ATTRIBUTE_LOCAL_RETRY', {
           key: attribute.key, label: attribute.label || attribute.key,
