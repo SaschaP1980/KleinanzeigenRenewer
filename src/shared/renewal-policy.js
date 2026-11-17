@@ -34,6 +34,34 @@
     };
   }
 
+  function beginRenewalPhaseAttempt(session, phase, { attempt = null, lastError = null } = {}) {
+    const phaseNumber = Number(phase);
+    const key = String(phaseNumber);
+    const previous = renewalAttemptState(session, phaseNumber);
+    const nextAttempt = attempt == null ? previous.attempt + 1 : Number(attempt);
+    session.phaseAttempts = { ...(session.phaseAttempts || {}) };
+    const state = {
+      attempt: Math.max(1, nextAttempt),
+      attemptId: crypto.randomUUID(),
+      lastError: lastError ? String(lastError).slice(0, 800) : null,
+      updatedAt: new Date().toISOString()
+    };
+    session.phaseAttempts[key] = state;
+    return state;
+  }
+
+  function recordRenewalPhaseAttemptError(session, phase, error) {
+    const key = String(Number(phase));
+    const current = renewalAttemptState(session, phase);
+    session.phaseAttempts = { ...(session.phaseAttempts || {}) };
+    session.phaseAttempts[key] = {
+      ...current,
+      lastError: String(error?.message || error || '').slice(0, 800) || null,
+      updatedAt: new Date().toISOString()
+    };
+    return session.phaseAttempts[key];
+  }
+
   function renewalPhaseAttemptAvailable(session, phase) {
     return renewalAttemptState(session, phase).attempt < renewalMaxPhaseAttempts(session);
   }
@@ -69,6 +97,8 @@
     normalizeRenewalPhaseAttempts,
     renewalMaxPhaseAttempts,
     renewalAttemptState,
+    beginRenewalPhaseAttempt,
+    recordRenewalPhaseAttemptError,
     renewalPhaseAttemptAvailable,
     renewalAttemptDetails,
     isNonRetryableRenewalSafetyError,
