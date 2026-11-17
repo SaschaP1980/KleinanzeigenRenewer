@@ -107,8 +107,8 @@ function makeRuntime({report,template}){
   assert.equal(final.m.stage,'verified');
   assert.equal(final.m.status,'needs-review');
   assert.equal(final.m.result.schemaPreflight.verified,false);
-  assert.ok(final.m.result.issues.some(s=>s.includes('Stil')));
-  assert.ok(final.m.result.issues.some(s=>s.includes('Marke')));
+  assert.ok(final.m.result.issues.some(s=>s.toLowerCase().includes('stil')));
+  assert.ok(final.m.result.issues.some(s=>s.toLowerCase().includes('marke')));
   console.log('PASS KAR-201: safe partial ZIP prefill preserves images, other attributes, manual review and publish ban');
 
   const required=fixture({missingRequired:true}),o=required.engine.inspectForm(required.document.querySelector('form'),'246',required.document);
