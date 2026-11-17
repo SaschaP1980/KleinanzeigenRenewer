@@ -91,7 +91,7 @@ async function resetActiveWorkflows() {
   for (const renewal of Object.values(renewals || {})) {
     if (String(renewal?.status || '') !== 'cancelled'
         || String(renewal?.stage || '') !== 'emergency-reset-unverified'
-        || !/^\\d+$/.test(String(renewal?.newAdId || ''))
+        || !/^\d+$/.test(String(renewal?.newAdId || ''))
         || renewal?.comparison?.ownAdsPresence !== true) continue;
     try {
       await recoverEmergencyResetCandidateAtomic(renewal);
