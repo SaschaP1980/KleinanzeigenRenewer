@@ -23,7 +23,7 @@ const selected={stil:'Maritim',marke:'IKEA'};
 const clean=x=>String(x||'').replace(/\s+/g,' ').trim();
 function fixture({duplicate=false,missing=false,mislinked=false,noReact=false,changeLabel=false}={}){
   const markup=key=>{
-    const id='dekoration.'+key, list=menus[key].filter(x=>!(missing&&x===selected[key]));
+    const id='dekoration.'+key, list=menus[key].filter(x=>!(missing&&key==='stil'&&x===selected[key]));
     if(duplicate&&key==='stil')list.push(selected[key]);
     return '<div class="field"><input type="hidden" name="attributeMap['+id+']" value="">' +
       '<button id="'+id+'" role="combobox" type="button" aria-expanded="false" ' +
