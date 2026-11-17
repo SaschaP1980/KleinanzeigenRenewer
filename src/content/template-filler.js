@@ -186,7 +186,7 @@
     : null;
 
   const {
-    armPublishDetection, scrollToPublishButton, paidInsertionDetection, stopForPaidInsertion,
+    armPublishDetection, offerManualStandaloneRelease, scrollToPublishButton, paidInsertionDetection, stopForPaidInsertion,
     autoPublishVerifiedRenewal, advanceAfterVerifiedFill
   } = KRDeps.require('KRTemplatePublishFlow').create({
     PaidInsertionGuard, clean, sleep, runtimeMessage, diagnostic, visible, visibleText, waitFor, updatePanel
@@ -1196,14 +1196,44 @@
     );
     void diagnostic(fillId, 'TEMPLATE_FILL_VERIFIED', { complete, issueCount: uniqueIssues.length, imagesComplete, imageStates: imageOutcome.states?.map(state => ({ index: state.index, status: state.status })) || [] }, complete ? 'info' : 'warning');
     const schemaPreflight = persistedSchemaPreflight(schemaPreflightReport, template, complete);
-    const verifiedResult = { complete, issues: uniqueIssues.slice(0, 50), schemaPreflight };
-    await runtimeMessage({
+    // KAR-201: partial archive review is a distinct *manual-only* admission,
+    // not a weakened schema/publish gate. Title/category must still match
+    // exactly, and every source image must have completed stable upload.
+    const reviewForm = resolveActivePostingForm(verificationForm);
+    const sourceImages = Array.isArray(template.images) ? template.images : [];
+    const manualStandaloneReviewEligible = Boolean(
+      partialPrefill && !complete && imagesComplete &&
+      session.archiveInsertionId && !session.renewalId &&
+      sourceImages.length > 0 &&
+      imageOutcome.states?.length === sourceImages.length &&
+      String(reviewForm?.querySelector?.('input[name="categoryId"]')?.value || '') === String(template.categoryId || '') &&
+      String(reviewForm?.querySelector?.('input[name="title"]')?.value || '') === String(template.title || '') &&
+      schemaPreflight?.comparisonStatus === 'legacy-unversioned' &&
+      schemaPreflight?.verified === false
+    );
+    const verifiedResult = {
+      complete, issues: uniqueIssues.slice(0, 50), schemaPreflight,
+      manualStandaloneReviewEligible,
+      manualImageCount: manualStandaloneReviewEligible ? sourceImages.length : 0
+    };
+    const persisted = await runtimeMessage({
       type: 'UPDATE_TEMPLATE_FILL_SESSION',
       fillId,
       status: complete ? 'running' : 'needs-review',
       stage: complete ? 'form-verified' : 'verified',
       result: verifiedResult
     });
+    if (manualStandaloneReviewEligible &&
+        persisted?.status === 'needs-review' && persisted?.stage === 'verified') {
+      const shown = offerManualStandaloneRelease({
+        fillId, expectedCategoryId: template.categoryId,
+        expectedTitle: template.title, imageCount: sourceImages.length
+      });
+      void diagnostic(fillId, 'MANUAL_STANDALONE_REVIEW_OFFERED', {
+        shown: Boolean(shown), imageCount: sourceImages.length,
+        needsManualOwnerConsent: true, automaticPublishAllowed: false
+      }, 'warning');
+    }
     if (complete) {
       const continuation = await advanceAfterVerifiedFill({ fillId, renewalId: session.renewalId || null, templateOnly: Boolean(session.templateOnly), archiveInsertionId: session.archiveInsertionId || null, trashInventoryId: session.trashInventoryId || null, stage: 'form-verified', result: verifiedResult });
       return { complete, issues: uniqueIssues, ...continuation };
