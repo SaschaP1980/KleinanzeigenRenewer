@@ -4,6 +4,19 @@ This is the canonical version-specific history for Kleinanzeigen Manager. Entrie
 
 All distinct historical section bodies from the former root README and CHANGELOG are preserved with source labels and line numbers. The [KAR-170 migration ledger](docs/maintenance/KAR170_CHANGELOG_MIGRATION.json) identifies their original Git blobs and body checksums. Overlapping versions retain distinct factual notes; older references to planned builds or native/CI acceptance are **historical**, not live status.
 
+## v1.25.10 — KAR-201 native legacy display-only option recovery (Work candidate, not yet released)
+
+- Extend the KAR-201 legacy template fix with a safe recovery path for owner-observed category-246 “Stil” and “Marke”: archive capture may preserve a human-readable option label but no technical option ID, even though the native posting form presents an exact label.
+- The current Kleinanzeigen UI exposes a button combobox with `aria-controls` pointing to its own listbox, with unlabeled technical IDs on the rendered options. Never derive an ID from option order or a guessed mapping: click only one exact, unique, enabled option in the correctly linked listbox and accept only the **React-owned hidden technical value plus exact visible readback**, repeated at the final form verification after uploads.
+- Preserve original archived values, all image and account ownership, and previous verified publishing gates. Missing/duplicate labels, mislinked dropdowns or unconfirmed hidden/display pairs fail closed; do not silently omit populated selections.
+- Six synthetic native-ARIA tests based on the owner-observed menu shape contain no account credentials, listing data or signed image URLs. Original owner HTML remains private, and true site acceptance is still pending.
+
+## v1.25.9 — KAR-201 legacy schema/value provenance (Work candidate, not yet released)
+
+- Separate missing historical fingerprints, first-observed category monitor references and independently proven option compatibility. Classify unknown, incomplete, incompatible, confirmed or ambiguous technical/visible selection evidence instead of treating null option catalogs as proof of compatibility.
+- Surface actionable German warnings on legacy selections before slow retries, retain a sanitized per-attribute option evidence trail and preserve failed-fill preflight outcomes across MV3 reconnect. Unverified reports never grant publish authority.
+- Provide synthetic category-246 value-drift and session-persistence regressions; keep the verified historic category-405 alias and image/archive publish guards intact.
+
 ## v1.25.8 — KAR-199 transient Phase-4 journal Web Lock contention (Work source candidate)
 
 - Fix a second owner-observed Phase-4 failure: publishing and independent Schnellprüfung succeeded, but the shared durable Phase-4 journal rejected the origin Web Lock as `KR_PHASE4_JOURNAL_ATOMIC_BUSY` in 18 ms, before any remote `DELETE_OWN_AD_BY_ID` was sent. The previous v1.25.7 fix correctly showed an unverified outcome instead of hanging, but it did not tolerate a momentary Web Lock owner.
