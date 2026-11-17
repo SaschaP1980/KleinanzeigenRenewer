@@ -999,6 +999,7 @@
     if (paidAfterCategory.required) return await stopForPaidInsertion(session, paidAfterCategory, 'after-category');
 
     let schemaPreflightReport = null;
+    let partialPrefill = false;
     const recoveredDisplayOnly = new Map();
     if (String(form.querySelector('input[name="categoryId"]')?.value || '') === String(template.categoryId || '')) {
       try {
@@ -1045,8 +1046,25 @@
         if (!acknowledged) return { complete: false, reviewRequired: true,
           referenceApproved: false, publishTriggered: false,
           issues: schemaPreflightReport.issues || [] };
-        if (!schemaPreflightReport.complete)
-          return await stopForSchemaPreflight(session, schemaPreflightReport.issues, schemaPreflightReport);
+        if (!schemaPreflightReport.complete) {
+          if (schemaPreflightReport.partialContinuationEligible !== true)
+            return await stopForSchemaPreflight(session, schemaPreflightReport.issues, schemaPreflightReport);
+          partialPrefill = true;
+          // Keep all preflight review issues throughout the remaining pipeline.
+          // Partial filling is NOT verified or a publication authority.
+          issues.push(...schemaPreflightReport.issues);
+          updatePanel('Vorlage teilweise übernehmen – Merkmale später prüfen',
+            'Bekannte Angaben und Bilder werden übernommen. Einzelne Auswahlen benötigen deine manuelle Ergänzung.',
+            schemaPreflightReport.issues, {
+              safetyText: 'Keine automatische Veröffentlichung. Bitte fehlende Merkmale im Formular manuell prüfen.'
+            });
+          void diagnostic(fillId, 'TEMPLATE_SCHEMA_PREFLIGHT_PARTIAL_CONTINUATION', {
+            status: schemaPreflightReport.comparison?.status || 'unresolved',
+            issueCount: schemaPreflightReport.issues.length,
+            skippedAttributeKeys: schemaPreflightReport.partialSkipKeys.slice(0, 30),
+            autoPublishAllowed: false
+          }, 'warning');
+        }
       } catch (error) {
         return await stopForSchemaPreflight(session, [
           'Kategorieabhängige Felder konnten nicht sicher geprüft werden: ' + String(error.message || error).slice(0, 250)
@@ -1063,10 +1081,17 @@
           return approved ? { ...attribute, displayValue: approved.expectedDisplayLabel } : attribute;
         }) }
         : template;
+      // Skip only individually evidenced unsafe legacy attributes, never
+      // invent a technical ID or change the source. Preserve other fields.
+      const manualKeys = new Set(partialPrefill ? schemaPreflightReport.partialSkipKeys : []);
+      const safeFillTemplate = manualKeys.size
+        ? { ...mappedFillTemplate, dynamicAttributes:
+            (mappedFillTemplate.dynamicAttributes || []).filter(item => !manualKeys.has(item.key)) }
+        : mappedFillTemplate;
       // Display-only legacy values are recovered transiently, never written
       // back into the original archive. Only the exact clicked option and the
       // React-owned hidden input may supply a technical value.
-      const attributeIssues = await fillDynamicAttributes(mappedFillTemplate, fillId, proof => {
+      const attributeIssues = await fillDynamicAttributes(safeFillTemplate, fillId, proof => {
         if (!proof?.key || !proof.technicalValue || !proof.displayValue ||
             recoveredDisplayOnly.has(proof.key))
           throw new Error('Nicht eindeutiger wiederhergestellter Auswahlwert.');
@@ -1084,6 +1109,9 @@
       issues.push('Kategorieabhängige Merkmale wurden nicht gesetzt, weil die Kategorie nicht bestätigt wurde.');
     }
 
+    // Category and attribute choices may replace the whole React form. Use
+    // its current owner before writing the other safe fields and images.
+    form = resolveActivePostingForm(form);
     try { setTextField(form.querySelector('textarea[name="description"]'), template.description || ''); await settleAfterInteraction(fillId, 'description'); void diagnostic(fillId, 'TEMPLATE_DESCRIPTION_SET', { length: String(template.description || '').length }); } catch (error) { issues.push(`Beschreibung: ${error.message}`); void diagnostic(fillId, 'TEMPLATE_DESCRIPTION_FAILED', { message: error.message }, 'warning'); }
     try { setTextField(form.querySelector('input[name="priceAmount"]'), template.price?.value || ''); await settleAfterInteraction(fillId, 'price'); void diagnostic(fillId, 'TEMPLATE_PRICE_SET', { hasValue: Boolean(template.price?.value) }); } catch (error) { issues.push(`Preis: ${error.message}`); void diagnostic(fillId, 'TEMPLATE_PRICE_FAILED', { message: error.message }, 'warning'); }
     const priceTypeIssues = await fillPriceType(template);
@@ -1143,7 +1171,7 @@
 
     const uniqueIssues = [...new Set(issues)];
     const imagesComplete = imageOutcome.complete === true;
-    const complete = uniqueIssues.length === 0 && imagesComplete;
+    const complete = !partialPrefill && uniqueIssues.length === 0 && imagesComplete;
     if (complete && schemaPreflightReport && recovered.size) {
       for (const item of schemaPreflightReport.valueEvidence || []) {
         if (item.reason === 'display-only-exact-selection-required' && recovered.has(item.key)) {
@@ -1156,9 +1184,15 @@
         schemaPreflightReport.valueCompatibility = 'confirmed';
     }
     updatePanel(
-      complete ? 'Vorlage vollständig übernommen' : 'Vorlage übernommen – Prüfung nötig',
-      complete ? 'Alle kontrollierten Vorlagenwerte stimmen mit dem neuen Formular überein.' : `${uniqueIssues.length} Punkt(e) konnten nicht eindeutig bestätigt werden.`,
-      uniqueIssues
+      complete ? 'Vorlage vollständig übernommen'
+        : partialPrefill ? 'Vorlage teilweise übernommen – Merkmale manuell ergänzen'
+          : 'Vorlage übernommen – Prüfung nötig',
+      complete ? 'Alle kontrollierten Vorlagenwerte stimmen mit dem neuen Formular überein.'
+        : partialPrefill
+          ? 'Verfügbare Angaben und Bilder wurden bearbeitet. Bitte prüfe die unten genannten Merkmale und ergänze sie bei Bedarf direkt im Formular.'
+          : `${uniqueIssues.length} Punkt(e) konnten nicht eindeutig bestätigt werden.`,
+      uniqueIssues,
+      partialPrefill ? { safetyText: 'Nicht automatisch veröffentlicht. Manuelle Prüfung bleibt erforderlich.' } : undefined
     );
     void diagnostic(fillId, 'TEMPLATE_FILL_VERIFIED', { complete, issueCount: uniqueIssues.length, imagesComplete, imageStates: imageOutcome.states?.map(state => ({ index: state.index, status: state.status })) || [] }, complete ? 'info' : 'warning');
     const schemaPreflight = persistedSchemaPreflight(schemaPreflightReport, template, complete);
