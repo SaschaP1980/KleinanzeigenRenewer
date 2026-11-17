@@ -13,14 +13,15 @@ assert.match(controller,/manualPublishDetachedAt/,
   'durable manual detachment must prevent resumed managed auto-publication');
 assert.match(publish,/function offerManualStandaloneRelease\(/,
   'visible owner confirmation is required for an eligible partial archive fill');
-assert.match(publish,/manualDetached && event\.isTrusted/,
+assert.match(publish,/if \(manualDetached\) \{[\s\S]{0,250}!event\.isTrusted/,
   'a synthetic click cannot exercise human publication authority');
 assert.match(publish,/MANUAL_STANDALONE_PUBLISH_CLICKED/,
   'record user-initiated click without claiming online publication');
 assert.match(filler,/manualStandaloneReviewEligible/,
   'only image-complete, reviewed, category-checked archive partial fills can offer manual mode');
-assert.doesNotMatch(publish,/manualDetached[\s\S]{0,250}RENEWAL_PUBLISH_CLICKED/,
-  'manual standalone click must not invoke renewal/source-retirement workflows');
+const manualClickBranch=publish.split('if (manualDetached) {')[1]?.split('if (permitted === control')[0] || '';
+assert.doesNotMatch(manualClickBranch,/runtimeMessage\s*\(/,
+  'manual standalone click cannot send managed renewal publication messages');
 
 const beginning=controller.indexOf('async function approveManualStandaloneRelease(');
 const ending=controller.indexOf('async function updateTemplateFillSession(',beginning);
