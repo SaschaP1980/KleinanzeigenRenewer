@@ -17,13 +17,14 @@ const runner = fs.readFileSync('src/content/inventory-runner.js', 'utf8');
 let count = 0;
 const ok = (condition, description) => {assert.ok(condition, description);count++;};
 function fixture({changedAt='',missingName=false,absent=false,reportedOnline=2,
-  missingHeader=false,onlineCountDrift=false,missingNext=false,duplicate=false,zero=false}={}) {
-  let page = 1, profile = missingName ? '' : 'Real Profile', mutations = 0, log = [];
+  missingHeader=false,onlineCountDrift=false,missingNext=false,duplicate=false,zero=false,
+  lateAccountAt='',finalCountDrift=false}={}) {
+  let page = 1, profile = missingName ? '' : 'Real Profile', mutations = 0, log = [], lateCount = null;
   // Mimic the actual My Ads header at each pagination boundary. A temporary
   // disappearance of the next-page control must not prove full exhaustion.
   globalThis.document = {body:{get innerText() {
     if (missingHeader) return '';
-    const online = onlineCountDrift && page === 2 ? reportedOnline + 1 : reportedOnline;
+    const online = lateCount ?? (onlineCountDrift && page === 2 ? reportedOnline + 1 : reportedOnline);
     return online + ' Anzeigen online';
   }}};
   const ops = moduleApi.create({
@@ -35,7 +36,11 @@ function fixture({changedAt='',missingName=false,absent=false,reportedOnline=2,
     isMyAdsProjectsUrl: () => true,
     currentPageNumber: () => page,
     pageFingerprint: () => 'page-' + page,
-    nextPageButton: () => missingNext && page === 1 ? null : ({click() {page++; if (changedAt === 'navigation') profile = 'Other Account';}}),
+    nextPageButton: () => {
+      if (lateAccountAt === 'last-next-button' && page === 2) profile = 'Other Account';
+      if (finalCountDrift && page === 2) lateCount = reportedOnline + 1;
+      return missingNext && page === 1 ? null : ({click() {page++; if (changedAt === 'navigation') profile = 'Other Account';}});
+    },
     isDisabledControl: next => !next || (zero ? page >= 1 : page >= 2),
     waitForPageChange: async () => true,
     waitForListings: async () => {
@@ -45,11 +50,18 @@ function fixture({changedAt='',missingName=false,absent=false,reportedOnline=2,
       if (zero) return [];
       if (duplicate) return [{adId:'1234',root:{}}];
       if (page === 1) return [{adId:'1234',root:{}}];
-      if (page === 2) return [{adId:absent ? '2222' : '5678',root:{}}];
+      if (page === 2) {
+        let reads = 0;
+        return [{get adId() {
+          reads++;
+          if (lateAccountAt === 'match-card-id' && reads === 2) profile = 'Other Account';
+          return absent ? '2222' : '5678';
+        },root:{}}];
+      }
       return [];
     },
     detectedProfileName: () => profile,
-    parseOnlineCount: () => missingHeader ? null : ({online:onlineCountDrift && page === 2 ? reportedOnline + 1 : reportedOnline})
+    parseOnlineCount: () => missingHeader ? null : ({online:lateCount ?? (onlineCountDrift && page === 2 ? reportedOnline + 1 : reportedOnline)})
   });
   return {
     ops,log,
@@ -89,6 +101,18 @@ function fixture({changedAt='',missingName=false,absent=false,reportedOnline=2,
         description+' must never become positive source absence');
       ok(true,'fail-closed R1 source absence: '+description);
     }
+    await assert.rejects(fixture({lateAccountAt:'match-card-id'}).find(),
+      /KR_MY_ADS_ACCOUNT_CHANGED_DURING_SCAN/,
+      'authenticated account switch during final exact-ID card match cannot become a positive find');
+    ok(true,'fail-closed account match after card selection');
+    await assert.rejects(fixture({absent:true,lateAccountAt:'last-next-button'}).absent(),
+      /KR_MY_ADS_ACCOUNT_CHANGED_DURING_SCAN/,
+      'account switch while final pagination button is resolved must not prove original-source absence');
+    ok(true,'fail-closed account match after pagination exhaustion');
+    await assert.rejects(fixture({absent:true,finalCountDrift:true}).absent(),
+      /KR_MY_ADS_ROSTER_INCOMPLETE/,
+      'last-page header count drift while resolving end-of-pages cannot prove source absence');
+    ok(true,'fail-closed final online count after pagination exhaustion');
     for (const changedAt of ['navigation','wait-page-1','wait-page-2']) {
       const invalid=fixture({changedAt});
       await assert.rejects(invalid.find(), /KR_MY_ADS_ACCOUNT_CHANGED_DURING_SCAN/,
