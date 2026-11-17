@@ -48,6 +48,19 @@ jobs:
           echo "MERGE_DRY_RUN_RESOLVED_NO_PUSH"
       - name: Install dependencies
         run: npm ci
+      - name: Archive exact v1.25.13 preview ZIP before mandatory parity self-test
+        shell: bash
+        env:
+          EXPECTED_MAIN: a267caabd53427aa7378be5017787ab32e7c88bd
+        run: |
+          set -euo pipefail
+          python3 scripts/package.py "$RUNNER_TEMP/kar171-preview"
+          ZIP="release/kleinanzeigen-renewal-chrome-v1.25.13.zip"
+          test ! -e "$ZIP"
+          cp "$RUNNER_TEMP/kar171-preview/kleinanzeigen-renewal-chrome-v1.25.13.zip" "$ZIP"
+          git add -f "$ZIP"
+          unzip -t "$ZIP" >/dev/null
+          python3 scripts/verify_committed_chrome_zip.py --base-sha "$EXPECTED_MAIN"
       - name: Full regression, architecture, public function and coverage gates
         run: bash scripts/coverage-gate.sh
       - name: Build and integrity-check Chrome ZIP from merged tree (runner-only)
