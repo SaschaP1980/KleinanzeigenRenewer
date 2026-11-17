@@ -537,6 +537,34 @@ async function preverifyAndTriggerRenewalSourceDeleteAttempt(session, expectedPr
   }
 }
 
+// Persist visible, non-destructive Phase-4 uncertainty before returning an error.
+// In particular the source and verified target remain untouched in local storage.
+async function markPhase4Unverified(session, code) {
+  const journalUncertain = String(code || '').startsWith('KR_PHASE4_JOURNAL_');
+  session.status = 'verified';
+  session.stage = journalUncertain ? 'source-delete-outcome-unverified' : 'source-delete-status-unverified';
+  session.lastError = String(code || 'KR_PHASE4_STATUS_UNVERIFIED');
+  session.sourceDeleteUnverifiedAt = new Date().toISOString();
+  await persistRenewalSession(session);
+  const text = 'Neue Anzeige bestätigt; alte Anzeige noch nicht nachweislich gelöscht. Bitte zunächst beide Anzeigen in „Meine Anzeigen“ prüfen. Kein automatischer zweiter Löschversuch.';
+  await Promise.allSettled([
+    setAppNotice({
+      id: crypto.randomUUID(),
+      kind: 'warning',
+      event: 'renewal-phase4-unverified',
+      title: 'Austausch nicht abgeschlossen',
+      text,
+      renewalId: session.renewalId,
+      sourceAdId: session.sourceAdId,
+      newAdId: session.newAdId
+    }),
+    logDiagnostic('warning', 'RENEWAL_PHASE4_UNVERIFIED', {
+      reasonCode: String(code || 'UNKNOWN'), stage:session.stage,
+      beforeDeleteProven: !journalUncertain
+    }, {module:'background',operation:'renewal-phase-4'})
+  ]);
+}
+
 async function finishRenewalReplacement(message, admissionReceipt = null) {
   const resetGeneration = captureResetGeneration();
   await assertMassRenewalManualActionAllowed(message);
@@ -686,10 +714,13 @@ async function finishRenewalReplacement(message, admissionReceipt = null) {
       const pageText = verification?.foundPage ? ` (gefunden auf Seite ${verification.foundPage})` : '';
       throw new Error(`Quellanzeige ist nach der Löschaktion weiterhin in „Meine Anzeigen“ vorhanden${pageText}.`);
     } catch (error) {
-      // A journal denial means no confirmed remote attempt was admitted.
-      // Never classify missing/corrupt/old-worker receipts as a failed delete
-      // or continue automatic retries under an ambiguous MV3 generation.
-      if (String(error?.code || error?.message || '').startsWith('KR_PHASE4_JOURNAL_')) throw error;
+      // Unknown status/readback or durable intent must never enter the
+      // automatic retry loop or be mislabeled as a completed remote deletion.
+      const code = String(error?.code || error?.message || '');
+      if (code === 'KR_PHASE4_STATUS_TIMEOUT' || code.startsWith('KR_PHASE4_JOURNAL_')) {
+        await markPhase4Unverified(session, code);
+        throw error;
+      }
       lastError = error;
       session.stage = 'source-delete-retry-pending';
       session.lastError = String(error.message || error).slice(0, 800);
