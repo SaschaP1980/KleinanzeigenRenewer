@@ -42,6 +42,7 @@
         ? Math.min(300000, Math.floor(Number(value))) : fallback;
       const PHASE4_STATUS_TIMEOUT_MS = boundedMs(options.phase4StatusRequestTimeoutMs, 20000);
       const PHASE4_DELETE_RESPONSE_TIMEOUT_MS = boundedMs(options.phase4DeleteRequestTimeoutMs, 180000);
+      const PHASE4_JOURNAL_TIMEOUT_MS = boundedMs(options.phase4JournalTimeoutMs, 45000);
       const PHASE4_READONLY_TIMEOUT_MS = boundedMs(options.phase4ReadOnlyRequestTimeoutMs, 180000);
 
       function phase4Milestone(event, step, requestType, limit, started) {
@@ -50,6 +51,35 @@
         void Promise.resolve().then(() => logDiagnostic(/TIMEOUT|FAILED$/.test(event) ? 'warning' : 'info',event,{
           step,requestType,timeoutMs:limit,elapsedMs:Math.max(0,Date.now()-started)
         },{module:'background',operation:'renewal-phase-4'})).catch(() => {});
+      }
+
+      async function boundedPhase4JournalBegin(operation) {
+        const started=Date.now();
+        const step='durable-intent-begin';
+        phase4Milestone('RENEWAL_PHASE4_JOURNAL_BEGIN_STARTED',step,'JOURNAL',PHASE4_JOURNAL_TIMEOUT_MS,started);
+        let timer;
+        try {
+          const receipt=await Promise.race([
+            Promise.resolve().then(operation),
+            new Promise((_,reject) => { timer=setTimeout(() => {
+              const error=new Error('KR_PHASE4_JOURNAL_BEGIN_TIMEOUT');
+              error.code='KR_PHASE4_JOURNAL_BEGIN_TIMEOUT';
+              reject(error);
+            },PHASE4_JOURNAL_TIMEOUT_MS); })
+          ]);
+          phase4Milestone('RENEWAL_PHASE4_JOURNAL_BEGIN_COMPLETED',step,'JOURNAL',PHASE4_JOURNAL_TIMEOUT_MS,started);
+          return receipt;
+        } catch(error) {
+          phase4Milestone(error?.code==='KR_PHASE4_JOURNAL_BEGIN_TIMEOUT'
+            ? 'RENEWAL_PHASE4_JOURNAL_BEGIN_TIMEOUT'
+            : 'RENEWAL_PHASE4_JOURNAL_BEGIN_FAILED',
+            step,'JOURNAL',PHASE4_JOURNAL_TIMEOUT_MS,started);
+          // The async journal may commit after the observer's timeout.
+          // Never proceed to remote deletion and never assume no receipt exists.
+          throw error;
+        } finally {
+          if(timer!==undefined)clearTimeout(timer);
+        }
       }
 
       async function boundedPhase4TabRequest(tabId,message,step,timeoutMs,code) {
@@ -463,13 +493,13 @@ async function preverifyAndTriggerRenewalSourceDeleteAttempt(session, expectedPr
     // Store/read back the irreversible uncertainty receipt only after the
     // fresh My Ads page has independently confirmed the expected profile.
     // No follow-up DELETE_OWN_AD_BY_ID may run if this admission fails.
-    const attemptReceipt = await beginPhase4Attempt({
+    const attemptReceipt = await boundedPhase4JournalBegin(() => beginPhase4Attempt({
       renewalId: String(session.renewalId || ''),
       profileId: actualProfile,
       sourceAdId: String(session.sourceAdId || ''),
       newAdId: String(session.newAdId || ''),
       admissionReceipt
-    });
+    }));
 
     await logDiagnostic('info', 'RENEWAL_PHASE4_ATOMIC_PREVERIFY_DELETE_STARTED', {
       renewalId: session.renewalId,
