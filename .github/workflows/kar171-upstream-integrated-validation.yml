@@ -37,12 +37,14 @@ jobs:
           # Disposable workflows are NOT part of a product source tree. Remove
           # them in the runner before executing the immutable closure gate.
           git rm -f .github/workflows/kar171-upstream-drymerge.yml .github/workflows/kar171-upstream-integrated-validation.yml
+          python3 docs/maintenance/KAR171_PREVIEW_VERSION.py
+          git add manifest.json package.json CHANGELOG.md
           git diff --cached --check
           test -z "$(git diff --name-only --diff-filter=U)"
           for file in src/background/background.js src/background/services/auto-publish-intent-journal.js src/background/services/phase4-uncertainty-journal.js src/background/services/remote-delete-replacement-service.js src/content/inventory-delete-operations.js src/content/inventory-runner.js; do
             node --check "$file"
           done
-          node -e "const p=require('./package.json'),m=require('./manifest.json');if(p.version!==m.version)process.exit(1);console.log('MERGED_VERSION',m.version)"
+          node -e "const p=require('./package.json'),m=require('./manifest.json');if(p.version!==m.version||m.version!=='1.25.13')process.exit(1);console.log('MERGED_VERSION',m.version)"
           echo "MERGE_DRY_RUN_RESOLVED_NO_PUSH"
       - name: Install dependencies
         run: npm ci
