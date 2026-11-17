@@ -48,4 +48,17 @@ package_path.write_text(json.dumps(package,ensure_ascii=False,indent=2)+"\n",enc
 package_lock_path.write_text(json.dumps(lock,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
 release_spec_path.write_text(json.dumps(spec,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
 changelog_path.write_text(changelog.replace(heading,new_entry+heading,1),encoding="utf-8")
+# KAR-201's frozen CURRENT allowlist is deliberately strict. Explicitly
+# register the owner-authorized KAR-171 preview patch without allowing all
+# future versions or relaxing the historical negative-version cases.
+policy_path=root/"tests/current-patch-policy-regression.cjs"
+policy=policy_path.read_text(encoding="utf-8")
+old_current="'1.25.12'].includes(canonical.manifest.version)"
+new_current="'1.25.12', '1.25.13'].includes(canonical.manifest.version)"
+old_positive="['1.25.12', true], ['2.0.0'"
+new_positive="['1.25.12', true], ['1.25.13', true], ['2.0.0'"
+if policy.count(old_current)!=1 or policy.count(old_positive)!=1:
+    raise SystemExit("KAR171_PREVIEW_VERSION_DENIED: strict patch test changed")
+policy=policy.replace(old_current,new_current,1).replace(old_positive,new_positive,1)
+policy_path.write_text(policy,encoding="utf-8")
 print("KAR171_PREVIEW_VERSION",NEXT,"Work only; release not authorized")
