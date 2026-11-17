@@ -1661,13 +1661,7 @@ function requirePhase4UncertaintyJournal() {
       verifyRemoteOutcome: receipt => requireRemoteDeleteReplacementService().verifyPhase4RemoteOutcomeFresh(receipt),
       lockName: AtomicMV3Admission.LOCK_NAME,
       lockManager: globalThis.navigator?.locks,
-      onSample: sample => {
-        // The journal releases the Web Lock before this non-blocking,
-        // low-cardinality diagnostic. Never log IDs, tokens or listing data.
-        void Promise.resolve().then(() => logDiagnostic('info',
-          'RENEWAL_PHASE4_JOURNAL_LOCK_CONTENTION', sample,
-          {module:'background',operation:'renewal-phase-4'})).catch(() => {});
-      }
+      onSample: s => logDiagnostic('info','RENEWAL_PHASE4_JOURNAL_LOCK_CONTENTION',s).catch(()=>{})
     });
   }
   return phase4Journal;
@@ -1686,8 +1680,7 @@ function requireAutoPublishIntentJournal() {
   }
   return autoPublishIntentJournal;
 }
-// A caller-supplied new-ID redirect is only a candidate. Read-only My Ads
-// verification in an independent managed tab is the sole outcome authority.
+// A redirect is not publication proof; independent My Ads verification is.
 let publishIntentAuthorizationService = null;
 function requirePublishIntentAuthorizationService() {
   if (!publishIntentAuthorizationService) publishIntentAuthorizationService = PublishIntentAuthorizationService.create({
