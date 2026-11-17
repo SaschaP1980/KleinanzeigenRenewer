@@ -78,7 +78,8 @@ async function resumePendingArchiveInsertions() {
         void withAutonomousAdmission('archive-postpublish-detached', () => runArchiveInsertionPostPublish(session.archiveInsertionId)).catch(() => {});
         continue;
       }
-      if (['complete', 'needs-review', 'error', 'cancelled'].includes(String(session?.status || ''))) continue;
+      // Publish-intent denial is an unresolved remote mutation boundary, not an idle/retryable draft.
+      if (['complete', 'needs-review', 'error', 'cancelled', 'publish-blocked'].includes(String(session?.status || ''))) continue;
       if (session?.status === 'submitted' && session?.targetTabId && !session?.newAdId) {
         const fill = Object.values(fills).find(item => item?.archiveInsertionId === session.archiveInsertionId && item?.targetTabId === session.targetTabId);
         if (fill) {

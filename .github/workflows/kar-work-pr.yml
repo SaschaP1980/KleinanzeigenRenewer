@@ -166,7 +166,10 @@ jobs:
   browser_e2e:
     name: Packaged Chromium E2E (exact Work HEAD)
     needs: validation
-    runs-on: ubuntu-latest
+    # Playwright 1.57.0 cannot install Chromium on the ubuntu26.04 runner
+    # currently behind ubuntu-latest; keep mandatory real-browser E2E on a
+    # pinned, supported image instead of skipping or mocking the test.
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
       EXPECTED_WORK_HEAD: ${{ github.event.pull_request.head.sha }}

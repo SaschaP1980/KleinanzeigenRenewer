@@ -4,6 +4,149 @@ This is the canonical version-specific history for Kleinanzeigen Manager. Entrie
 
 All distinct historical section bodies from the former root README and CHANGELOG are preserved with source labels and line numbers. The [KAR-170 migration ledger](docs/maintenance/KAR170_CHANGELOG_MIGRATION.json) identifies their original Git blobs and body checksums. Overlapping versions retain distinct factual notes; older references to planned builds or native/CI acceptance are **historical**, not live status.
 
+## v1.25.13 — KAR-171 upstream-integrated R1 test build (Work only; not released)
+
+- Integrate current main v1.25.12 into the isolated `work/KAR-171` branch, preserving #195, #197, #199 and #201 improvements.
+- Preserve and independently test original P8 publication/Phase-4 provenance, authenticated account-bound My Ads source/target whole-roster read-only checks, worker generation safety and fail-closed remote outcome.
+- This is an owner-requested installable test build only. R1 is NOT ACCEPTED; no updater lease or NativeHost apply, Chrome reload, actual listing mutation, main merge or GitHub Release is authorized by this version.
+
+## v1.25.12 — KAR-201 explicit owner-approved standalone manual posting (Work candidate, not yet released)
+
+- Following the owner's native v1.25.11 confirmation that eleven archive images and the recoverable fields were transferred and all remaining category attributes were manually entered, add an **explicit, human-only final route**. This is not automatic publication, not automatic ZIP completion and never a replacement/source-deletion workflow.
+- Only a terminal `needs-review` ZIP archive insertion with a legacy-unversioned, image-stable category-and-title-matched partial form may offer “Eigenständig veröffentlichen …”. Require an owner review button, a second confirmation dialog with a checked full-form review acknowledgement, and a fresh short-lived background consent token.
+- Under the existing fenced `UPDATE_TEMPLATE_FILL_SESSION` route, independently verify actual sender tab/page, exact archive source identity, source category/image count, selected authenticated profile, empty competing insertion lock, unexpired single-use consent, and durable readback. Mark managed archive/fill `manual-standalone` terminal with no new-ad ID, without deleting/consuming the ZIP source, its images or any existing listing.
+- After that durable consent, accept **one genuine browser-trusted click** on Kleinanzeigen's native “Anzeige aufgeben” control, without a synthetic auto-click or `RENEWAL_PUBLISH_CLICKED`. Do not claim remote success; the owner later opens the new listing and independently uses “Geöffnete Anzeige erfassen”.
+- Synthetic tests prove denied wrong-tab/profile/non-archive/already-published/missing-image/paid-page cases, invalid or reused tokens, preserved archive source images, no remote identity fabrication, and a strict no-automatic-publish boundary. Real Chrome/account acceptance remains pending.
+
+## v1.25.11 — KAR-201 partial archive prefill with manual selection review (Work candidate, not yet released)
+
+- Correct the owner-observed v1.25.10 archive insertion from category 246: the source contains eleven saved images, but saved display-only style and brand controls failed the legacy schema preflight and aborted the entire insertion *before any image transfer started*. No evidence of failed image upload existed in that diagnostic.
+- A legacy category-matched form with only isolated, **optional**, proven per-attribute selection gaps may now continue filling all other safe fields, the unchanged archived listing text and price, and all eleven archived images. The unsafe attributes are left for manual selection; source archive values are neither guessed nor rewritten.
+- Keep hard stops for altered/invalid fingerprint or category, required/structural incompatibilities and paid insertion. Final preflight issues remain visible and durable; a partial fill is always `needs-review`, `complete:false` and **never** authorized to auto-publish, advance, delete or consume source inventory.
+- Synthetic category-246 regression exercises the actual `runFillSession` with eleven archive images, image progression, correct manual review and no automated publication, plus hard-stop cases. Existing image-completeness and ZIP archive validation contracts remain intact. Native owner verification is still required.
+
+## v1.25.10 — KAR-201 native legacy display-only option recovery (Work candidate, not yet released)
+
+- Extend the KAR-201 legacy template fix with a safe recovery path for owner-observed category-246 “Stil” and “Marke”: archive capture may preserve a human-readable option label but no technical option ID, even though the native posting form presents an exact label.
+- The current Kleinanzeigen UI exposes a button combobox with `aria-controls` pointing to its own listbox, with unlabeled technical IDs on the rendered options. Never derive an ID from option order or a guessed mapping: click only one exact, unique, enabled option in the correctly linked listbox and accept only the **React-owned hidden technical value plus exact visible readback**, repeated at the final form verification after uploads.
+- Preserve original archived values, all image and account ownership, and previous verified publishing gates. Missing/duplicate labels, mislinked dropdowns or unconfirmed hidden/display pairs fail closed; do not silently omit populated selections.
+- Six synthetic native-ARIA tests based on the owner-observed menu shape contain no account credentials, listing data or signed image URLs. Original owner HTML remains private, and true site acceptance is still pending.
+
+## v1.25.9 — KAR-201 legacy schema/value provenance (Work candidate, not yet released)
+
+- Separate missing historical fingerprints, first-observed category monitor references and independently proven option compatibility. Classify unknown, incomplete, incompatible, confirmed or ambiguous technical/visible selection evidence instead of treating null option catalogs as proof of compatibility.
+- Surface actionable German warnings on legacy selections before slow retries, retain a sanitized per-attribute option evidence trail and preserve failed-fill preflight outcomes across MV3 reconnect. Unverified reports never grant publish authority.
+- Provide synthetic category-246 value-drift and session-persistence regressions; keep the verified historic category-405 alias and image/archive publish guards intact.
+
+## v1.25.8 — KAR-199 transient Phase-4 journal Web Lock contention (Work source candidate)
+
+- Fix a second owner-observed Phase-4 failure: publishing and independent Schnellprüfung succeeded, but the shared durable Phase-4 journal rejected the origin Web Lock as `KR_PHASE4_JOURNAL_ATOMIC_BUSY` in 18 ms, before any remote `DELETE_OWN_AD_BY_ID` was sent. The previous v1.25.7 fix correctly showed an unverified outcome instead of hanging, but it did not tolerate a momentary Web Lock owner.
+- Mirror the existing safe P8/publish-intent arbitration pattern: up to 16 short `ifAvailable:true` attempts with capped backoff, exclusively when the lock callback explicitly returned **no lock**. A busy result after exhausting the bounded attempts still fails closed. A started journal callback, storage read/write error, invalid identity, missing lock primitive, corrupt receipt or unverified remote outcome is **never retried**.
+- Keep the same shared origin-wide Web Lock, immutable P8 admission verification, full journal readback and independent remote source-absence/target-presence proof. No fallback storage-only CAS, no repeated destructive DELETE, no automatic re-publication or modification of already failed renewal candidates.
+- Add low-cardinality Phase-4 lock contention diagnostics with only fixed phase, bounded attempt count and elapsed/hold timings (no account, listing, token, worker, tab ID or payload). A diagnostic failure cannot grant admission.
+- Six account-free synthetic tests verify transient contention recovery, bounded persistent busy refusal without journal writes, no storage error retries, no duplicate immutable intent, safe verified outcome resolution and fail-closed broken lock providers. Test-first unfixed RED evidence is preserved in the owning Issue; require full npm/runtime/coverage, immutable ZIP, packaged Chromium and Windows GREEN before handing a v1.25.8 candidate to the owner.
+- This is a safety-preserving **source candidate**, not an approved merge or published release. The owner must independently verify the online status of the existing listings and the next controlled native renewal attempt before accepting full Phase 4.
+
+## v1.25.7 — KAR-199 abandoned Phase-4 emergency-reset inventory recovery (Work source candidate)
+
+- Fix the native v1.25.5 recovery defect: a reset successfully terminates the renewal session but leaves the verified new ad as a locked `renewal-candidate`, even though the global insertion lock was released. The app now converts an eligible previously verified cancelled candidate into a second **independent local inventory record**; it never claims that either remote ad was deleted or currently present.
+- Apply the same local-only, idempotent recovery both after a future emergency reset and on service-worker resume after upgrading an already reset session. Strict eligibility requires a confirmed new ad ID, matching renewal/source/target/profile identities, an earlier `ownAdsPresence:true` observation and the durable `cancelled/emergency-reset-unverified` session tombstone.
+- Commit source, target and image ownership in **one IndexedDB transaction**. FAST mode clones the original's full JPEG image records to the target ID and leaves the original image rows intact; SAFE mode moves the candidate's stored rows. Destination-ID/image collisions, missing source, missing/invalid image blobs, a mismatched account or unverified new publication abort the whole operation without modifying existing listings.
+- Preserve both original inventory and published target as independent records, retain the existing Phase-4/P8 uncertainty journal and cancellation tombstone, and mark the target recovery provenance `remoteVerification:unverified`. No extra DELETE, no source move to trash, no template re-publication, no account side effects.
+- Seven persistent synthetic fake-indexeddb regression cases cover two independent records/images, repeat idempotence, destination collision, pre-publication denial, partial missing image rollback, SAFE image ownership and actual service wiring. The originating private 2026-11-17T06:12:48Z diagnostic ZIP confirmed original ad `3573994198` and target `3574124877` with 2 local images each; this private customer evidence is not bundled in the source ZIP.
+- Release remains gated by exact-head Work PR runtime/coverage/ZIP/Chromium/Windows GREEN and the owner's native Windows/Chrome verification. Neither source branch nor v1.25.7 archive is a GitHub Release or merge authorization.
+
+## v1.25.6 — KAR-199 Phase-4 bounded source retirement and truthful uncertain-outcome reporting (Work source candidate)
+
+- Prevent indefinite pending `MY_ADS_STATUS` callbacks after a successful Phase-4 My Ads content handshake. Use bounded, step-specific status requests before and after durable delete intent; record low-cardinality request start/finish/timeout evidence without account, tab, worker, listing, URL or journal-token data.
+- Bound durable Phase-4 journal-intent admission as well: if the exclusive-lock/storage receipt never returns, classify the original outcome as unverified, never send DELETE, and require future readback of any late receipt before further action.
+- The inventory card and four-step progress dialog distinguish `source-delete-status-unverified` and `source-delete-outcome-unverified` from active progress, using explicit blocked/error feedback instead of an endless spinner or a misleading ready state. Add non-live UI and persisted-state regression tests.
+- The shared Chrome message helper no longer repeats `DELETE_OWN_AD_BY_ID` after a closed message port, even when a subsequent content bootstrap would otherwise retry an ordinary read-only request. This avoids a potential second remote delete after an unverified transport interruption. Isolated executable regression was RED on the unfixed background helper (run 44025461207) and is mandatory in `npm test`.
+- Bound the `DELETE_OWN_AD_BY_ID` response and independently performed full-pagination readbacks. A missing response **after dispatch** is an unknown remote outcome, never permission for a second DELETE. Preserve exact P8/Phase-4 intent and independent source-absence plus target-presence verification.
+- Persist `source-delete-status-unverified` or `source-delete-outcome-unverified` on a blocked Phase-4 boundary, keep original and candidate local records intact, and show a non-destructive owner-visible warning: “Neue Anzeige bestätigt; alte Anzeige noch nicht nachweislich gelöscht.” Block local candidate removal from unresolved Phase 4. Never equate `source-delete-started` with a proven delete.
+- Host-tested first failing regression: three deterministic post-handshake no-response cases were **RED** on unfixed v1.25.5 with `TEST_UNBOUNDED_AWAIT` ([run 44023339709](https://github.com/SaschaP1980/KleinanzeigenRenewer/actions/runs/44023339709)); the same three cases subsequently passed in Work validation before older source-contract updates. Two additional persistent-unknown-state tests exercise truthful recovery/no automatic retry; full final-head GREEN and ZIP parity are separate requirements.
+- The owner's private v1.25.5 ZIP from 2026-11-17T05:15:21Z showed no Phase-4 milestone after content readiness at 05:07:12Z for over eight minutes, with no logged delete, failure or independent source absence. It does **not** establish the exact Chrome callback that hung or the current remote source's presence.
+- Source candidate only: no merge, published GitHub Release/tag, or real Kleinanzeigen-account deletion is implied. Native Windows/Chrome owner acceptance and privacy-safe later diagnostics remain pending.
+
+## v1.25.5 — KAR-197 publish-intent Web Lock contention and truthful ZIP insertion recovery (Work source candidate)
+
+- Fix the independently reproduced v1.25.4 two-image ZIP Fast-mode failure after verified form fill: an unrelated P8 origin Web Lock holder could deny the distinct publish-intent journal immediately with `KR_PUBLISH_INTENT_ATOMIC_BUSY`.
+- Wait for transient pre-entry Web Lock contention with a strictly bounded 16-attempt retry, while retaining the exact origin-exclusive lock, P8 admission proof, immutable before-click receipt, storage readback and single guarded native publish action. No retry follows a persisted attempt, corrupt/unreadable journal, missing permission or uncertain remote publication.
+- Persist content-side automatic and manual authorization denials as recoverable `publish-intent-blocked` fill state. Reflect it in archive status `publish-blocked`, preserving the insertion lock, ZIP images, source template and unresolved remote outcome. Prevent an automatic Renewal Phase-1 retry in this state.
+- Replace misleading ZIP progress text `Inserieren läuft` with an explicit blocked/status-verification explanation in Fast and Safe modes, also on later UI/status recovery and worker restart. Never imply that publication occurred merely because the form was verified.
+- Record contention only when observed, using bounded wait/hold/attempt counters without account, tab, listing, token or worker identifiers; no per-acquisition diagnostic loop.
+- Exact-baseline GitHub CI **RED** was reproduced at `e4ccd55b283a541b05cb57a7c828aaa42f1da155` (run `43917272691`). The intended GREEN, 100% dynamic public-function coverage, no-regression checks, packaged Chromium and native owner Windows/Chrome acceptance are **not yet established** at this changelog entry.
+- This is Work-branch source candidate only; no merger, published Release/tag, real Kleinanzeigen mutation, or native owner acceptance is implied.
+
+## v1.25.4 — KAR-195 targeted P8 receipt verification for native account startup (Work source candidate)
+
+- Correct the v1.25.3 native Windows/Chrome performance regression: the account gate required ~24 seconds from manager opening to confirmed. First-30s diagnostics showed 105 P8 journal phases, ~250ms per short lock hold and up to 6.25s of FIFO waiting. Do not present previous hosted GREEN as native acceptance.
+- Replace per-start and per-finish `storage.local.get(null)` full-store enumeration with an origin-Web-Lock-protected **targeted read of the operation's own start/finish keys**. Validate token collision before admission; keep independent durable write/readback and deny missing/modified/already completed receipts. Neither remote task execution nor update-leased reserve is moved into or out of the exclusive lock.
+- **Preserve `guardReserve` unchanged**: two complete independent journal reads under the exclusive Web Lock, with strict validation and refusal of unresolved previous-worker starts, inconsistent finish receipts or unreadable storage. No automatic reset, data deletion, lease bypass, or publication.
+- Test-first RED on exact v1.25.3 Work HEAD `6c80b2c` (12 concurrent route calls caused **24 full storage enumerations** in a deterministic 2498-entry fixture); add collision/tamper and cross-worker reserve fail-closed cases; compare the same fixture after the targeted change. Further packaged Chromium, Windows CI and owner native re-test remain mandatory before merge/release.
+- Work-source candidate only; no GitHub Release, merge or real Kleinanzeigen mutation is implied.
+
+## v1.25.3 — KAR-195 bounded MV3 Web Lock startup contention and request deduplication (Work source candidate)
+
+- Serialize only the short in-worker P8 durable journal start/finish Web Lock critical sections with FIFO handoff, retaining the original browser-origin exclusive lock, 16-attempt cross-worker retry, durable start/finish readback, and completely unchanged `guardReserve` policy. Admitted remote handlers remain outside this queue. Yield between local critical sections so already admitted nested publish-intent checks can fairly acquire the shared Web Lock.
+- Avoid multiplying passive `GET_RECOVERABLE_TRASH_TEMPLATE_FILL` requests from synchronous startup/control-state updates: coalesce in-flight reads and cache only **confirmed empty** results for 1.5 seconds, never cache an unavailable/denied read or suppress explicit takeover.
+- Introduce short-lived, bounded diagnostic-service-owned startup instrumentation: sanitized operation/phase counts, queue wait, actual exclusive lock hold time, observed BUSY attempts and denied outcomes, aggregated into `P8_ATOMIC_ADMISSION_WINDOW` at most six times over the first 30 seconds. No raw receipts, worker IDs, profile/account identifiers, listing IDs, emails, tab IDs, URLs, or per-request payloads; never log through a fenced runtime diagnostic request.
+- Test-first synthetic startup bursts under fresh/near-capacity diagnostics (0 and 2498 rows), two workers, immutable receipts and starvation prevention, duplicate passive recovery and safe telemetry with no user data. Preserve all existing KAR-99/P8 updater, publish-intent, account/profile and reset/export safety regression gates.
+- This documents Work-branch source changes only. A verified forward-only versioned ZIP, exact-head Chromium/Windows CI, merge authorization and native Windows/Chrome validation are **separate** gates. Do not interpret hosted tests as proof of a real Kleinanzeigen account operation.
+
+## v1.25.2 — KAR-191 and KAR-193 diagnostic occupancy, export and reset recovery (Work integration)
+
+- Forward-integrate the owner-validated v1.24.4/#191 diagnostic and v1.24.5/#193 reset fixes on top of merged v1.25.1/#188 and v1.25.0/#164. Preserve truthful inventory/trash loading and Papierkorb retention-deadline sorting.
+- Keep `GET_DIAGNOSTIC_OCCUPANCY` available as a non-mutating observation during lock contention, while preserving platform/message checks. Distinguish successful zero occupancy from unavailable/failed reads, and present a visible retry action.
+- Preserve P8 durable owner admission for `GET_DIAGNOSTIC_EXPORT`, with bounded retry only for brief atomic BUSY and reliable ZIP integrity/visible failure feedback.
+- Keep `RESET_DIAGNOSTICS` fully fenced. Retry only a pre-handler `KR_UPDATE_FENCE_ATOMIC_BUSY`; if the handler started, its completion is uncertain and must never be blindly retried. Verify new diagnostic boundary before reporting success.
+- Existing #188 and #164 acceptance, all safety/architecture/coverage gates, full package ZIP byte parity, isolated Chromium 9/9 and Windows Work PR checks must remain GREEN before merge. No real Kleinanzeigen mutation or local inventory/trash reset; systemic Web Lock contention is independently tracked under High [KAR-195](https://github.com/SaschaP1980/KleinanzeigenRenewer/issues/195).
+- The owner accepted the native Windows/Chrome behavior of the two fixes in installed v1.24.4 and v1.24.5; combined v1.25.2 source and Release are separate evidence classes.
+
+## v1.25.1 — KAR-188 independent inventory and trash loading (Work integration, source only)
+
+- Integrate the owner-accepted inventory/trash startup loading UX from the original v1.24.3 Work branch with the merged v1.25.0 KAR-164 retention-deadline sort, without reverting or changing the latter's behavior.
+- Each view immediately displays an accessible loading state and unknown counters, completes a verified account/profile-bound list independently, displays a genuine empty view only after success, and offers non-destructive retry after read failure. Stale profile/refresh responses cannot overwrite current list content; optional settings and page inspection do not gate local list loading.
+- Preserve existing account/Ad-ID safety, Chrome extension identity, locked publish and delete workflows, local trash retention and v1.25.0 sort controls. Require a reproducible v1.25.1 Chrome ZIP, unchanged 100% dynamic public API coverage, historical architecture/line/branch no-regression, real packaged Chromium 9/9 E2E and hosted Windows fixtures.
+- Work-source entry, not proof of a GitHub Release or tag. The owner approved the prior v1.24.3 native behavior; final integrated build and CI still require separate readback before merging.
+
+## v1.25.0 — KAR-164 local trash deadline sorting (Work candidate)
+
+- Add accessible **Im Papierkorb bis** ascending/descending controls to Papierkorb, independently of Inventar ordering. Default is descending.
+- Compare canonical timestamp values rather than display text or relative countdown. Tie-break equal timestamps by local inventory ID; finite dates first, then true **∞** retention, then missing/corrupt deadlines in both directions.
+- Sort only an in-memory view, without changing storage, profile/account scope, existing actions, retention/expiry cleanup or remote Kleinanzeigen operations.
+- Add verified test-first RED/GREEN coverage, historical selector contract updates and preserve mandatory 100% dynamic public coverage and architecture/line/branch gates.
+- Source candidate only. An exact-head reproducible Chrome ZIP, Chromium/Windows Work PR GREEN, merge and native/public release approval remain separate.
+
+## v1.24.5 — KAR-193 bounded diagnostic reset recovery (isolated Work patch; source candidate)
+
+- Preserve durable P8 atomic admission and workflow-owner safety for the user-requested `RESET_DIAGNOSTICS` mutation. Retry only explicit `KR_UPDATE_FENCE_ATOMIC_BUSY` **before** the reset handler was invoked, using finite UI attempts and progressively delayed retries.
+- Distinguish a P8 finish/receipt failure **after** the reset handler started: translate it to `KR_DIAGNOSTIC_RESET_OUTCOME_UNVERIFIED` and never retry automatically; treat worker interruption and request timeout as unverified outcomes. Held update leases, corrupt journals and unavailable safety primitives remain fail-closed.
+- Show truthful progress and persistent error status; require the backend's `reset: true` and new diagnostic boundary ID before claiming success. Refresh authoritative occupancy afterward, with exactly one best-effort diagnostic log per user click and no feedback loop.
+- Focused six-case test-first RED/GREEN covers transient and sustained contention, held lease/storage error, missing boundary, hanging request and post-handler completion uncertainty. No inventory/trash/profile reset, account modification, lock bypass or live Kleinanzeigen operation.
+- This `work/KAR-193` branch is intentionally based on the owner-validated installed v1.24.4 source (#191), not current `main` v1.25.0. **Do not merge, publish or install over newer v1.25.x without a separately verified monotonic integration.** An issue-bound Chrome ZIP and mandatory Chromium/CI verification are recorded separately.
+
+## v1.24.4 — KAR-191 restore diagnostic occupancy and reliable ZIP export (Critical Work patch; source candidate)
+
+- Treat `GET_DIAGNOSTIC_OCCUPANCY` as a strictly read-only operation even during transient MV3 update/mutation admission contention; the existing platform gate, remote publish/delete safety and all mutating routes remain fail-closed. Continue treating diagnostic ZIP export as a durable P8 `diagnosticExport` owner, not an unfenced shortcut.
+- Retry only transient `KR_UPDATE_FENCE_ATOMIC_BUSY` for up to three bounded ZIP-export requests; avoid pre-export diagnostic click logging contention. Distinguish a genuinely empty diagnostic buffer (`0 / 2.500`) from an unavailable count; show persistent, actionable German error/retry messages and bounded response timeouts.
+- Add dedicated test-first RED/GREEN for routing, reset and mutation denial, transient/failed diagnostic requests, near-capacity event buffers, ZIP CRC/integrity, object URL download action and worker-response timeout. Preserve diagnostic records, Inventar, Papierkorb, profile settings and Chrome extension identity. Integrate v1.24.3 KAR-188 source changes only into the isolated issue-bound Work branch; KAR-188 remains subject to its separate native acceptance/merge gate.
+- This entry describes an unreleased Work-branch source candidate, **not** a GitHub Release, merged main, or owner Windows/Chrome native download proof. Exact ZIP/Chromium/Work PR evidence and native confirmation belong to Issue #191; no public release, real-account mutation or data reset is authorized.
+
+## v1.24.3 — KAR-188 reliable Inventar/Papierkorb loading after app restart (Work patch; source changes only)
+
+- Show immediate, accessible `Inventar wird geladen …` and `Papierkorb wird geladen …` indicators, rather than a false initial empty state or an unverified 0 entry count. Each view has its own loading, verified-ready (populated or empty) and non-destructive read-error state with an explicit retry action.
+- Start profile-bound inventory/trash reads before optional background settings, account inspection and activity initialization, with independent read completion and stale async generation/profile guards. Keep previously verified same-profile counts on transient failures; never claim successful zero records unless the respective list request returned a valid array.
+- Add test-first RED/GREEN fixtures for delayed, failed and stale per-view reads and retain the related KAR-185/KAR-186 safety behavior. Also pin the standalone main CI's packaged Chromium runner to supported Ubuntu 24.04, preserving mandatory Playwright E2E tests after the prior Ubuntu 26.04 infrastructure failure.
+- This changelog documents work-branch source code only, not a published GitHub Release or completed native Windows/Chrome user acceptance. The owning Issue #188 retains the authoritative exact SHA/CI evidence.
+
+## v1.24.2 — KAR-186 verify local trash retention after cold startup (Work patch; source changes only)
+
+- A denied `GET_TRASH_RETENTION_CONFIGURATION` during Windows/Chrome cold startup no longer presents the unverified legacy 30-day fallback as the saved retention policy. Until an authorized read completes, the slider is hidden and disabled, configuration/trash explanation text explicitly marks the duration as unknown, and manual local-trash moves/retention resets are guarded.
+- Confirmed configurations (10, 30, 60, 90, 180, 360 days or unlimited) rehydrate the slider and descriptions only after the current persisted configuration has been read and the visible trash projections have been refreshed. Recovery from transient MV3 update-fence contention is bounded and never bypasses the fence or changes existing trash records.
+- A permanent regression test covers an initial `KR_UPDATE_FENCE_ATOMIC_BUSY`, preserved 61 inventory / 90 trash fixture entries, verified unlimited retention after recovery, legacy confirmed 30-day defaults and fail-closed actions. Historic UI gold-line tests now require unknown-policy startup copy rather than an unconditional 30-day statement.
+- This changelog entry records work-branch source changes, not a published GitHub Release or validated Windows/Chrome native acceptance. Installation ZIP/CI and owner acceptance are tracked in the owning Issue #186.
+
 ## v1.24.1 — KAR-185 preserve inventory/trash visibility after app restart (Fast Patch)
 
 - Isolate initial inventory/trash loading from optional settings and account-inspection failures. A temporary `KR_UPDATE_FENCE_ATOMIC_BUSY` on renewal or local retention configuration must no longer leave saved records visually empty until profile switching.

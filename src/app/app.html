@@ -22,8 +22,8 @@
         </div>
         <nav class="content-view-navigation" aria-label="Inhaltsansicht">
           <div class="content-view-tabs" role="group" aria-label="Bereich auswählen">
-            <button id="inventoryViewButton" class="secondary view-switch-button active" type="button" aria-pressed="true">Inventar <span id="inventoryHeaderCount">0</span></button>
-            <button id="trashViewButton" class="secondary view-switch-button" type="button" aria-pressed="false">Papierkorb <span id="trashHeaderCount">0</span></button>
+            <button id="inventoryViewButton" class="secondary view-switch-button active" type="button" aria-pressed="true">Inventar <span id="inventoryHeaderCount">…</span></button>
+            <button id="trashViewButton" class="secondary view-switch-button" type="button" aria-pressed="false">Papierkorb <span id="trashHeaderCount">…</span></button>
           </div>
           <div class="global-view-controls" role="group" aria-label="Darstellung und Aktualisierung">
             <button id="globalViewDetailed" class="global-view-option active" type="button" aria-pressed="true" aria-label="Kachelansicht" title="Kachelansicht"><span class="list-view-mode-icon view-mode-detailed" aria-hidden="true"></span></button>
@@ -96,11 +96,11 @@
               <section class="configuration-subsection trash-retention-settings" aria-labelledby="trashRetentionLabel">
                 <div class="configuration-row">
                   <label class="configuration-label" id="trashRetentionLabel" for="trashRetentionRange">Papierkorb-Aufbewahrung</label>
-                  <output id="trashRetentionValue" class="configuration-value" for="trashRetentionRange">30 Tage</output>
+                  <output id="trashRetentionValue" class="configuration-value" for="trashRetentionRange" role="status" aria-live="polite">Wird ermittelt …</output>
                 </div>
-                <input id="trashRetentionRange" class="configuration-range" type="range" min="0" max="6" step="1" value="1" aria-describedby="trashRetentionDescription">
+                <input id="trashRetentionRange" class="configuration-range" type="range" min="0" max="6" step="1" value="1" aria-describedby="trashRetentionDescription" disabled hidden>
                 <div class="configuration-range-scale trash-retention-range-scale" aria-hidden="true"><span>10</span><span>30</span><span>60</span><span>90</span><span>180</span><span>360</span><span>∞</span></div>
-                <p id="trashRetentionDescription" class="configuration-description">Einträge werden nach 30 Tagen automatisch aus dem lokalen Papierkorb gelöscht.</p>
+                <p id="trashRetentionDescription" class="configuration-description">Die gespeicherte Aufbewahrungsdauer wird geprüft. Bis dahin kann sie nicht geändert werden.</p>
               </section>
               <div class="configuration-subsection native-update-check" aria-label="Windows-Updater">
                 <div class="configuration-label">Windows-Updater</div>
@@ -120,6 +120,10 @@
           <div id="diagnosticOccupancy" class="diagnostic-occupancy" role="progressbar" aria-label="Diagnosespeicher belegt" aria-valuemin="0" aria-valuetext="Diagnosespeicher nicht verfügbar">
             <div id="diagnosticOccupancyFill" class="diagnostic-occupancy-fill" aria-hidden="true"></div>
             <span id="diagnosticOccupancyText" class="diagnostic-occupancy-text">— / — Einträge</span>
+          </div>
+          <div class="diagnostic-occupancy-recovery">
+            <p id="diagnosticOccupancyStatus" role="status" aria-live="polite"></p>
+            <button id="diagnosticOccupancyRetry" type="button" class="secondary" hidden>Belegung erneut prüfen</button>
           </div>
           <div class="diagnostic-actions">
             <button id="diagnosticZipButton" type="button" class="secondary diagnostic-primary">Diagnosedaten herunterladen</button>
@@ -195,10 +199,10 @@
           <div class="section-title">
             <div>
               <h2>Gespeicherte Anzeigen</h2>
-              <p id="inventoryCount">0 Einträge</p>
+              <p id="inventoryCount">Wird geladen …</p>
             </div>
             <div class="section-actions">
-              <button id="clearInventoryButton" class="danger-button" type="button">Alle in Papierkorb</button>
+              <button id="clearInventoryButton" class="danger-button" type="button" disabled>Alle in Papierkorb</button>
             </div>
           </div>
         <div class="inventory-toolbar" aria-label="Inventarliste filtern und sortieren">
@@ -222,7 +226,7 @@
         </div>
           </div>
           </div>
-        <div id="inventoryList" class="inventory-list"></div>
+        <div id="inventoryList" class="inventory-list"><div class="list-load-state is-loading" role="status" aria-live="polite"><span class="list-load-spinner" aria-hidden="true"></span><strong>Inventar wird geladen …</strong></div></div>
       </section>
 
       <section id="trashSection" class="inventory-section hidden">
@@ -233,15 +237,23 @@
         <div class="section-title">
           <div>
             <h2>Papierkorb</h2>
-            <p id="trashCount">0 Einträge</p>
+            <p id="trashCount">Wird geladen …</p>
           </div>
           <div class="section-actions">
           </div>
         </div>
-        <div class="trash-intro"><span class="trash-intro-full">Einträge im Papierkorb werden 30 Tage lokal aufbewahrt. Du kannst sie in dieser Zeit als Vorlage für eine neue Anzeige verwenden. Die Anzeige bei Kleinanzeigen bleibt unverändert. Eine neue Anzeige wird nur vorbereitet und niemals automatisch veröffentlicht. Einträge können nicht zurück ins Inventar verschoben werden.</span><span class="trash-intro-sticky">Papierkorb: Einträge werden 30 Tage lokal aufbewahrt.</span></div>
+        <div class="trash-intro"><span class="trash-intro-full">Die gespeicherte Papierkorb-Aufbewahrung wird ermittelt. Die Einträge bleiben sichtbar und können als Vorlage für eine neue Anzeige verwendet werden. Die Anzeige bei Kleinanzeigen bleibt unverändert. Eine neue Anzeige wird nur vorbereitet und niemals automatisch veröffentlicht. Einträge können nicht zurück ins Inventar verschoben werden.</span><span class="trash-intro-sticky">Papierkorb: Aufbewahrungsdauer wird ermittelt.</span></div>
+
+        <div class="inventory-toolbar trash-sort-toolbar" role="group" aria-label="Papierkorb nach Aufbewahrungsfrist sortieren">
+          <div class="trash-sort-field"><span>Sortieren nach</span><strong>Im Papierkorb bis</strong></div>
+          <div class="inventory-sort-direction" role="group" aria-label="Sortierrichtung im Papierkorb">
+            <button id="trashSortAsc" type="button" class="sort-direction-button" aria-pressed="false" aria-label="Aufsteigend – frühestes Ablaufdatum zuerst" title="Frühestes Ablaufdatum zuerst">↑ Aufsteigend</button>
+            <button id="trashSortDesc" type="button" class="sort-direction-button active" aria-pressed="true" aria-label="Absteigend – spätestes Ablaufdatum zuerst" title="Spätestes Ablaufdatum zuerst">↓ Absteigend</button>
+          </div>
         </div>
         </div>
-        <div id="trashList" class="inventory-list"></div>
+        </div>
+        <div id="trashList" class="inventory-list"><div class="list-load-state is-loading" role="status" aria-live="polite"><span class="list-load-spinner" aria-hidden="true"></span><strong>Papierkorb wird geladen …</strong></div></div>
       </section>
       </div>
     </main>
@@ -711,6 +723,7 @@
     <script src="inventory-card-renderer.js"></script>
     <script src="trash-card-renderer.js"></script>
     <script src="inventory-render-controller.js"></script>
+    <script src="inventory-loading-state.js"></script>
     <script src="renewal-dialog-controller.js"></script>
     <script src="inventory-candidate-model.js"></script>
     <script src="inventory-capture-view.js"></script>

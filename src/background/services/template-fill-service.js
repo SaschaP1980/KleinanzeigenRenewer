@@ -145,7 +145,7 @@
           autoReplacementAllowed: Boolean(session.autoReplacementAllowed), trashInventoryId: session.trashInventoryId || null,
           status: session.status || null, stage: session.stage || null,
           result: session.result ? { complete: Boolean(session.result.complete), issues: Array.isArray(session.result.issues) ? session.result.issues.slice(0, 50) : [],
-            schemaPreflight: session.result.schemaPreflight?.verified === true ? { ...session.result.schemaPreflight } : null } : null,
+            schemaPreflight: session.result.schemaPreflight ? { ...session.result.schemaPreflight } : null } : null,
           template: templatePayload(record)
         };
       }

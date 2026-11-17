@@ -107,6 +107,10 @@
       'GET_NATIVE_UPDATE_STATUS', 'GET_BACKGROUND_EPOCH',
       'GET_PLATFORM_ACCESS_RESTRICTION', 'PLATFORM_ACCESS_RESTRICTED',
       'GET_PROFILE_STATE', 'LIST_INVENTORIES', 'LIST_TRASH',
+      // Read-only occupancy must stay available under transient Web Locks
+      // contention. ZIP export is deliberately NOT exempt: its durable P8
+      // receipt is the diagnosticExport owner's cross-worker safety proof.
+      'GET_DIAGNOSTIC_OCCUPANCY',
       'OPEN_APP_WINDOW', 'GET_APP_NOTICE', 'GET_DIAGNOSTICS'
     ]);
     const withWorkflowAdmission = options.withWorkflowAdmission;
@@ -119,11 +123,28 @@
       const handler = handlers[descriptor.handler];
       if (typeof handler !== 'function') throw new Error(`Background handler fehlt: ${descriptor.handler}`);
       if (!descriptor.preSafety) await assertPlatformAccessAllowedForRequest(message);
-      if (typeof withWorkflowAdmission === 'function' && !UNFENCED_ROUTES.has(descriptor.handler))
+      if (typeof withWorkflowAdmission === 'function' && !UNFENCED_ROUTES.has(descriptor.handler)) {
         // Keep the private source-issued P8 receipt in-band for this exact
         // admitted handler; never copy provenance from message or sender.
-        return withWorkflowAdmission(descriptor.handler,
-          admissionReceipt => handler(message, sender, admissionReceipt));
+        if (descriptor.handler !== 'RESET_DIAGNOSTICS')
+          return withWorkflowAdmission(descriptor.handler,
+            admissionReceipt => handler(message, sender, admissionReceipt));
+
+        // P8 can fail while closing its durable receipt AFTER a reset ran.
+        // Do not expose that BUSY as a pre-admission retryable response.
+        let handlerStarted = false;
+        try {
+          return await withWorkflowAdmission(descriptor.handler, admissionReceipt => {
+            handlerStarted = true;
+            return handler(message, sender, admissionReceipt);
+          });
+        } catch (error) {
+          if (handlerStarted && error?.code === 'KR_UPDATE_FENCE_ATOMIC_BUSY')
+            throw Object.assign(new Error('KR_DIAGNOSTIC_RESET_OUTCOME_UNVERIFIED'),
+              { code: 'KR_DIAGNOSTIC_RESET_OUTCOME_UNVERIFIED' });
+          throw error;
+        }
+      }
       return handler(message, sender);
     }
 

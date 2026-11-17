@@ -100,6 +100,13 @@
         if (phase1Done) states[1] = 'success';
         if (safePhase2Done) states[2] = 'success';
         if (phase3Done) states[3] = 'success';
+        if (stage === 'source-delete-status-unverified' || stage === 'source-delete-outcome-unverified') {
+          states[4] = 'error';
+          title = 'Austausch nicht abgeschlossen';
+          text = 'Neue Anzeige bestätigt; alte Anzeige noch nicht nachweislich gelöscht. Bitte beide Anzeigen in „Meine Anzeigen“ prüfen. Kein automatischer zweiter Löschversuch.';
+          kind = 'error';
+          return { states, title, text, kind, mode, newAdId: String(record?.adId || renewal.newAdId || '') };
+        }
         if (renewal.autoReplacementFailedAt && phase3Done) {
           states[4] = 'error'; title = 'Austausch nicht abgeschlossen'; text = 'Die neue Anzeige ist bestätigt, aber der Austausch konnte noch nicht abgeschlossen werden. Die bisherige Anzeige bleibt geschützt.'; kind = 'error';
           return { states, title, text, kind, mode, newAdId: String(record?.adId || renewal.newAdId || '') };

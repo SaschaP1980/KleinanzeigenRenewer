@@ -32,7 +32,10 @@ assert.match(appHtml, /(?:Ausfüllen|Neu inserieren|Neue Anzeige einstellen)/);
 assert.match(appHtml, /(?:Veröffentlichen|Re-Inventarisieren|Neue Anzeige kontrollieren|Zusätzliche Datenprüfung entfällt)/);
 assert.match(appHtml, /(?:Prüfen|Neue Anzeige prüfen|Neue Anzeige finden)/);
 assert.match(appHtml, /Bisherige Anzeige löschen/);
-assert.match(appHtml, /Einträge im Papierkorb werden 30 Tage lokal aufbewahrt/);
+// KAR-186: initial trash copy is neutral until an authorized read establishes
+// the persisted duration. An unverified 30-day message is no longer correct.
+assert.match(appHtml, /Die gespeicherte Papierkorb-Aufbewahrung wird ermittelt/);
+assert.doesNotMatch(appHtml, /Einträge im Papierkorb werden 30 Tage lokal aufbewahrt/);
 assert.match(appHtml, /Als Vorlage neu inserieren/);
 pass('modal explains all four phases, deletion consequence and trash recovery');
 

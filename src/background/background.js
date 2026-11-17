@@ -877,6 +877,8 @@ async function deleteInventory(inventoryId) {
 
 async function removeReplacementReadyLocal(message) { return requireRemoteDeleteReplacementService().removeReplacementReadyLocal(message); }
 
+async function recoverEmergencyResetCandidateAtomic(session) { return requireRemoteDeleteReplacementService().recoverEmergencyResetCandidateAtomic(session); }
+
 async function promoteRenewalCandidateAtomic(session) { return requireRemoteDeleteReplacementService().promoteRenewalCandidateAtomic(session); }
 
 function renewalTargetTabStillOwned(tab, session) { return requireRemoteDeleteReplacementService().renewalTargetTabStillOwned(tab, session); }
@@ -895,9 +897,9 @@ async function assertMassRenewalManualActionAllowed(message = {}) {
   if (batch?.status === 'running') throw new Error('Das Neu-Inserieren läuft noch. Einzelne Wiederholungen sind erst in der Abschlussübersicht möglich.');
 }
 
-async function verifyRenewalSourceAbsenceFresh(session, expectedProfile, windowId, attemptState, purpose = 'post-delete') { return requireRemoteDeleteReplacementService().verifyRenewalSourceAbsenceFresh(session, expectedProfile, windowId, attemptState, purpose); }
+function verifyRenewalSourceAbsenceFresh(...args) { return requireRemoteDeleteReplacementService().verifyRenewalSourceAbsenceFresh(...args); }
 
-async function preverifyAndTriggerRenewalSourceDeleteAttempt(session, expectedProfile, windowId, attemptState) { return requireRemoteDeleteReplacementService().preverifyAndTriggerRenewalSourceDeleteAttempt(session, expectedProfile, windowId, attemptState); }
+function preverifyAndTriggerRenewalSourceDeleteAttempt(...args) { return requireRemoteDeleteReplacementService().preverifyAndTriggerRenewalSourceDeleteAttempt(...args); }
 
 async function finishRenewalReplacement(message, admissionReceipt) { return requireRemoteDeleteReplacementService().finishRenewalReplacement(message, admissionReceipt); }
 
@@ -1158,6 +1160,10 @@ async function sendTabRequestWithBootstrap(tabId, message) {
   } catch (error) {
     const text = String(error?.message || error || '');
     if (!/Receiving end does not exist|Could not establish connection|message port closed/i.test(text)) throw error;
+    // A closed reply port can mean the source deletion already happened.
+    // Never transparently resend the destructive DELETE across bootstrap.
+    // Phase-4 journal + independent readback owns this unknown outcome.
+    if (String(message?.type || '') === 'DELETE_OWN_AD_BY_ID') throw error;
     await ensureContentConnection({ tabId });
     return sendTabRequest(tabId, message);
   }
@@ -1633,7 +1639,8 @@ function requirePhase4UncertaintyJournal() {
       prepareCommitContext: r => requireAdditionalOwnerObserver().prepareRemoteCommitContextReadOnly(r,'phase4'),
       verifyCommitContext: (r,w) => requireAdditionalOwnerObserver().verifyRemoteCommitContextReadOnly(r,'phase4',w),
       lockName: AtomicMV3Admission.LOCK_NAME,
-      lockManager: globalThis.navigator?.locks
+      lockManager: globalThis.navigator?.locks,
+      onSample: s => logDiagnostic('info','RENEWAL_PHASE4_JOURNAL_LOCK_CONTENTION',s).catch(()=>{})
     });
   }
   return phase4Journal;
@@ -1646,6 +1653,7 @@ function requireAutoPublishIntentJournal() {
       newToken: () => crypto.randomUUID(), workerInstanceId: ownerWorkerInstanceId,
       lockName: AtomicMV3Admission.LOCK_NAME,
       lockManager: globalThis.navigator?.locks,
+      onSample: sample => requireDiagnosticsService().recordPublishIntentSample(sample),
       verifyRemoteOutcome: (intent, newAdId) => verifyAutoPublishRemoteOutcomeFresh(intent, newAdId),
       requireCommitContext: true,
       prepareCommitContext: r => requireAdditionalOwnerObserver().prepareRemoteCommitContextReadOnly(r,'publish'),
@@ -1654,7 +1662,7 @@ function requireAutoPublishIntentJournal() {
   }
   return autoPublishIntentJournal;
 }
-// Publication results require independent My Ads proof.
+// A redirect is not publication proof; independent My Ads verification is.
 let publishIntentAuthorizationService = null;
 function requirePublishIntentAuthorizationService() {
   if (!publishIntentAuthorizationService) publishIntentAuthorizationService = PublishIntentAuthorizationService.create({
@@ -1686,7 +1694,7 @@ function requireRenewalWorkflowController() {
       isSafeLegacyManualEmergencyReset, logDiagnostic, logRenewalPhaseAttemptFailed, logRenewalPhaseAttemptStarted,
       massRenewalBatchCounts, massRenewalTerminalOutcome, mergeListingMetadata, mutateMassRenewalBatch,
       normalBrowserWindowId, normalizeKnownPublicAdUrl, normalizeProfileName, normalizeRenewalMode, normalizeRenewalPhaseAttempts,
-      persistArchiveInsertionSession, publicAvailabilitySnapshot, putInventoryRecordOnly, queueMassRenewalProgress,
+      persistArchiveInsertionSession, publicAvailabilitySnapshot, putInventoryRecordOnly, recoverEmergencyResetCandidateAtomic, queueMassRenewalProgress,
       readArchiveInsertionSessions, readDiagnostics, readFillSessions, readInventoryRecordsForProfile, readProfiles,
       readRenewalSessions, reconcileMassRenewalBatchSession, renewalAttemptState, renewalComparisonWaitsOnlyForOnline,
       renewalInsertionMeta, renewalMaxPhaseAttempts, renewalAttemptDetails, renewalOutcomeForComparison, renewalPhaseAttemptAvailable,
@@ -2055,6 +2063,7 @@ function requireWorkflowEmergencyResetController() {
       RenewalStateRepository, readRenewalSessions, writeRenewalSessions, renewalHoldsInsertionLock,
       isSafeLegacyManualEmergencyReset, isSafePrePublishPaidInsertion, emergencyResetRenewalState,
       readArchiveInsertionSessions, writeArchiveInsertionSessions, readMassRenewalBatch, writeMassRenewalBatch,
+      recoverEmergencyResetCandidateAtomic,
       touchMassRenewalItemProgress, getTabRegistrySnapshot, TAB_STATES,
       logDiagnostic, sessionCorrelationContext, broadcastInventoryChanged
     });
@@ -2111,6 +2120,7 @@ function requireNativeStatusBridge() {
   return nativeStatusBridge;
 }
 
+// KAR-195 P8 timing aggregation is owned by KRDiagnosticsService.
 // No trusted 15-owner snapshot provider exists yet: reserve always fails closed.
 let atomicMV3Admission = null;
 function requireAtomicMV3Admission() {
@@ -2120,7 +2130,8 @@ function requireAtomicMV3Admission() {
     atomicMV3Admission=AtomicMV3Admission.create({
       storageLocal:chrome.storage.local,lockManager:globalThis.navigator?.locks,
       workerInstanceId:ownerWorkerInstanceId,clock:()=>Date.now(),
-      newToken:()=>crypto.randomUUID()
+      newToken:()=>crypto.randomUUID(),
+      onSample:sample=>requireDiagnosticsService().recordAtomicSample(sample)
     });
   }
   return atomicMV3Admission;

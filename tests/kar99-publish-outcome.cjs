@@ -22,7 +22,7 @@ function locks(){
  return {held,async request(name,opts,action){
   assert.equal(name,Atomic.LOCK_NAME);assert.equal(opts.mode,'exclusive');assert.equal(opts.ifAvailable,true);
   if(held.has(name))return action(null);
-  held.add(name);try{return await action({name})}finally{held.delete(name);}
+  held.add(name);try{return await action({name,mode:'exclusive'})}finally{held.delete(name);}
  }};
 }
 const request={fillId:'fill-main',workflowId:'renewal-main',kind:'renewal',

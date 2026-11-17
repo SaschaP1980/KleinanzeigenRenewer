@@ -1,18 +1,17 @@
 {
-  "version": "1.24.1",
+  "version": "1.25.13",
   "project": "kleinanzeigen Manager / Kleinanzeigen Renewal",
-  "epic": "KAR-161-configurable-local-trash-retention",
+  "epic": "KAR-197-publish-intent-web-lock-and-zip-blocked-recovery",
   "goldBaseline": "1.21.15",
   "directBasis": "1.23.20_c1",
   "directBasisNativeGreen": true,
   "directBasisObservation": "v1.23.20_c1 ist RELEASE_GREEN und besitzt reale Fast-3er-Goldlinien. Zwei spätere reale Massenläufe vom 10.10.2026 zeigten jedoch einen flüchtigen Titel-Fill-/DOM-State-Fehler: Diagnose 11-22-33 (SHA-256 0ac5642d4fb6b69575c88d6e116fa2152ad0cd84c512f38198afddfa3c72a4df) mit 3/7 temporären Titel-Mismatches und Diagnose 12-03-51 (SHA-256 161cabb74e8a8eb454c91e3c35dc8158a7a782b9d0354fb4e003d12e487db641) mit 5/10. Unveränderte Titel konnten in späteren Versuchen erfolgreich sein; daher wird v1.23.22 als enger Correction-Build vor EPIC-REF-003 erstellt.",
   "scope": [
-    "Seven discrete retention choices (10,30,60,90,180,360 days and indefinite) under Konfiguration; default 30 days for existing installations.",
-    "Preview the canonical local trash state before changing policy; request modal confirmation only where a shorter retention would immediately delete existing records.",
-    "Reject stale/cancelled/duplicate/profile-changed confirmations without changing the saved setting; immediately re-read and revalidate exact record IDs and effective timestamps.",
-    "Evaluate expiry from trash placement or explicit retention reset. Indefinite retention suppresses age-based deletion.",
-    "Keep automatic cleanup local and guarded; never mutate real Kleinanzeigen listings or weaken renewal/ad-ID identity safety.",
-    "Full Issue-bound Work PR and CI: Dynamic Public Function Coverage 100 %, Architecture-No-Regression, line/branch coverage, package parity and Chromium E2E required; native acceptance separately evidenced."
+    "KAR-197: bound retry of transient shared P8/publish-intent journal Web Lock contention only before entering a journal critical section, retaining durable intent and exact P8 pre-click admission.",
+    "On automatic or manual publish authorization denial, persist recoverable fail-closed blocked state in template fill and archive session, with truthful ZIP Manager progress and no implicit re-insertion.",
+    "Preserve unresolved remote-outcome protection across MV3 and Manager restarts; keep ZIP staging, original records, identity checks and all existing paid-insertion gates.",
+    "Synthetic RED confirmed on v1.25.4 baseline GitHub CI; GREEN, source-identical Chromium, versioned ZIP parity and native owner acceptance pending independently.",
+    "Dynamic Public Function Coverage remains 100 % and Architecture-No-Regression must remain PASS on the exact packaged source; line/branch, Windows and packaged Chromium E2E are mandatory. No hosted CI Kleinanzeigen mutation."
   ],
   "nextPlannedBuild": "TBD",
   "nextPlannedBuildGoal": "Determined by separately authorized open GitHub Issues.",
@@ -136,7 +135,7 @@
       }
     }
   },
-  "releaseSummary": "KAR-161 v1.24.0 adds safely confirmed, configurable local Papierkorb retention under Konfiguration, including indefinite preservation. Source Work candidate; release and native acceptance not yet authorized.",
+  "releaseSummary": "KAR-191/KAR-193 diagnosis and reset safety forward-merged onto v1.25.1 (KAR-188/164). v1.25.2 Work patch candidate; no GitHub Release implied.",
   "architectureHighlights": [
     "Keine neue Runtime-/IPC-Grenze; die Korrektur bleibt in den bestehenden Template-Fill-/Verification-Ownern.",
     "Title Readback/Rewrite ist bounded und repariert nur den exakt erwarteten Template-Titel; nach drei fehlgeschlagenen Versuchen bleibt der Ablauf needs-review/fail-closed.",
@@ -152,7 +151,7 @@
     "Validate canonical all-profile affected-count preview and fail-closed cancellation when the active profile or trash snapshot changes.",
     "Verify local-only atomic record-and-image deletion under exact inventory IDs, retention-reset boundaries and MV3 interruption; assert no remote Kleinanzeigen mutation."
   ],
-  "packageVersion": "1.24.1",
+  "packageVersion": "1.25.13",
   "directBasisNativePending": false,
   "architectureFiles": [
     {

@@ -55,12 +55,12 @@
         if (!renewal?.renewalId || !/^\d+$/.test(String(record?.adId || renewal?.newAdId || ''))) return false;
         const status = String(renewal.status || '');
         const stage = String(renewal.stage || '');
-        return status === 'verified' || stage === 'replacement-ready';
+        return !['source-delete-status-unverified','source-delete-outcome-unverified'].includes(stage) && (status === 'verified' || stage === 'replacement-ready');
       }
 
       function renewalAutoCompletionPending(record) {
         const renewal = record?.renewal;
-        if (!renewal?.autoReplacementAllowed || renewal?.autoReplacementFailedAt) return false;
+        if (!renewal?.autoReplacementAllowed || renewal?.autoReplacementFailedAt || ['source-delete-status-unverified','source-delete-outcome-unverified'].includes(String(renewal?.stage || ''))) return false;
         const stage = String(renewal.stage || '');
         return stage === 'replacement-ready' || stage.startsWith('source-delete');
       }
@@ -69,6 +69,7 @@
         const status = String(record?.renewal?.status || '');
         const stage = String(record?.renewal?.stage || '');
         if (!record?.renewal?.renewalId) return '';
+        if (['source-delete-status-unverified','source-delete-outcome-unverified'].includes(stage)) return 'AUSTAUSCH UNGEKLÄRT';
         if (renewalAutoCompletionPending(record)) return stage.startsWith('source-delete') ? 'AUSTAUSCH LÄUFT' : 'AUSTAUSCH STARTET';
         if (renewalIsReplacementReady(record)) return 'AUSTAUSCH BEREIT';
         if (status === 'waiting-for-online') return 'VERÖFFENTLICHUNG NOCH NICHT BESTÄTIGT';
@@ -81,6 +82,7 @@
 
       function renewalStatusText(record) {
         const label = renewalStatusLabel(record);
+        if (label === 'AUSTAUSCH UNGEKLÄRT') return 'Austausch ungeklärt · prüfen';
         if (label === 'AUSTAUSCH LÄUFT') return 'Austausch läuft …';
         if (label === 'AUSTAUSCH STARTET') return 'Austausch startet …';
         if (label === 'AUSTAUSCH BEREIT') return 'Geprüft · Austausch bereit';

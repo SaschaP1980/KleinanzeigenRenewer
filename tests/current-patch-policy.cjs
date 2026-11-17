@@ -1,7 +1,7 @@
 'use strict';
 // Test-only policy. Do not import from the Chrome extension runtime.
 // Historical version lists remain historical facts; this policy only validates
-// compatible *regular* PATCH releases of the approved 1.23 and 1.24 series.
+// compatible *regular* PATCH releases of the approved 1.23, 1.24 and 1.25 series.
 const assert = require('node:assert/strict');
 const { createHash } = require('node:crypto');
 
@@ -17,17 +17,17 @@ const HOST_PERMISSIONS = [
 ];
 
 function isCurrentPatchVersion(version) {
-  if (typeof version !== 'string' || !/^1\.(23|24)\.(0|[1-9]\d*)$/.test(version)) return false;
+  if (typeof version !== 'string' || !/^1\.(23|24|25)\.(0|[1-9]\d*)$/.test(version)) return false;
   const minor = version.split('.').slice(0, 2).join('.');
   const patch = Number(version.slice(minor.length + 1));
   return Number.isSafeInteger(patch) &&
     (minor === CURRENT_MINOR ? patch >= FIRST_CORRECTED_PATCH :
-      minor === CURRENT_FEATURE_MINOR && patch >= 1);
+      (minor === CURRENT_FEATURE_MINOR || minor === '1.25') && patch >= 1);
 }
 
 function assertCompatibleCurrentPatch({ manifest, pkg, lock, spec } = {}) {
   assert.ok(isCurrentPatchVersion(manifest?.version),
-    'Only strict, regular 1.23.22+ or 1.24.1+ PATCH versions qualify; not a correction or another minor');
+    'Only strict, regular 1.23.22+, 1.24.1+ or 1.25.1+ PATCH versions qualify; not a correction or another minor');
   const version = manifest.version;
   assert.equal(manifest.manifest_version, 3);
   assert.equal(manifest.version_name, undefined,
@@ -79,14 +79,14 @@ function assertCompatibleCurrentPatch({ manifest, pkg, lock, spec } = {}) {
 // Historical 1.23 correction gates must not classify approved 1.24.x
 // feature-series releases as part of the older correction/performance run.
 function includesSupportedRelease(knownVersions, version) {
-  return includesActivePatch(knownVersions, version) || version === '1.24.0' ||
-    (typeof version === 'string' && version.startsWith('1.24.') &&
+  return includesActivePatch(knownVersions, version) || version === '1.24.0' || version === '1.25.0' ||
+    (typeof version === 'string' && (version.startsWith('1.24.') || version.startsWith('1.25.')) &&
       isCurrentPatchVersion(version));
 }
 
 function expectedManifestPermissions(version) {
   const historic = ['activeTab', 'storage', 'unlimitedStorage', 'scripting'];
-  return (version === '1.24.0' || (isCurrentPatchVersion(version) &&
+  return (version === '1.24.0' || version === '1.25.0' || (isCurrentPatchVersion(version) &&
     (Number(version.split('.')[1]) >= 24 || Number(version.split('.')[2]) >= 30)))
     ? [...historic, 'nativeMessaging'] : historic;
 }

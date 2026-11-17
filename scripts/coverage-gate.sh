@@ -4,6 +4,8 @@ project_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 raw="$project_dir/coverage/raw"
 rm -rf "$raw"; mkdir -p "$raw"
 cd "$project_dir"
+# KAR-195: deterministic two-worker P8 startup fan-out (fresh / near-capacity).
+NODE_V8_COVERAGE="$raw" node tests/kar195-startup-atomic-fairness.cjs
 # GitHub's clean checkout does not include locally generated coverage manifests.
 # Generate the authoritative public API inventory before running execution-closure tests.
 node scripts/runtime-api-inventory.cjs --json > "$project_dir/coverage/public-api-manifest.json"

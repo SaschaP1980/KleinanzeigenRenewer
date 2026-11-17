@@ -88,6 +88,20 @@ Emergency reset may terminate local workflow state/locks, but must not fabricate
 - Trusted URL/CDN policy, MIME/dimension/size validation and hashing remain safety boundaries.
 - Inventory commits involving metadata/images are atomic where defined by current repository contracts.
 
+## Diagnostic read versus durable MV3 owner admission (KAR-191)
+
+Local diagnostic occupancy (`GET_DIAGNOSTIC_OCCUPANCY`) is a strictly read-only observation and must remain accessible during transient contention for the updater/workflow admission Web Lock. It still passes the normal platform/extension message-contract checks and must distinguish a failed or unavailable read from an authoritative zero retained events. A denied read must never erase the diagnostic buffer or fabricate a healthy zero.
+
+The diagnostic ZIP export (`GET_DIAGNOSTIC_EXPORT`) is **not** equivalent to a free read: it is already a durable, P8-journaled `diagnosticExport` owner. Keep its exact origin-worker start/finish receipts and the fail-closed lease safety barrier; do not exempt its handler from admission to make the download appear to work. The UI may retry only brief `KR_UPDATE_FENCE_ATOMIC_BUSY` contention a bounded number of times, without pre-export logging that competes for the same lock. Any other unavailable, timed-out or corrupt state remains explicit and recoverable without clearing diagnostic data. These constraints preserve KAR-99/KAR-171 update safety while fixing KAR-191.
+
+## Diagnostic reset admission and outcome uncertainty (KAR-193)
+
+A manually requested `RESET_DIAGNOSTICS` clears local diagnostic entries and starts a new persisted diagnostic boundary; it is **not** a read-only route. Keep the exact P8 cross-worker atomic admission, durable owner receipts, existing active-workflow blockers and updater lease safety. Do not exempt this route from admission, force-release its lock or use the unrelated emergency workflow reset as a workaround.
+
+The UI may retry only a bounded number of explicit `KR_UPDATE_FENCE_ATOMIC_BUSY` denials that occurred **before its reset handler started**. If the handler started and durable admission *completion* later fails with the same contention code, the router must mark the reset outcome `KR_DIAGNOSTIC_RESET_OUTCOME_UNVERIFIED`, not the pre-admission retryable error. A timeout, disconnected worker, missing authenticated `reset: true` and new diagnostic boundary ID, held lease, corrupt journal or other unknown outcome is not automatically repeatable. Show visible, persistent failure/uncertainty and allow read-only occupancy/ZIP verification before another manual decision. Do not claim reset success without the authenticated boundary; do not reset inventories, trash, profiles or unrelated workflow state. These are fail-closed P8 semantics, not a change to the updater's safety policy.
+
+A successful diagnostic reset does not establish that broad cross-route Web Lock contention has ended. Investigate repeated admission denials and concurrent startup requests independently, with bounded privacy-safe timing evidence and no weakening of the lock or P8 receipt contract.
+
 ## Hosted CI boundary
 
 GitHub-hosted CI must **never** perform real Kleinanzeigen account publication, deletion, replacement or other live mutation.

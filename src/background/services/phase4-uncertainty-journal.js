@@ -20,7 +20,10 @@
   const denied = code => Object.assign(new Error(code), {code});
   const safeId = value => typeof value === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(value);
   const adId = value => typeof value === 'string' && /^\d+$/.test(value);
-  function create({storageLocal, clock, newToken, workerInstanceId, verifyRemoteOutcome = null, verifyCommitContext = null, prepareCommitContext = null, requireCommitContext = false, lockManager = null, lockName = null} = {}) {
+  function create({storageLocal, clock, newToken, workerInstanceId,
+    verifyRemoteOutcome = null, verifyCommitContext = null,
+    prepareCommitContext = null, requireCommitContext = false,
+    lockManager = null, lockName = null, onSample = null} = {}) {
     if (typeof storageLocal?.get !== 'function' || typeof storageLocal?.set !== 'function'
         || typeof clock !== 'function' || typeof newToken !== 'function')
       throw denied('KR_PHASE4_JOURNAL_STORAGE');
@@ -29,20 +32,62 @@
       if (typeof lockManager?.request !== 'function' || lockName !== SHARED_LOCK_NAME)
         throw denied('KR_PHASE4_JOURNAL_ATOMIC_UNAVAILABLE');
     }
-    async function withAtomic(action) {
+    // A short-lived P8/publish journal owner legitimately occupies the same
+    // Web Lock. Retry only a failed acquisition, never a begun critical
+    // section, durable write, remote verification, or destructive action.
+    async function withAtomic(action,phase='begin') {
       assertAtomicAvailable();
+      const beganAt=Date.now();
+      let busyAttempts=0,holdMs=0,outcome='denied';
       try {
-        return await lockManager.request(SHARED_LOCK_NAME,
-          {mode:'exclusive',ifAvailable:true},async lock=>{
-            if (!lock) throw denied('KR_PHASE4_JOURNAL_ATOMIC_BUSY');
-            return action();
-          });
-      } catch (error) {
-        // Preserve original journal reasons (unknown, corrupt, unavailable)
-        // instead of falsely treating a storage failure as a lock failure.
-        if (typeof error?.code === 'string' && error.code.startsWith('KR_PHASE4_JOURNAL_'))
-          throw error;
-        throw denied('KR_PHASE4_JOURNAL_ATOMIC_UNAVAILABLE');
+        const maxAttempts=16;
+        for(let i=0;i<maxAttempts;i++) {
+          let entered=false,completed=false,preLockBusy=false;
+          try {
+            const value=await lockManager.request(SHARED_LOCK_NAME,
+              {mode:'exclusive',ifAvailable:true},async lock=>{
+                if(entered)throw denied('KR_PHASE4_JOURNAL_ATOMIC_UNAVAILABLE');
+                entered=true;
+                if(!lock) {
+                  preLockBusy=true;
+                  throw denied('KR_PHASE4_JOURNAL_ATOMIC_BUSY');
+                }
+                if(lock.name!==SHARED_LOCK_NAME||lock.mode!=='exclusive')
+                  throw denied('KR_PHASE4_JOURNAL_ATOMIC_UNAVAILABLE');
+                const heldAt=Date.now();
+                try {
+                  const result=await action();
+                  completed=true;
+                  return result;
+                }finally{holdMs=Math.min(60000,Math.max(0,Date.now()-heldAt));}
+              });
+            if(!entered||!completed)throw denied('KR_PHASE4_JOURNAL_ATOMIC_UNAVAILABLE');
+            outcome='ok';
+            return value;
+          }catch(error){
+            if(preLockBusy&&error?.code==='KR_PHASE4_JOURNAL_ATOMIC_BUSY'){
+              busyAttempts++;
+              if(i<maxAttempts-1){
+                await new Promise(resolve=>setTimeout(resolve,Math.min(20+i*10,100)));
+                continue;
+              }
+            }
+            if(typeof error?.code==='string'&&error.code.startsWith('KR_PHASE4_JOURNAL_'))
+              throw error;
+            throw denied('KR_PHASE4_JOURNAL_ATOMIC_UNAVAILABLE');
+          }
+        }
+        throw denied('KR_PHASE4_JOURNAL_ATOMIC_BUSY');
+      }finally{
+        // Send only fixed phase, bounded timings and attempts. No account,
+        // ad, tab, token, source payload, or other private identifying value.
+        if(busyAttempts>0&&typeof onSample==='function'){
+          try{onSample(Object.freeze({
+            phase,busyAttempts,
+            waitMs:Math.min(60000,Math.max(0,Date.now()-beganAt-holdMs)),
+            holdMs,outcome
+          }));}catch{}
+        }
       }
     }
     async function read(keys) {
@@ -161,7 +206,7 @@
       if ((await observe(renewalId)).attempts.length !== 1)
         throw denied('KR_PHASE4_JOURNAL_UNRESOLVED');
       return entry;
-      });
+      }, 'begin');
     }
     // R1: if the original intent carried a real P8 token, independently
     // revalidate its durable origin (not a caller-supplied claimed generation)
@@ -208,7 +253,7 @@
           throw denied('KR_PHASE4_JOURNAL_UNRESOLVED');
         originSignature=await originalP8Signature(before.attempts[0]);
         return before.attempts[0];
-      });
+      }, 'resolve-read');
       if (typeof verifyRemoteOutcome !== 'function')
         throw denied('KR_PHASE4_JOURNAL_UNVERIFIED');
       let proof;
@@ -289,7 +334,7 @@
       if (final.resolutions.length !== 1 || !exactlySame(final.resolutions[0], resolved))
         throw denied('KR_PHASE4_JOURNAL_STORAGE');
       return resolved;
-      });}finally{
+      }, 'resolve-write');}finally{
         if(witness)await Promise.resolve().then(()=>witness.close()).catch(()=>{});
       }
     }

@@ -156,6 +156,15 @@ button { font: inherit; }
 .inventory-section .section-title p::before { content:'·'; margin-right:7px; color:#62726f; }
 .inventory-list { display:grid; grid-template-columns:1fr; gap:12px; }
 .empty { grid-column:1/-1; padding:30px 18px; border:1px dashed #354044; border-radius:12px; color:#879399; text-align:center; font-size:13px; }
+/* KAR-188: separate honest loading/error state before a verified empty result. */
+.list-load-state { grid-column:1/-1; display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:10px; padding:25px 16px; border:1px dashed #435357; border-radius:12px; color:#b6c6c5; text-align:center; font-size:13px; line-height:1.5; }
+.list-load-state.is-error { border-color:#765450; color:#f2c5bf; }
+.list-load-state strong { font-weight:600; }
+.list-load-state p { flex-basis:100%; margin:0; color:#aab8b6; }
+.list-load-spinner { width:15px; height:15px; border:2px solid #607673; border-top-color:#63d3b6; border-radius:50%; animation:list-load-spin 1s linear infinite; }
+.list-load-retry { margin-left:5px; cursor:pointer; }
+@keyframes list-load-spin { to { transform:rotate(360deg); } }
+@media (prefers-reduced-motion:reduce) { .list-load-spinner { animation:none; } }
 .inventory-card { min-width:0; padding:13px; border:1px solid #303a3f; border-radius:11px; background:#171d20; }
 .inventory-card-clickable { cursor:pointer; transition:border-color .12s ease, background .12s ease, box-shadow .12s ease; }
 .inventory-card-clickable:hover { border-color:#47625c; background:#192124; }
@@ -190,6 +199,11 @@ button { font: inherit; }
 .diagnostic-occupancy { position:relative; display:flex; align-items:center; justify-content:center; width:100%; min-width:0; height:22px; overflow:hidden; border:1px solid #38554e; border-radius:7px; background:#16231f; box-sizing:border-box; color:#f0fff9; }
 .diagnostic-occupancy-fill { position:absolute; inset:0 auto 0 0; width:0; border-radius:inherit; background:#237e69; transition:width 150ms ease-out; }
 .diagnostic-occupancy-text { position:relative; z-index:1; overflow:hidden; white-space:nowrap; text-overflow:clip; font-size:10px; font-weight:800; line-height:1; font-variant-numeric:tabular-nums; text-shadow:0 1px 2px #0b1713, 0 0 3px #0b1713; }
+.diagnostic-occupancy-recovery { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:6px; }
+#diagnosticOccupancyStatus { color:#f3bf80; margin:0; font-size:12px; }
+#diagnosticOccupancyStatus:empty { display:none; }
+#diagnosticOccupancyRetry { min-height:30px; font-size:12px; }
+#diagnosticOccupancyRetry[hidden] { display:none; }
 @media (prefers-reduced-motion: reduce) { .diagnostic-occupancy-fill { transition:none; } }
 .diagnostic-actions { display:grid; grid-template-columns:minmax(0,1fr); gap:7px; align-items:stretch; }
 .diagnostic-actions .diagnostic-reset { width:100%; min-width:0; }
@@ -227,6 +241,12 @@ button { font: inherit; }
 .sort-direction-button { min-height:36px; padding:7px 10px; border:1px solid #425056; border-radius:8px; background:#1b2427; color:#b9c4c7; cursor:pointer; font-size:11px; font-weight:700; white-space:nowrap; }
 .sort-direction-button:hover { border-color:#58716a; color:#eef8f5; }
 .sort-direction-button.active, .sort-direction-button[aria-pressed="true"] { border-color:#4de0b7; background:#17322b; color:#c8fff0; }
+.sort-direction-button:focus-visible { outline:2px solid #4de0b7; outline-offset:2px; }
+.inventory-toolbar.trash-sort-toolbar { grid-template-columns:minmax(180px,1fr) auto; align-items:end; }
+.trash-sort-field { display:grid; gap:5px; min-width:0; }
+.trash-sort-field > span { color:#879399; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; }
+.trash-sort-field > strong { display:flex; align-items:center; min-height:36px; color:#edf2f3; font-size:12px; font-weight:700; }
+
 .summary-row { grid-template-columns:86px minmax(0,1fr); }
 .summary-row span { white-space:nowrap; }
 .inventory-summary-info > p { display:none; }
@@ -240,6 +260,7 @@ button { font: inherit; }
 }
 @media (max-width: 760px) {
   .inventory-toolbar { grid-template-columns:1fr; }
+  .inventory-toolbar.trash-sort-toolbar { grid-template-columns:1fr; }
   .inventory-sort-direction { grid-column:auto; flex-wrap:wrap; }
   .inventory-card-footer .record-details summary { padding-right:0; }
   .inventory-footer-meta { position:static; margin-top:5px; text-align:left; white-space:normal; }
@@ -953,3 +974,6 @@ select:not([multiple]) { appearance:none; -webkit-appearance:none; background-im
   .native-update-versions > div { gap:4px; }
   .native-update-modal-footer button { min-width:0; flex:1 1 0; }
 }
+
+/* KAR-186: a not-yet-verified policy must not show the default 30-day slider thumb. */
+#trashRetentionRange[hidden] { display: none; }
