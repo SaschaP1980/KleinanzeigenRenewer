@@ -122,7 +122,10 @@
       return true;
     }
     if (message?.type === 'FIND_OWN_AD_BY_ID') {
-      deleteOperations.findOwnAdById(message.adId, message.correlation || {}, {expectedProfileName:message.expectedProfileName}).then(result => sendResponse({ ok: true, result }), error => sendResponse({ ok: false, error: error.message }));
+      deleteOperations.findOwnAdById(message.adId, message.correlation || {}, {
+        expectedProfileName:message.expectedProfileName,
+        requireCompleteRoster: message.requireCompleteRoster === true
+      }).then(result => sendResponse({ ok: true, result }), error => sendResponse({ ok: false, error: error.message }));
       return true;
     }
     if (message?.type === 'VERIFY_OWN_AD_ABSENT_BY_ID') {
