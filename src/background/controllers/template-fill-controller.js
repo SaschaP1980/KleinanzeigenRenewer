@@ -671,10 +671,40 @@ async function updateTemplateFillSession(message, sender) {
           currentFingerprint: String(incomingProof.currentFingerprint),
           sourceFingerprint: incomingProof.sourceFingerprint || null, checkedAt: new Date().toISOString() }
       : existingProof;
+    // Keep *non-authoritative* evidence when an incomplete Fill is exported.
+    // Never turn an unverified or legacy report into a publish-capable proof.
+    const reviewProof = incomingProof?.verified === false &&
+      /^\d+$/.test(String(incomingProof.categoryId || ''))
+      ? {
+          verified: false, categoryId: String(incomingProof.categoryId),
+          sourceFingerprint: /^[a-f0-9]{64}$/.test(String(incomingProof.sourceFingerprint || ''))
+            ? String(incomingProof.sourceFingerprint) : null,
+          currentFingerprint: /^[a-f0-9]{64}$/.test(String(incomingProof.currentFingerprint || ''))
+            ? String(incomingProof.currentFingerprint) : null,
+          comparisonStatus: /^[a-z-]{1,50}$/.test(String(incomingProof.comparisonStatus || ''))
+            ? String(incomingProof.comparisonStatus) : 'unresolved',
+          valueCompatibility: ['confirmed', 'incompatible', 'unverified'].includes(incomingProof.valueCompatibility)
+            ? incomingProof.valueCompatibility : 'unverified',
+          valueEvidence: (Array.isArray(incomingProof.valueEvidence) ? incomingProof.valueEvidence : [])
+            .slice(0, 50).map(item => ({
+              key: /^[a-zA-Z0-9_.:-]{1,128}$/.test(String(item?.key || ''))
+                ? String(item.key) : 'unknown',
+              status: ['confirmed', 'unverified', 'incompatible', 'ambiguous'].includes(item?.status)
+                ? item.status : 'unverified',
+              reason: /^[a-z-]{1,80}$/.test(String(item?.reason || ''))
+                ? item.reason : 'unknown',
+              controlKind: /^[a-z-]{1,30}$/.test(String(item?.controlKind || ''))
+                ? item.controlKind : 'unknown',
+              optionSource: /^[a-z-]{1,30}$/.test(String(item?.optionSource || ''))
+                ? item.optionSource : 'unknown',
+              optionCount: Number.isSafeInteger(item?.optionCount) && item.optionCount >= 0 &&
+                item.optionCount <= 10000 ? item.optionCount : null
+            }))
+        } : null;
     session.result = {
       complete: Boolean(message.result.complete),
       issues: Array.isArray(message.result.issues) ? message.result.issues.slice(0, 50).map(value => String(value).slice(0, 300)) : [],
-      schemaPreflight: Boolean(message.result.complete) ? proof : null
+      schemaPreflight: Boolean(message.result.complete) ? proof : reviewProof
     };
   }
   if (session.stage === 'paid-insertion-required' && message.paidInsertion && typeof message.paidInsertion === 'object') {
