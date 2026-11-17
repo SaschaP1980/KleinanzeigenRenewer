@@ -12,15 +12,26 @@ NEXT="1.25.13"
 root=Path(__file__).resolve().parents[2]
 manifest_path=root/"manifest.json"
 package_path=root/"package.json"
+package_lock_path=root/"package-lock.json"
+release_spec_path=root/"release/release-spec.json"
 changelog_path=root/"CHANGELOG.md"
 manifest=json.loads(manifest_path.read_text(encoding="utf-8"))
 package=json.loads(package_path.read_text(encoding="utf-8"))
-if manifest.get("version")!=BASE or package.get("version")!=BASE:
-    raise SystemExit("KAR171_PREVIEW_VERSION_DENIED: expected exact main v1.25.12")
+lock=json.loads(package_lock_path.read_text(encoding="utf-8"))
+spec=json.loads(release_spec_path.read_text(encoding="utf-8"))
+if any(z.get("version")!=BASE for z in [manifest,package,lock,spec]) \
+  or package.get("displayVersion")!=BASE or lock.get("packages",{}).get("",{}).get("version")!=BASE \
+  or spec.get("packageVersion")!=BASE:
+    raise SystemExit("KAR171_PREVIEW_VERSION_DENIED: expected exact main v1.25.12 four-file metadata")
 if manifest.get("version_name"):
     raise SystemExit("KAR171_PREVIEW_VERSION_DENIED: unsupported manifest version_name")
 manifest["version"]=NEXT
 package["version"]=NEXT
+package["displayVersion"]=NEXT
+lock["version"]=NEXT
+lock["packages"][""]["version"]=NEXT
+spec["version"]=NEXT
+spec["packageVersion"]=NEXT
 changelog=changelog_path.read_text(encoding="utf-8")
 heading="## v1.25.12"
 if changelog.count(heading)!=1 or "## v1.25.13" in changelog:
@@ -34,5 +45,7 @@ new_entry="""## v1.25.13 — KAR-171 upstream-integrated R1 test build (Work onl
 """
 manifest_path.write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
 package_path.write_text(json.dumps(package,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+package_lock_path.write_text(json.dumps(lock,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+release_spec_path.write_text(json.dumps(spec,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
 changelog_path.write_text(changelog.replace(heading,new_entry+heading,1),encoding="utf-8")
 print("KAR171_PREVIEW_VERSION",NEXT,"Work only; release not authorized")
