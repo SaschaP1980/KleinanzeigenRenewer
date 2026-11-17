@@ -429,8 +429,39 @@
       const valueCompatibility = valueEvidence.some(item => ['incompatible', 'ambiguous'].includes(item.status))
         ? 'incompatible' : valueEvidence.some(item => item.status === 'unverified')
           ? 'unverified' : 'confirmed';
-      return { complete: issues.length === 0, issues: [...new Set(issues)], warnings,
+      // KAR-201: Preflight failure and safe *partial* prefill are different
+      // outcomes. Unknown optional selections may require manual review while
+      // title, description, proven attributes and archive images are still
+      // valuable. Only legacy category-matched, per-attribute selection
+      // problems can defer; structural drift, fingerprint defects, unknown
+      // required fields and account/category mismatch still block early.
+      const manualOnlyReasons = new Set([
+        'display-only-unsafe-control', 'missing-field',
+        'technical-value-not-offered', 'duplicate-visible-label',
+        'saved-technical-label-pair-missing'
+      ]);
+      const manualOnlyEvidence = valueEvidence.filter(item =>
+        ['incompatible', 'ambiguous'].includes(item.status) &&
+        manualOnlyReasons.has(item.reason));
+      const actualCategory = String(observed.form?.querySelector?.('input[name="categoryId"]')?.value || '');
+      const uniqueIssues = [...new Set(issues)];
+      const partialContinuationEligible =
+        comparison?.status === 'legacy-unversioned' &&
+        actualCategory === String(template.categoryId || '') &&
+        manualOnlyEvidence.length > 0 &&
+        // Each admitted issue must be precisely one identified, optional
+        // selection gap, not a broad "ignore every preflight error" switch.
+        manualOnlyEvidence.length === issues.length &&
+        uniqueIssues.length === issues.length &&
+        manualOnlyEvidence.every(item => {
+          const field = fields.get('attribute:' + item.key);
+          return field?.requiredState !== 'required';
+        });
+      const partialSkipKeys = partialContinuationEligible
+        ? manualOnlyEvidence.map(item => item.key) : [];
+      return { complete: issues.length === 0, issues: uniqueIssues, warnings,
         comparison, valueCompatibility, valueEvidence,
+        partialContinuationEligible, partialSkipKeys,
         sourceFingerprint: provided || null,
         currentFingerprint: await Schema.fingerprint(observed.schema), mappings };
     }
