@@ -902,6 +902,9 @@ async function deleteInventory(inventoryId) {
 async function removeReplacementReadyLocal(message) { return requireRemoteDeleteReplacementService().removeReplacementReadyLocal(message); }
 
 async function recoverEmergencyResetCandidateAtomic(session) { return requireRemoteDeleteReplacementService().recoverEmergencyResetCandidateAtomic(session); }
+
+async function promoteRenewalCandidateAtomic(session) { return requireRemoteDeleteReplacementService().promoteRenewalCandidateAtomic(session); }
+
 function renewalTargetTabStillOwned(tab, session) { return requireRemoteDeleteReplacementService().renewalTargetTabStillOwned(tab, session); }
 
 function renewalPublishedTargetTabStillOwned(tab, session) { return requireRemoteDeleteReplacementService().renewalPublishedTargetTabStillOwned(tab, session); }
@@ -918,9 +921,9 @@ async function assertMassRenewalManualActionAllowed(message = {}) {
   if (batch?.status === 'running') throw new Error('Das Neu-Inserieren läuft noch. Einzelne Wiederholungen sind erst in der Abschlussübersicht möglich.');
 }
 
-async function verifyRenewalSourceAbsenceFresh(session, expectedProfile, windowId, attemptState, purpose = 'post-delete') { return requireRemoteDeleteReplacementService().verifyRenewalSourceAbsenceFresh(session, expectedProfile, windowId, attemptState, purpose); }
+function verifyRenewalSourceAbsenceFresh(...args) { return requireRemoteDeleteReplacementService().verifyRenewalSourceAbsenceFresh(...args); }
 
-async function preverifyAndTriggerRenewalSourceDeleteAttempt(session, expectedProfile, windowId, attemptState) { return requireRemoteDeleteReplacementService().preverifyAndTriggerRenewalSourceDeleteAttempt(session, expectedProfile, windowId, attemptState); }
+function preverifyAndTriggerRenewalSourceDeleteAttempt(...args) { return requireRemoteDeleteReplacementService().preverifyAndTriggerRenewalSourceDeleteAttempt(...args); }
 
 async function finishRenewalReplacement(message, admissionReceipt) { return requireRemoteDeleteReplacementService().finishRenewalReplacement(message, admissionReceipt); }
 
