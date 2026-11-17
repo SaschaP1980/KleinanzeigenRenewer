@@ -57,7 +57,9 @@ const runEnd = filler.indexOf('\n  async function runPendingFill', runStart);
 const run = filler.slice(runStart, runEnd);
 assert.match(run, /const imageOutcome = await uploadImages\(fillId, template\)/);
 assert.match(run, /const imagesComplete = imageOutcome\.complete === true/);
-assert.match(run, /const complete = uniqueIssues\.length === 0 && imagesComplete/);
+assert.match(run, /const complete = (?:!partialPrefill && )?uniqueIssues\.length === 0 && imagesComplete/);
+assert.match(run, /issues\.push\(\.\.\.schemaPreflightReport\.issues\)/,
+  'partial archive prefill must preserve all preflight errors and never publish automatically');
 assert.ok(run.indexOf('const imageOutcome = await uploadImages') < run.indexOf("'Vorlage vollständig übernommen'"));
 pass('final success feedback is gated by stable images as well as form verification');
 
