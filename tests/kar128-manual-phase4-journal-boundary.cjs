@@ -56,8 +56,8 @@ function harness(beginPort, switchProfileAfterReceipt=false, switchProfileDuring
 }
 const session={renewalId:'renewal-1',sourceAdId:'12345',newAdId:'67890'};
 async function main(){
- ok(remoteSrc.includes('await beginPhase4Attempt({'),'shared service requires journal before DELETE');
- ok(remoteSrc.indexOf('await beginPhase4Attempt({')<remoteSrc.indexOf("type: 'DELETE_OWN_AD_BY_ID'"),
+ ok(remoteSrc.includes('await boundedPhase4JournalBegin(() => beginPhase4Attempt({'),'shared service requires journal before DELETE');
+ ok(remoteSrc.indexOf('await boundedPhase4JournalBegin(() => beginPhase4Attempt({')<remoteSrc.indexOf("type: 'DELETE_OWN_AD_BY_ID'"),
    'durable receipt precedes literal remote delete request');
  ok(!ctrlSrc.includes('await beginPhase4Attempt(current)'),
    'automatic caller does not duplicate the receipt before verified live profile');

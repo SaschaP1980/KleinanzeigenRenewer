@@ -71,9 +71,10 @@ async function main(){
   await assert.rejects(first.begin({...req,newAdId:'unverified'}),/KR_PHASE4_JOURNAL_IDENTITY/);
   ok(true,'unbound profile or new Ad-ID rejects journaling');
   ok(!source.includes('void (async () =>'), 'bare autonomous Phase4 execution remains prohibited');
-  ok(remote.includes('await beginPhase4Attempt({'), 'durable journal begins inside shared remote service after fresh account check');
-  ok(remote.indexOf('await beginPhase4Attempt({')<remote.indexOf("type: 'DELETE_OWN_AD_BY_ID'"),
-    'Phase4 journal confirmation happens before the actual remote DELETE request');
+  ok(remote.includes('await boundedPhase4JournalBegin(() => beginPhase4Attempt({'),
+    'durable Phase4 journal begins inside shared service under a bounded, fail-closed timeout');
+  ok(remote.indexOf('await boundedPhase4JournalBegin(() => beginPhase4Attempt({')<remote.indexOf("type: 'DELETE_OWN_AD_BY_ID'"),
+    'Phase4 journal confirmation must precede the actual remote DELETE request');
   ok(source.includes("KR_PHASE4_JOURNAL_"),'journal rejection is classified as deferral not remote failure');
   ok(worker.includes('beginPhase4Attempt: current => requirePhase4UncertaintyJournal().begin(current)'),
     'real worker injects required journal into controller');

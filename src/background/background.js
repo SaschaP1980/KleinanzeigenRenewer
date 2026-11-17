@@ -901,6 +901,8 @@ async function deleteInventory(inventoryId) {
 
 async function removeReplacementReadyLocal(message) { return requireRemoteDeleteReplacementService().removeReplacementReadyLocal(message); }
 
+async function recoverEmergencyResetCandidateAtomic(session) { return requireRemoteDeleteReplacementService().recoverEmergencyResetCandidateAtomic(session); }
+
 async function promoteRenewalCandidateAtomic(session) { return requireRemoteDeleteReplacementService().promoteRenewalCandidateAtomic(session); }
 
 function renewalTargetTabStillOwned(tab, session) { return requireRemoteDeleteReplacementService().renewalTargetTabStillOwned(tab, session); }
@@ -919,9 +921,9 @@ async function assertMassRenewalManualActionAllowed(message = {}) {
   if (batch?.status === 'running') throw new Error('Das Neu-Inserieren läuft noch. Einzelne Wiederholungen sind erst in der Abschlussübersicht möglich.');
 }
 
-async function verifyRenewalSourceAbsenceFresh(session, expectedProfile, windowId, attemptState, purpose = 'post-delete') { return requireRemoteDeleteReplacementService().verifyRenewalSourceAbsenceFresh(session, expectedProfile, windowId, attemptState, purpose); }
+function verifyRenewalSourceAbsenceFresh(...args) { return requireRemoteDeleteReplacementService().verifyRenewalSourceAbsenceFresh(...args); }
 
-async function preverifyAndTriggerRenewalSourceDeleteAttempt(session, expectedProfile, windowId, attemptState) { return requireRemoteDeleteReplacementService().preverifyAndTriggerRenewalSourceDeleteAttempt(session, expectedProfile, windowId, attemptState); }
+function preverifyAndTriggerRenewalSourceDeleteAttempt(...args) { return requireRemoteDeleteReplacementService().preverifyAndTriggerRenewalSourceDeleteAttempt(...args); }
 
 async function finishRenewalReplacement(message, admissionReceipt) { return requireRemoteDeleteReplacementService().finishRenewalReplacement(message, admissionReceipt); }
 
@@ -1182,6 +1184,10 @@ async function sendTabRequestWithBootstrap(tabId, message) {
   } catch (error) {
     const text = String(error?.message || error || '');
     if (!/Receiving end does not exist|Could not establish connection|message port closed/i.test(text)) throw error;
+    // A closed reply port can mean the source deletion already happened.
+    // Never transparently resend the destructive DELETE across bootstrap.
+    // Phase-4 journal + independent readback owns this unknown outcome.
+    if (String(message?.type || '') === 'DELETE_OWN_AD_BY_ID') throw error;
     await ensureContentConnection({ tabId });
     return sendTabRequest(tabId, message);
   }
@@ -1654,7 +1660,8 @@ function requirePhase4UncertaintyJournal() {
       newToken: () => crypto.randomUUID(), workerInstanceId: ownerWorkerInstanceId,
       verifyRemoteOutcome: receipt => requireRemoteDeleteReplacementService().verifyPhase4RemoteOutcomeFresh(receipt),
       lockName: AtomicMV3Admission.LOCK_NAME,
-      lockManager: globalThis.navigator?.locks
+      lockManager: globalThis.navigator?.locks,
+      onSample: s => logDiagnostic('info','RENEWAL_PHASE4_JOURNAL_LOCK_CONTENTION',s).catch(()=>{})
     });
   }
   return phase4Journal;
@@ -1673,8 +1680,7 @@ function requireAutoPublishIntentJournal() {
   }
   return autoPublishIntentJournal;
 }
-// A caller-supplied new-ID redirect is only a candidate. Read-only My Ads
-// verification in an independent managed tab is the sole outcome authority.
+// A redirect is not publication proof; independent My Ads verification is.
 let publishIntentAuthorizationService = null;
 function requirePublishIntentAuthorizationService() {
   if (!publishIntentAuthorizationService) publishIntentAuthorizationService = PublishIntentAuthorizationService.create({
@@ -1706,7 +1712,7 @@ function requireRenewalWorkflowController() {
       isSafeLegacyManualEmergencyReset, logDiagnostic, logRenewalPhaseAttemptFailed, logRenewalPhaseAttemptStarted,
       massRenewalBatchCounts, massRenewalTerminalOutcome, mergeListingMetadata, mutateMassRenewalBatch,
       normalBrowserWindowId, normalizeKnownPublicAdUrl, normalizeProfileName, normalizeRenewalMode, normalizeRenewalPhaseAttempts,
-      persistArchiveInsertionSession, publicAvailabilitySnapshot, putInventoryRecordOnly, queueMassRenewalProgress,
+      persistArchiveInsertionSession, publicAvailabilitySnapshot, putInventoryRecordOnly, recoverEmergencyResetCandidateAtomic, queueMassRenewalProgress,
       readArchiveInsertionSessions, readDiagnostics, readFillSessions, readInventoryRecordsForProfile, readProfiles,
       readRenewalSessions, reconcileMassRenewalBatchSession, renewalAttemptState, renewalComparisonWaitsOnlyForOnline,
       renewalInsertionMeta, renewalMaxPhaseAttempts, renewalAttemptDetails, renewalOutcomeForComparison, renewalPhaseAttemptAvailable,
@@ -2075,6 +2081,7 @@ function requireWorkflowEmergencyResetController() {
       RenewalStateRepository, readRenewalSessions, writeRenewalSessions, renewalHoldsInsertionLock,
       isSafeLegacyManualEmergencyReset, isSafePrePublishPaidInsertion, emergencyResetRenewalState,
       readArchiveInsertionSessions, writeArchiveInsertionSessions, readMassRenewalBatch, writeMassRenewalBatch,
+      recoverEmergencyResetCandidateAtomic,
       touchMassRenewalItemProgress, getTabRegistrySnapshot, TAB_STATES,
       logDiagnostic, sessionCorrelationContext, broadcastInventoryChanged
     });
