@@ -902,7 +902,6 @@ async function deleteInventory(inventoryId) {
 async function removeReplacementReadyLocal(message) { return requireRemoteDeleteReplacementService().removeReplacementReadyLocal(message); }
 
 async function recoverEmergencyResetCandidateAtomic(session) { return requireRemoteDeleteReplacementService().recoverEmergencyResetCandidateAtomic(session); }
-
 function renewalTargetTabStillOwned(tab, session) { return requireRemoteDeleteReplacementService().renewalTargetTabStillOwned(tab, session); }
 
 function renewalPublishedTargetTabStillOwned(tab, session) { return requireRemoteDeleteReplacementService().renewalPublishedTargetTabStillOwned(tab, session); }
