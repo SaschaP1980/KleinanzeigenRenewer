@@ -35,6 +35,50 @@
       const IDBKeyRange = options.IDBKeyRangeCtor || globalThis.IDBKeyRange;
       const captureResetGeneration = typeof captureEmergencyResetGeneration === 'function' ? captureEmergencyResetGeneration : (() => 0);
       const assertResetGeneration = typeof assertEmergencyResetGeneration === 'function' ? assertEmergencyResetGeneration : (() => true);
+      // KAR-199: a completed content handshake is not proof that the next
+      // Chrome message callback will ever settle. Deadlines carry NO authority
+      // to retry any remote mutation or to bypass the immutable Phase-4 intent.
+      const boundedMs = (value, fallback) => Number.isFinite(Number(value)) && Number(value) >= 10
+        ? Math.min(300000, Math.floor(Number(value))) : fallback;
+      const PHASE4_STATUS_TIMEOUT_MS = boundedMs(options.phase4StatusRequestTimeoutMs, 20000);
+      const PHASE4_DELETE_RESPONSE_TIMEOUT_MS = boundedMs(options.phase4DeleteRequestTimeoutMs, 180000);
+      const PHASE4_READONLY_TIMEOUT_MS = boundedMs(options.phase4ReadOnlyRequestTimeoutMs, 180000);
+
+      function phase4Milestone(event, step, requestType, limit, started) {
+        // Low-cardinality only: no account/ad/tab/worker IDs, URLs or tokens.
+        // Best effort without an awaited competing diagnostic P8 owner.
+        void Promise.resolve().then(() => logDiagnostic('info',event,{
+          step,requestType,timeoutMs:limit,elapsedMs:Math.max(0,Date.now()-started)
+        },{module:'background',operation:'renewal-phase-4'})).catch(() => {});
+      }
+
+      async function boundedPhase4TabRequest(tabId,message,step,timeoutMs,code) {
+        const started=Date.now();
+        phase4Milestone('RENEWAL_PHASE4_REQUEST_STARTED',step,message.type,timeoutMs,started);
+        let timer;
+        try {
+          const response=await Promise.race([
+            Promise.resolve().then(() => sendTabRequestWithBootstrap(tabId,message)),
+            new Promise((_,reject) => {timer=setTimeout(() => {
+              const error=new Error(code);error.code=code;reject(error);
+            },timeoutMs);})
+          ]);
+          phase4Milestone('RENEWAL_PHASE4_REQUEST_COMPLETED',step,message.type,timeoutMs,started);
+          return response;
+        } catch(error) {
+          const timeout=error?.code===code;
+          phase4Milestone(timeout && message.type==='MY_ADS_STATUS'
+            ? 'RENEWAL_PHASE4_STATUS_TIMEOUT'
+            : timeout && message.type==='DELETE_OWN_AD_BY_ID'
+              ? 'RENEWAL_PHASE4_DELETE_RESPONSE_TIMEOUT'
+              : timeout ? 'RENEWAL_PHASE4_READONLY_TIMEOUT' : 'RENEWAL_PHASE4_REQUEST_FAILED',
+            step,message.type,timeoutMs,started);
+          throw error;
+        } finally {
+          if(timer!==undefined) clearTimeout(timer);
+        }
+      }
+
 
 async function removeReplacementReadyLocal(message) {
   const renewalId = String(message?.renewalId || '');
@@ -42,6 +86,9 @@ async function removeReplacementReadyLocal(message) {
   const renewals = await readRenewalSessions();
   const renewal = renewals[renewalId];
   if (!renewal) throw new Error('Renewal-Vorgang wurde nicht gefunden.');
+  if (String(renewal.stage || '').startsWith('source-delete')) {
+    throw new Error('Phase-4-Löschausgang ist nicht unabhängig verifiziert; Kandidat bleibt erhalten.');
+  }
   if (String(renewal.status || '') !== 'verified' && String(renewal.stage || '') !== 'replacement-ready') {
     throw new Error('Nur ein verifizierter, austauschbereiter Renewal-Kandidat kann so aus dem Inventar entfernt werden.');
   }
@@ -275,7 +322,7 @@ async function verifyRenewalSourceAbsenceFresh(session, expectedProfile, windowI
       })
     });
     await ensureContentConnection({ tabId: verificationTabId });
-    const verifyStatus = await sendTabRequestWithBootstrap(verificationTabId, { type: 'MY_ADS_STATUS' });
+    const verifyStatus = await boundedPhase4TabRequest(verificationTabId, { type: 'MY_ADS_STATUS' }, 'post-delete-status', PHASE4_STATUS_TIMEOUT_MS, 'KR_PHASE4_JOURNAL_REMOTE_UNVERIFIED');
     const verifyProfile = normalizeProfileName(verifyStatus?.profileName || '');
     if (!verifyStatus?.isMyAdsPage || !verifyStatus?.isProjectsTab) throw new Error('Die Löschverifikation befindet sich nicht eindeutig in „Meine Anzeigen“ / PROJECTS.');
     if (!verifyProfile) throw new Error('Das Kleinanzeigen-Konto konnte während der Löschverifikation nicht eindeutig erkannt werden.');
@@ -283,11 +330,11 @@ async function verifyRenewalSourceAbsenceFresh(session, expectedProfile, windowI
       throw new Error('Das aktuell angemeldete Kleinanzeigen-Konto wechselte während der Löschverifikation.');
     }
 
-    const verification = await sendTabRequestWithBootstrap(verificationTabId, {
+    const verification = await boundedPhase4TabRequest(verificationTabId, {
       type: 'VERIFY_OWN_AD_ABSENT_BY_ID',
       adId: String(session.sourceAdId),
       correlation: correlationContext(session)
-    });
+    }, 'post-delete-full-scan', PHASE4_READONLY_TIMEOUT_MS, 'KR_PHASE4_JOURNAL_REMOTE_UNVERIFIED');
 
     await logDiagnostic(verification?.verified ? 'info' : 'warning', purpose === 'pre-delete' ? 'RENEWAL_PHASE4_PREDELETE_VERIFICATION' : 'RENEWAL_SOURCE_DELETE_VERIFICATION_ATTEMPT', {
       renewalId: session.renewalId,
@@ -344,13 +391,13 @@ async function verifyPhase4RemoteOutcomeFresh(receipt) {
         context: {renewalId:receipt.renewalId,adId:id,workerTabId:tabId}
       });
       await ensureContentConnection({tabId});
-      const status = await sendTabRequestWithBootstrap(tabId,{type:'MY_ADS_STATUS'});
+      const status = await boundedPhase4TabRequest(tabId,{type:'MY_ADS_STATUS'}, 'journal-fresh-' + kind, PHASE4_STATUS_TIMEOUT_MS, 'KR_PHASE4_JOURNAL_REMOTE_UNVERIFIED');
       if (status?.isMyAdsPage !== true || status?.isProjectsTab !== true
           || !status.profileName || normalized(status.profileName) !== normalized(expected))
         throw new Error('KR_PHASE4_JOURNAL_UNVERIFIED');
-      return await sendTabRequestWithBootstrap(tabId,{
+      return await boundedPhase4TabRequest(tabId,{
         type:command,adId:id,correlation:{renewalId:receipt.renewalId}
-      });
+      }, 'journal-scan-' + kind, PHASE4_READONLY_TIMEOUT_MS, 'KR_PHASE4_JOURNAL_REMOTE_UNVERIFIED');
     } finally {
       if (tabId) await closeManagedWorkerTab(tabId).catch(() => {});
     }
@@ -404,7 +451,7 @@ async function preverifyAndTriggerRenewalSourceDeleteAttempt(session, expectedPr
     });
     await ensureContentConnection({ tabId: deleteTabId });
 
-    const status = await sendTabRequestWithBootstrap(deleteTabId, { type: 'MY_ADS_STATUS' });
+    const status = await boundedPhase4TabRequest(deleteTabId, { type: 'MY_ADS_STATUS' }, 'pre-intent-status', PHASE4_STATUS_TIMEOUT_MS, 'KR_PHASE4_STATUS_TIMEOUT');
     const actualProfile = normalizeProfileName(status?.profileName || '');
     if (!status?.isMyAdsPage || !status?.isProjectsTab) throw new Error('Phase 4 konnte die Ansicht „Meine Anzeigen“ / PROJECTS nicht eindeutig bestätigen.');
     if (!actualProfile) throw new Error('Das aktuell angemeldete Kleinanzeigen-Konto konnte für Phase 4 nicht eindeutig erkannt werden.');
@@ -443,7 +490,7 @@ async function preverifyAndTriggerRenewalSourceDeleteAttempt(session, expectedPr
     // DELETE, leaving the immutable attempt unresolved on uncertainty.
     let postReceiptStatus;
     try {
-      postReceiptStatus = await sendTabRequestWithBootstrap(deleteTabId, { type: 'MY_ADS_STATUS' });
+      postReceiptStatus = await boundedPhase4TabRequest(deleteTabId, { type: 'MY_ADS_STATUS' }, 'post-intent-status', PHASE4_STATUS_TIMEOUT_MS, 'KR_PHASE4_STATUS_TIMEOUT');
     } catch {
       const code = 'KR_PHASE4_JOURNAL_ACCOUNT_UNVERIFIED';
       throw Object.assign(new Error(code), { code });
@@ -460,13 +507,13 @@ async function preverifyAndTriggerRenewalSourceDeleteAttempt(session, expectedPr
 
     try {
       assertResetGeneration(resetGeneration, 'renewal-phase4-before-delete');
-      deletion = await sendTabRequestWithBootstrap(deleteTabId, {
+      deletion = await boundedPhase4TabRequest(deleteTabId, {
         type: 'DELETE_OWN_AD_BY_ID',
         adId: String(session.sourceAdId),
         correlation: correlationContext(session)
-      });
+      }, 'delete-response', PHASE4_DELETE_RESPONSE_TIMEOUT_MS, 'KR_PHASE4_DELETE_RESPONSE_TIMEOUT');
     } catch (error) {
-      if (!isPhase4DeleteTransportInterruption(error)) throw error;
+      if (error?.code !== 'KR_PHASE4_DELETE_RESPONSE_TIMEOUT' && !isPhase4DeleteTransportInterruption(error)) throw error;
       transportInterrupted = true;
       await logDiagnostic('info', 'RENEWAL_SOURCE_DELETE_TRANSPORT_INTERRUPTED', {
         renewalId: session.renewalId,
