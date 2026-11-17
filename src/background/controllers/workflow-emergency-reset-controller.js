@@ -7,7 +7,7 @@
         RenewalStateRepository,readRenewalSessions,writeRenewalSessions,renewalHoldsInsertionLock,isSafeLegacyManualEmergencyReset,isSafePrePublishPaidInsertion,emergencyResetRenewalState,
         readArchiveInsertionSessions,writeArchiveInsertionSessions,readMassRenewalBatch,writeMassRenewalBatch,recoverEmergencyResetCandidateAtomic,touchMassRenewalItemProgress,getTabRegistrySnapshot,TAB_STATES,
         logDiagnostic,sessionCorrelationContext,broadcastInventoryChanged}=options;
-      const required={bumpEmergencyResetGeneration,resetMassRenewalWorkflowRuntimeState,mutateBulkRunState,closeRegistryTabs,closeRegistryTab,releaseBulkSourceOwnership,readFillSessions,writeFillSessions,requireTemplateFillService,readRenewalSessions,writeRenewalSessions,renewalHoldsInsertionLock,isSafeLegacyManualEmergencyReset,isSafePrePublishPaidInsertion,emergencyResetRenewalState,readArchiveInsertionSessions,writeArchiveInsertionSessions,readMassRenewalBatch,writeMassRenewalBatch,recoverEmergencyResetCandidateAtomic,touchMassRenewalItemProgress,getTabRegistrySnapshot,logDiagnostic,sessionCorrelationContext,broadcastInventoryChanged};
+      const required={bumpEmergencyResetGeneration,resetMassRenewalWorkflowRuntimeState,mutateBulkRunState,closeRegistryTabs,closeRegistryTab,releaseBulkSourceOwnership,readFillSessions,writeFillSessions,requireTemplateFillService,readRenewalSessions,writeRenewalSessions,renewalHoldsInsertionLock,isSafeLegacyManualEmergencyReset,isSafePrePublishPaidInsertion,emergencyResetRenewalState,readArchiveInsertionSessions,writeArchiveInsertionSessions,readMassRenewalBatch,writeMassRenewalBatch,touchMassRenewalItemProgress,getTabRegistrySnapshot,logDiagnostic,sessionCorrelationContext,broadcastInventoryChanged};
       for(const [name,value] of Object.entries(required)) if(typeof value!=='function') throw new Error(`workflow emergency reset dependency ${name} is required`);
       if(!RenewalStateRepository?.renewalPublishBoundaryReached || !TAB_STATES) throw new Error('workflow emergency reset policy dependencies are required');
       for(const [name,set] of Object.entries({automaticReplacementInFlight,renewalPhase1RetryInFlight,renewalPublishDetectionInFlight,trashTemplatePublishDetectionInFlight})) if(!set?.clear) throw new Error(`workflow emergency reset runtime set ${name} is required`);
@@ -103,6 +103,7 @@ async function resetActiveWorkflows() {
         || !/^\d+$/.test(String(renewal?.newAdId || ''))
         || renewal?.comparison?.ownAdsPresence !== true) continue;
     try {
+      if (typeof recoverEmergencyResetCandidateAtomic !== 'function') throw new Error('KAR199_RECOVERY_UNAVAILABLE');
       await recoverEmergencyResetCandidateAtomic(renewal);
     } catch (error) {
       await logDiagnostic('warning','RENEWAL_EMERGENCY_CANDIDATE_RECOVERY_DEFERRED',{
