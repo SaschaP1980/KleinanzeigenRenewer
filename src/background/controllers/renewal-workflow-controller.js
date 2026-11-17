@@ -292,7 +292,7 @@ function scheduleAutomaticRenewalReplacement(renewalId, trigger = 'verification-
     // persisted recovery state and never invent a failed source deletion.
     const admissionCode = String(error?.code || error?.message || '');
     if (admissionCode.startsWith('KR_UPDATE_FENCE_') || admissionCode.startsWith('KR_UPDATE_OWNER_OBSERVER_')
-        || admissionCode.startsWith('KR_PHASE4_JOURNAL_')) return;
+        || admissionCode.startsWith('KR_PHASE4_JOURNAL_') || admissionCode === 'KR_PHASE4_STATUS_TIMEOUT') return;
     const sessions = await readRenewalSessions().catch(() => ({}));
     const latest = sessions[id];
     if (latest) {
