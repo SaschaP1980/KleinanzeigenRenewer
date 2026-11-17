@@ -206,6 +206,7 @@
     const seenAdIds = new Set();
     const seenPageStates = new Set();
     const pages = [];
+    let matchedReadOnlyListing = null;
     for (let pageGuard = 0; pageGuard < MAX_PHASE4_PAGES; pageGuard += 1) {
       if (!isMyAdsProjectsUrl()) throw new Error('Phase 4 hat die Ansicht „Meine Anzeigen“ / PROJECTS verlassen; Abbruch aus Sicherheitsgründen.');
       assertSameAccount();
@@ -235,11 +236,23 @@
 
       const listing = listings.find(item => String(item.adId) === wanted);
       if (listing) {
-        // Card lookup itself reads live DOM. Revalidate at the actual
-        // positive-result boundary, not only before scanning the page.
+        // Non-R1 inventory/delete lookups retain their original early return:
+        // only trusted read-only remote evidence with an expected account
+        // must prove that the FULL advertised roster was scanned.
+        if (!expectedAccount) return { found: true, listing, page, pagesScanned: pages.length, pages };
+        // Snapshot scalar data before changing pages; holding a DOM root from
+        // a prior page is neither necessary nor safe for read-only evidence.
+        if (matchedReadOnlyListing) throw new Error('KR_MY_ADS_ROSTER_INCOMPLETE');
+        matchedReadOnlyListing = { page, listing: {
+          adId: wanted,
+          title: String(listing.title || ''),
+          editUrl: String(listing.editUrl || ''),
+          publicUrl: String(listing.publicUrl || ''),
+          endDateDisplay: String(listing.endDateDisplay || ''),
+          endDateIso: String(listing.endDateIso || '')
+        } };
         assertSameAccount();
         assertRosterCount();
-        return { found: true, listing, page, pagesScanned: pages.length, pages };
       }
 
       const next = nextPageButton();
@@ -254,6 +267,10 @@
         // must never confirm that the original source Ad ID was deleted.
         if (expectedAccount && seenAdIds.size !== expectedOnline)
           throw new Error('KR_MY_ADS_ROSTER_INCOMPLETE');
+        if (matchedReadOnlyListing) {
+          return { found: true, listing: matchedReadOnlyListing.listing,
+            page: matchedReadOnlyListing.page, pagesScanned: pages.length, pages };
+        }
         return { found: false, exhausted: true, pagesScanned: pages.length, pages };
       }
       const beforePage = page;
