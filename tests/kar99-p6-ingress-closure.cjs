@@ -47,7 +47,7 @@ ok(listener.includes("document.addEventListener('click'") && listener.includes("
 
 const deleteService = source('src/background/services/remote-delete-replacement-service.js');
 const phase4 = section(deleteService, 'async function preverifyAndTriggerRenewalSourceDeleteAttempt(', 'async function ');
-const intent = phase4.indexOf('await beginPhase4Attempt(');
+const intent = phase4.indexOf('await boundedPhase4JournalBegin(() => beginPhase4Attempt(');
 const remoteDelete = phase4.indexOf("type: 'DELETE_OWN_AD_BY_ID'");
 ok(intent >= 0 && remoteDelete > intent
    && phase4.indexOf("type: 'MY_ADS_STATUS'") < intent,
