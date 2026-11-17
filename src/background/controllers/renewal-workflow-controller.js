@@ -94,7 +94,6 @@
         ensureContentConnection,
         evaluateCheckoutRecoveryProof,
         finishRenewalReplacement,
-        recoverEmergencyResetCandidateAtomic,
         withAutonomousAdmission,
         flushDiagnosticBuffer,
         getInventory,
@@ -426,6 +425,8 @@ async function resumePendingRenewals() {
           && String(renewal?.stage || '') === 'emergency-reset-unverified'
           && /^\d+$/.test(String(renewal?.newAdId || ''))
           && renewal?.comparison?.ownAdsPresence === true) {
+        if (typeof recoverEmergencyResetCandidateAtomic !== 'function')
+          throw new Error('KAR199_RECOVERY_UNAVAILABLE');
         await recoverEmergencyResetCandidateAtomic(renewal);
         continue;
       }
