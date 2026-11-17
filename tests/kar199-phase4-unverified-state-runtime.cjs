@@ -5,7 +5,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const Remote = require('../src/background/services/remote-delete-replacement-service.js');
 
-function runFixture(statusPlan) {
+function runFixture(statusPlan, journalPlan = 'resolve') {
   let statusIndex = 0;
   let journalStarts = 0;
   let deleteCalls = 0;
@@ -26,7 +26,7 @@ function runFixture(statusPlan) {
     assertMassRenewalManualActionAllowed:async () => {},
     getBulkRunState:async () => ({status:'complete'}),
     observePhase4Attempts:async () => ({attempts:[]}),
-    beginPhase4Attempt:async () => {journalStarts++; return {attemptId:'intent-1'};},
+    beginPhase4Attempt:async () => {journalStarts++;if(journalPlan==='never')return new Promise(()=>{});return {attemptId:'intent-1'};},
     normalBrowserWindowId:async () => null,
     createManagedWorkerTab:async () => ({id:73}),
     waitForTabComplete:async () => ({status:'complete'}),
@@ -41,6 +41,7 @@ function runFixture(statusPlan) {
       throw Error('unexpected request '+message.type);
     },
     phase4StatusRequestTimeoutMs:35,
+    phase4JournalTimeoutMs:35,
     normalizeProfileName:value=>String(value||'').trim(),
     renewalPhaseAttemptAvailable:()=>true,
     renewalAttemptState:()=>({attempt:0}),
@@ -81,6 +82,17 @@ test('KAR-199 pre-intent status timeout creates recoverable user notice, no auto
 test('KAR-199 post-intent status timeout preserves immutable uncertain delete boundary', {timeout:3000}, async () => {
   const f=runFixture(['ready','never']);
   await assert.rejects(timely(f.run()),e=>e?.code==='KR_PHASE4_JOURNAL_ACCOUNT_UNVERIFIED');
+  assert.equal(f.session.status,'verified');
+  assert.equal(f.session.stage,'source-delete-outcome-unverified');
+  assert.equal(f.notices.length,1);
+  assert.equal(f.journalStarts,1);
+  assert.equal(f.deleteCalls,0);
+  assert.equal(f.retryStarts,1);
+});
+
+test('KAR-199 journal timeout preserves unknown intent and warns without DELETE', {timeout:3000},async () => {
+  const f=runFixture(['ready'],'never');
+  await assert.rejects(timely(f.run()),e=>e?.code==='KR_PHASE4_JOURNAL_BEGIN_TIMEOUT');
   assert.equal(f.session.status,'verified');
   assert.equal(f.session.stage,'source-delete-outcome-unverified');
   assert.equal(f.notices.length,1);
