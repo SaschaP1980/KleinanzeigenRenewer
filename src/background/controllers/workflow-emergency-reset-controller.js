@@ -5,9 +5,9 @@
       const {bumpEmergencyResetGeneration,resetMassRenewalWorkflowRuntimeState,automaticReplacementInFlight,renewalPhase1RetryInFlight,renewalPublishDetectionInFlight,trashTemplatePublishDetectionInFlight,
         mutateBulkRunState,closeRegistryTabs,closeRegistryTab,releaseBulkSourceOwnership,readFillSessions,writeFillSessions,requireTemplateFillService,
         RenewalStateRepository,readRenewalSessions,writeRenewalSessions,renewalHoldsInsertionLock,isSafeLegacyManualEmergencyReset,isSafePrePublishPaidInsertion,emergencyResetRenewalState,
-        readArchiveInsertionSessions,writeArchiveInsertionSessions,readMassRenewalBatch,writeMassRenewalBatch,touchMassRenewalItemProgress,getTabRegistrySnapshot,TAB_STATES,
+        readArchiveInsertionSessions,writeArchiveInsertionSessions,readMassRenewalBatch,writeMassRenewalBatch,recoverEmergencyResetCandidateAtomic,touchMassRenewalItemProgress,getTabRegistrySnapshot,TAB_STATES,
         logDiagnostic,sessionCorrelationContext,broadcastInventoryChanged}=options;
-      const required={bumpEmergencyResetGeneration,resetMassRenewalWorkflowRuntimeState,mutateBulkRunState,closeRegistryTabs,closeRegistryTab,releaseBulkSourceOwnership,readFillSessions,writeFillSessions,requireTemplateFillService,readRenewalSessions,writeRenewalSessions,renewalHoldsInsertionLock,isSafeLegacyManualEmergencyReset,isSafePrePublishPaidInsertion,emergencyResetRenewalState,readArchiveInsertionSessions,writeArchiveInsertionSessions,readMassRenewalBatch,writeMassRenewalBatch,touchMassRenewalItemProgress,getTabRegistrySnapshot,logDiagnostic,sessionCorrelationContext,broadcastInventoryChanged};
+      const required={bumpEmergencyResetGeneration,resetMassRenewalWorkflowRuntimeState,mutateBulkRunState,closeRegistryTabs,closeRegistryTab,releaseBulkSourceOwnership,readFillSessions,writeFillSessions,requireTemplateFillService,readRenewalSessions,writeRenewalSessions,renewalHoldsInsertionLock,isSafeLegacyManualEmergencyReset,isSafePrePublishPaidInsertion,emergencyResetRenewalState,readArchiveInsertionSessions,writeArchiveInsertionSessions,readMassRenewalBatch,writeMassRenewalBatch,recoverEmergencyResetCandidateAtomic,touchMassRenewalItemProgress,getTabRegistrySnapshot,logDiagnostic,sessionCorrelationContext,broadcastInventoryChanged};
       for(const [name,value] of Object.entries(required)) if(typeof value!=='function') throw new Error(`workflow emergency reset dependency ${name} is required`);
       if(!RenewalStateRepository?.renewalPublishBoundaryReached || !TAB_STATES) throw new Error('workflow emergency reset policy dependencies are required');
       for(const [name,set] of Object.entries({automaticReplacementInFlight,renewalPhase1RetryInFlight,renewalPublishDetectionInFlight,trashTemplatePublishDetectionInFlight})) if(!set?.clear) throw new Error(`workflow emergency reset runtime set ${name} is required`);
@@ -83,6 +83,25 @@ async function resetActiveWorkflows() {
     renewalsChanged = true; affected += 1;
   }
   if (renewalsChanged) await writeRenewalSessions(renewals).catch(() => {});
+
+  // The reset is local-only. A previously confirmed published target must not
+  // retain an active renewal-candidate snapshot after the session was cancelled.
+  // The atomic recovery copies FAST-mode source images, keeps both ads, and
+  // never touches any remote DELETE or immutable Phase-4 journal receipt.
+  for (const renewal of Object.values(renewals || {})) {
+    if (String(renewal?.status || '') !== 'cancelled'
+        || String(renewal?.stage || '') !== 'emergency-reset-unverified'
+        || !/^\\d+$/.test(String(renewal?.newAdId || ''))
+        || renewal?.comparison?.ownAdsPresence !== true) continue;
+    try {
+      await recoverEmergencyResetCandidateAtomic(renewal);
+    } catch (error) {
+      await logDiagnostic('warning','RENEWAL_EMERGENCY_CANDIDATE_RECOVERY_DEFERRED',{
+        renewalId:renewal.renewalId || null,sourceAdId:renewal.sourceAdId || null,
+        newAdId:renewal.newAdId || null,reason:String(error?.message || error).slice(0,200)
+      },{module:'background',operation:'workflow-emergency-reset'}).catch(()=>{});
+    }
+  }
 
   const archives = await readArchiveInsertionSessions().catch(() => ({})); let archivesChanged = false;
   for (const archive of Object.values(archives || {})) {
