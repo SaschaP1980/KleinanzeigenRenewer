@@ -66,8 +66,8 @@ function fixture({changedAt='',missingName=false,absent=false,reportedOnline=2,
   return {
     ops,log,
     get mutations() {return mutations;},
-    async find(expectedProfileName='Real Profile', targetId='5678') {
-      return ops.findOwnAdById(targetId,{}, {expectedProfileName});
+    async find(expectedProfileName='Real Profile', targetId='5678', requireCompleteRoster=false) {
+      return ops.findOwnAdById(targetId,{}, {expectedProfileName, requireCompleteRoster});
     },
     async absent(expectedProfileName='Real Profile') {
       return ops.verifyOwnAdAbsentById('5678',{}, {expectedProfileName});
@@ -87,7 +87,7 @@ function fixture({changedAt='',missingName=false,absent=false,reportedOnline=2,
     // one if the remaining pages may still be incomplete or belong to
     // another account. Legacy non-authenticated lookups stay fast.
     const early=fixture();
-    const firstPage=await early.find('Real Profile','1234');
+    const firstPage=await early.find('Real Profile','1234',true);
     ok(firstPage.found===true && firstPage.page===1 && firstPage.pagesScanned===2,
       'authenticated first-page match is returned only after full-roster exhaustion');
     for (const [label,options,reason] of [
@@ -96,10 +96,17 @@ function fixture({changedAt='',missingName=false,absent=false,reportedOnline=2,
       ['duplicate IDs on later page after early target', {duplicate:true}, /KR_MY_ADS_ROSTER_INCOMPLETE/],
       ['count changes on later page after early target', {onlineCountDrift:true}, /KR_MY_ADS_ROSTER_INCOMPLETE/]
     ]) {
-      await assert.rejects(fixture(options).find('Real Profile','1234'), reason,
+      await assert.rejects(fixture(options).find('Real Profile','1234',true), reason,
         label+' cannot authenticate a partial target-presence result');
       ok(true,'fail-closed R1 early target: '+label);
     }
+    const ordinaryFirst=await fixture({missingNext:true}).find('Real Profile','1234');
+    ok(ordinaryFirst.found===true && ordinaryFirst.pagesScanned===1,
+      'ordinary trusted publication presence retains fast exact-card lookup without R1 full-roster requirement');
+    ok(runner.includes('requireCompleteRoster: message.requireCompleteRoster === true'),
+      'content router forwards explicit R1-only complete-roster request');
+    ok(background.includes("requireCompleteRoster: kind === 'target'"),
+      'only R1 remote target verification demands a complete roster');
     const genericFirst=await fixture({missingNext:true}).find('','1234');
     ok(genericFirst.found===true&&genericFirst.pagesScanned===1,
       'legacy untrusted/non-authenticated lookup stops at exact matching card');
