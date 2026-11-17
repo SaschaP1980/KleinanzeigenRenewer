@@ -1660,7 +1660,14 @@ function requirePhase4UncertaintyJournal() {
       newToken: () => crypto.randomUUID(), workerInstanceId: ownerWorkerInstanceId,
       verifyRemoteOutcome: receipt => requireRemoteDeleteReplacementService().verifyPhase4RemoteOutcomeFresh(receipt),
       lockName: AtomicMV3Admission.LOCK_NAME,
-      lockManager: globalThis.navigator?.locks
+      lockManager: globalThis.navigator?.locks,
+      onSample: sample => {
+        // The journal releases the Web Lock before this non-blocking,
+        // low-cardinality diagnostic. Never log IDs, tokens or listing data.
+        void Promise.resolve().then(() => logDiagnostic('info',
+          'RENEWAL_PHASE4_JOURNAL_LOCK_CONTENTION', sample,
+          {module:'background',operation:'renewal-phase-4'})).catch(() => {});
+      }
     });
   }
   return phase4Journal;
