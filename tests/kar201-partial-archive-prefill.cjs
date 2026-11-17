@@ -38,7 +38,7 @@ function makeRuntime({report,template}){
   const begin=source.indexOf('  async function runFillSession(session) {');
   const end=source.indexOf('  async function runPendingFill()',begin);
   assert.ok(begin!==-1&&end>begin,'actual product runner must be exercised');
-  const events=[],calls={images:0,attributes:[],publish:0},cat={value:'246'};
+  const events=[],calls={images:0,attributes:[],publish:0,offers:0},cat={value:'246'};
   const input={value:''};
   const form={
     querySelector(selector){if(selector==='input[name="categoryId"]')return cat;
@@ -77,6 +77,7 @@ function makeRuntime({report,template}){
       return {complete:true,issues:[],states:Array.from({length:11},(_,i)=>({index:i,status:'complete'}))}},
     verify:()=>[],verifyArchiveTemplate:()=>[],
     settleAfterInteraction:async()=>{},
+    offerManualStandaloneRelease:()=>{calls.offers++;return true},
     advanceAfterVerifiedFill:()=>{calls.publish++;throw Error('MUST NOT AUTO PUBLISH')},
     persistedSchemaPreflight:(r,_t,verified)=>({verified,comparisonStatus:r.comparison.status,valueCompatibility:r.valueCompatibility}),
     updateSchemaMonitor:()=>{},stagedCategoryPathEvidence:null,SchemaMonitor:null,
@@ -100,6 +101,7 @@ function makeRuntime({report,template}){
   assert.equal(result.complete,false,'partial success cannot satisfy publish gate');
   assert.equal(rt.calls.images,1,'all 11 images must reach the importer despite style/brand uncertainty');
   assert.equal(rt.calls.publish,0,'partial fill must not advance to publish');
+  assert.equal(rt.calls.offers,1,'reviewable, image-complete partial archive must offer manual standalone consent');
   assert.deepEqual(rt.calls.attributes[0].sort(),[
     'dekoration.art','dekoration.color','dekoration.condition','dekoration.material'].sort(),
     'unsafe label-only attributes skipped; other attributes retained');
