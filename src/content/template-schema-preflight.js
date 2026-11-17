@@ -306,7 +306,14 @@
         const effectiveKey = liveKey.slice('attribute:'.length);
         const provenance = observed.optionProvenance?.[effectiveKey] || {};
         const available = observed.optionLabels?.[effectiveKey] || [];
-        const sourceLabel = clean(attribute.displayValue || '');
+        // Historic category-405 aliases may intentionally translate a visible label
+        // (e.g. 44 -> 44mm). Use the independently proven present label for
+        // mapped fields; the later alias gate still requires one exact pair.
+        const mappedOptions = mapped ? available.filter(option =>
+          option.value === String(value) && clean(option.label)) : [];
+        const sourceLabel = mapped
+          ? mappedOptions.length === 1 ? clean(mappedOptions[0].label) : ''
+          : clean(attribute.displayValue || '');
         const sourceLabelFolded = sourceLabel.toLocaleLowerCase('de-DE');
         const isSelection = ['combobox', 'select', 'radio', 'structured'].includes(liveField.kind);
         const catalog = liveField.optionValues;
