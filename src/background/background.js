@@ -267,33 +267,9 @@ const normalizeRenewalPhaseAttempts = RenewalPolicy.normalizeRenewalPhaseAttempt
 const renewalMaxPhaseAttempts = RenewalPolicy.renewalMaxPhaseAttempts;
 const renewalAttemptState = RenewalPolicy.renewalAttemptState;
 
-function beginRenewalPhaseAttempt(session, phase, { attempt = null, lastError = null } = {}) {
-  const phaseNumber = Number(phase);
-  const key = String(phaseNumber);
-  const previous = renewalAttemptState(session, phaseNumber);
-  const nextAttempt = attempt == null ? previous.attempt + 1 : Number(attempt);
-  session.phaseAttempts = { ...(session.phaseAttempts || {}) };
-  const state = {
-    attempt: Math.max(1, nextAttempt),
-    attemptId: crypto.randomUUID(),
-    lastError: lastError ? String(lastError).slice(0, 800) : null,
-    updatedAt: new Date().toISOString()
-  };
-  session.phaseAttempts[key] = state;
-  return state;
-}
-
-function recordRenewalPhaseAttemptError(session, phase, error) {
-  const key = String(Number(phase));
-  const current = renewalAttemptState(session, phase);
-  session.phaseAttempts = { ...(session.phaseAttempts || {}) };
-  session.phaseAttempts[key] = {
-    ...current,
-    lastError: String(error?.message || error || '').slice(0, 800) || null,
-    updatedAt: new Date().toISOString()
-  };
-  return session.phaseAttempts[key];
-}
+// KAR-175: Phase attempt state mutations live with the renewal policy.
+const beginRenewalPhaseAttempt = RenewalPolicy.beginRenewalPhaseAttempt;
+const recordRenewalPhaseAttemptError = RenewalPolicy.recordRenewalPhaseAttemptError;
 
 const renewalPhaseAttemptAvailable = RenewalPolicy.renewalPhaseAttemptAvailable;
 
