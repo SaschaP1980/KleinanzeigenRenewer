@@ -194,7 +194,8 @@ async function recoverEmergencyResetCandidateAtomic(session) {
             }
             throw new Error('KAR199_RECOVERY_COLLISION: Für die neue Anzeigen-ID existiert bereits ein anderer Inventareintrag.');
           }
-          if (!source || String(source.adId || '')!==sourceAdId
+          if (!source || source.recordKind!=='inventory'
+              || String(source.adId || '')!==sourceAdId
               || String(source.profileId || '')!==profileId || isTrashRecord(source))
             throw new Error('KAR199_RECOVERY_SOURCE_MISMATCH: Original ist nicht eindeutig als regulärer Inventareintrag vorhanden.');
           if (!candidate || candidate.recordKind!=='renewal-candidate'
@@ -278,9 +279,9 @@ async function recoverEmergencyResetCandidateAtomic(session) {
     });
   } finally {db.close();}
   if(outcome?.recovered && !outcome.alreadyRecovered) {
-    broadcastInventoryChanged('renewal-emergency-candidate-recovered',{
+    try {broadcastInventoryChanged('renewal-emergency-candidate-recovered',{
       inventoryId:targetId,sourceInventoryId:sourceId,renewalId:String(session.renewalId)
-    });
+    });} catch {} // A UI event may fail after a successfully committed IDB transaction.
     void Promise.resolve().then(()=>logDiagnostic('warning','RENEWAL_EMERGENCY_CANDIDATE_RECOVERED',{
       renewalId:String(session.renewalId),sourceAdId,newAdId:targetId,
       imageCount:outcome.imageCount,remoteVerified:false,sourceTrashed:false
