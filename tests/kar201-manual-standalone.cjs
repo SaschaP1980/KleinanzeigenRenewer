@@ -59,9 +59,11 @@ const build=()=>{
 };
 const reject=async(label,mutate)=>{
  const f=build();mutate(f);
+ const originalRemoteId=f.archives[f.archiveId].newAdId;
  await assert.rejects(()=>f.approve({manualStandaloneApproval:{action:'prepare'}},f.session,f.fills,f.sender),/KR_MANUAL_|nicht|ungültig/i,label);
  assert.equal(f.fills[f.fillId].manualPublishDetachedAt,undefined);
- assert.equal(f.archives[f.archiveId].newAdId,null);
+ assert.equal(f.archives[f.archiveId].newAdId,originalRemoteId,
+   'denied preparation must never invent/overwrite a remote listing identity');
 };
 (async()=>{
  await reject('wrong sender tab',f=>{f.sender.tab.id=5});
