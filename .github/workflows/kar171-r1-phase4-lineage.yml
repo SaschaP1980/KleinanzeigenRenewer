@@ -1,0 +1,28 @@
+name: KAR-171 R1 original Phase4 P8 lineage (temporary)
+on:
+  push:
+    branches:
+      - work/KAR-171
+permissions:
+  contents: read
+jobs:
+  phase4_lineage:
+    name: R1 original Phase4 remote outcome history (nonmutating)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Focused Phase4 historical original P8 and published target
+        run: node tests/kar171-r1-phase4-lineage-preflight.cjs
+      - name: Remove disposable CI workflow before full coverage
+        run: rm .github/workflows/kar171-r1-phase4-lineage.yml
+      - name: Full regression, architecture and safety gates
+        run: bash scripts/coverage-gate.sh
