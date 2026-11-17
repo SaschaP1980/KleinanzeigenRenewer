@@ -4,10 +4,15 @@ const assert = require('node:assert/strict');
 const Policy = require('../src/shared/renewal-policy.js');
 
 const source = fs.readFileSync('background.js', 'utf8');
-const mutStart = source.indexOf('function beginRenewalPhaseAttempt');
-const mutEnd = source.indexOf('async function logRenewalPhaseAttemptStarted', mutStart);
+const policySource = fs.readFileSync('src/shared/renewal-policy.js', 'utf8');
+const mutStart = policySource.indexOf('function beginRenewalPhaseAttempt');
+const mutEnd = policySource.indexOf('function renewalPhaseAttemptAvailable', mutStart);
+const resetStart = source.indexOf('function resetRenewalPhaseAttempts');
+const resetEnd = source.indexOf('async function logRenewalPhaseAttemptStarted', resetStart);
 const phase1Source = fs.readFileSync('src/background/services/renewal-phase1-retry-service.js','utf8');
-assert.ok(mutStart >= 0 && mutEnd > mutStart);
+assert.ok(mutStart >= 0 && mutEnd > mutStart && resetStart >= 0 && resetEnd > resetStart);
+assert.match(source,/const beginRenewalPhaseAttempt = RenewalPolicy\.beginRenewalPhaseAttempt/);
+assert.match(source,/const recordRenewalPhaseAttemptError = RenewalPolicy\.recordRenewalPhaseAttemptError/);
 assert.match(source,/requireRenewalPhase1RetryService\(\)\.canRetryRenewalPhase1\(renewal, fill\)/);
 assert.match(phase1Source,/function phase1PublishBoundaryReached\(renewal, fill/);
 assert.match(phase1Source,/function canRetryRenewalPhase1\(renewal, fill/);
@@ -25,7 +30,8 @@ const context = {
   console
 };
 vm.createContext(context);
-vm.runInContext(source.slice(mutStart, mutEnd), context);
+vm.runInContext(policySource.slice(mutStart, mutEnd), context);
+vm.runInContext(source.slice(resetStart, resetEnd), context);
 let retryOwner = null;
 context.KRDeps = {register(name,api){
   assert.equal(name,'KRRenewalPhase1RetryService'); retryOwner=api;
