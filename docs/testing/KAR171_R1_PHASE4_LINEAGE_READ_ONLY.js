@@ -52,6 +52,15 @@
     completedPhase4P8:0,
     validPhase4Resolutions:0,
     matchedPublishedTargets:0,
+    publishIntentsExamined:0,
+    publishCandidatesValidShape:0,
+    publishCandidatesSameRenewal:0,
+    publishCandidatesSameProfile:0,
+    publishCandidatesSameSource:0,
+    publishCandidatesCompletedP8:0,
+    publishCandidatesVerifiedOutcome:0,
+    publishCandidatesSameTarget:0,
+    publishJoinReason:'NOT_EVALUATED',
     legacyPhase4Intents:0,
     missingOrIncompletePhase4P8:0,
     missingOrInvalidPhase4Results:0,
@@ -122,17 +131,32 @@
     &&time(row.verifiedAtMs)&&row.verifiedAtMs>=intent.createdAtMs
     &&key===PUBRES+intent.fillId+'_'+intent.attemptId;
   const publishIntents=Object.entries(rows).filter(([key])=>key.startsWith(PUBLISH));
-  const matchingPublication=phase=>publishIntents.some(([key,publication])=>{
-    if(!validPublish(key,publication)
-      ||publication.workflowId!==phase.renewalId
-      ||publication.profileId!==phase.profileId
-      ||publication.sourceAdId!==phase.sourceAdId
-      ||!validP8(publication,PUB_OPS))return false;
-    const resultKey=PUBRES+publication.fillId+'_'+publication.attemptId;
-    const confirmation=rows[resultKey];
-    return validPublishedResult(resultKey,confirmation,publication)
-      &&confirmation.newAdId===phase.newAdId;
-  });
+  result.publishIntentsExamined=publishIntents.length;
+  // The existing strict join is unchanged. Record only a monotonic,
+  // anonymous diagnostic funnel to explain WHERE its predicates fail.
+  // Never output account/Ad/workflow/fill/token IDs, row samples or hashes.
+  const matchingPublication=phase=>{
+    for(const [key,publication] of publishIntents){
+      if(!validPublish(key,publication))continue;
+      result.publishCandidatesValidShape++;
+      if(publication.workflowId!==phase.renewalId)continue;
+      result.publishCandidatesSameRenewal++;
+      if(publication.profileId!==phase.profileId)continue;
+      result.publishCandidatesSameProfile++;
+      if(publication.sourceAdId!==phase.sourceAdId)continue;
+      result.publishCandidatesSameSource++;
+      if(!validP8(publication,PUB_OPS))continue;
+      result.publishCandidatesCompletedP8++;
+      const resultKey=PUBRES+publication.fillId+'_'+publication.attemptId;
+      const confirmation=rows[resultKey];
+      if(!validPublishedResult(resultKey,confirmation,publication))continue;
+      result.publishCandidatesVerifiedOutcome++;
+      if(confirmation.newAdId!==phase.newAdId)continue;
+      result.publishCandidatesSameTarget++;
+      return true;
+    }
+    return false;
+  };
   const entries=Object.entries(rows).filter(([key])=>key.startsWith(PHASE));
   result.phase4Intents=entries.length;
   const existingOrigins=new Set(entries.map(([key])=>key.slice(PHASE.length)));
@@ -164,6 +188,36 @@
     result.status='PHASE4_P8_PUBLISH_LINEAGE_MATCHED';
   else if(result.phase4Intents>0||result.orphanPhase4Resolutions>0)
     result.status='PHASE4_LINEAGE_NOT_CONFIRMED';
+
+  // A reason is a local *structural observation*, never a causal diagnosis
+  // of a software upgrade, a remote deletion failure or a missing listing.
+  // All reasons fail closed; none sets r1Accepted or liveRemoteVerified true.
+  if(result.status==='PHASE4_P8_PUBLISH_LINEAGE_MATCHED')
+    result.publishJoinReason='MATCHED';
+  else if(result.orphanPhase4Resolutions>0)
+    result.publishJoinReason='ORPHAN_PHASE4_RESOLUTION';
+  else if(result.phase4Intents===0)
+    result.publishJoinReason='NO_PHASE4_INTENT';
+  else if(result.validPhase4Resolutions===0)
+    result.publishJoinReason='NO_VALID_PHASE4_RESOLUTION';
+  else if(result.publishIntentsExamined===0)
+    result.publishJoinReason='NO_PUBLISH_INTENT';
+  else if(result.publishCandidatesValidShape===0)
+    result.publishJoinReason='NO_VALID_RENEWAL_PUBLISH_INTENT';
+  else if(result.publishCandidatesSameRenewal===0)
+    result.publishJoinReason='PUBLISH_WORKFLOW_MISMATCH';
+  else if(result.publishCandidatesSameProfile===0)
+    result.publishJoinReason='PUBLISH_PROFILE_MISMATCH';
+  else if(result.publishCandidatesSameSource===0)
+    result.publishJoinReason='PUBLISH_SOURCE_MISMATCH';
+  else if(result.publishCandidatesCompletedP8===0)
+    result.publishJoinReason='PUBLISH_P8_NOT_COMPLETED';
+  else if(result.publishCandidatesVerifiedOutcome===0)
+    result.publishJoinReason='PUBLISH_RESOLUTION_MISSING_OR_INVALID';
+  else if(result.publishCandidatesSameTarget===0)
+    result.publishJoinReason='PUBLISH_TARGET_MISMATCH';
+  else
+    result.publishJoinReason='UNMATCHED_ORIGIN';
 
   // No account, email, Ad IDs, profiles, attempt/workflow/fill IDs, tokens,
   // raw records or exceptions are emitted. Historical evidence only.
