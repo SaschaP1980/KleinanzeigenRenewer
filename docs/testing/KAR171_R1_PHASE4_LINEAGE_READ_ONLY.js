@@ -60,6 +60,7 @@
     publishCandidatesCompletedP8:0,
     publishCandidatesVerifiedOutcome:0,
     publishCandidatesSameTarget:0,
+    publishCandidatesCrossRepresentationSameTarget:0,
     publishJoinReason:'NOT_EVALUATED',
     legacyPhase4Intents:0,
     missingOrIncompletePhase4P8:0,
@@ -141,7 +142,20 @@
       result.publishCandidatesValidShape++;
       if(publication.workflowId!==phase.renewalId)continue;
       result.publishCandidatesSameRenewal++;
-      if(publication.profileId!==phase.profileId)continue;
+      if(publication.profileId!==phase.profileId){
+        // Two separately verified historical My Ads target receipts can be
+        // correlated by immutable renewal/source/target and original P8.
+        // This is NOT a trusted UUID-to-display-name account binding and
+        // must never increment matchedPublishedTargets or accept R1.
+        if(publication.sourceAdId!==phase.sourceAdId
+            || !validP8(publication,PUB_OPS))continue;
+        const crossKey=PUBRES+publication.fillId+'_'+publication.attemptId;
+        const cross=rows[crossKey];
+        if(!validPublishedResult(crossKey,cross,publication)
+            || cross.newAdId!==phase.newAdId)continue;
+        result.publishCandidatesCrossRepresentationSameTarget++;
+        continue;
+      }
       result.publishCandidatesSameProfile++;
       if(publication.sourceAdId!==phase.sourceAdId)continue;
       result.publishCandidatesSameSource++;
@@ -207,7 +221,8 @@
   else if(result.publishCandidatesSameRenewal===0)
     result.publishJoinReason='PUBLISH_WORKFLOW_MISMATCH';
   else if(result.publishCandidatesSameProfile===0)
-    result.publishJoinReason='PUBLISH_PROFILE_MISMATCH';
+    result.publishJoinReason=result.publishCandidatesCrossRepresentationSameTarget>0
+      ?'PUBLISH_PROFILE_UNBOUND_DUAL_REMOTE_TARGET':'PUBLISH_PROFILE_MISMATCH';
   else if(result.publishCandidatesSameSource===0)
     result.publishJoinReason='PUBLISH_SOURCE_MISMATCH';
   else if(result.publishCandidatesCompletedP8===0)
