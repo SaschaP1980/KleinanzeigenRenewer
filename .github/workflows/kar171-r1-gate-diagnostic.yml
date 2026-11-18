@@ -1,0 +1,28 @@
+name: KAR-171 R1 native account-gate diagnostic regression
+on:
+  push:
+    branches: [work/KAR-171]
+permissions:
+  contents: read
+concurrency:
+  group: kar171-r1-gate-diagnostic-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Red/green privacy-safe native account gate probe
+        run: node tests/kar171-r1-live-gate-diagnostic.cjs
+      - name: Full safety, source coverage, architecture and contract
+        run: |
+          rm .github/workflows/kar171-r1-gate-diagnostic.yml
+          bash scripts/coverage-gate.sh
