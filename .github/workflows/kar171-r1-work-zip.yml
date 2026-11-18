@@ -48,12 +48,6 @@ jobs:
           PY
       - name: Install pinned dependencies
         run: npm ci
-      - name: Mandatory full runtime, safety, coverage and architecture gates
-        shell: bash
-        run: |
-          set -euo pipefail
-          rm .github/workflows/kar171-r1-work-zip.yml
-          bash scripts/coverage-gate.sh
       - name: Reproducible exact-source runtime Chrome ZIP; no release
         shell: bash
         run: |
@@ -78,6 +72,16 @@ jobs:
           echo "KAR171_CHROME_ZIP=$ZIP" >> "$GITHUB_ENV"
           echo "KAR171_ZIP_SHA256=$(sha256sum "$ZIP" | cut -d' ' -f1)" >> "$GITHUB_ENV"
           echo "KAR171_ZIP_BYTES=$(stat -c %s "$ZIP")" >> "$GITHUB_ENV"
+          mkdir -p release
+          test ! -e release/kleinanzeigen-renewal-chrome-v1.25.14.zip
+          cp "$ZIP" release/kleinanzeigen-renewal-chrome-v1.25.14.zip
+          python3 scripts/verify_committed_chrome_zip.py --base-sha a267caabd53427aa7378be5017787ab32e7c88bd --report "$RUNNER_TEMP/kar171-r1-first/zip-parity.json"
+      - name: Mandatory full runtime, safety, coverage and architecture gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm .github/workflows/kar171-r1-work-zip.yml
+          bash scripts/coverage-gate.sh
       - name: Real packaged Chromium fixture E2E 9/9 and attestation
         shell: bash
         run: |
@@ -100,8 +104,8 @@ jobs:
           test "$(git ls-remote origin refs/heads/work/KAR-171 | cut -f1)" = "$GITHUB_SHA"
           test "$(git ls-remote origin refs/heads/main | cut -f1)" = "a267caabd53427aa7378be5017787ab32e7c88bd"
           DEST=release/kleinanzeigen-renewal-chrome-v1.25.14.zip
-          test ! -e "$DEST"
-          cp "$KAR171_CHROME_ZIP" "$DEST"
+          test -e "$DEST"
+          cmp "$KAR171_CHROME_ZIP" "$DEST"
           test "$(sha256sum "$DEST" | cut -d' ' -f1)" = "$KAR171_ZIP_SHA256"
           git add -f -- "$DEST"
           test "$(git diff --cached --name-only)" = "$DEST"
