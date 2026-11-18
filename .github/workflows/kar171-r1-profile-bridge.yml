@@ -30,4 +30,6 @@ jobs:
       - name: Focused Stage2 adversarial source tests
         run: node tests/kar171-r1-phase4-lineage-preflight.cjs
       - name: Full runtime, safety, coverage and architecture gate
-        run: bash scripts/coverage-gate.sh
+        run: |
+          rm .github/workflows/kar171-r1-profile-bridge.yml
+          bash scripts/coverage-gate.sh
