@@ -2199,6 +2199,10 @@ function requireAdditionalOwnerObserver() {
       readAccountPageStatusReadOnly:tabId=>sendTabRequest(tabId,{type:'PAGE_STATUS'}),
       createManagedWorkerTab,waitForTabComplete,ensureContentConnection,closeManagedWorkerTab,
       myAdsProjectsUrl:MY_ADS_PROJECTS_URL,tabLoadTimeoutMs:TAB_LOAD_TIMEOUT_PHASE4_MS,
+      // R1 native acceptance only: existing independently authenticated full
+      // My Ads roster scanner, never invoked by updater or public IPC.
+      verifyFreshPhase4RemoteOutcomeReadOnly:receipt=>
+        requireRemoteDeleteReplacementService().verifyPhase4RemoteOutcomeFresh(receipt),
       readNativeTransactionReadOnly:async()=>{
         requireNativeStatusBridge();
         return nativeUpdateGateway.inspectReadOnly();
