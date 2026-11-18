@@ -1,0 +1,28 @@
+name: KAR-171 R1 historical session lifetime read-only regression
+on:
+  push:
+    branches: [work/KAR-171]
+permissions:
+  contents: read
+concurrency:
+  group: kar171-r1-session-lifetime-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  validation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Precise read-only native historical session diagnosis
+        run: node tests/kar171-r1-historical-session-diagnostic.cjs
+      - name: Full runtime, safety, coverage and architecture closure
+        run: |
+          rm .github/workflows/kar171-r1-session-lifetime.yml
+          bash scripts/coverage-gate.sh
