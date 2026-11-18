@@ -81,6 +81,16 @@ async function execute(rows={},flags={}){
   'original Phase4 P8, historical resolution and original publication match');
  check(positive.result.liveRemoteVerified===false&&positive.result.r1Accepted===false,
   'historical journal never certifies current remote account or full R1');
+ check(positive.result.publishIntentsExamined===1
+  &&positive.result.publishCandidatesValidShape===1
+  &&positive.result.publishCandidatesSameRenewal===1
+  &&positive.result.publishCandidatesSameProfile===1
+  &&positive.result.publishCandidatesSameSource===1
+  &&positive.result.publishCandidatesCompletedP8===1
+  &&positive.result.publishCandidatesVerifiedOutcome===1
+  &&positive.result.publishCandidatesSameTarget===1
+  &&positive.result.publishJoinReason==='MATCHED',
+  'redacted sequential original publication join stages for complete genuine lineage');
  const noP8=records();delete noP8[START+token];
  check((await execute(noP8)).result.validPhase4Resolutions===0,
   'missing original P8 start cannot make a valid outcome');
@@ -124,17 +134,40 @@ async function execute(rows={},flags={}){
  check((await execute(wrongProfile)).result.validPhase4Resolutions===0,
   'different account/profile fails');
  const absentPublication=records();delete absentPublication[pubResult];
- check((await execute(absentPublication)).result.matchedPublishedTargets===0,
-  'phase4 alone cannot infer matching historical publication');
+ const absentResult=(await execute(absentPublication)).result;
+ check(absentResult.matchedPublishedTargets===0
+  &&absentResult.publishJoinReason==='PUBLISH_RESOLUTION_MISSING_OR_INVALID'
+  &&absentResult.publishCandidatesCompletedP8===1
+  &&absentResult.publishCandidatesVerifiedOutcome===0,
+  'report absent historical publish outcome without weakening Phase4 proof');
  const pubNoP8=records();delete pubNoP8[START+pubToken];
- check((await execute(pubNoP8)).result.matchedPublishedTargets===0,
-  'unadmitted publication cannot certify Phase4-to-publish lineage');
+ const noPubP8=(await execute(pubNoP8)).result;
+ check(noPubP8.matchedPublishedTargets===0
+  &&noPubP8.publishJoinReason==='PUBLISH_P8_NOT_COMPLETED',
+  'separate incomplete original publication P8 without inventing success');
  const pubOther=records();pubOther[pubResult].newAdId='22222';
- check((await execute(pubOther)).result.matchedPublishedTargets===0,
-  'published target mismatch fails');
+ const otherTarget=(await execute(pubOther)).result;
+ check(otherTarget.matchedPublishedTargets===0
+  &&otherTarget.publishJoinReason==='PUBLISH_TARGET_MISMATCH'
+  &&otherTarget.publishCandidatesVerifiedOutcome===1,
+  'distinguish a different historically published target from a missing result');
  const pubOtherRenewal=records();pubOtherRenewal[pubKey].workflowId='other-renewal';
- check((await execute(pubOtherRenewal)).result.matchedPublishedTargets===0,
-  'wrong publication workflow fails');
+ const otherRenewal=(await execute(pubOtherRenewal)).result;
+ check(otherRenewal.matchedPublishedTargets===0
+  &&otherRenewal.publishJoinReason==='PUBLISH_WORKFLOW_MISMATCH',
+  'different renewal cannot claim original historical Phase4 match');
+ const wrongPublicationProfile=records();wrongPublicationProfile[pubKey].profileId='other';
+ check((await execute(wrongPublicationProfile)).result.publishJoinReason==='PUBLISH_PROFILE_MISMATCH',
+  'do not silently join a different account');
+ const wrongPublicationSource=records();wrongPublicationSource[pubKey].sourceAdId='222222';
+ check((await execute(wrongPublicationSource)).result.publishJoinReason==='PUBLISH_SOURCE_MISMATCH',
+  'do not silently join a different original Ad');
+ const noPublication=records();delete noPublication[pubKey];
+ check((await execute(noPublication)).result.publishJoinReason==='NO_PUBLISH_INTENT',
+  'missing original intent is differentiated from an invalid one');
+ const badPublication=records();badPublication[pubKey].kind='archive';
+ check((await execute(badPublication)).result.publishJoinReason==='NO_VALID_RENEWAL_PUBLISH_INTENT',
+  'archive-kind intent does not represent a renewal publish');
  const orphan=records();delete orphan[pKey];
  check((await execute(orphan)).result.validPhase4Resolutions===0
   &&(await execute(orphan)).result.orphanPhase4Resolutions===1,
