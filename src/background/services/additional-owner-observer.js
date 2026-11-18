@@ -161,7 +161,8 @@
     createManagedWorkerTab=null,waitForTabComplete=null,
     ensureContentConnection=null,closeManagedWorkerTab=null,
     myAdsProjectsUrl=null,tabLoadTimeoutMs=null,
-    readNativeTransactionReadOnly=null,getAtomicAdmissionCoordinator=null}={}) {
+    readNativeTransactionReadOnly=null,getAtomicAdmissionCoordinator=null,
+    verifyFreshPhase4RemoteOutcomeReadOnly=null}={}) {
     if(typeof storageLocal?.get!=='function'||typeof storageSession?.get!=='function'
        ||typeof clock!=='function')throw Error('supplemental owner observer requires read-only storage and clock');
     const pending=new Map(OWNERS.map(n=>[n,0]));
@@ -1512,7 +1513,140 @@ async function verifyRemoteCommitContextReadOnly(original, sourceKind, witness=n
     String(fill.sourceAdId || '') === original.sourceAdId;
 }
 
-    return Object.freeze({observe,observeAll,prepareRemoteCommitContextReadOnly,verifyRemoteCommitContextReadOnly,inspectAllOwnerClosureReadOnly,track,snapshotInFlight,readVerifiedUnmanagedTabsReadOnly,inspectDiagnosticExportClosureReadOnly,inspectTrashMutationClosureReadOnly,inspectSingleInventoryClosureReadOnly,inspectProfileTransitionClosureReadOnly,inspectAccountTransitionClosureReadOnly,inspectEmergencyRecoveryClosureReadOnly,inspectManagedTabsClosureReadOnly,inspectNativeUpdateTransactionClosureReadOnly});
+
+    // KAR-171 R1: private, owner-controlled, READ-ONLY original P8 + authenticated
+    // source/target proof. Never exposed via Chrome messages, updater policy or
+    // an automatic lifecycle call. No journal writes or replayed deletion.
+    async function inspectOriginalRenewalRemoteLineageReadOnly({renewalId,attemptId}={}) {
+      const output=(status,liveRemoteVerified=false)=>Object.freeze({
+        status,liveRemoteVerified,r1Accepted:false,eligibleForLease:false
+      });
+      if(typeof verifyFreshPhase4RemoteOutcomeReadOnly!=='function')
+        return output('REMOTE_PROOF_PORT_UNAVAILABLE');
+      if(typeof renewalId!=='string'||!PROFILE.test(renewalId)
+         ||typeof attemptId!=='string'||!PROFILE.test(attemptId))
+        return output('ORIGINAL_ID_UNVERIFIED');
+      const PHASE='karPhase4UncertainAttemptV1_';
+      const PHASE_RESULT='karPhase4VerifiedResolutionV1_';
+      const PUB='karAutoPublishIntentV1_';
+      const PUB_RESULT='karAutoPublishVerifiedResolutionV1_';
+      const pKey=PHASE+renewalId+'_'+attemptId,prKey=PHASE_RESULT+renewalId+'_'+attemptId;
+      const goodId=x=>typeof x==='string'&&PROFILE.test(x);
+      const ad=x=>typeof x==='string'&&/^\d+$/.test(x);
+      const ms=x=>Number.isSafeInteger(x)&&x>=0;
+      const phaseOps=new Set(['AUTONOMOUS:renewal-auto-phase4','AUTONOMOUS:renewal-resume',
+        'AUTONOMOUS:renewal-detached-retry','AUTONOMOUS:renewal-detached-verify',
+        'AUTONOMOUS:mass-renewal-next-item','RETRY_RENEWAL_VERIFICATION',
+        'RETRY_MASS_RENEWAL_ITEM','FINISH_RENEWAL_REPLACEMENT']);
+      const pubOps=new Set(['AUTONOMOUS:renewal-publish-detection',
+        'AUTONOMOUS:trash-publish-detection','AUTONOMOUS:archive-postpublish-detached',
+        'AUTHORIZE_AUTOMATIC_PUBLISH']);
+      const hasP8=(rows,intent,allowed)=>{
+        const token=intent?.admissionToken;
+        if(!goodId(token)||token.length<12||!goodId(intent.workerInstanceId)
+            ||!ms(intent.createdAtMs))return false;
+        const s=rows[ADMISSION_START+token],f=rows[ADMISSION_FINISH+token];
+        return record(s)&&Object.keys(s).length===6&&s.schema===1&&s.state==='admitted'
+          &&s.token===token&&s.workerInstanceId===intent.workerInstanceId
+          &&goodId(s.token)&&goodId(s.workerInstanceId)
+          &&allowed.has(s.operationType)&&ms(s.startedAtMs)&&s.startedAtMs<=intent.createdAtMs
+          &&record(f)&&Object.keys(f).length===5&&f.schema===1&&f.state==='completed'
+          &&f.token===token&&f.workerInstanceId===intent.workerInstanceId
+          &&ms(f.completedAtMs)&&f.completedAtMs>=intent.createdAtMs;
+      };
+      try {
+        const first=await storageLocal.get(null);
+        if(!record(first))return output('ORIGINAL_SNAPSHOT_UNAVAILABLE');
+        const phase=first[pKey],resolution=first[prKey];
+        if(!record(phase)||phase.schema!==1||phase.state!=='outcome-unverified'
+          ||phase.renewalId!==renewalId||phase.attemptId!==attemptId
+          ||!goodId(phase.workerInstanceId)||!label(phase.profileId)
+          ||!ad(phase.sourceAdId)||!ad(phase.newAdId)||phase.sourceAdId===phase.newAdId
+          ||!hasP8(first,phase,phaseOps))
+          return output('PHASE4_ORIGINAL_UNVERIFIED');
+        if(!record(resolution)||resolution.schema!==1||resolution.state!=='resolved-confirmed'
+          ||!goodId(resolution.workerInstanceId)
+          ||resolution.renewalId!==renewalId||resolution.attemptId!==attemptId
+          ||resolution.profileId!==phase.profileId
+          ||resolution.sourceAdId!==phase.sourceAdId||resolution.newAdId!==phase.newAdId
+          ||resolution.sourceEvidence!=='not-in-my-ads-full-pagination-scan'
+          ||resolution.targetEvidence!=='found-in-my-ads-full-pagination-scan'
+          ||!Number.isSafeInteger(resolution.sourcePagesScanned)||resolution.sourcePagesScanned<1
+          ||!Number.isSafeInteger(resolution.targetPagesScanned)||resolution.targetPagesScanned<1
+          ||!Number.isSafeInteger(resolution.targetFoundPage)||resolution.targetFoundPage<1
+          ||resolution.targetFoundPage>resolution.targetPagesScanned
+          ||!ms(resolution.verifiedAtMs)||resolution.verifiedAtMs<phase.createdAtMs)
+          return output('PHASE4_OUTCOME_UNVERIFIED');
+        const relevant=Object.entries(first).filter(([key,row])=>
+          key.startsWith(PUB)&&record(row)&&row.workflowId===renewalId);
+        // Never choose an apparently convenient published attempt among
+        // ambiguous same-workflow receipts.
+        if(relevant.length!==1)return output('PUBLICATION_AMBIGUOUS_OR_MISSING');
+        const [pubKey,publish]=relevant[0];
+        if(publish.schema!==1||publish.state!=='outcome-unverified'
+          ||publish.kind!=='renewal'||!goodId(publish.fillId)
+          ||!goodId(publish.attemptId)||!goodId(publish.workerInstanceId)
+          ||pubKey!==PUB+publish.fillId+'_'+publish.attemptId
+          ||!goodId(publish.profileId)||!Number.isSafeInteger(publish.targetTabId)
+          ||publish.targetTabId<=0||publish.sourceAdId!==phase.sourceAdId
+          ||!hasP8(first,publish,pubOps))
+          return output('PUBLICATION_ORIGINAL_UNVERIFIED');
+        const pubResultKey=PUB_RESULT+publish.fillId+'_'+publish.attemptId;
+        const pubResult=first[pubResultKey];
+        if(!record(pubResult)||pubResult.schema!==1
+          ||pubResult.state!=='resolved-confirmed'||pubResult.kind!=='renewal'
+          ||pubResult.fillId!==publish.fillId||pubResult.workflowId!==renewalId
+          ||pubResult.attemptId!==publish.attemptId
+          ||pubResult.profileId!==publish.profileId
+          ||pubResult.sourceAdId!==publish.sourceAdId
+          ||pubResult.targetTabId!==publish.targetTabId
+          ||pubResult.newAdId!==phase.newAdId||pubResult.targetPresent!==true
+          ||pubResult.targetEvidence!=='found-in-my-ads-full-pagination-scan'
+          ||!Number.isSafeInteger(pubResult.targetPagesScanned)
+          ||pubResult.targetPagesScanned<1
+          ||!Number.isSafeInteger(pubResult.targetFoundPage)
+          ||pubResult.targetFoundPage<1||pubResult.targetFoundPage>pubResult.targetPagesScanned
+          ||!ms(pubResult.verifiedAtMs)||pubResult.verifiedAtMs<publish.createdAtMs)
+          return output('PUBLICATION_OUTCOME_UNVERIFIED');
+        // This is the existing independent live-account / selected UUID /
+        // historical source-display-name verifier. An arbitrary profilesV1
+        // mapping cannot qualify on its own.
+        if(!(await verifyRemoteCommitContextReadOnly(phase,'phase4'))
+          ||!(await verifyRemoteCommitContextReadOnly(publish,'publish')))
+          return output('LIVE_ACCOUNT_UUID_NAME_UNVERIFIED');
+        const fresh=await verifyFreshPhase4RemoteOutcomeReadOnly(
+          Object.freeze({...phase}));
+        if(!record(fresh)||fresh.profileId!==phase.profileId
+          ||fresh.sourceAdId!==phase.sourceAdId||fresh.newAdId!==phase.newAdId
+          ||fresh.sourceAbsent!==true||fresh.targetPresent!==true
+          ||fresh.sourceEvidence!=='not-in-my-ads-full-pagination-scan'
+          ||fresh.targetEvidence!=='found-in-my-ads-full-pagination-scan'
+          ||!Number.isSafeInteger(fresh.sourcePagesScanned)||fresh.sourcePagesScanned<1
+          ||!Number.isSafeInteger(fresh.targetPagesScanned)||fresh.targetPagesScanned<1
+          ||!Number.isSafeInteger(fresh.targetFoundPage)||fresh.targetFoundPage<1
+          ||fresh.targetFoundPage>fresh.targetPagesScanned)
+          return output('FRESH_SOURCE_TARGET_UNVERIFIED');
+        // A genuine tab account switch can race the asynchronous complete
+        // roster scan; verify both identities AGAIN, then verify origin rows
+        // have not been rewritten or detached from their sessions.
+        if(!(await verifyRemoteCommitContextReadOnly(phase,'phase4'))
+          ||!(await verifyRemoteCommitContextReadOnly(publish,'publish')))
+          return output('LIVE_ACCOUNT_CHANGED_DURING_SCAN');
+        const last=await storageLocal.get(null);
+        if(!record(last))return output('ORIGINAL_READBACK_FAILED');
+        const stableKeys=[pKey,prKey,pubKey,pubResultKey,
+          ADMISSION_START+phase.admissionToken,ADMISSION_FINISH+phase.admissionToken,
+          ADMISSION_START+publish.admissionToken,ADMISSION_FINISH+publish.admissionToken,
+          'profilesV1','activeDetectedProfileV1','selectedInventoryProfileV1',
+          'renewalSessionsV1','templateFillSessions'];
+        if(stableKeys.some(key=>JSON.stringify(first[key]??null)!==
+          JSON.stringify(last[key]??null)))
+          return output('ORIGINAL_OR_PROFILE_CHANGED_DURING_SCAN');
+        return output('ORIGINAL_ACCOUNT_REMOTE_VERIFIED',true);
+      }catch{return output('ORIGINAL_REMOTE_PROOF_UNAVAILABLE');}
+    }
+
+    return Object.freeze({observe,observeAll,prepareRemoteCommitContextReadOnly,verifyRemoteCommitContextReadOnly,inspectOriginalRenewalRemoteLineageReadOnly,inspectAllOwnerClosureReadOnly,track,snapshotInFlight,readVerifiedUnmanagedTabsReadOnly,inspectDiagnosticExportClosureReadOnly,inspectTrashMutationClosureReadOnly,inspectSingleInventoryClosureReadOnly,inspectProfileTransitionClosureReadOnly,inspectAccountTransitionClosureReadOnly,inspectEmergencyRecoveryClosureReadOnly,inspectManagedTabsClosureReadOnly,inspectNativeUpdateTransactionClosureReadOnly});
   }
   const API=Object.freeze({create,OWNERS,ownersForOperation});
   globalThis.KRDeps?.register?.('KRAdditionalOwnerObserver',API);
