@@ -4,6 +4,13 @@ This is the canonical version-specific history for Kleinanzeigen Manager. Entrie
 
 All distinct historical section bodies from the former root README and CHANGELOG are preserved with source labels and line numbers. The [KAR-170 migration ledger](docs/maintenance/KAR170_CHANGELOG_MIGRATION.json) identifies their original Git blobs and body checksums. Overlapping versions retain distinct factual notes; older references to planned builds or native/CI acceptance are **historical**, not live status.
 
+## v1.25.14 — KAR-171 R1 live-account and P8 continuity test build (Work only; not released)
+
+- Work-only Chrome test version based on the isolated #171 implementation: verify original Phase-4 and publication P8 provenance, internal profile UUID versus authenticated My Ads account name, and fresh independent complete-pagination source absence/target presence without publishing, deleting or renewing an ad.
+- The new private `inspectOriginalRenewalRemoteLineageReadOnly` verifier and a separate opt-in DevTools script are for controlled native R1 evidence only. No updater lease, NativeHost apply, automatic reload, main merge or Release is authorized.
+- The Chrome ZIP retains the stable extension ID and must be checked against exact source SHA, full regression/coverage and packaged Chromium 9/9 fixture E2E. The Stage 3 script is **not packaged** and is executed manually only after owner consent.
+- Preserve the existing same-profile local P8 journals: do not remove/reinstall the extension or assume another Chrome profile contains original evidence. Follow [the dedicated installation/backup/rollback protocol](docs/testing/KAR171_R1_NATIVE_WORK_ZIP_INSTALL.md) before any native test. **R1 remains NOT ACCEPTED** until real authenticated owner-PC evidence and remaining interruption/restart tests are obtained.
+
 ## v1.25.13 — KAR-171 upstream-integrated R1 test build (Work only; not released)
 
 - Integrate current main v1.25.12 into the isolated `work/KAR-171` branch, preserving #195, #197, #199 and #201 improvements.
