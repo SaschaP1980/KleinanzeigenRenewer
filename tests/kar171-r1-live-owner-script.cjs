@@ -84,6 +84,16 @@ async function run({rows=initial,extension=EXT,origin=EXT,proto='chrome-extensio
    liveRemoteVerified:true,r1Accepted:false,eligibleForLease:false})});
  check(unknown.result.status==='REMOTE_PROOF_UNVERIFIED'
    &&unknown.result.liveRemoteVerified===false,'unlisted status cannot leak');
+ for(const status of ['R1_REMOTE_SCAN_NOT_STARTED',
+   'R1_REMOTE_SOURCE_TAB_CREATE_FAILED','R1_REMOTE_SOURCE_QUERY_FAILED',
+   'R1_REMOTE_SOURCE_EVIDENCE_FAILED','R1_REMOTE_TARGET_TAB_LOAD_FAILED',
+   'R1_REMOTE_TARGET_QUERY_FAILED','R1_REMOTE_TARGET_EVIDENCE_FAILED',
+   'R1_REMOTE_FINAL_RESPONSE_FAILED','ORIGINAL_READBACK_UNAVAILABLE']){
+   const diagnostic=await run({impl:()=>({status,liveRemoteVerified:false,
+     r1Accepted:false,eligibleForLease:false})});
+   check(diagnostic.result.status===status&&diagnostic.result.liveRemoteVerified===false,
+     'bounded remote milestone '+status);
+ }
  const crash=await run({impl:()=>{throw Error('PRIVATE_THROW')}});
  check(crash.result.status==='REMOTE_PROOF_UNAVAILABLE'
    &&crash.result.liveRemoteVerified===false,'exceptions redacted');
