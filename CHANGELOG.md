@@ -4,6 +4,14 @@ This is the canonical version-specific history for Kleinanzeigen Manager. Entrie
 
 All distinct historical section bodies from the former root README and CHANGELOG are preserved with source labels and line numbers. The [KAR-170 migration ledger](docs/maintenance/KAR170_CHANGELOG_MIGRATION.json) identifies their original Git blobs and body checksums. Overlapping versions retain distinct factual notes; older references to planned builds or native/CI acceptance are **historical**, not live status.
 
+## v1.25.17 — KAR-171 R1 outer-inspector failure classification (Work only; not released)
+
+- The owner's first real v1.25.16 R1 Stage3 result remained `ORIGINAL_REMOTE_PROOF_UNAVAILABLE`; the screenshot did not show the loaded Chrome runtime version. This is a fail-closed outer catch that surrounds both the previously instrumented fresh source/target scan and original snapshot/identity/recheck logic, so the exact native failure site is still **not proven**.
+- Preserve every P8, account, session, publication and real remote source-absent/target-present safety gate. Add fixed non-sensitive exception statuses for initial original storage read, original Phase4/publication validation, pre-scan identity check, unexpected scanner boundary, post-scan identity check and original stability comparison. No raw private exception stack, account name, token, advertisement ID or browser tab ID is emitted.
+- The owner-controlled Stage3 script now includes the safely filtered running extension manifest version in the single sanitized result, allowing us to distinguish a stale loaded build from an actual v1.25.17 runtime failure.
+- Synthetic negative tests include initial storage failure, exceptional original storage stability comparison, and complete privacy/negative authority checks. Source full runtime/safety/coverage and packaged Chromium E2E must pass for this Work-only ZIP.
+- This diagnostic patch does **not** fix an unknown remote failure, publish/renew/delete ads, enable updater lease/apply, merge to main or create a GitHub Release. Maintain original Chrome extension ID/profile, save complete offline Chrome profile and installed unpacked extension folder before in-place update. Stage3 real owner evidence remains required. R1 NOT ACCEPTED; R2–R6 parked.
+
 ## v1.25.16 — KAR-171 R1 source/target exception location diagnostic (Work only; not released)
 
 - On an actual installed v1.25.15 owner PC, the first Stage3 retest returned `ORIGINAL_REMOTE_PROOF_UNAVAILABLE` with all safety booleans false. This is a bounded exception in the private witness; neither its source/target remote scan origin nor subsequent storage readback could be attributed from that output.
