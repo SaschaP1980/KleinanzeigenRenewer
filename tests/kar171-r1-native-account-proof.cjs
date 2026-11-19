@@ -50,9 +50,10 @@ function fixture(){
     workerInstanceId:'old-worker-publish',completedAtMs:500}
  };
  const state={rows,remoteCalls:0,writes:0,accountName:NAME,tabs:[{id:7,url:URL}],
-  failRemote:false,afterRemote:null};
+  failRemote:false,afterRemote:null,remoteStages:[],storageUnavailableAfterRemote:false};
  const local={
   async get(keys){
+   if(state.storageUnavailableAfterRemote && keys===null)throw Error('PRIVATE_STORAGE_ERROR');
    const names=keys===null?Object.keys(rows):Array.isArray(keys)?keys:[keys];
    return Object.fromEntries(names.filter(k=>Object.hasOwn(rows,k))
      .map(k=>[k,structuredClone(rows[k])]));
@@ -65,10 +66,11 @@ function fixture(){
   readAccountPageStatusReadOnly:async()=>({
    pageType:'my-ads',url:URL,auth:{loggedIn:true},profileName:state.accountName
   }),
-  verifyFreshPhase4RemoteOutcomeReadOnly:async()=>{
+  verifyFreshPhase4RemoteOutcomeReadOnly:async(_receipt,onStage)=>{
    state.remoteCalls++;
+   for(const code of state.remoteStages)onStage(code);
    if(state.afterRemote)state.afterRemote(rows,state);
-   if(state.failRemote)throw Error('UNVERIFIED_NETWORK');
+   if(state.failRemote)throw Error('UNVERIFIED_NETWORK_PRIVATE_PROFILE');
    return {profileId:NAME,sourceAdId:SOURCE,newAdId:TARGET,
     sourceAbsent:true,targetPresent:true,
     sourceEvidence:'not-in-my-ads-full-pagination-scan',
@@ -187,6 +189,62 @@ test('sessionless original rejects publication ambiguity rather than picking con
   ...f.state.rows[PUB+FILL+'_'+PUB_ATTEMPT],fillId:'different-fill',attemptId:'second-attempt'
  };
  const x=await inspect(f);denied(x);assert.equal(f.state.remoteCalls,0);
+});
+test('remote exception is diagnosed by closed enum milestone, never exception text or IDs',async()=>{
+ const cases=[
+  ['START','R1_REMOTE_SCAN_NOT_STARTED'],
+  ['SOURCE_TAB_REQUESTED','R1_REMOTE_SOURCE_TAB_CREATE_FAILED'],
+  ['SOURCE_TAB_CREATED','R1_REMOTE_SOURCE_TAB_LOAD_FAILED'],
+  ['SOURCE_TAB_LOADED','R1_REMOTE_SOURCE_CONTENT_FAILED'],
+  ['SOURCE_CONTENT_READY','R1_REMOTE_SOURCE_ACCOUNT_FAILED'],
+  ['SOURCE_ACCOUNT_OK','R1_REMOTE_SOURCE_QUERY_FAILED'],
+  ['SOURCE_QUERY_RETURNED','R1_REMOTE_SOURCE_ACCOUNT_RECHECK_FAILED'],
+  ['SOURCE_ACCOUNT_RECHECKED','R1_REMOTE_SOURCE_EVIDENCE_FAILED'],
+  ['SOURCE_RESULT_VERIFIED','R1_REMOTE_TARGET_NOT_STARTED'],
+  ['TARGET_TAB_REQUESTED','R1_REMOTE_TARGET_TAB_CREATE_FAILED'],
+  ['TARGET_TAB_CREATED','R1_REMOTE_TARGET_TAB_LOAD_FAILED'],
+  ['TARGET_TAB_LOADED','R1_REMOTE_TARGET_CONTENT_FAILED'],
+  ['TARGET_CONTENT_READY','R1_REMOTE_TARGET_ACCOUNT_FAILED'],
+  ['TARGET_ACCOUNT_OK','R1_REMOTE_TARGET_QUERY_FAILED'],
+  ['TARGET_QUERY_RETURNED','R1_REMOTE_TARGET_ACCOUNT_RECHECK_FAILED'],
+  ['TARGET_ACCOUNT_RECHECKED','R1_REMOTE_TARGET_EVIDENCE_FAILED'],
+  ['TARGET_RESULT_VERIFIED','R1_REMOTE_FINAL_RESPONSE_FAILED']
+ ];
+ for(const [stage,status] of cases) {
+   const f=completedOriginal();f.state.remoteStages=stage==='START'?[]:[stage];
+   f.state.failRemote=true;
+   const result=await inspect(f);
+   assert.equal(result.status,status,stage);
+   denied(result);
+   assert.equal(f.state.remoteCalls,1);
+   assert.equal(f.state.writes,0);
+   const output=JSON.stringify(result);
+   for(const secret of [NAME,UUID,SOURCE,TARGET,RENEWAL,FILL,
+     PHASE_TOKEN,PUB_TOKEN,'UNVERIFIED_NETWORK_PRIVATE_PROFILE'])
+      assert.ok(!output.includes(secret),'no origin or remote exception exposure');
+ }
+});
+test('unknown injected milestone cannot manufacture success or disclose arbitrary status',async()=>{
+ const f=completedOriginal();f.state.remoteStages=['PERSONAL_EMAIL_EXPOSED'];
+ f.state.failRemote=true;const result=await inspect(f);
+ assert.equal(result.status,'R1_REMOTE_SCAN_NOT_STARTED');
+ denied(result);assert.equal(f.state.remoteCalls,1);
+});
+test('storage readback exception after successful source+target is independently diagnosed and denied',async()=>{
+ const f=completedOriginal();
+ f.state.remoteStages=['SOURCE_RESULT_VERIFIED','TARGET_RESULT_VERIFIED'];
+ f.state.afterRemote=(_,state)=>{state.storageUnavailableAfterRemote=true;};
+ const result=await inspect(f);
+ assert.equal(result.status,'ORIGINAL_READBACK_UNAVAILABLE');
+ denied(result);assert.equal(f.state.remoteCalls,1);
+});
+test('remote scan milestones cannot turn an account switch into success',async()=>{
+ const f=completedOriginal();
+ f.state.remoteStages=['SOURCE_RESULT_VERIFIED','TARGET_RESULT_VERIFIED'];
+ f.state.afterRemote=(_,s)=>{s.accountName='different-owner';};
+ const result=await inspect(f);
+ assert.equal(result.status,'LIVE_ACCOUNT_CHANGED_DURING_SCAN');
+ denied(result);
 });
 test('historical target receipts alone are insufficient without live account',async()=>{
  const f=fixture();f.state.tabs=[];const x=await inspect(f);
