@@ -85,6 +85,12 @@ async function run({rows=initial,extension=EXT,origin=EXT,proto='chrome-extensio
    liveRemoteVerified:true,r1Accepted:false,eligibleForLease:false})});
  check(unknown.result.status==='REMOTE_PROOF_UNVERIFIED'
    &&unknown.result.liveRemoteVerified===false,'unlisted status cannot leak');
+ for(const status of ["R1_ACCOUNT_ORIGINAL_CONTEXT_UNVERIFIED","R1_ACCOUNT_CONTEXT_READ_UNAVAILABLE","R1_ACCOUNT_PROFILE_CONTEXT_CHANGED","R1_ACCOUNT_LIVE_SITE_OR_PROFILE_UNVERIFIED","R1_ACCOUNT_LOCAL_UUID_UNVERIFIED","R1_ACCOUNT_PHASE4_NAME_UNVERIFIED","R1_ACCOUNT_PUBLICATION_UUID_UNVERIFIED","R1_ACCOUNT_SESSION_CONTEXT_UNVERIFIED"]) {
+   const result=await run({impl:()=>({status,liveRemoteVerified:false,
+     r1Accepted:false,eligibleForLease:false})});
+   check(result.result.status===status&&result.result.liveRemoteVerified===false,
+     'bounded safe account gate diagnostic '+status);
+ }
  for(const status of ['R1_REMOTE_SCAN_NOT_STARTED',
    'R1_REMOTE_SOURCE_TAB_CREATE_FAILED','R1_REMOTE_SOURCE_QUERY_FAILED',
    'R1_REMOTE_SOURCE_EVIDENCE_FAILED','R1_REMOTE_TARGET_TAB_LOAD_FAILED',

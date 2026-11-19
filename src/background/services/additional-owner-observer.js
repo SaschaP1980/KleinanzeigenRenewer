@@ -1456,75 +1456,97 @@
 // NEVER a 15-owner IDLE certificate or permission to reserve/apply updates.
 // It reads already-open authenticated My Ads tabs through the established
 // owner observer. No tab creation, profile mutation, NativeHost or IPC.
-async function verifyRemoteCommitContextReadOnly(original, sourceKind, witness=null, historyProof=null) {
-  // Default remote commits still require live renewable session bindings.
+async function verifyRemoteCommitContextReadOnly(original, sourceKind, witness=null, historyProof=null, onRejected=null) {
+  // The Kleinanzeigen-authenticated PAGE_STATUS.profileName is the site-account
+  // authority (KAR-99). Local UUIDs bind immutable Manager/P8 provenance; they
+  // must never be reported as an independent website login identity.
+  // This optional, fixed-code rejection observer is used ONLY by the private
+  // R1 read-only check. Normal remote commit callers still receive a boolean.
+  const reject=code=>{
+    if(typeof onRejected==='function') {
+      try { onRejected(code); } catch { /* diagnostics never affect admission */ }
+    }
+    return false;
+  };
   const originalCompletedOnly=historyProof===originalCompletedHistory;
   const isRecord = x => x !== null && typeof x === 'object' && !Array.isArray(x);
-  if (!isRecord(original) || !['phase4','publish'].includes(sourceKind)) return false;
+  if(!isRecord(original)||!['phase4','publish'].includes(sourceKind))
+    return reject('R1_ACCOUNT_ORIGINAL_CONTEXT_UNVERIFIED');
   const identity=remoteCommitIdentity(original,sourceKind);
   if(!identity||(witness!==null&&!(await stagedTabIsCurrent(witness,identity))))
-    return false;
-  const keys = ['profilesV1', 'activeDetectedProfileV1',
+    return reject('R1_ACCOUNT_ORIGINAL_CONTEXT_UNVERIFIED');
+  const keys=['profilesV1','activeDetectedProfileV1',
     'selectedInventoryProfileV1','renewalSessionsV1',
     'archiveInsertionSessionsV1','templateFillSessions'];
   let first, observed, last;
   try {
-    first = await storageLocal.get(keys);
-    observed = await observe();
-    last = await storageLocal.get(keys);
-  } catch { return false; }
-  if (!isRecord(first) || !isRecord(last) ||
-      (witness!==null&&!(await stagedTabIsCurrent(witness,identity))) ||
-      JSON.stringify(first) !== JSON.stringify(last) ||
-      observed?.schema !== 1 || observed.eligibleForLease !== false ||
-      observed.context?.profile?.state !== 'matched' ||
-      observed.context.profile.reason !== 'LIVE_ACCOUNT_PROFILE_MATCH' ||
-      observed.context.worker?.workerInstanceId !== worker)
-    return false;
-  const profileId = observed.context.profile.profileId;
-  const selected = first.selectedInventoryProfileV1;
-  const detected = first.activeDetectedProfileV1;
-  const profiles = first.profilesV1;
-  if (!isRecord(selected) || !isRecord(detected) ||
-      selected.profileId !== profileId || detected.profileId !== profileId ||
-      !Array.isArray(profiles)) return false;
-  const matchingProfiles = profiles.filter(p=>isRecord(p) && p.profileId === profileId);
-  if (matchingProfiles.length !== 1) return false;
-  const profile = matchingProfiles[0];
-  const normalize = x => label(x);
-  if (sourceKind === 'phase4') {
-    // Phase-4 legacy journal stores the *source display name*, while
-    // the workflow and profile store retain the stable profile ID.
-    const session = first.renewalSessionsV1?.[original.renewalId];
-    const sourceNameMatches=normalize(original.profileId) !== '' &&
-      normalize(profile.displayName) === normalize(original.profileId);
+    first=await storageLocal.get(keys);
+    observed=await observe();
+    last=await storageLocal.get(keys);
+  } catch {
+    return reject('R1_ACCOUNT_CONTEXT_READ_UNAVAILABLE');
+  }
+  if(!isRecord(first)||!isRecord(last)||
+      (witness!==null&&!(await stagedTabIsCurrent(witness,identity)))||
+      JSON.stringify(first)!==JSON.stringify(last))
+    return reject('R1_ACCOUNT_PROFILE_CONTEXT_CHANGED');
+  if(observed?.schema!==1||observed.eligibleForLease!==false||
+      observed.context?.profile?.state!=='matched'||
+      observed.context.profile.reason!=='LIVE_ACCOUNT_PROFILE_MATCH'||
+      observed.context.worker?.workerInstanceId!==worker)
+    return reject('R1_ACCOUNT_LIVE_SITE_OR_PROFILE_UNVERIFIED');
+  const profileId=observed.context.profile.profileId;
+  const selected=first.selectedInventoryProfileV1;
+  const detected=first.activeDetectedProfileV1;
+  const profiles=first.profilesV1;
+  if(!isRecord(selected)||!isRecord(detected)||
+      selected.profileId!==profileId||detected.profileId!==profileId||
+      !Array.isArray(profiles))
+    return reject('R1_ACCOUNT_LOCAL_UUID_UNVERIFIED');
+  const matchingProfiles=profiles.filter(p=>isRecord(p)&&p.profileId===profileId);
+  if(matchingProfiles.length!==1)
+    return reject('R1_ACCOUNT_LOCAL_UUID_UNVERIFIED');
+  const profile=matchingProfiles[0];
+  const normalize=x=>label(x);
+  if(sourceKind==='phase4') {
+    // Original Phase4 records store the site account label; Manager workflow
+    // sessions store the internal UUID. This is not a second site account ID.
+    const session=first.renewalSessionsV1?.[original.renewalId];
+    const sourceNameMatches=normalize(original.profileId)!==''
+      &&normalize(profile.displayName)===normalize(original.profileId);
+    if(!sourceNameMatches)
+      return reject('R1_ACCOUNT_PHASE4_NAME_UNVERIFIED');
     if(originalCompletedOnly)
-      return session===undefined && sourceNameMatches;
-    return isRecord(session) && session.profileId === profileId &&
-      sourceNameMatches &&
-      String(session.sourceAdId || '') === original.sourceAdId &&
-      String(session.newAdId || '') === original.newAdId;
+      return session===undefined?true:reject('R1_ACCOUNT_SESSION_CONTEXT_UNVERIFIED');
+    return isRecord(session)&&session.profileId===profileId
+      &&String(session.sourceAdId||'')===original.sourceAdId
+      &&String(session.newAdId||'')===original.newAdId
+      ?true:reject('R1_ACCOUNT_SESSION_CONTEXT_UNVERIFIED');
   }
-  // Publish journal instead stores the stable profile ID.
-  if (original.profileId !== profileId) return false;
-  const archive = original.kind === 'archive';
-  if (!archive && original.kind !== 'renewal') return false;
-  const sessions = archive ? first.archiveInsertionSessionsV1 : first.renewalSessionsV1;
-  const session = sessions?.[original.workflowId];
-  const fill = first.templateFillSessions?.[original.fillId];
+  // The original publish UUID is immutable P8/workflow correlation, NOT an
+  // authentication ID. Preserve the fail-closed binding if it differs.
+  if(original.profileId!==profileId)
+    return reject('R1_ACCOUNT_PUBLICATION_UUID_UNVERIFIED');
+  const archive=original.kind==='archive';
+  if(!archive&&original.kind!=='renewal')
+    return reject('R1_ACCOUNT_ORIGINAL_CONTEXT_UNVERIFIED');
+  const sessions=archive?first.archiveInsertionSessionsV1:first.renewalSessionsV1;
+  const session=sessions?.[original.workflowId];
+  const fill=first.templateFillSessions?.[original.fillId];
   if(originalCompletedOnly) {
-    // Successful production Phase4 deliberately removes BOTH temporary rows.
-    // Independent source/target and P8 histories were already verified by
-    // the private caller; this branch grants NO normal commit authority.
-    return !archive && session===undefined && fill===undefined;
+    // Completed Phase4 removes both temporary rows. The private caller
+    // separately proves both immutable P8s and both remote resolutions.
+    return !archive&&session===undefined&&fill===undefined
+      ?true:reject('R1_ACCOUNT_SESSION_CONTEXT_UNVERIFIED');
   }
-  return isRecord(session) && isRecord(fill) &&
-    session.fillId === original.fillId && fill.fillId === original.fillId &&
-    String((archive ? session.targetProfileId : session.profileId) || '') === profileId &&
-    String(session.sourceAdId || '') === original.sourceAdId &&
-    Number(session.targetTabId) === original.targetTabId &&
-    Number(fill.targetTabId) === original.targetTabId &&
-    String(fill.sourceAdId || '') === original.sourceAdId;
+  return isRecord(session)&&isRecord(fill)&&
+    session.fillId===original.fillId&&fill.fillId===original.fillId&&
+    String((archive?session.targetProfileId:session.profileId)||'')===profileId&&
+    String(session.sourceAdId||'')===original.sourceAdId&&
+    Number(session.targetTabId)===original.targetTabId&&
+    Number(fill.targetTabId)===original.targetTabId&&
+    String(fill.sourceAdId||'')===original.sourceAdId
+    ?true:reject('R1_ACCOUNT_SESSION_CONTEXT_UNVERIFIED');
 }
 
 
@@ -1641,9 +1663,14 @@ async function verifyRemoteCommitContextReadOnly(original, sourceKind, witness=n
         // exact renewal/source/target/unique publication have passed above.
         // The live UUID/name checks and subsequent fresh scan remain required.
         exceptionPhase='PRESCAN_ACCOUNT';
-        if(!(await verifyRemoteCommitContextReadOnly(phase,'phase4',null,historyProof))
-          ||!(await verifyRemoteCommitContextReadOnly(publish,'publish',null,historyProof)))
-          return output('LIVE_ACCOUNT_UUID_NAME_UNVERIFIED');
+        let prescanRejected=null;
+        const capturePrescanRejection=code=>{if(prescanRejected===null)prescanRejected=code;};
+        if(!(await verifyRemoteCommitContextReadOnly(
+          phase,'phase4',null,historyProof,capturePrescanRejection)))
+          return output(prescanRejected||'LIVE_ACCOUNT_UUID_NAME_UNVERIFIED');
+        if(!(await verifyRemoteCommitContextReadOnly(
+          publish,'publish',null,historyProof,capturePrescanRejection)))
+          return output(prescanRejected||'LIVE_ACCOUNT_UUID_NAME_UNVERIFIED');
         exceptionPhase='REMOTE_SCAN';
         // Independently captured read-only milestones distinguish unavailable
         // My Ads tabs/content/account/roster scans from a later storage readback.
