@@ -18,7 +18,7 @@
    if(/KR_MY_ADS_ROSTER_INCOMPLETE/.test(s))return 'ROSTER_COUNT_OR_PAGINATION_INCOMPLETE';
    if(/KR_MY_ADS_ACCOUNT_CHANGED_DURING_SCAN/.test(s))return 'ACCOUNT_CHANGED_DURING_SCAN';
    if(/KR_PLATFORM_ACCESS_RESTRICTED|Zugriff vorübergehend eingeschränkt/.test(s))return 'PLATFORM_ACCESS_RESTRICTED';
-   if(/nächste Seite.*nicht geladen|Seitennavigation.*wiederholt/.test(s))return 'PAGINATION_FAILED';
+   if(/nächste Seite.*nicht geladen|Seitennavigation.*wiederholt/i.test(s))return 'PAGINATION_FAILED';
    if(/Mehr als [0-9]+ Seiten/.test(s))return 'PAGINATION_LIMIT';
    if(/Keine Anzeigen erkannt|keine Anzeigen erkannt|Auf Seite .*keine Anzeigen/.test(s))return 'LISTINGS_NOT_LOADED';
    if(/PROJECTS|Projekten.*verlassen|Meine Anzeigen.*verlassen/.test(s))return 'MY_ADS_PROJECTS_UNVERIFIED';
