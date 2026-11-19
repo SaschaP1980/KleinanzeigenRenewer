@@ -4,6 +4,13 @@ This is the canonical version-specific history for Kleinanzeigen Manager. Entrie
 
 All distinct historical section bodies from the former root README and CHANGELOG are preserved with source labels and line numbers. The [KAR-170 migration ledger](docs/maintenance/KAR170_CHANGELOG_MIGRATION.json) identifies their original Git blobs and body checksums. Overlapping versions retain distinct factual notes; older references to planned builds or native/CI acceptance are **historical**, not live status.
 
+## v1.25.19 — KAR-171 bounded account gate failure classification (Work only; not released)
+
+- Owner's real v1.25.18 read-only Stage 3 returned `LIVE_ACCOUNT_UUID_NAME_UNVERIFIED` with all updater/R1 booleans false. This result does **not** establish a wrong login or a UUID mismatch; prior v1.25.17 had reached the fresh remote source scan.
+- A genuine failing 4-case RED regression on the existing R1 inspector demonstrated that wrong/unavailable authenticated My Ads account, immutable original Phase4 site-name mismatch and original publish Manager UUID mismatch all collapsed to the same status. The focused correction returns fixed, non-identifying denial reasons from the **same** private account-gate observation; ordinary Phase4 and publishing commit gates retain identical boolean fail-closed decisions and original P8/worker/session binding.
+- Site identity remains authenticated `PAGE_STATUS.profileName` / `Angemeldet als` under KAR-99. The internal Manager UUID is **not** a Kleinanzeigen website account ID; it remains immutable correlation for original publication receipts and prevents cross-profile record substitution. Do not bypass failed historical provenance based solely on matching site names.
+- New privacy/negative tests require denial of mismatches, no live listing mutation, no R1 acceptance and no updater lease. Actual owner-PC v1.25.19 proof and R1 acceptance remain PENDING; R2–R6 are parked. The versioned Chrome ZIP is Work-only, never a GitHub Release or permission to apply the updater.
+
 ## v1.25.18 — KAR-171 independent fresh My Ads readiness before R1 scan (Work only; not released)
 
 - The owner's actual v1.25.17 read-only source diagnostic on an existing, authenticated My Ads PROJECTS browser tab returned `SOURCE_ABSENCE_RESPONSE_READ_ONLY`: current-tab source-absence response and full-pagination evidence schema verified. This is **not** the independent original source/target R1 proof, which remains unaccepted.

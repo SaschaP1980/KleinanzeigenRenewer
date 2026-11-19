@@ -1,4 +1,4 @@
-# KAR-171 R1 — Work-only v1.25.18 Chrome test package and immutable P8 continuity
+# KAR-171 R1 — Work-only v1.25.19 Chrome test package and immutable P8 continuity
 
 **Scope:** Owner-supervised R1 native evidence on the *same existing Chrome profile*, with original P8 receipts preserved. This is NOT a GitHub Release, R1 acceptance, a general update-apply authorization, a new account, or a permission to renew/delete/publish advertisements.
 
@@ -10,6 +10,8 @@
 
 **2026-11-19 same-tab readiness follow-up:** Owner's authenticated existing-page R1 source-absence response in v1.25.17 was positive, while the independently created fresh page had rejected the source request before any target scan. v1.25.18 adds an independent-page semantic readiness handshake for BOTH fresh source/target pages without relaxing the full-roster, account and immutable P8 proof. This is a bounded read-only safety fix, not a completed native acceptance. Maintain same Chrome profile and unpacked extension ID, save original offline backups before swapping the source files, do not remove/reinstall or reset storage. Once v1.25.18 is installed and validated, run the original Stage3 script once in the Service Worker; share only its sanitized result with `runtimeVersion`.
 
+**2026-11-19 v1.25.19 identity-gate check:** The installed v1.25.18 owner result was `LIVE_ACCOUNT_UUID_NAME_UNVERIFIED`. The new Work-only v1.25.19 changes the private read-only classification, **not** site login, remote mutation, P8 authority or updater apply. After the usual offline closed-Chrome backup and same-folder, same-profile, same-ID in-place update, verify runtime v1.25.19 and repeat ONLY Stage 3 once. Share only the sanitized `KAR171_R1_LIVE_REMOTE_OWNER_V1` line. No renewal, deletion, publication or reset is needed to create evidence. If the failure is now a particular `R1_ACCOUNT_*` code, do not infer that it was necessarily the cause in v1.25.18 without native evidence.
+
 ## Non-negotiable evidence continuity
 
 - The previously observed Phase-4 original P8 and publication P8 evidence lives in `chrome.storage.local` under the installed extension ID `hafahjhhgiipdegfkgacchmnacgblnah`. Its original worker/token/attempt journal must survive **unchanged**, including the corresponding historical renewal/fill profile references.
@@ -20,7 +22,7 @@
 
 ## Before the owner installs anything
 
-1. Verify the release-less **Work-only Chrome ZIP** was produced from an exact tested SHA on `work/KAR-171`, the manifest declares **v1.25.18**, the manifest `key` yields the unchanged extension ID, all mandatory runtime, safety and packaged Chromium fixture E2E gates are GREEN and the ZIP's SHA-256/size are recorded in #171.
+1. Verify the release-less **Work-only Chrome ZIP** was produced from an exact tested SHA on `work/KAR-171`, the manifest declares **v1.25.19**, the manifest `key` yields the unchanged extension ID, all mandatory runtime, safety and packaged Chromium fixture E2E gates are GREEN and the ZIP's SHA-256/size are recorded in #171.
 2. Open `chrome://extensions` and check the currently installed Kleinanzeigen Manager's exact ID and source type. This procedure applies only if the existing installation is **unpacked** and you know the **existing extension source folder**. If the extension is a packaged/managed/store install, **stop**: no safe in-place unpacked swap is approved by this protocol.
 3. In the **existing installed extension**, run the previously approved **Stage 2 read-only historical lineage** inspection once (or use the most recent already verified snapshot if nothing changed), recording **only sanitized counters/status**. Do not perform fresh listings or create new P8 evidence.
 4. Open `chrome://version` and note the **Profile Path** locally. Exit Chrome completely (including background processes and other windows) and make a private offline copy of the **entire Chrome profile directory** and a separate copy of the existing **unpacked extension source folder**. Do not zip/upload them to GitHub/ChatGPT. Confirm both copies exist and can be read. If they cannot be copied or the profile path is ambiguous, **STOP**.
@@ -29,7 +31,7 @@
 ## Owner-controlled same-profile installation (only after step 1–5)
 
 1. Keep Chrome **fully closed**. Preserve the backed-up original extension folder. In the original extension source path (not a new path), replace the previous runtime files with the contents of the verified Chrome ZIP, ensuring `manifest.json` lies directly at the extension folder root. Never copy the Chrome profile into the extension source folder. Do not delete the Chrome extension in `chrome://extensions`.
-2. Start Chrome using the same browser profile. Go to `chrome://extensions`, check the Kleinanzeigen Manager extension **ID has not changed**, and click its **Reload/Aktualisieren** control only if needed. Confirm v1.25.18. If the ID changed, Chrome reports errors, the account/profile is not recognized or inventory/receipts are absent, **STOP**; do not run R1 or any listing action.
+2. Start Chrome using the same browser profile. Go to `chrome://extensions`, check the Kleinanzeigen Manager extension **ID has not changed**, and click its **Reload/Aktualisieren** control only if needed. Confirm v1.25.19. If the ID changed, Chrome reports errors, the account/profile is not recognized or inventory/receipts are absent, **STOP**; do not run R1 or any listing action.
 3. Repeat the same **Stage 2 read-only** sanitized counters and compare to the pre-swap evidence. Equality is a **continuity check**, not proof of every original token's identity or source deletion; conflicting/missing evidence blocks R1. Do not force or manually restore receipts.
 4. Have the correct live Kleinanzeigen account open in **Meine Anzeigen / PROJECTS** with the matching selected manager inventory profile; avoid other workflows and account changes during the test.
 5. Review the standalone source [`KAR171_R1_LIVE_REMOTE_OWNER_READ_ONLY.js`](KAR171_R1_LIVE_REMOTE_OWNER_READ_ONLY.js) and paste it **once** into the extension's **Service Worker DevTools** console (not into the website). This opt-in script **reads authenticated My Ads pages and may create/close managed, read-only verification tabs and update local tab-registry bookkeeping**, but it does **not** publish, renew, delete or change an ad. Only send the single sanitized output prefixed `KAR171_R1_LIVE_REMOTE_OWNER_V1`. The output always contains `r1Accepted:false` and `eligibleForLease:false`.
