@@ -2199,8 +2199,7 @@ function requireAdditionalOwnerObserver() {
       readAccountPageStatusReadOnly:tabId=>sendTabRequest(tabId,{type:'PAGE_STATUS'}),
       createManagedWorkerTab,waitForTabComplete,ensureContentConnection,closeManagedWorkerTab,
       myAdsProjectsUrl:MY_ADS_PROJECTS_URL,tabLoadTimeoutMs:TAB_LOAD_TIMEOUT_PHASE4_MS,
-      verifyFreshPhase4RemoteOutcomeReadOnly:(receipt,reportReadOnlyStage)=>
-        requireRemoteDeleteReplacementService().verifyPhase4RemoteOutcomeFresh(receipt,reportReadOnlyStage),
+      verifyFreshPhase4RemoteOutcomeReadOnly:(...args)=>requireRemoteDeleteReplacementService().verifyPhase4RemoteOutcomeFresh(...args),
       readNativeTransactionReadOnly:async()=>{
         requireNativeStatusBridge();
         return nativeUpdateGateway.inspectReadOnly();
