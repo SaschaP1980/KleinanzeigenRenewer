@@ -1,0 +1,30 @@
+name: KAR-171 R1 read-only remote scan milestone regression
+on:
+  push:
+    branches: [work/KAR-171]
+permissions:
+  contents: read
+concurrency:
+  group: kar171-r1-scan-trace-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  validation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Targeted R1 historical P8, private scan and console privacy regression
+        run: |
+          node tests/kar171-r1-native-account-proof.cjs
+          node tests/kar171-r1-live-owner-script.cjs
+      - name: Full runtime security coverage and architecture
+        run: |
+          rm .github/workflows/kar171-r1-scan-trace.yml
+          bash scripts/coverage-gate.sh
