@@ -4,6 +4,14 @@ This is the canonical version-specific history for Kleinanzeigen Manager. Entrie
 
 All distinct historical section bodies from the former root README and CHANGELOG are preserved with source labels and line numbers. The [KAR-170 migration ledger](docs/maintenance/KAR170_CHANGELOG_MIGRATION.json) identifies their original Git blobs and body checksums. Overlapping versions retain distinct factual notes; older references to planned builds or native/CI acceptance are **historical**, not live status.
 
+## v1.25.16 — KAR-171 R1 source/target exception location diagnostic (Work only; not released)
+
+- On an actual installed v1.25.15 owner PC, the first Stage3 retest returned `ORIGINAL_REMOTE_PROOF_UNAVAILABLE` with all safety booleans false. This is a bounded exception in the private witness; neither its source/target remote scan origin nor subsequent storage readback could be attributed from that output.
+- Work-only runtime diagnostic instrumentation reports fixed, non-sensitive progress/failure codes for managed My Ads source and target tab creation, load, content connection, authenticated account checks, pagination/roster query, verification and final original journal readback. No raw exception text, account/email, ad ID, P8 token or generated tab IDs are printed. The existing independent verifier still determines pass/fail.
+- The private Phase4 scanner accepts an optional progress sink; existing normal Phase4 and deletion behavior is unchanged. Only the owner-controlled private R1 inspector passes this sink, and R1 acceptance/positive updater authority remain false on errors.
+- Expanded synthetic account/scan adversarial regression and sanitized owner-console status allowlist. This is an isolated native diagnostic test build, not an automatic updater, main merge, release or listing mutation.
+- Keep the same Chrome extension ID/profile and original P8 storage. Back up the complete offline Chrome profile and unpacked source directory before the in-place v1.25.15 → v1.25.16 swap; do not remove/reinstall the extension. Run the linked standalone Stage3 script once and share only its bounded status. R1 NOT ACCEPTED; R2–R6 parked.
+
 ## v1.25.15 — KAR-171 R1 completed-P8 history test build (Work only; not released)
 
 - Correct the historical R1 owner-PC verification when both transient `renewalSessionsV1` and `templateFillSessions` records have been intentionally removed after a successful Phase-4 replacement. The owner's v1.25.14 sanitized native output confirmed `HISTORICAL_SESSIONS_ABSENT` while the current account and both original profile representations matched.
