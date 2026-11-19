@@ -1653,8 +1653,8 @@ async function verifyRemoteCommitContextReadOnly(original, sourceKind, witness=n
         // A genuine tab account switch can race the asynchronous complete
         // roster scan; verify both identities AGAIN, then verify origin rows
         // have not been rewritten or detached from their sessions.
-        if(!(await verifyRemoteCommitContextReadOnly(phase,'phase4'))
-          ||!(await verifyRemoteCommitContextReadOnly(publish,'publish')))
+        if(!(await verifyRemoteCommitContextReadOnly(phase,'phase4',null,historyProof))
+          ||!(await verifyRemoteCommitContextReadOnly(publish,'publish',null,historyProof)))
           return output('LIVE_ACCOUNT_CHANGED_DURING_SCAN');
         const last=await storageLocal.get(null);
         if(!record(last))return output('ORIGINAL_READBACK_FAILED');
