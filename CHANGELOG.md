@@ -4,6 +4,14 @@ This is the canonical version-specific history for Kleinanzeigen Manager. Entrie
 
 All distinct historical section bodies from the former root README and CHANGELOG are preserved with source labels and line numbers. The [KAR-170 migration ledger](docs/maintenance/KAR170_CHANGELOG_MIGRATION.json) identifies their original Git blobs and body checksums. Overlapping versions retain distinct factual notes; older references to planned builds or native/CI acceptance are **historical**, not live status.
 
+## v1.25.18 — KAR-171 independent fresh My Ads readiness before R1 scan (Work only; not released)
+
+- The owner's actual v1.25.17 read-only source diagnostic on an existing, authenticated My Ads PROJECTS browser tab returned `SOURCE_ABSENCE_RESPONSE_READ_ONLY`: current-tab source-absence response and full-pagination evidence schema verified. This is **not** the independent original source/target R1 proof, which remains unaccepted.
+- The fresh independently managed R1 tabs had passed account status but immediately rejected `VERIFY_OWN_AD_ABSENT_BY_ID` (5/10/194ms). Code review found that account status is not evidence that asynchronous listing cards, online count and pagination have hydrated.
+- Before each independent read-only source and target scan, wait in **that same freshly created authenticated tab** for the existing `WAIT_FOR_MY_ADS_READY` readiness contract (page one, same account, stable online count, cards and pagination), then validate the bounded response and recheck the account. On unavailable/invalid/stale readiness, fail closed without claiming remote proof or retrying/triggering a listing mutation.
+- Proven RED on the existing missing-readiness behavior, then focused new source/target and negative regression tests GREEN, and full safety/coverage/architecture checks. Dedicated work-only Chrome ZIP must also pass byte-parity and isolated packaged Chromium 9/9 E2E.
+- Keep original Chrome extension ID and existing profile/P8 storage; back up closed Chrome profile and source folder before in-place update. Do not uninstall, refresh historical receipts, renew/publish/delete an ad, merge to main, or enable update apply. R1 still NOT ACCEPTED; R2–R6 parked.
+
 ## v1.25.17 — KAR-171 R1 outer-inspector failure classification (Work only; not released)
 
 - The owner's first real v1.25.16 R1 Stage3 result remained `ORIGINAL_REMOTE_PROOF_UNAVAILABLE`; the screenshot did not show the loaded Chrome runtime version. This is a fail-closed outer catch that surrounds both the previously instrumented fresh source/target scan and original snapshot/identity/recheck logic, so the exact native failure site is still **not proven**.
