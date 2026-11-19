@@ -96,6 +96,98 @@ test('two original completed P8s, verified same account and fresh source/target 
  for(const secret of [NAME,UUID,SOURCE,TARGET,RENEWAL,FILL,PHASE_TOKEN,PUB_TOKEN])
   assert.ok(!JSON.stringify(x).includes(secret),'sanitized result');
 });
+function completedOriginal(){
+ const f=fixture();
+ // Production successful Phase4 promotes inventory and removes these two
+ // transient session records; the original P8 + remote receipts must survive.
+ delete f.state.rows.renewalSessionsV1[RENEWAL];
+ delete f.state.rows.templateFillSessions[FILL];
+ return f;
+}
+test('completed original P8 + BOTH removed temporary sessions can retain historical proof',async()=>{
+ const f=completedOriginal(),x=await inspect(f);
+ assert.equal(x.status,'ORIGINAL_ACCOUNT_REMOTE_VERIFIED');
+ assert.equal(x.liveRemoteVerified,true);
+ assert.equal(x.r1Accepted,false);
+ assert.equal(x.eligibleForLease,false);
+ assert.equal(f.state.remoteCalls,1);
+ assert.equal(f.state.writes,0);
+ for(const secret of [NAME,UUID,SOURCE,TARGET,RENEWAL,FILL,PHASE_TOKEN,PUB_TOKEN])
+   assert.ok(!JSON.stringify(x).includes(secret));
+});
+test('generic runtime remote commit gate cannot borrow original completed-history path',async()=>{
+ const f=completedOriginal();
+ const phase=f.state.rows[PHASE+RENEWAL+'_'+PHASE_ATTEMPT];
+ const pub=f.state.rows[PUB+FILL+'_'+PUB_ATTEMPT];
+ assert.equal(await f.observer.verifyRemoteCommitContextReadOnly(phase,'phase4'),false);
+ assert.equal(await f.observer.verifyRemoteCommitContextReadOnly(pub,'publish'),false);
+ assert.equal(await f.observer.verifyRemoteCommitContextReadOnly(phase,'phase4',null,Symbol.for('completed')),false);
+ assert.equal(f.state.remoteCalls,0);
+});
+test('partial deleted renewal session is not completed-history proof',async()=>{
+ const f=fixture(); delete f.state.rows.renewalSessionsV1[RENEWAL];
+ const x=await inspect(f);denied(x);assert.equal(f.state.remoteCalls,0);
+});
+test('partial deleted fill session is not completed-history proof',async()=>{
+ const f=fixture();delete f.state.rows.templateFillSessions[FILL];
+ const x=await inspect(f);denied(x);assert.equal(f.state.remoteCalls,0);
+});
+test('sessionless original with unverifiable Phase4 P8 remains blocked',async()=>{
+ const f=completedOriginal();delete f.state.rows[FINISH+PHASE_TOKEN];
+ const x=await inspect(f);denied(x);assert.equal(f.state.remoteCalls,0);
+});
+test('sessionless original with unverifiable publication P8 remains blocked',async()=>{
+ const f=completedOriginal();delete f.state.rows[FINISH+PUB_TOKEN];
+ const x=await inspect(f);denied(x);assert.equal(f.state.remoteCalls,0);
+});
+test('sessionless original with changed original Phase4 verification remains blocked',async()=>{
+ const f=completedOriginal();f.state.rows[RESULT+RENEWAL+'_'+PHASE_ATTEMPT].newAdId='3333333';
+ const x=await inspect(f);denied(x);assert.equal(f.state.remoteCalls,0);
+});
+test('sessionless original with changed published target remains blocked',async()=>{
+ const f=completedOriginal();f.state.rows[PUBRESULT+FILL+'_'+PUB_ATTEMPT].newAdId='3333333';
+ const x=await inspect(f);denied(x);assert.equal(f.state.remoteCalls,0);
+});
+test('sessionless original with different original profile display name remains blocked',async()=>{
+ const f=completedOriginal();f.state.rows[PHASE+RENEWAL+'_'+PHASE_ATTEMPT].profileId='different-owner';
+ const x=await inspect(f);denied(x);assert.equal(f.state.remoteCalls,0);
+});
+test('sessionless original with different original publication UUID remains blocked',async()=>{
+ const f=completedOriginal();
+ f.state.rows[PUB+FILL+'_'+PUB_ATTEMPT].profileId='different-uuid';
+ f.state.rows[PUBRESULT+FILL+'_'+PUB_ATTEMPT].profileId='different-uuid';
+ const x=await inspect(f);denied(x);assert.equal(f.state.remoteCalls,0);
+});
+test('sessionless original cannot verify when current live account is different',async()=>{
+ const f=completedOriginal();f.state.accountName='different-owner';
+ const x=await inspect(f);denied(x);assert.equal(f.state.remoteCalls,0);
+});
+test('sessionless original requires fresh remote scan and rejects unavailable outcome',async()=>{
+ const f=completedOriginal();f.state.failRemote=true;
+ const x=await inspect(f);denied(x);assert.equal(f.state.remoteCalls,1);
+});
+test('sessionless original rejects a live account switch during fresh scan',async()=>{
+ const f=completedOriginal();f.state.afterRemote=(_,s)=>{s.accountName='different-owner';};
+ const x=await inspect(f);denied(x);assert.equal(f.state.remoteCalls,1);
+});
+test('sessionless original rejects original P8 changes during remote scan',async()=>{
+ const f=completedOriginal();f.state.afterRemote=rows=>{
+  rows[FINISH+PUB_TOKEN].completedAtMs++;
+ };
+ const x=await inspect(f);denied(x);assert.equal(f.state.remoteCalls,1);
+});
+test('sessionless original rejects new transient session appearing during remote scan',async()=>{
+ const f=completedOriginal();f.state.afterRemote=rows=>{
+  rows.renewalSessionsV1[RENEWAL]={profileId:UUID};
+ };
+ const x=await inspect(f);denied(x);assert.equal(f.state.remoteCalls,1);
+});
+test('sessionless original rejects publication ambiguity rather than picking convenient receipt',async()=>{
+ const f=completedOriginal();f.state.rows[PUB+'different-fill_second-attempt']={
+  ...f.state.rows[PUB+FILL+'_'+PUB_ATTEMPT],fillId:'different-fill',attemptId:'second-attempt'
+ };
+ const x=await inspect(f);denied(x);assert.equal(f.state.remoteCalls,0);
+});
 test('historical target receipts alone are insufficient without live account',async()=>{
  const f=fixture();f.state.tabs=[];const x=await inspect(f);
  denied(x);assert.equal(f.state.remoteCalls,0);
