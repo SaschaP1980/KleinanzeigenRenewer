@@ -1568,9 +1568,13 @@ async function verifyRemoteCommitContextReadOnly(original, sourceKind, witness=n
           &&f.token===token&&f.workerInstanceId===intent.workerInstanceId
           &&ms(f.completedAtMs)&&f.completedAtMs>=intent.createdAtMs;
       };
+      // Exception phases are diagnostic only. Even a correctly classified
+      // failure is never a verified remote outcome or update authority.
+      let exceptionPhase='INITIAL_SNAPSHOT';
       try {
         const first=await storageLocal.get(null);
         if(!record(first))return output('ORIGINAL_SNAPSHOT_UNAVAILABLE');
+        exceptionPhase='PHASE4_EVIDENCE';
         const phase=first[pKey],resolution=first[prKey];
         if(!record(phase)||phase.schema!==1||phase.state!=='outcome-unverified'
           ||phase.renewalId!==renewalId||phase.attemptId!==attemptId
@@ -1591,6 +1595,7 @@ async function verifyRemoteCommitContextReadOnly(original, sourceKind, witness=n
           ||resolution.targetFoundPage>resolution.targetPagesScanned
           ||!ms(resolution.verifiedAtMs)||resolution.verifiedAtMs<phase.createdAtMs)
           return output('PHASE4_OUTCOME_UNVERIFIED');
+        exceptionPhase='PUBLICATION_EVIDENCE';
         const relevant=Object.entries(first).filter(([key,row])=>
           key.startsWith(PUB)&&record(row)&&row.workflowId===renewalId);
         // Never choose an apparently convenient published attempt among
@@ -1635,9 +1640,11 @@ async function verifyRemoteCommitContextReadOnly(original, sourceKind, witness=n
         // BOTH original immutable P8s, independent verified outcomes, and
         // exact renewal/source/target/unique publication have passed above.
         // The live UUID/name checks and subsequent fresh scan remain required.
+        exceptionPhase='PRESCAN_ACCOUNT';
         if(!(await verifyRemoteCommitContextReadOnly(phase,'phase4',null,historyProof))
           ||!(await verifyRemoteCommitContextReadOnly(publish,'publish',null,historyProof)))
           return output('LIVE_ACCOUNT_UUID_NAME_UNVERIFIED');
+        exceptionPhase='REMOTE_SCAN';
         // Independently captured read-only milestones distinguish unavailable
         // My Ads tabs/content/account/roster scans from a later storage readback.
         // Never expose exception text, ad IDs, token, profile or tab data.
@@ -1682,13 +1689,16 @@ async function verifyRemoteCommitContextReadOnly(original, sourceKind, witness=n
         // A genuine tab account switch can race the asynchronous complete
         // roster scan; verify both identities AGAIN, then verify origin rows
         // have not been rewritten or detached from their sessions.
+        exceptionPhase='POSTSCAN_ACCOUNT';
         if(!(await verifyRemoteCommitContextReadOnly(phase,'phase4',null,historyProof))
           ||!(await verifyRemoteCommitContextReadOnly(publish,'publish',null,historyProof)))
           return output('LIVE_ACCOUNT_CHANGED_DURING_SCAN');
+        exceptionPhase='ORIGINAL_READBACK';
         let last;
         try {last=await storageLocal.get(null);}
         catch {return output('ORIGINAL_READBACK_UNAVAILABLE');}
         if(!record(last))return output('ORIGINAL_READBACK_FAILED');
+        exceptionPhase='STABILITY_COMPARE';
         const stableKeys=[pKey,prKey,pubKey,pubResultKey,
           ADMISSION_START+phase.admissionToken,ADMISSION_FINISH+phase.admissionToken,
           ADMISSION_START+publish.admissionToken,ADMISSION_FINISH+publish.admissionToken,
@@ -1698,7 +1708,19 @@ async function verifyRemoteCommitContextReadOnly(original, sourceKind, witness=n
           JSON.stringify(last[key]??null)))
           return output('ORIGINAL_OR_PROFILE_CHANGED_DURING_SCAN');
         return output('ORIGINAL_ACCOUNT_REMOTE_VERIFIED',true);
-      }catch{return output('ORIGINAL_REMOTE_PROOF_UNAVAILABLE');}
+      }catch{
+        const failClosedStatus={
+          INITIAL_SNAPSHOT:'ORIGINAL_INITIAL_SNAPSHOT_UNAVAILABLE',
+          PHASE4_EVIDENCE:'ORIGINAL_PHASE4_VALIDATION_UNAVAILABLE',
+          PUBLICATION_EVIDENCE:'ORIGINAL_PUBLICATION_VALIDATION_UNAVAILABLE',
+          PRESCAN_ACCOUNT:'ORIGINAL_PRESCAN_ACCOUNT_UNAVAILABLE',
+          REMOTE_SCAN:'ORIGINAL_REMOTE_GATE_UNAVAILABLE',
+          POSTSCAN_ACCOUNT:'ORIGINAL_POSTSCAN_ACCOUNT_UNAVAILABLE',
+          ORIGINAL_READBACK:'ORIGINAL_READBACK_UNAVAILABLE',
+          STABILITY_COMPARE:'ORIGINAL_STABILITY_CHECK_UNAVAILABLE'
+        };
+        return output(failClosedStatus[exceptionPhase]||'ORIGINAL_REMOTE_PROOF_UNAVAILABLE');
+      }
     }
 
     return Object.freeze({observe,observeAll,prepareRemoteCommitContextReadOnly,verifyRemoteCommitContextReadOnly,inspectOriginalRenewalRemoteLineageReadOnly,inspectAllOwnerClosureReadOnly,track,snapshotInFlight,readVerifiedUnmanagedTabsReadOnly,inspectDiagnosticExportClosureReadOnly,inspectTrashMutationClosureReadOnly,inspectSingleInventoryClosureReadOnly,inspectProfileTransitionClosureReadOnly,inspectAccountTransitionClosureReadOnly,inspectEmergencyRecoveryClosureReadOnly,inspectManagedTabsClosureReadOnly,inspectNativeUpdateTransactionClosureReadOnly});
