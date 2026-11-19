@@ -1,0 +1,148 @@
+name: KAR-171 R1 completed-P8 v1.25.15 Work-only Chrome ZIP
+on:
+  push:
+    branches: [work/KAR-171]
+concurrency:
+  group: kar171-r1-work-zip
+  cancel-in-progress: false
+permissions:
+  contents: write
+jobs:
+  build:
+    if: >-
+      github.event.head_commit.message == 'build(KAR-171): source v1.25.15 for native R1'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: true
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Exact source, main ancestor, version, key and consent boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git ls-remote origin refs/heads/work/KAR-171 | cut -f1)" = "$GITHUB_SHA"
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "a267caabd53427aa7378be5017787ab32e7c88bd"
+          python3 - <<'PY'
+          import json,hashlib,base64
+          from pathlib import Path
+          m=json.loads(Path('manifest.json').read_text())
+          p=json.loads(Path('package.json').read_text())
+          l=json.loads(Path('package-lock.json').read_text())
+          s=json.loads(Path('release/release-spec.json').read_text())
+          assert all(x['version']=='1.25.15' for x in (m,p,l,s))
+          assert p['displayVersion']==s['packageVersion']=='1.25.15'
+          assert l['packages']['']['version']=='1.25.15'
+          assert hashlib.sha256(base64.b64decode(m['key'],validate=True)).hexdigest()=='70507977688f3465a60227cd0261bd07d92fad620625cd7ebff8f0856d9c5ed3'
+          assert m['manifest_version']==3
+          assert set(m['permissions'])=={'activeTab','storage','unlimitedStorage','scripting','nativeMessaging'}
+          assert Path('docs/testing/KAR171_R1_LIVE_REMOTE_OWNER_READ_ONLY.js').exists()
+          assert Path('docs/testing/KAR171_R1_NATIVE_WORK_ZIP_INSTALL.md').exists()
+          print('PASS same extension ID, version metadata and private native R1 script')
+          PY
+      - name: Install pinned dependencies
+        run: npm ci
+      - name: Reproducible exact-source runtime Chrome ZIP; no release
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/kar171-r1-first" "$RUNNER_TEMP/kar171-r1-second"
+          python3 scripts/package.py "$RUNNER_TEMP/kar171-r1-first"
+          python3 scripts/package.py "$RUNNER_TEMP/kar171-r1-second"
+          ZIP="$RUNNER_TEMP/kar171-r1-first/kleinanzeigen-renewal-chrome-v1.25.15.zip"
+          cmp "$ZIP" "$RUNNER_TEMP/kar171-r1-second/kleinanzeigen-renewal-chrome-v1.25.15.zip"
+          unzip -t "$ZIP" >/dev/null
+          python3 - "$ZIP" <<'PY'
+          import json,zipfile,sys
+          from pathlib import Path
+          with zipfile.ZipFile(sys.argv[1]) as z:
+              assert z.testzip() is None
+              assert json.loads(z.read('manifest.json'))==json.loads(Path('manifest.json').read_text())
+              assert 'src/background/services/additional-owner-observer.js' in z.namelist()
+              assert 'src/background/background.js' in z.namelist()
+              assert 'docs/testing/KAR171_R1_LIVE_REMOTE_OWNER_READ_ONLY.js' not in z.namelist()
+          print('PASS byte-identical ZIP rebuild and manifest/runtime closure')
+          PY
+          echo "KAR171_CHROME_ZIP=$ZIP" >> "$GITHUB_ENV"
+          echo "KAR171_ZIP_SHA256=$(sha256sum "$ZIP" | cut -d' ' -f1)" >> "$GITHUB_ENV"
+          echo "KAR171_ZIP_BYTES=$(stat -c %s "$ZIP")" >> "$GITHUB_ENV"
+          mkdir -p release
+          test ! -e release/kleinanzeigen-renewal-chrome-v1.25.15.zip
+          cp "$ZIP" release/kleinanzeigen-renewal-chrome-v1.25.15.zip
+          python3 scripts/verify_committed_chrome_zip.py --base-sha a267caabd53427aa7378be5017787ab32e7c88bd --report "$RUNNER_TEMP/kar171-r1-first/zip-parity.json"
+      - name: Mandatory full runtime, safety, coverage and architecture gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm .github/workflows/kar171-r1-work-zip-v12515.yml
+          bash scripts/coverage-gate.sh
+      - name: Real packaged Chromium fixture E2E 9/9 and attestation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pip install --disable-pip-version-check -r tests/e2e/requirements.txt
+          python3 -m playwright install --with-deps --no-shell chromium
+          export KR_CHROME_BINARY="$(python3 -c 'from playwright.sync_api import sync_playwright; p=sync_playwright().start(); print(p.chromium.executable_path); p.stop()')"
+          test -x "$KR_CHROME_BINARY"
+          export KR_E2E_BROWSER_CHANNEL=chromium
+          ROOT="$RUNNER_TEMP/kar171-r1-e2e-root"
+          mkdir -p "$ROOT"
+          unzip -q "$KAR171_CHROME_ZIP" -d "$ROOT"
+          export KR_E2E_EXTENSION_ROOT="$ROOT"
+          python3 tests/e2e/run_browser_e2e_supervisor.py --report "$RUNNER_TEMP/kar171-r1-first/browser-e2e-report.json"
+          python3 tests/e2e/verify_pr_e2e_report.py --report "$RUNNER_TEMP/kar171-r1-first/browser-e2e-report.json" --zip "$KAR171_CHROME_ZIP" --expected-head "$GITHUB_SHA" --out "$RUNNER_TEMP/kar171-r1-first/e2e-attestation.json"
+      - name: Seal exact tested ZIP on Work branch only
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git ls-remote origin refs/heads/work/KAR-171 | cut -f1)" = "$GITHUB_SHA"
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "a267caabd53427aa7378be5017787ab32e7c88bd"
+          DEST=release/kleinanzeigen-renewal-chrome-v1.25.15.zip
+          test -e "$DEST"
+          cmp "$KAR171_CHROME_ZIP" "$DEST"
+          test "$(sha256sum "$DEST" | cut -d' ' -f1)" = "$KAR171_ZIP_SHA256"
+          git add -f -- "$DEST"
+          test "$(git diff --cached --name-only)" = "$DEST"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'build(KAR-171): archive Work-only native R1 v1.25.15 exact ZIP'
+          SEALED="$(git rev-parse HEAD)"
+          test "$(git rev-parse HEAD^)" = "$GITHUB_SHA"
+          git push origin HEAD:refs/heads/work/KAR-171
+          test "$(git ls-remote origin refs/heads/work/KAR-171 | cut -f1)" = "$SEALED"
+          echo "KAR171_ARCHIVED_COMMIT=$SEALED" >> "$GITHUB_ENV"
+          echo "Work-only SHA256 $KAR171_ZIP_SHA256 / bytes $KAR171_ZIP_BYTES / source $GITHUB_SHA / archive $SEALED"
+      - name: Generate redacted evidence manifest
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json,os
+          from pathlib import Path
+          p=Path(os.environ['RUNNER_TEMP'])/'kar171-r1-first'/'zip-evidence.json'
+          p.write_text(json.dumps({
+            'kind':'work-only-owner-native-test-zip','version':'1.25.15',
+            'extensionId':'hafahjhhgiipdegfkgacchmnacgblnah',
+            'sourceSha':os.environ['GITHUB_SHA'],
+            'archivedWorkSha':os.environ['KAR171_ARCHIVED_COMMIT'],
+            'sha256':os.environ['KAR171_ZIP_SHA256'],
+            'bytes':int(os.environ['KAR171_ZIP_BYTES']),
+            'githubRelease':False,'nativeOwnerProof':'NOT_RUN',
+            'r1Accepted':False,'updateApplyAuthorized':False
+          },indent=2)+'\n')
+          PY
+      - name: Upload installable Chrome ZIP plus source/fixture proof
+        uses: actions/upload-artifact@v4
+        with:
+          name: kar171-native-work-v1.25.15-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/kar171-r1-first/kleinanzeigen-renewal-chrome-v1.25.15.zip
+            ${{ runner.temp }}/kar171-r1-first/zip-evidence.json
+            ${{ runner.temp }}/kar171-r1-first/e2e-attestation.json
+          retention-days: 30
+          if-no-files-found: error
