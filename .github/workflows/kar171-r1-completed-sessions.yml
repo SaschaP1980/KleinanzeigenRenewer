@@ -1,0 +1,28 @@
+name: KAR-171 R1 completed history proof regression
+on:
+  push:
+    branches: [work/KAR-171]
+permissions:
+  contents: read
+concurrency:
+  group: kar171-r1-completed-sessions-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: R1 original P8 and absent-session adversarial regression
+        run: node tests/kar171-r1-native-account-proof.cjs
+      - name: Full runtime, safety and architecture closure
+        run: |
+          rm .github/workflows/kar171-r1-completed-sessions.yml
+          bash scripts/coverage-gate.sh
