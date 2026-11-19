@@ -15,7 +15,7 @@
   const runtimeVersion=()=>{
     try {
       const v=chrome?.runtime?.getManifest?.().version;
-      return typeof v==='string'&&/^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$/.test(v)?v:'UNKNOWN';
+      return typeof v==='string'&&/^[0-9]{1,3}[.][0-9]{1,3}[.][0-9]{1,3}$/.test(v)?v:'UNKNOWN';
     }catch{return 'UNKNOWN';}
   };
   const output=(status,verified=false)=>console.info(TAG,JSON.stringify({
