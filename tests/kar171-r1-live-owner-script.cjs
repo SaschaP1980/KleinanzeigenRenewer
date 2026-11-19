@@ -15,7 +15,7 @@ async function run({rows=initial,extension=EXT,origin=EXT,proto='chrome-extensio
  const output=[];let reads=0,writes=0,invocations=0,network=0;
  const context={
   location:{protocol:proto,hostname:origin},
-  chrome:{runtime:{id:extension},storage:{local:{
+  chrome:{runtime:{id:extension,getManifest:()=>({version:'1.25.17'})},storage:{local:{
     get:async key=>{reads++;assert.equal(key,null);if(readFails)throw Error('PRIVATE_THROW');return rows;},
     set:()=>{writes++;throw Error('NOT_ALLOWED');},
     remove:()=>{writes++;throw Error('NOT_ALLOWED');},
@@ -34,6 +34,7 @@ async function run({rows=initial,extension=EXT,origin=EXT,proto='chrome-extensio
  await vm.runInNewContext(src,context,{filename:'owner-readonly.js',timeout:3000});
  assert.equal(output.length,1);assert.equal(output[0][0],'KAR171_R1_LIVE_REMOTE_OWNER_V1');
  assert.equal(output[0][1].r1Accepted,false);
+ assert.equal(output[0][1].runtimeVersion,'1.25.17');
  assert.equal(output[0][1].eligibleForLease,false);
  assert.equal(writes,0);assert.equal(network,0);
  const rendered=JSON.stringify(output);
