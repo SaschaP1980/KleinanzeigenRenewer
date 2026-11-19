@@ -12,8 +12,14 @@
   const EXT='hafahjhhgiipdegfkgacchmnacgblnah';
   const PHASE='karPhase4UncertainAttemptV1_';
   const id=x=>typeof x==='string'&&/^[A-Za-z0-9_-]{1,128}$/.test(x);
+  const runtimeVersion=()=>{
+    try {
+      const v=chrome?.runtime?.getManifest?.().version;
+      return typeof v==='string'&&/^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$/.test(v)?v:'UNKNOWN';
+    }catch{return 'UNKNOWN';}
+  };
   const output=(status,verified=false)=>console.info(TAG,JSON.stringify({
-    status,liveRemoteVerified:verified===true,
+    status,runtimeVersion:runtimeVersion(),liveRemoteVerified:verified===true,
     r1Accepted:false,eligibleForLease:false
   }));
   if(typeof chrome==='undefined'||chrome?.runtime?.id!==EXT
