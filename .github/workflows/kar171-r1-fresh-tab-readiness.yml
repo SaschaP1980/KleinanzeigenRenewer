@@ -1,0 +1,28 @@
+name: KAR-171 R1 fresh tab read-only semantic readiness
+on:
+  push:
+    branches: [work/KAR-171]
+permissions:
+  contents: read
+concurrency:
+  group: kar171-r1-fresh-ready-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: R1 independent fresh source/target semantic readiness
+        run: node tests/kar171-r1-fresh-tab-readiness.cjs
+      - name: Full runtime safety architecture coverage
+        run: |
+          rm .github/workflows/kar171-r1-fresh-tab-readiness.yml
+          bash scripts/coverage-gate.sh
