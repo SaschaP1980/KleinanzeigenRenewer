@@ -4,6 +4,13 @@ This is the canonical version-specific history for Kleinanzeigen Manager. Entrie
 
 All distinct historical section bodies from the former root README and CHANGELOG are preserved with source labels and line numbers. The [KAR-170 migration ledger](docs/maintenance/KAR170_CHANGELOG_MIGRATION.json) identifies their original Git blobs and body checksums. Overlapping versions retain distinct factual notes; older references to planned builds or native/CI acceptance are **historical**, not live status.
 
+## v1.25.15 — KAR-171 R1 completed-P8 history test build (Work only; not released)
+
+- Correct the historical R1 owner-PC verification when both transient `renewalSessionsV1` and `templateFillSessions` records have been intentionally removed after a successful Phase-4 replacement. The owner's v1.25.14 sanitized native output confirmed `HISTORICAL_SESSIONS_ABSENT` while the current account and both original profile representations matched.
+- A private, non-exported capability allows the read-only inspector to continue **only after** original complete Phase-4 and publish P8s, immutable verified original remote outcomes, exact unique renewal/source/target lineage, independently authenticated current account/profile name+UUID and stable unchanged receipts are verified. The live My Ads source-absent and target-present full-roster scan remains compulsory, including a second account and receipt recheck.
+- Partial sessions, missing/corrupt P8s, other-account profiles, target mismatches, account switches and source-storage races remain fail-closed; regular remote-commit authorization is unchanged. Added 16 focused adversarial regression cases and preserved all 928/928 dynamic public-function gates.
+- Work-only ZIP retains the exact installed Chrome extension ID. Install over the **existing unpacked extension directory in the same Chrome profile only after private offline full-profile and extension-folder backup**; never uninstall/clear extension storage or assume another Chrome profile contains P8 history. The unchanged opt-in Stage3 owner script must be run after the update. No automatic updater apply, real ad mutation, PR/merge or GitHub Release authorized; R1 remains NOT ACCEPTED until real owner-PC completion proof.
+
 ## v1.25.14 — KAR-171 R1 live-account and P8 continuity test build (Work only; not released)
 
 - Work-only Chrome test version based on the isolated #171 implementation: verify original Phase-4 and publication P8 provenance, internal profile UUID versus authenticated My Ads account name, and fresh independent complete-pagination source absence/target presence without publishing, deleting or renewing an ad.

@@ -51,7 +51,7 @@ validNextPatch.spec.packageVersion = '1.23.25';
 validNextPatch.manifest.permissions = validNextPatch.manifest.permissions.filter(p => p !== 'nativeMessaging');
 
 const isSyntheticNextPatch = process.env.KAR46_SYNTHETIC_PATCH === '1';
-assert.ok(['1.24.0', '1.24.1', '1.24.2', '1.24.3', '1.25.0', '1.25.1', '1.25.2', '1.25.3', '1.25.4', '1.25.5', '1.25.6', '1.25.7', '1.25.8', '1.25.9', '1.25.10', '1.25.11', '1.25.12', '1.25.13', '1.25.14'].includes(canonical.manifest.version),
+assert.ok(['1.24.0', '1.24.1', '1.24.2', '1.24.3', '1.25.0', '1.25.1', '1.25.2', '1.25.3', '1.25.4', '1.25.5', '1.25.6', '1.25.7', '1.25.8', '1.25.9', '1.25.10', '1.25.11', '1.25.12', '1.25.13', '1.25.14', '1.25.15'].includes(canonical.manifest.version),
   'only explicitly approved KAR-161/KAR-164 MINOR or KAR-185/KAR-186/KAR-195/KAR-197/KAR-199/KAR-201/KAR-171 PATCH candidates are current');
 if (canonical.manifest.version === '1.24.0' || canonical.manifest.version === '1.25.0') {
   assert.equal(isCurrentPatchVersion(canonical.manifest.version), false,
@@ -68,7 +68,7 @@ for (const [version, allowed] of [
   ['1.23.22', true], ['1.23.23', true], ['1.23.24', true], ['1.23.25', true],
   ['1.23.26', true], ['1.23.21', false], ['1.23.20_c1', false],
   ['1.24.0', false], ['1.24.1', true], ['1.24.2', true], ['1.24.3', true],
-  ['1.24.01', false], ['1.25.0', false], ['1.25.1', true], ['1.25.2', true], ['1.25.3', true], ['1.25.4', true], ['1.25.5', true], ['1.25.6', true], ['1.25.7', true], ['1.25.8', true], ['1.25.9', true], ['1.25.10', true], ['1.25.11', true], ['1.25.12', true], ['1.25.13', true], ['1.25.14', true], ['2.0.0', false], ['1.23.025', false],
+  ['1.24.01', false], ['1.25.0', false], ['1.25.1', true], ['1.25.2', true], ['1.25.3', true], ['1.25.4', true], ['1.25.5', true], ['1.25.6', true], ['1.25.7', true], ['1.25.8', true], ['1.25.9', true], ['1.25.10', true], ['1.25.11', true], ['1.25.12', true], ['1.25.13', true], ['1.25.14', true], ['1.25.15', true], ['2.0.0', false], ['1.23.025', false],
   ['1.23.-1', false], ['1.23.25-rc.1', false], ['1.23.25+meta', false],
   ['1.23.9007199254740992', false], ['', false], [null, false]
 ]) assert.equal(isCurrentPatchVersion(version), allowed, String(version));
