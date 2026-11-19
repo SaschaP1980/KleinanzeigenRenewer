@@ -542,7 +542,10 @@ async function verifyRenewalSourceAbsenceFresh(session, expectedProfile, windowI
 }
 
 
-async function verifyPhase4RemoteOutcomeFresh(receipt) {
+async function verifyPhase4RemoteOutcomeFresh(receipt, onR1ReadOnlyStage = null) {
+  // Only fixed stage codes are exposed to the private owner R1 witness.
+  // The callback cannot supply scan results or approve a remote outcome.
+  const stage = code => { if(typeof onR1ReadOnlyStage==='function') onR1ReadOnlyStage(code); };
   // A caller cannot submit a success object: the trusted background service
   // obtains two independent, freshly loaded My Ads pages, under the recorded
   // source account. Neither the original deletion response nor local cache
@@ -557,6 +560,7 @@ async function verifyPhase4RemoteOutcomeFresh(receipt) {
   async function scanFresh(kind, id, command) {
     let tabId = null;
     try {
+      stage(kind === 'source' ? 'SOURCE_TAB_REQUESTED' : 'TARGET_TAB_REQUESTED');
       const tab = await createManagedWorkerTab({
         url: MY_ADS_PROJECTS_URL, active: false
       }, 'renewal-phase4-independent-' + kind, {
@@ -566,6 +570,7 @@ async function verifyPhase4RemoteOutcomeFresh(receipt) {
       if (!Number.isSafeInteger(tab?.id) || tab.id <= 0)
         throw new Error('KR_PHASE4_JOURNAL_UNVERIFIED');
       tabId = tab.id;
+      stage(kind === 'source' ? 'SOURCE_TAB_CREATED' : 'TARGET_TAB_CREATED');
       await waitForTabComplete(tabId, {
         timeoutMs: TAB_LOAD_TIMEOUT_PHASE4_MS,
         purpose: 'renewal-phase4-independent-' + kind,
@@ -573,7 +578,9 @@ async function verifyPhase4RemoteOutcomeFresh(receipt) {
         operation: 'renewal-phase-4',
         context: {renewalId:receipt.renewalId,adId:id,workerTabId:tabId}
       });
+      stage(kind === 'source' ? 'SOURCE_TAB_LOADED' : 'TARGET_TAB_LOADED');
       await ensureContentConnection({tabId});
+      stage(kind === 'source' ? 'SOURCE_CONTENT_READY' : 'TARGET_CONTENT_READY');
       const assertSameAccount = async () => {
         const status = await boundedPhase4TabRequest(tabId,
           {type:'MY_ADS_STATUS'}, 'journal-fresh-' + kind,
@@ -583,13 +590,16 @@ async function verifyPhase4RemoteOutcomeFresh(receipt) {
           throw new Error('KR_PHASE4_JOURNAL_UNVERIFIED');
       };
       await assertSameAccount();
+      stage(kind === 'source' ? 'SOURCE_ACCOUNT_OK' : 'TARGET_ACCOUNT_OK');
       const result = await boundedPhase4TabRequest(tabId,{
         type:command,adId:id,expectedProfileName:expected,
         requireCompleteRoster: kind === 'target',
         correlation:{renewalId:receipt.renewalId}
       }, 'journal-scan-' + kind, PHASE4_READONLY_TIMEOUT_MS,
       'KR_PHASE4_JOURNAL_REMOTE_UNVERIFIED');
+      stage(kind === 'source' ? 'SOURCE_QUERY_RETURNED' : 'TARGET_QUERY_RETURNED');
       await assertSameAccount();
+      stage(kind === 'source' ? 'SOURCE_ACCOUNT_RECHECKED' : 'TARGET_ACCOUNT_RECHECKED');
       return result;
     } finally {
       if (tabId) await closeManagedWorkerTab(tabId).catch(() => {});
@@ -600,6 +610,7 @@ async function verifyPhase4RemoteOutcomeFresh(receipt) {
       || source.evidence !== 'not-in-my-ads-full-pagination-scan'
       || !Number.isSafeInteger(source.pagesScanned) || source.pagesScanned < 1)
     throw new Error('KR_PHASE4_JOURNAL_UNVERIFIED');
+  stage('SOURCE_RESULT_VERIFIED');
   const target = await scanFresh('target',targetId,'FIND_OWN_AD_BY_ID');
   if (target?.found !== true || String(target.adId || '') !== targetId
       || target.evidence !== 'found-in-my-ads-full-pagination-scan'
@@ -607,6 +618,7 @@ async function verifyPhase4RemoteOutcomeFresh(receipt) {
       || !Number.isSafeInteger(target.page) || target.page < 1
       || target.page > target.pagesScanned)
     throw new Error('KR_PHASE4_JOURNAL_UNVERIFIED');
+  stage('TARGET_RESULT_VERIFIED');
   return Object.freeze({
     profileId:receipt.profileId,sourceAdId:sourceId,newAdId:targetId,
     attemptId:receipt.attemptId??null,
