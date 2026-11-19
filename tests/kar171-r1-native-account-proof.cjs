@@ -142,6 +142,33 @@ test('completed original P8 + BOTH removed temporary sessions can retain histori
  for(const secret of [NAME,UUID,SOURCE,TARGET,RENEWAL,FILL,PHASE_TOKEN,PUB_TOKEN])
    assert.ok(!JSON.stringify(x).includes(secret));
 });
+test('R1 classifies missing authenticated live My Ads separately from internal UUID',async()=>{
+ const f=completedOriginal();f.state.tabs=[];
+ const x=await inspect(f);assert.equal(x.status,'R1_ACCOUNT_LIVE_SITE_OR_PROFILE_UNVERIFIED');
+ denied(x);assert.equal(f.state.remoteCalls,0);assert.equal(f.state.writes,0);
+});
+test('R1 does not confuse original publish UUID mismatch with a site-account name mismatch',async()=>{
+ const f=completedOriginal();
+ f.state.rows[PUB+FILL+'_'+PUB_ATTEMPT].profileId='other-private-profile-uuid';
+ f.state.rows[PUBRESULT+FILL+'_'+PUB_ATTEMPT].profileId='other-private-profile-uuid';
+ const x=await inspect(f);assert.equal(x.status,'R1_ACCOUNT_PUBLICATION_UUID_UNVERIFIED');
+ denied(x);assert.equal(f.state.remoteCalls,0);assert.equal(f.state.writes,0);
+ for(const secret of [NAME,UUID,SOURCE,TARGET,'other-private-profile-uuid'])
+  assert.ok(!JSON.stringify(x).includes(secret));
+});
+test('R1 distinguishes mismatched historical Phase4 name from live matched account',async()=>{
+ const f=completedOriginal();
+ f.state.rows[PHASE+RENEWAL+'_'+PHASE_ATTEMPT].profileId='other-original-account';
+ f.state.rows[RESULT+RENEWAL+'_'+PHASE_ATTEMPT].profileId='other-original-account';
+ const x=await inspect(f);assert.equal(x.status,'R1_ACCOUNT_PHASE4_NAME_UNVERIFIED');
+ denied(x);assert.equal(f.state.remoteCalls,0);assert.equal(f.state.writes,0);
+});
+test('R1 internal selected UUID mismatch is distinct and never creates remote approval',async()=>{
+ const f=completedOriginal();
+ f.state.rows.selectedInventoryProfileV1.profileId='other-local-uuid';
+ const x=await inspect(f);assert.equal(x.status,'R1_ACCOUNT_LIVE_SITE_OR_PROFILE_UNVERIFIED');
+ denied(x);assert.equal(f.state.remoteCalls,0);assert.equal(f.state.writes,0);
+});
 test('generic runtime remote commit gate cannot borrow original completed-history path',async()=>{
  const f=completedOriginal();
  const phase=f.state.rows[PHASE+RENEWAL+'_'+PHASE_ATTEMPT];
