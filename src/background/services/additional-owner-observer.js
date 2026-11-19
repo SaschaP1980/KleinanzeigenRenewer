@@ -1638,8 +1638,37 @@ async function verifyRemoteCommitContextReadOnly(original, sourceKind, witness=n
         if(!(await verifyRemoteCommitContextReadOnly(phase,'phase4',null,historyProof))
           ||!(await verifyRemoteCommitContextReadOnly(publish,'publish',null,historyProof)))
           return output('LIVE_ACCOUNT_UUID_NAME_UNVERIFIED');
-        const fresh=await verifyFreshPhase4RemoteOutcomeReadOnly(
-          Object.freeze({...phase}));
+        // Independently captured read-only milestones distinguish unavailable
+        // My Ads tabs/content/account/roster scans from a later storage readback.
+        // Never expose exception text, ad IDs, token, profile or tab data.
+        const stageStatus=Object.freeze({
+          START:'R1_REMOTE_SCAN_NOT_STARTED',
+          SOURCE_TAB_REQUESTED:'R1_REMOTE_SOURCE_TAB_CREATE_FAILED',
+          SOURCE_TAB_CREATED:'R1_REMOTE_SOURCE_TAB_LOAD_FAILED',
+          SOURCE_TAB_LOADED:'R1_REMOTE_SOURCE_CONTENT_FAILED',
+          SOURCE_CONTENT_READY:'R1_REMOTE_SOURCE_ACCOUNT_FAILED',
+          SOURCE_ACCOUNT_OK:'R1_REMOTE_SOURCE_QUERY_FAILED',
+          SOURCE_QUERY_RETURNED:'R1_REMOTE_SOURCE_ACCOUNT_RECHECK_FAILED',
+          SOURCE_ACCOUNT_RECHECKED:'R1_REMOTE_SOURCE_EVIDENCE_FAILED',
+          SOURCE_RESULT_VERIFIED:'R1_REMOTE_TARGET_NOT_STARTED',
+          TARGET_TAB_REQUESTED:'R1_REMOTE_TARGET_TAB_CREATE_FAILED',
+          TARGET_TAB_CREATED:'R1_REMOTE_TARGET_TAB_LOAD_FAILED',
+          TARGET_TAB_LOADED:'R1_REMOTE_TARGET_CONTENT_FAILED',
+          TARGET_CONTENT_READY:'R1_REMOTE_TARGET_ACCOUNT_FAILED',
+          TARGET_ACCOUNT_OK:'R1_REMOTE_TARGET_QUERY_FAILED',
+          TARGET_QUERY_RETURNED:'R1_REMOTE_TARGET_ACCOUNT_RECHECK_FAILED',
+          TARGET_ACCOUNT_RECHECKED:'R1_REMOTE_TARGET_EVIDENCE_FAILED',
+          TARGET_RESULT_VERIFIED:'R1_REMOTE_FINAL_RESPONSE_FAILED'
+        });
+        let lastStage='START',fresh;
+        try {
+          fresh=await verifyFreshPhase4RemoteOutcomeReadOnly(
+            Object.freeze({...phase}),stage=>{
+              if(Object.hasOwn(stageStatus,stage))lastStage=stage;
+            });
+        }catch{
+          return output(stageStatus[lastStage]);
+        }
         if(!record(fresh)||fresh.profileId!==phase.profileId
           ||fresh.sourceAdId!==phase.sourceAdId||fresh.newAdId!==phase.newAdId
           ||fresh.sourceAbsent!==true||fresh.targetPresent!==true
@@ -1656,7 +1685,9 @@ async function verifyRemoteCommitContextReadOnly(original, sourceKind, witness=n
         if(!(await verifyRemoteCommitContextReadOnly(phase,'phase4',null,historyProof))
           ||!(await verifyRemoteCommitContextReadOnly(publish,'publish',null,historyProof)))
           return output('LIVE_ACCOUNT_CHANGED_DURING_SCAN');
-        const last=await storageLocal.get(null);
+        let last;
+        try {last=await storageLocal.get(null);}
+        catch {return output('ORIGINAL_READBACK_UNAVAILABLE');}
         if(!record(last))return output('ORIGINAL_READBACK_FAILED');
         const stableKeys=[pKey,prKey,pubKey,pubResultKey,
           ADMISSION_START+phase.admissionToken,ADMISSION_FINISH+phase.admissionToken,
