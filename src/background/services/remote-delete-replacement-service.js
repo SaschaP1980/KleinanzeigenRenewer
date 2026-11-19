@@ -590,6 +590,22 @@ async function verifyPhase4RemoteOutcomeFresh(receipt, onR1ReadOnlyStage = null)
           throw new Error('KR_PHASE4_JOURNAL_UNVERIFIED');
       };
       await assertSameAccount();
+      // Chrome tab "complete" and MY_ADS_STATUS account are not proof that
+      // asynchronous listing cards/online total/pagination have hydrated.
+      // Wait in THIS fresh independent tab, without retrying a failed scan.
+      const ready = await boundedPhase4TabRequest(tabId,{
+        type:'WAIT_FOR_MY_ADS_READY',expectedProfileName:expected,timeoutMs:12000
+      },'journal-readiness-' + kind,PHASE4_STATUS_TIMEOUT_MS,
+      'KR_PHASE4_JOURNAL_REMOTE_UNVERIFIED');
+      if (ready?.isMyAdsPage!==true || ready?.isProjectsTab!==true
+          || ready?.currentPage!==1 || normalized(ready.profileName)!==normalized(expected)
+          || !Number.isSafeInteger(ready.expectedOnline) || ready.expectedOnline<0
+          || !Number.isSafeInteger(ready.listingCount) || ready.listingCount<0
+          || ready.listingCount>ready.expectedOnline
+          || (ready.expectedOnline>0 && ready.listingCount===0)
+          || (ready.hasNext!==true && ready.listingCount!==ready.expectedOnline))
+        throw new Error('KR_PHASE4_JOURNAL_UNVERIFIED');
+      await assertSameAccount();
       stage(kind === 'source' ? 'SOURCE_ACCOUNT_OK' : 'TARGET_ACCOUNT_OK');
       const result = await boundedPhase4TabRequest(tabId,{
         type:command,adId:id,expectedProfileName:expected,
