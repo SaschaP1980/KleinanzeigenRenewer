@@ -94,6 +94,21 @@ async function run({rows=initial,extension=EXT,origin=EXT,proto='chrome-extensio
    check(diagnostic.result.status===status&&diagnostic.result.liveRemoteVerified===false,
      'bounded remote milestone '+status);
  }
+ for(const status of [
+   'ORIGINAL_INITIAL_SNAPSHOT_UNAVAILABLE',
+   'ORIGINAL_PHASE4_VALIDATION_UNAVAILABLE',
+   'ORIGINAL_PUBLICATION_VALIDATION_UNAVAILABLE',
+   'ORIGINAL_PRESCAN_ACCOUNT_UNAVAILABLE',
+   'ORIGINAL_REMOTE_GATE_UNAVAILABLE',
+   'ORIGINAL_POSTSCAN_ACCOUNT_UNAVAILABLE',
+   'ORIGINAL_STABILITY_CHECK_UNAVAILABLE'
+ ]){
+   const checkOutput=await run({impl:()=>({status,liveRemoteVerified:false,
+     r1Accepted:false,eligibleForLease:false})});
+   check(checkOutput.result.status===status&&
+     checkOutput.result.liveRemoteVerified===false,
+     'bounded outer diagnostic '+status);
+ }
  const crash=await run({impl:()=>{throw Error('PRIVATE_THROW')}});
  check(crash.result.status==='REMOTE_PROOF_UNAVAILABLE'
    &&crash.result.liveRemoteVerified===false,'exceptions redacted');
