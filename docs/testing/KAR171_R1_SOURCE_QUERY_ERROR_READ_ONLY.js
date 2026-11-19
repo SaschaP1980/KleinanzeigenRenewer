@@ -74,11 +74,15 @@
  }
  const tabId=tabs[0].id;
  const send=async payload=>{
-   const response=await Promise.race([
-     chrome.tabs.sendMessage(tabId,payload),
-     new Promise((_,reject)=>setTimeout(()=>reject(Error('EXPIRED')),60000))
-   ]);
-   return response;
+   let timer=null;
+   try{
+     return await Promise.race([
+       chrome.tabs.sendMessage(tabId,payload),
+       new Promise((_,reject)=>{
+         timer=setTimeout(()=>reject(Error('EXPIRED')),60000);
+       })
+     ]);
+   }finally{if(timer!==null)clearTimeout(timer);}
  };
  let status;
  try{status=await send({type:'MY_ADS_STATUS'});}
