@@ -301,7 +301,11 @@ function init(db,verifyRemoteOutcome,worker='worker-new') {
           return {isMyAdsPage:true,isProjectsTab:true,
             profileName:statuses[tabId]>1&&after?after:req.profileId};
         }
-        if(message.type==='VERIFY_OWN_AD_ABSENT_BY_ID')return {
+        if(message.type==='WAIT_FOR_MY_ADS_READY')return {
+           isMyAdsPage:true,isProjectsTab:true,profileName:req.profileId,
+           currentPage:1,expectedOnline:2,listingCount:2,hasNext:false
+         };
+         if(message.type==='VERIFY_OWN_AD_ABSENT_BY_ID')return {
           verified:true,adId:req.sourceAdId,
           evidence:'not-in-my-ads-full-pagination-scan',pagesScanned:3
         };
@@ -332,7 +336,7 @@ function init(db,verifyRemoteOutcome,worker='worker-new') {
     &&fresh.result.attemptId==='attempt-001'
     &&fresh.result.workerInstanceId==='worker-origin'
     &&fresh.result.admissionToken==='original-p8-token'
-    &&fresh.statuses[1]===2&&fresh.statuses[2]===2
+    &&fresh.statuses[1]===3&&fresh.statuses[2]===3
     &&fresh.closed.join(',')==='1,2',
     'R1: valid independent source/target scans bracketed by two account reads each');
 
