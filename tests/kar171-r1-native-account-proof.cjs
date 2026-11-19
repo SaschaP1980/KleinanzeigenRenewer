@@ -50,9 +50,12 @@ function fixture(){
     workerInstanceId:'old-worker-publish',completedAtMs:500}
  };
  const state={rows,remoteCalls:0,writes:0,accountName:NAME,tabs:[{id:7,url:URL}],
-  failRemote:false,afterRemote:null,remoteStages:[],storageUnavailableAfterRemote:false};
+  failRemote:false,afterRemote:null,remoteStages:[],storageUnavailableAfterRemote:false,
+  failInitialOriginalSnapshot:false};
  const local={
   async get(keys){
+   if(state.failInitialOriginalSnapshot && keys===null && state.remoteCalls===0)
+     throw Error('SENSITIVE_INITIAL_STORAGE_ERROR');
    if(state.storageUnavailableAfterRemote && keys===null)throw Error('PRIVATE_STORAGE_ERROR');
    const names=keys===null?Object.keys(rows):Array.isArray(keys)?keys:[keys];
    return Object.fromEntries(names.filter(k=>Object.hasOwn(rows,k))
@@ -87,6 +90,28 @@ function denied(result){
  assert.equal(result.r1Accepted,false);
  assert.equal(result.eligibleForLease,false);
 }
+test('R1 original snapshot read error gets bounded phase-specific status',async()=>{
+ const f=fixture();f.state.failInitialOriginalSnapshot=true;
+ const x=await inspect(f);
+ assert.equal(x.status,'ORIGINAL_INITIAL_SNAPSHOT_UNAVAILABLE');
+ denied(x);assert.equal(f.state.remoteCalls,0);assert.equal(f.state.writes,0);
+ assert.ok(!JSON.stringify(x).includes('SENSITIVE_INITIAL_STORAGE_ERROR'));
+});
+test('R1 completed history original snapshot failure stays blocked before source scan',async()=>{
+ const f=completedOriginal();f.state.failInitialOriginalSnapshot=true;
+ const x=await inspect(f);
+ assert.equal(x.status,'ORIGINAL_INITIAL_SNAPSHOT_UNAVAILABLE');
+ denied(x);assert.equal(f.state.remoteCalls,0);
+});
+test('R1 postscan serialisation failure returns bounded stability exception, never storage data',async()=>{
+ const f=completedOriginal();
+ f.state.afterRemote=rows=>{rows[PHASE+RENEWAL+'_'+PHASE_ATTEMPT].createdAtMs=BigInt(202);};
+ const x=await inspect(f);
+ assert.equal(x.status,'ORIGINAL_STABILITY_CHECK_UNAVAILABLE');
+ denied(x);assert.equal(f.state.remoteCalls,1);assert.equal(f.state.writes,0);
+ for(const secret of [NAME,UUID,SOURCE,TARGET,RENEWAL,FILL,PHASE_TOKEN,PUB_TOKEN])
+   assert.ok(!JSON.stringify(x).includes(secret));
+});
 test('two original completed P8s, verified same account and fresh source/target can prove ONLY R1 remote subcase',async()=>{
  const f=fixture();const x=await inspect(f);
  assert.equal(x.status,'ORIGINAL_ACCOUNT_REMOTE_VERIFIED');
