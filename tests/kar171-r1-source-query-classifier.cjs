@@ -10,7 +10,7 @@ const PID='private-user@example.test',RENEWAL='PRIVATE_RENEWAL',ATTEMPT='PRIVATE
 const KEY='karPhase4UncertainAttemptV1_'+RENEWAL+'_'+ATTEMPT;
 function rows(){return {[KEY]:{renewalId:RENEWAL,attemptId:ATTEMPT,sourceAdId:SRC,profileId:PID}};}
 const PROJECTS='https://www.kleinanzeigen.de/m-meine-anzeigen.html?tab=PROJECTS';
-const status={ok:true,result:{isMyAdsPage:true,isProjectsTab:true,profileName:PID}};
+const status={ok:true,result:{isMyAdsPage:true,isProjectsTab:true,profileName:PID,currentPage:1}};
 async function run({
  version='1.25.17',extension=EXT,accountOk=true,local=rows(),
  tabs=[{id:55,url:PROJECTS}],statusReply=status,queryReply={
@@ -95,6 +95,9 @@ async function run({
  check(noTabs,'OPEN_MY_ADS_PROJECTS_TAB_REQUIRED');assert.deepEqual(noTabs.calls,[]);
  const twoTabs=await run({tabs:[{id:55,url:PROJECTS},{id:56,url:PROJECTS}]});
  check(twoTabs,'MY_ADS_PROJECTS_TAB_NOT_UNIQUE');assert.deepEqual(twoTabs.calls,[]);
+ const wrongPage=await run({statusReply:{ok:true,result:{...status.result,currentPage:2}}});
+ check(wrongPage,'MY_ADS_FIRST_PAGE_REQUIRED');
+ assert.deepEqual(wrongPage.calls,['MY_ADS_STATUS']);
  const wrongAccount=await run({accountOk:false});
  check(wrongAccount,'LIVE_ACCOUNT_UNVERIFIED');assert.deepEqual(wrongAccount.calls,[]);
  const mismatch=await run({statusReply:{ok:true,result:{...status.result,profileName:'OTHER_PRIVATE_EMAIL'}}});
