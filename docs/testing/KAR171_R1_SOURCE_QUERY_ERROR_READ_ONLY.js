@@ -93,6 +93,9 @@
    ||normalize(status.result.profileName)!==normalize(origin.profileId)){
    result('MY_ADS_PROFILE_OR_STATUS_UNVERIFIED');return;
  }
+ if(status.result.currentPage!==1){
+   result('MY_ADS_FIRST_PAGE_REQUIRED');return;
+ }
  let reply;
  try{reply=await send({type:'VERIFY_OWN_AD_ABSENT_BY_ID',
    adId:origin.sourceAdId,expectedProfileName:origin.profileId,
