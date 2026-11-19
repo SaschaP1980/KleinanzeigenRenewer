@@ -168,6 +168,9 @@
     const pending=new Map(OWNERS.map(n=>[n,0]));
     const worker=typeof workerInstanceId==='string'&&PROFILE.test(workerInstanceId)?workerInstanceId:null;
     const preparedRemoteWitnesses=new WeakMap();
+    // A private capability usable only after immutable original P8 validation.
+    // Never export this Symbol or accept it from a message or DevTools script.
+    const originalCompletedHistory=Symbol('kar171-r1-completed-original-history');
     function snapshotInFlight(){return Object.freeze(Object.fromEntries(OWNERS.map(n=>[n,pending.get(n)])));}
     const label=value=>typeof value==='string'?value.replace(/\s+/g,' ').trim().toLocaleLowerCase('de-DE'):'';
     function isMyAdsTab(tab){
@@ -1453,7 +1456,9 @@
 // NEVER a 15-owner IDLE certificate or permission to reserve/apply updates.
 // It reads already-open authenticated My Ads tabs through the established
 // owner observer. No tab creation, profile mutation, NativeHost or IPC.
-async function verifyRemoteCommitContextReadOnly(original, sourceKind, witness=null) {
+async function verifyRemoteCommitContextReadOnly(original, sourceKind, witness=null, historyProof=null) {
+  // Default remote commits still require live renewable session bindings.
+  const originalCompletedOnly=historyProof===originalCompletedHistory;
   const isRecord = x => x !== null && typeof x === 'object' && !Array.isArray(x);
   if (!isRecord(original) || !['phase4','publish'].includes(sourceKind)) return false;
   const identity=remoteCommitIdentity(original,sourceKind);
@@ -1491,9 +1496,12 @@ async function verifyRemoteCommitContextReadOnly(original, sourceKind, witness=n
     // Phase-4 legacy journal stores the *source display name*, while
     // the workflow and profile store retain the stable profile ID.
     const session = first.renewalSessionsV1?.[original.renewalId];
+    const sourceNameMatches=normalize(original.profileId) !== '' &&
+      normalize(profile.displayName) === normalize(original.profileId);
+    if(originalCompletedOnly)
+      return session===undefined && sourceNameMatches;
     return isRecord(session) && session.profileId === profileId &&
-      normalize(original.profileId) !== '' &&
-      normalize(profile.displayName) === normalize(original.profileId) &&
+      sourceNameMatches &&
       String(session.sourceAdId || '') === original.sourceAdId &&
       String(session.newAdId || '') === original.newAdId;
   }
@@ -1504,6 +1512,12 @@ async function verifyRemoteCommitContextReadOnly(original, sourceKind, witness=n
   const sessions = archive ? first.archiveInsertionSessionsV1 : first.renewalSessionsV1;
   const session = sessions?.[original.workflowId];
   const fill = first.templateFillSessions?.[original.fillId];
+  if(originalCompletedOnly) {
+    // Successful production Phase4 deliberately removes BOTH temporary rows.
+    // Independent source/target and P8 histories were already verified by
+    // the private caller; this branch grants NO normal commit authority.
+    return !archive && session===undefined && fill===undefined;
+  }
   return isRecord(session) && isRecord(fill) &&
     session.fillId === original.fillId && fill.fillId === original.fillId &&
     String((archive ? session.targetProfileId : session.profileId) || '') === profileId &&
@@ -1608,11 +1622,21 @@ async function verifyRemoteCommitContextReadOnly(original, sourceKind, witness=n
           ||pubResult.targetFoundPage<1||pubResult.targetFoundPage>pubResult.targetPagesScanned
           ||!ms(pubResult.verifiedAtMs)||pubResult.verifiedAtMs<publish.createdAtMs)
           return output('PUBLICATION_OUTCOME_UNVERIFIED');
-        // This is the existing independent live-account / selected UUID /
-        // historical source-display-name verifier. An arbitrary profilesV1
-        // mapping cannot qualify on its own.
-        if(!(await verifyRemoteCommitContextReadOnly(phase,'phase4'))
-          ||!(await verifyRemoteCommitContextReadOnly(publish,'publish')))
+        // Completed renewals remove their transient sessions. Only a pair
+        // of ABSENT rows qualifies, never a partial/malformed survivor.
+        const renewalSession=first.renewalSessionsV1?.[renewalId];
+        const fillSession=first.templateFillSessions?.[publish.fillId];
+        const bothActive=record(renewalSession)&&record(fillSession);
+        const bothRemoved=renewalSession===undefined&&fillSession===undefined;
+        if(!bothActive&&!bothRemoved)
+          return output('ORIGINAL_SESSION_STATE_UNVERIFIED');
+        const historyProof=bothRemoved?originalCompletedHistory:null;
+        // The private completed-history capability is obtained only after
+        // BOTH original immutable P8s, independent verified outcomes, and
+        // exact renewal/source/target/unique publication have passed above.
+        // The live UUID/name checks and subsequent fresh scan remain required.
+        if(!(await verifyRemoteCommitContextReadOnly(phase,'phase4',null,historyProof))
+          ||!(await verifyRemoteCommitContextReadOnly(publish,'publish',null,historyProof)))
           return output('LIVE_ACCOUNT_UUID_NAME_UNVERIFIED');
         const fresh=await verifyFreshPhase4RemoteOutcomeReadOnly(
           Object.freeze({...phase}));
