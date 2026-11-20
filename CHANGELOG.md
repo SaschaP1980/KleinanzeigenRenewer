@@ -71,6 +71,13 @@ All distinct historical section bodies from the former root README and CHANGELOG
 - Preserve and independently test original P8 publication/Phase-4 provenance, authenticated account-bound My Ads source/target whole-roster read-only checks, worker generation safety and fail-closed remote outcome.
 - This is an owner-requested installable test build only. R1 is NOT ACCEPTED; no updater lease or NativeHost apply, Chrome reload, actual listing mutation, main merge or GitHub Release is authorized by this version.
 
+## v1.25.22 — KAR-171 R1 private content-side witness (Work-only candidate, not published)
+
+- Add an expressly opt-in, original-P8-bound read-only R1 observation path. The genuine My Ads content script—not merely the MV3 worker—records `received`, validated `page-confirmed`, `settled` and `failed` milestones with bounded numeric page/card counts and a fresh private nonce/worker identity.
+- Keep the historical P8 receipt, account/source/target full-roster verification, ordinary inventory and renewal scans unchanged when the private nonce is absent. No new Chrome message route, permissions, real listing mutation or positive updater/lease authority.
+- The single private `chrome.storage.local` witness record is diagnostic bookkeeping and may be overwritten by a later observed source/target request. It does not identify a listing, prove the exact worker-stop instant, certify complete remote state after worker interruption, or constitute an update-safety decision.
+- Add private-only owner-side script and regression/VM contracts. Isolated hosted tests and packaged Chromium checks are recorded at exact source SHAs in [Issue #171](https://github.com/SaschaP1980/KleinanzeigenRenewer/issues/171#issuecomment-6857232065); native authenticated in-flight sign-off remains pending. No GitHub Release, main merge, owner-PC installation, automatic update or R1 acceptance is implied.
+
 ## v1.25.12 — KAR-201 explicit owner-approved standalone manual posting (Work candidate, not yet released)
 
 - Following the owner's native v1.25.11 confirmation that eleven archive images and the recoverable fields were transferred and all remaining category attributes were manually entered, add an **explicit, human-only final route**. This is not automatic publication, not automatic ZIP completion and never a replacement/source-deletion workflow.
