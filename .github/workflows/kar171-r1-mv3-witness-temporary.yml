@@ -1,0 +1,35 @@
+name: KAR-171 R1 staged native MV3 witness source-only verification
+on:
+  push:
+    branches: [work/KAR-171]
+permissions:
+  contents: read
+jobs:
+  safety-gate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: MV3 witness negative-positive local fixture
+        run: node --test tests/kar171-r1-mv3-restart-witness.cjs
+      - name: Mandatory full runtime safety and coverage
+        run: |
+          rm .github/workflows/kar171-r1-mv3-witness-temporary.yml
+          bash scripts/coverage-gate.sh
+      - name: Byte-check native v1.25.20 artifact unchanged
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/kar171-sourceonly"
+          python3 scripts/package.py "$RUNNER_TEMP/kar171-sourceonly"
+          ZIP="$RUNNER_TEMP/kar171-sourceonly/kleinanzeigen-renewal-chrome-v1.25.20.zip"
+          SHA="$(sha256sum "$ZIP" | cut -d' ' -f1)"
+          test "$SHA" = "a861b5d1794ff4f7c284d493cb8f1cd9653537759fb70f356bf13ea61f916734"
+          cmp "$ZIP" release/kleinanzeigen-renewal-chrome-v1.25.20.zip
+          echo "PASS unchanged v1.25.20 owner-runtime ZIP SHA256 $SHA"
