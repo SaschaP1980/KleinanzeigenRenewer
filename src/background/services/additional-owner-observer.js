@@ -1731,8 +1731,34 @@ async function verifyRemoteCommitContextReadOnly(original, sourceKind, witness=n
           ADMISSION_START+publish.admissionToken,ADMISSION_FINISH+publish.admissionToken,
           'profilesV1','activeDetectedProfileV1','selectedInventoryProfileV1',
           'renewalSessionsV1','templateFillSessions'];
-        if(stableKeys.some(key=>JSON.stringify(first[key]??null)!==
-          JSON.stringify(last[key]??null)))
+        // Repeat PAGE_STATUS and exact P8/session checks are authoritative.
+        // Same-account recognition refreshes only these volatile timestamps:
+        // ProfileRepository.ensure -> profilesV1.lastSeenAt and
+        // activeDetectedProfileV1.detectedAt; a same-ID re-selection can update
+        // selectedInventoryProfileV1.selectedAt. They do NOT change identity.
+        // Compare every other original/profile field unchanged, including all
+        // names, UUIDs, journal receipts, sessions and unknown metadata.
+        const stableProfileView=(rows,key)=>{
+          const value=rows[key]??null;
+          if(key==='profilesV1'&&Array.isArray(value))
+            return value.map(item=>{
+              if(!record(item))return item;
+              const {lastSeenAt,...persistent}=item;
+              return persistent;
+            });
+          if(key==='activeDetectedProfileV1'&&record(value)){
+            const {detectedAt,...persistent}=value;
+            return persistent;
+          }
+          if(key==='selectedInventoryProfileV1'&&record(value)){
+            const {selectedAt,...persistent}=value;
+            return persistent;
+          }
+          return value;
+        };
+        if(stableKeys.some(key=>
+          JSON.stringify(stableProfileView(first,key))!==
+          JSON.stringify(stableProfileView(last,key))))
           return output('ORIGINAL_OR_PROFILE_CHANGED_DURING_SCAN');
         return output('ORIGINAL_ACCOUNT_REMOTE_VERIFIED',true);
       }catch{
