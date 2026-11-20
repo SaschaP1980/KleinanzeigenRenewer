@@ -34,6 +34,10 @@ Use [INITIAL_PROMPT.md](INITIAL_PROMPT.md) as the authoritative new-chat entry p
 
 Historical QA and Windows documents now have **one canonical location** in `docs/history/qa/` or `docs/windows/`. Their original paths remain as **short, non-authoritative compatibility pointers** to preserve existing Issue/PR links without duplicating instructions. See the [old→new relocation map](maintenance/DOCS_RELOCATION_MATRIX.md).
 
+## Emergency local workflow recovery (historical, manual)
+
+- [Version-pinned emergency recovery scripts](emergency_reset/README.md) — archival v1.23.48 (owner-confirmed) and v1.25.12 (unverified) DevTools-only snippets; backup, safety constraints and known limitations. **Not part of the normal runtime or Chrome package.**
+
 ## Evidence and maintenance
 
 - [Historical v1.23.x architecture evidence](history/architecture/README.md) — immutable versioned progress/baseline JSON records formerly in the repository root
