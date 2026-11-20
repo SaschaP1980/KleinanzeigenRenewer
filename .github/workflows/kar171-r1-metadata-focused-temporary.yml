@@ -1,0 +1,18 @@
+name: KAR-171 R1 profile metadata stability focused gate
+on:
+  push:
+    branches: [work/KAR-171]
+permissions:
+  contents: read
+jobs:
+  focused:
+    if: startsWith(github.event.head_commit.message, 'test(KAR-171): RED transient profile metadata')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Execute real red/green R1 stability tests
+        run: node --test tests/kar171-r1-native-account-proof.cjs

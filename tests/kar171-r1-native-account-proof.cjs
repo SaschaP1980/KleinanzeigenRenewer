@@ -220,6 +220,58 @@ test('sessionless original requires fresh remote scan and rejects unavailable ou
  const f=completedOriginal();f.state.failRemote=true;
  const x=await inspect(f);denied(x);assert.equal(f.state.remoteCalls,1);
 });
+test('R1 permits repeated recognition timestamp refresh for the SAME authenticated account only',async()=>{
+ const f=completedOriginal();
+ f.state.rows.profilesV1[0].lastSeenAt='2026-11-20T04:40:00.000Z';
+ f.state.rows.activeDetectedProfileV1.detectedAt='2026-11-20T04:40:00.000Z';
+ f.state.rows.selectedInventoryProfileV1.selectedAt='2026-11-20T04:40:00.000Z';
+ f.state.afterRemote=rows=>{
+   rows.profilesV1[0].lastSeenAt='2026-11-20T04:44:52.331Z';
+   rows.activeDetectedProfileV1.detectedAt='2026-11-20T04:44:52.331Z';
+   rows.selectedInventoryProfileV1.selectedAt='2026-11-20T04:44:52.331Z';
+ };
+ const x=await inspect(f);
+ assert.equal(x.status,'ORIGINAL_ACCOUNT_REMOTE_VERIFIED');
+ assert.equal(x.liveRemoteVerified,true);
+ assert.equal(x.r1Accepted,false);
+ assert.equal(x.eligibleForLease,false);
+ assert.equal(f.state.remoteCalls,1);assert.equal(f.state.writes,0);
+ for(const sensitive of [NAME,UUID,SOURCE,TARGET,PHASE_TOKEN,PUB_TOKEN])
+   assert.ok(!JSON.stringify(x).includes(sensitive));
+});
+test('R1 denies an actual profile display name change even if UUID and timestamps match',async()=>{
+ const f=completedOriginal();
+ f.state.afterRemote=rows=>{rows.profilesV1[0].displayName='changed-site-owner';};
+ const x=await inspect(f);
+ denied(x);assert.equal(f.state.remoteCalls,1);assert.equal(f.state.writes,0);
+});
+test('R1 denies an actual selected profile change even if only timestamps also change',async()=>{
+ const f=completedOriginal();
+ f.state.afterRemote=rows=>{
+   rows.activeDetectedProfileV1.detectedAt='new-time';
+   rows.selectedInventoryProfileV1.profileId='another-uuid';
+ };
+ const x=await inspect(f);
+ denied(x);assert.equal(f.state.remoteCalls,1);assert.equal(f.state.writes,0);
+});
+test('R1 denies unrelated profile identity drift rather than ignoring whole profile roster',async()=>{
+ const f=completedOriginal();
+ f.state.rows.profilesV1.push({profileId:'other-uuid',displayName:'other-account'});
+ f.state.afterRemote=rows=>{
+   rows.profilesV1[1].displayName='altered-other-account';
+   rows.profilesV1[0].lastSeenAt='new-time';
+ };
+ const x=await inspect(f);
+ assert.equal(x.status,'ORIGINAL_OR_PROFILE_CHANGED_DURING_SCAN');
+ denied(x);assert.equal(f.state.remoteCalls,1);assert.equal(f.state.writes,0);
+});
+test('R1 denies non-volatile profile metadata change during scan',async()=>{
+ const f=completedOriginal();
+ f.state.afterRemote=rows=>{rows.profilesV1[0].createdAt='changed-original-creation';};
+ const x=await inspect(f);
+ assert.equal(x.status,'ORIGINAL_OR_PROFILE_CHANGED_DURING_SCAN');
+ denied(x);assert.equal(f.state.remoteCalls,1);assert.equal(f.state.writes,0);
+});
 test('sessionless original rejects a live account switch during fresh scan',async()=>{
  const f=completedOriginal();f.state.afterRemote=(_,s)=>{s.accountName='different-owner';};
  const x=await inspect(f);denied(x);assert.equal(f.state.remoteCalls,1);
