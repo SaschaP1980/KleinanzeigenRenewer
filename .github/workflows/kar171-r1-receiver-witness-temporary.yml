@@ -93,3 +93,5 @@ jobs:
             ${{ runner.temp }}/kar171-receiver/default-e2e.json
           retention-days: 30
           if-no-files-found: error
+
+# Disposal required after confirmed completed GREEN; not a production workflow.
