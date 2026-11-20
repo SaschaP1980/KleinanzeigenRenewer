@@ -133,3 +133,45 @@ test('Stop only detaches observer listener; automatic timeout also detaches',()=
  assert.equal(g.handlers.size,0);
  assert.equal(g.logs.at(-1).status,'MONITOR_EXPIRED');
 });
+
+test('held content-side timer is visible independently but cannot certify worker stop',()=>{
+ const f=fixture();
+ f.send(f.row('source','received'));
+ f.send(f.row('source','page-confirmed',{pagesScanned:1,uniqueCards:2,expectedOnline:3}));
+ const held={...f.row('source','held-pending',{pagesScanned:1,uniqueCards:2,expectedOnline:3}),
+   schema:2,holdUntilMs:f.clock.now+45000};
+ f.send(held);
+ assert.equal(f.logs.at(-1).status,'CONTROLLED_HOLD_ARMED');
+ assert.equal(f.ctx.__KAR171_R1_PENDING_MONITOR__.snapshot().status,
+   'CONTROLLED_HOLD_WINDOW_CANDIDATE_ONLY');
+ assert.equal(f.logs.every(x=>x.r1Accepted===false&&x.eligibleForLease===false),true);
+ assert.equal(f.logs.some(x=>JSON.stringify(x).includes(nonce)),false);
+ f.clock.now+=45000;
+ assert.equal(f.ctx.__KAR171_R1_PENDING_MONITOR__.snapshot().status,
+   'NO_LIVE_PENDING_WINDOW');
+ f.send(f.row('source','failed',{pagesScanned:1,uniqueCards:2,expectedOnline:3}));
+ assert.equal(f.logs.at(-1).status,'CONTENT_FAILED');
+});
+test('held timing must be exact and cannot precede an authenticated page',()=>{
+ const f=fixture();
+ f.send(f.row('source','received'));
+ f.send({...f.row('source','held-pending',{pagesScanned:1,uniqueCards:1,expectedOnline:1}),
+  schema:2,holdUntilMs:f.clock.now+45000});
+ assert.equal(f.logs.at(-1).status,'UNVERIFIED_NONMONOTONIC_CONTENT');
+ const g=fixture();
+ g.send(g.row('target','received'));
+ g.send(g.row('target','page-confirmed',{pagesScanned:1,uniqueCards:1,expectedOnline:1}));
+ g.send({...g.row('target','held-pending',{pagesScanned:1,uniqueCards:1,expectedOnline:1}),
+  schema:2,holdUntilMs:g.clock.now+3000});
+ assert.equal(g.logs.at(-1).status,'UNVERIFIED_MALFORMED_OR_STALE_CONTENT');
+});
+test('held state forbids a positive terminal scan or additional page progression',()=>{
+ const f=fixture();
+ f.send(f.row('target','received'));
+ f.send(f.row('target','page-confirmed',{pagesScanned:1,uniqueCards:1,expectedOnline:2}));
+ f.send({...f.row('target','held-pending',{pagesScanned:1,uniqueCards:1,expectedOnline:2}),
+  schema:2,holdUntilMs:f.clock.now+45000});
+ f.send(f.row('target','settled',{pagesScanned:1,uniqueCards:1,expectedOnline:2}));
+ assert.equal(f.logs.at(-1).status,'UNVERIFIED_NONMONOTONIC_CONTENT');
+ assert.equal(f.ctx.__KAR171_R1_PENDING_MONITOR__.snapshot().status,'AMBIGUOUS_EVIDENCE');
+});
