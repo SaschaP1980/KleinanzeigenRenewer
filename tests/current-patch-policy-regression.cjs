@@ -22,13 +22,8 @@ assert.equal(includesSupportedRelease(historicalEra, '1.24.1'), true,
   'approved 1.24.x PATCH must still satisfy historical UI/runtime gates');
 assert.equal(includesSupportedRelease(historicalEra, '1.24.01'), false,
   'malformed 1.24 PATCH must remain rejected');
-assert.deepEqual(expectedManifestPermissions(canonical.manifest.version).sort(),
-  canonical.manifest.permissions.slice().sort(),
-  'current manifest grants only version-approved nativeMessaging and MV3 alarms permissions');
-assert.equal(expectedManifestPermissions('1.24.0').includes('alarms'), false,
-  'historical minor must not acquire the new alarm permission');
-assert.equal(expectedManifestPermissions('1.25.20').includes('alarms'), false,
-  'owner native-proven v1.25.20 permission contract is immutable');
+assert.deepEqual(expectedManifestPermissions('1.24.0').sort(), canonical.manifest.permissions.slice().sort(),
+  'approved minor must preserve the already granted nativeMessaging permission');
 assert.equal(expectedManifestPermissions('1.24.01').includes('nativeMessaging'), false,
   'do not accept malformed MINOR values');
 assert.equal(includesActivePatch(historicalEra, '1.23.025'), false);
@@ -37,7 +32,6 @@ assert.deepEqual(historicalEra, ['1.23.20', '1.23.22', '1.23.23', '1.23.24']);
 // correction-era PATCH policy as a synthetic historical fixture, not by trying
 // to validate the current MINOR release through the obsolete PATCH predicate.
 const validCorrectionEra = clone(canonical);
-validCorrectionEra.manifest.permissions = validCorrectionEra.manifest.permissions.filter(p => p !== 'alarms');
 for (const name of ['manifest', 'pkg', 'lock', 'spec']) validCorrectionEra[name].version = '1.23.92';
 validCorrectionEra.pkg.displayVersion = '1.23.92';
 validCorrectionEra.lock.packages[''].version = '1.23.92';

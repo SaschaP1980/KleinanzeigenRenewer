@@ -59,13 +59,9 @@ function assertCompatibleCurrentPatch({ manifest, pkg, lock, spec } = {}) {
   }
   const minor = Number(version.split('.')[1]);
   const requiredPermissions = minor >= 24 || Number(version.split('.')[2]) >= 30
-    ? [...PERMISSIONS, 'nativeMessaging']
-    : [...PERMISSIONS];
-  // KAR-171 v1.25.21: the only new Chrome permission is a sleep-safe
-  // alarm replacing the 15s background keepalive loop.
-  if (version.startsWith('1.25.') && Number(version.split('.')[2]) >= 21)
-    requiredPermissions.push('alarms');
-  assert.deepEqual([...(manifest.permissions || [])].sort(), requiredPermissions.sort());
+    ? [...PERMISSIONS, 'nativeMessaging'].sort()
+    : PERMISSIONS;
+  assert.deepEqual([...(manifest.permissions || [])].sort(), requiredPermissions);
   assert.deepEqual([...(manifest.host_permissions || [])].sort(), [...HOST_PERMISSIONS].sort());
   assert.equal(createHash('sha256').update(Buffer.from(manifest.key || '', 'base64')).digest('hex'),
     MANIFEST_KEY_SHA256, 'extension identity key must remain unchanged');
@@ -90,12 +86,9 @@ function includesSupportedRelease(knownVersions, version) {
 
 function expectedManifestPermissions(version) {
   const historic = ['activeTab', 'storage', 'unlimitedStorage', 'scripting'];
-  const required = (version === '1.24.0' || version === '1.25.0' || (isCurrentPatchVersion(version) &&
+  return (version === '1.24.0' || version === '1.25.0' || (isCurrentPatchVersion(version) &&
     (Number(version.split('.')[1]) >= 24 || Number(version.split('.')[2]) >= 30)))
     ? [...historic, 'nativeMessaging'] : historic;
-  if (isCurrentPatchVersion(version) && version.startsWith('1.25.')
-      && Number(version.split('.')[2]) >= 21) required.push('alarms');
-  return required;
 }
 
 function includesActivePatch(knownVersions, version) {

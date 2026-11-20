@@ -10,8 +10,7 @@
     "storage",
     "unlimitedStorage",
     "scripting",
-    "nativeMessaging",
-    "alarms"
+    "nativeMessaging"
   ],
   "host_permissions": [
     "https://www.kleinanzeigen.de/*",

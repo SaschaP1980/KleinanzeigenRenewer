@@ -86,6 +86,7 @@ const APP_WINDOW_INITIAL_WIDTH = 1180;
 const APP_WINDOW_INITIAL_HEIGHT = 900;
 const BULK_RETRY_TIMEOUT_MS = 90000;
 const BULK_ITEM_HARD_TIMEOUT_MS = 110000;
+const BULK_RUN_WATCHDOG_TICK_MS = 15000;
 const BULK_RUN_RUNTIME_LEASE_KEY = "bulkRunRuntimeLeaseV1";
 const RUNTIME_EPOCH_KEY = "runtimeEpochV1";
 const BULK_RETRY_POLL_MS = 500;
@@ -1014,6 +1015,7 @@ function requireBulkInventoryController() {
   return bulkInventoryController;
 }
 
+let bulkWatchdogActive = false;
 async function getBulkRunState() {
   await ensureBulkRuntimeRecovery();
   const workerRecovery = await requireBulkRunGuard().recoverExpiredWorkerRun();
@@ -1030,7 +1032,8 @@ async function getBulkRunState() {
     broadcastInventoryChanged('bulk-worker-timeout', { runId: workerRecovery.state?.runId || null, adId: workerRecovery.state?.currentAdId || null });
   }
   let state = workerRecovery?.state || await requireBulkRunGuard().read();
-  if (!state) return null;
+  if (!state) { bulkWatchdogActive = false; return null; }
+  bulkWatchdogActive = state.status === 'running';
   if (state.status === "running" && state.updatedAt && Date.now() - Date.parse(state.updatedAt) > BULK_RUN_MAX_AGE_MS) {
     state = await mutateBulkRunState(current => {
       if (!current || current.status !== 'running') return current;
@@ -1047,18 +1050,23 @@ async function getBulkRunState() {
 }
 
 async function mutateBulkRunState(mutator) {
-  return requireBulkRunGuard().mutate(mutator);
+  const state = await requireBulkRunGuard().mutate(mutator);
+  bulkWatchdogActive = state?.status === 'running';
+  return state;
 }
 
 async function writeBulkRunState(state) {
   const current = await getBulkRunState().catch(() => null);
   if (current?.emergencyResetAt && String(state?.emergencyResetAt || '') !== String(current.emergencyResetAt)) return current;
-  return requireBulkRunGuard().write(state);
+  const written = await requireBulkRunGuard().write(state);
+  bulkWatchdogActive = written?.status === 'running';
+  return written;
 }
 
 async function bulkRunWatchdogTick() {
   await ensureBulkRuntimeRecovery();
   const recovery = await requireBulkRunGuard().recoverExpiredWorkerRun();
+  bulkWatchdogActive = recovery?.state?.status === 'running';
   if (!recovery?.recovered) return recovery?.state || null;
   await cleanupRecoveredBulkTabs(recovery.tabIds, 'bulk-worker-hard-timeout');
   if (recovery.state?.sourceAutoCreated === true) await closeRegistryTab(recovery.state.sourceTabId, 'bulk-worker-hard-timeout', '„Meine Anzeigen“-Hintergrundtab').catch(() => {});
@@ -2416,24 +2424,17 @@ chrome.runtime.onStartup?.addListener(() => { void withAutonomousAdmission('tras
 chrome.runtime.onInstalled?.addListener(() => { void withAutonomousAdmission('trash-purge-installed', () => purgeExpiredTrash()).catch(() => {}); });
 
 // Bulk inventory recovery: extension reload/browser restart invalidates the session lease.
-// Immediate recovery remains, but the periodic check must not pin the MV3 worker.
+// Recover once at startup, retaining the existing P8 timeout/recovery contract.
 void withAutonomousAdmission('bulk-runtime-recovery', () => ensureBulkRuntimeRecovery()).catch(() => {});
 void withAutonomousAdmission('bulk-watchdog', () => bulkRunWatchdogTick()).catch(() => {});
-// KAR-171 R1: MV3 sleep-safe bulk watchdog alarm.
-// The old 15s P8/storage API loop reset Chrome's 30s idle timer indefinitely.
-// A 1-minute Chrome alarm wakes the worker for the SAME fail-closed recovery.
-// Chrome may delay alarms: this is best-effort recovery, not a real-time SLA.
-const BULK_WATCHDOG_ALARM_NAME = 'kar-bulk-run-watchdog';
-chrome.alarms.onAlarm.addListener(alarm => {
-  if (alarm?.name !== BULK_WATCHDOG_ALARM_NAME) return;
+// KAR-171 R1: suspend the bulk watchdog during idle MV3 worker lifecycle.
+// A JS timer alone does not call Chrome APIs; during a confirmed running
+// bulk run it preserves the existing 15-second recovery admission. When idle,
+// never reset Chrome's 30-second worker timer with periodic P8/storage reads.
+if (typeof setInterval === 'function') setInterval(() => {
+  if (!bulkWatchdogActive) return;
   void withAutonomousAdmission('bulk-watchdog', () => bulkRunWatchdogTick()).catch(() => {});
-});
-// Recheck on every cold start; do not reset an existing periodic alarm.
-chrome.alarms.get(BULK_WATCHDOG_ALARM_NAME, existing => {
-  if (chrome.runtime.lastError) return;
-  if (!existing || existing.periodInMinutes !== 1)
-    chrome.alarms.create(BULK_WATCHDOG_ALARM_NAME, { periodInMinutes: 1 });
-});
+}, BULK_RUN_WATCHDOG_TICK_MS);
 
 // Recover persisted workflows only when no platform safety stop is active.
 void readPlatformAccessRestriction().then(state => {

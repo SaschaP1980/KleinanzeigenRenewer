@@ -1,4 +1,4 @@
-name: KAR-171 R1 MV3 idle-safe watchdog v1.25.21 Work-only Chrome ZIP
+name: KAR-171 R1 MV3 active-only watchdog v1.25.21 Work-only Chrome ZIP
 on:
   push:
     branches: [work/KAR-171]
@@ -41,7 +41,7 @@ jobs:
           assert l['packages']['']['version']=='1.25.21'
           assert hashlib.sha256(base64.b64decode(m['key'],validate=True)).hexdigest()=='70507977688f3465a60227cd0261bd07d92fad620625cd7ebff8f0856d9c5ed3'
           assert m['manifest_version']==3
-          assert set(m['permissions'])=={'activeTab','storage','unlimitedStorage','scripting','nativeMessaging','alarms'}
+          assert set(m['permissions'])=={'activeTab','storage','unlimitedStorage','scripting','nativeMessaging'}
           assert Path('docs/testing/KAR171_R1_LIVE_REMOTE_OWNER_READ_ONLY.js').exists()
           assert Path('docs/testing/KAR171_R1_NATIVE_WORK_ZIP_INSTALL.md').exists()
           print('PASS same extension ID, version metadata and private native R1 script')
