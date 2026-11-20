@@ -1,84 +1,113 @@
-// KAR-171 R1: fail-closed MV3 idle/watchdog recovery scheduling regression.
-// Tests the actual background entrypoint's extracted scheduler block, not a
-// fabricated policy. Browser clocks / inactivity require separate native proof.
+// KAR-171 R1: no new Chrome permission, no idle P8 API polling,
+// while an ACTIVE inventory operation retains its 15-second fail-closed watchdog.
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict');
 const fs=require('node:fs'),vm=require('node:vm');
 const bg=fs.readFileSync('src/background/background.js','utf8');
 const manifest=JSON.parse(fs.readFileSync('manifest.json','utf8'));
-const startMark='// KAR-171 R1: MV3 sleep-safe bulk watchdog alarm.';
-const endMark='// Recover persisted workflows only when no platform safety stop is active.';
-const start=bg.indexOf(startMark),end=bg.indexOf(endMark,start);
-function block(){
- assert.ok(start>=0&&end>start,'watchdog block must be present in real service worker source');
+const marker='// KAR-171 R1: suspend the bulk watchdog during idle MV3 worker lifecycle.';
+const endMarker='// Recover persisted workflows only when no platform safety stop is active.';
+function timerBlock(){
+ const start=bg.indexOf(marker),end=bg.indexOf(endMarker,start);
+ assert.ok(start>=0&&end>start,'active-only watchdog block must exist in real worker');
  return bg.slice(start,end);
 }
-function harness({existing=null,error=false,throwCreate=false}={}){
- const observations={listener:null,gets:[],creates:[],ticks:[],admissions:[],intervals:[]};
- const scope={
-  chrome:{
-   runtime:{get lastError(){return error?{message:'fixture alarm store error'}:null}},
-   alarms:{
-    onAlarm:{addListener(cb){observations.listener=cb;}},
-    get(name,cb){observations.gets.push(name);cb(existing);},
-    create(name,details){observations.creates.push({name,details});if(throwCreate)throw Error('private alarm failure');}
-   }
+function timerHarness(){
+ const state={calls:[],timer:null,period:null,ticks:0,readRecoveries:0};
+ const ctx={
+  bulkWatchdogActive:false,
+  BULK_RUN_WATCHDOG_TICK_MS:15000,
+  withAutonomousAdmission(name,task){
+   state.calls.push(name);return Promise.resolve().then(task);
   },
-  withAutonomousAdmission:(name,task)=>{
-   observations.admissions.push(name);
-   return Promise.resolve().then(task);
-  },
-  bulkRunWatchdogTick:()=>{
-   observations.ticks.push('tick');return Promise.resolve(null);
-  },
-  setInterval:(_cb,delay)=>{observations.intervals.push(delay);throw Error('FORBIDDEN_KEEPALIVE_INTERVAL');},
-  console:{error(){throw Error('PRIVATE_ERROR_LEAK');}}
+  ensureBulkRuntimeRecovery(){state.readRecoveries++;return Promise.resolve();},
+  bulkRunWatchdogTick(){state.ticks++;return Promise.resolve(null);},
+  setInterval(fn,delay){state.timer=fn;state.period=delay;return 42;}
  };
- vm.runInNewContext(block(),scope,{filename:'real-kar171-mv3-watchdog.js',timeout:1000});
- return observations;
+ vm.runInNewContext(timerBlock(),ctx,{filename:'bulk-watchdog-conditional-real-source.js'});
+ return {state,ctx};
 }
-test('idle watchdog no longer polls with 15-second setInterval; correct MV3 manifest permission',()=>{
- assert.doesNotMatch(bg,/setInterval\s*\([\s\S]{0,120}bulk-watchdog/,
-   'continuous 15s Chrome-API poll prevents worker idle');
- assert.ok(manifest.permissions.includes('alarms'),'alarm permission required');
+function stateHarness(){
+ const start=bg.indexOf('let bulkWatchdogActive = false;');
+ const end=bg.indexOf('\nfunction normalizedBulkRosterIds',start);
+ assert.ok(start>=0&&end>start,'active state ownership must be in actual background.js');
+ let run=null;
+ const guard={
+  recoverExpiredWorkerRun:async()=>({recovered:false,state:run}),
+  read:async()=>run,
+  write:async x=>(run=x),
+  mutate:async fn=>(run=fn(run))
+ };
+ const ctx={
+  ensureBulkRuntimeRecovery:async()=>{},
+  requireBulkRunGuard:()=>guard,Date,
+  BULK_RUN_MAX_AGE_MS:9999999999
+ };
+ vm.createContext(ctx);
+ vm.runInContext(bg.slice(start,end),ctx,{filename:'real-bulk-watchdog-state.js'});
+ return {ctx,put:x=>{run=x;},current:()=>vm.runInContext('bulkWatchdogActive',ctx)};
+}
+test('MV3 idle does not require extra alarms permission or change existing identity contract',()=>{
  assert.equal(manifest.manifest_version,3);
- const src=block();
- assert.match(src,/chrome\.alarms\.onAlarm\.addListener/);
- assert.match(src,/chrome\.alarms\.get/);
- assert.match(src,/chrome\.alarms\.create/);
- assert.doesNotMatch(src,/PUBLISH|DELETE_OWN_AD_BY_ID|chrome\.runtime\.reload/);
+ assert.equal(manifest.permissions.includes('alarms'),false);
+ assert.equal(manifest.permissions.includes('nativeMessaging'),true);
+ assert.doesNotMatch(bg,/chrome\.alarms\./);
+ assert.match(bg,/if \(!bulkWatchdogActive\) return;/);
+ assert.match(bg,/setInterval/);
 });
-test('cold worker registers alarm before callback; absent alarm is created only once at 1-minute cadence',async()=>{
- const h=harness();
- assert.equal(typeof h.listener,'function');
- assert.equal(h.gets.length,1);assert.equal(h.creates.length,1);
- assert.equal(h.creates[0].name,h.gets[0]);
- assert.equal(h.creates[0].details.periodInMinutes,1);
- assert.equal(h.intervals.length,0);assert.equal(h.ticks.length,0);
- await h.listener({name:'unrelated-alarm'});
- assert.equal(h.admissions.length,0);assert.equal(h.ticks.length,0);
- await h.listener({name:h.gets[0]});
+test('inert timer never touches P8 or Chrome APIs while bulk work is idle',async()=>{
+ const h=timerHarness();
+ assert.equal(typeof h.state.timer,'function');
+ assert.equal(h.state.period,15000);
  await Promise.resolve();await Promise.resolve();
- assert.deepEqual(h.admissions,['bulk-watchdog']);
- assert.equal(h.ticks.length,1,'actual watchdog invoked only on matching Chrome alarm');
+ const count=h.state.calls.length,ticks=h.state.ticks;
+ h.state.timer();await Promise.resolve();await Promise.resolve();
+ h.state.timer();await Promise.resolve();await Promise.resolve();
+ assert.equal(h.state.calls.length,count);
+ assert.equal(h.state.ticks,ticks);
 });
-test('persisted alarm is not reset every time MV3 worker restarts',()=>{
- const h=harness({existing:{name:'kar-bulk-run-watchdog',periodInMinutes:1}});
- assert.equal(h.gets.length,1);
- assert.equal(h.creates.length,0,'no recurrence postponement on boot');
- assert.equal(h.intervals.length,0);
+test('running bulk operation retains existing 15s P8 admission and recovery',async()=>{
+ const h=timerHarness();
+ await Promise.resolve();await Promise.resolve();
+ h.ctx.bulkWatchdogActive=true;
+ const count=h.state.calls.filter(x=>x==='bulk-watchdog').length,ticks=h.state.ticks;
+ h.state.timer();await Promise.resolve();await Promise.resolve();
+ assert.equal(h.state.calls.filter(x=>x==='bulk-watchdog').length,count+1);
+ assert.equal(h.state.ticks,ticks+1);
+ assert.equal(h.state.calls.at(-1),'bulk-watchdog');
 });
-test('stale/wrong-frequency alarm is repaired; alarm store read error fails closed',()=>{
- const stale=harness({existing:{name:'kar-bulk-run-watchdog',periodInMinutes:0.5}});
- assert.equal(stale.creates.length,1);
- assert.equal(stale.creates[0].details.periodInMinutes,1);
- const bad=harness({error:true});assert.equal(bad.creates.length,0);
+test('bulk run state writes, mutations and terminal state disable timer immediately',async()=>{
+ const h=stateHarness();
+ assert.equal(h.current(),false);
+ await h.ctx.writeBulkRunState({status:'running'});
+ assert.equal(h.current(),true);
+ await h.ctx.mutateBulkRunState(x=>({...x,status:'needs-review'}));
+ assert.equal(h.current(),false);
+ await h.ctx.writeBulkRunState({status:'running'});
+ assert.equal(h.current(),true);
+ await h.ctx.writeBulkRunState({status:'completed'});
+ assert.equal(h.current(),false);
 });
-test('alarm registration does not mutate site, P8, accounts or grant updater lease',()=>{
- const src=block();
+test('startup recovered active worker state arms watchdog; idle and missing state disarm it',async()=>{
+ const h=stateHarness();
+ h.put({status:'running'});
+ await h.ctx.bulkRunWatchdogTick();
+ assert.equal(h.current(),true);
+ h.put({status:'completed'});
+ await h.ctx.bulkRunWatchdogTick();
+ assert.equal(h.current(),false);
+ h.put({status:'running'});
+ await h.ctx.getBulkRunState();
+ assert.equal(h.current(),true);
+ h.put(null);
+ assert.equal(await h.ctx.getBulkRunState(),null);
+ assert.equal(h.current(),false);
+});
+test('no watchdog changes to mutation, P8 or updater admission sources',()=>{
+ const block=timerBlock();
  for(const forbidden of [
-   'DELETE_OWN_AD_BY_ID','requestSubmit(','chrome.runtime.reload(',
-   'UPDATE_APPLY','eligibleForLease=true','chrome.storage.local.set(',
-   'chrome.tabs.create(','chrome.runtime.connectNative('
- ])assert.ok(!src.includes(forbidden));
+  'chrome.storage.local.set(', 'chrome.runtime.reload(', 'chrome.alarms.',
+  'chrome.tabs.create(', 'UPDATE_APPLY', 'DELETE_OWN_AD_BY_ID',
+  'requestSubmit(', 'eligibleForLease=true'
+ ])assert.ok(!block.includes(forbidden));
 });
