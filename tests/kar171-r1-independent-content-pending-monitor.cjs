@@ -9,7 +9,7 @@ const path='docs/testing/KAR171_R1_CONTENT_PENDING_MONITOR_READ_ONLY.js';
 const src=fs.readFileSync(path,'utf8');
 const KEY='kar171R1ContentWitnessV1';
 const nonce='a'.repeat(32),workerId='owner-worker-generation';
-function fixture({version='1.25.22',pathname='/src/app/app.html',extensionId='hafahjhhgiipdegfkgacchmnacgblnah'}={}){
+function fixture({version='1.25.23',pathname='/src/app/app.html',extensionId='hafahjhhgiipdegfkgacchmnacgblnah'}={}){
  const logs=[],handlers=new Set(),timers=new Map(),calls={set:0,remove:0,send:0},clock={now:1000000};
  let timerId=0;
  const ctx={
@@ -35,7 +35,7 @@ function fixture({version='1.25.22',pathname='/src/app/app.html',extensionId='ha
  return {logs,handlers,timers,calls,clock,ctx,send,row};
 }
 test('wrong extension, version or non-App document cannot arm independent listener',()=>{
- for(const o of [{version:'1.25.21'},{pathname:'/src/background/background.js'},{extensionId:'wrong'}]){
+ for(const o of [{version:'1.25.21'},{version:'1.25.22'},{pathname:'/src/background/background.js'},{extensionId:'wrong'}]){
   const f=fixture(o);
   assert.equal(f.handlers.size,0);
   assert.equal(f.calls.set+f.calls.remove+f.calls.send,0);
