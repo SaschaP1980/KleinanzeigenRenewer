@@ -139,3 +139,5 @@ jobs:
 # Trigger token is bound to this single Work-only v1.25.22 source/ZIP package.
 
 # Retrigger after narrow v1.25.22 explicit PATCH allowlist correction.
+
+# Retest after the mandatory archive-before-coverage ordering correction.
