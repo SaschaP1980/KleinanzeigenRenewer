@@ -80,3 +80,5 @@ jobs:
             ${{ runner.temp }}/kar171-monitor/e2e.json
           retention-days: 30
           if-no-files-found: error
+
+# Green run: independent observer source + registered full regression + existing ZIP parity.
