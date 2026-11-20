@@ -308,6 +308,57 @@ Chrome UI mechanism, independent pending/terminal observation, no ongoing
 mutations and original P8/read-only authenticated recovery. R1 remains
 **BLOCKED / NOT ACCEPTED**; R2–R6 stay parked.
 
+## Independent native-facing content event monitor (passive, unapproved)
+
+**Development checkpoint only — not permission to run a live account scan or
+terminate Chrome's installed MV3 worker.** The nonpackaged
+[`KAR171_R1_CONTENT_PENDING_MONITOR_READ_ONLY.js`](KAR171_R1_CONTENT_PENDING_MONITOR_READ_ONLY.js)
+runs in a **separate extension App-window DevTools document**, gated to the
+exact extension ID and Work-only `v1.25.22`. It never loads the existing
+content-script result by reading stored history. Instead, it subscribes only
+to live `chrome.storage.onChanged` events for
+`kar171R1ContentWitnessV1`; old stored rows are ignored. This additional
+execution context remains separate from the content scan and the background
+service worker, subject to Chrome's documented inspector/lifecycle effects.
+
+The observer checks an **exact nine-field, sanitized content-only record**
+against fixed schema/kind/status/nonce/generation/timestamp/count
+constraints. `received` must precede monotonically numbered
+`page-confirmed` observations, and a `settled` or `failed`
+terminal follows a matching source/target operation. Lost terminal,
+concurrent token, duplicate page, stale row, timestamp regression,
+missing start, invalid count or mismatched generation all become
+`UNVERIFIED_*` or `AMBIGUOUS_EVIDENCE`. A new read-only private source
+scan and a subsequent target scan may be observed independently.
+No raw account, Ad IDs, nonce, worker ID, URL, card content or P8
+token is emitted. Observation is time-bounded to three minutes and
+is deliberately read-only (`chrome.storage.onChanged.addListener` /
+`removeListener` only, no `storage.set`, `storage.get(null)`,
+tab navigation, runtime message, worker Stop, update or remote mutation).
+
+The optional interactive `snapshot()` describes a nonterminal event
+received within a **maximum 1.2-second freshness window** as
+`RECENT_UNSETTLED_CANDIDATE_ONLY`. This means only that the independent
+observer recently received an event whose then-recorded content state
+was nonterminal. It **does not prove** that the content request remains
+in-flight when a later human action stops the worker. It is not a
+two-party atomic handshake with Chrome's actual worker lifecycle, and
+not an R1 acceptance/lease signal. The monitor can miss intermediate
+overwrites of the single storage key; any such evidence gaps must
+remain **unverified**. `r1Accepted:false`,
+`eligibleForLease:false`, and `ownerNativeScan:false` remain
+unchanged in every observer output.
+
+**Native operation remains blocked** pending the same independently
+reviewed original-P8 identity, live authenticated My Ads request,
+safe backup/no-competing-mutation proof, verified Chrome-native targeted
+Stop mechanism, separate explicit owner approval, independent worker
+termination/new-generation evidence, and fresh post-restart complete
+same-account source-absence and target-presence verification. The
+monitor's completion does **not** require reinstalling v1.25.22 or
+repeating historical Stage 3/Stage 4. No native execution was
+performed merely by checking in this diagnostic script.
+
 ## R1 exit decision
 
 R1 remains **BLOCKED / NOT ACCEPTED** until the authentic, source-safe owner-controlled results exist, all required negative/positive and interruption cases are linked to an exact tested source revision, and the full applicable regressions are GREEN. Acceptance must be explicitly recorded as `R1 ACCEPTED` in #171 before **R2** can become active. No subsequent R2–R6 work, positive updater lease, Windows apply, Chrome reload, merge or release is authorized by creation of this protocol.
