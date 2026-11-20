@@ -70,7 +70,8 @@ function originalRows(){
 }
 function fixture(){
  const state={rows:originalRows(),siteName:NAME,mode:'ok',created:[],closed:[],
-   requests:[],storageWrites:0,remoteInvocations:0,workerNumber:0,nextTabId:80};
+   requests:[],storageWrites:0,remoteInvocations:0,workerNumber:0,nextTabId:80,
+  duringTargetRequest:null};
  const storageLocal={
   async get(keys){
    const all=state.rows;
@@ -122,6 +123,7 @@ function fixture(){
      assert.equal(msg.requireCompleteRoster,true);
      if(state.mode==='interrupt-target-query')throw Error('TARGET_INTERRUPTED_PRIVATE');
      if(state.mode==='switch-after-target-query')state.siteName='other-site-account';
+     if(typeof state.duringTargetRequest==='function')state.duringTargetRequest(state.rows);
      return {found:state.mode!=='target-absent',adId:TARGET,
       evidence:'found-in-my-ads-full-pagination-scan',pagesScanned:2,page:2};
     }
@@ -222,20 +224,15 @@ test('new worker cannot replace original P8 worker identity to legitimize histor
  assert.equal(f.state.remoteInvocations,1,'original P8 mismatch must block before remote scan');
  assert.equal(f.state.created.length,2);
 });
-test('postscan immutable publication receipt drift is rejected across restored worker instance',async()=>{
+test('concurrent original publication evidence rewrite in fresh scan fails final P8 readback',async()=>{
  const f=fixture();
- const good=await f.inspect(f.restart());positive(good,f.state);
- const old=f.state.rows[QR+FILL+'_'+PUB_ATTEMPT].verifiedAtMs;
- // Simulate a concurrent unsafe change to an original journal receipt in the
- // second read-only scan; the final double read must reject it.
- const scannerMode='ok';
- assert.equal(scannerMode,'ok');
- // A fresh attempt must still revalidate the original receipt before scan:
- f.state.rows[QR+FILL+'_'+PUB_ATTEMPT].verifiedAtMs=old+1;
- const second=await f.inspect(f.restart());
- // The changed baseline may itself be structurally valid, so it must never
- // turn a historical receipt into updater approval; a new scan is mandatory.
- positive(second,f.state);
+ const first=await f.inspect(f.restart());positive(first,f.state);
+ f.state.duringTargetRequest=rows=>{
+  rows[QR+FILL+'_'+PUB_ATTEMPT].verifiedAtMs++;
+ };
+ const second=await f.inspect(f.restart());denied(second,f.state);
+ assert.equal(second.status,'ORIGINAL_OR_PROFILE_CHANGED_DURING_SCAN');
  assert.equal(f.state.remoteInvocations,2);
- assert.equal(f.state.created.length,4);
+ assert.equal(f.state.created.length,4,'new source/target must be fresh despite valid old P8');
+ assert.equal(f.state.rows[FINISH+PHASE_TOKEN].workerInstanceId,'original-phase-worker');
 });
