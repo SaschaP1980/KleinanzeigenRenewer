@@ -4,6 +4,14 @@ This is the canonical version-specific history for Kleinanzeigen Manager. Entrie
 
 All distinct historical section bodies from the former root README and CHANGELOG are preserved with source labels and line numbers. The [KAR-170 migration ledger](docs/maintenance/KAR170_CHANGELOG_MIGRATION.json) identifies their original Git blobs and body checksums. Overlapping versions retain distinct factual notes; older references to planned builds or native/CI acceptance are **historical**, not live status.
 
+## v1.25.20 — KAR-171 R1 false profile-change stability failure (Work only; not released)
+
+- Real owner v1.25.19 Stage 3 returned `ORIGINAL_OR_PROFILE_CHANGED_DURING_SCAN` after reaching the independent fresh source/target stage. Uploaded sanitized diagnostic ZIP showed confirmed selected/live profile agreement and repeatedly logged `PROFILE_RECOGNIZED` activity for the same recognized account. This evidence does NOT show a user account change and does not independently prove which exact stored field changed.
+- Code root cause: The final original/P8/account stability comparator serialized entire `profilesV1`, `activeDetectedProfileV1`, and `selectedInventoryProfileV1` records; `ProfileRepository.ensure` normally refreshes `lastSeenAt` and `detectedAt`, and an idempotent profile selection may refresh `selectedAt` without changing site identity. These timestamp-only updates were treated as an unsafe account/P8 change.
+- Test-first correction applies a narrowly scoped **final read-only R1 witness** view that ignores ONLY `profilesV1[].lastSeenAt`, `activeDetectedProfileV1.detectedAt`, and `selectedInventoryProfileV1.selectedAt` when comparing its initial and terminal snapshots. It still compares all other fields, records, profile IDs/names, selection sources, complete historical P8/worker/attempt/token/resolutions and both transient session maps. Live authenticated `PAGE_STATUS.profileName` is checked again after the full source and target scans; no runtime remote commit gate, publisher, deletion or updater logic is relaxed.
+- Focused 46-test suite proved the original v1.25.19 **RED** (45 PASS, 1 failing on timestamp-only refresh), then corrected source **GREEN 46/46**, including immutable/actual-account and unrelated-profile/metadata drift negatives. Full required CI/ZIP parity and packaged Chromium E2E are independently required before native-owner installation.
+- R1 subcase native v1.25.20 check is NOT RUN; R1 remains NOT ACCEPTED, R2–R6 parked. No publish/delete/renewal, updater lease or apply, main merge or GitHub Release is authorized by this correction.
+
 ## v1.25.19 — KAR-171 bounded account gate failure classification (Work only; not released)
 
 - Owner's real v1.25.18 read-only Stage 3 returned `LIVE_ACCOUNT_UUID_NAME_UNVERIFIED` with all updater/R1 booleans false. This result does **not** establish a wrong login or a UUID mismatch; prior v1.25.17 had reached the fresh remote source scan.
