@@ -400,7 +400,11 @@
     const wanted = String(adId || '');
     if (!/^\d+$/.test(wanted)) throw new Error('Anzeigen-ID ist ungültig.');
     if (!isMyAdsProjectsUrl()) throw new Error('Anzeige kann nur über „Meine Anzeigen“ mit tab=PROJECTS gesucht werden.');
-    const scan = await scanOwnAdsAcrossPages(wanted, { expectedProfileName, requireCompleteRoster, onReadOnlyPageObserved });
+    // Preserve the exact ordinary lookup path; a content receipt is only
+    // requested by the separate, explicit private P8-bound R1 observation.
+    const scan = typeof onReadOnlyPageObserved === 'function'
+      ? await scanOwnAdsAcrossPages(wanted, { expectedProfileName, requireCompleteRoster, onReadOnlyPageObserved })
+      : await scanOwnAdsAcrossPages(wanted, { expectedProfileName, requireCompleteRoster });
     if (!scan.found) {
       diagnostic('RENEWAL_MY_ADS_FALLBACK_NOT_FOUND', { adId: wanted, pagesScanned: scan.pagesScanned, expectedAbsent: Boolean(expectedAbsent) }, notFoundSeverity, correlation);
       return { found: false, adId: wanted, pagesScanned: scan.pagesScanned, evidence: 'not-in-my-ads-full-pagination-scan' };
@@ -426,7 +430,9 @@
     const wanted = String(adId || '');
     if (!/^\d+$/.test(wanted)) throw new Error('Quell-Anzeigen-ID ist ungültig.');
     if (!isMyAdsProjectsUrl()) throw new Error('Quellanzeige kann nur über „Meine Anzeigen“ mit tab=PROJECTS verifiziert werden.');
-    const found = await findOwnAdById(wanted, correlation, { notFoundSeverity: 'info', expectedAbsent: true, expectedProfileName, onReadOnlyPageObserved });
+    const found = typeof onReadOnlyPageObserved === 'function'
+      ? await findOwnAdById(wanted, correlation, { notFoundSeverity: 'info', expectedAbsent: true, expectedProfileName, onReadOnlyPageObserved })
+      : await findOwnAdById(wanted, correlation, { notFoundSeverity: 'info', expectedAbsent: true, expectedProfileName });
     if (found.found) {
       diagnostic('RENEWAL_SOURCE_DELETE_VERIFICATION_FAILED', { adId: wanted, foundPage: found.page, pagesScanned: found.pagesScanned }, 'warning', correlation);
       return { verified: false, adId: wanted, foundPage: found.page, pagesScanned: found.pagesScanned, evidence: 'source-still-present' };
