@@ -128,3 +128,5 @@ jobs:
             ${{ runner.temp }}/kar171-v12522/e2e.json
           retention-days: 30
           if-no-files-found: error
+
+# Trigger token is bound to this single Work-only v1.25.22 source/ZIP package.
