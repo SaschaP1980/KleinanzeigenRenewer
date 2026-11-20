@@ -6,7 +6,8 @@ permissions:
   contents: read
 jobs:
   isolated-inflight:
-    if: github.event.head_commit.message == 'test(KAR-171): add isolated real-MV3 in-flight source scanner gate'
+    if: >-
+      github.event.head_commit.message == 'test(KAR-171): add isolated real-MV3 in-flight source scanner gate'
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     steps:
