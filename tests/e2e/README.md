@@ -66,3 +66,35 @@ python3 tests/e2e/kar171_r1_inflight_mv3_probe.py --report build/kar171-r1-infli
 
 If the Chromium worker cannot start, be identified, terminated or restarted, the test is **FAIL/INFRA, never PASS**. Its JSON report distinguishes `isolatedSyntheticFixture:true`, `ownerNativeScan:false`, `r1Accepted:false`, `eligibleForLease:false`. It is deliberately NOT in the fixed 9-scenario default browser-release matrix.
 
+
+
+### KAR-171 R1 target-side in-flight checkpoint (test-only continuation)
+
+The same isolated **real Chromium MV3** fixture now also starts a second,
+separately held target query **after** the original production scanner has
+already completed the synthetic source scan. It proves the worker is inside
+`TARGET_QUERY_PENDING`, closes only the uniquely identified disposable
+extension service worker target, and requires a third genuine worker generation.
+Stored synthetic receipt history must remain unchanged; target-absent replay
+is denied and a positive outcome requires *new* complete source and target
+scans from that generation. This is distinct from the prior source-query
+interruption and tests loss of a previously successful source observation.
+
+All fixture/browser/test profile paths are generated under an independent
+temporary directory. The fixture has **only** Chrome `storage` permission,
+and no real-account HTTP access. Its `chrome.storage.local` writes populate
+**synthetic fixture receipts only**. Never attach this test to a user's running
+Chrome profile, install it over the production extension or use it to generate
+a positive lease. `Target.closeTarget` applies only to a uniquely observed
+worker in this isolated test context. Reports remain
+`isolatedSyntheticFixture:true`, `ownerNativeScan:false`,
+`r1Accepted:false` and `eligibleForLease:false`.
+
+Chrome 136+ blocks remote-debugging switches for the normal user-data
+directory; a non-default debugging profile is not equivalent to the owner's
+authenticated original-P8 installation. Do not copy user Chrome profiles or
+cookies to evade that boundary. See
+[Chrome's official security announcement](https://developer.chrome.com/blog/remote-debugging-port)
+and the [R1 owner-native protocol](../../docs/testing/KAR171_R1_OWNER_PC_READ_ONLY_PROTOCOL.md).
+This optional fixture is **not** an authenticated in-flight owner-PC test and
+does not change the fixed default 9/9 release E2E suite.
