@@ -67,3 +67,5 @@ jobs:
           if-no-files-found: error
 
 # Single-use Work-only source-validation workflow; remove after success.
+
+# Correction: retain legacy normal path literal for v1.8.10 source contract.
