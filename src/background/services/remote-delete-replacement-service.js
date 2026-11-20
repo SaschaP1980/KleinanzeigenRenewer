@@ -546,11 +546,15 @@ async function verifyPhase4RemoteOutcomeFresh(receipt, onR1ReadOnlyStage = null,
   // Only the private original-P8 owner observer can opt into the diagnostic
   // content receipt. This cannot accept an outcome or grant an update lease.
   // Ordinary remote lookups carry no nonce and do not write witness storage.
+  const hasPrivateHold = r1PrivateWitness !== null
+    && Object.hasOwn(r1PrivateWitness, 'holdKind');
   if (r1PrivateWitness !== null && (!r1PrivateWitness
       || typeof r1PrivateWitness !== 'object'
       || Array.isArray(r1PrivateWitness)
-      || Object.keys(r1PrivateWitness).sort().join(',') !== 'nonce,schema,workerId'
+      || Object.keys(r1PrivateWitness).sort().join(',') !== (hasPrivateHold
+        ? 'holdKind,nonce,schema,workerId' : 'nonce,schema,workerId')
       || r1PrivateWitness.schema !== 1
+      || (hasPrivateHold && !['source','target'].includes(r1PrivateWitness.holdKind))
       || !/^[0-9a-f]{32}$/.test(r1PrivateWitness.nonce)
       || !/^[A-Za-z0-9_-]{1,128}$/.test(r1PrivateWitness.workerId)
       || typeof onR1ReadOnlyStage !== 'function'))
@@ -624,7 +628,11 @@ async function verifyPhase4RemoteOutcomeFresh(receipt, onR1ReadOnlyStage = null,
         requireCompleteRoster: kind === 'target',
         correlation:{renewalId:receipt.renewalId},
         ...(r1PrivateWitness ? {r1ReadOnlyWitness:{
-          ...r1PrivateWitness,kind
+          schema:hasPrivateHold && r1PrivateWitness.holdKind === kind ? 2 : 1,
+          kind,nonce:r1PrivateWitness.nonce,
+          workerId:r1PrivateWitness.workerId,
+          ...(hasPrivateHold && r1PrivateWitness.holdKind === kind
+            ? {holdMs:45000} : {})
         }} : {})
       }, 'journal-scan-' + kind, PHASE4_READONLY_TIMEOUT_MS,
       'KR_PHASE4_JOURNAL_REMOTE_UNVERIFIED');
