@@ -148,8 +148,10 @@ function fixture(){
   });
   return observer;
  }
- return {state,restart,inspect:(observer,r1PrivateWitnessNonce=null)=>observer.inspectOriginalRenewalRemoteLineageReadOnly({
-  renewalId:RENEWAL,attemptId:PHASE_ATTEMPT,r1PrivateWitnessNonce})};
+ return {state,restart,inspect:(observer,r1PrivateWitnessNonce=null,r1PrivateHoldKind=null)=>
+   observer.inspectOriginalRenewalRemoteLineageReadOnly({
+     renewalId:RENEWAL,attemptId:PHASE_ATTEMPT,
+     r1PrivateWitnessNonce,r1PrivateHoldKind})};
 }
 function noRemoteMutations(state){
  assert.equal(state.storageWrites,0);
@@ -263,4 +265,29 @@ test('invalid or missing worker identity cannot start private content witness',a
  assert.equal(x.status,'PRIVATE_WITNESS_CONTEXT_UNVERIFIED');
  assert.equal(f.state.remoteInvocations,0);
  assert.equal(f.state.created.length,0);
+});
+
+test('bounded private hold binds to only ONE original P8 account-verified query',async()=>{
+ const nonce='e'.repeat(32),f=fixture();
+ const x=await f.inspect(f.restart(),nonce,'source');positive(x,f.state);
+ const scans=f.state.requests.filter(x=>['VERIFY_OWN_AD_ABSENT_BY_ID','FIND_OWN_AD_BY_ID'].includes(x.type));
+ assert.equal(scans.length,2);
+ assert.deepEqual({...scans[0].witness},{
+  schema:2,kind:'source',nonce,workerId:'current-worker-1',holdMs:45000
+ });
+ assert.deepEqual({...scans[1].witness},{
+  schema:1,kind:'target',nonce,workerId:'current-worker-1'
+ });
+ assert.equal(f.state.requests.filter(x=>!scans.includes(x)).every(x=>x.witness===null),true);
+ noRemoteMutations(f.state);
+});
+test('private hold without nonce or unknown kind is rejected before any live tab',async()=>{
+ for(const [nonce,kind] of [[null,'source'],['a'.repeat(32),'both'],['f','target']]){
+  const f=fixture();
+  const x=await f.inspect(f.restart(),nonce,kind);
+  denied(x,f.state);
+  assert.equal(x.status,'PRIVATE_WITNESS_CONTEXT_UNVERIFIED');
+  assert.equal(f.state.created.length,0);
+  assert.equal(f.state.remoteInvocations,0);
+ }
 });
