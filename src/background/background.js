@@ -947,6 +947,21 @@ async function discardRenewalDraft(message) {
   return { discarded: true, renewalId, skeletonInventoryId: skeletonInventoryId || null };
 }
 
+async function finalizeExpiredBulkWorkerRecovery(recovery) {
+  await cleanupRecoveredBulkTabs(recovery.tabIds, 'bulk-worker-hard-timeout');
+  if (recovery.state?.sourceAutoCreated === true) await closeRegistryTab(recovery.state.sourceTabId, 'bulk-worker-hard-timeout', '„Meine Anzeigen“-Hintergrundtab').catch(() => {});
+  else if (recovery.state) await releaseBulkSourceOwnership(recovery.state, 'bulk-worker-hard-timeout').catch(() => {});
+  await logDiagnostic('warning', 'BULK_WORKER_HARD_TIMEOUT', {
+    runId: recovery.state?.runId || null,
+    adId: recovery.state?.currentAdId || null,
+    currentItemStartedAt: recovery.state?.currentItemStartedAt || null,
+    timeoutMs: BULK_ITEM_HARD_TIMEOUT_MS
+  }, { module: 'background', operation: 'bulk-watchdog', context: sessionCorrelationContext(recovery.state || {}, { adId: recovery.state?.currentAdId || null }) }).catch(() => {});
+  broadcastInventoryChanged('bulk-worker-timeout', { runId: recovery.state?.runId || null, adId: recovery.state?.currentAdId || null });
+}
+
+let bulkWatchdogActive = false;
+
 async function clearInventories(profileId) {
   const retention = (await getTrashRetentionConfiguration()).retentionDays;
   const active = await getBulkRunState();
@@ -1015,20 +1030,6 @@ function requireBulkInventoryController() {
   return bulkInventoryController;
 }
 
-async function finalizeExpiredBulkWorkerRecovery(recovery) {
-  await cleanupRecoveredBulkTabs(recovery.tabIds, 'bulk-worker-hard-timeout');
-  if (recovery.state?.sourceAutoCreated === true) await closeRegistryTab(recovery.state.sourceTabId, 'bulk-worker-hard-timeout', '„Meine Anzeigen“-Hintergrundtab').catch(() => {});
-  else if (recovery.state) await releaseBulkSourceOwnership(recovery.state, 'bulk-worker-hard-timeout').catch(() => {});
-  await logDiagnostic('warning', 'BULK_WORKER_HARD_TIMEOUT', {
-    runId: recovery.state?.runId || null,
-    adId: recovery.state?.currentAdId || null,
-    currentItemStartedAt: recovery.state?.currentItemStartedAt || null,
-    timeoutMs: BULK_ITEM_HARD_TIMEOUT_MS
-  }, { module: 'background', operation: 'bulk-watchdog', context: sessionCorrelationContext(recovery.state || {}, { adId: recovery.state?.currentAdId || null }) }).catch(() => {});
-  broadcastInventoryChanged('bulk-worker-timeout', { runId: recovery.state?.runId || null, adId: recovery.state?.currentAdId || null });
-}
-
-let bulkWatchdogActive = false;
 async function getBulkRunState() {
   await ensureBulkRuntimeRecovery();
   const workerRecovery = await requireBulkRunGuard().recoverExpiredWorkerRun();

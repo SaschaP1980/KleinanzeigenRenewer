@@ -28,9 +28,12 @@ function timerHarness(){
  return {state,ctx};
 }
 function stateHarness(){
- const start=bg.indexOf('async function finalizeExpiredBulkWorkerRecovery(recovery) {');
+ const helperStart=bg.indexOf('async function finalizeExpiredBulkWorkerRecovery(recovery) {');
+ const helperEnd=bg.indexOf('\nasync function clearInventories(profileId)',helperStart);
+ const start=bg.indexOf('async function getBulkRunState()',helperEnd);
  const end=bg.indexOf('\nfunction normalizedBulkRosterIds',start);
- assert.ok(start>=0&&end>start,'active state ownership must be in actual background.js');
+ assert.ok(helperStart>=0&&helperEnd>helperStart&&start>helperEnd&&end>start,
+   'active state ownership must be in actual background.js');
  let run=null,expired=false;
  const events=[];
  const guard={
@@ -52,7 +55,7 @@ function stateHarness(){
   broadcastInventoryChanged:()=>events.push(['broadcast'])
  };
  vm.createContext(ctx);
- vm.runInContext(bg.slice(start,end),ctx,{filename:'real-bulk-watchdog-state.js'});
+ vm.runInContext(bg.slice(helperStart,helperEnd)+'\n'+bg.slice(start,end),ctx,{filename:'real-bulk-watchdog-state.js'});
  return {ctx,events,put:x=>{run=x;},expire:x=>{expired=x;},
   current:()=>vm.runInContext('bulkWatchdogActive',ctx)};
 }
