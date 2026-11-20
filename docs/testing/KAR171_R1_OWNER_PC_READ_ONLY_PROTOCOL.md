@@ -359,6 +359,73 @@ monitor's completion does **not** require reinstalling v1.25.22 or
 repeating historical Stage 3/Stage 4. No native execution was
 performed merely by checking in this diagnostic script.
 
+## Bounded original-P8 content-query hold (v1.25.23, unapproved native test)
+
+**Purpose:** Replace a merely recent unfinished content receipt with a
+source-verified, bounded interval during which a selected actual
+authenticated `Meine Anzeigen` content query cannot naturally return a
+positive result. The strict private original-P8 observer supports an
+**explicit**, never automatic `r1PrivateHoldKind: 'source' | 'target'`
+only alongside a valid fresh private R1 nonce. It preserves the initial
+P8/publication/account preflight, independent source and target tabs,
+post-read account reconciliation, immutable original receipt and denial
+of all positive update leases. The hold flag is never added to a
+normal inventory/renewal scan, a public message route, a publish/delete
+command or an automatic lifecycle callback.
+
+The existing source/target **read-only** content request alone receives
+`schema:2` with a **fixed `holdMs:45000`** if its kind matches
+the private test's selected hold. The *real content script* first reads,
+accounts for and validates page 1, persists its usual
+`page-confirmed` receipt, then writes a sanitized `held-pending`
+receipt with `holdUntilMs` and awaits a 45-second timer. That pending
+Promise **cannot resolve successfully**, and on expiry it rejects
+`KR_R1_CONTROLLED_HOLD_TIMEOUT`, records `failed`, and aborts
+the private query. A failure to persist a receipt also aborts it.
+There is no external release token, indefinite wait, fake successful
+remote scan, account profile operation or actual listing mutation.
+A controlled worker interruption while held may close the original
+message channel, but the expected source/target result remains
+unverified until a separately witnessed **new-worker** full read-only
+same-account rescan.
+
+The independent, nonpackaged
+[`KAR171_R1_CONTENT_PENDING_MONITOR_READ_ONLY.js`](KAR171_R1_CONTENT_PENDING_MONITOR_READ_ONLY.js)
+now requires **v1.25.23**. It validates `held-pending` only after
+the exact same original source/target receipt has already shown one
+authenticated page; deadline, counters, nonce, generation and timestamp
+must be internally consistent. It reports
+`CONTROLLED_HOLD_WINDOW_CANDIDATE_ONLY` while there is time
+remaining and the independent observation is fresh. The exact Chrome
+worker stop instant and continued tab/content existence **still need
+independent real-browser corroboration**. A stale, interrupted,
+wrong-account, wrong-version or missing observation cannot prove a
+safe recovery or updater lease.
+
+The separate nonpackaged
+[`KAR171_R1_CONTROLLED_SOURCE_HOLD_READ_ONLY.js`](KAR171_R1_CONTROLLED_SOURCE_HOLD_READ_ONLY.js)
+is source-only and explicitly gates to installed **v1.25.23**. It
+generates a fresh random nonce and uses the original private owner
+observer with `r1PrivateHoldKind:'source'`; it does **not** stop the
+worker, kill Chrome, navigate a user tab, create ads, publish, delete,
+reserve/apply an update or authorize a release. **Do not execute
+either diagnostic or install the Work ZIP merely to produce evidence.**
+Before a real owner-controlled test, separately establish a complete
+restorable backup, identity/Chrome build, no competing mutation,
+uniquely attributable in-browser worker Stop UI and explicit
+bounded owner approval. A human Stop is permitted only if the exact
+unique worker and nonexpired held request are both freshly confirmed,
+and the original account-safe source/target baseline is retained.
+Record any failures as **R1 BLOCKED**, not inferred PASS.
+
+This is an intentional **non-mutating read-only test pause**, not a
+claim that the website's network request itself was pending throughout
+the interval, nor proof Chrome can stop that precise worker in the
+owner's installed profile. Native R1 acceptance still requires the
+genuine stop/new generation, unchanged original P8, complete fresh
+post-restart source absence and target presence, and all fail-closed
+negative evidence. R2–R6 and positive updater authority stay parked.
+
 ## R1 exit decision
 
 R1 remains **BLOCKED / NOT ACCEPTED** until the authentic, source-safe owner-controlled results exist, all required negative/positive and interruption cases are linked to an exact tested source revision, and the full applicable regressions are GREEN. Acceptance must be explicitly recorded as `R1 ACCEPTED` in #171 before **R2** can become active. No subsequent R2–R6 work, positive updater lease, Windows apply, Chrome reload, merge or release is authorized by creation of this protocol.
