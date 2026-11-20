@@ -6,7 +6,6 @@ permissions:
   contents: read
 jobs:
   focused:
-    if: startsWith(github.event.head_commit.message, 'test(KAR-171): RED transient profile metadata')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
