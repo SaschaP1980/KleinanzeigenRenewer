@@ -21,6 +21,11 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          python3 -m py_compile tests/e2e/kar171_r1_inflight_mv3_probe.py
+          if git diff --name-only 78dee5466f5f7a2cb77f886313f8ff5685dffca9 "$GITHUB_SHA" -- manifest.json src tools/windows package-lock.json release | grep -q .; then
+            echo 'Unexpected product runtime or archived ZIP mutation in test-only R1 branch' >&2
+            exit 1
+          fi
           node --test tests/kar171-r1-native-inflight-fixture-contract.cjs
       - name: Complete coverage/architecture on tested intended tree (GREEN only)
         if: contains(github.event.head_commit.message, 'GREEN')
