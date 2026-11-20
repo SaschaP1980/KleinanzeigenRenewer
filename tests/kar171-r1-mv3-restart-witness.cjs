@@ -1,4 +1,4 @@
-// KAR-171 R1 / v1.25.20 owner-opt-in worker continuity script safety.
+// KAR-171 R1 / v1.25.21 owner-opt-in worker continuity script safety.
 'use strict';
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
@@ -53,7 +53,7 @@ function rows(){
  };
 }
 async function invoke({snapshot=rows(),worker='current-worker-111',expected=null,
- extension=EXT,protocol='chrome-extension:',version='1.25.20',
+ extension=EXT,protocol='chrome-extension:',version='1.25.21',
  readingError=false,observerError=false,observerProfile='matched',mutateOnObserve=null,
  noObserver=false,noCrypto=false}={}){
  const result=[],audit={reads:0,writes:0,tabs:0,network:0,observe:0};
@@ -182,6 +182,7 @@ test('missing, ambiguous, incomplete original P8 all fail before any worker rest
 });
 for(const opts of [
  {extension:'wrong-extension'},{protocol:'https:'},{version:'1.25.19'},
+ {version:'1.25.20'},
  {noObserver:true},{noCrypto:true},{observerProfile:'unverified'},
  {readingError:true},{observerError:true}
 ]){

@@ -86,7 +86,6 @@ const APP_WINDOW_INITIAL_WIDTH = 1180;
 const APP_WINDOW_INITIAL_HEIGHT = 900;
 const BULK_RETRY_TIMEOUT_MS = 90000;
 const BULK_ITEM_HARD_TIMEOUT_MS = 110000;
-const BULK_RUN_WATCHDOG_TICK_MS = 15000;
 const BULK_RUN_RUNTIME_LEASE_KEY = "bulkRunRuntimeLeaseV1";
 const RUNTIME_EPOCH_KEY = "runtimeEpochV1";
 const BULK_RETRY_POLL_MS = 500;
@@ -2416,11 +2415,25 @@ void withAutonomousAdmission('trash-purge-boot', () => purgeExpiredTrash()).catc
 chrome.runtime.onStartup?.addListener(() => { void withAutonomousAdmission('trash-purge-startup', () => purgeExpiredTrash()).catch(() => {}); });
 chrome.runtime.onInstalled?.addListener(() => { void withAutonomousAdmission('trash-purge-installed', () => purgeExpiredTrash()).catch(() => {}); });
 
-// Bulk inventory recovery: extension reload/browser restart invalidates the session lease,
-// while an independent watchdog enforces the hard per-item deadline even if the source loop stalls.
+// Bulk inventory recovery: extension reload/browser restart invalidates the session lease.
+// Immediate recovery remains, but the periodic check must not pin the MV3 worker.
 void withAutonomousAdmission('bulk-runtime-recovery', () => ensureBulkRuntimeRecovery()).catch(() => {});
 void withAutonomousAdmission('bulk-watchdog', () => bulkRunWatchdogTick()).catch(() => {});
-if (typeof setInterval === 'function') setInterval(() => { void withAutonomousAdmission('bulk-watchdog', () => bulkRunWatchdogTick()).catch(() => {}); }, BULK_RUN_WATCHDOG_TICK_MS);
+// KAR-171 R1: MV3 sleep-safe bulk watchdog alarm.
+// The old 15s P8/storage API loop reset Chrome's 30s idle timer indefinitely.
+// A 1-minute Chrome alarm wakes the worker for the SAME fail-closed recovery.
+// Chrome may delay alarms: this is best-effort recovery, not a real-time SLA.
+const BULK_WATCHDOG_ALARM_NAME = 'kar-bulk-run-watchdog';
+chrome.alarms.onAlarm.addListener(alarm => {
+  if (alarm?.name !== BULK_WATCHDOG_ALARM_NAME) return;
+  void withAutonomousAdmission('bulk-watchdog', () => bulkRunWatchdogTick()).catch(() => {});
+});
+// Recheck on every cold start; do not reset an existing periodic alarm.
+chrome.alarms.get(BULK_WATCHDOG_ALARM_NAME, existing => {
+  if (chrome.runtime.lastError) return;
+  if (!existing || existing.periodInMinutes !== 1)
+    chrome.alarms.create(BULK_WATCHDOG_ALARM_NAME, { periodInMinutes: 1 });
+});
 
 // Recover persisted workflows only when no platform safety stop is active.
 void readPlatformAccessRestriction().then(state => {

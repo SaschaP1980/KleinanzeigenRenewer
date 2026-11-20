@@ -1,4 +1,4 @@
-// KAR-171 R1 / v1.25.20: PRIVATE OWNER OPT-IN MV3 restart continuity witness.
+// KAR-171 R1 / v1.25.21: PRIVATE OWNER OPT-IN MV3 restart continuity witness.
 // Run ONLY from the installed extension's own SERVICE-WORKER DevTools console.
 // This script does NOT stop/restart a worker; the owner separately confirms
 // actual Chrome "service worker (inactive)" between two invocations.
@@ -10,7 +10,7 @@
  'use strict';
  const TAG='KAR171_R1_MV3_RESTART_WITNESS_V1';
  const EXT='hafahjhhgiipdegfkgacchmnacgblnah';
- const VERSION='1.25.20';
+ const VERSION='1.25.21';
  // Step B example: {originFingerprint:'<24 lower-case hex>',workerFingerprint:'<24 lower-case hex>'}.
  const EXPECTED=null;
  const id=x=>typeof x==='string'&&/^[A-Za-z0-9_-]{1,128}$/.test(x);
@@ -161,5 +161,5 @@
    output('READ_ONLY_WITNESS_UNAVAILABLE');
  }
 })().catch(()=>console.info('KAR171_R1_MV3_RESTART_WITNESS_V1',
- JSON.stringify({status:'READ_ONLY_WITNESS_UNAVAILABLE',runtimeVersion:'1.25.20',
+ JSON.stringify({status:'READ_ONLY_WITNESS_UNAVAILABLE',runtimeVersion:'1.25.21',
  r1Accepted:false,eligibleForLease:false})));

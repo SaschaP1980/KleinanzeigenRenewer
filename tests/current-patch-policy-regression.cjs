@@ -22,8 +22,13 @@ assert.equal(includesSupportedRelease(historicalEra, '1.24.1'), true,
   'approved 1.24.x PATCH must still satisfy historical UI/runtime gates');
 assert.equal(includesSupportedRelease(historicalEra, '1.24.01'), false,
   'malformed 1.24 PATCH must remain rejected');
-assert.deepEqual(expectedManifestPermissions('1.24.0').sort(), canonical.manifest.permissions.slice().sort(),
-  'approved minor must preserve the already granted nativeMessaging permission');
+assert.deepEqual(expectedManifestPermissions(canonical.manifest.version).sort(),
+  canonical.manifest.permissions.slice().sort(),
+  'current manifest grants only version-approved nativeMessaging and MV3 alarms permissions');
+assert.equal(expectedManifestPermissions('1.24.0').includes('alarms'), false,
+  'historical minor must not acquire the new alarm permission');
+assert.equal(expectedManifestPermissions('1.25.20').includes('alarms'), false,
+  'owner native-proven v1.25.20 permission contract is immutable');
 assert.equal(expectedManifestPermissions('1.24.01').includes('nativeMessaging'), false,
   'do not accept malformed MINOR values');
 assert.equal(includesActivePatch(historicalEra, '1.23.025'), false);
@@ -32,6 +37,7 @@ assert.deepEqual(historicalEra, ['1.23.20', '1.23.22', '1.23.23', '1.23.24']);
 // correction-era PATCH policy as a synthetic historical fixture, not by trying
 // to validate the current MINOR release through the obsolete PATCH predicate.
 const validCorrectionEra = clone(canonical);
+validCorrectionEra.manifest.permissions = validCorrectionEra.manifest.permissions.filter(p => p !== 'alarms');
 for (const name of ['manifest', 'pkg', 'lock', 'spec']) validCorrectionEra[name].version = '1.23.92';
 validCorrectionEra.pkg.displayVersion = '1.23.92';
 validCorrectionEra.lock.packages[''].version = '1.23.92';
@@ -51,7 +57,7 @@ validNextPatch.spec.packageVersion = '1.23.25';
 validNextPatch.manifest.permissions = validNextPatch.manifest.permissions.filter(p => p !== 'nativeMessaging');
 
 const isSyntheticNextPatch = process.env.KAR46_SYNTHETIC_PATCH === '1';
-assert.ok(['1.24.0', '1.24.1', '1.24.2', '1.24.3', '1.25.0', '1.25.1', '1.25.2', '1.25.3', '1.25.4', '1.25.5', '1.25.6', '1.25.7', '1.25.8', '1.25.9', '1.25.10', '1.25.11', '1.25.12', '1.25.13', '1.25.14', '1.25.15', '1.25.16', '1.25.17', '1.25.18', '1.25.19', '1.25.20'].includes(canonical.manifest.version),
+assert.ok(['1.24.0', '1.24.1', '1.24.2', '1.24.3', '1.25.0', '1.25.1', '1.25.2', '1.25.3', '1.25.4', '1.25.5', '1.25.6', '1.25.7', '1.25.8', '1.25.9', '1.25.10', '1.25.11', '1.25.12', '1.25.13', '1.25.14', '1.25.15', '1.25.16', '1.25.17', '1.25.18', '1.25.19', '1.25.20', '1.25.21'].includes(canonical.manifest.version),
   'only explicitly approved KAR-161/KAR-164 MINOR or KAR-185/KAR-186/KAR-195/KAR-197/KAR-199/KAR-201/KAR-171 PATCH candidates are current');
 if (canonical.manifest.version === '1.24.0' || canonical.manifest.version === '1.25.0') {
   assert.equal(isCurrentPatchVersion(canonical.manifest.version), false,
@@ -68,7 +74,7 @@ for (const [version, allowed] of [
   ['1.23.22', true], ['1.23.23', true], ['1.23.24', true], ['1.23.25', true],
   ['1.23.26', true], ['1.23.21', false], ['1.23.20_c1', false],
   ['1.24.0', false], ['1.24.1', true], ['1.24.2', true], ['1.24.3', true],
-  ['1.24.01', false], ['1.25.0', false], ['1.25.1', true], ['1.25.2', true], ['1.25.3', true], ['1.25.4', true], ['1.25.5', true], ['1.25.6', true], ['1.25.7', true], ['1.25.8', true], ['1.25.9', true], ['1.25.10', true], ['1.25.11', true], ['1.25.12', true], ['1.25.13', true], ['1.25.14', true], ['1.25.15', true], ['1.25.16', true], ['1.25.17', true], ['1.25.18', true], ['1.25.19', true], ['1.25.20', true], ['2.0.0', false], ['1.23.025', false],
+  ['1.24.01', false], ['1.25.0', false], ['1.25.1', true], ['1.25.2', true], ['1.25.3', true], ['1.25.4', true], ['1.25.5', true], ['1.25.6', true], ['1.25.7', true], ['1.25.8', true], ['1.25.9', true], ['1.25.10', true], ['1.25.11', true], ['1.25.12', true], ['1.25.13', true], ['1.25.14', true], ['1.25.15', true], ['1.25.16', true], ['1.25.17', true], ['1.25.18', true], ['1.25.19', true], ['1.25.20', true], ['1.25.21', true], ['2.0.0', false], ['1.23.025', false],
   ['1.23.-1', false], ['1.23.25-rc.1', false], ['1.23.25+meta', false],
   ['1.23.9007199254740992', false], ['', false], [null, false]
 ]) assert.equal(isCurrentPatchVersion(version), allowed, String(version));
