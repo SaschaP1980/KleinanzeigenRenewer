@@ -33,3 +33,5 @@ jobs:
           node --check src/background/services/remote-delete-replacement-service.js
           node --check src/background/services/additional-owner-observer.js
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+
+# GREEN focused source+content+observer contracts; no owner Chrome execution.
