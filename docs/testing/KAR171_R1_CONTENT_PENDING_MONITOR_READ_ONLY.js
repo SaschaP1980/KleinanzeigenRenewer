@@ -21,11 +21,15 @@
   const MAX_EVENT_AGE_MS=30000;
   const MAX_FUTURE_MS=5000;
   const MAX_LIFETIME_MS=180000;
-  const STATES=new Set(['received','page-confirmed','settled','failed']);
+  const STATES=new Set(['received','page-confirmed','held-pending','settled','failed']);
   const KINDS=new Set(['source','target']);
   const FIELDS=[
     'expectedOnline','kind','nonce','observedAtMs','pagesScanned',
     'schema','state','uniqueCards','workerId'
+  ].join(',');
+  const HOLD_FIELDS=[
+    'expectedOnline','holdUntilMs','kind','nonce','observedAtMs',
+    'pagesScanned','schema','state','uniqueCards','workerId'
   ].join(',');
   const output=(status,kind=null,pagesScanned=null)=>console.info(TAG,JSON.stringify({
     status,
@@ -51,8 +55,10 @@
   const isTerminal=x=>x?.state==='settled'||x?.state==='failed';
   const valid=row=>{
     if(!row||typeof row!=='object'||Array.isArray(row)
-       ||Object.keys(row).sort().join(',')!==FIELDS
-       ||row.schema!==1||!KINDS.has(row.kind)||!STATES.has(row.state)
+       ||Object.keys(row).sort().join(',')!==(row.state==='held-pending'
+         ? HOLD_FIELDS : FIELDS)
+       ||row.schema!==(row.state==='held-pending' ? 2 : 1)
+       ||!KINDS.has(row.kind)||!STATES.has(row.state)
        ||typeof row.nonce!=='string'||!/^[0-9a-f]{32}$/.test(row.nonce)
        ||typeof row.workerId!=='string'
        ||!/^[A-Za-z0-9_-]{1,128}$/.test(row.workerId)
@@ -69,6 +75,12 @@
        ||row.uniqueCards!==0 ||row.expectedOnline!==null))return false;
     if(row.state==='page-confirmed' && (row.pagesScanned<1
        ||!Number.isSafeInteger(row.expectedOnline)))return false;
+    if(row.state==='held-pending' && (
+       row.pagesScanned!==1
+       ||!Number.isSafeInteger(row.expectedOnline)
+       ||!Number.isSafeInteger(row.holdUntilMs)
+       ||row.holdUntilMs-row.observedAtMs<43000
+       ||row.holdUntilMs-row.observedAtMs>46000))return false;
     return true;
   };
   const invalidate=status=>{ambiguous=true;output(status);};
@@ -97,6 +109,21 @@
       invalidate('UNVERIFIED_NONMONOTONIC_CONTENT');
       return;
     }
+    if(last.state==='held-pending' && row.state!=='failed'){
+      invalidate('UNVERIFIED_NONMONOTONIC_CONTENT');return;
+    }
+    if(row.state==='held-pending'){
+      if(last.state!=='page-confirmed'
+         ||row.pagesScanned!==last.pagesScanned
+         ||row.uniqueCards!==last.uniqueCards
+         ||row.expectedOnline!==last.expectedOnline
+         ||row.holdUntilMs<=Date.now()+1000){
+        invalidate('UNVERIFIED_NONMONOTONIC_CONTENT');return;
+      }
+      last=row;
+      output('CONTROLLED_HOLD_ARMED',row.kind,row.pagesScanned);
+      return;
+    }
     if(row.state==='page-confirmed'){
       if(row.pagesScanned<=last.pagesScanned){
         invalidate('UNVERIFIED_NONMONOTONIC_CONTENT');return;
@@ -117,11 +144,17 @@
       row.kind,row.pagesScanned);
   };
   const snapshot=()=>{
+    const recent=last&&!isTerminal(last)
+      &&Date.now()-last.observedAtMs>=0
+      &&Date.now()-last.observedAtMs<=MAX_AGE_MS;
+    const controlled=last?.state==='held-pending'
+      &&Date.now()-last.observedAtMs>=0
+      &&Date.now()-last.observedAtMs<=MAX_EVENT_AGE_MS
+      &&Date.now()+1000<last.holdUntilMs;
     const status=ambiguous?'AMBIGUOUS_EVIDENCE'
-      :(last&&!isTerminal(last)
-        &&Date.now()-last.observedAtMs>=0
-        &&Date.now()-last.observedAtMs<=MAX_AGE_MS
-        ?'RECENT_UNSETTLED_CANDIDATE_ONLY':'NO_LIVE_PENDING_WINDOW');
+      :controlled?'CONTROLLED_HOLD_WINDOW_CANDIDATE_ONLY'
+      :recent?'RECENT_UNSETTLED_CANDIDATE_ONLY'
+      :'NO_LIVE_PENDING_WINDOW';
     output(status,last?.kind||null,last?.pagesScanned??null);
     return Object.freeze({
       status,
