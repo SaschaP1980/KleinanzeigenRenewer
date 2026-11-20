@@ -71,6 +71,13 @@ All distinct historical section bodies from the former root README and CHANGELOG
 - Preserve and independently test original P8 publication/Phase-4 provenance, authenticated account-bound My Ads source/target whole-roster read-only checks, worker generation safety and fail-closed remote outcome.
 - This is an owner-requested installable test build only. R1 is NOT ACCEPTED; no updater lease or NativeHost apply, Chrome reload, actual listing mutation, main merge or GitHub Release is authorized by this version.
 
+## v1.25.23 — KAR-171 bounded R1 content pending hold (Work-only candidate, not published)
+
+- Add an **explicitly opted-in, 45-second, fail-closed private content-side hold** after validating the first authenticated `Meine Anzeigen` page for the original-P8-bound, read-only R1 source **or** target query. Without a separately approved Chrome worker interruption, the held request intentionally times out with an error. The regular R1 check and every ordinary inventory, listing, publish, delete and renewal route retain the no-hold behavior.
+- Route a hold configuration only from the private original-P8 owner observer through the existing read-only source/target messages. A fixed `schema:2` hold receipt with no listing IDs or account data is written by the content script and independently recognized by the nonpackaged v1.25.23 App-window monitor; invalid kind, duration, ordering, nonce or terminal result fails closed.
+- Provide a nonpackaged source-hold DevTools experiment, intentionally inert until **separately authorized owner installation and native test**. No additional Chrome permission, public IPC, automatic publish/delete, Chrome reload, NativeHost mutation, update lease or positive R1 certification.
+- Prior `v1.25.22` and owner-installed `v1.25.21` ZIP files remain immutable. A controlled content hold is a stronger timing witness than a pre-dispatch marker, but still requires a real independently observed native worker stop, same-account P8 continuity and complete fresh post-restart scans. R1 remains **BLOCKED** and R2–R6 are not opened.
+
 ## v1.25.22 — KAR-171 R1 private content-side witness (Work-only candidate, not published)
 
 - Add an expressly opt-in, original-P8-bound read-only R1 observation path. The genuine My Ads content script—not merely the MV3 worker—records `received`, validated `page-confirmed`, `settled` and `failed` milestones with bounded numeric page/card counts and a fresh private nonce/worker identity.
