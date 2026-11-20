@@ -256,6 +256,58 @@ plus Chrome Stop feasibility, no competing mutations, backup/restore and the
 full original-P8/account/source-target replay barrier. Until then do not
 issue an owner test or infer safe updater authority.
 
+## R1 production content-origin receipt source checkpoint (2026-11-20)
+
+**Work-only source, NOT an approved owner installation, native execution or
+R1 acceptance.** An explicitly opted-in `inspectOriginalRenewalRemoteLineageReadOnly`
+invocation can now pass a fresh 128-bit hexadecimal nonce to the existing
+authenticated source/target `verifyPhase4RemoteOutcomeFresh` path **only after**
+the original Phase-4/publication/P8/account preconditions have passed. The
+same existing read-only `VERIFY_OWN_AD_ABSENT_BY_ID` and
+`FIND_OWN_AD_BY_ID` content-script handlers accept this strictly validated,
+optional diagnostic object. No additional message type, public controller,
+UI action, updater contract or host/Chrome permissions are introduced.
+
+When opted in, **the real My Ads content script** (not the worker) performs
+an explicit local `chrome.storage.local.set` of **one** bounded
+`kar171R1ContentWitnessV1` record: `schema=1`, a private nonce,
+current worker-generation identifier, `kind=source|target`,
+`state=received|page-confirmed|settled|failed`, monotonically
+increasing `pagesScanned`, `uniqueCards`, the stable numeric
+`expectedOnline` where available and a timestamp. No Ad IDs, page URL,
+account display name, account UUID, P8 admission token, card contents or
+credentials are stored in the record. It is local **diagnostic bookkeeping**,
+not a pure read of Chrome storage. On a regular scan, no witness object is
+present and there is **no added storage write**. Bad nonce/generation/kind,
+unavailable storage and contradictory count progression fail the private
+request closed.
+
+The `received` event is a genuine content-handler entry receipt; the
+`page-confirmed` event follows a checked, actually enumerated My Ads page.
+These signals improve independence over worker-side `REQUEST_STARTED`.
+**Neither signal by itself proves that the content scan is still running at
+the exact worker termination instant.** Content may continue, finish and
+write `settled` after the worker is terminated; cross-tab concurrent
+storage changes, late reads, and native observer availability must be
+measured, not inferred from a stale record. There is no success authority,
+no positive `safeToApply`, no remote-mutation request, no replay or
+exception-based fallback. The single overwritten slot is **not a durable
+event log**. It cannot be used as a standalone lease, remote outcome,
+per-page native acceptance, or completeness certificate.
+
+The draft owner-only opt-in script
+[KAR171_R1_PRIVATE_CONTENT_WITNESS_READ_ONLY.js](KAR171_R1_PRIVATE_CONTENT_WITNESS_READ_ONLY.js)
+is **intentionally nonpackaged** and refuses installed versions other than
+future Work-only `1.25.22`. It is not authorized for execution on the
+owner's installed `1.25.21`, must not be pasted into Chrome now, and
+does not terminate workers. A future Work-only install must first deliver
+a version-consistent, independently source-verified immutable ZIP, full
+regression/coverage parity and a reviewed safe backup/restore. An actual
+in-flight Stop requires a **separate explicit owner decision**, verified
+Chrome UI mechanism, independent pending/terminal observation, no ongoing
+mutations and original P8/read-only authenticated recovery. R1 remains
+**BLOCKED / NOT ACCEPTED**; R2–R6 stay parked.
+
 ## R1 exit decision
 
 R1 remains **BLOCKED / NOT ACCEPTED** until the authentic, source-safe owner-controlled results exist, all required negative/positive and interruption cases are linked to an exact tested source revision, and the full applicable regressions are GREEN. Acceptance must be explicitly recorded as `R1 ACCEPTED` in #171 before **R2** can become active. No subsequent R2–R6 work, positive updater lease, Windows apply, Chrome reload, merge or release is authorized by creation of this protocol.
