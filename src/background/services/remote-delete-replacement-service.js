@@ -542,7 +542,19 @@ async function verifyRenewalSourceAbsenceFresh(session, expectedProfile, windowI
 }
 
 
-async function verifyPhase4RemoteOutcomeFresh(receipt, onR1ReadOnlyStage = null) {
+async function verifyPhase4RemoteOutcomeFresh(receipt, onR1ReadOnlyStage = null, r1PrivateWitness = null) {
+  // Only the private original-P8 owner observer can opt into the diagnostic
+  // content receipt. This cannot accept an outcome or grant an update lease.
+  // Ordinary remote lookups carry no nonce and do not write witness storage.
+  if (r1PrivateWitness !== null && (!r1PrivateWitness
+      || typeof r1PrivateWitness !== 'object'
+      || Array.isArray(r1PrivateWitness)
+      || Object.keys(r1PrivateWitness).sort().join(',') !== 'nonce,schema,workerId'
+      || r1PrivateWitness.schema !== 1
+      || !/^[0-9a-f]{32}$/.test(r1PrivateWitness.nonce)
+      || !/^[A-Za-z0-9_-]{1,128}$/.test(r1PrivateWitness.workerId)
+      || typeof onR1ReadOnlyStage !== 'function'))
+    throw new Error('KR_R1_PRIVATE_WITNESS_INVALID');
   // Only fixed stage codes are exposed to the private owner R1 witness.
   // The callback cannot supply scan results or approve a remote outcome.
   const stage = code => { if(typeof onR1ReadOnlyStage==='function') onR1ReadOnlyStage(code); };
@@ -610,7 +622,10 @@ async function verifyPhase4RemoteOutcomeFresh(receipt, onR1ReadOnlyStage = null)
       const result = await boundedPhase4TabRequest(tabId,{
         type:command,adId:id,expectedProfileName:expected,
         requireCompleteRoster: kind === 'target',
-        correlation:{renewalId:receipt.renewalId}
+        correlation:{renewalId:receipt.renewalId},
+        ...(r1PrivateWitness ? {r1ReadOnlyWitness:{
+          ...r1PrivateWitness,kind
+        }} : {})
       }, 'journal-scan-' + kind, PHASE4_READONLY_TIMEOUT_MS,
       'KR_PHASE4_JOURNAL_REMOTE_UNVERIFIED');
       stage(kind === 'source' ? 'SOURCE_QUERY_RETURNED' : 'TARGET_QUERY_RETURNED');
