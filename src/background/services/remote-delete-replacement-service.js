@@ -547,6 +547,8 @@ async function verifyPhase4RemoteOutcomeFresh(receipt, onR1ReadOnlyStage = null,
   // content receipt. This cannot accept an outcome or grant an update lease.
   // Ordinary remote lookups carry no nonce and do not write witness storage.
   const hasPrivateHold = r1PrivateWitness !== null
+    && typeof r1PrivateWitness === 'object'
+    && !Array.isArray(r1PrivateWitness)
     && Object.hasOwn(r1PrivateWitness, 'holdKind');
   if (r1PrivateWitness !== null && (!r1PrivateWitness
       || typeof r1PrivateWitness !== 'object'
