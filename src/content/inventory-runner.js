@@ -96,10 +96,18 @@
   function runPrivateR1ReadOnlyWitness(message, kind, operation) {
     const witness = message?.r1ReadOnlyWitness;
     if (witness === undefined) return operation(null);
+    // Schema 2 is exclusively a fixed 45-second, first-authenticated-page
+    // hold used during a separately approved owner-controlled R1 interruption.
+    // It cannot be enabled by ordinary inventory/renewal work, and cannot
+    // accept arbitrary durations or a different content request type.
+    const holdEnabled = witness?.schema === 2;
     const valid = witness && typeof witness === 'object'
       && !Array.isArray(witness)
-      && Object.keys(witness).sort().join(',') === 'kind,nonce,schema,workerId'
-      && witness.schema === 1 && witness.kind === kind
+      && Object.keys(witness).sort().join(',') === (holdEnabled
+        ? 'holdMs,kind,nonce,schema,workerId'
+        : 'kind,nonce,schema,workerId')
+      && (holdEnabled ? witness.holdMs === 45000 : witness.schema === 1)
+      && witness.kind === kind
       && typeof witness.nonce === 'string' && /^[0-9a-f]{32}$/.test(witness.nonce)
       && typeof witness.workerId === 'string'
       && /^[A-Za-z0-9_-]{1,128}$/.test(witness.workerId)
@@ -109,10 +117,11 @@
       schema:1,kind,nonce:witness.nonce,workerId:witness.workerId
     });
     let pagesScanned = 0, uniqueCards = 0, expectedOnline = null;
-    const emit = (state) => chrome.storage.local.set({
+    const emit = (state, holdUntilMs = null) => chrome.storage.local.set({
       [R1_CONTENT_WITNESS_KEY]: {
         ...captured,state,pagesScanned,uniqueCards,expectedOnline,
-        observedAtMs:Date.now()
+        observedAtMs:Date.now(),
+        ...(holdUntilMs === null ? {} : {schema:2,holdUntilMs})
       }
     });
     return (async () => {
@@ -133,6 +142,17 @@
           uniqueCards = page.uniqueCards;
           expectedOnline = page.expectedOnline;
           await emit('page-confirmed');
+          if (holdEnabled && pagesScanned === 1) {
+            // The content script has already observed and verified page one.
+            // It MUST remain awaiting this private request while the fixed
+            // timer is armed. No user-driven release, remote action, success
+            // replay, indefinite waiting or updater authority is possible.
+            const holdUntilMs = Date.now() + 45000;
+            await emit('held-pending', holdUntilMs);
+            await new Promise((_, reject) => setTimeout(
+              () => reject(new Error('KR_R1_CONTROLLED_HOLD_TIMEOUT')), 45000
+            ));
+          }
         });
         await emit('settled');
         return result;
