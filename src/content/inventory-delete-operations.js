@@ -178,7 +178,7 @@
     return false;
   }
 
-  async function scanOwnAdsAcrossPages(adId, { expectedProfileName = '', requireCompleteRoster = false } = {}) {
+  async function scanOwnAdsAcrossPages(adId, { expectedProfileName = '', requireCompleteRoster = false, onReadOnlyPageObserved = null } = {}) {
     const wanted = String(adId || '');
     // Only authenticated remote-outcome probes supply this expected account.
     // The generic inventory lookup and delete flows retain their own account
@@ -237,6 +237,16 @@
       if (seenPageStates.has(stateKey)) throw new Error('Seitennavigation in „Meine Anzeigen“ wiederholt sich; Abbruch aus Sicherheitsgründen.');
       seenPageStates.add(stateKey);
       pages.push({ page, fingerprint, listingCount: listings.length });
+      // R1 private witness is an optional, non-authorizing content-side
+      // observation made after an actual authenticated page was inspected.
+      // Never include Ad IDs, account labels, URL or page fingerprints.
+      if (typeof onReadOnlyPageObserved === 'function') {
+        await onReadOnlyPageObserved(Object.freeze({
+          pagesScanned: pages.length,
+          uniqueCards: seenAdIds.size,
+          expectedOnline
+        }));
+      }
 
       const listing = listings.find(item => String(item.adId) === wanted);
       if (listing) {
@@ -386,11 +396,11 @@
     };
   }
 
-  async function findOwnAdById(adId, correlation = {}, { notFoundSeverity = 'warning', expectedAbsent = false, expectedProfileName = '', requireCompleteRoster = false } = {}) {
+  async function findOwnAdById(adId, correlation = {}, { notFoundSeverity = 'warning', expectedAbsent = false, expectedProfileName = '', requireCompleteRoster = false, onReadOnlyPageObserved = null } = {}) {
     const wanted = String(adId || '');
     if (!/^\d+$/.test(wanted)) throw new Error('Anzeigen-ID ist ungültig.');
     if (!isMyAdsProjectsUrl()) throw new Error('Anzeige kann nur über „Meine Anzeigen“ mit tab=PROJECTS gesucht werden.');
-    const scan = await scanOwnAdsAcrossPages(wanted, { expectedProfileName, requireCompleteRoster });
+    const scan = await scanOwnAdsAcrossPages(wanted, { expectedProfileName, requireCompleteRoster, onReadOnlyPageObserved });
     if (!scan.found) {
       diagnostic('RENEWAL_MY_ADS_FALLBACK_NOT_FOUND', { adId: wanted, pagesScanned: scan.pagesScanned, expectedAbsent: Boolean(expectedAbsent) }, notFoundSeverity, correlation);
       return { found: false, adId: wanted, pagesScanned: scan.pagesScanned, evidence: 'not-in-my-ads-full-pagination-scan' };
@@ -412,11 +422,11 @@
     return result;
   }
 
-  async function verifyOwnAdAbsentById(adId, correlation = {}, { expectedProfileName = '' } = {}) {
+  async function verifyOwnAdAbsentById(adId, correlation = {}, { expectedProfileName = '', onReadOnlyPageObserved = null } = {}) {
     const wanted = String(adId || '');
     if (!/^\d+$/.test(wanted)) throw new Error('Quell-Anzeigen-ID ist ungültig.');
     if (!isMyAdsProjectsUrl()) throw new Error('Quellanzeige kann nur über „Meine Anzeigen“ mit tab=PROJECTS verifiziert werden.');
-    const found = await findOwnAdById(wanted, correlation, { notFoundSeverity: 'info', expectedAbsent: true, expectedProfileName });
+    const found = await findOwnAdById(wanted, correlation, { notFoundSeverity: 'info', expectedAbsent: true, expectedProfileName, onReadOnlyPageObserved });
     if (found.found) {
       diagnostic('RENEWAL_SOURCE_DELETE_VERIFICATION_FAILED', { adId: wanted, foundPage: found.page, pagesScanned: found.pagesScanned }, 'warning', correlation);
       return { verified: false, adId: wanted, foundPage: found.page, pagesScanned: found.pagesScanned, evidence: 'source-still-present' };
