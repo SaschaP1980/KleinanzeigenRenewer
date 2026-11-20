@@ -195,3 +195,17 @@ test('target hold requires precisely scoped kind and rejects arbitrary timing',a
  assert.equal(f.writes.length,0);
  assert.equal(f.holdTimers.length,0);
 });
+
+test('controlled source owner script is inert outside v1.25.23 and has no stop or mutation route',()=>{
+ const script=fs.readFileSync('docs/testing/KAR171_R1_CONTROLLED_SOURCE_HOLD_READ_ONLY.js','utf8');
+ assert.match(script,/const MIN_VERSION='1\.25\.23'/);
+ assert.match(script,/const EXT='hafahjhhgiipdegfkgacchmnacgblnah'/);
+ assert.match(script,/r1PrivateHoldKind:'source'/);
+ assert.match(script,/r1PrivateWitnessNonce/);
+ assert.match(script,/runtimeVersion\(\)!==MIN_VERSION/);
+ assert.match(script,/inspectOriginalRenewalRemoteLineageReadOnly/);
+ assert.doesNotMatch(script,/chrome\.runtime\.reload\(/);
+ assert.doesNotMatch(script,/chrome\.tabs\.(?:remove|update|create)\(/);
+ assert.doesNotMatch(script,/\.requestSubmit\(|\.submit\(/);
+ assert.doesNotMatch(script,/safeToApply:\s*true|eligibleForLease:\s*true|r1Accepted:\s*true/);
+});
