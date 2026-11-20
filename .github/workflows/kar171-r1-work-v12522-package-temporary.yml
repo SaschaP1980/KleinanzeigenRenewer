@@ -42,15 +42,6 @@ jobs:
           ]
           print('PASS unpublished Work-only identity; no updater, Chrome install, listing mutation or release')
           PY
-      - name: Full source/coverage/architecture and registered security regressions
-        shell: bash
-        run: |
-          set -euo pipefail
-          npm ci
-          rm .github/workflows/kar171-r1-work-v12522-package-temporary.yml
-          bash scripts/coverage-gate.sh
-          git restore .github/workflows/kar171-r1-work-v12522-package-temporary.yml
-          git diff --exit-code
       - name: Build exact versioned Chrome ZIP and validate immutable owner legacy ZIP
         shell: bash
         run: |
@@ -72,7 +63,24 @@ jobs:
           print('PASS v1.25.22 Work package; v1.25.21 owner archive preserved')
           PY
           unzip -q "$ZIP" -d "$RUNNER_TEMP/kar171-v12522/unpacked"
+          # Commit only the versioned ZIP LOCALLY before source/coverage checks,
+          # which require the exact current archive to be present and tracked.
+          # The remote Work ref is updated only AFTER all gates pass.
+          cp "$ZIP" release/kleinanzeigen-renewal-chrome-v1.25.22.zip
+          git add -f -- release/kleinanzeigen-renewal-chrome-v1.25.22.zip
+          test "$(git diff --cached --name-only)" = "release/kleinanzeigen-renewal-chrome-v1.25.22.zip"
+          git -c user.name='KAR Work-only CI' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m "build(KAR-171): archive source-exact Work-only v1.25.22 Chrome ZIP"
           echo "WORK_ZIP=$ZIP" >> "$GITHUB_ENV"
+      - name: Full source/coverage/architecture and registered security regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci
+          rm .github/workflows/kar171-r1-work-v12522-package-temporary.yml
+          bash scripts/coverage-gate.sh
+          git restore .github/workflows/kar171-r1-work-v12522-package-temporary.yml
+          git diff --exit-code
+          test -z "$(git status --porcelain --untracked-files=no)"
       - name: Mandatory packaged isolated Chromium 9/9
         shell: bash
         run: |
@@ -97,10 +105,9 @@ jobs:
           test "$GITHUB_REF" = "refs/heads/work/KAR-171"
           test "$(git ls-remote origin refs/heads/work/KAR-171 | cut -f1)" = "$GITHUB_SHA"
           test -z "$(git status --porcelain --untracked-files=no)"
-          cp "$WORK_ZIP" release/kleinanzeigen-renewal-chrome-v1.25.22.zip
-          git add -f -- release/kleinanzeigen-renewal-chrome-v1.25.22.zip
-          test "$(git diff --cached --name-only)" = "release/kleinanzeigen-renewal-chrome-v1.25.22.zip"
-          git -c user.name='KAR Work-only CI' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m "build(KAR-171): archive source-exact Work-only v1.25.22 Chrome ZIP"
+          # The unique archive is already locally COMMITTED; no untested push.
+          test "$(git diff-tree --no-commit-id --name-only -r HEAD)" = "release/kleinanzeigen-renewal-chrome-v1.25.22.zip"
+          test -z "$(git status --porcelain --untracked-files=no)"
           python3 scripts/verify_committed_chrome_zip.py --report "$RUNNER_TEMP/kar171-v12522/parity.json"
           git push origin HEAD:refs/heads/work/KAR-171
           ACTUAL="$(git ls-remote origin refs/heads/work/KAR-171 | cut -f1)"
