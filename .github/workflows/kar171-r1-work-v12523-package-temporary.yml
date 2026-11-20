@@ -138,3 +138,5 @@ jobs:
 
 # Disposable v1.25.23 Work-only builder, never main merge, Release or owner install.
 # No remote Kleinanzeigen or native Windows mutation. Delete after exact GREEN.
+
+# Exact bounded 45s source-only private R1 hold candidate, no owner PC test.
