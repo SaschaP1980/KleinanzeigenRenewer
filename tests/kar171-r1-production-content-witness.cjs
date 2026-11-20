@@ -50,7 +50,8 @@ test('no additional public message, permissions, or update authority',()=>{
 });
 
 const vm=require('node:vm');
-function contentFixture({failure=false,badPage=false}={}){
+function contentFixture({failure=false,badPage=false,manualHoldTimer=false}={}){
+ const holdTimers=[];
  const writes=[],operations=[],calls=[];
  let receiver=null;
  const roster={isMyAdsUrl:()=>false,isMyAdsProjectsUrl:()=>true,
@@ -92,7 +93,10 @@ function contentFixture({failure=false,badPage=false}={}){
   document:{documentElement:null},
   location:{pathname:'/m-meine-anzeigen.html'},
   __KR_PLATFORM_ACCESS_RESTRICTED__:true,
-  setTimeout,clearTimeout,console
+  setTimeout:manualHoldTimer
+   ?(fn,ms)=>{holdTimers.push({fn,ms});return holdTimers.length}
+   :setTimeout,
+  clearTimeout,console
  };
  context.globalThis=context;
  vm.runInNewContext(fs.readFileSync('src/content/inventory-runner.js','utf8'),
@@ -102,7 +106,7 @@ function contentFixture({failure=false,badPage=false}={}){
   const returned=receiver(m,{},resolve);
   assert.equal(returned,true,'content read-only route must stay async');
  });
- return {writes,calls,send,operations};
+ return {writes,calls,send,operations,holdTimers};
 }
 test('normal source/target scans require no content witness storage writes',async()=>{
  const f=contentFixture();
@@ -159,4 +163,35 @@ test('invalid content page counters fail closed without remote positive',async()
   r1ReadOnlyWitness:{schema:1,kind:'source',nonce,workerId:'worker-fixture'}});
  assert.equal(response.ok,false);
  assert.deepEqual(f.writes.map(x=>x.state),['received','failed']);
+});
+
+test('controlled hold is initiated only by a source-scoped private witness, and times out fail-closed',async()=>{
+ const f=contentFixture({manualHoldTimer:true}),nonce='e'.repeat(32);
+ let replied=false;
+ const send=f.send({type:'VERIFY_OWN_AD_ABSENT_BY_ID',adId:'137000100',
+  r1ReadOnlyWitness:{schema:2,kind:'source',nonce,workerId:'worker-fixture',holdMs:45000}
+ }).then(v=>{replied=true;return v});
+ for(let i=0;i<25;i++)await Promise.resolve();
+ assert.equal(replied,false);
+ assert.deepEqual(f.writes.map(x=>x.state),['received','page-confirmed','held-pending']);
+ assert.equal(f.writes.at(-1).schema,2);
+ assert.equal(f.writes.at(-1).holdUntilMs>=Date.now()+40000,true);
+ assert.equal(f.holdTimers.length,1);
+ assert.equal(f.holdTimers[0].ms,45000);
+ f.holdTimers[0].fn();
+ const result=await send;
+ assert.equal(result.ok,false);
+ assert.equal(f.writes.at(-1).state,'failed');
+ assert.equal(f.writes.some(x=>x.state==='settled'),false);
+ assert.equal(f.calls.length,1);
+});
+test('target hold requires precisely scoped kind and rejects arbitrary timing',async()=>{
+ const f=contentFixture({manualHoldTimer:true});
+ const response=await f.send({type:'FIND_OWN_AD_BY_ID',adId:'137000200',
+  r1ReadOnlyWitness:{schema:2,kind:'target',nonce:'f'.repeat(32),
+   workerId:'worker-fixture',holdMs:7200000}});
+ assert.equal(response.ok,false);
+ assert.equal(f.calls.length,0);
+ assert.equal(f.writes.length,0);
+ assert.equal(f.holdTimers.length,0);
 });
