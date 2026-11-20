@@ -59,3 +59,22 @@ test('a target-query interruption is independently proven and cannot replay stal
  assert.match(script,/post_target_interrupt_fresh_source_target_verified/);
  assert.match(script,/target_epoch != source_epoch/);
 });
+
+test('independent extension receiver ACK is required before real worker termination',()=>{
+ // The original fixture parked a promise INSIDE the worker. That alone does
+ // not prove another browser context received a query. This regression
+ // requires an independent, persisted, non-authorizing content receipt.
+ assert.match(script,/synthetic-receiver\.html/);
+ assert.match(script,/synthetic-receiver\.js/);
+ assert.match(script,/TESTONLY_REMOTE_QUERY/);
+ assert.match(script,/SOURCE_QUERY_ACKED_PENDING/);
+ assert.match(script,/TARGET_QUERY_ACKED_PENDING/);
+ assert.match(script,/receiverPage\.goto/);
+ assert.match(script,/independent_receiver_ack_source_and_target/);
+ assert.match(script,/receiverAckSource/);
+ assert.match(script,/receiverAckTarget/);
+ assert.match(script,/kind:'source'/);
+ assert.match(script,/kind:'target'/);
+ assert.match(script,/ownerNativeScan": False/);
+ assert.doesNotMatch(script,/https:\/\/(?:www\.)?kleinanzeigen\.de/);
+});
