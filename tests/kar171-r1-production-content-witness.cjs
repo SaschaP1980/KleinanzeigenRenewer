@@ -28,11 +28,11 @@ test('real scanner forwards nonce only on fresh read-only source/target requests
 test('real content script receives and persists an independent bounded receipt',()=>{
  assert.match(runner,/kar171R1ContentWitnessV1/);
  assert.match(runner,/r1ReadOnlyWitness/);
- assert.match(runner,/state:'received'/);
- assert.match(runner,/state:'settled'/);
- assert.match(runner,/state:'failed'/);
+ assert.match(runner,/emit\('received'\)/);
+ assert.match(runner,/emit\('settled'\)/);
+ assert.match(runner,/emit\('failed'\)/);
  assert.match(runner,/chrome\.storage\.local\.set/);
- assert.match(runner,/readOnlyPageObserved/);
+ assert.match(runner,/onReadOnlyPageObserved/);
 });
 test('authenticated full pagination gives bounded page counts without IDs',()=>{
  assert.match(ops,/onReadOnlyPageObserved/);
