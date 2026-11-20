@@ -219,6 +219,43 @@ A deterministic owner-native attempt also **cannot proceed** until a separately 
 
 **Gate and next decision:** The existing isolated genuine Chromium test has already passed both source and target in-flight interruptions ([#44716688606](https://github.com/SaschaP1980/KleinanzeigenRenewer/actions/runs/44716688606), 11/11 synthetic milestones, packaged Chromium 9/9 and no runtime changes). This evidence does **not** close the authenticated native conjunction. The owner must separately approve a specific feasible native interruption protocol **after** the missing precise in-flight witness and no-mutation prerequisites are demonstrated, or explicitly revise the original R1 exit requirement. Until one path is actually validated, **R1 BLOCKED / NOT ACCEPTED**; R2–R6 and all updater activation remain parked.
 
+## Independent receiver-side request ACK prototype (synthetic only)
+
+The hosted R1 in-flight test is being strengthened to distinguish a **request
+actually delivered to another Chromium execution context** from a background
+worker's pre-dispatch or in-memory pending marker. The disposable MV3 fixture
+loads the unchanged production `verifyPhase4RemoteOutcomeFresh` scanner and
+generates a separate synthetic extension-document receiver. The worker sends
+`TESTONLY_REMOTE_QUERY` only through its **test-injected tab-request port**;
+the receiver writes a privacy-safe `SOURCE_QUERY_ACKED_PENDING` or
+`TARGET_QUERY_ACKED_PENDING` into the fixture's volatile
+`chrome.storage.session`, plus a matching per-query nonce and generation
+identifier. The independent browser probe reads both records **before**
+terminating the exact disposable worker and verifies unchanged records across
+its restart. The receiver intentionally withholds the final request response.
+Separate source- and target-side interruptions still require fresh complete
+synthetic rescans, replay denial and immutable synthetic original receipts.
+
+The receipt is **not** a Kleinanzeigen content-script acknowledgement: the
+receiver is an extension-owned test page, not a real My Ads frame. It cannot
+substitute for a future production content-side acknowledgement or proof that
+a live page scan was still executing. The test fixture has only
+`storage` permission and no site/content-script/NativeHost/update grant;
+no new IPC or storage writes are added to the packaged product. Its fixed
+`TESTONLY_REMOTE_QUERY` type never enters the production manifest,
+background router or Chrome ZIP.
+
+**Test/decision state:** RED→GREEN must be independently backed by an actual
+hosted Chromium run, mandatory safety/coverage/architecture gates and package
+parity before describing this fixture improvement as passed. The existing
+owner Stage3 terminal account proof and Stage4 between-scans worker restart
+remain retained separately; a future owner-native executable witness still
+requires a separately approved, versioned product integration with a genuine
+content request receipt and an independently observable pending response,
+plus Chrome Stop feasibility, no competing mutations, backup/restore and the
+full original-P8/account/source-target replay barrier. Until then do not
+issue an owner test or infer safe updater authority.
+
 ## R1 exit decision
 
 R1 remains **BLOCKED / NOT ACCEPTED** until the authentic, source-safe owner-controlled results exist, all required negative/positive and interruption cases are linked to an exact tested source revision, and the full applicable regressions are GREEN. Acceptance must be explicitly recorded as `R1 ACCEPTED` in #171 before **R2** can become active. No subsequent R2–R6 work, positive updater lease, Windows apply, Chrome reload, merge or release is authorized by creation of this protocol.
