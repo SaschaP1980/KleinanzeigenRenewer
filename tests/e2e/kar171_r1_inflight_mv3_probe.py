@@ -6,8 +6,9 @@ loading the UNMODIFIED production remote scanner module. All My Ads responses,
 account names and ad IDs are synthetic. There are no website host permissions,
 content scripts, NativeHost ports, updater messages or remote mutations.
 
-This confirms actual Chromium termination/recreation of a worker mid-source
-read, followed by a NEW independent negative and positive scanner execution.
+This confirms actual Chromium termination/recreation of a worker in BOTH
+source and target reads, each followed by an independent negative/positive
+new-generation scan; it never attaches to an installed browser profile.
 It does not establish owner-native account results or full R1 acceptance.
 """
 from __future__ import annotations
@@ -130,6 +131,14 @@ function makeService(mode,audit){
         if(!isTarget||message.adId!==targetId||message.requireCompleteRoster!==true)
           throw Error('WRONG_TARGET_ID_OR_PAGINATION_CONTRACT');
         tab.postQuery=true;
+        if(mode==='hold-target'){
+          await chrome.storage.session.set({kar171FixtureStage:{
+            state:'TARGET_QUERY_PENDING',workerId
+          }});
+          // Target-side in-flight interruption is independent of the source
+          // interruption. Neither historic result is a success certificate.
+          return await new Promise(()=>{});
+        }
         return {found:mode!=='target-absent',adId:targetId,
           evidence:'found-in-my-ads-full-pagination-scan',pagesScanned:2,page:2};
       }
@@ -154,10 +163,11 @@ async function run(mode,receipt){
 chrome.runtime.onMessage.addListener((message,_sender,reply)=>{
   (async()=>{
     if(message?.type==='info')return {workerId};
-    if(message?.type==='hold'){
+    if(message?.type==='hold'
+       && (message?.mode==='source'||message?.mode==='target')){
       // Fire only in an isolated disposable worker. The caller receives an
       // initial acknowledgement, NOT an accepted remote outcome.
-      void run('hold-source',message.receipt);
+      void run(message.mode==='target'?'hold-target':'hold-source',message.receipt);
       return {status:'SCAN_STARTED',workerId};
     }
     if(message?.type==='run')
@@ -231,7 +241,7 @@ def main():
                         epoch1 = msg("info")["workerId"]
                         require(isinstance(epoch1, str) and len(epoch1) >= 20,
                                 "real fixture MV3 worker did not initialize")
-                        require(msg("hold", receipt=receipt) == {
+                        require(msg("hold", mode="source", receipt=receipt) == {
                             "status": "SCAN_STARTED", "workerId": epoch1
                         }, "held R1 scan did not acknowledge initiation")
                         page.wait_for_function("""async () => {
@@ -309,6 +319,82 @@ def main():
                                 and changed.get("created") == changed.get("closed") == 2,
                                 "account drift after target query wrongly accepted")
                         report["checks"].append("late_account_drift_denied_without_mutation")
+                        # Repeat with a truly in-flight TARGET query. The
+                        # source was already read inside this new worker; its
+                        # successful source response must not survive a target
+                        # interruption as reusable remote-success authority.
+                        source_epoch = new_epoch
+                        require(msg("hold", mode="target", receipt=receipt) == {
+                            "status": "SCAN_STARTED", "workerId": source_epoch
+                        }, "held target query did not acknowledge initiation")
+                        page.wait_for_function("""async () => {
+                            const row=await chrome.storage.session.get('kar171FixtureStage');
+                            return row.kar171FixtureStage?.state==='TARGET_QUERY_PENDING';
+                        }""", timeout=12000)
+                        target_stage = page.evaluate(
+                            "() => chrome.storage.session.get('kar171FixtureStage')"
+                        )["kar171FixtureStage"]
+                        require(target_stage.get("workerId") == source_epoch,
+                                "target query not proven in the current real worker")
+                        report["checks"].append("target_pending_stage_proven")
+                        second_targets = cdp.send("Target.getTargets")["targetInfos"]
+                        second_workers = [t for t in second_targets
+                                          if t.get("type") == "service_worker"
+                                          and t.get("url", "").startswith(
+                                              "chrome-extension://" + fixture_id + "/")]
+                        require(len(second_workers) == 1,
+                                "target-side MV3 worker not uniquely identified")
+                        second_stop = cdp.send("Target.closeTarget",
+                                               {"targetId": second_workers[0]["targetId"]})
+                        require(second_stop.get("success") is True,
+                                "isolated MV3 worker was not terminated during target query")
+                        target_epoch = None
+                        deadline = time.monotonic() + 15
+                        while time.monotonic() < deadline:
+                            try:
+                                observed = msg("info")
+                                if observed.get("workerId") != source_epoch:
+                                    target_epoch = observed["workerId"]
+                                    break
+                            except Exception:
+                                time.sleep(.15)
+                        require(target_epoch is not None and target_epoch != source_epoch,
+                                "target interruption did not create a new real worker")
+                        report["checks"].append("second_mv3_termination_during_target_query")
+                        unchanged_target = page.evaluate(
+                            "() => chrome.storage.session.get('kar171FixtureStage')"
+                        )["kar171FixtureStage"]
+                        require(unchanged_target == target_stage,
+                                "interrupted target history was silently rewritten")
+                        post_target_denied = msg("run", mode="target-absent", receipt=receipt)
+                        require(post_target_denied.get("status") == "REMOTE_UNVERIFIED"
+                                and post_target_denied.get("workerId") == target_epoch
+                                and post_target_denied.get("created")
+                                == post_target_denied.get("closed") == 2,
+                                "interrupted target success was replayed after worker death")
+                        denied_commands = post_target_denied.get("commands", [])
+                        require(denied_commands.count("VERIFY_OWN_AD_ABSENT_BY_ID") == 1
+                                and denied_commands.count("FIND_OWN_AD_BY_ID") == 1,
+                                "post-target interrupted negative failed to re-read both IDs")
+                        report["checks"].append("post_target_interrupt_replay_denied")
+                        post_target_verified = msg("run", mode="ok", receipt=receipt)
+                        require(post_target_verified.get("status") == "REMOTE_VERIFIED"
+                                and post_target_verified.get("workerId") == target_epoch
+                                and post_target_verified.get("sourceAbsent") is True
+                                and post_target_verified.get("targetPresent") is True
+                                and post_target_verified.get("sourcePages") == 2
+                                and post_target_verified.get("targetPages") == 2
+                                and post_target_verified.get("created")
+                                == post_target_verified.get("closed") == 2,
+                                "post-target interrupted new generation did not rescan both IDs")
+                        fresh_commands = post_target_verified.get("commands", [])
+                        require(fresh_commands.count("VERIFY_OWN_AD_ABSENT_BY_ID") == 1
+                                and fresh_commands.count("FIND_OWN_AD_BY_ID") == 1
+                                and set(fresh_commands).issubset({
+                                    "MY_ADS_STATUS", "WAIT_FOR_MY_ADS_READY",
+                                    "VERIFY_OWN_AD_ABSENT_BY_ID", "FIND_OWN_AD_BY_ID"
+                                }), "post-target scan reused history or unexpected command")
+                        report["checks"].append("post_target_interrupt_fresh_source_target_verified")
                         end = page.evaluate(
                             "() => chrome.storage.local.get('kar171FixtureOriginal')")
                         require(end == baseline, "original synthetic historical receipt was mutated")
