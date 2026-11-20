@@ -25,7 +25,7 @@ test('real worker target closure occurs ONLY after source read is in flight',()=
  const signal=script.indexOf('page.wait_for_function');
  const close=script.indexOf('cdp.send("Target.closeTarget"');
  assert.ok(signal>0&&close>signal);
- assert.match(script,/SOURCE_QUERY_PENDING/);
+ assert.match(script,/SOURCE_QUERY_ACKED_PENDING/);
  assert.match(script,/new_epoch != epoch1/);
  assert.match(script,/genuine_mv3_termination_and_new_worker_generation/);
 });
@@ -51,7 +51,7 @@ test('fixture grants neither browser website host privileges nor update authorit
 });
 test('a target-query interruption is independently proven and cannot replay stale source success',()=>{
  assert.match(script,/mode==='hold-target'/);
- assert.match(script,/state:'TARGET_QUERY_PENDING'/);
+ assert.match(script,/TARGET_QUERY_ACKED_PENDING/);
  assert.match(script,/msg\("hold", mode="target"/);
  assert.match(script,/target_pending_stage_proven/);
  assert.match(script,/second_mv3_termination_during_target_query/);
