@@ -1,0 +1,89 @@
+name: KAR-171 R1 isolated MV3 target in-flight interruption
+on:
+  push:
+    branches: [work/KAR-171]
+permissions:
+  contents: read
+jobs:
+  isolated-target:
+    if: contains(github.event.head_commit.message, 'KAR171-R1-TARGET-GATE')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check exact source and focused negative/positive contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --test tests/kar171-r1-native-inflight-fixture-contract.cjs
+      - name: Complete coverage/architecture on tested intended tree (GREEN only)
+        if: contains(github.event.head_commit.message, 'GREEN')
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci
+          rm .github/workflows/kar171-r1-target-inflight-temporary.yml
+          bash scripts/coverage-gate.sh
+      - name: Actual disposable Chromium MV3 interrupted source AND target (GREEN only)
+        if: contains(github.event.head_commit.message, 'GREEN')
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pip install --disable-pip-version-check -r tests/e2e/requirements.txt
+          python3 -m playwright install --with-deps --no-shell chromium
+          export KR_CHROME_BINARY="$(python3 -c 'from playwright.sync_api import sync_playwright; p=sync_playwright().start(); print(p.chromium.executable_path); p.stop()')"
+          export KR_E2E_BROWSER_CHANNEL=chromium
+          mkdir -p "$RUNNER_TEMP/kar171-target"
+          python3 tests/e2e/kar171_r1_inflight_mv3_probe.py --report "$RUNNER_TEMP/kar171-target/target-report.json"
+          python3 - <<'PY'
+          import json,os
+          from pathlib import Path
+          r=json.loads((Path(os.environ['RUNNER_TEMP'])/'kar171-target'/'target-report.json').read_text())
+          assert r['status']=='PASS', r
+          assert r['isolatedSyntheticFixture'] is True and r['ownerNativeScan'] is False
+          assert r['r1Accepted'] is False and r['eligibleForLease'] is False
+          assert 'target_pending_stage_proven' in r['checks']
+          assert 'second_mv3_termination_during_target_query' in r['checks']
+          assert 'post_target_interrupt_replay_denied' in r['checks']
+          assert 'post_target_interrupt_fresh_source_target_verified' in r['checks']
+          assert r['workerGenerationChanged'] is True
+          print('PASS two independent genuine MV3 source/target interruptions with no real site access')
+          PY
+          echo "KR_CHROME_BINARY=$KR_CHROME_BINARY" >> "$GITHUB_ENV"
+          echo "KR_E2E_BROWSER_CHANNEL=chromium" >> "$GITHUB_ENV"
+      - name: Archived owner ZIP parity and packaged Chromium 9/9 (GREEN only)
+        if: contains(github.event.head_commit.message, 'GREEN')
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/kar171-target/package" "$RUNNER_TEMP/kar171-target/unpacked"
+          python3 scripts/package.py "$RUNNER_TEMP/kar171-target/package"
+          ZIP="$RUNNER_TEMP/kar171-target/package/kleinanzeigen-renewal-chrome-v1.25.21.zip"
+          cmp "$ZIP" release/kleinanzeigen-renewal-chrome-v1.25.21.zip
+          test "$(sha256sum "$ZIP" | cut -d' ' -f1)" = "c6aa24e84c167b741718e58f27b048cd2d2b20c9dca48983c9ce60482e883693"
+          unzip -q "$ZIP" -d "$RUNNER_TEMP/kar171-target/unpacked"
+          export KR_E2E_EXTENSION_ROOT="$RUNNER_TEMP/kar171-target/unpacked"
+          python3 tests/e2e/run_browser_e2e_supervisor.py --report "$RUNNER_TEMP/kar171-target/default-e2e.json"
+          python3 - <<'PY'
+          import json,os
+          from pathlib import Path
+          r=json.loads((Path(os.environ['RUNNER_TEMP'])/'kar171-target'/'default-e2e.json').read_text())
+          assert r['scenarioCount']==9 and r['passed']==9 and r['failed']==0 and r['cleanupFailed']==0,r
+          print('PASS default 9/9 packaged Chromium scenarios')
+          PY
+      - name: Preserve synthetic-only reports (GREEN only)
+        if: contains(github.event.head_commit.message, 'GREEN')
+        uses: actions/upload-artifact@v4
+        with:
+          name: kar171-r1-source-and-target-inflight-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/kar171-target/target-report.json
+            ${{ runner.temp }}/kar171-target/default-e2e.json
+          retention-days: 30
+          if-no-files-found: error
