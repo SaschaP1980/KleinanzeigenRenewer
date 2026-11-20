@@ -97,7 +97,8 @@ function fixture(){
    sendTabRequestWithBootstrap:async(id,msg)=>{
     const tab=state.created.find(t=>t.id===id);
     assert.ok(tab,'request must use freshly created managed R1 tab');
-    state.requests.push({id,kind:tab.kind,type:msg.type});
+    state.requests.push({id,kind:tab.kind,type:msg.type,
+      witness:msg.r1ReadOnlyWitness??null});
     const source=tab.kind.endsWith('source'),target=tab.kind.endsWith('target');
     assert.equal(source||target,true);
     assert.ok(['MY_ADS_STATUS','WAIT_FOR_MY_ADS_READY',
@@ -147,8 +148,8 @@ function fixture(){
   });
   return observer;
  }
- return {state,restart,inspect:observer=>observer.inspectOriginalRenewalRemoteLineageReadOnly({
-  renewalId:RENEWAL,attemptId:PHASE_ATTEMPT})};
+ return {state,restart,inspect:(observer,r1PrivateWitnessNonce=null)=>observer.inspectOriginalRenewalRemoteLineageReadOnly({
+  renewalId:RENEWAL,attemptId:PHASE_ATTEMPT,r1PrivateWitnessNonce})};
 }
 function noRemoteMutations(state){
  assert.equal(state.storageWrites,0);
@@ -235,4 +236,31 @@ test('concurrent original publication evidence rewrite in fresh scan fails final
  assert.equal(f.state.remoteInvocations,2);
  assert.equal(f.state.created.length,4,'new source/target must be fresh despite valid old P8');
  assert.equal(f.state.rows[FINISH+PHASE_TOKEN].workerInstanceId,'original-phase-worker');
+});
+
+test('original P8 private nonce reaches only two authenticated read-only content queries',async()=>{
+ const f=fixture(),nonce='a'.repeat(32);
+ const x=await f.inspect(f.restart(),nonce);positive(x,f.state);
+ const scans=f.state.requests.filter(x=>['VERIFY_OWN_AD_ABSENT_BY_ID','FIND_OWN_AD_BY_ID'].includes(x.type));
+ assert.equal(scans.length,2);
+ assert.deepEqual(scans.map(x=>x.witness?.kind),['source','target']);
+ for(const req of scans){
+  assert.deepEqual({...req.witness},{
+   schema:1,nonce,workerId:'current-worker-1',
+   kind:req.type==='VERIFY_OWN_AD_ABSENT_BY_ID'?'source':'target'
+  });
+ }
+ for(const req of f.state.requests.filter(x=>!scans.includes(x)))
+  assert.equal(req.witness,null,'no status/readiness IPC receives witness');
+ const f2=fixture();
+ positive(await f2.inspect(f2.restart()),f2.state);
+ assert.equal(f2.state.requests.every(x=>x.witness===null),true,'ordinary R1 has no content write hint');
+});
+test('invalid or missing worker identity cannot start private content witness',async()=>{
+ const f=fixture();
+ const x=await f.inspect(f.restart(),'not-a-valid-private-nonce');
+ denied(x,f.state);
+ assert.equal(x.status,'PRIVATE_WITNESS_CONTEXT_UNVERIFIED');
+ assert.equal(f.state.remoteInvocations,0);
+ assert.equal(f.state.created.length,0);
 });
