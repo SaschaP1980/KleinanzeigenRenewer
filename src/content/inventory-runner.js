@@ -87,6 +87,64 @@
     readinessError: readiness.readinessError, renderOverlay: overlay.renderOverlay, refreshFailureHighlights: overlay.refreshFailureHighlights
   });
 
+
+  // No additional public Chrome route. This private opt-in merely writes
+  // non-authoritative evidence from the actual My Ads content execution
+  // context, and only for original P8-bound read-only R1 source/target scans.
+  // A caller-visible START marker is never itself an in-flight certificate.
+  const R1_CONTENT_WITNESS_KEY = 'kar171R1ContentWitnessV1';
+  function runPrivateR1ReadOnlyWitness(message, kind, operation) {
+    const witness = message?.r1ReadOnlyWitness;
+    if (witness === undefined) return operation(null);
+    const valid = witness && typeof witness === 'object'
+      && !Array.isArray(witness)
+      && Object.keys(witness).sort().join(',') === 'kind,nonce,schema,workerId'
+      && witness.schema === 1 && witness.kind === kind
+      && typeof witness.nonce === 'string' && /^[0-9a-f]{32}$/.test(witness.nonce)
+      && typeof witness.workerId === 'string'
+      && /^[A-Za-z0-9_-]{1,128}$/.test(witness.workerId)
+      && typeof chrome?.storage?.local?.set === 'function';
+    if (!valid) return Promise.reject(new Error('KR_R1_PRIVATE_WITNESS_INVALID'));
+    const captured = Object.freeze({
+      schema:1,kind,nonce:witness.nonce,workerId:witness.workerId
+    });
+    let pagesScanned = 0, uniqueCards = 0, expectedOnline = null;
+    const emit = (state) => chrome.storage.local.set({
+      [R1_CONTENT_WITNESS_KEY]: {
+        ...captured,state,pagesScanned,uniqueCards,expectedOnline,
+        observedAtMs:Date.now()
+      }
+    });
+    return (async () => {
+      // Only this CONTENT SCRIPT can produce the received/page/terminal
+      // receipts. A failed local write denies this private scan; it never
+      // changes a remote advertisement or upgrades a stored P8 result.
+      await emit('received');
+      try {
+        const result = await operation(async page => {
+          if (!page || !Number.isSafeInteger(page.pagesScanned)
+              || page.pagesScanned <= pagesScanned
+              || !Number.isSafeInteger(page.uniqueCards)
+              || page.uniqueCards < uniqueCards
+              || !Number.isSafeInteger(page.expectedOnline)
+              || page.expectedOnline < page.uniqueCards)
+            throw new Error('KR_R1_PRIVATE_WITNESS_ROSTER_UNVERIFIED');
+          pagesScanned = page.pagesScanned;
+          uniqueCards = page.uniqueCards;
+          expectedOnline = page.expectedOnline;
+          await emit('page-confirmed');
+        });
+        await emit('settled');
+        return result;
+      } catch (error) {
+        // A failure to record terminal state must not turn the historical
+        // received marker into a remotely verified successful outcome.
+        await emit('failed').catch(() => {});
+        throw error;
+      }
+    })();
+  }
+
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     const messageContract = MessageContractRegistry.route(message?.type, 'my-ads-content');
     if (messageContract.action === 'ignore') return;
@@ -122,14 +180,22 @@
       return true;
     }
     if (message?.type === 'FIND_OWN_AD_BY_ID') {
-      deleteOperations.findOwnAdById(message.adId, message.correlation || {}, {
-        expectedProfileName:message.expectedProfileName,
-        requireCompleteRoster: message.requireCompleteRoster === true
-      }).then(result => sendResponse({ ok: true, result }), error => sendResponse({ ok: false, error: error.message }));
+      runPrivateR1ReadOnlyWitness(message, 'target', onReadOnlyPageObserved =>
+        deleteOperations.findOwnAdById(message.adId, message.correlation || {}, {
+          expectedProfileName:message.expectedProfileName,
+          requireCompleteRoster: message.requireCompleteRoster === true,
+          onReadOnlyPageObserved
+        })
+      ).then(result => sendResponse({ ok: true, result }), error => sendResponse({ ok: false, error: error.message }));
       return true;
     }
     if (message?.type === 'VERIFY_OWN_AD_ABSENT_BY_ID') {
-      deleteOperations.verifyOwnAdAbsentById(message.adId, message.correlation || {}, {expectedProfileName:message.expectedProfileName}).then(result => sendResponse({ ok: true, result }), error => sendResponse({ ok: false, error: error.message }));
+      runPrivateR1ReadOnlyWitness(message, 'source', onReadOnlyPageObserved =>
+        deleteOperations.verifyOwnAdAbsentById(message.adId, message.correlation || {}, {
+          expectedProfileName:message.expectedProfileName,
+          onReadOnlyPageObserved
+        })
+      ).then(result => sendResponse({ ok: true, result }), error => sendResponse({ ok: false, error: error.message }));
       return true;
     }
     if (message?.type === 'MY_ADS_STATUS') {
