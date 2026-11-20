@@ -8,6 +8,8 @@ const fs=require('node:fs');
 const script=fs.readFileSync('tests/e2e/kar171_r1_inflight_mv3_probe.py','utf8');
 const scanner=fs.readFileSync('src/background/services/remote-delete-replacement-service.js','utf8');
 const manifest=JSON.parse(fs.readFileSync('manifest.json','utf8'));
+const npm=JSON.parse(fs.readFileSync('package.json','utf8'));
+assert.match(npm.scripts['test:r1-mv3-inflight'],/python3 tests\/e2e\/kar171_r1_inflight_mv3_probe\.py/);
 test('test-only fixture loads unmodified real R1 service, no remote site grants',()=>{
  assert.match(script,/shutil\.copy2\(PRODUCTION_SCANNER,/);
  assert.match(script,/importScripts\('remote-delete-replacement-service\.js'\)/);

@@ -65,7 +65,7 @@ jobs:
           assert r['isolatedSyntheticFixture'] is True
           assert r['ownerNativeScan'] is False
           assert r['r1Accepted'] is False and r['eligibleForLease'] is False
-          assert len(r['checks'])==6
+          assert len(r['checks'])==7
           assert r['workerGenerationChanged'] is True
           print('PASS actual Chromium MV3 killed during source scan; fresh scans deny replay')
           PY
