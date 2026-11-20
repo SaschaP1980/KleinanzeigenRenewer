@@ -49,3 +49,13 @@ test('fixture grants neither browser website host privileges nor update authorit
  assert.doesNotMatch(script,/connectNative\(/);
  assert.doesNotMatch(script,/chrome\.tabs\.(?:create|remove|update)\(/);
 });
+test('a target-query interruption is independently proven and cannot replay stale source success',()=>{
+ assert.match(script,/mode==='hold-target'/);
+ assert.match(script,/state:'TARGET_QUERY_PENDING'/);
+ assert.match(script,/msg\("hold", mode="target"/);
+ assert.match(script,/target_pending_stage_proven/);
+ assert.match(script,/second_mv3_termination_during_target_query/);
+ assert.match(script,/post_target_interrupt_replay_denied/);
+ assert.match(script,/post_target_interrupt_fresh_source_target_verified/);
+ assert.match(script,/target_epoch != source_epoch/);
+});
