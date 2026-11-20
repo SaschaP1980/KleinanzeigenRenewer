@@ -65,6 +65,42 @@ def fixture_files(folder: Path):
     (folder / "probe.html").write_text(
         "<!doctype html><meta charset='utf-8'><title>KAR-171 isolated fixture</title>",
         encoding="utf-8")
+    # The independent RECEIVER is a separate extension DOCUMENT, not the
+    # worker. No production file, content script, site or account is copied.
+    # Only this disposable synthetic receiver has a TESTONLY message handler.
+    (folder / "synthetic-receiver.html").write_text(
+        "<!doctype html><meta charset='utf-8'>"
+        "<title>Independent test receiver</title>"
+        "<script src='synthetic-receiver.js'></script>",
+        encoding="utf-8")
+    (folder / "synthetic-receiver.js").write_text(r"""
+'use strict';
+// This page receives a REAL Chrome runtime message from a DIFFERENT browser
+// execution context. A worker-side "REQUEST_STARTED" is not an ACK.
+chrome.runtime.onMessage.addListener((message,_sender,sendResponse)=>{
+  if(message?.type!=='TESTONLY_REMOTE_QUERY')return false;
+  if(!['source','target'].includes(message.kind)
+     ||typeof message.workerId!=='string'
+     ||typeof message.queryNonce!=='string'){
+    sendResponse({status:'DENIED_BAD_TEST_REQUEST'});
+    return false;
+  }
+  const state=message.kind==='source'
+    ?'SOURCE_QUERY_ACKED_PENDING':'TARGET_QUERY_ACKED_PENDING';
+  const receipt=Object.freeze({
+    state,workerId:message.workerId,queryNonce:message.queryNonce,
+    kind:message.kind,context:'independent-receiver'
+  });
+  // Both records are written from the independent extension DOCUMENT.
+  // No content reply follows. Thus the worker's genuine request Promise
+  // is still awaiting a response when CDP closes ONLY that worker target.
+  chrome.storage.session.set({
+    kar171FixtureStage:receipt,kar171FixtureContentAck:receipt
+  }).catch(()=>sendResponse({status:'ACK_STORAGE_UNAVAILABLE'}));
+  return true;
+});
+globalThis.kar171TestReceiverReady=true;
+""", encoding="utf-8")
     (folder / "background.js").write_text(r"""
 'use strict';
 // Only this disposable fixture owns this IPC; NONE of it is in KAR production.
@@ -80,7 +116,7 @@ if(!fixtureApi)throw Error('PRODUCTION_R1_SCANNER_UNAVAILABLE');
 const allowed=new Set(['MY_ADS_STATUS','WAIT_FOR_MY_ADS_READY',
   'VERIFY_OWN_AD_ABSENT_BY_ID','FIND_OWN_AD_BY_ID']);
 
-function makeService(mode,audit){
+function makeService(mode,audit,queryNonce){
   const tabs=new Map();
   return fixtureApi.create({
     createManagedWorkerTab:async(_options,kind)=>{
@@ -117,12 +153,11 @@ function makeService(mode,audit){
       if(message.type==='VERIFY_OWN_AD_ABSENT_BY_ID'){
         if(!isSource||message.adId!==sourceId)throw Error('WRONG_SOURCE_ID');
         if(mode==='hold-source'){
-          await chrome.storage.session.set({kar171FixtureStage:{
-            state:'SOURCE_QUERY_PENDING',workerId
-          }});
-          // A deliberately unresolved read-only fixture request; no replay
-          // authority survives when Chromium kills this actual worker.
-          return await new Promise(()=>{});
+          // The fixture's real Chrome IPC must reach an independent DOCUMENT.
+          // A worker-side pre-dispatch marker is deliberately insufficient.
+          return await chrome.runtime.sendMessage({
+            type:'TESTONLY_REMOTE_QUERY',kind:'source',workerId,queryNonce
+          });
         }
         return {verified:true,adId:sourceId,
           evidence:'not-in-my-ads-full-pagination-scan',pagesScanned:2};
@@ -132,12 +167,9 @@ function makeService(mode,audit){
           throw Error('WRONG_TARGET_ID_OR_PAGINATION_CONTRACT');
         tab.postQuery=true;
         if(mode==='hold-target'){
-          await chrome.storage.session.set({kar171FixtureStage:{
-            state:'TARGET_QUERY_PENDING',workerId
-          }});
-          // Target-side in-flight interruption is independent of the source
-          // interruption. Neither historic result is a success certificate.
-          return await new Promise(()=>{});
+          return await chrome.runtime.sendMessage({
+            type:'TESTONLY_REMOTE_QUERY',kind:'target',workerId,queryNonce
+          });
         }
         return {found:mode!=='target-absent',adId:targetId,
           evidence:'found-in-my-ads-full-pagination-scan',pagesScanned:2,page:2};
@@ -146,9 +178,9 @@ function makeService(mode,audit){
     }
   });
 }
-async function run(mode,receipt){
+async function run(mode,receipt,queryNonce=null){
   const audit={created:0,closed:0,commands:[]};
-  const service=makeService(mode,audit);
+  const service=makeService(mode,audit,queryNonce);
   try{
     const proof=await service.verifyPhase4RemoteOutcomeFresh(receipt);
     return {status:'REMOTE_VERIFIED',workerId,
@@ -161,14 +193,18 @@ async function run(mode,receipt){
   }
 }
 chrome.runtime.onMessage.addListener((message,_sender,reply)=>{
+  // Do not answer the fixture-only request intended for the other context.
+  if(message?.type==='TESTONLY_REMOTE_QUERY')return false;
   (async()=>{
     if(message?.type==='info')return {workerId};
     if(message?.type==='hold'
        && (message?.mode==='source'||message?.mode==='target')){
       // Fire only in an isolated disposable worker. The caller receives an
       // initial acknowledgement, NOT an accepted remote outcome.
-      void run(message.mode==='target'?'hold-target':'hold-source',message.receipt);
-      return {status:'SCAN_STARTED',workerId};
+      const queryNonce=crypto.randomUUID();
+      void run(message.mode==='target'?'hold-target':'hold-source',
+               message.receipt,queryNonce);
+      return {status:'SCAN_STARTED',workerId,queryNonce};
     }
     if(message?.type==='run')
       return await run(message.mode,message.receipt);
@@ -218,6 +254,13 @@ def main():
                         page = context.new_page()
                         page.goto("chrome-extension://" + fixture_id + "/probe.html",
                                   wait_until="domcontentloaded", timeout=12000)
+                        receiverPage = context.new_page()
+                        receiverPage.goto(
+                            "chrome-extension://" + fixture_id + "/synthetic-receiver.html",
+                            wait_until="load", timeout=12000)
+                        receiverPage.wait_for_function(
+                            "() => globalThis.kar171TestReceiverReady === true",
+                            timeout=12000)
                         require(context.browser is not None, "browser CDP unavailable")
                         manifest = page.evaluate("() => chrome.runtime.getManifest()")
                         require(manifest.get("permissions") == ["storage"]
@@ -241,18 +284,26 @@ def main():
                         epoch1 = msg("info")["workerId"]
                         require(isinstance(epoch1, str) and len(epoch1) >= 20,
                                 "real fixture MV3 worker did not initialize")
-                        require(msg("hold", mode="source", receipt=receipt) == {
-                            "status": "SCAN_STARTED", "workerId": epoch1
-                        }, "held R1 scan did not acknowledge initiation")
+                        startSource = msg("hold", mode="source", receipt=receipt)
+                        require(startSource.get("status") == "SCAN_STARTED"
+                                and startSource.get("workerId") == epoch1
+                                and isinstance(startSource.get("queryNonce"), str),
+                                "held source query did not acknowledge start")
                         page.wait_for_function("""async () => {
                             const row=await chrome.storage.session.get('kar171FixtureStage');
-                            return row.kar171FixtureStage?.state==='SOURCE_QUERY_PENDING';
+                            return row.kar171FixtureStage?.state==='SOURCE_QUERY_ACKED_PENDING';
                         }""", timeout=12000)
-                        stage = page.evaluate(
-                            "() => chrome.storage.session.get('kar171FixtureStage')"
-                        )["kar171FixtureStage"]
-                        require(stage.get("workerId") == epoch1,
-                                "pending scan was not proven in the original worker")
+                        source_rows = page.evaluate(
+                            "() => chrome.storage.session.get("
+                            "['kar171FixtureStage','kar171FixtureContentAck'])")
+                        stage = source_rows["kar171FixtureStage"]
+                        receiverAckSource = source_rows["kar171FixtureContentAck"]
+                        require(stage == receiverAckSource
+                                and stage.get("context") == "independent-receiver"
+                                and stage.get("workerId") == epoch1
+                                and stage.get("queryNonce") == startSource["queryNonce"]
+                                and stage.get("kind") == "source",
+                                "source was not acknowledged by independent receiver")
                         report["checks"].append("production_r1_scanner_held_inside_source_query")
                         cdp = context.browser.new_browser_cdp_session()
                         targets = cdp.send("Target.getTargets")["targetInfos"]
@@ -283,7 +334,7 @@ def main():
                             "() => chrome.storage.session.get('kar171FixtureStage')"
                         )["kar171FixtureStage"]
                         require(old_stage == stage,
-                                "interrupted fixture history was silently rewritten")
+                                "independent source receipt was silently rewritten")
                         # Without a NEW full source + target scan, stored
                         # historical state MUST NOT be interpreted as success.
                         denied = msg("run", mode="target-absent", receipt=receipt)
@@ -324,19 +375,29 @@ def main():
                         # successful source response must not survive a target
                         # interruption as reusable remote-success authority.
                         source_epoch = new_epoch
-                        require(msg("hold", mode="target", receipt=receipt) == {
-                            "status": "SCAN_STARTED", "workerId": source_epoch
-                        }, "held target query did not acknowledge initiation")
+                        startTarget = msg("hold", mode="target", receipt=receipt)
+                        require(startTarget.get("status") == "SCAN_STARTED"
+                                and startTarget.get("workerId") == source_epoch
+                                and isinstance(startTarget.get("queryNonce"), str),
+                                "held target query did not acknowledge initiation")
                         page.wait_for_function("""async () => {
                             const row=await chrome.storage.session.get('kar171FixtureStage');
-                            return row.kar171FixtureStage?.state==='TARGET_QUERY_PENDING';
+                            return row.kar171FixtureStage?.state==='TARGET_QUERY_ACKED_PENDING';
                         }""", timeout=12000)
-                        target_stage = page.evaluate(
-                            "() => chrome.storage.session.get('kar171FixtureStage')"
-                        )["kar171FixtureStage"]
-                        require(target_stage.get("workerId") == source_epoch,
-                                "target query not proven in the current real worker")
+                        target_rows = page.evaluate(
+                            "() => chrome.storage.session.get("
+                            "['kar171FixtureStage','kar171FixtureContentAck'])")
+                        target_stage = target_rows["kar171FixtureStage"]
+                        receiverAckTarget = target_rows["kar171FixtureContentAck"]
+                        require(target_stage == receiverAckTarget
+                                and target_stage.get("context") == "independent-receiver"
+                                and target_stage.get("workerId") == source_epoch
+                                and target_stage.get("queryNonce") == startTarget["queryNonce"]
+                                and target_stage.get("kind") == "target"
+                                and receiverAckTarget != receiverAckSource,
+                                "target not separately acknowledged by independent receiver")
                         report["checks"].append("target_pending_stage_proven")
+                        report["checks"].append("independent_receiver_ack_source_and_target")
                         second_targets = cdp.send("Target.getTargets")["targetInfos"]
                         second_workers = [t for t in second_targets
                                           if t.get("type") == "service_worker"
@@ -365,7 +426,7 @@ def main():
                             "() => chrome.storage.session.get('kar171FixtureStage')"
                         )["kar171FixtureStage"]
                         require(unchanged_target == target_stage,
-                                "interrupted target history was silently rewritten")
+                                "independent target receipt was silently rewritten")
                         post_target_denied = msg("run", mode="target-absent", receipt=receipt)
                         require(post_target_denied.get("status") == "REMOTE_UNVERIFIED"
                                 and post_target_denied.get("workerId") == target_epoch
