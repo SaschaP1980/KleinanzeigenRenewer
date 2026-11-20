@@ -28,12 +28,13 @@ function timerHarness(){
  return {state,ctx};
 }
 function stateHarness(){
- const start=bg.indexOf('let bulkWatchdogActive = false;');
+ const start=bg.indexOf('async function finalizeExpiredBulkWorkerRecovery(recovery) {');
  const end=bg.indexOf('\nfunction normalizedBulkRosterIds',start);
  assert.ok(start>=0&&end>start,'active state ownership must be in actual background.js');
- let run=null;
+ let run=null,expired=false;
+ const events=[];
  const guard={
-  recoverExpiredWorkerRun:async()=>({recovered:false,state:run}),
+  recoverExpiredWorkerRun:async()=>({recovered:expired,state:run,tabIds:[41]}),
   read:async()=>run,
   write:async x=>(run=x),
   mutate:async fn=>(run=fn(run))
@@ -41,11 +42,19 @@ function stateHarness(){
  const ctx={
   ensureBulkRuntimeRecovery:async()=>{},
   requireBulkRunGuard:()=>guard,Date,
-  BULK_RUN_MAX_AGE_MS:9999999999
+  BULK_RUN_MAX_AGE_MS:9999999999,
+  BULK_ITEM_HARD_TIMEOUT_MS:110000,
+  cleanupRecoveredBulkTabs:async(tabIds,reason)=>events.push(['tabs',tabIds,reason]),
+  closeRegistryTab:async()=>events.push(['close']),
+  releaseBulkSourceOwnership:async()=>events.push(['release']),
+  logDiagnostic:async()=>events.push(['diagnostic']),
+  sessionCorrelationContext:()=>({}),
+  broadcastInventoryChanged:()=>events.push(['broadcast'])
  };
  vm.createContext(ctx);
  vm.runInContext(bg.slice(start,end),ctx,{filename:'real-bulk-watchdog-state.js'});
- return {ctx,put:x=>{run=x;},current:()=>vm.runInContext('bulkWatchdogActive',ctx)};
+ return {ctx,events,put:x=>{run=x;},expire:x=>{expired=x;},
+  current:()=>vm.runInContext('bulkWatchdogActive',ctx)};
 }
 test('MV3 idle does not require extra alarms permission or change existing identity contract',()=>{
  assert.equal(manifest.manifest_version,3);
@@ -102,6 +111,23 @@ test('startup recovered active worker state arms watchdog; idle and missing stat
  h.put(null);
  assert.equal(await h.ctx.getBulkRunState(),null);
  assert.equal(h.current(),false);
+});
+test('expired bulk worker preserves exact cleanup and diagnostic on status read',async()=>{
+ const h=stateHarness();
+ h.put({status:'needs-review',runId:'synthetic',sourceAutoCreated:false,sourceTabId:16});
+ h.expire(true);
+ await h.ctx.getBulkRunState();
+ assert.equal(h.current(),false);
+ assert.deepEqual(h.events.map(e=>e[0]),['tabs','release','diagnostic','broadcast']);
+ assert.equal(h.events[0][2],'bulk-worker-hard-timeout');
+});
+test('running watchdog preserves same expired-run cleanup without duplicate side effects',async()=>{
+ const h=stateHarness();
+ h.put({status:'needs-review',runId:'synthetic',sourceAutoCreated:true,sourceTabId:16});
+ h.expire(true);
+ await h.ctx.bulkRunWatchdogTick();
+ assert.equal(h.current(),false);
+ assert.deepEqual(h.events.map(e=>e[0]),['tabs','close','diagnostic','broadcast']);
 });
 test('no watchdog changes to mutation, P8 or updater admission sources',()=>{
  const block=timerBlock();
