@@ -1553,9 +1553,18 @@ async function verifyRemoteCommitContextReadOnly(original, sourceKind, witness=n
     // KAR-171 R1: private, owner-controlled, READ-ONLY original P8 + authenticated
     // source/target proof. Never exposed via Chrome messages, updater policy or
     // an automatic lifecycle call. No journal writes or replayed deletion.
-    async function inspectOriginalRenewalRemoteLineageReadOnly({renewalId,attemptId}={}) {
+    async function inspectOriginalRenewalRemoteLineageReadOnly({renewalId,attemptId,r1PrivateWitnessNonce=null}={}) {
       const output=(status,liveRemoteVerified=false)=>Object.freeze({
         status,liveRemoteVerified,r1Accepted:false,eligibleForLease:false
+      });
+      // The owner-only DevTools invocation must explicitly generate a fresh
+      // private nonce. This adds no routed/automatic producer or success path.
+      if (r1PrivateWitnessNonce!==null && (
+          !/^[0-9a-f]{32}$/.test(r1PrivateWitnessNonce)
+          || !worker))
+        return output('PRIVATE_WITNESS_CONTEXT_UNVERIFIED');
+      const privateR1Witness = r1PrivateWitnessNonce===null ? null : Object.freeze({
+        schema:1,nonce:r1PrivateWitnessNonce,workerId:worker
       });
       if(typeof verifyFreshPhase4RemoteOutcomeReadOnly!=='function')
         return output('REMOTE_PROOF_PORT_UNAVAILABLE');
@@ -1699,7 +1708,7 @@ async function verifyRemoteCommitContextReadOnly(original, sourceKind, witness=n
           fresh=await verifyFreshPhase4RemoteOutcomeReadOnly(
             Object.freeze({...phase}),stage=>{
               if(Object.hasOwn(stageStatus,stage))lastStage=stage;
-            });
+            },privateR1Witness);
         }catch{
           return output(stageStatus[lastStage]);
         }
