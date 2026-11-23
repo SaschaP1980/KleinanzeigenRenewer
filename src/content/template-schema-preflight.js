@@ -289,7 +289,7 @@
           // the visible label alone, and never trust a contradictory status
           // when a substantive displayed selection has no technical ID.
           const confirmedEmptyPlaceholder = attribute.status === 'empty' &&
-            (label.length === 0 || /^(bitte wählen|auswählen|select)$/i.test(label));
+            (label.length === 0 || /^(bitte (?:wählen|auswählen)|auswählen|select)$/i.test(label));
           const capturedVisibleValue = label.length > 0 && !confirmedEmptyPlaceholder;
           const liveKey = 'attribute:' + attribute.key;
           const liveField = fields.get(liveKey);
@@ -302,7 +302,7 @@
           // compatibility and cannot authorize publication by itself.
           const canAttemptExactDisplayRecovery =
             comparison?.status === 'legacy-unversioned' && capturedVisibleValue &&
-            !/^(bitte wählen|auswählen|select)$/i.test(label) &&
+            !/^(bitte (?:wählen|auswählen)|auswählen|select)$/i.test(label) &&
             liveField?.kind === 'combobox' &&
             inputs.length === 1 && inputs[0].type === 'hidden' &&
             peer && observed.form.contains(peer) && peer.tagName === 'BUTTON' &&
