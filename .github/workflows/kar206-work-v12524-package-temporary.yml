@@ -37,9 +37,8 @@ jobs:
           assert m['version']==p['version']==lock['version']==lock['packages']['']['version']==spec['version']==spec['packageVersion']=='1.25.24'
           assert p['displayVersion']=='1.25.24'
           assert set(m['permissions'])=={'activeTab','storage','unlimitedStorage','scripting','nativeMessaging'}
-          assert 'tests/kar206-empty-archive-attribute-handoff.cjs' in [
-            str(x) for x in Path('docs/testing').glob('kar206-empty-archive-attribute-handoff.cjs')
-          ]
+          assert Path('tests/kar206-empty-archive-attribute-handoff.cjs').is_file()
+          assert 'kar206-empty-archive-attribute-handoff.cjs' in p['scripts']['test']
           print('PASS unpublished Work-only identity; no updater, Chrome install, listing mutation or release')
           PY
       - name: Build exact versioned Chrome ZIP and validate immutable owner legacy ZIP
@@ -128,7 +127,7 @@ jobs:
       - name: Upload WORK-only parity and browser reports (never a release)
         uses: actions/upload-artifact@v4
         with:
-          name: kar206-r1-unpublished-v12524-${{ github.sha }}
+          name: kar206-zip-empty-status-unpublished-v12524-${{ github.sha }}
           path: |
             ${{ runner.temp }}/kar206-v12524/build.json
             ${{ runner.temp }}/kar206-v12524/parity.json
