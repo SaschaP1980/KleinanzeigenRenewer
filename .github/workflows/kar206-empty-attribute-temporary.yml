@@ -36,3 +36,5 @@ jobs:
           assert hashlib.sha256(p.read_bytes()).hexdigest()=='8b989d1c5d80a5b9358a56e42a5e95e3b1452fe57d4de00c87b924863f7a5b95'
           print('PASS original v1.25.23 Work ZIP untouched by this source-only fix')
           PY
+
+# Rerun after correcting a synthetic fixture default; product source unchanged.
