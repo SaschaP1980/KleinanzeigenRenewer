@@ -4,6 +4,17 @@ This is the canonical version-specific history for Kleinanzeigen Manager. Entrie
 
 All distinct historical section bodies from the former root README and CHANGELOG are preserved with source labels and line numbers. The [KAR-170 migration ledger](docs/maintenance/KAR170_CHANGELOG_MIGRATION.json) identifies their original Git blobs and body checksums. Overlapping versions retain distinct factual notes; older references to planned builds or native/CI acceptance are **historical**, not live status.
 
+## v1.25.25 — KAR-206 core re-insertion schema-review regression (Work only; not released)
+
+- Native v1.25.24 diagnostic proved an issue-free `status=empty` handoff but showed a new core workflow blocker: nine control-kind differences, three uncertain requiredness differences and two core radio-option differences between an archived EDIT-form snapshot and the CREATE form, despite independently unchanged F1, F2 and F3 live form-monitor fingerprints. The resulting F3 review modal prevented ordinary archive re-insertion from progressing to value/image fill.
+- The verified edit-to-create comparison is no longer promoted to proven current-form drift only when exact category and both schema hashes match their trusted stored/live references, preflight is issue-free, F1/F2/F3 are independently stable, and every difference is a narrowly recognized edit-mode representation (button→combobox, previously unknown requiredness, or core adType/buyNow options). Any added/removed field, alternate control-kind change, dynamic option drift, value problem or unproven monitor remains subject to the original fail-closed review.
+- Retains the v1.25.24 empty-status correction and all exact technical/visible value checks, post-fill schema verification, required attribute checks, paid-insertion detection, image verification, account/P8/lock policy and guarded publish authorizations. No live-account mutation in hosted tests and no claim of owner-native acceptance until separately tested.
+- RED was reproduced on the unmodified v1.25.24 Work HEAD with isolated production review logic. Focused synthetic regression is now GREEN 7/7 with adversarial checks. Full required runtime/coverage, source-identical installable ZIP and packaged Chromium test results are separate gates. This version is Work-only, not merged or published as a GitHub Release.
+
+## v1.25.24 — KAR-206 empty optional attribute handoff fix (Work only; not released)
+
+- Preserve source `dynamicAttributes[].status` during template-payload transport and admit only explicitly `status=empty` optional placeholder labels with no technical selection. Reject substantive display-only values and unknown/required fields. The owner v1.25.24 native diagnostic confirmed zero resulting preflight issues, but further F3 edit/create comparison regression remained (addressed in v1.25.25). No native full renewal success was claimed for v1.25.24.
+
 ## v1.25.21 — KAR-171 R1 MV3 idle-safe active-only bulk watchdog (Work only; not released)
 
 - Owner's native v1.25.20 Stage 4 Step A returned `BASELINE_READY`, but even after closing the separate Manager window and service-worker DevTools, Chrome did not show the service worker as inactive. This native observation does not by itself establish the complete cause.
