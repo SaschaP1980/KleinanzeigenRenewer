@@ -138,3 +138,5 @@ jobs:
 # Single-use KAR-206 builder. Only ZIP is pushed to work/KAR-206 after
 # focused regression, complete coverage, 9/9 packaged Chromium and source parity.
 # No main merge, owner Chrome install, GitHub Release or live listing mutation.
+
+# One-shot exact-SHA build requested by KAR-206 correction; preserve owner installed v1.25.21.
