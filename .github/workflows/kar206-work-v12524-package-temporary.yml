@@ -142,3 +142,5 @@ jobs:
 # One-shot exact-SHA build requested by KAR-206 correction; preserve owner installed v1.25.21.
 
 # Rerun with restored KAR-134 historical Bitte auswählen placeholder behavior.
+
+# Third complete CI attempt: correct exact v1.25.24 owner-only script regression expectation.
