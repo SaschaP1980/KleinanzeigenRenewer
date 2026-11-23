@@ -9,7 +9,7 @@ const path='docs/testing/KAR171_R1_CONTENT_PENDING_MONITOR_READ_ONLY.js';
 const src=fs.readFileSync(path,'utf8');
 const KEY='kar171R1ContentWitnessV1';
 const nonce='a'.repeat(32),workerId='owner-worker-generation';
-function fixture({version='1.25.23',pathname='/src/app/app.html',extensionId='hafahjhhgiipdegfkgacchmnacgblnah'}={}){
+function fixture({version='1.25.24',pathname='/src/app/app.html',extensionId='hafahjhhgiipdegfkgacchmnacgblnah'}={}){
  const logs=[],handlers=new Set(),timers=new Map(),calls={set:0,remove:0,send:0},clock={now:1000000};
  let timerId=0;
  const ctx={
