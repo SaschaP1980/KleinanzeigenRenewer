@@ -56,12 +56,12 @@ async function evaluate({sourceKind='edit-form', stagePatch={}, reportPatch={},
   };
   const report = {
     complete:true,issues:[],valueCompatibility:'unverified',
-    sourceFingerprint:'b'.repeat(64),currentFingerprint:'c'.repeat(64),
+    sourceFingerprint:'b'.repeat(64),currentFingerprint:hash,
     comparison:{status:'schema-changed',changes},
     ...reportPatch
   };
   const session = {fillId:'synthetic-206',
-    template:{categoryId,templateSchema:{source:sourceKind}}};
+    template:{categoryId,templateSchema:{source:sourceKind, snapshot:{categoryId}, fingerprint:'b'.repeat(64)}}};
   const observed = {
     base:{stage:'base',formMode:'posting-create'},
     category:{stage:'category',categoryId,
