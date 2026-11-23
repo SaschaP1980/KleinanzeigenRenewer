@@ -198,7 +198,7 @@ test('target hold requires precisely scoped kind and rejects arbitrary timing',a
 
 test('controlled source owner script is inert outside v1.25.24 and has no stop or mutation route',()=>{
  const script=fs.readFileSync('docs/testing/KAR171_R1_CONTROLLED_SOURCE_HOLD_READ_ONLY.js','utf8');
- assert.match(script,/const MIN_VERSION='1\.25\.23'/);
+ assert.match(script,/const MIN_VERSION='1\.25\.24'/);
  assert.match(script,/const EXT='hafahjhhgiipdegfkgacchmnacgblnah'/);
  assert.match(script,/r1PrivateHoldKind:'source'/);
  assert.match(script,/r1PrivateWitnessNonce/);
