@@ -764,6 +764,58 @@
     return overlay;
   }
 
+  // KAR-206: the archived F3 fingerprint is observed on an EDIT form while
+  // the live preflight runs on a CREATE form. Their raw control representations
+  // are not proof of a platform change. Only a tightly characterized subset
+  // may defer to an independently unchanged live F1/F2/F3 monitor. Every
+  // actual saved value, requiredness, image and publish gate remains enforced.
+  function isStableIndependentSchemaStage(stage, statuses) {
+    const hash = value => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
+    return stage && statuses.includes(stage.status) &&
+      hash(stage.previousFingerprint) &&
+      stage.previousFingerprint === stage.currentFingerprint &&
+      Array.isArray(stage.changes) && stage.changes.length === 0;
+  }
+  function isOnlyProvenEditCreateRepresentationDifference(session, observedCategory, stages, report) {
+    const template = session?.template;
+    const source = template?.templateSchema;
+    const categoryId = String(template?.categoryId || '');
+    const comparison = report?.comparison;
+    const sha = value => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
+    if (source?.source !== 'edit-form' ||
+        !/^[1-9][0-9]*$/.test(categoryId) ||
+        String(source?.snapshot?.categoryId || '') !== categoryId ||
+        String(observedCategory?.categoryId || '') !== categoryId ||
+        observedCategory?.leafConfirmed !== true ||
+        observedCategory?.observedPath !== true ||
+        report?.complete !== true || !Array.isArray(report.issues) || report.issues.length !== 0 ||
+        !['confirmed', 'unverified'].includes(report.valueCompatibility) ||
+        comparison?.status !== 'schema-changed' ||
+        !Array.isArray(comparison.changes) || comparison.changes.length < 1 ||
+        comparison.changes.length > 50 ||
+        !sha(report.sourceFingerprint) || report.sourceFingerprint !== source.fingerprint ||
+        !sha(report.currentFingerprint) ||
+        !isStableIndependentSchemaStage(stages?.base, ['unchanged']) ||
+        !isStableIndependentSchemaStage(stages?.category, ['unchanged', 'not-fully-verified']) ||
+        !isStableIndependentSchemaStage(stages?.attributes, ['unchanged']) ||
+        stages.attributes.currentFingerprint !== report.currentFingerprint) return false;
+    return comparison.changes.every(change => {
+      if (!change || typeof change.key !== 'string') return false;
+      if (change.type === 'control-kind-changed')
+        return change.key.startsWith('attribute:') &&
+          change.before === 'button' && change.after === 'combobox';
+      if (change.type === 'requiredness-uncertain')
+        return change.key.startsWith('attribute:') &&
+          change.before === 'unknown' &&
+          ['required', 'optional'].includes(change.after);
+      if (change.type === 'valid-options-changed')
+        return change.key === 'field:adType' || change.key === 'field:buyNow';
+      // Field addition/removal, different option sets for dynamic selections,
+      // known requiredness changes and any unrecognized drift still require review.
+      return false;
+    });
+  }
+
   // Real F1/F2/F3 review is part of the ordinary authenticated posting
   // preflight, not a standalone category-test session.
   async function reviewLivePostingSchema(session, observations, stages, report) {
@@ -777,9 +829,25 @@
     const reportChanged = comparison?.status === 'schema-changed' &&
       Array.isArray(comparison.changes) && comparison.changes.length > 0;
     const compared = { ...stages };
+    const crossModeOnly = reportChanged &&
+      isOnlyProvenEditCreateRepresentationDifference(session, observedCategorySchema, stages, report);
+    if (crossModeOnly) {
+      // A new live form has its own unchanged F3 reference. Archive edit-form
+      // representation alone never becomes evidence for a new F3 change.
+      // This does not approve publication: post-fill proof and the separate
+      // paid/account/P8/publish gates still decide the complete outcome.
+      void diagnostic(fillId, 'KAR206_CROSS_MODE_SCHEMA_NONCOMPARABLE', {
+        categoryId: expectedCategoryId, comparisonStatus: comparison.status,
+        differenceCount: comparison.changes.length,
+        liveF1: baseStageResult.status, liveF2: categoryStageResult.status,
+        liveF3: attributeStageResult.status,
+        preflightIssueCount: 0, referenceApproved: false, remotePublishAttempted: false
+      });
+    }
     // Old template vs live form can differ even on first stage-monitor run.
     // Such a comparison must not be mistaken for an adoptable F3 baseline.
-    if (reportChanged && compared.attributes?.status !== 'changed')
+    // A genuinely changed live F3 still triggers the full review and consent.
+    if (reportChanged && !crossModeOnly && compared.attributes?.status !== 'changed')
       compared.attributes = { status: 'changed', changes: comparison.changes,
         previousFingerprint: report.sourceFingerprint,
         currentFingerprint: report.currentFingerprint };
