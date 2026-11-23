@@ -71,6 +71,13 @@ All distinct historical section bodies from the former root README and CHANGELOG
 - Preserve and independently test original P8 publication/Phase-4 provenance, authenticated account-bound My Ads source/target whole-roster read-only checks, worker generation safety and fail-closed remote outcome.
 - This is an owner-requested installable test build only. R1 is NOT ACCEPTED; no updater lease or NativeHost apply, Chrome reload, actual listing mutation, main merge or GitHub Release is authorized by this version.
 
+## v1.25.24 — KAR-206 ZIP template empty-status handoff (Work-only hotfix; unpublished)
+
+- Fix a reproducible ZIP-to-form preflight regression: a valid exported listing's optional unselected `baby_kinderkleidung` category attributes store `status: "empty"`, missing technical value, and a genuine placeholder `Bitte wählen`. The existing `templatePayload(record)` inadvertently dropped the status and turned the placeholder into a false `display-only-unsafe-control` error.
+- Preserve the source attribute status in the existing private fill-session template object; no new Chrome message route or permission. Only an explicitly empty source attribute **without a technical value**, and with an empty label or recognized non-selection placeholder, remains safely unselected. An actual visible selection without a technical value, conflicting `status: "empty"`, missing status, unknown required attribute, changed category, and the real schema drift guards continue to fail closed.
+- Test-first synthetic RED on 2026-11-23 confirmed exactly the status-loss error (5 PASS/2 expected FAIL); an independent follow-up test fixture correction was made without changing the product logic. Focused 7/7 GREEN, subsequent complete coverage/architecture and packaged Chromium validation must be proven separately before owner installation.
+- Based on pinned unpublished Work `v1.25.23` from #171 to upgrade owner-installed `v1.25.21`, because `main` is still `v1.25.12`; tracked as independent #206 Work branch with upstream dependency. Original R1 Work branch, older archives and `main` are untouched; **no GitHub Release, native acceptance, automatic publication or automatic update is claimed**.
+
 ## v1.25.23 — KAR-171 bounded R1 content pending hold (Work-only candidate, not published)
 
 - Add an **explicitly opted-in, 45-second, fail-closed private content-side hold** after validating the first authenticated `Meine Anzeigen` page for the original-P8-bound, read-only R1 source **or** target query. Without a separately approved Chrome worker interruption, the held request intentionally times out with an error. The regular R1 check and every ordinary inventory, listing, publish, delete and renewal route retain the no-hold behavior.
