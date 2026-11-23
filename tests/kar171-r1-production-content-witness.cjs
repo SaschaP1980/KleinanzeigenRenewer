@@ -41,7 +41,7 @@ test('authenticated full pagination gives bounded page counts without IDs',()=>{
  assert.match(ops,/await onReadOnlyPageObserved/);
 });
 test('no additional public message, permissions, or update authority',()=>{
- assert.equal(manifest.version,'1.25.23');
+ assert.equal(manifest.version,'1.25.24');
  assert.deepEqual(manifest.permissions,
    ['activeTab','storage','unlimitedStorage','scripting','nativeMessaging']);
  assert.doesNotMatch(registry,/KAR171_R1_CONTENT_(?:ACK|UPDATE)/);
@@ -196,7 +196,7 @@ test('target hold requires precisely scoped kind and rejects arbitrary timing',a
  assert.equal(f.holdTimers.length,0);
 });
 
-test('controlled source owner script is inert outside v1.25.23 and has no stop or mutation route',()=>{
+test('controlled source owner script is inert outside v1.25.24 and has no stop or mutation route',()=>{
  const script=fs.readFileSync('docs/testing/KAR171_R1_CONTROLLED_SOURCE_HOLD_READ_ONLY.js','utf8');
  assert.match(script,/const MIN_VERSION='1\.25\.23'/);
  assert.match(script,/const EXT='hafahjhhgiipdegfkgacchmnacgblnah'/);
