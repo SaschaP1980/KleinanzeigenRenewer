@@ -112,3 +112,11 @@ test('nonempty selected technical ID is preserved even if contradictory empty st
  assert.equal(report.valueCompatibility,'unverified');
  assert.equal(report.valueEvidence[0].reason,'technical-options-unknown');
 });
+
+test('historical Bitte auswählen placeholder remains empty, captured choice still blocked',async()=>{
+ const empty=await evaluate([emptyAttr('material','Bitte auswählen','empty')]);
+ assert.equal(empty.complete,true,empty.issues.join(';'));
+ const claimed=await evaluate([emptyAttr('material','Bitte auswählen','captured')]);
+ assert.equal(claimed.complete,false);
+ assert.equal(claimed.valueEvidence[0].reason,'display-only-unsafe-control');
+});
