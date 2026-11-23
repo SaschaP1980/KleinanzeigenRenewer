@@ -94,7 +94,7 @@ test('invalid status=empty with a substantive visible choice fails closed',async
  assert.equal(report.valueEvidence[0].status,'incompatible');
 });
 test('a placeholder without proven empty state remains blocked',async()=>{
- const report=await evaluate([emptyAttr('material','Bitte wählen',undefined)]);
+ const report=await evaluate([{...emptyAttr('material','Bitte wählen'),status:undefined}]);
  assert.equal(report.complete,false);
  assert.equal(report.valueEvidence[0].reason,'display-only-unsafe-control');
 });
