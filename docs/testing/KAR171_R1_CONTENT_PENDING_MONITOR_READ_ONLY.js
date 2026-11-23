@@ -14,7 +14,7 @@
   'use strict';
   const TAG='KAR171_R1_CONTENT_PENDING_MONITOR_V1';
   const EXT='hafahjhhgiipdegfkgacchmnacgblnah';
-  const VERSION='1.25.23';
+  const VERSION='1.25.24';
   const KEY='kar171R1ContentWitnessV1';
   const GLOBAL='__KAR171_R1_PENDING_MONITOR__';
   const MAX_AGE_MS=1200;
