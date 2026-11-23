@@ -21,7 +21,7 @@
   const EXT='hafahjhhgiipdegfkgacchmnacgblnah';
   const PHASE='karPhase4UncertainAttemptV1_';
   // This source must never be invoked against the older archived v1.25.21.
-  const MIN_VERSION='1.25.23';
+  const MIN_VERSION='1.25.24';
   const id=x=>typeof x==='string'&&/^[A-Za-z0-9_-]{1,128}$/.test(x);
   const runtimeVersion=()=>{
     try {
