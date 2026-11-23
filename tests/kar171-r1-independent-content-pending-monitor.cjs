@@ -35,7 +35,7 @@ function fixture({version='1.25.24',pathname='/src/app/app.html',extensionId='ha
  return {logs,handlers,timers,calls,clock,ctx,send,row};
 }
 test('wrong extension, version or non-App document cannot arm independent listener',()=>{
- for(const o of [{version:'1.25.21'},{version:'1.25.22'},{pathname:'/src/background/background.js'},{extensionId:'wrong'}]){
+ for(const o of [{version:'1.25.21'},{version:'1.25.22'},{version:'1.25.23'},{pathname:'/src/background/background.js'},{extensionId:'wrong'}]){
   const f=fixture(o);
   assert.equal(f.handlers.size,0);
   assert.equal(f.calls.set+f.calls.remove+f.calls.send,0);
