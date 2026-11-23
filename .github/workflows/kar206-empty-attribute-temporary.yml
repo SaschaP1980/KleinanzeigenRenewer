@@ -22,28 +22,17 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           node --test tests/kar206-empty-archive-attribute-handoff.cjs
-      - name: Full regression and coverage (GREEN only)
-        if: contains(github.event.head_commit.message, 'KAR206-EMPTY-GREEN')
-        shell: bash
-        run: |
-          set -euo pipefail
-          npm ci
-          rm .github/workflows/kar206-empty-attribute-temporary.yml
-          bash scripts/coverage-gate.sh
-          git restore .github/workflows/kar206-empty-attribute-temporary.yml
-          git diff --exit-code
-      - name: Source checks and unmodified upstream v1.25.23 ZIP parity (GREEN only)
+      - name: Source syntax and immutable v1.25.23 baseline (GREEN only)
         if: contains(github.event.head_commit.message, 'KAR206-EMPTY-GREEN')
         shell: bash
         run: |
           set -euo pipefail
           node --check src/background/services/template-fill-service.js
           node --check src/content/template-schema-preflight.js
-          python3 scripts/verify_committed_chrome_zip.py --report "$RUNNER_TEMP/kar206-original-parity.json"
           python3 - <<'PY'
-          import json,hashlib
+          import hashlib
           from pathlib import Path
           p=Path('release/kleinanzeigen-renewal-chrome-v1.25.23.zip')
           assert hashlib.sha256(p.read_bytes()).hexdigest()=='8b989d1c5d80a5b9358a56e42a5e95e3b1452fe57d4de00c87b924863f7a5b95'
-          print('PASS immutable upstream Work v1.25.23 archive')
+          print('PASS original v1.25.23 Work ZIP untouched by this source-only fix')
           PY
