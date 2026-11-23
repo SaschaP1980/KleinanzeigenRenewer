@@ -283,7 +283,14 @@
         // silently lose that selection even with an unchanged live schema.
         if (!hasValue(attribute.technicalValue)) {
           const label = clean(attribute.displayValue || '');
-          const capturedVisibleValue = label.length > 0 && attribute.status !== 'empty';
+          // The archive can explicitly record an unselected optional control
+          // as status=empty even when the legacy UI stores its placeholder
+          // ("Bitte wählen") as displayValue. Never infer "empty" from
+          // the visible label alone, and never trust a contradictory status
+          // when a substantive displayed selection has no technical ID.
+          const confirmedEmptyPlaceholder = attribute.status === 'empty' &&
+            (label.length === 0 || /^(bitte wählen|auswählen|select)$/i.test(label));
+          const capturedVisibleValue = label.length > 0 && !confirmedEmptyPlaceholder;
           const liveKey = 'attribute:' + attribute.key;
           const liveField = fields.get(liveKey);
           const peer = observed.form?.ownerDocument?.getElementById?.(attribute.key);
