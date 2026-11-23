@@ -155,7 +155,7 @@
     "Validate canonical all-profile affected-count preview and fail-closed cancellation when the active profile or trash snapshot changes.",
     "Verify local-only atomic record-and-image deletion under exact inventory IDs, retention-reset boundaries and MV3 interruption; assert no remote Kleinanzeigen mutation."
   ],
-  "packageVersion": "1.25.24",
+  "packageVersion": "1.25.25",
   "directBasisNativePending": false,
   "architectureFiles": [
     {
