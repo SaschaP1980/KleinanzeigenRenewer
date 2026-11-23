@@ -19,7 +19,7 @@ test('test-only fixture loads unmodified real R1 service, no remote site grants'
  assert.match(script,/and not manifest\.get\("content_scripts"\)/);
  assert.doesNotMatch(script,/https:\/\/(?:www\.)?kleinanzeigen\.de/);
  assert.match(scanner,/verifyPhase4RemoteOutcomeFresh/);
- assert.equal(manifest.version,'1.25.24');
+ assert.equal(manifest.version,'1.25.25', 'current authorized Work ZIP identity for R1 test fixture');
 });
 test('real worker target closure occurs ONLY after source read is in flight',()=>{
  const signal=script.indexOf('page.wait_for_function');
