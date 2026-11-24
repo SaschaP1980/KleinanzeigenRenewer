@@ -47,11 +47,18 @@
       &&key===RESOLUTION_PREFIX+row.fillId+'_'+row.attemptId;
   }
   function create({storageLocal,lockManager,lockName,workerInstanceId,clock,newToken,
-    verifyRemoteOutcome=null,onSample=null,verifyCommitContext=null,
+    verifyRemoteOutcome=null,onSample=null,onResolutionDenied=null,verifyCommitContext=null,
     prepareCommitContext=null,requireCommitContext=false}={}){
     if(typeof storageLocal?.get!=='function'||typeof storageLocal?.set!=='function'
        ||typeof clock!=='function'||typeof newToken!=='function'||!id(workerInstanceId))
       throw denied('KR_PUBLISH_INTENT_STORAGE');
+    // Observability only: a fixed stage, never a profile, listing ID, attempt
+    // token or authorization result. A telemetry failure cannot alter safety.
+    function noteResolutionDenied(stage){
+      if(typeof onResolutionDenied==='function') {
+        try { onResolutionDenied(Object.freeze({stage})); } catch { /* telemetry is inert */ }
+      }
+    }
     async function read(keys){
       try{const v=await storageLocal.get(keys);if(!object(v))throw Error('invalid read');return v;}
       catch{throw denied('KR_PUBLISH_INTENT_STORAGE');}
@@ -240,30 +247,42 @@
       if(typeof verifyRemoteOutcome!=='function')throw denied('KR_PUBLISH_INTENT_UNVERIFIED');
       let proof;
       try{proof=await verifyRemoteOutcome(Object.freeze({...intent}),newAdId);}
-      catch{throw denied('KR_PUBLISH_INTENT_UNVERIFIED');}
+      catch{
+        noteResolutionDenied('remote-outcome-unavailable');
+        throw denied('KR_PUBLISH_INTENT_UNVERIFIED');
+      }
       if(!object(proof)||proof.fillId!==intent.fillId||proof.workflowId!==intent.workflowId
         ||proof.kind!==intent.kind||proof.profileId!==intent.profileId
         ||proof.sourceAdId!==intent.sourceAdId||proof.newAdId!==newAdId
         ||proof.targetPresent!==true||proof.targetEvidence!=='found-in-my-ads-full-pagination-scan'
         ||!Number.isSafeInteger(proof.targetPagesScanned)||proof.targetPagesScanned<1
         ||!Number.isSafeInteger(proof.targetFoundPage)||proof.targetFoundPage<1
-        ||proof.targetFoundPage>proof.targetPagesScanned)
+        ||proof.targetFoundPage>proof.targetPagesScanned) {
+        noteResolutionDenied('remote-outcome-unverified');
         throw denied('KR_PUBLISH_INTENT_UNVERIFIED');
+      }
       // A fresh publication presence result can only confirm the exact
       // originating P8 attempt (not another attempt with the same Ad IDs).
       if(Object.hasOwn(intent,'admissionToken') &&
          (proof.attemptId!==intent.attemptId||
           proof.workerInstanceId!==intent.workerInstanceId||
-          proof.admissionToken!==intent.admissionToken))
+          proof.admissionToken!==intent.admissionToken)) {
+        noteResolutionDenied('remote-outcome-unverified');
         throw denied('KR_PUBLISH_INTENT_UNVERIFIED');
+      }
       // A separately owned account tab is staged before entering the lock.
       let witness=null;
       if(requireCommitContext){
         try{witness=await prepareCommitContext(Object.freeze({...intent}));}
-        catch{throw denied('KR_PUBLISH_INTENT_UNVERIFIED');}
-        if(!witness||!Number.isSafeInteger(witness.tabId)||witness.tabId<=0||
-            typeof witness.close!=='function')
+        catch{
+          noteResolutionDenied('account-witness-unavailable');
           throw denied('KR_PUBLISH_INTENT_UNVERIFIED');
+        }
+        if(!witness||!Number.isSafeInteger(witness.tabId)||witness.tabId<=0||
+            typeof witness.close!=='function') {
+          noteResolutionDenied('account-witness-unavailable');
+          throw denied('KR_PUBLISH_INTENT_UNVERIFIED');
+        }
       }
       try{return await atomic(async()=>{
         const after=await observe(fillId);
@@ -278,7 +297,10 @@
           let accepted=false;
           try{accepted=await verifyCommitContext(Object.freeze({...intent}),witness);}
           catch{/* No positive evidence from an unavailable source. */}
-          if(accepted!==true)throw denied('KR_PUBLISH_INTENT_UNVERIFIED');
+          if(accepted!==true){
+            noteResolutionDenied('account-witness-unverified');
+            throw denied('KR_PUBLISH_INTENT_UNVERIFIED');
+          }
         }
         if(after.resolutions.length){
           if(after.resolutions[0].newAdId!==newAdId)
