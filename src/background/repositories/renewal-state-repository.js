@@ -196,6 +196,10 @@
           remoteVerification: session.remoteVerification || null,
           remoteVerificationRequired: session.remoteVerificationRequired === true,
           autoReplacementFailedAt: session.autoReplacementFailedAt || null,
+          phase4PreIntentBlocked: session.status==='verified' && session.stage==='source-delete-outcome-unverified' &&
+            session.lastError==='KR_PHASE4_JOURNAL_ATOMIC_BUSY' && !session.emergencyResetAt &&
+            !session.sourceDeleteAction && !session.sourceDeleteTransportInterrupted &&
+            !session.sourceDeleteVerificationPendingAt,
           phase4AttemptsExhaustedAt: session.phase4AttemptsExhaustedAt || null,
           massBatchId: session.massBatchId || null,
           massBatchItemIndex: session.massBatchItemIndex ?? null,

@@ -1618,6 +1618,7 @@ function requirePhase4UncertaintyJournal() {
       verifyCommitContext: (r,w) => requireAdditionalOwnerObserver().verifyRemoteCommitContextReadOnly(r,'phase4',w),
       lockName: AtomicMV3Admission.LOCK_NAME,
       lockManager: globalThis.navigator?.locks,
+      lockWaitMs: 12000,
       onSample: s => logDiagnostic('info','RENEWAL_PHASE4_JOURNAL_LOCK_CONTENTION',s).catch(()=>{})
     });
   }

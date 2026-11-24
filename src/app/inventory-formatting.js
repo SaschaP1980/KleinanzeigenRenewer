@@ -69,6 +69,7 @@
         const status = String(record?.renewal?.status || '');
         const stage = String(record?.renewal?.stage || '');
         if (!record?.renewal?.renewalId) return '';
+        if (stage==='source-delete-outcome-unverified'&&record.renewal.phase4PreIntentBlocked===true) return 'LÖSCHUNG ANGEHALTEN';
         if (['source-delete-status-unverified','source-delete-outcome-unverified'].includes(stage)) return 'AUSTAUSCH UNGEKLÄRT';
         if (renewalAutoCompletionPending(record)) return stage.startsWith('source-delete') ? 'AUSTAUSCH LÄUFT' : 'AUSTAUSCH STARTET';
         if (renewalIsReplacementReady(record)) return 'AUSTAUSCH BEREIT';
@@ -82,6 +83,7 @@
 
       function renewalStatusText(record) {
         const label = renewalStatusLabel(record);
+        if (label === 'LÖSCHUNG ANGEHALTEN') return 'Löschung fortsetzen';
         if (label === 'AUSTAUSCH UNGEKLÄRT') return 'Austausch ungeklärt · prüfen';
         if (label === 'AUSTAUSCH LÄUFT') return 'Austausch läuft …';
         if (label === 'AUSTAUSCH STARTET') return 'Austausch startet …';

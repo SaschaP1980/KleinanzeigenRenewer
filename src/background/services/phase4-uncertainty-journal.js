@@ -23,7 +23,7 @@
   function create({storageLocal, clock, newToken, workerInstanceId,
     verifyRemoteOutcome = null, verifyCommitContext = null,
     prepareCommitContext = null, requireCommitContext = false,
-    lockManager = null, lockName = null, onSample = null} = {}) {
+    lockManager = null, lockName = null, onSample = null, lockWaitMs = 0} = {}) {
     if (typeof storageLocal?.get !== 'function' || typeof storageLocal?.set !== 'function'
         || typeof clock !== 'function' || typeof newToken !== 'function')
       throw denied('KR_PHASE4_JOURNAL_STORAGE');
@@ -40,6 +40,36 @@
       const beganAt=Date.now();
       let busyAttempts=0,holdMs=0,outcome='denied';
       try {
+        // Production uses the origin lock queue instead of repeatedly trying
+        // to acquire between P8 owners. Abort only a pending acquisition.
+        if(lockWaitMs>0){
+          if(typeof AbortController!=='function')throw denied('KR_PHASE4_JOURNAL_ATOMIC_UNAVAILABLE');
+          const controller=new AbortController();
+          let entered=false,completed=false;
+          const deadline=setTimeout(()=>controller.abort(),Math.min(30000,lockWaitMs));
+          try{
+            const value=await lockManager.request(SHARED_LOCK_NAME,{mode:'exclusive',signal:controller.signal},async lock=>{
+              if(controller.signal.aborted)throw denied('KR_PHASE4_JOURNAL_ATOMIC_BUSY');
+              if(entered||!lock||lock.name!==SHARED_LOCK_NAME||lock.mode!=='exclusive')
+                throw denied('KR_PHASE4_JOURNAL_ATOMIC_UNAVAILABLE');
+              entered=true;
+              clearTimeout(deadline);
+              const heldAt=Date.now();
+              try{
+                const result=await action();
+                completed=true;
+                return result;
+              }finally{holdMs=Math.min(60000,Math.max(0,Date.now()-heldAt));}
+            });
+            if(!entered||!completed)throw denied('KR_PHASE4_JOURNAL_ATOMIC_UNAVAILABLE');
+            outcome='ok';
+            return value;
+          }catch(error){
+            if(!entered&&controller.signal.aborted){busyAttempts=1;throw denied('KR_PHASE4_JOURNAL_ATOMIC_BUSY');}
+            if(typeof error?.code==='string'&&error.code.startsWith('KR_PHASE4_JOURNAL_'))throw error;
+            throw denied('KR_PHASE4_JOURNAL_ATOMIC_UNAVAILABLE');
+          }finally{clearTimeout(deadline);}
+        }
         const maxAttempts=16;
         for(let i=0;i<maxAttempts;i++) {
           let entered=false,completed=false,preLockBusy=false;
@@ -81,7 +111,7 @@
       }finally{
         // Send only fixed phase, bounded timings and attempts. No account,
         // ad, tab, token, source payload, or other private identifying value.
-        if(busyAttempts>0&&typeof onSample==='function'){
+        if((busyAttempts>0||(lockWaitMs>0&&Date.now()-beganAt-holdMs>=20))&&typeof onSample==='function'){
           try{onSample(Object.freeze({
             phase,busyAttempts,
             waitMs:Math.min(60000,Math.max(0,Date.now()-beganAt-holdMs)),
