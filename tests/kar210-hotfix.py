@@ -103,5 +103,77 @@ class Hotfix(unittest.TestCase):
                 builder.sealed_prior_archive(210, base, head, name, version)
 
 
+    def test_local_build_commit_scope(self):
+        # Real local Git and metadata writes. Packaging, coverage, remote push
+        # and comment sync are replaced at their explicit process boundaries.
+        import subprocess
+        for change_class in ('patch', 'hotfix'):
+            with self.subTest(change_class=change_class), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                original = metadata('2.0.0.9')
+                for name, value in original.items():
+                    path = root / name
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.write_text(json.dumps(value, indent=1) + '\n', encoding='utf-8')
+                (root / '.gitignore').write_text('*.zip\n', encoding='utf-8')
+                old = root / 'release/kleinanzeigen-renewal-chrome-v2.0.0.9.zip'
+                old.write_bytes(b'old sealed fixture')
+                lock_bytes = (root / 'package-lock.json').read_bytes()
+
+                def git(*args):
+                    return subprocess.run(['git', *args], cwd=root, capture_output=True,
+                                          check=True, text=True).stdout.strip()
+
+                git('init', '-q')
+                git('config', 'user.name', 'Fixture')
+                git('config', 'user.email', 'fixture@example.invalid')
+                git('add', '-f', '.')
+                git('commit', '-qm', 'local fixture')
+                base = git('rev-parse', 'HEAD')
+                remote_head = [base]
+                pushed = []
+                real_run = builder.run
+                env = {'GITHUB_EVENT_NAME': 'workflow_dispatch',
+                       'GITHUB_REPOSITORY': 'SaschaP1980/KleinanzeigenRenewer',
+                       'GITHUB_REF_NAME': 'work/KAR-210', 'GITHUB_SHA': base,
+                       'KAR_CHANGE_CLASS': change_class}
+                with patch.object(builder, 'ROOT', root), patch.dict(os.environ, env, clear=True), \
+                        patch.object(builder, 'remote', side_effect=lambda branch: base if branch == 'main' else remote_head[0]):
+                    plan, future = builder.collect(210, 'work/KAR-210', base, base, change_class)
+
+                    def run(*args, **kwargs):
+                        if args[0:2] == (builder.sys.executable, 'scripts/package.py'):
+                            (Path(args[2]) / Path(plan['newZip']).name).write_bytes(b'new fixture')
+                            return ''
+                        if args[0:2] in ((builder.sys.executable, 'scripts/verify_committed_chrome_zip.py'),
+                                         ('bash', 'scripts/coverage-gate.sh'),
+                                         ('node', 'scripts/kar-work-pr-preflight.cjs')):
+                            return ''
+                        if args[0:2] == ('git', 'push'):
+                            pushed.append(args)
+                            remote_head[0] = git('rev-parse', 'HEAD')
+                            return ''
+                        self.assertEqual(args[0], 'git', args)
+                        return real_run(*args, **kwargs)
+
+                    with patch.object(builder, 'run', side_effect=run):
+                        result = builder.build(plan, future)
+                self.assertEqual(len(pushed), 1)
+                self.assertEqual(result['newWorkSha'], git('rev-parse', 'HEAD'))
+                self.assertEqual(git('rev-parse', 'HEAD^'), base)
+                self.assertEqual(set(git('diff-tree', '--no-commit-id', '--name-only', '-r', 'HEAD').splitlines()),
+                                 set(plan['changedPaths']))
+                self.assertEqual(old.read_bytes(), b'old sealed fixture')
+                self.assertEqual(git('status', '--porcelain'), '')
+                self.assertEqual(git('show', '-s', '--format=%s'),
+                                 'build(KAR-210): atomic ' + change_class.upper() + ' ' + plan['nextVersion'] + ' plus ZIP')
+                if change_class == 'hotfix':
+                    self.assertEqual((root / 'package-lock.json').read_bytes(), lock_bytes)
+                    self.assertEqual(plan['nextVersion'], '2.0.0.10')
+                else:
+                    self.assertNotEqual((root / 'package-lock.json').read_bytes(), lock_bytes)
+                    self.assertEqual(plan['nextVersion'], '2.0.1.0')
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)
