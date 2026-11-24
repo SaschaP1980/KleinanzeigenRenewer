@@ -83,6 +83,33 @@ test('wrong or masquerading record, wrong profile/ID, and another active batch b
   assert.ok(f.records[candidateId]);
   assert.deepEqual(f.calls,[]);
 });
+test('existing pre-publish Entwurf verwerfen retains its former source and image semantics',async()=>{
+  const f=fixture({
+    sessionPatch:{status:'draft',stage:'draft-created',emergencyResetAt:null,
+      remoteVerificationRequired:false},
+    candidatePatch:{renewal:{renewalId,status:'draft',stage:'draft-created',newAdId:null}},
+    fillPatch:{status:'running',stage:'draft-created'}
+  });
+  const result=await f.svc.discardDraft({renewalId});
+  assert.equal(result.discarded,true);
+  assert.equal(f.sessions[renewalId],undefined);
+  assert.ok(f.records['old-inventory']);
+  assert.equal(f.records[candidateId],undefined);
+  assert.deepEqual(f.calls,['fills-write','renewals-write',
+    'local-delete:'+candidateId,'broadcast:renewal-draft-discarded']);
+});
+test('after cancelled reset, target with confirmed new ID or unresolved unrelated renewal never qualifies',async()=>{
+  const f=fixture();
+  const second='synthetic-206-2';
+  f.sessions[second]={...f.sessions[renewalId],renewalId:second,
+    skeletonInventoryId:'renewal:'+second,sourceInventoryId:'other-source'};
+  f.records['other-source']={inventoryId:'other-source',adId:'40004'};
+  f.records['renewal:'+second]={...f.records[candidateId],
+    inventoryId:'renewal:'+second,renewal:{...f.records[candidateId].renewal,renewalId:second}};
+  await f.svc.discardUnfinishedLocal({renewalId,inventoryId:candidateId});
+  assert.ok(f.records['renewal:'+second]);
+  assert.ok(f.sessions[second]);
+});
 test('UI displays targeted action only for unconfirmed post-publish orphan; never normal records',()=>{
   const f=Formatting.create({sharedUiHelpers:{}});
   const pending={recordKind:'renewal-draft',adId:null,
