@@ -4,6 +4,13 @@ This is the canonical version-specific history for Kleinanzeigen Manager. Entrie
 
 All distinct historical section bodies from the former root README and CHANGELOG are preserved with source labels and line numbers. The [KAR-170 migration ledger](docs/maintenance/KAR170_CHANGELOG_MIGRATION.json) identifies their original Git blobs and body checksums. Overlapping versions retain distinct factual notes; older references to planned builds or native/CI acceptance are **historical**, not live status.
 
+## v1.25.34 — KAR-206 queued Phase4 lock and explicit pre-intent continuation (Work only; not released)
+
+- Native v1.25.33 publication and Phase3 passed; Phase4 pre-intent journal acquisition denied 16 times in 1.246 s with zero hold time, before any DELETE. Production Phase4 begin/resolve now queue on the original exclusive P8 Web Lock with an abortable 12-second acquisition; no lock stealing, no timeout of a held critical section.
+- Persist the proven pre-intent denial separately from uncertain deletion. Explicit continuation of the original blocked session requires validated empty immutable journal, fresh exact target presence and live account evidence; an existing receipt remains proof-only. Retain independent post-delete verification, no repeat publish and no replay.
+- Both inventory layouts offer a confirmed “Löschung fortsetzen” action for the pre-intent case; full blocked-card refresh cannot be downgraded by progress-only events. Existing proof-only action is preserved.
+- Focused test-first RED on v1.25.33, extended actual-source isolated JS fixture 16/16 GREEN; full Node/coverage/packaged Chromium and exact ZIP parity required. Native acceptance pending.
+
 ## v1.25.33 — KAR-206 Phase4 BFCache and receipt-only recovery (Work only; not released)
 
 - Native v1.25.32 Phase1 and Phase3 passed. Actual Chrome back/forward-cache message closure after a DELETE click was not classified as an uncertain transport outcome; a second Phase4 attempt was blocked by the existing immutable journal. Recognize the real Chrome string and route to fresh source/target verification; generic failure after durable intent must reconcile that exact receipt, never another DELETE.

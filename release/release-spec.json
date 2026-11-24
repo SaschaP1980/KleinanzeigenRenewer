@@ -1,12 +1,15 @@
 {
-  "version": "1.25.33",
+  "version": "1.25.34",
   "project": "kleinanzeigen Manager / Kleinanzeigen Renewal",
-  "epic": "KAR-206-phase4-bfcache-read-only-recovery",
+  "epic": "KAR-206-phase4-queued-lock-and-pre-intent-resume",
   "goldBaseline": "1.21.15",
   "directBasis": "1.23.20_c1",
   "directBasisNativeGreen": true,
   "directBasisObservation": "v1.23.20_c1 ist RELEASE_GREEN und besitzt reale Fast-3er-Goldlinien. Zwei spätere reale Massenläufe vom 10.10.2026 zeigten jedoch einen flüchtigen Titel-Fill-/DOM-State-Fehler: Diagnose 11-22-33 (SHA-256 0ac5642d4fb6b69575c88d6e116fa2152ad0cd84c512f38198afddfa3c72a4df) mit 3/7 temporären Titel-Mismatches und Diagnose 12-03-51 (SHA-256 161cabb74e8a8eb454c91e3c35dc8158a7a782b9d0354fb4e003d12e487db641) mit 5/10. Unveränderte Titel konnten in späteren Versuchen erfolgreich sein; daher wird v1.23.22 als enger Correction-Build vor EPIC-REF-003 erstellt.",
   "scope": [
+    "KAR-206 v1.25.34: production Phase4 journal queues on the same exclusive P8 Web Lock with a bounded abortable acquisition (12 seconds); never abort a held critical section or bypass durable origin and receipt checks.",
+    "Explicit pre-intent recovery after proven acquisition denial: preserve the original session, require an empty validated journal and fresh exact target/account proof, keep all existing receipts proof-only and recheck account/reset before DELETE. No repeat publication or replay.",
+    "Show distinct pre-intent blocked card and explicit confirmation in both layouts; full refresh cannot be downgraded by progress updates. Native acceptance pending; full exact Work CI and ZIP parity required.",
     "KAR-206 v1.25.33: native v1.25.32 publication and pre-delete owned-roster verification passed. Handle actual Chrome BFCache channel closure after DELETE as uncertainty, never replay; re-read exact durable Phase4 attempt and independently resolve source absence and target presence.",
     "Existing blocked candidate now offers explicit proof-only reconciliation using the original receipt; no receipt, wrong identity, or failed evidence stays blocked. Authoritative renewal session projection avoids stale inventory card; original session and image records preserved until atomic promotion.",
     "Fast mode uses the independent journal source+target scan without a redundant source-only post-delete scan. Keep distinct pre-delete owned-roster evidence and metadata; do not bypass P8 or fresh post-delete source/target proof. No new IPC or permissions. Native acceptance pending.",
@@ -173,7 +176,7 @@
     "Validate canonical all-profile affected-count preview and fail-closed cancellation when the active profile or trash snapshot changes.",
     "Verify local-only atomic record-and-image deletion under exact inventory IDs, retention-reset boundaries and MV3 interruption; assert no remote Kleinanzeigen mutation."
   ],
-  "packageVersion": "1.25.33",
+  "packageVersion": "1.25.34",
   "directBasisNativePending": false,
   "architectureFiles": [
     {
