@@ -129,4 +129,31 @@ assert.ok(controller && typeof controller.persistRenewalSession === 'function');
   assert.equal(controller.scheduleAutomaticRenewalReplacement('', 'test'), false);
   assert.ok(calls.some(([name]) => name === 'broadcastInventoryChanged'));
   console.log('6/6 PASS v1.23.1 renewal workflow runtime');
+
+  // Actual startup recovery: exact submitted source/target/fill only. The
+  // journal deliberately denies the probe here, so nothing can be committed
+  // or advance to Phase 3/4, and there is never a second publish.
+  const submitted = {renewalId:'r2',fillId:'f2',targetTabId:42,sourceAdId:'123',
+    status:'submitted',stage:'publish-submitted',newAdId:null};
+  const original = {fillId:'f2',renewalId:'r2',targetTabId:42,sourceAdId:'123',
+    status:'running',stage:'publish-submitted'};
+  let rows={f2:original}, detections=0, journalReads=0;
+  renewalSessions={r2:submitted};
+  const resumed=registered.create({...deps,readFillSessions:async()=>structuredClone(rows),
+    detectPublishedAdForFill:async(tab,id)=>{assert.equal(tab,42);assert.equal(id,'123');detections++;return {adId:'456'};},
+    resolvePublishIntent:async(fill,detected)=>{assert.equal(fill.fillId,'f2');assert.equal(detected.adId,'456');journalReads++;throw Error('KR_PUBLISH_INTENT_UNVERIFIED');}});
+  calls.length=0;
+  await resumed.resumePendingRenewals();
+  assert.equal(detections,1);assert.equal(journalReads,1);
+  assert.equal(renewalSessions.r2.newAdId,null);
+  for(const invalid of [{...original,sourceAdId:'999'},{...original,targetTabId:43},
+      {...original,fillId:'other'},{...original,status:'cancelled'},{...original,stage:'auto-publish-ready'},
+      {...original,archiveInsertionId:'archive'}]){
+    rows={f2:invalid};await resumed.resumePendingRenewals();
+  }
+  rows={f2:original};renewalSessions={r2:{...submitted,stage:'other'}};
+  await resumed.resumePendingRenewals();
+  assert.equal(detections,1);assert.equal(journalReads,1);
+  assert.ok(!calls.some(([name])=>['writeFillSessions','writeRenewalSessions','finishRenewalReplacement','createManagedWorkerTab','sendTabRequestWithBootstrap','retirePublishedRenewalTargetTab'].includes(name)));
+  console.log('PASS KAR-206 exact submitted Renewal recovery and invalid binding denial; no replay or write after denied proof');
 })().catch(error => { console.error(error); process.exitCode = 1; });

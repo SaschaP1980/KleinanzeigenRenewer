@@ -4,6 +4,13 @@ This is the canonical version-specific history for Kleinanzeigen Manager. Entrie
 
 All distinct historical section bodies from the former root README and CHANGELOG are preserved with source labels and line numbers. The [KAR-170 migration ledger](docs/maintenance/KAR170_CHANGELOG_MIGRATION.json) identifies their original Git blobs and body checksums. Overlapping versions retain distinct factual notes; older references to planned builds or native/CI acceptance are **historical**, not live status.
 
+## v1.25.31 — KAR-206 short public URL publication proof (Work only; not released)
+
+- Native v1.25.30 direct authenticated Edit probe passed; public verification did not, because the real content PAGE_STATUS recognized canonical slug/ID-category-location URLs only and returned null for the short numeric-ID path used by the fresh public probe. Reuse the existing shared exact public ID parser in PAGE_STATUS, without accepting a URL alone as independent DOM evidence.
+- Test-first actual content listener-to-verifier integration: previous source 2/6 PASS, corrected source 6/6 PASS in isolated JS with synthetic DOM and URL fixture, including exact short and canonical ID, no roster needed on combined positive proof, and fail-closed missing/conflicting evidence. Mandatory hosted Node/coverage and packaged Chromium gates remain independent.
+- Fixed stage reasons distinguish missing URL/status ID/ownership/DOM evidence. My Ads lookup forwards recognized scan error codes through its existing request boundary; logs fixed classifications only, never private site text. Use established readiness wait if online and card counts are missing/inconsistent. Existing Phase4/R1 scan and source deletion guards unchanged.
+- Service-worker restart uses the original submitted Renewal and exactly bound running publish-submitted fill only; calls existing read-only detection and immutable publication confirmation, not Publish again. Native recovery of the already published listing remains to be tested. No main merge or official Release.
+
 ## v1.25.30 — KAR-206 direct edit and public publication verification (Work only; not released)
 
 - Native v1.25.29 Fast Renewal reproduced a successfully published listing with the exact new Ad ID known at runtime, while the independent My Ads proof was unavailable and Phase 1 stayed submitted. No duplicate publication is appropriate.
