@@ -12,7 +12,7 @@ const fill={fillId:'abc',targetTabId:42,stage:'auto-publish-ready',status:'runni
   result:{complete:true,issues:[]},renewalId:'r',sourceAdId:'123'};
 const renewal={fillId:'abc',targetTabId:42,profileId:'P',sourceAdId:'123'};
 let profileId='P',seenName='User Account',validPresence=true,reportedPagesScanned=3,failPostReceipt=false,accountReadCount=0;
-let mutateSessionDuringScan=null;
+let mutateSessionDuringScan=null, mutateDuringBegin=null;
 const options={
  sessionPort:{readArchiveInsertionSessions:async()=>({}),readRenewalSessions:async()=>({r:renewal}),
   readFillSessions:async()=>({abc:fill})},
@@ -34,7 +34,7 @@ const options={
     throw Error('unexpected message');
   },closeManagedWorkerTab:async id=>{closed.push(id);}},
  journalPort:{requireAutoPublishIntentJournal:()=>({
-    begin:async i=>{journalCalls.push(i);return {attemptId:'durable-attempt'};},
+    begin:async i=>{journalCalls.push(i);if(mutateDuringBegin)mutateDuringBegin();return {attemptId:'durable-attempt'};},
     resolveVerified:async i=>({...i,state:'resolved-confirmed'})
   })},
  configPort:{MY_ADS_PROJECTS_URL:'https://www.kleinanzeigen.de/m-meine-anzeigen.html?tab=PROJECTS',
@@ -57,6 +57,12 @@ const receipt=Object.freeze({operationType:'AUTHORIZE_AUTOMATIC_PUBLISH'});
   failPostReceipt=true;accountReadCount=0;
   await assert.rejects(svc.authorizeAutomaticPublish({fillId:'abc'},sender,receipt),/ACCOUNT_CHANGED/);
   failPostReceipt=false;
+  for(const [obj,field,value] of [[fill,'status','needs-review'],[fill,'targetTabId',99],[renewal,'sourceAdId','999'],[renewal,'newAdId','456']]){
+    const prior=obj[field];mutateDuringBegin=()=>{obj[field]=value;};
+    await assert.rejects(svc.authorizeAutomaticPublish({fillId:'abc'},sender,receipt),/KR_PUBLISH_INTENT_(SESSION|WORKFLOW)_UNVERIFIED/);
+    if(prior===undefined)delete obj[field];else obj[field]=prior;
+  }
+  mutateDuringBegin=null;
   const matched=await svc.resolveManagedPublishIntent({fillId:'abc'},{adId:'456'});
   assert.equal(matched.state,'resolved-confirmed');
   await assert.rejects(svc.verifyAutoPublishRemoteOutcomeFresh({kind:'renewal',workflowId:'r',

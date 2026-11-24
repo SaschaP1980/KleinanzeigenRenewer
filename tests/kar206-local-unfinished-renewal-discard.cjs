@@ -6,7 +6,7 @@ const Service=require('../src/background/services/renewal-local-discard-service.
 const Formatting=require('../src/app/inventory-formatting.js');
 const renewalId='synthetic-206-1';
 const candidateId='renewal:'+renewalId;
-function fixture({sessionPatch={},candidatePatch={},fillPatch={},bulk=null}={}) {
+function fixture({sessionPatch={},candidatePatch={},fillPatch={},bulk=null,journalState=null}={}) {
   const renewal={renewalId,sourceInventoryId:'old-inventory',sourceAdId:'10001',
     skeletonInventoryId:candidateId,status:'cancelled',stage:'emergency-reset-unverified',
     emergencyResetAt:'2026-11-24T05:54:00.000Z',
@@ -27,7 +27,8 @@ function fixture({sessionPatch={},candidatePatch={},fillPatch={},bulk=null}={}) 
     closeRegistryTab:async()=>{calls.push('tab-close');},
     logDiagnostic:async (_level,event)=>{diagnostics.push(event);},
     broadcastInventoryChanged:(event)=>{calls.push('broadcast:'+event);},
-    sessionCorrelationContext:()=>({})
+    sessionCorrelationContext:()=>({}),
+    ...(journalState?{observePublishIntent:async()=>journalState}: {})
   };
   return {svc:Service.create(options),sessions,records,fills,calls,diagnostics};
 }
@@ -130,4 +131,15 @@ test('new client route is P8-fenced and label appears in both inventory views',(
   assert.match(background,/KRRenewalLocalDiscardService/);
   assert.doesNotMatch(router,/UNFENCED_ROUTES[\s\S]{0,400}DISCARD_UNFINISHED_RENEWAL_LOCAL/);
   assert.doesNotMatch(Service.create.toString(),/chrome\.tabs|\.submit\s*\(|requestSubmit\s*\(|delete.*remote/i);
+});
+
+test('explicit blocked-draft retry requires exact terminal no-click identity and authoritative empty journal',async()=>{
+  const patch={status:'verification-failed',stage:'publish-intent-blocked',lastError:'KR_PUBLISH_INTENT_ATOMIC_BUSY',emergencyResetAt:null,remoteVerificationRequired:false};
+  const fillPatch={status:'needs-review',stage:'publish-intent-blocked',sourceAdId:'10001',targetTabId:42,result:{complete:true,issues:[]}};
+  for(const journalState of [null,{state:'unverified',attempts:[{}],resolutions:[]},{state:'missing',attempts:[],resolutions:[{}]}]){
+    const f=fixture({sessionPatch:{...patch,targetTabId:42},fillPatch,journalState});
+    await assert.rejects(f.svc.discardDraft({renewalId}));assert.deepEqual(f.calls,[]);
+  }
+  const f=fixture({sessionPatch:{...patch,targetTabId:42},fillPatch,journalState:{state:'missing',attempts:[],resolutions:[]}});
+  assert.equal((await f.svc.discardDraft({renewalId})).discarded,true);assert.ok(f.records['old-inventory']);
 });

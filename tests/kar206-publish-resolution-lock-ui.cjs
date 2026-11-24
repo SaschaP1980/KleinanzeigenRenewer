@@ -54,6 +54,37 @@ async function run({Journal,Dialog,assert,AbortController}){
     const f=await begin(fixture({changed:true}));await assert.rejects(resolve(f),/KR_PUBLISH_INTENT_UNVERIFIED/);
     assert.equal(f.writes,1);assert.equal(f.closed,1);assert.equal(f.commitReads,1);
   });
+  function beginFixture(mode,kind='renewal'){
+    const rows={},events=[];let writes=0,requests=0,late=null;
+    const reference=Object.freeze({schema:1,state:'admitted',token:'fixture-p8-token-long',workerInstanceId:'worker',operationType:'AUTHORIZE_AUTOMATIC_PUBLISH',startedAtMs:1000});
+    rows['karAtomicAdmissionStartV1_'+reference.token]=reference;
+    const api=Journal.create({storageLocal:{get:async keys=>Object.fromEntries((keys===null?Object.keys(rows):keys).filter(k=>Object.hasOwn(rows,k)).map(k=>[k,rows[k]])),set:async v=>{writes++;Object.assign(rows,v);}},
+      lockName:LOCK,workerInstanceId:'worker',clock:()=>2000,newToken:()=>'queued-begin',
+      beginLockWaitMs:35,resolveLockWaitMs:40,onSample:e=>events.push(e),
+      lockManager:{request:async(name,options,fn)=>{
+        requests++;if(options.ifAvailable)return fn(null);
+        assert.equal(name,LOCK);assert.equal(options.mode,'exclusive');assert.ok(options.signal);
+        if(mode==='timeout'){late=()=>fn({name,mode:'exclusive'});return new Promise((_,reject)=>options.signal.addEventListener('abort',()=>reject(Error('abort')),{once:true}));}
+        if(mode==='finished')rows['karAtomicAdmissionFinishV1_'+reference.token]={state:'completed'};
+        return fn({name,mode:'exclusive'});
+      }}});
+    return {api,begin:()=>api.begin({...intent,kind,sourceAdId:kind==='archive'?'':intent.sourceAdId,admissionReceipt:reference}),get writes(){return writes;},get requests(){return requests;},get late(){return late;},events};
+  }
+  await check('queued pre-click acquisition preserves one durable P8 intent for single/mass renewal and ZIP archive',async()=>{
+    for(const kind of ['renewal','archive']){
+      const f=beginFixture('available',kind);assert.equal((await f.begin()).admissionToken,'fixture-p8-token-long');
+      assert.equal(f.requests,1);assert.equal(f.writes,1);
+      await assert.rejects(f.begin(),/KR_PUBLISH_INTENT_UNRESOLVED/);assert.equal(f.writes,1);
+    }
+  });
+  await check('pre-click queue timeout and late callback cannot write or authorize',async()=>{
+    const f=beginFixture('timeout');await assert.rejects(f.begin(),/KR_PUBLISH_INTENT_ATOMIC_BUSY/);
+    assert.equal(f.requests,1);assert.equal(f.writes,0);assert.equal(typeof f.late,'function');
+    await assert.rejects(f.late(),/KR_PUBLISH_INTENT_ATOMIC_BUSY/);assert.equal((await f.api.observe('f')).state,'missing');
+  });
+  await check('pre-click queue rechecks original P8 admission after waiting',async()=>{
+    const f=beginFixture('finished');await assert.rejects(f.begin(),/KR_PUBLISH_INTENT_ADMISSION_UNVERIFIED/);assert.equal(f.writes,0);
+  });
   function ui(){
     function el(){const classes=new Set();return {textContent:'',dataset:{},classList:{add:(...xs)=>xs.forEach(x=>classes.add(x)),remove:(...xs)=>xs.forEach(x=>classes.delete(x)),toggle:(x,v)=>v?classes.add(x):classes.delete(x),contains:x=>classes.has(x)}};}
     const phases=[1,2,3,4].map(n=>{const e=el();e.dataset.phase=n;return e;});
