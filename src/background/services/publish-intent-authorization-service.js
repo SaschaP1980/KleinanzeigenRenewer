@@ -15,6 +15,9 @@
       // Existing callers without the new port retain the legacy roster-only
       // behavior. Production explicitly wires the read-only verification port.
       const direct=options.verificationPort;
+      const preClick=options.preClickPort;
+      if(preClick && ['captureGeneration','assertGeneration','getTab'].some(k=>typeof preClick[k]!=='function'))
+        throw new Error('Incomplete pre-click lifecycle ports');
       if(direct && (typeof direct.delay!=='function'||typeof direct.onStage!=='function'))
         throw new Error('KRPublishIntentAuthorizationService requires complete direct verification ports');
       function note(stage,result) {
@@ -242,9 +245,10 @@
         let url;
         try { url = new URL(String(sender?.url || '')); }
         catch { throw new Error('KR_PUBLISH_INTENT_WRONG_PAGE'); }
-        if (!['www.kleinanzeigen.de','kleinanzeigen.de'].includes(url.hostname)
+        if (url.protocol!=='https:'||url.username||url.password||url.port||!['www.kleinanzeigen.de','kleinanzeigen.de'].includes(url.hostname)
             || !url.pathname.startsWith('/p-anzeige-aufgeben'))
           throw new Error('KR_PUBLISH_INTENT_WRONG_PAGE');
+        const generation=preClick?.captureGeneration();
         const fill = (await readFillSessions())[fillId];
         if (!fill || String(fill.fillId || '') !== fillId || Number(fill.targetTabId) !== tabId
             || fill.templateOnly || fill.status !== 'running'
@@ -272,6 +276,37 @@
         });
         if (!bound?.profileId || String(bound.profileId) !== profileId)
           throw new Error('KR_PUBLISH_INTENT_ACCOUNT_UNVERIFIED');
+        // Repeat exact persisted workflow identity before and after the
+        // potentially queued durable write. No remote probes inside the lock.
+        async function assertCurrent(){
+          preClick?.assertGeneration(generation,'publish-preclick');
+          const currentFill=(await readFillSessions())[fillId];
+          if(!currentFill||currentFill.fillId!==fillId||Number(currentFill.targetTabId)!==tabId||
+            currentFill.status!=='running'||!['auto-publish-ready','awaiting-publish','awaiting-manual-publish'].includes(currentFill.stage)||
+            currentFill.templateOnly||currentFill.publishClickedAt||currentFill.result?.complete!==true||
+            !Array.isArray(currentFill.result.issues)||currentFill.result.issues.length!==0||
+            String(currentFill.sourceAdId||'')!==sourceAdId||
+            (archive?currentFill.archiveInsertionId!==workflowId||Boolean(currentFill.renewalId):
+              currentFill.renewalId!==workflowId||Boolean(currentFill.archiveInsertionId)))
+            throw new Error('KR_PUBLISH_INTENT_SESSION_UNVERIFIED');
+          const current=archive?(await readArchiveInsertionSessions())[workflowId]:(await readRenewalSessions())[workflowId];
+          if(!current||current.fillId!==fillId||Number(current.targetTabId)!==tabId||
+            String((archive?current.targetProfileId:current.profileId)||'')!==profileId||
+            String(current.sourceAdId||'')!==sourceAdId||current.newAdId||current.publishClickedAt||
+            current.emergencyResetAt||current.massBatchTerminal||['cancelled','complete','replaced','submitted','verification-failed','publish-blocked','needs-review','error'].includes(current.status)||
+            (archive&&String(current.targetProfileName||'')!==expectedProfileName))
+            throw new Error('KR_PUBLISH_INTENT_WORKFLOW_UNVERIFIED');
+          if(preClick){
+            const tab=await preClick.getTab(tabId);
+            let live;
+            try{live=new URL(String(tab?.url||''));}catch{throw new Error('KR_PUBLISH_INTENT_WRONG_PAGE');}
+            if(Number(tab?.id)!==tabId||tab.pendingUrl||live.href!==url.href)
+              throw new Error('KR_PUBLISH_INTENT_WRONG_PAGE');
+            preClick.assertGeneration(generation,'publish-preclick');
+          }
+        }
+        const expectedProfileName=String(session.targetProfileName||'');
+        await assertCurrent();
         const entry = await requireAutoPublishIntentJournal().begin({
           fillId, workflowId, kind: archive ? 'archive' : 'renewal',
           profileId, sourceAdId, targetTabId: tabId, admissionReceipt
@@ -287,6 +322,8 @@
         });
         if (String(afterReceipt?.profileId || '') !== profileId)
           throw new Error('KR_PUBLISH_INTENT_ACCOUNT_CHANGED');
+        await assertCurrent();
+        if(typeof entry?.attemptId!=='string'||!entry.attemptId)throw new Error('KR_PUBLISH_INTENT_UNVERIFIED');
         return {authorized:true, receiptId:entry.attemptId};
       }
 

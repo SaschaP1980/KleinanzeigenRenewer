@@ -58,11 +58,11 @@
   }
   function create({storageLocal,lockManager,lockName,workerInstanceId,clock,newToken,
     verifyRemoteOutcome=null,onSample=null,onResolutionDenied=null,verifyCommitContext=null,
-    prepareCommitContext=null,requireCommitContext=false,resolveLockWaitMs=0}={}){
+    prepareCommitContext=null,requireCommitContext=false,beginLockWaitMs=0,resolveLockWaitMs=0}={}){
     if(typeof storageLocal?.get!=='function'||typeof storageLocal?.set!=='function'
        ||typeof clock!=='function'||typeof newToken!=='function'||!id(workerInstanceId))
       throw denied('KR_PUBLISH_INTENT_STORAGE');
-    if(!Number.isSafeInteger(resolveLockWaitMs)||resolveLockWaitMs<0||resolveLockWaitMs>60000)
+    if([beginLockWaitMs,resolveLockWaitMs].some(ms=>!Number.isSafeInteger(ms)||ms<0||ms>60000))
       throw denied('KR_PUBLISH_INTENT_ATOMIC_UNAVAILABLE');
     // Observability only: a fixed stage, never a profile, listing ID, attempt
     // token or authorization result. A telemetry failure cannot alter safety.
@@ -113,15 +113,15 @@
       const beganAt=Date.now();
       let busyAttempts=0,holdMs=0,outcome='denied';
       try{
-        // Only post-click resolution can queue. Before-click admission keeps
-        // its established bounded ifAvailable semantics. A queued Web Lock
-        // cannot be overtaken by new opportunistic acquisitions; its signal
-        // aborts the pending request, never an acquired critical section.
-        if(resolveLockWaitMs>0&&(phase==='resolve-read'||phase==='resolve-write')){
+        // Production queues both before-click and resolution acquisitions.
+        // Abort only the pending request; an entered critical section must
+        // finish its durable write/readback under the same exclusive lock.
+        const waitMs=phase==='begin'?beginLockWaitMs:resolveLockWaitMs;
+        if(waitMs>0){
           if(typeof AbortController!=='function')throw denied('KR_PUBLISH_INTENT_ATOMIC_UNAVAILABLE');
           const controller=new AbortController();
           let entered=false,finished=false;
-          const deadline=setTimeout(()=>controller.abort(),resolveLockWaitMs);
+          const deadline=setTimeout(()=>controller.abort(),waitMs);
           try{
             const value=await lockManager.request(SHARED_LOCK_NAME,
               {mode:'exclusive',signal:controller.signal},async lock=>{

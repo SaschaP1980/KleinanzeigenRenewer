@@ -920,7 +920,7 @@ function renewalLocalDiscard() {
   return RenewalLocalDiscardService.create({readRenewalSessions,writeRenewalSessions,
     readFillSessions,writeFillSessions,getInventory,deleteInventoryStorageRecord,
     getBulkRunState,closeRegistryTab,logDiagnostic,broadcastInventoryChanged,
-    sessionCorrelationContext});
+    sessionCorrelationContext,observePublishIntent: fillId=>requireAutoPublishIntentJournal().observe(fillId)});
 }
 async function discardRenewalDraft(message) {return renewalLocalDiscard().discardDraft(message);}
 async function discardUnfinishedRenewalLocal(message) {return renewalLocalDiscard().discardUnfinishedLocal(message);}
@@ -1635,7 +1635,8 @@ function requireAutoPublishIntentJournal() {
       lockName: AtomicMV3Admission.LOCK_NAME,
       lockManager: globalThis.navigator?.locks,
       onSample: sample => requireDiagnosticsService().recordPublishIntentSample(sample),
-      resolveLockWaitMs: 12000, // bounded queued post-click read/write only
+      beginLockWaitMs: 12000, // bounded queued before-click intent
+      resolveLockWaitMs: 12000, // bounded queued post-click read/write
       // Internal fixed-stage reason only, no IDs or tokens.
       onResolutionDenied: ({stage}) => {
         void logDiagnostic('info', 'KAR206_PUBLISH_RESOLUTION_DENIED_STAGE',
@@ -1657,6 +1658,7 @@ function requirePublishIntentAuthorizationService() {
     accountPort: { assertSelectedProfileMatchesLiveAccount, normalizeProfileName },
     tabPort: { createManagedWorkerTab, waitForTabComplete, ensureContentConnection, sendTabRequestWithBootstrap, closeManagedWorkerTab },
     journalPort: { requireAutoPublishIntentJournal },
+    preClickPort: {captureGeneration:captureEmergencyResetGeneration,assertGeneration:assertEmergencyResetGeneration,getTab:id=>chrome.tabs.get(id)},
     verificationPort: { delay, onStage: ({stage,result}) => logDiagnostic('info',
       'KAR206_PUBLISH_VERIFICATION_STAGE', {stage,result}).catch(()=>{}) },
     configPort: { MY_ADS_PROJECTS_URL, TAB_LOAD_TIMEOUT_PHASE4_MS, URL }

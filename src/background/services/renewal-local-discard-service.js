@@ -4,7 +4,7 @@
   create(options={}) {
    const {readRenewalSessions,writeRenewalSessions,readFillSessions,writeFillSessions,
      getInventory,deleteInventoryStorageRecord,getBulkRunState,closeRegistryTab,
-     logDiagnostic,broadcastInventoryChanged,sessionCorrelationContext}=options;
+     logDiagnostic,broadcastInventoryChanged,sessionCorrelationContext,observePublishIntent}=options;
    const required={readRenewalSessions,writeRenewalSessions,readFillSessions,writeFillSessions,
      getInventory,deleteInventoryStorageRecord,getBulkRunState,closeRegistryTab,
      logDiagnostic,broadcastInventoryChanged,sessionCorrelationContext};
@@ -28,7 +28,38 @@ async function discardDraft(message) {
   const targetTabId = Number(renewal.targetTabId || 0) || null;
   const fillId = String(renewal.fillId || '');
 
-  const fills = await readFillSessions().catch(() => ({}));
+  const blocked=renewal.stage==='publish-intent-blocked';
+  const fills = blocked?await readFillSessions():await readFillSessions().catch(() => ({}));
+  if(blocked){
+    // This route is an explicit discard/restart, not permission to replay a
+    // click. Only a proven pre-intent denial with no durable attempt qualifies.
+    const fill=fills?.[fillId];
+    if(renewal.status!=='verification-failed'||renewal.lastError!=='KR_PUBLISH_INTENT_ATOMIC_BUSY'||
+      renewal.publishClickedAt||renewal.newIdConfirmedAt||renewal.remoteVerificationRequired||
+      renewal.emergencyResetAt||!fillId||!fill||fill.fillId!==fillId||fill.renewalId!==renewalId||
+      fill.status!=='needs-review'||fill.stage!=='publish-intent-blocked'||fill.publishClickedAt||
+      String(fill.sourceAdId||'')!==String(renewal.sourceAdId||'')||!targetTabId||
+      Number(fill.targetTabId)!==targetTabId||fill.result?.complete!==true||
+      !Array.isArray(fill.result.issues)||fill.result.issues.length||
+      typeof observePublishIntent!=='function')
+      throw Error('KR_PUBLISH_INTENT_UNVERIFIED');
+    const related=Object.values(fills).filter(f=>f?.renewalId===renewalId);
+    for(const previous of related){
+      if(!previous.fillId||previous.publishClickedAt||['waiting','running','submitted'].includes(previous.status))
+        throw Error('KR_PUBLISH_INTENT_UNVERIFIED');
+      const observed=await observePublishIntent(previous.fillId);
+      if(observed?.state!=='missing'||!Array.isArray(observed.attempts)||observed.attempts.length||
+        !Array.isArray(observed.resolutions)||observed.resolutions.length)
+        throw Error('KR_PUBLISH_INTENT_UNVERIFIED');
+    }
+    const current=(await readRenewalSessions())[renewalId];
+    const currentFill=(await readFillSessions())[fillId];
+    if(!current||current.fillId!==fillId||current.stage!==renewal.stage||current.status!==renewal.status||
+      current.updatedAt!==renewal.updatedAt||current.newAdId||current.publishClickedAt||
+      !currentFill||currentFill.status!==fill.status||currentFill.stage!==fill.stage||
+      currentFill.updatedAt!==fill.updatedAt)
+      throw Error('KR_PUBLISH_INTENT_UNVERIFIED');
+  }
   if (fillId && fills[fillId]) {
     delete fills[fillId];
     await writeFillSessions(fills);
