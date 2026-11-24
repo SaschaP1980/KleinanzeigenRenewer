@@ -4,6 +4,10 @@ project_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 raw="$project_dir/coverage/raw"
 rm -rf "$raw"; mkdir -p "$raw"
 cd "$project_dir"
+# KAR-210: canonical product version, archive names and package identity.
+python3 tests/kar210-product-version.py
+python3 tests/kar210-version-identity.py
+python3 tests/kar210-package-version.py
 # KAR-195: deterministic two-worker P8 startup fan-out (fresh / near-capacity).
 NODE_V8_COVERAGE="$raw" node tests/kar195-startup-atomic-fairness.cjs
 # GitHub's clean checkout does not include locally generated coverage manifests.
