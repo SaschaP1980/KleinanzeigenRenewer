@@ -764,11 +764,12 @@
     return overlay;
   }
 
-  // KAR-206: the archived F3 fingerprint is observed on an EDIT form while
-  // the live preflight runs on a CREATE form. Their raw control representations
-  // are not proof of a platform change. Only a tightly characterized subset
-  // may defer to an independently unchanged live F1/F2/F3 monitor. Every
-  // actual saved value, requiredness, image and publish gate remains enforced.
+  // KAR-206: a source EDIT-form schema and a target CREATE-form schema
+  // describe different interfaces. Their edit-vs-create structural diff
+  // cannot be evidence that Kleinanzeigen changed the CREATE form over time.
+  // Only an independently stable, same-mode live F1/F2/F3 baseline permits
+  // bypassing this ARTIFICIAL change review, never the ordinary value/image,
+  // required-field, account, paid, and guarded publish verification pipeline.
   function isStableIndependentSchemaStage(stage, statuses) {
     const hash = value => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
     return stage && statuses.includes(stage.status) &&
@@ -776,85 +777,52 @@
       stage.previousFingerprint === stage.currentFingerprint &&
       Array.isArray(stage.changes) && stage.changes.length === 0;
   }
-  function isOnlyProvenEditCreateRepresentationDifference(session, observedCategory, stages, report) {
+
+  function classifyEditCreateSchemaComparison(session, observedCategory, stages, report) {
+    const rejected = reason => ({ nonComparable: false, reason });
     const template = session?.template;
     const source = template?.templateSchema;
     const categoryId = String(template?.categoryId || '');
     const comparison = report?.comparison;
     const sha = value => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
-    if (source?.source !== 'edit-form' ||
-        !/^[1-9][0-9]*$/.test(categoryId) ||
-        String(source?.snapshot?.categoryId || '') !== categoryId ||
+    if (source?.source !== 'edit-form' || !source.snapshot)
+      return rejected('source-not-verified-edit-form');
+    if (!/^[1-9][0-9]*$/.test(categoryId) ||
+        String(source.snapshot.categoryId || '') !== categoryId ||
         String(observedCategory?.categoryId || '') !== categoryId ||
         observedCategory?.leafConfirmed !== true ||
-        observedCategory?.observedPath !== true ||
-        report?.complete !== true || !Array.isArray(report.issues) || report.issues.length !== 0 ||
-        !['confirmed', 'unverified'].includes(report.valueCompatibility) ||
-        comparison?.status !== 'schema-changed' ||
+        observedCategory?.observedPath !== true)
+      return rejected('category-not-independently-confirmed');
+    if (report?.complete !== true || !Array.isArray(report.issues) ||
+        report.issues.length !== 0 ||
+        !['confirmed', 'unverified'].includes(report.valueCompatibility))
+      return rejected('saved-values-or-required-fields-not-verified');
+    if (comparison?.status !== 'schema-changed' ||
         !Array.isArray(comparison.changes) || comparison.changes.length < 1 ||
-        comparison.changes.length > 50 ||
-        !sha(report.sourceFingerprint) || report.sourceFingerprint !== source.fingerprint ||
-        !sha(report.currentFingerprint) ||
-        !isStableIndependentSchemaStage(stages?.base, ['unchanged']) ||
-        !isStableIndependentSchemaStage(stages?.category, ['unchanged', 'not-fully-verified']) ||
-        !isStableIndependentSchemaStage(stages?.attributes, ['unchanged']) ||
-        stages.attributes.currentFingerprint !== report.currentFingerprint) return false;
-    return comparison.changes.every(change => {
-      if (!change || typeof change.key !== 'string') return false;
-      if (change.type === 'control-kind-changed') {
-        // In the captured edit form, a native peer can be a text input or
-        // clickable button; the posting-create form may expose a different
-        // presentation while retaining the SAME attributeMap technical key.
-        // Handle ONLY the two additional category-22 pairs demonstrated by
-        // the owner's real v1.25.25 structure diagnostic. Requiring source
-        // status/technical evidence prevents a general control-kind bypass.
-        if (categoryId === '22' &&
-            change.key === 'attribute:baby_kinderkleidung.brand' &&
-            change.before === 'text' && change.after === 'combobox') {
-          const attrs = (template.dynamicAttributes || []).filter(item =>
-            item?.key === 'baby_kinderkleidung.brand');
-          const savedKind = source.snapshot?.fields?.find(field =>
-            field.key === change.key)?.kind;
-          const brand = attrs.length === 1 ? attrs[0] : null;
-          const displayed = String(brand?.displayValue || '').trim();
-          return savedKind === 'text' && brand?.status === 'empty' &&
-            (brand.technicalValue === '' || brand.technicalValue == null) &&
-            /^(?:|bitte (?:wählen|auswählen)|auswählen|select)$/i.test(displayed);
-        }
-        if (categoryId === '22' &&
-            change.key === 'attribute:baby_kinderkleidung.condition' &&
-            change.before === 'button' && change.after === 'hidden') {
-          const attrs = (template.dynamicAttributes || []).filter(item =>
-            item?.key === 'baby_kinderkleidung.condition');
-          const savedKind = source.snapshot?.fields?.find(field =>
-            field.key === change.key)?.kind;
-          const selected = attrs.length === 1 ? attrs[0] : null;
-          const matchingEvidence = (report.valueEvidence || []).filter(item =>
-            item?.key === 'baby_kinderkleidung.condition');
-          const evidence = matchingEvidence.length === 1 ? matchingEvidence[0] : null;
-          return savedKind === 'button' &&
-            ['captured', 'technical-only'].includes(selected?.status) &&
-            selected.technicalValue !== null && selected.technicalValue !== undefined &&
-            String(selected.technicalValue).trim() !== '' &&
-            evidence &&
-            ((evidence.status === 'unverified' &&
-              evidence.reason === 'technical-options-unknown') ||
-             (evidence.status === 'confirmed' &&
-              evidence.reason === 'already-selected-exact-readback'));
-        }
-        return change.key.startsWith('attribute:') &&
-          change.before === 'button' && change.after === 'combobox';
-      }
-      if (change.type === 'requiredness-uncertain')
-        return change.key.startsWith('attribute:') &&
-          change.before === 'unknown' &&
-          ['required', 'optional'].includes(change.after);
-      if (change.type === 'valid-options-changed')
-        return change.key === 'field:adType' || change.key === 'field:buyNow';
-      // Field addition/removal, different option sets for dynamic selections,
-      // known requiredness changes and any unrecognized drift still require review.
-      return false;
-    });
+        comparison.changes.length > 100)
+      return rejected('invalid-comparison-evidence');
+    if (!sha(report.sourceFingerprint) ||
+        report.sourceFingerprint !== source.fingerprint ||
+        !sha(report.currentFingerprint))
+      return rejected('source-or-current-fingerprint-unverified');
+    if (!isStableIndependentSchemaStage(stages?.base, ['unchanged']))
+      return rejected('live-f1-not-stable');
+    if (!isStableIndependentSchemaStage(stages?.category, ['unchanged', 'not-fully-verified']))
+      return rejected('live-f2-not-stable');
+    if (!isStableIndependentSchemaStage(stages?.attributes, ['unchanged']) ||
+        stages.attributes.currentFingerprint !== report.currentFingerprint)
+      return rejected('live-f3-not-stable');
+    // SchemaCore.diff emits this fixed structural vocabulary. We classify
+    // only genuine normalized edit-vs-create outputs, never unknown reports.
+    const known = new Set(['control-kind-changed','requiredness-uncertain',
+      'requiredness-changed','valid-options-changed','option-evidence-uncertain',
+      'field-added','field-removed']);
+    if (!comparison.changes.every(change =>
+      known.has(change?.type) &&
+      typeof change.key === 'string' &&
+      /^(?:attribute|field):[a-zA-Z0-9][a-zA-Z0-9_.:-]*$/.test(change.key)))
+      return rejected('unknown-structural-diff');
+    return { nonComparable: true, reason: 'different-form-modes-not-temporal-drift' };
   }
 
   // Real F1/F2/F3 review is part of the ordinary authenticated posting
@@ -870,8 +838,23 @@
     const reportChanged = comparison?.status === 'schema-changed' &&
       Array.isArray(comparison.changes) && comparison.changes.length > 0;
     const compared = { ...stages };
-    const crossModeOnly = reportChanged &&
-      isOnlyProvenEditCreateRepresentationDifference(session, observedCategorySchema, stages, report);
+    const editCreate = reportChanged
+      ? classifyEditCreateSchemaComparison(session, observedCategorySchema, stages, report)
+      : { nonComparable: false, reason: 'no-archive-schema-difference' };
+    const crossModeOnly = editCreate.nonComparable;
+    if (reportChanged) {
+      void diagnostic(fillId, 'KAR206_CROSS_MODE_CLASSIFICATION', {
+        status: crossModeOnly ? 'noncomparable' : 'review-required',
+        reason: editCreate.reason,
+        sourceIsEditForm: session.template?.templateSchema?.source === 'edit-form',
+        preflightIssueCount: Array.isArray(report?.issues) ? report.issues.length : null,
+        f1Status: baseStageResult?.status || null,
+        f2Status: categoryStageResult?.status || null,
+        f3Status: attributeStageResult?.status || null,
+        changedFieldCount: comparison.changes.length,
+        referenceApproved: false, remotePublishAttempted: false
+      });
+    }
     if (crossModeOnly) {
       // A new live form has its own unchanged F3 reference. Archive edit-form
       // representation alone never becomes evidence for a new F3 change.
