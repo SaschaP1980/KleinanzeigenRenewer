@@ -4,6 +4,12 @@ This is the canonical version-specific history for Kleinanzeigen Manager. Entrie
 
 All distinct historical section bodies from the former root README and CHANGELOG are preserved with source labels and line numbers. The [KAR-170 migration ledger](docs/maintenance/KAR170_CHANGELOG_MIGRATION.json) identifies their original Git blobs and body checksums. Overlapping versions retain distinct factual notes; older references to planned builds or native/CI acceptance are **historical**, not live status.
 
+## v1.25.36 — KAR-206 queued pre-click publication intent and safe explicit retry (Work only; not released)
+
+- Native one-item mass renewal under v1.25.35 blocked before publication after 16 opportunistic attempts (1.330 s, zero lock hold). Production before-click intent now queues on the same exclusive P8 origin lock with 12-second pending acquisition deadline. No timeout of an entered critical section, no late callback writes or duplicate receipt, no lock bypass.
+- Shared renewal/ZIP authorization rechecks exact persisted fill/workflow identity, account, live tab URL and emergency-reset generation after the queued durable intent, before usable permission. Existing explicit retry of a blocked renewal starts a new verified form only when the original terminal BUSY state and authoritative empty journal are confirmed; unknown or existing receipts cannot be discarded/replayed through this route.
+- Existing post-click verification and Phase4 detail-page deletion proof remain unchanged. No new IPC or permissions. Isolated test-first RED and focused GREEN confirmed; native acceptance pending.
+
 ## v1.25.35 — KAR-206 explicit detail-page deletion evidence (Work only; not released)
 
 - Native v1.25.34 confirmed DELETE and later source roster absence, but final independent proof remained blocked. Native DOM capture shows explicit visible deleted title/gallery markers and the main listing ID. Prefer a fresh authenticated exact-ID detail observation, retain complete roster absence fallback when evidence is unavailable; never treat hidden, contradictory, wrong-ID, active/reserved/sold or access-error states as deletion proof.

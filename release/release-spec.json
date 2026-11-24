@@ -1,12 +1,15 @@
 {
-  "version": "1.25.35",
+  "version": "1.25.36",
   "project": "kleinanzeigen Manager / Kleinanzeigen Renewal",
-  "epic": "KAR-206-phase4-explicit-detail-deletion-evidence",
+  "epic": "KAR-206-preclick-publish-intent-queue",
   "goldBaseline": "1.21.15",
   "directBasis": "1.23.20_c1",
   "directBasisNativeGreen": true,
   "directBasisObservation": "v1.23.20_c1 ist RELEASE_GREEN und besitzt reale Fast-3er-Goldlinien. Zwei spätere reale Massenläufe vom 10.10.2026 zeigten jedoch einen flüchtigen Titel-Fill-/DOM-State-Fehler: Diagnose 11-22-33 (SHA-256 0ac5642d4fb6b69575c88d6e116fa2152ad0cd84c512f38198afddfa3c72a4df) mit 3/7 temporären Titel-Mismatches und Diagnose 12-03-51 (SHA-256 161cabb74e8a8eb454c91e3c35dc8158a7a782b9d0354fb4e003d12e487db641) mit 5/10. Unveränderte Titel konnten in späteren Versuchen erfolgreich sein; daher wird v1.23.22 als enger Correction-Build vor EPIC-REF-003 erstellt.",
   "scope": [
+    "KAR-206 v1.25.36: production pre-click publication intent uses the same exclusive origin P8 Web Lock queue with bounded 12-second pending acquisition, matching post-click resolution. Abort only pending acquisition; reject late callbacks and duplicate immutable receipts.",
+    "Recheck persisted fill/workflow identity, account, live tab URL and reset generation before and after queued receipt; stale sessions cannot authorize a click. Explicit blocked renewal draft discard/retry requires exact terminal pre-intent BUSY state and authoritative empty journal for related fills; unknown/committed attempts stay blocked. No stale form auto-publish.",
+    "Native one-item Mass Renewal recovery and new Fast-3 benchmark pending. Single, mass and archive use shared admission port; prior detail-page deletion proof unchanged. Full hosted validation required.",
     "KAR-206 v1.25.35: use fresh exact-ID authenticated public detail DOM with visible consistent deleted title/gallery/trash markers as preferred positive source evidence; roster absence fallback only for unavailable evidence, never explicit contradiction. No new message route or permissions.",
     "Typed immutable journal resolution accepts detail evidence with zero source roster pages or historical full scan with positive page count. Independent exact target roster, account/P8 final commit and private R1 full-roster witness retained; no repeat DELETE or publication.",
     "Bounded fresh read-only scan retry on identified transient errors; sanitized readiness reason/count and remote/journal stages. Native acceptance pending; exact Work CI and ZIP parity required.",
@@ -179,7 +182,7 @@
     "Validate canonical all-profile affected-count preview and fail-closed cancellation when the active profile or trash snapshot changes.",
     "Verify local-only atomic record-and-image deletion under exact inventory IDs, retention-reset boundaries and MV3 interruption; assert no remote Kleinanzeigen mutation."
   ],
-  "packageVersion": "1.25.35",
+  "packageVersion": "1.25.36",
   "directBasisNativePending": false,
   "architectureFiles": [
     {

@@ -63,6 +63,23 @@ const receipt=Object.freeze({operationType:'AUTHORIZE_AUTOMATIC_PUBLISH'});
     if(prior===undefined)delete obj[field];else obj[field]=prior;
   }
   mutateDuringBegin=null;
+  let generation=0,liveUrl=sender.url,pendingUrl;
+  const protectedSvc=owner.create({...options,preClickPort:{
+    captureGeneration:()=>generation,
+    assertGeneration:g=>{if(g!==generation)throw Error('KR_EMERGENCY_RESET_GENERATION_CHANGED');},
+    getTab:async()=>({id:42,url:liveUrl,pendingUrl})
+  }});
+  assert.equal((await protectedSvc.authorizeAutomaticPublish({fillId:'abc'},sender,receipt)).authorized,true);
+  for(const [change,reset,expected] of [
+    [()=>{generation++;},()=>{},/KR_EMERGENCY_RESET_GENERATION_CHANGED/],
+    [()=>{liveUrl='https://www.kleinanzeigen.de/m-meine-anzeigen.html';},()=>{liveUrl=sender.url;},/KR_PUBLISH_INTENT_WRONG_PAGE/],
+    [()=>{pendingUrl='https://www.kleinanzeigen.de/';},()=>{pendingUrl=undefined;},/KR_PUBLISH_INTENT_WRONG_PAGE/]
+  ]){
+    mutateDuringBegin=change;
+    await assert.rejects(protectedSvc.authorizeAutomaticPublish({fillId:'abc'},sender,receipt),expected);
+    reset();
+  }
+  mutateDuringBegin=null;
   const matched=await svc.resolveManagedPublishIntent({fillId:'abc'},{adId:'456'});
   assert.equal(matched.state,'resolved-confirmed');
   await assert.rejects(svc.verifyAutoPublishRemoteOutcomeFresh({kind:'renewal',workflowId:'r',
