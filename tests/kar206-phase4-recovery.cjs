@@ -1,0 +1,40 @@
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const vm=require('node:vm');
+const Remote=require('../src/background/services/remote-delete-replacement-service.js');
+const background=fs.readFileSync('src/background/background.js','utf8');
+const start=background.indexOf('function isPhase4DeleteTransportInterruption(error)');
+const classify=vm.runInNewContext('('+background.slice(start,background.indexOf('\n}',start)+2)+')');
+const BF='The page keeping the extension port is moved into back/forward cache, so the message channel is closed.';
+async function run(){
+ let passed=0,failed=0;
+ async function check(n,f){try{await f();passed++;console.log('PASS '+n);}catch(e){failed++;console.log('FAIL '+n+': '+e.message);}}
+ function fixture(opts={}){
+  const session={renewalId:'r',sourceInventoryId:'old',skeletonInventoryId:'new',sourceAdId:'100',newAdId:'200',status:'verified',stage:opts.recovery?'source-delete-outcome-unverified':'replacement-ready'};
+  const receipt={renewalId:'r',attemptId:'a',sourceAdId:'100',newAdId:'200',profileId:'Account'};
+  let attempts=opts.existing?[receipt]:[],begins=0,deletes=0,resolves=0,started=0,closed=0;
+  const persisted=[];
+  const remote=Remote.create({
+    readRenewalSessions:async()=>({r:session}),persistRenewalSession:async s=>{persisted.push({...s});},
+    getInventory:async id=>({inventoryId:id,adId:id==='old'?'100':'200',profileName:'Account'}),
+    getBulkRunState:async()=>null,assertMassRenewalManualActionAllowed:async()=>{},normalizeProfileName:s=>String(s||'').trim(),
+    observePhase4Attempts:async()=>({attempts}),beginPhase4Attempt:async()=>{begins++;attempts=[receipt];return receipt;},
+    resolvePhase4Attempt:async request=>{resolves++;assert.equal(request.attemptId,'a');throw Object.assign(Error('KR_PHASE4_JOURNAL_UNVERIFIED'),{code:'KR_PHASE4_JOURNAL_UNVERIFIED'});},
+    normalBrowserWindowId:async()=>null,createManagedWorkerTab:async()=>({id:1}),waitForTabComplete:async()=>{},ensureContentConnection:async()=>{},closeManagedWorkerTab:async()=>{closed++;},
+    sendTabRequestWithBootstrap:async(id,msg)=>{if(msg.type==='MY_ADS_STATUS')return {isMyAdsPage:true,isProjectsTab:true,profileName:'Account'};if(msg.type==='DELETE_OWN_AD_BY_ID'){deletes++;throw Error(opts.error||BF);}throw Error('Unexpected '+msg.type);},
+    isPhase4DeleteTransportInterruption:classify,renewalPhaseAttemptAvailable:()=>started<2,renewalAttemptState:()=>({attempt:started}),delay:async()=>{},renewalPhaseRetryDelayMs:()=>0,
+    logRenewalPhaseAttemptStarted:async()=>({attempt:++started,attemptId:'local'}),logRenewalPhaseAttemptFailed:async()=>{},renewalMaxPhaseAttempts:()=>3,renewalAttemptDetails:()=>({}),
+    logDiagnostic:async()=>{},sessionCorrelationContext:()=>({}),correlationContext:()=>({}),setAppNotice:async()=>{},isNonRetryableRenewalSafetyError:()=>false
+  });
+  return {session,persisted,remote,counts:()=>({begins,deletes,resolves,started,closed})};
+ }
+ await check('actual Chrome BFCache error recognized, unrelated error not recognized',()=>{assert.equal(classify(Error(BF)),true);assert.equal(classify(Error('invalid account')),false);});
+ await check('actual BFCache interruption returns original receipt and uncertainty',async()=>{const f=fixture();const r=await f.remote.preverifyAndTriggerRenewalSourceDeleteAttempt(f.session,'Account',null,{attempt:1,attemptId:'local'},0);assert.equal(r.transportInterrupted,true);assert.equal(r.attemptReceipt.attemptId,'a');assert.equal(f.counts().deletes,1);});
+ await check('proof-only request without original receipt never starts delete',async()=>{const f=fixture({recovery:true});await assert.rejects(f.remote.finishRenewalReplacement({renewalId:'r',type:'FINISH_RENEWAL_REPLACEMENT',recoveryOnly:true}),/KR_PHASE4_JOURNAL_/);assert.equal(f.counts().begins,0);assert.equal(f.counts().deletes,0);assert.equal(f.session.stage,'source-delete-outcome-unverified');});
+ await check('proof-only existing receipt is resolved and failure restores blocked state',async()=>{const f=fixture({recovery:true,existing:true});await assert.rejects(f.remote.finishRenewalReplacement({renewalId:'r',type:'FINISH_RENEWAL_REPLACEMENT',recoveryOnly:true}),/KR_PHASE4_JOURNAL_/);assert.equal(f.counts().resolves,1);assert.equal(f.counts().begins,0);assert.equal(f.counts().deletes,0);assert.equal(f.session.stage,'source-delete-outcome-unverified');});
+ await check('unknown error after intent only reconciles that receipt, never repeats delete',async()=>{const f=fixture({error:'unexpected transport failure'});await assert.rejects(f.remote.finishRenewalReplacement({renewalId:'r',automatic:true}),/KR_PHASE4_JOURNAL_/);assert.equal(f.counts().begins,1);assert.equal(f.counts().deletes,1);assert.equal(f.counts().resolves,1);assert.equal(f.counts().started,1);assert.equal(f.session.stage,'source-delete-outcome-unverified');});
+ return {passed,failed};
+}
+module.exports=run;
+if(require.main===module)run().then(r=>{console.log(JSON.stringify(r));if(r.failed)process.exitCode=1;}).catch(e=>{console.error(e);process.exitCode=1;});
