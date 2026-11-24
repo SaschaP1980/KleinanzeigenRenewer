@@ -1,15 +1,16 @@
 {
-  "version": "1.25.26",
+  "version": "1.25.27",
   "project": "kleinanzeigen Manager / Kleinanzeigen Renewal",
-  "epic": "KAR-206-owner-native-f3-14-diff-core-restore",
+  "epic": "KAR-206-edit-create-schema-not-temporal-drift",
   "goldBaseline": "1.21.15",
   "directBasis": "1.23.20_c1",
   "directBasisNativeGreen": true,
   "directBasisObservation": "v1.23.20_c1 ist RELEASE_GREEN und besitzt reale Fast-3er-Goldlinien. Zwei spätere reale Massenläufe vom 10.10.2026 zeigten jedoch einen flüchtigen Titel-Fill-/DOM-State-Fehler: Diagnose 11-22-33 (SHA-256 0ac5642d4fb6b69575c88d6e116fa2152ad0cd84c512f38198afddfa3c72a4df) mit 3/7 temporären Titel-Mismatches und Diagnose 12-03-51 (SHA-256 161cabb74e8a8eb454c91e3c35dc8158a7a782b9d0354fb4e003d12e487db641) mit 5/10. Unveränderte Titel konnten in späteren Versuchen erfolgreich sein; daher wird v1.23.22 als enger Correction-Build vor EPIC-REF-003 erstellt.",
   "scope": [
-    "KAR-206 v1.25.26: owner v1.25.25 private diagnostic shows actual 14 edit-to-create schema differences, no preflight issues and independently unchanged F1/F2/F3, but artificial review still stops core ZIP insertion; add exact verified category-22 brand and condition conversion evidence while retaining fail-closed guard.",
-    "The two additional category-22 mode exception pairs are only brand text->combobox when saved as genuinely empty with known placeholder, and condition button->hidden when a real exact technical ID and preflight technical evidence exist; all mismatches, missing source values, changed live stage or unsupported conversions still trigger review.",
-    "New exact 14-diff synthetic regression RED 10 pass /1 fail on unmodified v1.25.25 and GREEN 11/11 on changed source. Owner native success, actual listing and Phase4 outcomes remain unproven pending explicit owner test.",
+    "KAR-206 v1.25.27: owner v1.25.26 private diagnostic proves category-22 preflight issueCount=0 and independent live F1/F2/F3 unchanged but edit-vs-create comparison still wrongly causes an F3 modal. Fix the architectural cross-mode/temporal drift confusion instead of any per-control whitelist.",
+    "A trusted saved edit snapshot and the currently observed CREATE form are non-comparable as a temporal baseline only when authoritative numeric category and source fingerprint match and full current preflight has zero issues; independent F1/F2/F3 each have the SAME 64-hex old/current hashes and no live schema changes, F3 hash matching current preflight; normalized vocabulary alone passes source-mode check.",
+    "Retain all true live F3 drift rejection, source fingerprint, category, value/readback, required-field, images, account/P8 and publish safety. Add privacy-safe KAR206_CROSS_MODE_CLASSIFICATION outcome with exact rejection reason and correct misleading cross-mode structural warnings.",
+    "Focused test-first RED (11 pass/1 fail) on v1.25.26 for unlisted edit/create field; focused source GREEN (12/12) after mode-aware decision, with explicit negatives. Existing real owner ZIP data are NOT in repository or CI. Actual native renewal/publication not claimed until owner test.",
     "Exception requires category and stored fingerprint binding, an issue-free preflight, only proven button-to-combobox/unknown-requiredness/core adType-buyNow option representation differences, and independent live F1/F2/F3 identical stable hashes. Other drift remains fail-closed.",
     "Each saved technical/display value, required attribute and image remains subject to fill and final readback; account binding, P8, managed locks, paid checkout and publication authorization untouched. No live Kleinanzeigen operations in CI.",
     "KAR-197: bound retry of transient shared P8/publish-intent journal Web Lock contention only before entering a journal critical section, retaining durable intent and exact P8 pre-click admission.",
@@ -156,7 +157,7 @@
     "Validate canonical all-profile affected-count preview and fail-closed cancellation when the active profile or trash snapshot changes.",
     "Verify local-only atomic record-and-image deletion under exact inventory IDs, retention-reset boundaries and MV3 interruption; assert no remote Kleinanzeigen mutation."
   ],
-  "packageVersion": "1.25.26",
+  "packageVersion": "1.25.27",
   "directBasisNativePending": false,
   "architectureFiles": [
     {
