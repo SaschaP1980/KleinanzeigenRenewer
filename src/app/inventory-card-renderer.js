@@ -25,6 +25,7 @@
       const renewalStatusLabel = formatting.renewalStatusLabel;
       const renewalStatusText = formatting.renewalStatusText;
       const canDiscardRenewalDraft = formatting.canDiscardRenewalDraft;
+      const canDiscardUnfinishedRenewal = formatting.canDiscardUnfinishedRenewal;
       const makeCompactIconButton = sharedUiHelpers.makeCompactIconButton;
       const accountGateModel = options.accountGateModel || (() => ({ allowed:false, tooltip:'' }));
       const selectedConcreteProfile = options.selectedConcreteProfile || (() => null);
@@ -144,6 +145,39 @@ function makeCompactInventoryExportButton(record) {
   return exportButton;
 }
 
+function makeUnfinishedLocalDiscardButton(record,compact=false) {
+  const button=compact
+    ? makeCompactIconButton({icon:'delete',label:'Unfertigen Austausch lokal verwerfen',
+        title:'Entfernt nur den lokalen Zwischenstand nach dem Notfall-Reset.',danger:true})
+    : document.createElement('button');
+  if(!compact){
+    button.type='button';button.className='danger-button compact-action';
+    button.textContent='Unfertigen Austausch lokal verwerfen';
+    button.title='Nur lokal, nach Zurücksetzen des festhängenden Austauschs.';
+  }
+  button.addEventListener('click',async()=>{
+    const renewalId=String(record.renewal.renewalId||'');
+    if(!await confirmAction({
+      title:'Unfertigen Austausch lokal verwerfen?',
+      text:'Nur die unfertige Inventarkachel wird entfernt. Beide Anzeigen auf Kleinanzeigen bleiben unverändert.',
+      detail:'Dafür muss der Workflow bereits über Diagnose → „Laufende Vorgänge zurücksetzen“ beendet worden sein. Die Sicherheitsnachweise bleiben gespeichert. Es wird nichts veröffentlicht oder online gelöscht.',
+      confirmLabel:'Nur lokalen Zwischenstand verwerfen',danger:true
+    }))return;
+    button.disabled=true;
+    try{
+      await runtimeMessage({type:'DISCARD_UNFINISHED_RENEWAL_LOCAL',
+        renewalId,inventoryId:String(record.inventoryId||'')});
+      setStatus('ready','Lokaler Zwischenstand verworfen',
+        'Nur die unfertige Inventarkachel wurde entfernt. Beide Online-Anzeigen blieben unverändert.');
+      await refreshInventories();
+    }catch(error){
+      button.disabled=false;
+      setFriendlyErrorStatus(error,'Lokaler Zwischenstand nicht entfernt');
+    }
+  });
+  return button;
+}
+
 function renderCompactInventoryRow(record) {
   const { row, actions } = createCompactListRow(record);
   const isRenewal = Boolean(record?.renewal?.renewalId);
@@ -259,6 +293,7 @@ function renderCompactInventoryRow(record) {
       actions.append(retryButton);
     }
     actions.append(exportButton);
+    if (canDiscardUnfinishedRenewal(record)) actions.append(makeUnfinishedLocalDiscardButton(record,true));
     if (canDiscardRenewalDraft(record)) {
       const discardButton = makeCompactIconButton({ icon: 'delete', label: 'Entwurf verwerfen', title: 'Entfernt nur diesen lokalen Entwurf.', danger: true });
       discardButton.addEventListener('click', async () => {
@@ -628,6 +663,7 @@ function renderInventories(records = currentRecords) {
         }
         actions.append(renewalButton);
 
+        if (canDiscardUnfinishedRenewal(record)) actions.append(makeUnfinishedLocalDiscardButton(record));
         if (canDiscardRenewalDraft(record)) {
           const discardButton = document.createElement('button');
           discardButton.type = 'button';

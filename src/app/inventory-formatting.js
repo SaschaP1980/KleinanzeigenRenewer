@@ -105,6 +105,14 @@
         return true;
       }
 
+      function canDiscardUnfinishedRenewal(record) {
+        const renewal=record?.renewal;
+        if (!renewal?.renewalId || record.recordKind !== 'renewal-draft' ||
+            record.adId || renewal.newAdId) return false;
+        return (renewal.status==='submitted' && renewal.stage==='publish-submitted') ||
+          (renewal.status==='cancelled' && renewal.stage==='emergency-reset-unverified');
+      }
+
       function trashReasonLabel(record) {
         const reason = String(record?.trash?.reason || 'manual');
         if (reason === 'renewal-replaced') return 'Nach erfolgreichem Austausch';
@@ -145,7 +153,7 @@
         formatDate, displayPrice, displayPriceWithType, categoryLabel, compactCategoryLabel, artLabel, endDateLabel,
         formatCalendarDate, listingDatePresentation, listingDateLabel, endDateWithRelativeLabel, comparisonStatusLabel,
         publicAvailabilityPending, templateReady, renewalIsReplacementReady, renewalAutoCompletionPending,
-        renewalStatusLabel, renewalStatusText, canDiscardRenewalDraft, trashReasonLabel, trashRetentionLabel,
+        renewalStatusLabel, renewalStatusText, canDiscardRenewalDraft, canDiscardUnfinishedRenewal, trashReasonLabel, trashRetentionLabel,
         trashRetentionPresentation
       });
     }

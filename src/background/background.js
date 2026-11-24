@@ -1,4 +1,4 @@
-importScripts("../shared/runtime-deps.js", "../shared/message-contract-registry.js", "../shared/renewal-policy.js", "background-message-router.js", "services/native-update-status-gateway.js", "services/native-status-bridge.js", "services/update-workflow-fence.js", "repositories/profile-repository.js", "repositories/inventory-repository.js", "repositories/inventory-image-store.js", "services/inventory-capture-service.js", "services/inventory-refresh-service.js", "services/trash-service.js", "controllers/trash-management-controller.js", "services/diagnostics-service.js", "services/diagnostic-correlation-service.js", "services/listing-url-evidence-service.js", "services/tab-registry.js", "services/managed-tab-worker-service.js", "services/content-connection-manager.js", "services/account-probe-service.js", "controllers/profile-management-controller.js", "controllers/account-session-controller.js", "controllers/manual-listing-navigation-controller.js", "controllers/platform-safety-controller.js", "controllers/tab-lifecycle-observer.js", "controllers/workflow-emergency-reset-controller.js", "lib/bulk-run-guard.js", "controllers/single-inventory-controller.js", "services/bulk-worker-service.js", "services/bulk-reconciliation-service.js", "controllers/bulk-inventory-controller.js", "controllers/mass-renewal-controller.js", "services/mass-renewal-watchdog-service.js", "controllers/mass-renewal-workflow-controller.js", "services/renewal-verification-flow.js", "services/renewal-reinventory-flow.js", "services/renewal-phase1-retry-service.js", "services/paid-checkout-recovery-service.js", "controllers/renewal-workflow-controller.js", "services/renewal-verification-service.js", "repositories/renewal-state-repository.js", "services/template-fill-service.js", "services/insertion-lock-service.js", "controllers/template-fill-controller.js", "services/trash-template-publish-detection-service.js", "services/archive-insertion-service.js", "services/archive-insertion-verification-service.js", "services/archive-insertion-recovery-service.js", "controllers/archive-insertion-controller.js", "services/remote-delete-replacement-service.js", "services/published-inventory-resolver.js", "services/diagnostic-export-service.js", "services/public-listing-evidence-service.js", "services/renewal-public-evidence-coordinator.js", "../shared/managed-navigation.js", "lib/inventory-reconciliation.js", "../shared/my-ads-readiness.js", "lib/inventory-scope.js", "../shared/platform-hardening.js", "services/tab-load-coordinator.js", "../shared/template-schema-core.js", "services/persisted-owner-observer.js", "services/additional-owner-observer.js", "services/phase4-uncertainty-journal.js", "services/cross-worker-atomic-admission.js", "services/auto-publish-intent-journal.js", "services/publish-intent-authorization-service.js");
+importScripts("../shared/runtime-deps.js", "../shared/message-contract-registry.js", "../shared/renewal-policy.js", "background-message-router.js", "services/native-update-status-gateway.js", "services/native-status-bridge.js", "services/update-workflow-fence.js", "repositories/profile-repository.js", "repositories/inventory-repository.js", "repositories/inventory-image-store.js", "services/inventory-capture-service.js", "services/inventory-refresh-service.js", "services/trash-service.js", "controllers/trash-management-controller.js", "services/diagnostics-service.js", "services/diagnostic-correlation-service.js", "services/listing-url-evidence-service.js", "services/tab-registry.js", "services/managed-tab-worker-service.js", "services/content-connection-manager.js", "services/account-probe-service.js", "controllers/profile-management-controller.js", "controllers/account-session-controller.js", "controllers/manual-listing-navigation-controller.js", "controllers/platform-safety-controller.js", "controllers/tab-lifecycle-observer.js", "controllers/workflow-emergency-reset-controller.js", "lib/bulk-run-guard.js", "controllers/single-inventory-controller.js", "services/bulk-worker-service.js", "services/bulk-reconciliation-service.js", "controllers/bulk-inventory-controller.js", "controllers/mass-renewal-controller.js", "services/mass-renewal-watchdog-service.js", "controllers/mass-renewal-workflow-controller.js", "services/renewal-verification-flow.js", "services/renewal-reinventory-flow.js", "services/renewal-phase1-retry-service.js", "services/paid-checkout-recovery-service.js", "controllers/renewal-workflow-controller.js", "services/renewal-verification-service.js", "repositories/renewal-state-repository.js", "services/template-fill-service.js", "services/insertion-lock-service.js", "controllers/template-fill-controller.js", "services/trash-template-publish-detection-service.js", "services/archive-insertion-service.js", "services/archive-insertion-verification-service.js", "services/archive-insertion-recovery-service.js", "controllers/archive-insertion-controller.js", "services/remote-delete-replacement-service.js", "services/published-inventory-resolver.js", "services/diagnostic-export-service.js", "services/public-listing-evidence-service.js", "services/renewal-public-evidence-coordinator.js", "../shared/managed-navigation.js", "lib/inventory-reconciliation.js", "../shared/my-ads-readiness.js", "lib/inventory-scope.js", "../shared/platform-hardening.js", "services/tab-load-coordinator.js", "../shared/template-schema-core.js", "services/persisted-owner-observer.js", "services/additional-owner-observer.js", "services/phase4-uncertainty-journal.js", "services/cross-worker-atomic-admission.js", "services/auto-publish-intent-journal.js", "services/publish-intent-authorization-service.js", "services/renewal-local-discard-service.js");
 // Private updater policy/authority: no content/app IPC route; production proof
 // sources remain intentionally absent until each of 15 owners is grounded.
 importScripts("../../lib/update-idle-policy.js", "services/trusted-owner-authority.js");
@@ -55,6 +55,7 @@ const MassRenewalWorkflowController = KRDeps.require('KRMassRenewalWorkflowContr
 const RenewalVerificationService = KRDeps.require('KRRenewalVerificationService');
 const RenewalStateRepository = KRDeps.require('KRRenewalStateRepository');
 const RenewalWorkflowController = KRDeps.require('KRRenewalWorkflowController');
+const RenewalLocalDiscardService = KRDeps.require('KRRenewalLocalDiscardService');
 const RenewalPhase1RetryService = KRDeps.require('KRRenewalPhase1RetryService');
 const TemplateFillService = KRDeps.require('KRTemplateFillService');
 const InsertionLockService = KRDeps.require('KRInsertionLockService');
@@ -903,49 +904,14 @@ function preverifyAndTriggerRenewalSourceDeleteAttempt(...args) { return require
 
 async function finishRenewalReplacement(message, admissionReceipt) { return requireRemoteDeleteReplacementService().finishRenewalReplacement(message, admissionReceipt); }
 
-async function discardRenewalDraft(message) {
-  const renewalId = String(message?.renewalId || '');
-  if (!renewalId) throw new Error('Renewal-ID fehlt.');
-  const renewals = await readRenewalSessions();
-  const renewal = renewals[renewalId];
-  if (!renewal) throw new Error('Renewal-Entwurf wurde nicht gefunden.');
-  if (renewal.newAdId || ['submitted', 'new-id-confirmed', 'reinventorizing', 'verifying', 'verified'].includes(String(renewal.status || '')) || String(renewal.stage || '') === 'publish-submitted') {
-    throw new Error('Dieser Renewal-Vorgang wurde bereits veröffentlicht oder zur Veröffentlichung übergeben und kann nicht als lokaler Entwurf verworfen werden.');
-  }
-
-  const active = await getBulkRunState();
-  if (active?.status === 'running' || active?.retryAdId) throw new Error('Entwürfe können während einer laufenden Erfassung oder einer einzelnen Wiederholung nicht verworfen werden.');
-
-  const skeletonInventoryId = String(renewal.skeletonInventoryId || '');
-  const targetTabId = Number(renewal.targetTabId || 0) || null;
-  const fillId = String(renewal.fillId || '');
-
-  const fills = await readFillSessions().catch(() => ({}));
-  if (fillId && fills[fillId]) {
-    delete fills[fillId];
-    await writeFillSessions(fills);
-  } else {
-    let changed = false;
-    for (const [id, fill] of Object.entries(fills)) {
-      if (String(fill?.renewalId || '') === renewalId) { delete fills[id]; changed = true; }
-    }
-    if (changed) await writeFillSessions(fills);
-  }
-
-  delete renewals[renewalId];
-  await writeRenewalSessions(renewals);
-  if (skeletonInventoryId) await deleteInventoryStorageRecord(skeletonInventoryId);
-  if (targetTabId) await closeRegistryTab(targetTabId, 'renewal-draft-discarded', 'Renewal-Zieltab').catch(() => {});
-
-  await logDiagnostic('info', 'RENEWAL_DRAFT_DISCARDED', {
-    renewalId,
-    sourceInventoryId: renewal.sourceInventoryId || null,
-    sourceAdId: renewal.sourceAdId || null,
-    skeletonInventoryId: skeletonInventoryId || null
-  }, { module: 'background', operation: 'renewal-discard', context: sessionCorrelationContext(renewal, { renewalId, adId: renewal.sourceAdId || null }) }).catch(() => {});
-  broadcastInventoryChanged('renewal-draft-discarded', { inventoryId: skeletonInventoryId || null, renewalId, sourceAdId: renewal.sourceAdId || null });
-  return { discarded: true, renewalId, skeletonInventoryId: skeletonInventoryId || null };
+function renewalLocalDiscard() {
+  return RenewalLocalDiscardService.create({readRenewalSessions,writeRenewalSessions,
+    readFillSessions,writeFillSessions,getInventory,deleteInventoryStorageRecord,
+    getBulkRunState,closeRegistryTab,logDiagnostic,broadcastInventoryChanged,
+    sessionCorrelationContext});
 }
+async function discardRenewalDraft(message) {return renewalLocalDiscard().discardDraft(message);}
+async function discardUnfinishedRenewalLocal(message) {return renewalLocalDiscard().discardUnfinishedLocal(message);}
 
 async function finalizeExpiredBulkWorkerRecovery(recovery) {
   await cleanupRecoveredBulkTabs(recovery.tabIds, 'bulk-worker-hard-timeout');
@@ -2310,6 +2276,7 @@ const backgroundMessageRouter = BackgroundMessageRouter.create({
   "REMOVE_REPLACEMENT_READY_LOCAL": (message, sender) => removeReplacementReadyLocal(message),
   "FINISH_RENEWAL_REPLACEMENT": (message, sender, admissionReceipt) => finishRenewalReplacement(message, admissionReceipt),
   "DISCARD_RENEWAL_DRAFT": (message, sender) => discardRenewalDraft(message),
+  "DISCARD_UNFINISHED_RENEWAL_LOCAL": (message, sender) => discardUnfinishedRenewalLocal(message),
   "CLEAR_INVENTORIES": (message, sender) => clearInventories(Object.prototype.hasOwnProperty.call(message, 'profileId') ? message.profileId : undefined),
   "START_BULK_INVENTORY_OPERATION": (message, sender) => startBulkInventoryOperation(message),
   "BULK_INIT_RUN": (message, sender) => initBulkRun(message, sender),

@@ -49,6 +49,7 @@
     "REMOVE_REPLACEMENT_READY_LOCAL": Object.freeze({ handler: "REMOVE_REPLACEMENT_READY_LOCAL", preSafety: false }),
     "FINISH_RENEWAL_REPLACEMENT": Object.freeze({ handler: "FINISH_RENEWAL_REPLACEMENT", preSafety: false }),
     "DISCARD_RENEWAL_DRAFT": Object.freeze({ handler: "DISCARD_RENEWAL_DRAFT", preSafety: false }),
+    "DISCARD_UNFINISHED_RENEWAL_LOCAL": Object.freeze({ handler: "DISCARD_UNFINISHED_RENEWAL_LOCAL", preSafety: false }),
     "CLEAR_INVENTORIES": Object.freeze({ handler: "CLEAR_INVENTORIES", preSafety: false }),
     "START_BULK_INVENTORY_OPERATION": Object.freeze({ handler: "START_BULK_INVENTORY_OPERATION", preSafety: false }),
     "BULK_INIT_RUN": Object.freeze({ handler: "BULK_INIT_RUN", preSafety: false }),

@@ -84,7 +84,7 @@ test('wrong or masquerading record, wrong profile/ID, and another active batch b
   assert.deepEqual(f.calls,[]);
 });
 test('UI displays targeted action only for unconfirmed post-publish orphan; never normal records',()=>{
-  const f=Formatting.create({});
+  const f=Formatting.create({sharedUiHelpers:{}});
   const pending={recordKind:'renewal-draft',adId:null,
     renewal:{renewalId,status:'submitted',stage:'publish-submitted',newAdId:null}};
   assert.equal(f.canDiscardUnfinishedRenewal(pending),true);
