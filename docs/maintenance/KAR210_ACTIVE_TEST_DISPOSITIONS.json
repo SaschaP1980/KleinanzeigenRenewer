@@ -1,0 +1,39 @@
+{
+  "schema": 1,
+  "issue": 210,
+  "version": "2.0.0.0",
+  "reference": "51500cba0a5d43f7f0fa989b4c89536b3930657a",
+  "policy": "Explicit baseline-only dispositions, not successful execution. Historical source kept; later versions require renewed disposition. Do not add entries without assertion-level review and retained applicable behavior.",
+  "entries": [
+    {
+      "test": "tests/kar97-update-idle-policy.cjs",
+      "blob": "8410d1fdcbbd65ef7eb3f4f19d9846aa675ce46f",
+      "module": "lib/update-idle-policy.js",
+      "matrix": "C02",
+      "step": "S04",
+      "status": "excluded-C",
+      "owner": "package.json",
+      "reason": "Pure updater candidate-idle classifier, not baseline insertion lock/account admission; original test remains intact.",
+      "retained": [
+        "tests/v1234-insertion-lock-runtime.cjs",
+        "tests/v1238-account-session-controller-runtime.cjs",
+        "tests/v1238-profile-management-controller-runtime.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar134-schema-core.cjs",
+      "blob": "f52e8a47755362551b4f2166eb04ee0a2ab45df9",
+      "module": "src/shared/template-schema-core.js",
+      "matrix": "A03",
+      "step": "S05",
+      "status": "deferred-A",
+      "owner": "package.json",
+      "reason": "All assertions exercise the absent schema/fingerprint implementation, including its privacy and incompatibility contracts; migration belongs to S05, not current baseline.",
+      "retained": [
+        "tests/v12322-title-field-stability.cjs",
+        "tests/kar132-modern-category-modal.cjs",
+        "tests/kar132-wearables-attributes.cjs"
+      ]
+    }
+  ]
+}

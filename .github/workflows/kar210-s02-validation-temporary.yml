@@ -1,0 +1,22 @@
+name: KAR-210 disposition contract RED
+on:
+  push:
+    branches: ['work/KAR-210']
+    paths: ['.github/workflows/kar210-s02-validation-temporary.yml']
+permissions:
+  contents: read
+jobs:
+  test:
+    if: >-
+      github.ref == 'refs/heads/work/KAR-210' &&
+      github.event.head_commit.message == 'test(KAR-210): define explicit baseline disposition contract'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node tests/kar210-test-disposition-contract.cjs
