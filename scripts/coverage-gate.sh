@@ -8,6 +8,7 @@ cd "$project_dir"
 python3 tests/kar210-product-version.py
 python3 tests/kar210-version-identity.py
 python3 tests/kar210-package-version.py
+python3 tests/kar210-atomic-patch-version.py
 # KAR-195: deterministic two-worker P8 startup fan-out (fresh / near-capacity).
 NODE_V8_COVERAGE="$raw" node tests/kar195-startup-atomic-fairness.cjs
 # GitHub's clean checkout does not include locally generated coverage manifests.
