@@ -959,7 +959,7 @@ async function finishRenewalReplacement(message, admissionReceipt = null) {
         context: sessionCorrelationContext(session, { renewalId, adId: session.sourceAdId })
       }).catch(() => {});
 
-      // Fast mode and interrupted transport use the journal's fresh source
+      // Fast mode and interrupted transport use fresh journal-backed source
       // AND target proof directly, without a duplicate source-only scan.
       if(result.transportInterrupted || (typeof normalizeRenewalMode==='function'&&normalizeRenewalMode(session.renewalMode)===RENEWAL_MODE_FAST)){
         const observed=await observePhase4Attempts(renewalId);
