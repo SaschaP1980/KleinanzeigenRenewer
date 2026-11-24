@@ -8,7 +8,10 @@ const abs = p => path.join(root, p);
 const inventory = JSON.parse(fs.readFileSync(abs('docs/maintenance/SCRIPT_WORKFLOW_INVENTORY.json'), 'utf8'));
 assert.equal(inventory.schema, 1);
 assert.equal(inventory.issue, 167);
-assert.equal(inventory.scripts.length, 24, 'S1 preserves exactly 24 current script files');
+// KAR-210 adds one owned, shared version-policy script; retain all S1 entries.
+assert.equal(inventory.scripts.length, 25, 'S1 plus KAR-210 must inventory all 25 current script files');
+assert.equal(inventory.scripts.find(s => s.path === 'scripts/product_version.py')?.status, 'ci-active',
+  'KAR-210 version policy must have an explicit active CI owner');
 assert.equal(inventory.workflows.length, 7, 'All 5 generic workflows and both KAR-178 historical publication workflows are registered');
 assert.ok(fs.existsSync(abs('scripts/README.md')), 'scripts/ consumer index missing');
 const actualScripts = fs.readdirSync(abs('scripts'), {withFileTypes:true})

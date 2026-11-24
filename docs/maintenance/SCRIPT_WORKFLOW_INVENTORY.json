@@ -65,9 +65,19 @@
       "evidence": "kar-ci.yml, kar-work-pr.yml and release paths package the exact Chrome MV3 runtime"
     },
     {
+      "path": "scripts/product_version.py",
+      "status": "ci-active",
+      "evidence": "KAR-210 shared Chrome/npm version identity, numeric transition and archive label policy; directly invoked by KAR CI, Work PR, Release and archive-release-zip.sh; imported by package.py, verify_committed_chrome_zip.py and kar-atomic-patch.py."
+    },
+    {
       "path": "scripts/public-api-probe-child.cjs",
       "status": "runtime-test-support",
       "evidence": "tests/v12319-public-api-execution-closure.cjs spawns this isolated public API probe"
+    },
+    {
+      "path": "scripts/release_finalize.py",
+      "status": "release-active",
+      "evidence": "release-finalize-gate.sh invokes it; requires scripts/source-layout.json exact path"
     },
     {
       "path": "scripts/release-finalize-gate.sh",
@@ -93,11 +103,6 @@
       "path": "scripts/release-supervisor.sh",
       "status": "support-standalone",
       "evidence": "historical and native release-supervisor operation supported by tests/v12310-release-supervisor-hardening.cjs"
-    },
-    {
-      "path": "scripts/release_finalize.py",
-      "status": "release-active",
-      "evidence": "release-finalize-gate.sh invokes it; requires scripts/source-layout.json exact path"
     },
     {
       "path": "scripts/runtime-api-inventory.cjs",
