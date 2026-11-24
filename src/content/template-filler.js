@@ -801,9 +801,50 @@
         stages.attributes.currentFingerprint !== report.currentFingerprint) return false;
     return comparison.changes.every(change => {
       if (!change || typeof change.key !== 'string') return false;
-      if (change.type === 'control-kind-changed')
+      if (change.type === 'control-kind-changed') {
+        // In the captured edit form, a native peer can be a text input or
+        // clickable button; the posting-create form may expose a different
+        // presentation while retaining the SAME attributeMap technical key.
+        // Handle ONLY the two additional category-22 pairs demonstrated by
+        // the owner's real v1.25.25 structure diagnostic. Requiring source
+        // status/technical evidence prevents a general control-kind bypass.
+        if (categoryId === '22' &&
+            change.key === 'attribute:baby_kinderkleidung.brand' &&
+            change.before === 'text' && change.after === 'combobox') {
+          const attrs = (template.dynamicAttributes || []).filter(item =>
+            item?.key === 'baby_kinderkleidung.brand');
+          const savedKind = source.snapshot?.fields?.find(field =>
+            field.key === change.key)?.kind;
+          const brand = attrs.length === 1 ? attrs[0] : null;
+          const displayed = String(brand?.displayValue || '').trim();
+          return savedKind === 'text' && brand?.status === 'empty' &&
+            (brand.technicalValue === '' || brand.technicalValue == null) &&
+            /^(?:|bitte (?:wählen|auswählen)|auswählen|select)$/i.test(displayed);
+        }
+        if (categoryId === '22' &&
+            change.key === 'attribute:baby_kinderkleidung.condition' &&
+            change.before === 'button' && change.after === 'hidden') {
+          const attrs = (template.dynamicAttributes || []).filter(item =>
+            item?.key === 'baby_kinderkleidung.condition');
+          const savedKind = source.snapshot?.fields?.find(field =>
+            field.key === change.key)?.kind;
+          const selected = attrs.length === 1 ? attrs[0] : null;
+          const matchingEvidence = (report.valueEvidence || []).filter(item =>
+            item?.key === 'baby_kinderkleidung.condition');
+          const evidence = matchingEvidence.length === 1 ? matchingEvidence[0] : null;
+          return savedKind === 'button' &&
+            ['captured', 'technical-only'].includes(selected?.status) &&
+            selected.technicalValue !== null && selected.technicalValue !== undefined &&
+            String(selected.technicalValue).trim() !== '' &&
+            evidence &&
+            ((evidence.status === 'unverified' &&
+              evidence.reason === 'technical-options-unknown') ||
+             (evidence.status === 'confirmed' &&
+              evidence.reason === 'already-selected-exact-readback'));
+        }
         return change.key.startsWith('attribute:') &&
           change.before === 'button' && change.after === 'combobox';
+      }
       if (change.type === 'requiredness-uncertain')
         return change.key.startsWith('attribute:') &&
           change.before === 'unknown' &&
