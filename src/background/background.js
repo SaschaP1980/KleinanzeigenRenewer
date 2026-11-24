@@ -1655,14 +1655,10 @@ function requireAutoPublishIntentJournal() {
       lockName: AtomicMV3Admission.LOCK_NAME,
       lockManager: globalThis.navigator?.locks,
       onSample: sample => requireDiagnosticsService().recordPublishIntentSample(sample),
-      // Read-only stage-code diagnostics only; no ad IDs, profile or P8 token.
-      onResolutionDenied: reason => {
-        if (!['remote-outcome-unavailable','remote-outcome-unverified',
-               'account-witness-unavailable','account-witness-unverified']
-             .includes(reason?.stage)) return;
-        void logDiagnostic('info', 'KAR206_PUBLISH_RESOLUTION_DENIED_STAGE', {
-          stage: reason.stage, automaticRetryOrSubmit: false
-        }, { module: 'background', operation: 'publish-intent-verification' }).catch(() => {});
+      // Internal fixed-stage reason only, no IDs or tokens.
+      onResolutionDenied: ({stage}) => {
+        void logDiagnostic('info', 'KAR206_PUBLISH_RESOLUTION_DENIED_STAGE',
+          {stage}).catch(() => {});
       },
       verifyRemoteOutcome: (intent, newAdId) => verifyAutoPublishRemoteOutcomeFresh(intent, newAdId),
       requireCommitContext: true,
