@@ -28,7 +28,7 @@ const record=attributes=>({
  dynamicAttributes:attributes,images:[]
 });
 const handoff=attributes=>transfer(record(attributes));
-const evaluate=async (attributes,{required=[]}={})=>{
+const evaluate=async (attributes,{required=[],sourceMode=null}={})=>{
  const preflight=Preflight.create({
   Schema:{
    buildSchema:()=>({}),fingerprint:async()=>F,
@@ -39,6 +39,7 @@ const evaluate=async (attributes,{required=[]}={})=>{
   },Form:{},waitFor:async()=>{}
  });
  const saved=handoff(attributes);
+ if(sourceMode) saved.templateSchema.source=sourceMode;
  const fields=attributes.map(a=>({
   key:'attribute:'+a.key,kind:'combobox',
   requiredState:required.includes(a.key)?'required':'optional',
@@ -119,4 +120,12 @@ test('historical Bitte auswählen placeholder remains empty, captured choice sti
  const claimed=await evaluate([emptyAttr('material','Bitte auswählen','captured')]);
  assert.equal(claimed.complete,false);
  assert.equal(claimed.valueEvidence[0].reason,'display-only-unsafe-control');
+});
+
+test('verified edit-to-create difference must not falsely claim Kleinanzeigen changed live controls',async()=>{
+ const report=await evaluate([emptyAttr('material')],{sourceMode:'edit-form'});
+ assert.equal(report.complete,true);
+ assert.equal(report.comparison.status,'schema-changed');
+ assert.match(report.warnings.join(' '),/Bearbeitungsformular.*Erstellformular/);
+ assert.doesNotMatch(report.warnings.join(' '),/Kleinanzeigen hat Felder oder Auswahlmöglichkeiten verändert/);
 });
