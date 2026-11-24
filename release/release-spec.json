@@ -1,16 +1,16 @@
 {
-  "version": "1.25.28",
+  "version": "1.25.29",
   "project": "kleinanzeigen Manager / Kleinanzeigen Renewal",
-  "epic": "KAR-206-ZIP-published-pending-verification-recovery",
+  "epic": "KAR-206-local-only-postpublish-renewal-orphan-discard",
   "goldBaseline": "1.21.15",
   "directBasis": "1.23.20_c1",
   "directBasisNativeGreen": true,
   "directBasisObservation": "v1.23.20_c1 ist RELEASE_GREEN und besitzt reale Fast-3er-Goldlinien. Zwei spätere reale Massenläufe vom 10.10.2026 zeigten jedoch einen flüchtigen Titel-Fill-/DOM-State-Fehler: Diagnose 11-22-33 (SHA-256 0ac5642d4fb6b69575c88d6e116fa2152ad0cd84c512f38198afddfa3c72a4df) mit 3/7 temporären Titel-Mismatches und Diagnose 12-03-51 (SHA-256 161cabb74e8a8eb454c91e3c35dc8158a7a782b9d0354fb4e003d12e487db641) mit 5/10. Unveränderte Titel konnten in späteren Versuchen erfolgreich sein; daher wird v1.23.22 als enger Correction-Build vor EPIC-REF-003 erstellt.",
   "scope": [
-    "KAR-206 v1.25.28: owner v1.25.27 diagnostic proves archive ZIP import filled all managed values (0 issues, 5 images stable) and native Publish clicked, with listing visibly present under My Ads, but independent P8 journal refused new-ID resolution with KR_PUBLISH_INTENT_UNVERIFIED. No success/auto-delete accepted from screenshot alone.",
-    "Fix archive insertion startup read-only recovery: recognize actual filling/publish-submitted state (legacy submitted preserved) and wire valid detectPublishedAdForFill dependency, require exact fill/target/source/stage match; use existing immutable publish-intent journal and independent account/My Ads verifier for positive confirmation. Never click Publish again.",
-    "Add privacy-safe stage-only KAR206_PUBLISH_RESOLUTION_DENIED_STAGE for remote outcome absence/invalid proof or account-witness unavailable/negative, callback cannot confer authority, and no account/new ad ID/token included. Existing publish, source deletion, P8/locks and account gate unchanged.",
-    "Permanent synthetic test-first RED old code 2/6 pass and new recovery GREEN 6/6; stage-only classifier 5/5 focused GREEN. Full required npm safety/coverage/architecture + 9/9 packaged Chromium + deterministic source ZIP parity remain gates; no live owner success claimed.",
+    "KAR-206 v1.25.29: explicitly owner-authorized local-only discard of an abandoned post-publish Renewal draft whose persisted session was already cancelled by user emergency reset but whose cached synthetic inventory card remains submitted/publish-submitted. Both real Kleinanzeigen listings are preserved.",
+    "Add Unfertigen Austausch lokal verwerfen to compact and detailed inventory cards only for unconfirmed synthetic Renewal draft, requiring explicit danger confirmation. Backend validates exactly the selected renewal ID and synthetic record, persisted cancelled/emergency-reset-unverified state + timestamp, unverified remote outcome, no confirmed new ID/phase2/compare, exact same profile/source and no active bulk/fill before removing only that local synthetic record.",
+    "Preserve the cancelled Renewal tombstone, fill security evidence, immutable publish-intent/P8 journal and remote source/target listings, without ever replaying publish or Phase4 source deletion; require manual emergency reset first if the Renewal session is still active. Ordinary prepublication draft discard remains behavior-identical.",
+    "Move original prepublish discard into one source owner service without new privileged external boundary; register one P8-fenced app-to-background route; focused direct real-source test-first RED missing feature and 7/7 GREEN including positive and negative, other record integrity, legacy behavior and UI/IPC. Full safety/coverage/architecture and real packaged Chromium must additionally pass before owner ZIP.",
     "Exception requires category and stored fingerprint binding, an issue-free preflight, only proven button-to-combobox/unknown-requiredness/core adType-buyNow option representation differences, and independent live F1/F2/F3 identical stable hashes. Other drift remains fail-closed.",
     "Each saved technical/display value, required attribute and image remains subject to fill and final readback; account binding, P8, managed locks, paid checkout and publication authorization untouched. No live Kleinanzeigen operations in CI.",
     "KAR-197: bound retry of transient shared P8/publish-intent journal Web Lock contention only before entering a journal critical section, retaining durable intent and exact P8 pre-click admission.",
@@ -157,7 +157,7 @@
     "Validate canonical all-profile affected-count preview and fail-closed cancellation when the active profile or trash snapshot changes.",
     "Verify local-only atomic record-and-image deletion under exact inventory IDs, retention-reset boundaries and MV3 interruption; assert no remote Kleinanzeigen mutation."
   ],
-  "packageVersion": "1.25.28",
+  "packageVersion": "1.25.29",
   "directBasisNativePending": false,
   "architectureFiles": [
     {
