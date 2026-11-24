@@ -30,6 +30,18 @@ async function run(){
   });
   return {session,persisted,remote,counts:()=>({begins,deletes,resolves,started,closed})};
  }
+ await check('Phase4 queues behind a competing owner without opportunistic retry',async()=>{
+   const data={};let writes=0,calls=0;
+   const journal=Journal.create({storageLocal:{get:async()=>({...data}),set:async fields=>{writes++;Object.assign(data,fields);}},clock:()=>1700000000000,newToken:()=> 'attempt-queue',workerInstanceId:'worker-queue',lockName:'kar-updater-global-admission-v1',lockWaitMs:2000,lockManager:{async request(name,opts,cb){calls++;if(opts.ifAvailable)return cb(null);assert.ok(opts.signal);await new Promise(r=>setTimeout(r,30));return cb({name,mode:'exclusive'});}}});
+   await journal.begin({renewalId:'queue',profileId:'Account',sourceAdId:'100',newAdId:'200'});
+   assert.equal(calls,1);assert.equal(writes,1);
+ });
+ await check('Phase4 queued request aborts without writing even if late callback arrives',async()=>{
+   const data={};let writes=0,late;
+   const journal=Journal.create({storageLocal:{get:async()=>({...data}),set:async fields=>{writes++;Object.assign(data,fields);}},clock:()=>1700000000000,newToken:()=> 'attempt-queue',workerInstanceId:'worker-queue',lockName:'kar-updater-global-admission-v1',lockWaitMs:20,lockManager:{async request(name,opts,cb){if(opts.ifAvailable)return cb(null);late=()=>cb({name,mode:'exclusive'});return new Promise((_,reject)=>opts.signal.addEventListener('abort',()=>reject(Error('aborted')),{once:true}));}}});
+   await assert.rejects(journal.begin({renewalId:'queue',profileId:'Account',sourceAdId:'100',newAdId:'200'}),e=>e.code==='KR_PHASE4_JOURNAL_ATOMIC_BUSY');
+   assert.equal(writes,0);assert.equal(typeof late,'function');await assert.rejects(late(),/KR_PHASE4_JOURNAL_ATOMIC_BUSY/);assert.equal(writes,0);
+ });
  await check('actual Chrome BFCache error recognized, unrelated error not recognized',()=>{assert.equal(classify(Error(BF)),true);assert.equal(classify(Error('invalid account')),false);});
  await check('actual BFCache interruption returns original receipt and uncertainty',async()=>{const f=fixture();const r=await f.remote.preverifyAndTriggerRenewalSourceDeleteAttempt(f.session,'Account',null,{attempt:1,attemptId:'local'},0);assert.equal(r.transportInterrupted,true);assert.equal(r.attemptReceipt.attemptId,'a');assert.equal(f.counts().deletes,1);});
  await check('proof-only request without original receipt never starts delete',async()=>{const f=fixture({recovery:true});await assert.rejects(f.remote.finishRenewalReplacement({renewalId:'r',type:'FINISH_RENEWAL_REPLACEMENT',recoveryOnly:true}),/KR_PHASE4_JOURNAL_/);assert.equal(f.counts().begins,0);assert.equal(f.counts().deletes,0);assert.equal(f.session.stage,'source-delete-outcome-unverified');});
