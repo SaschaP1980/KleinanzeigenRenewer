@@ -4,6 +4,8 @@ import importlib.util
 import json
 from pathlib import Path
 import unittest
+import tempfile
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parent.parent
 spec = importlib.util.spec_from_file_location(
@@ -33,6 +35,30 @@ class VersionIdentity(unittest.TestCase):
             with self.subTest(version=version):
                 with self.assertRaises(ValueError):
                     verifier.check_identity({**manifest, "version": version}, app_id)
+
+
+    def test_archive_cli_uses_product_version(self):
+        for version, label in (("2.0.0.0", None), ("1.23.21", "1.23.20_c1")):
+            with self.subTest(version=version, label=label), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                fixture = {**manifest, "version": version}
+                if label is not None:
+                    fixture["version_name"] = label
+                (root / "manifest.json").write_text(json.dumps(fixture), encoding="utf-8")
+                # The archive need not exist: reaching the missing-file gate proves
+                # the real CLI accepted the label, without bypassing byte parity.
+                with patch.object(verifier, "ROOT", root), patch("sys.argv", ["verify"]):
+                    with self.assertRaisesRegex(ValueError, "versioned Chrome ZIP missing"):
+                        verifier.main()
+
+    def test_archive_cli_rejects_mismatched_label(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            fixture = {**manifest, "version": "2.0.0.0", "version_name": "1.23.48"}
+            (root / "manifest.json").write_text(json.dumps(fixture), encoding="utf-8")
+            with patch.object(verifier, "ROOT", root), patch("sys.argv", ["verify"]):
+                with self.assertRaisesRegex(ValueError, "unsafe/unsupported package version"):
+                    verifier.main()
 
 
 if __name__ == "__main__":
