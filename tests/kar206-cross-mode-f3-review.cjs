@@ -5,9 +5,8 @@ const {test} = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const source = fs.readFileSync(require.resolve('../src/content/template-filler.js'), 'utf8');
-const start = source.indexOf('  // KAR-206: the archived F3 fingerprint') >= 0
-  ? source.indexOf('  // KAR-206: the archived F3 fingerprint')
-  : source.indexOf('  // Real F1/F2/F3 review is part of the ordinary authenticated posting');
+const start = source.indexOf('  // KAR-206: a source EDIT-form schema');
+assert.ok(start>0, 'extract the actual mode-aware decision and production review together');
 const end = source.indexOf('  async function runFillSession(', start);
 assert.ok(start > 0 && end > start, 'Review must remain in the real posting flow');
 const section = source.slice(start, end);
