@@ -43,9 +43,19 @@ def check_identity(manifest: dict, app_id: str):
     require(isinstance(manifest, dict), "manifest must be a JSON object")
     require(manifest.get("manifest_version") == 3, "MV3 manifest required")
     version = manifest.get("version")
-    require(isinstance(version, str) and re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", version) is not None,
-            "manifest version invalid")
-    expected_permissions = PERMISSIONS | ({"nativeMessaging"} if tuple(map(int, version.split("."))) >= (1, 23, 30) else set())
+    require(isinstance(version, str) and (
+        re.fullmatch(r"[01]\.[0-9]+\.[0-9]+", version) is not None
+        or re.fullmatch(r"2(?:\.(?:0|[1-9][0-9]{0,4})){3}", version) is not None
+    ), "manifest version invalid")
+    parts = tuple(map(int, version.split(".")))
+    if parts[0] == 2:
+        require(all(part <= 65535 for part in parts), "manifest version invalid")
+        # S02 isolated technical baseline retains the historical permission
+        # contract. S04 removes nativeMessaging explicitly, not by relaxing
+        # the identity gate or inferring a new permission set from the tuple.
+        expected_permissions = PERMISSIONS | {"nativeMessaging"}
+    else:
+        expected_permissions = PERMISSIONS | ({"nativeMessaging"} if parts >= (1, 23, 30) else set())
     require(set(manifest.get("permissions") or []) == expected_permissions
             and len(manifest.get("permissions") or []) == len(expected_permissions),
             "manifest permissions changed without explicit authorization")
