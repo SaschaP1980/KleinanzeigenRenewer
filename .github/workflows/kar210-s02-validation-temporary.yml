@@ -1,0 +1,103 @@
+name: KAR-210 temporary complete invocation characterization
+on:
+  push:
+    branches: ['work/KAR-210']
+    paths: ['.github/workflows/kar210-s02-validation-temporary.yml']
+permissions:
+  contents: read
+jobs:
+  characterization:
+    if: >-
+      github.ref == 'refs/heads/work/KAR-210' &&
+      github.event.head_commit.message == 'test(KAR-210): characterize complete baseline invocation list'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: 4b5fb12495eb99dca7f7bedb5f5e820de5f726b1
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify source and install pinned dependencies
+        run: |
+          test "$(git rev-parse HEAD)" = '4b5fb12495eb99dca7f7bedb5f5e820de5f726b1'
+          npm ci --ignore-scripts
+          mkdir -p coverage/raw
+          node scripts/runtime-api-inventory.cjs --json > coverage/public-api-manifest.json
+      - name: Characterize each existing npm invocation in order
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json, os, pathlib, re, shlex, subprocess, sys, time
+          root=pathlib.Path.cwd()
+          script=json.loads((root/'package.json').read_text())['scripts']['test']
+          prefix="export NODE_OPTIONS='--require ./tests/v12222-vm-legacy-bridge.cjs'; "
+          assert script.startswith(prefix)
+          commands=script[len(prefix):].split(' && ')
+          assert len(commands)==535
+          allowed=re.compile(r'node (?:--test )?tests/[A-Za-z0-9_./-]+\.(?:cjs|mjs|js)(?: tests/[A-Za-z0-9_./-]+\.cjs)?')
+          special={'node scripts/v12319-coverage-report.cjs coverage/raw coverage','node scripts/v12319-architecture-audit.cjs'}
+          assert all(allowed.fullmatch(c) or c in special for c in commands)
+          env=dict(os.environ,NODE_OPTIONS='--require ./tests/v12222-vm-legacy-bridge.cjs',NODE_V8_COVERAGE=str(root/'coverage/raw'))
+          out=pathlib.Path(os.environ['RUNNER_TEMP'])/'kar210-characterization'
+          out.mkdir()
+          rows=[]
+          for i,c in enumerate(commands,1):
+              start=time.monotonic()
+              try:
+                  r=subprocess.run(shlex.split(c),env=env,capture_output=True,timeout=150)
+                  output=(r.stdout+r.stderr).decode('utf8','replace')
+                  status='NOT_EXECUTED' if r.returncode==0 and c.startswith('node tests/kar210-test-disposition.cjs ') and 'KAR210 NOT_EXECUTED' in output else ('PASS' if r.returncode==0 else 'FAIL')
+                  rc=r.returncode
+              except subprocess.TimeoutExpired as e:
+                  output=((e.stdout or b'')+(e.stderr or b'')).decode('utf8','replace')
+                  status='TIMEOUT';rc=124
+              (out/f'{i:04d}.log').write_text(output)
+              evidence=[l.strip()[:400] for l in output.splitlines() if re.search(r'Error:|AssertionError|MODULE_NOT_FOUND|Cannot find module|not ok |FAILED|KAR210 NOT_EXECUTED',l)]
+              row={'index':i,'command':c,'status':status,'returncode':rc,'seconds':round(time.monotonic()-start,3),'evidence':evidence[:3]}
+              rows.append(row)
+              print('KAR210_RESULT '+json.dumps(row,ensure_ascii=False),flush=True)
+          counts={k:sum(r['status']==k for r in rows) for k in ['PASS','FAIL','TIMEOUT','NOT_EXECUTED']}
+          summary={'source':'4b5fb12495eb99dca7f7bedb5f5e820de5f726b1','commandCount':len(commands),'attempted':len(rows),'counts':counts,'rows':rows,'warning':'Diagnostic non-fail-fast results are not the mandatory coverage gate or release acceptance.'}
+          (out/'summary.json').write_text(json.dumps(summary,indent=2)+'\n')
+          print('KAR210_CHARACTERIZATION_SUMMARY '+json.dumps(counts),flush=True)
+          sys.exit(1 if counts['FAIL'] or counts['TIMEOUT'] else 0)
+          PY
+      - name: Preserve diagnostic logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: KAR210-baseline-invocation-characterization
+          path: ${{ runner.temp }}/kar210-characterization/
+          retention-days: 14
+  mandatory-gate:
+    if: >-
+      github.ref == 'refs/heads/work/KAR-210' &&
+      github.event.head_commit.message == 'test(KAR-210): characterize complete baseline invocation list'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: 4b5fb12495eb99dca7f7bedb5f5e820de5f726b1
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify source and install pinned dependencies
+        run: |
+          test "$(git rev-parse HEAD)" = '4b5fb12495eb99dca7f7bedb5f5e820de5f726b1'
+          npm ci --ignore-scripts
+      - name: Actual mandatory fail-fast gate
+        run: bash scripts/coverage-gate.sh
+      - name: Focused retained schema-related baseline tests
+        if: always()
+        run: |
+          export NODE_OPTIONS='--require ./tests/v12222-vm-legacy-bridge.cjs'
+          node tests/v12322-title-field-stability.cjs
+          node tests/kar132-modern-category-modal.cjs
+          node tests/kar132-wearables-attributes.cjs
