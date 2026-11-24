@@ -1,0 +1,28 @@
+name: KAR-210 later feature scope RED and retained behavior
+on:
+  push:
+    branches: ['work/KAR-210']
+    paths: ['.github/workflows/kar210-s02-validation-temporary.yml']
+permissions:
+  contents: read
+jobs:
+  review:
+    if: >-
+      github.ref == 'refs/heads/work/KAR-210' &&
+      github.event.head_commit.message == 'test(KAR-210): characterize retained baseline presentation and diagnostics'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned dependencies
+        run: npm ci --ignore-scripts
+      - name: Later-feature active scope RED
+        run: node tests/kar210-test-disposition-contract.cjs
+      - name: Retained independent runtime behavior
+        if: always()
+        run: node tests/kar210-baseline-retained-behavior.cjs

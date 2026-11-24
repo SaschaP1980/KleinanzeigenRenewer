@@ -7,7 +7,8 @@
     "test:e2e": "node tests/e2e/run.cjs",
     "coverage:check": "bash scripts/coverage-gate.sh",
     "test:baseline-restore": "python3 tests/kar210-baseline-restore.py",
-    "test:baseline-dispositions": "node tests/kar210-test-disposition.cjs && node tests/kar210-test-disposition-contract.cjs"
+    "test:baseline-dispositions": "node tests/kar210-test-disposition.cjs && node tests/kar210-test-disposition-contract.cjs",
+    "test:baseline-retained": "node tests/kar210-baseline-retained-behavior.cjs"
   },
   "devDependencies": {
     "acorn": "8.15.0",
