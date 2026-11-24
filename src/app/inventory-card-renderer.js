@@ -178,6 +178,29 @@ function makeUnfinishedLocalDiscardButton(record,compact=false) {
   return button;
 }
 
+function phase4RecoveryOnly(record){
+  return record?.renewal?.status==='verified'&&record?.renewal?.stage==='source-delete-outcome-unverified'&&
+    /^\d+$/.test(String(record?.adId||''))&&String(record.adId)===String(record.renewal.newAdId||'');
+}
+function wirePhase4Recovery(button,record,allowed){
+  button.disabled=!allowed;
+  button.title='Prüft ausschließlich die alte und neue Anzeigen-ID. Kein weiterer Löschauftrag.';
+  button.addEventListener('click',async()=>{
+    if(button.disabled||!requireAccountBoundAction())return;
+    button.disabled=true;
+    try{
+      const result=await runtimeMessage({type:'FINISH_RENEWAL_REPLACEMENT',renewalId:record.renewal.renewalId,recoveryOnly:true});
+      renderAppNotice(result?.notice);
+      setStatus('ready','Austausch abgeschlossen','Löschung unabhängig bestätigt; neue Anzeige im Inventar übernommen.');
+      await refreshInventories();
+    }catch(error){
+      setFriendlyErrorStatus(error,'Löschung noch nicht nachweislich bestätigt');
+      await refreshInventories().catch(()=>{});
+      button.disabled=!allowed;
+    }
+  });
+  return button;
+}
 function renderCompactInventoryRow(record) {
   const { row, actions } = createCompactListRow(record);
   const isRenewal = Boolean(record?.renewal?.renewalId);
@@ -270,6 +293,10 @@ function renderCompactInventoryRow(record) {
     const gate = accountGateModel();
     const profileMatches = Boolean(selectedConcreteProfile() && String(record?.profileId || '') === String(selectedProfileId || ''));
     const exportButton = makeCompactInventoryExportButton(record);
+    if(phase4RecoveryOnly(record)){
+      actions.append(wirePhase4Recovery(makeCompactIconButton({icon:'retry',label:'Löschung erneut prüfen'}),record,gate.allowed&&profileMatches),exportButton);
+      return row;
+    }
     const retryable = ['waiting-for-online', 'verification-failed'].includes(String(record.renewal.status || '')) && /^\d+$/.test(String(record.adId || record.renewal.newAdId || ''));
     if (retryable) {
       const retryButton = makeCompactIconButton({ icon: 'retry', label: 'Erneut prüfen', title: 'Prüft die neue Anzeige erneut.' });
@@ -626,7 +653,10 @@ function renderInventories(records = currentRecords) {
         renewalButton.textContent = renewalStatusText(record);
         const retryableRenewal = ['waiting-for-online', 'verification-failed'].includes(String(record.renewal.status || '')) && /^\d+$/.test(String(record.adId || record.renewal.newAdId || ''));
         renewalButton.disabled = !retryableRenewal || !renewalAccountGate.allowed || !renewalProfileMatches;
-        if (retryableRenewal) {
+        if(phase4RecoveryOnly(record)){
+          renewalButton.textContent='Löschung erneut prüfen';
+          wirePhase4Recovery(renewalButton,record,renewalAccountGate.allowed&&renewalProfileMatches);
+        } else if (retryableRenewal) {
           renewalButton.title = !renewalAccountGate.allowed
             ? renewalAccountGate.tooltip
             : !renewalProfileMatches

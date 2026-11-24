@@ -786,7 +786,18 @@ function invalidateTrashPurgeSchedule() { requireTrashService().invalidatePurgeS
 
 async function purgeExpiredTrash() { return requireTrashManagementController().purgeExpiredTrash(); }
 
-async function listInventories(profileId) { await purgeExpiredTrash(); const records = (await readInventoryRecordsForProfile(profileId)).filter(record => !isTrashRecord(record)); return records.sort((a, b) => String(b.capturedAt || '').localeCompare(String(a.capturedAt || ''))); }
+async function listInventories(profileId) {
+  await purgeExpiredTrash();
+  const records = (await readInventoryRecordsForProfile(profileId)).filter(record => !isTrashRecord(record));
+  const sessions=await readRenewalSessions();
+  return records.map(record=>{
+    const session=sessions[record?.renewal?.renewalId];
+    if(!session||session.skeletonInventoryId!==record.inventoryId||
+        String(session.profileId||'')!==String(record.profileId||'')||
+        String(session.newAdId||'')!==String(record.adId||''))return record;
+    return {...record,renewal:{...record.renewal,...renewalPublicSnapshot(session)}};
+  }).sort((a,b)=>String(b.capturedAt||'').localeCompare(String(a.capturedAt||'')));
+}
 
 async function listTrashEntries(profileId) { await purgeExpiredTrash(); return requireTrashService().list(profileId); }
 
@@ -1155,7 +1166,7 @@ async function maybeDetectTrashTemplatePublishedAd(tabId, changeInfo = {}, tabHi
 
 function isPhase4DeleteTransportInterruption(error) {
   const text = String(error?.message || error || '');
-  return /asynchronous response[\s\S]*message channel closed|message channel closed before a response|message port closed|No tab with id/i.test(text);
+  return /asynchronous response[\s\S]*message channel closed|message channel closed before a response|message port closed|back\/forward cache[\s\S]*message channel is closed|No tab with id/i.test(text);
 }
 
 const EXPECTED_CONTROLLED_CLOSE_INTENT_MAX_AGE_MS = 10000;

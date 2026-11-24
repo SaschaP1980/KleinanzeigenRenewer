@@ -496,6 +496,10 @@ async function resumePendingRenewals() {
         continue;
       }
       if (renewal?.massBatchTerminal === true) continue;
+      if(renewal.stage==='source-delete-outcome-unverified'){
+        await updateRenewalSkeleton(renewal).catch(()=>null);
+        continue;
+      }
       if (renewal?.autoReplacementAllowed && !renewal?.phase4AttemptsExhaustedAt && /^\d+$/.test(String(renewal?.newAdId || '')) && (String(renewal?.status || '') === 'verified' || String(renewal?.stage || '') === 'replacement-ready' || String(renewal?.stage || '').startsWith('source-delete'))) {
         scheduleAutomaticRenewalReplacement(renewal.renewalId, 'service-worker-resume');
       } else if (renewal?.status === 'submitted' && renewal?.targetTabId && !renewal?.newAdId) {

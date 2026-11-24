@@ -826,7 +826,9 @@ async function finishRenewalReplacement(message, admissionReceipt = null) {
   const renewals = await readRenewalSessions();
   const session = renewals[renewalId];
   if (!session) throw new Error('Renewal-Vorgang wurde nicht gefunden.');
-  const explicitPhase4Retry = message?.type === 'FINISH_RENEWAL_REPLACEMENT' || message?.massBatchRetry === true;
+  const recoveryOnly=message?.recoveryOnly===true ||
+    session.stage==='source-delete-outcome-unverified';
+  const explicitPhase4Retry = !recoveryOnly && (message?.type === 'FINISH_RENEWAL_REPLACEMENT' || message?.massBatchRetry === true);
   if (explicitPhase4Retry && session.phase4AttemptsExhaustedAt && !renewalPhaseAttemptAvailable(session, 4)) {
     resetRenewalPhaseAttempts(session, [4]);
     session.phase4AttemptsExhaustedAt = null;
@@ -860,15 +862,19 @@ async function finishRenewalReplacement(message, admissionReceipt = null) {
   // Resolve that exact existing attempt from new independent My Ads tabs.
   const previousEvidence = await observePhase4Attempts(renewalId);
   if (!previousEvidence || !Array.isArray(previousEvidence.attempts)
-      || previousEvidence.attempts.length > 1)
+      || previousEvidence.attempts.length > 1 || (recoveryOnly&&previousEvidence.attempts.length!==1)) {
+    await markPhase4Unverified(session,'KR_PHASE4_JOURNAL_UNRESOLVED');
     throw Object.assign(new Error('KR_PHASE4_JOURNAL_UNRESOLVED'),{code:'KR_PHASE4_JOURNAL_UNRESOLVED'});
+  }
   if (previousEvidence.attempts.length) {
     const oldAttempt = previousEvidence.attempts[0];
     if (normalizeProfileName(oldAttempt.profileId).toLocaleLowerCase('de-DE')
           !== expectedProfile.toLocaleLowerCase('de-DE')
         || oldAttempt.sourceAdId !== String(session.sourceAdId)
-        || oldAttempt.newAdId !== String(session.newAdId))
+        || oldAttempt.newAdId !== String(session.newAdId)) {
+      await markPhase4Unverified(session,'KR_PHASE4_JOURNAL_UNVERIFIED');
       throw Object.assign(new Error('KR_PHASE4_JOURNAL_UNVERIFIED'),{code:'KR_PHASE4_JOURNAL_UNVERIFIED'});
+    }
   }
 
   session.status = 'verified';
@@ -881,22 +887,32 @@ async function finishRenewalReplacement(message, admissionReceipt = null) {
   let deletion = session.sourceDeleteAction || null;
   let deleteTransportInterrupted = Boolean(session.sourceDeleteTransportInterrupted);
   let lastError = null;
-  if (previousEvidence.attempts.length) {
-    const exactAttempt = previousEvidence.attempts[0];
-    // Even an earlier resolved receipt is independently rechecked on return
-    // before local candidate promotion. A failed check keeps the record intact.
-    const confirmed = await resolvePhase4Attempt({
-      renewalId, attemptId: exactAttempt.attemptId
-    });
-    if (confirmed?.state !== 'resolved-confirmed'
-        || confirmed.sourceAdId !== String(session.sourceAdId)
-        || confirmed.newAdId !== String(session.newAdId))
+  async function reconcileExactAttempt(exactAttempt) {
+    try {
+      if(!exactAttempt||!exactAttempt.attemptId||
+          exactAttempt.sourceAdId!==String(session.sourceAdId)||
+          exactAttempt.newAdId!==String(session.newAdId)||
+          normalizeProfileName(exactAttempt.profileId).toLocaleLowerCase('de-DE')!==expectedProfile.toLocaleLowerCase('de-DE'))
+        throw Object.assign(new Error('KR_PHASE4_JOURNAL_UNVERIFIED'),{code:'KR_PHASE4_JOURNAL_UNVERIFIED'});
+      assertResetGeneration(resetGeneration,'renewal-phase4-before-reconciliation');
+      session.stage='source-delete-verification-pending';
+      await persistRenewalSession(session);
+      const confirmed=await resolvePhase4Attempt({renewalId,attemptId:exactAttempt.attemptId});
+      assertResetGeneration(resetGeneration,'renewal-phase4-after-reconciliation');
+      if(confirmed?.state!=='resolved-confirmed'||confirmed.sourceAdId!==String(session.sourceAdId)||
+          confirmed.newAdId!==String(session.newAdId))
+        throw Object.assign(new Error('KR_PHASE4_JOURNAL_UNVERIFIED'),{code:'KR_PHASE4_JOURNAL_UNVERIFIED'});
+      return {verified:true,evidence:confirmed.sourceEvidence,pagesScanned:confirmed.sourcePagesScanned};
+    } catch(error) {
+      assertResetGeneration(resetGeneration,'renewal-phase4-reconciliation-denied');
+      const code=String(error?.code||error?.message||'');
+      await markPhase4Unverified(session,code.startsWith('KR_PHASE4_JOURNAL_')?code:'KR_PHASE4_JOURNAL_UNVERIFIED');
       throw Object.assign(new Error('KR_PHASE4_JOURNAL_UNVERIFIED'),{code:'KR_PHASE4_JOURNAL_UNVERIFIED'});
-    verification = {
-      verified:true, evidence:confirmed.sourceEvidence,
-      pagesScanned:confirmed.sourcePagesScanned
-    };
-    deleteTransportInterrupted = true;
+    }
+  }
+  if(previousEvidence.attempts.length){
+    verification=await reconcileExactAttempt(previousEvidence.attempts[0]);
+    deleteTransportInterrupted=true;
   }
 
   while (!verification?.verified && renewalPhaseAttemptAvailable(session, 4)) {
@@ -943,6 +959,15 @@ async function finishRenewalReplacement(message, admissionReceipt = null) {
         context: sessionCorrelationContext(session, { renewalId, adId: session.sourceAdId })
       }).catch(() => {});
 
+      // Fast mode and interrupted transport use the journal's fresh source
+      // AND target proof directly, without a duplicate source-only scan.
+      if(result.transportInterrupted || (typeof normalizeRenewalMode==='function'&&normalizeRenewalMode(session.renewalMode)===RENEWAL_MODE_FAST)){
+        const observed=await observePhase4Attempts(renewalId);
+        if(observed?.attempts?.length!==1||observed.attempts[0].attemptId!==result.attemptReceipt?.attemptId)
+          throw Object.assign(new Error('KR_PHASE4_JOURNAL_UNRESOLVED'),{code:'KR_PHASE4_JOURNAL_UNRESOLVED'});
+        verification=await reconcileExactAttempt(observed.attempts[0]);
+        break;
+      }
       verification = await verifyRenewalSourceAbsenceFresh(session, expectedProfile, windowId, attemptState, 'post-delete');
       assertResetGeneration(resetGeneration, 'renewal-phase4-before-promotion');
 
@@ -977,6 +1002,22 @@ async function finishRenewalReplacement(message, admissionReceipt = null) {
       if (code === 'KR_PHASE4_STATUS_TIMEOUT' || code.startsWith('KR_PHASE4_JOURNAL_')) {
         await markPhase4Unverified(session, code);
         throw error;
+      }
+      // Never retry a potentially dispatched DELETE after durable intent.
+      let observed;
+      try { observed=await observePhase4Attempts(renewalId); }
+      catch {
+        await markPhase4Unverified(session,'KR_PHASE4_JOURNAL_UNVERIFIED');
+        throw Object.assign(new Error('KR_PHASE4_JOURNAL_UNVERIFIED'),{code:'KR_PHASE4_JOURNAL_UNVERIFIED'});
+      }
+      if(!Array.isArray(observed?.attempts)||observed.attempts.length>1){
+        await markPhase4Unverified(session,'KR_PHASE4_JOURNAL_UNRESOLVED');
+        throw Object.assign(new Error('KR_PHASE4_JOURNAL_UNRESOLVED'),{code:'KR_PHASE4_JOURNAL_UNRESOLVED'});
+      }
+      if(observed.attempts.length===1){
+        deleteTransportInterrupted=true;
+        verification=await reconcileExactAttempt(observed.attempts[0]);
+        break;
       }
       lastError = error;
       session.stage = 'source-delete-retry-pending';
@@ -1051,6 +1092,7 @@ async function finishRenewalReplacement(message, admissionReceipt = null) {
     }).catch(() => {});
   }
 
+  assertResetGeneration(resetGeneration,'renewal-phase4-before-local-promotion');
   const promoted = await promoteRenewalCandidateAtomic(session);
   const latestRenewals = await readRenewalSessions();
   delete latestRenewals[renewalId];
