@@ -123,7 +123,9 @@ const kar175InventoryOwners = [
 ].filter(([file, provider]) => files.includes(file) &&
   fs.readFileSync('src/background/background.js','utf8').includes("KRDeps.require('"+provider+"')") &&
   fs.readFileSync('scripts/package.py','utf8').includes("'"+file+"'")).length;
-assert.equal(files.length, (reviewedAutoPublishIntent ? 109 : reviewedAtomicArbiter ? 108 : reviewedAdditionalOwners ? 107 : reviewedPhase4Journal ? 106 : reviewedPersistedObserver ? 105 : reviewedFence ? 104 : reviewedNative ? 103 : 100) + (reviewedTrustedOwner ? 1 : 0) + kar134SchemaRuntime + kar175InventoryOwners + (isFeature24 ? 2 : 0) + (files.includes('src/app/inventory-loading-state.js') ? 1 : 0));
+assert.equal(files.length, (reviewedAutoPublishIntent ? 109 : reviewedAtomicArbiter ? 108 : reviewedAdditionalOwners ? 107 : reviewedPhase4Journal ? 106 : reviewedPersistedObserver ? 105 : reviewedFence ? 104 : reviewedNative ? 103 : 100) + (reviewedTrustedOwner ? 1 : 0) + kar134SchemaRuntime + kar175InventoryOwners + (isFeature24 ? 2 : 0) + (files.includes('src/app/inventory-loading-state.js') ? 1 : 0 + (files.includes('src/background/services/renewal-local-discard-service.js') &&
+  fs.readFileSync('scripts/package.py','utf8').includes("'src/background/services/renewal-local-discard-service.js'") &&
+  fs.existsSync('tests/kar206-local-unfinished-renewal-discard.cjs') ? 1 : 0));
 if(reviewedNative) {
   if(reviewedFence){ assert.ok(files.includes('src/background/services/update-workflow-fence.js')); assert.match(fs.readFileSync('src/background/background.js','utf8'), /KRDeps\.require\('KRUpdateWorkflowFence'\)/); }
   if(reviewedAdditionalOwners){ assert.ok(files.includes('src/background/services/additional-owner-observer.js')); assert.match(fs.readFileSync('src/background/background.js','utf8'), /KRDeps\.require\('KRAdditionalOwnerObserver'\)/); }
