@@ -57,7 +57,10 @@ assert.match(deleteOperations, /svg\[data-title="trashOutline"\]/);
 assert.match(deleteOperations, /async function verifyOwnAdAbsentById/);
 pass('v1.8.5 page, card, delete-control and pagination safeguards remain');
 
-const phase4 = background.match(/async function finishRenewalReplacement[\s\S]*?\n}\n\nasync function discardRenewalDraft/)?.[0] || '';
+// Phase 4's real implementation moved out of background.js long ago.
+const remoteDeletionOwner=fs.readFileSync(path.join(root,'src/background/services/remote-delete-replacement-service.js'),'utf8');
+const phase4=remoteDeletionOwner.match(/async function finishRenewalReplacement[\s\S]*?\n}\n/)?.[0] || '';
+assert.ok(phase4,'real Phase-4 service owner required');
 const phase4Verifier = background.match(/async function verifyRenewalSourceAbsenceFresh[\s\S]*?\n}\n\nasync function preverifyAndTriggerRenewalSourceDeleteAttempt/)?.[0] || '';
 assert.match(phase4Verifier, /type: 'VERIFY_OWN_AD_ABSENT_BY_ID'/);
 assert.match(phase4, /verifyRenewalSourceAbsenceFresh\(session/);
