@@ -92,6 +92,61 @@ async function run(){
    });
    schedule('renewal-phase4-unverified');schedule('renewal-updated');await callback();assert.equal(full,1);assert.equal(progress,0);
  });
+
+ await check('native-derived detail status requires exact visible matching markers',()=>{
+   const code=fs.readFileSync('src/content/content.js','utf8');
+   const a=code.indexOf('function phase4DetailEvidence()'),b=code.indexOf('\n  function ',a+10);
+   assert.ok(a>=0&&b>a,'detail detector missing');
+   function run({id='100',title='Gelöscht •',veil='Gelöscht',trash=true,hidden=false,conflict=false,missing=false}={}){
+     const n=(text,extra={})=>({textContent:text,parentElement:null,hidden:false,classList:{contains:()=>false},getAttribute:()=>null,getClientRects:()=>[{}],...extra});
+     const titleNode=n(title),veilNode=n(veil),overlay=n('',{querySelector:s=>s.includes('icon-trash')&&trash?n(''):null,querySelectorAll:()=>[veilNode]});
+     const concealed=n('Reserviert •',{hidden:true});
+     if(hidden){titleNode.hidden=true;overlay.hidden=true;}
+     const main={querySelectorAll:s=>s.includes('pvap-reserved-title')?[titleNode,concealed,...(conflict?[n('Reserviert •')]:[])]:s.includes('pvap-reserved-image-veil')?[overlay]:[],querySelector:s=>s==='#viewad-title'?n('Listing'):s==='#viewad-ad-id-box'?{querySelectorAll:()=>[n('Anzeigen-ID'),n(id)]}:s==='#viewad-product'?n(''):null};
+     const ctx={document:{querySelector:s=>s==='#viewad-main'&&!missing?main:null},location:{href:'https://www.kleinanzeigen.de/s-anzeige/100'},URL,normalize:s=>String(s||'').trim(),getComputedStyle:()=>({display:'block',visibility:'visible',opacity:'1'})};
+     return vm.runInNewContext(code.slice(a,b)+'\nphase4DetailEvidence()',ctx);
+   }
+   assert.equal(run().state,'deleted');assert.equal(run().adId,'100');
+   assert.equal(run({id:'999'}).state,'identity-mismatch');
+   assert.equal(run({hidden:true}).state,'unavailable');
+   assert.equal(run({trash:false}).state,'contradictory');
+   assert.equal(run({conflict:true}).state,'contradictory');
+   assert.equal(run({title:'Reserviert •',veil:'Reserviert',trash:false}).state,'reserved');
+   assert.equal(run({title:'Verkauft •',veil:'Verkauft',trash:false}).state,'sold');
+   assert.equal(run({missing:true}).state,'unavailable');
+ });
+ await check('journal accepts explicit detail proof with zero roster pages and rejects mismatched evidence',async()=>{
+   async function verify(sourceEvidence,sourcePagesScanned){
+     const data={};
+     const journal=Journal.create({storageLocal:{get:async()=>({...data}),set:async fields=>Object.assign(data,fields)},clock:()=>1700000000000,newToken:()=> 'attempt-detail',workerInstanceId:'worker-detail',lockName:'kar-updater-global-admission-v1',lockManager:{request:async(name,opts,cb)=>cb({name,mode:'exclusive'})},verifyRemoteOutcome:async r=>({...r,sourceAbsent:true,targetPresent:true,sourceEvidence,sourcePagesScanned,targetEvidence:'found-in-my-ads-full-pagination-scan',targetPagesScanned:1,targetFoundPage:1})});
+     const receipt=await journal.begin({renewalId:'detail',profileId:'Account',sourceAdId:'100',newAdId:'200'});
+     const resolved=await journal.resolveVerified({renewalId:'detail',attemptId:receipt.attemptId});
+     assert.equal((await journal.observe('detail')).resolutions.length,1);
+     return resolved;
+   }
+   assert.equal((await verify('detail-page-explicit-deleted',0)).sourceEvidence,'detail-page-explicit-deleted');
+   await assert.rejects(verify('detail-page-explicit-deleted',1),/KR_PHASE4_JOURNAL_UNVERIFIED/);
+   await assert.rejects(verify('not-in-my-ads-full-pagination-scan',0),/KR_PHASE4_JOURNAL_UNVERIFIED/);
+ });
+ await check('production detail source proof avoids roster absence but still requires independent target',async()=>{
+   function fixture(state,targetFound=true){
+     let tabs=0;const calls=[],closed=[],logs=[];
+     const remote=Remote.create({phase4DetailEvidenceEnabled:true,normalizeProfileName:s=>String(s||'').trim(),createManagedWorkerTab:async()=>({id:++tabs}),waitForTabComplete:async()=>{},ensureContentConnection:async()=>{},closeManagedWorkerTab:async id=>closed.push(id),logDiagnostic:async(...args)=>logs.push(args),sendTabRequestWithBootstrap:async(id,msg)=>{
+       calls.push(msg.type);
+       if(msg.type==='PAGE_STATUS')return {url:'https://www.kleinanzeigen.de/s-anzeige/100',adId:'100',auth:{loggedIn:true},profileName:'Account',phase4DetailEvidence:{state,adId:'100'}};
+       if(msg.type==='MY_ADS_STATUS')return {isMyAdsPage:true,isProjectsTab:true,profileName:'Account'};
+       if(msg.type==='WAIT_FOR_MY_ADS_READY')return {isMyAdsPage:true,isProjectsTab:true,profileName:'Account',currentPage:1,expectedOnline:1,listingCount:1,hasNext:false};
+       if(msg.type==='VERIFY_OWN_AD_ABSENT_BY_ID')return {verified:true,adId:'100',evidence:'not-in-my-ads-full-pagination-scan',pagesScanned:1};
+       if(msg.type==='FIND_OWN_AD_BY_ID')return {found:targetFound,adId:'200',evidence:'found-in-my-ads-full-pagination-scan',pagesScanned:1,page:1};
+       throw Error('unexpected '+msg.type);
+     }});
+     return {run:()=>remote.verifyPhase4RemoteOutcomeFresh({renewalId:'r',attemptId:'a',profileId:'Account',sourceAdId:'100',newAdId:'200'}),calls,closed};
+   }
+   const yes=fixture('deleted');assert.equal((await yes.run()).sourceEvidence,'detail-page-explicit-deleted');assert.equal(yes.calls.includes('VERIFY_OWN_AD_ABSENT_BY_ID'),false);assert.equal(yes.calls.includes('FIND_OWN_AD_BY_ID'),true);
+   const fallback=fixture('unavailable');assert.equal((await fallback.run()).sourceEvidence,'not-in-my-ads-full-pagination-scan');
+   for(const status of ['active','reserved','sold','identity-mismatch','contradictory']){const f=fixture(status);await assert.rejects(f.run(),/KR_PHASE4_JOURNAL_/);assert.equal(f.calls.includes('VERIFY_OWN_AD_ABSENT_BY_ID'),false);}
+   await assert.rejects(fixture('deleted',false).run(),/KR_PHASE4_JOURNAL_/);
+ });
  return {passed,failed};
 }
 module.exports=run;
