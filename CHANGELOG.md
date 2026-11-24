@@ -4,6 +4,13 @@ This is the canonical version-specific history for Kleinanzeigen Manager. Entrie
 
 All distinct historical section bodies from the former root README and CHANGELOG are preserved with source labels and line numbers. The [KAR-170 migration ledger](docs/maintenance/KAR170_CHANGELOG_MIGRATION.json) identifies their original Git blobs and body checksums. Overlapping versions retain distinct factual notes; older references to planned builds or native/CI acceptance are **historical**, not live status.
 
+## v1.25.30 — KAR-206 direct edit and public publication verification (Work only; not released)
+
+- Native v1.25.29 Fast Renewal reproduced a successfully published listing with the exact new Ad ID known at runtime, while the independent My Ads proof was unavailable and Phase 1 stayed submitted. No duplicate publication is appropriate.
+- Renewal now first probes the exact authenticated read-only Edit URL in a fresh managed tab. Requires real loaded form, independent exact ID from structured form data/action/control and expected account; mere navigation is insufficient. A second fresh public listing probe requires matching canonical/OG identity and real listing title/description. Only the combined positive observations can replace the historical roster evidence; otherwise use the established authenticated My Ads search. Direct status checks are bounded; existing roster readiness is used when needed.
+- Explicit conflicting identity/account fails closed. Fixed substage diagnostics distinguish edit/public/roster/binding outcomes. Immutable publication journal stores separate typed exact-ID evidence, never fabricated pagination counts; original P8, final account/session witness and Phase 3/4 source retirement safeguards remain mandatory. Fresh R1 complete roster proof stays unchanged.
+- Focused isolated production-source fixture RED 2/11 then GREEN 11/11; content and R1 regression cases added. Mandatory hosted full gates and packaged Chromium 9/9 must independently pass before owner installation. Native test is recovery of the already-published operation, not another publication. No main merge or GitHub Release.
+
 ## v1.25.29 — KAR-206 local-only unfinished Renewal discard (Work only; not released)
 
 - New explicit, confirmed inventory-card action **„Unfertigen Austausch lokal verwerfen“** for an unconfirmed synthetic Renewal card after a previous publish attempt. Available in compact and detailed views; it does NOT delete or modify either online Kleinanzeigen advertisement and does not start a new renewal or publication.

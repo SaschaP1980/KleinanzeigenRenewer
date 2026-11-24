@@ -123,6 +123,27 @@ test('two original completed P8s, verified same account and fresh source/target 
  for(const secret of [NAME,UUID,SOURCE,TARGET,RENEWAL,FILL,PHASE_TOKEN,PUB_TOKEN])
   assert.ok(!JSON.stringify(x).includes(secret),'sanitized result');
 });
+test('R1 historical direct publication evidence still requires fresh complete Phase4 roster proof',async()=>{
+ const f=fixture();const key=PUBRESULT+FILL+'_'+PUB_ATTEMPT;
+ const row=f.state.rows[key];
+ delete row.targetPagesScanned;delete row.targetFoundPage;
+ Object.assign(row,{targetEvidence:'verified-edit-and-public-listing',targetEditAdId:TARGET,targetPublicAdId:TARGET});
+ const x=await inspect(f);
+ assert.equal(x.status,'ORIGINAL_ACCOUNT_REMOTE_VERIFIED');
+ assert.equal(x.liveRemoteVerified,true);assert.equal(x.r1Accepted,false);assert.equal(x.eligibleForLease,false);
+ assert.equal(f.state.remoteCalls,1);assert.equal(f.state.writes,0);
+ f.state.failRemote=true;
+ const y=await inspect(f);denied(y);assert.equal(f.state.remoteCalls,2);
+});
+test('R1 rejects partial, contradictory or mixed direct historical publication evidence before fresh scan',async()=>{
+ for(const change of [{targetPublicAdId:undefined},{targetPublicAdId:SOURCE},{targetPagesScanned:1}]){
+  const f=fixture();const row=f.state.rows[PUBRESULT+FILL+'_'+PUB_ATTEMPT];
+  delete row.targetPagesScanned;delete row.targetFoundPage;
+  Object.assign(row,{targetEvidence:'verified-edit-and-public-listing',targetEditAdId:TARGET,targetPublicAdId:TARGET},change);
+  const x=await inspect(f);assert.equal(x.status,'PUBLICATION_OUTCOME_UNVERIFIED');denied(x);
+  assert.equal(f.state.remoteCalls,0);assert.equal(f.state.writes,0);
+ }
+});
 function completedOriginal(){
  const f=fixture();
  // Production successful Phase4 promotes inventory and removes these two
