@@ -46,12 +46,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/kar206-v12526/pack" "$RUNNER_TEMP/kar206-v12525/unpacked"
+          mkdir -p "$RUNNER_TEMP/kar206-v12526/pack" "$RUNNER_TEMP/kar206-v12526/unpacked"
           python3 scripts/package.py "$RUNNER_TEMP/kar206-v12525/pack"
           ZIP="$RUNNER_TEMP/kar206-v12525/pack/kleinanzeigen-renewal-chrome-v1.25.26.zip"
           test -s "$ZIP"
           unzip -t "$ZIP" >/dev/null
-          unzip -q "$ZIP" -d "$RUNNER_TEMP/kar206-v12525/unpacked"
+          unzip -q "$ZIP" -d "$RUNNER_TEMP/kar206-v12526/unpacked"
           cp "$ZIP" release/kleinanzeigen-renewal-chrome-v1.25.26.zip
           git add -f -- release/kleinanzeigen-renewal-chrome-v1.25.26.zip
           test "$(git diff --cached --name-only)" = "release/kleinanzeigen-renewal-chrome-v1.25.26.zip"
@@ -62,9 +62,9 @@ jobs:
         run: |
           set -euo pipefail
           npm ci
-          rm .github/workflows/kar206-work-v12525-package-temporary.yml
+          rm .github/workflows/kar206-work-v12526-package-temporary.yml
           bash scripts/coverage-gate.sh
-          git restore .github/workflows/kar206-work-v12525-package-temporary.yml
+          git restore .github/workflows/kar206-work-v12526-package-temporary.yml
           git diff --exit-code
           test -z "$(git status --porcelain --untracked-files=no)"
       - name: Mandatory isolated packaged real Chromium E2E
@@ -75,7 +75,7 @@ jobs:
           python3 -m playwright install --with-deps --no-shell chromium
           export KR_CHROME_BINARY="$(python3 -c 'from playwright.sync_api import sync_playwright; p=sync_playwright().start(); print(p.chromium.executable_path); p.stop()')"
           export KR_E2E_BROWSER_CHANNEL=chromium
-          export KR_E2E_EXTENSION_ROOT="$RUNNER_TEMP/kar206-v12525/unpacked"
+          export KR_E2E_EXTENSION_ROOT="$RUNNER_TEMP/kar206-v12526/unpacked"
           python3 tests/e2e/run_browser_e2e_supervisor.py --report "$RUNNER_TEMP/kar206-v12525/e2e.json"
           python3 - <<'PY'
           import json,os
