@@ -47,8 +47,8 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/kar206-v12526/pack" "$RUNNER_TEMP/kar206-v12526/unpacked"
-          python3 scripts/package.py "$RUNNER_TEMP/kar206-v12525/pack"
-          ZIP="$RUNNER_TEMP/kar206-v12525/pack/kleinanzeigen-renewal-chrome-v1.25.26.zip"
+          python3 scripts/package.py "$RUNNER_TEMP/kar206-v12526/pack"
+          ZIP="$RUNNER_TEMP/kar206-v12526/pack/kleinanzeigen-renewal-chrome-v1.25.26.zip"
           test -s "$ZIP"
           unzip -t "$ZIP" >/dev/null
           unzip -q "$ZIP" -d "$RUNNER_TEMP/kar206-v12526/unpacked"
@@ -76,11 +76,11 @@ jobs:
           export KR_CHROME_BINARY="$(python3 -c 'from playwright.sync_api import sync_playwright; p=sync_playwright().start(); print(p.chromium.executable_path); p.stop()')"
           export KR_E2E_BROWSER_CHANNEL=chromium
           export KR_E2E_EXTENSION_ROOT="$RUNNER_TEMP/kar206-v12526/unpacked"
-          python3 tests/e2e/run_browser_e2e_supervisor.py --report "$RUNNER_TEMP/kar206-v12525/e2e.json"
+          python3 tests/e2e/run_browser_e2e_supervisor.py --report "$RUNNER_TEMP/kar206-v12526/e2e.json"
           python3 - <<'PY'
           import json,os
           from pathlib import Path
-          r=json.loads((Path(os.environ['RUNNER_TEMP'])/'kar206-v12525'/'e2e.json').read_text())
+          r=json.loads((Path(os.environ['RUNNER_TEMP'])/'kar206-v12526'/'e2e.json').read_text())
           assert r['scenarioCount']==9 and r['passed']==9 and r['failed']==0 and r['cleanupFailed']==0,r
           print('PASS v1.25.26 exact package Chromium 9/9')
           PY
@@ -91,7 +91,7 @@ jobs:
           test "$(git ls-remote origin refs/heads/work/KAR-206 | cut -f1)" = "$GITHUB_SHA"
           test -z "$(git status --porcelain --untracked-files=no)"
           test "$(git diff-tree --no-commit-id --name-only -r HEAD)" = "release/kleinanzeigen-renewal-chrome-v1.25.26.zip"
-          python3 scripts/verify_committed_chrome_zip.py --report "$RUNNER_TEMP/kar206-v12525/parity.json"
+          python3 scripts/verify_committed_chrome_zip.py --report "$RUNNER_TEMP/kar206-v12526/parity.json"
           git push origin HEAD:refs/heads/work/KAR-206
           ACTUAL="$(git ls-remote origin refs/heads/work/KAR-206 | cut -f1)"
           test "$ACTUAL" = "$(git rev-parse HEAD)"
@@ -102,18 +102,18 @@ jobs:
           data={'version':'1.25.26','workOnly':True,'mainMerged':False,
             'published':False,'ownerNativeAccepted':False,
             'bytes':z.stat().st_size,'sha256':hashlib.sha256(z.read_bytes()).hexdigest()}
-          (Path(os.environ['RUNNER_TEMP'])/'kar206-v12525'/'build.json').write_text(json.dumps(data,indent=2)+'\n')
+          (Path(os.environ['RUNNER_TEMP'])/'kar206-v12526'/'build.json').write_text(json.dumps(data,indent=2)+'\n')
           print(json.dumps(data))
           PY
       - name: Preserve Work-only validation, parity and browser results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: kar206-v12525-work-validation-${{ github.sha }}
+          name: kar206-v12526-work-validation-${{ github.sha }}
           path: |
-            ${{ runner.temp }}/kar206-v12525/build.json
-            ${{ runner.temp }}/kar206-v12525/parity.json
-            ${{ runner.temp }}/kar206-v12525/e2e.json
+            ${{ runner.temp }}/kar206-v12526/build.json
+            ${{ runner.temp }}/kar206-v12526/parity.json
+            ${{ runner.temp }}/kar206-v12526/e2e.json
           if-no-files-found: warn
           retention-days: 30
 # Temporary exact-version Work-only CI; no GitHub Release, merge, or real ad mutation.
