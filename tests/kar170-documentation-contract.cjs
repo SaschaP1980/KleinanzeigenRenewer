@@ -15,11 +15,12 @@ const fnv = str => {
   for(let i=0;i<str.length;i++){ n ^= BigInt(str.charCodeAt(i)); n=BigInt.asUintN(64,n*0x100000001b3n); }
   return n.toString(16).padStart(16,'0');
 };
-const versionHeading = text => /^#{1,6}\s+(?:(?:Patch|Version|Release|Hotfix|Build|Correction)\s*[:#-]?\s*)?v?\d+\.\d+\.\d+(?:_c\d+)?(?=\s|:|[-–—]|$)/im.test(text);
+const versionHeading = text => /^#{1,6}\s+(?:(?:Patch|Version|Release|Hotfix|Build|Correction)\s*[:#-]?\s*)?v?\d+\.\d+\.\d+(?:\.\d+|_c\d+)?(?=\s|:|[-–—]|$)/im.test(text);
 assert.equal(versionHeading('# Product\n\nCurrent source version v1.23.87.\n## Releases and development\n'),false,'current-version prose must be allowed');
-for(const bad of ['## v1.23.22 — Correction', '### Patch 1.23.21: old CI', '## Version 1.22.11', '# 0.1.2']) {
+for(const bad of ['## v1.23.22 — Correction', '### Patch 1.23.21: old CI', '## Version 1.22.11', '# 0.1.2', '## v2.0.0.0 — technical baseline', '### Hotfix 2.0.0.1: correction', '## v1.23.20_c1 — historical correction']) {
   assert.equal(versionHeading(bad),true,'release diary heading must be rejected: '+bad);
 }
+assert.equal(versionHeading('# Product\n\nCurrent source version v2.0.0.0.\n## Releases and development\n'),false,'four-component current-version prose must be allowed');
 assert.match(readme,/^# kleinanzeigen Manager\n/);
 assert.equal(versionHeading(readme),false,'no version-specific headings are allowed in root README');
 for(const required of ['expired','images','Nach oben schieben','Vollprüfung','Schnellprüfung','Angemeldet als','CHANGELOG.md','GitHub Releases']){
@@ -99,6 +100,9 @@ assert.equal(new Set(headings).size,headings.length,'only one canonical version 
 assert.match(changelog,/^## v1\.23\.88 — KAR-170 documentation consolidation$/m);
 assert.match(changelog,/^## v1\.23\.87 — MV3 workflow safety foundation$/m);
 assert.deepEqual(headings,ledger.structure.orderedVersions,'historical version/correction order must remain deterministic');
+const generationTwoHeadings=[...changelog.matchAll(/^## v(\d+\.\d+\.\d+\.\d+)(?=\s|:|[-–—]|$)/gm)].map(x=>x[1]);
+assert.equal(new Set(generationTwoHeadings).size,generationTwoHeadings.length,'only one canonical four-component version heading per version');
+assert.ok(generationTwoHeadings.includes('2.0.0.0'),'KAR-210 technical source history must be preserved');
 for(const p of ['docs/DEVELOPMENT_GUIDELINES.md','docs/RELEASE_PROCESS.md','docs/GITHUB_HOWTO.md','docs/INITIAL_PROMPT.md']){
   assert.match(read(p),/CHANGELOG\.md/,'canonical destination policy missing: '+p);
 }
