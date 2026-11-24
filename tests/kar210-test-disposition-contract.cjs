@@ -26,7 +26,7 @@ const copy = p => { const dst=path.join(fixture,p);fs.mkdirSync(path.dirname(dst
 const put = (p,v) => {const dst=path.join(fixture,p);fs.mkdirSync(path.dirname(dst),{recursive:true});fs.writeFileSync(dst,typeof v==='string'?v:JSON.stringify(v));};
 const deny = (fn) => assert.throws(fn);
 try {
-  for (const p of ['manifest.json','package.json','package-lock.json','release/release-spec.json','scripts/product_version.py','scripts/package.py','coverage/safety-critical-public-apis.json','docs/maintenance/KAR210_BASELINE_RESTORE_LEDGER.json','docs/maintenance/KAR210_BASELINE_TARGET.json','docs/maintenance/KAR210_ACTIVE_TEST_DISPOSITIONS.json',...names]) copy(p);
+  for (const p of ['manifest.json','package.json','package-lock.json','release/release-spec.json','scripts/product_version.py','scripts/package.py','coverage/safety-critical-public-apis.json','docs/maintenance/KAR210_BASELINE_RESTORE_LEDGER.json','docs/maintenance/KAR210_BASELINE_TARGET.json','docs/maintenance/KAR210_ACTIVE_TEST_DISPOSITIONS.json',...names,...ledger.entries.flatMap(e=>e.retained)]) copy(p);
   const entry=ledger.entries.find(e=>e.test===names[0]);
   assert.equal(resolveDisposition(fixture,entry.test).status,'excluded-C');
   deny(()=>resolveDisposition(fixture,'tests/v1234-insertion-lock-runtime.cjs'));
@@ -45,6 +45,11 @@ try {
   deny(()=>resolveDisposition(fixture,entry.test));copy('manifest.json');
   const previous=structuredClone(ledger);previous.entries[0].module='src/shared/runtime-deps.js';
   put('docs/maintenance/KAR210_ACTIVE_TEST_DISPOSITIONS.json',previous);deny(()=>resolveDisposition(fixture,entry.test));copy('docs/maintenance/KAR210_ACTIVE_TEST_DISPOSITIONS.json');
+  const pkg=JSON.parse(read('package.json'));
+  pkg.scripts.test=pkg.scripts.test.replace('node '+entry.retained[0]+' && ','');
+  put('package.json',pkg);deny(()=>resolveDisposition(fixture,entry.test));copy('package.json');
+  const wrongOwner=JSON.parse(read('package.json'));wrongOwner.scripts.test=wrongOwner.scripts.test.replace('node tests/kar210-test-disposition.cjs '+entry.test,'node '+entry.test);
+  put('package.json',wrongOwner);deny(()=>resolveDisposition(fixture,entry.test));copy('package.json');
   // Historical 1.x continues to execute the original suite, not disposition it.
   const version='1.25.12';for(const p of ['manifest.json','package.json','package-lock.json','release/release-spec.json']){
     const j=JSON.parse(read(p));j.version=version;if(p==='package.json')j.displayVersion=version;if(p==='package-lock.json')j.packages[''].version=version;if(p==='release/release-spec.json')j.packageVersion=version;put(p,j);
