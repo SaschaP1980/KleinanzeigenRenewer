@@ -69,7 +69,7 @@
         renewalStartSafety?.classList.add('info');
         if (renewalPhase1Label) renewalPhase1Label.textContent = 'Neue Anzeige einstellen';
         if (renewalPhase2Label) renewalPhase2Label.textContent = fast ? 'Zusätzliche Datenprüfung entfällt' : 'Neue Anzeige kontrollieren';
-        if (renewalPhase3Label) renewalPhase3Label.textContent = 'Neue Anzeige finden';
+        if (renewalPhase3Label) renewalPhase3Label.textContent = fast ? 'Bestand und Metadaten prüfen' : 'Neue Anzeige finden';
         if (renewalPhase4Label) renewalPhase4Label.textContent = 'Bisherige Anzeige löschen';
         if (renewalStartSafetyTitle) {
           renewalStartSafetyTitle.textContent = fast

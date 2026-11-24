@@ -4,6 +4,13 @@ This is the canonical version-specific history for Kleinanzeigen Manager. Entrie
 
 All distinct historical section bodies from the former root README and CHANGELOG are preserved with source labels and line numbers. The [KAR-170 migration ledger](docs/maintenance/KAR170_CHANGELOG_MIGRATION.json) identifies their original Git blobs and body checksums. Overlapping versions retain distinct factual notes; older references to planned builds or native/CI acceptance are **historical**, not live status.
 
+## v1.25.33 — KAR-206 Phase4 BFCache and receipt-only recovery (Work only; not released)
+
+- Native v1.25.32 Phase1 and Phase3 passed. Actual Chrome back/forward-cache message closure after a DELETE click was not classified as an uncertain transport outcome; a second Phase4 attempt was blocked by the existing immutable journal. Recognize the real Chrome string and route to fresh source/target verification; generic failure after durable intent must reconcile that exact receipt, never another DELETE.
+- A blocked candidate offers “Löschung erneut prüfen” in both inventory layouts, with no remote mutation. Existing FINISH route accepts recoveryOnly, rejects missing or mismatched receipt, preserves blocked state on failed proof, and promotes only after independent immutable confirmation. Authoritative session overlays stale candidate snapshot; startup restores the blocked card, rather than automatically restarting the delete. 
+- Fast mode removes the extra source-only scan before the fresh independent journal source+target proof; the pre-delete owned-roster and metadata evidence remains distinct from publication proof. No safety condition weakened. Numbered phase layout retained.
+- Test-first actual production classifier and remote service RED 0/5 then GREEN 5/5 in isolated JS; additional UI/projection tests registered. Hosted mandatory gates and exact ZIP parity required; native recovery not implied.
+
 ## v1.25.32 — KAR-206 publication resolution lock and truthful UI (Work only; not released)
 
 - Native v1.25.31 exact authenticated Edit and short public proof passed, but final immutable resolution write exhausted 16 opportunistic Web Lock acquisitions. Production resolution read/write now use the same exclusive P8 origin lock via a 12-second abortable queued acquisition. No lock stealing, no deadline after acquiring; before-click admission unchanged.
