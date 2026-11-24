@@ -125,6 +125,19 @@
         if (fast && (status === 'verifying' || ['fast-my-ads-opening', 'fast-my-ads-checking'].includes(stage))) { states[3] = 'active'; title = 'Neue Anzeige wird unter „Meine Anzeigen“ gesucht …'; text = 'Schnellprüfung: Es wird bestätigt, dass die neue Anzeige im richtigen Profil unter „Meine Anzeigen“ vorhanden ist.'; return { states, title, text, kind, mode, newAdId: String(record?.adId || renewal.newAdId || '') }; }
         if (!fast && (status === 'reinventorizing' || ['edit-worker-opening', 'edit-worker-opened', 'saving-candidate'].includes(stage))) { states[2] = 'active'; title = 'Neue Anzeige wird kontrolliert …'; text = 'Die gespeicherten Angaben und Bilder werden noch einmal geprüft.'; return { states, title, text, kind, mode, newAdId: String(record?.adId || renewal.newAdId || '') }; }
         if (!fast && (status === 'verifying' || ['checking-public-evidence', 'comparing'].includes(stage))) { states[2] = 'success'; states[3] = 'active'; title = stage === 'comparing' ? 'Angaben werden verglichen …' : 'Neue Anzeige wird geprüft …'; text = 'Die neu gelesenen Angaben, Bilder und die Sichtbarkeit werden mit der bisherigen Anzeige abgeglichen.'; return { states, title, text, kind, mode, newAdId: String(record?.adId || renewal.newAdId || '') }; }
+        if (stage === 'publish-submitted' && status === 'submitted' && !hasNewId &&
+            ['retrying','blocked'].includes(renewal.publishResolutionState)) {
+          const retrying=renewal.publishResolutionState==='retrying';
+          const busy=renewal.publishResolutionReason==='lock-busy';
+          states[1]=retrying?'waiting':'error';
+          kind=retrying?'waiting':'error';
+          title=retrying?'Veröffentlichungsbestätigung wird wiederholt …':'Veröffentlichungsbestätigung blockiert';
+          text=retrying
+            ? 'Eine interne Sperre verzögert die Bestätigung. Der Manager prüft die bereits eingereichte Anzeige erneut, ohne sie erneut zu veröffentlichen.'
+            : (busy?'Die Bestätigung konnte wegen einer internen Sperre nicht gespeichert werden.':'Der Veröffentlichungsnachweis konnte nicht sicher abgeschlossen werden.')+
+              ' Der Vorgang ist angehalten. Die bisherige Anzeige wird nicht gelöscht. Bitte nicht erneut inserieren.';
+          return {states,title,text,kind,mode,newAdId:''};
+        }
         if (stage === 'publish-submitted' || status === 'submitted') { states[1] = 'active'; title = 'Anzeige wird veröffentlicht …'; text = 'Kleinanzeigen verarbeitet die Veröffentlichung. Die neue Anzeige wird jetzt erkannt.'; return { states, title, text, kind, mode, newAdId: String(record?.adId || renewal.newAdId || '') }; }
         if (phase1Done) { if (fast) { states[3] = 'active'; title = 'Neue Anzeige wurde erkannt …'; text = 'Schnellprüfung: Die zusätzliche Inhaltsprüfung wird übersprungen. Als Nächstes wird die neue Anzeige unter „Meine Anzeigen“ gesucht.'; } else { states[2] = 'active'; title = 'Neue Anzeige wurde erkannt …'; text = 'Vollprüfung: Als Nächstes wird die neue Anzeige nochmals vollständig kontrolliert.'; } return { states, title, text, kind, mode, newAdId: String(record?.adId || renewal.newAdId || '') }; }
         states[1] = 'active';
@@ -158,7 +171,9 @@
         if (renewalStartCover) renewalStartCover.alt = `Titelbild: ${record.title || 'laufende Anzeige'}`;
         const progressImage = (record.images || []).find(item => item?.isPrimary) || record.images?.[0]; if (progressImage) void loadLocalPreview(renewalStartCover, record, progressImage);
         renewalStartDialogText?.classList.add('hidden'); renewalStartSafety?.classList.add('hidden'); renewalStartActions?.classList.add('hidden'); renewalProgressActions?.classList.remove('hidden'); renewalProgressView?.classList.add('hidden'); renewalProgressEdit?.classList.add('hidden');
-        const model = renewalProgressModel(record); setRenewalPhaseStates(model.states); setRenewalProgressMessage(model.kind, model.title, model.text); renewalBackgroundHint?.classList.toggle('hidden', model.kind === 'error'); renewalProgressShortcut?.classList.remove('hidden');
+        const model = renewalProgressModel(record);
+        if (renewalStartDialogTitle && model.kind === 'error') renewalStartDialogTitle.textContent = 'Vorgang angehalten';
+        setRenewalPhaseStates(model.states); setRenewalProgressMessage(model.kind, model.title, model.text); renewalBackgroundHint?.classList.toggle('hidden', model.kind === 'error'); renewalProgressShortcut?.classList.remove('hidden');
         if (renewalProgressShortcutTitle) renewalProgressShortcutTitle.textContent = model.kind === 'error' ? `Austausch – Prüfung erforderlich · ${renewalModeLabel(model.mode)}` : `Anzeige wird neu inseriert · ${renewalModeLabel(model.mode)}`;
         if (renewalProgressShortcutText) renewalProgressShortcutText.textContent = model.title;
         publishUiActivity({ id: `renewal:${String(record.renewal.renewalId)}`, slot: 'renewal-shortcut', kind: model.kind === 'error' ? 'error' : model.kind === 'waiting' ? 'waiting' : '', title: renewalProgressShortcutTitle?.textContent || '', text: model.title, createdAt: record.renewal.updatedAt || record.capturedAt || new Date().toISOString(), active: model.kind !== 'error' });

@@ -187,6 +187,8 @@
           startConfirmedAt: session.startConfirmedAt || null,
           newIdConfirmedAt: session.newIdConfirmedAt || null,
           publishClickedAt: session.publishClickedAt || null,
+          publishResolutionState: ['retrying','blocked'].includes(session.publishResolutionState) ? session.publishResolutionState : null,
+          publishResolutionReason: ['lock-busy','verification-failed'].includes(session.publishResolutionReason) ? session.publishResolutionReason : null,
           checkoutObservedAt: session.checkoutObservedAt || null,
           checkoutPath: session.checkoutPath || null,
           checkoutRecovery: session.checkoutRecovery ? structuredClone(session.checkoutRecovery) : null,

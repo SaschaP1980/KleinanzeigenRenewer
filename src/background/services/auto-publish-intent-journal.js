@@ -58,10 +58,12 @@
   }
   function create({storageLocal,lockManager,lockName,workerInstanceId,clock,newToken,
     verifyRemoteOutcome=null,onSample=null,onResolutionDenied=null,verifyCommitContext=null,
-    prepareCommitContext=null,requireCommitContext=false}={}){
+    prepareCommitContext=null,requireCommitContext=false,resolveLockWaitMs=0}={}){
     if(typeof storageLocal?.get!=='function'||typeof storageLocal?.set!=='function'
        ||typeof clock!=='function'||typeof newToken!=='function'||!id(workerInstanceId))
       throw denied('KR_PUBLISH_INTENT_STORAGE');
+    if(!Number.isSafeInteger(resolveLockWaitMs)||resolveLockWaitMs<0||resolveLockWaitMs>60000)
+      throw denied('KR_PUBLISH_INTENT_ATOMIC_UNAVAILABLE');
     // Observability only: a fixed stage, never a profile, listing ID, attempt
     // token or authorization result. A telemetry failure cannot alter safety.
     function noteResolutionDenied(stage){
@@ -111,6 +113,35 @@
       const beganAt=Date.now();
       let busyAttempts=0,holdMs=0,outcome='denied';
       try{
+        // Only post-click resolution can queue. Before-click admission keeps
+        // its established bounded ifAvailable semantics. A queued Web Lock
+        // cannot be overtaken by new opportunistic acquisitions; its signal
+        // aborts the pending request, never an acquired critical section.
+        if(resolveLockWaitMs>0&&(phase==='resolve-read'||phase==='resolve-write')){
+          if(typeof AbortController!=='function')throw denied('KR_PUBLISH_INTENT_ATOMIC_UNAVAILABLE');
+          const controller=new AbortController();
+          let entered=false,finished=false;
+          const deadline=setTimeout(()=>controller.abort(),resolveLockWaitMs);
+          try{
+            const value=await lockManager.request(SHARED_LOCK_NAME,
+              {mode:'exclusive',signal:controller.signal},async lock=>{
+                if(controller.signal.aborted)throw denied('KR_PUBLISH_INTENT_ATOMIC_BUSY');
+                if(entered||!lock||lock.name!==SHARED_LOCK_NAME||lock.mode!=='exclusive')
+                  throw denied('KR_PUBLISH_INTENT_ATOMIC_UNAVAILABLE');
+                entered=true;
+                clearTimeout(deadline);
+                const heldAt=Date.now();
+                try{const result=await task();finished=true;return result;}
+                finally{holdMs=Math.min(60000,Math.max(0,Date.now()-heldAt));}
+              });
+            if(!entered||!finished)throw denied('KR_PUBLISH_INTENT_ATOMIC_UNAVAILABLE');
+            outcome='ok';return value;
+          }catch(error){
+            if(!entered&&controller.signal.aborted){busyAttempts=1;throw denied('KR_PUBLISH_INTENT_ATOMIC_BUSY');}
+            if(typeof error?.code==='string'&&error.code.startsWith('KR_PUBLISH_INTENT_'))throw error;
+            throw denied('KR_PUBLISH_INTENT_ATOMIC_UNAVAILABLE');
+          }finally{clearTimeout(deadline);}
+        }
         const attempts=16;
         for(let i=0;i<attempts;i++){
           let entered=false,finished=false,preLockBusy=false;

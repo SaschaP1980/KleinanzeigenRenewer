@@ -1621,6 +1621,7 @@ function requireAutoPublishIntentJournal() {
       lockName: AtomicMV3Admission.LOCK_NAME,
       lockManager: globalThis.navigator?.locks,
       onSample: sample => requireDiagnosticsService().recordPublishIntentSample(sample),
+      resolveLockWaitMs: 12000, // bounded queued post-click read/write only
       // Internal fixed-stage reason only, no IDs or tokens.
       onResolutionDenied: ({stage}) => {
         void logDiagnostic('info', 'KAR206_PUBLISH_RESOLUTION_DENIED_STAGE',

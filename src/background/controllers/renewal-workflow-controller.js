@@ -147,6 +147,7 @@
         if (typeof value !== 'function') throw new Error(`renewal workflow dependency ${name} is required`);
       }
       const automaticReplacementInFlight = new Set();
+      const publicationConfirmationInFlight = new Set();
       const verificationFlow = VerificationFlow.create({
         sessionPort: { readRenewalSessions },
         inventoryPort: { broadcastInventoryChanged, putInventoryRecordOnly, getInventory },
@@ -356,6 +357,8 @@ async function markRenewalPublishClicked(message, sender) {
     if (renewal) {
       renewal.status = 'submitted';
       renewal.stage = 'publish-submitted';
+      renewal.publishResolutionState = null;
+      renewal.publishResolutionReason = null;
       renewal.publishClickedAt = fill.publishClickedAt;
       await persistRenewalSession(renewal);
       await sendRenewalFeedback(renewal, 'Veröffentlichung wird verarbeitet', 'Kleinanzeigen verarbeitet die neue Anzeige. Sobald sie angelegt ist, wird sie automatisch geprüft.');
@@ -373,15 +376,56 @@ async function markRenewalPublishClicked(message, sender) {
   return { accepted: true };
 }
 
+// Only the original unresolved submitted session may display or retry an
+// outcome. This UI state never substitutes for an immutable receipt.
+async function currentSubmittedPublication(fill) {
+  const fills=await readFillSessions();
+  const renewals=await readRenewalSessions();
+  const current=fills[fill.fillId],renewal=renewals[fill.renewalId];
+  if(!current||!renewal||current.fillId!==fill.fillId||current.renewalId!==fill.renewalId||
+      current.archiveInsertionId||current.targetTabId!==fill.targetTabId||
+      String(current.sourceAdId||'')!==String(fill.sourceAdId||'')||
+      current.status!=='running'||current.stage!=='publish-submitted'||
+      renewal.fillId!==fill.fillId||renewal.renewalId!==fill.renewalId||
+      renewal.targetTabId!==fill.targetTabId||String(renewal.sourceAdId||'')!==String(fill.sourceAdId||'')||
+      renewal.status!=='submitted'||renewal.stage!=='publish-submitted'||renewal.newAdId||
+      renewal.massBatchTerminal===true||renewal.emergencyResetAt)return null;
+  return {fills,current,renewal};
+}
+async function setSubmittedPublicationState(fill,state,reason){
+  const binding=await currentSubmittedPublication(fill);
+  if(!binding)return false;
+  binding.renewal.publishResolutionState=state;
+  binding.renewal.publishResolutionReason=reason;
+  await persistRenewalSession(binding.renewal);
+  return true;
+}
 async function confirmPublishedRenewal(fill, detected) {
   const newAdId = String(detected?.adId || '');
   if (!/^\d+$/.test(newAdId) || newAdId === String(fill.sourceAdId || '')) return null;
-  if (typeof resolvePublishIntent !== 'function') throw new Error('KR_PUBLISH_INTENT_UNVERIFIED');
+  if(publicationConfirmationInFlight.has(fill.fillId))return null;
+  publicationConfirmationInFlight.add(fill.fillId);
+  try{
   // Also used by Worker restart/resume: navigation is not remote proof.
-  await resolvePublishIntent(fill, detected);
-  const fillSessions = await readFillSessions();
-  const currentFill = fillSessions[fill.fillId];
-  if (!currentFill || currentFill.stage === 'new-id-confirmed') return null;
+  // Retry only pre-acquisition busy, never a storage, identity or proof
+  // rejection. Each attempt reruns the complete immutable read-only proof.
+  for(let attempt=1;attempt<=3;attempt++){
+    if(!await currentSubmittedPublication(fill))return null;
+    try{
+      if(typeof resolvePublishIntent!=='function')throw new Error('KR_PUBLISH_INTENT_UNVERIFIED');
+      await resolvePublishIntent(fill, detected);
+      break;
+    }catch(error){
+      const busy=error?.code==='KR_PUBLISH_INTENT_ATOMIC_BUSY';
+      const retry=busy&&attempt<3;
+      if(!await setSubmittedPublicationState(fill,retry?'retrying':'blocked',busy?'lock-busy':'verification-failed'))return null;
+      if(!retry)throw error;
+      await delay(attempt*1000);
+    }
+  }
+  const binding=await currentSubmittedPublication(fill);
+  if(!binding)return null;
+  const {fills:fillSessions,current:currentFill,renewal}=binding;
   currentFill.status = 'complete';
   currentFill.stage = 'new-id-confirmed';
   currentFill.newAdId = newAdId;
@@ -390,9 +434,10 @@ async function confirmPublishedRenewal(fill, detected) {
   fillSessions[currentFill.fillId] = currentFill;
   await writeFillSessions(fillSessions);
 
-  const renewals = await readRenewalSessions();
-  const renewal = renewals[currentFill.renewalId];
-  if (!renewal || renewal.newAdId) return null;
+  // The original session was independently re-read immediately before
+  // marking the fill. The journal already verified its final account witness.
+  renewal.publishResolutionState = null;
+  renewal.publishResolutionReason = null;
   renewal.newAdId = newAdId;
   renewal.newPublicUrl = String(detected?.publicUrl || '');
   renewal.status = 'new-id-confirmed';
@@ -409,6 +454,7 @@ async function confirmPublishedRenewal(fill, detected) {
   if (renewalMode === RENEWAL_MODE_FAST) void withAutonomousAdmission('renewal-detached-verify', () => runFastRenewalVerification(renewal.renewalId)).catch(() => {});
   else void withAutonomousAdmission('renewal-detached-verify', () => runRenewalReinventory(renewal.renewalId)).catch(() => {});
   return renewalPublicSnapshot(renewal);
+  }finally{publicationConfirmationInFlight.delete(fill.fillId);}
 }
 
 async function resumePendingRenewals() {
