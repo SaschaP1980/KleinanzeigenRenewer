@@ -28,6 +28,9 @@ function make(admit,session){
   compareArchiveInsertionRecords:async()=>({status:'mismatch'}),
   runArchiveInsertionPostPublish:async()=>{starts++},
   confirmPublishedArchiveInsertion:async()=>{},
+  // New read-only presence dependency: deliberately unused in this detached
+  // postpublish admission fixture; no additional publication authority.
+  detectPublishedAdForFill:async()=>null,
   cryptoApi:{randomUUID:()=> 'mock-uuid'},
   withAutonomousAdmission:admit
  };
