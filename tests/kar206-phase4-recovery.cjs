@@ -2,6 +2,7 @@
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
+const Journal=require('../src/background/services/phase4-uncertainty-journal.js');
 const Remote=require('../src/background/services/remote-delete-replacement-service.js');
 const background=fs.readFileSync('src/background/background.js','utf8');
 const start=background.indexOf('function isPhase4DeleteTransportInterruption(error)');
