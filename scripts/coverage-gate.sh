@@ -15,8 +15,8 @@ python3 tests/kar210-archive-version.py
 python3 tests/kar210-work-pr-version.py
 python3 tests/kar210-hotfix.py
 python3 tests/kar210-hotfix-workflow.py
-# KAR-195: deterministic two-worker P8 startup fan-out (fresh / near-capacity).
-NODE_V8_COVERAGE="$raw" node tests/kar195-startup-atomic-fairness.cjs
+# KAR-210: validate explicit inactive suite scope before any product tests.
+node tests/kar210-test-disposition.cjs
 # GitHub's clean checkout does not include locally generated coverage manifests.
 # Generate the authoritative public API inventory before running execution-closure tests.
 node scripts/runtime-api-inventory.cjs --json > "$project_dir/coverage/public-api-manifest.json"

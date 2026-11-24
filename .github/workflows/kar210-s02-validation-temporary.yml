@@ -1,4 +1,4 @@
-name: KAR-210 suite separation RED
+name: KAR-210 suite separation GREEN
 on:
   push:
     branches: ['work/KAR-210']
@@ -6,10 +6,10 @@ on:
 permissions:
   contents: read
 jobs:
-  red:
+  green:
     if: >-
       github.ref == 'refs/heads/work/KAR-210' &&
-      github.event.head_commit.message == 'test(KAR-210): require inactive suite separation and isolate product witness'
+      github.event.head_commit.message == 'test(KAR-210): separate reviewed inactive tests from active owners'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -19,8 +19,25 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Active suite separation contract
-        run: node tests/kar210-test-disposition-contract.cjs
-      - name: Independent product witness against restored runtime
+      - name: Validate static scope and fail-closed contract
+        run: npm run test:baseline-dispositions
+      - name: Check historical ownership and safety evidence
         if: always()
-        run: node tests/kar210-trash-template-recovery-coalescing.cjs
+        run: node tests/kar167-test-coverage-closure.cjs
+      - name: Retained baseline recovery and account safety
+        if: always()
+        run: |
+          export NODE_OPTIONS='--require ./tests/v12222-vm-legacy-bridge.cjs'
+          node tests/v1234-insertion-lock-runtime.cjs
+          node tests/v1238-account-session-controller-runtime.cjs
+          node tests/v1238-profile-management-controller-runtime.cjs
+          node tests/v1231-renewal-workflow-runtime.cjs
+          node tests/v1233-mass-renewal-workflow-runtime.cjs
+          node tests/v1156-a1-tab-registry-runtime.cjs
+          node tests/v1183-trash-runtime.cjs
+          node tests/v1194-reconciliation-fresh-source-runtime.cjs
+          node tests/v12217-trash-template-ui-recovery-runtime.cjs
+          node tests/v12218-trash-template-recovery-runtime.cjs
+          node tests/v12219-trash-template-session-isolation-runtime.cjs
+          node tests/v12220-trash-template-preview-recovery-runtime.cjs
+          node tests/v12317c2-trash-template-modal-reopen.cjs

@@ -1,69 +1,48 @@
 'use strict';
-// KAR-210: explicit test disposition is not a product PASS or a coverage waiver.
+// KAR-210: omitted suites remain evidence, never successful product executions.
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
-const crypto = require('node:crypto');
-const root = path.resolve(__dirname, '..');
-// KAR-210: active suite must not invoke retired/deferred product tests.
-const activeOwners = ['package.json','scripts/build.sh','scripts/coverage-gate.sh',
-  '.github/workflows/kar-work-pr.yml','.github/workflows/kar-ci.yml','.github/workflows/kar-release.yml'];
-const inactiveTests = ['tests/kar97-update-idle-policy.cjs','tests/kar134-schema-core.cjs',
-  'tests/kar195-startup-atomic-fairness.cjs','tests/kar210-trash-template-recovery-coalescing.cjs'];
-for (const owner of activeOwners) {
-  const source=fs.readFileSync(path.join(root,owner),'utf8').replace(/\\/g,'/');
-  for(const inactive of inactiveTests) assert.ok(!source.includes(inactive),
-    'Inactive test still referenced by active owner '+owner+': '+inactive);
-}
-const { resolveDisposition } = require('./kar210-test-disposition.cjs');
-const ledger = JSON.parse(fs.readFileSync(path.join(root, 'docs/maintenance/KAR210_ACTIVE_TEST_DISPOSITIONS.json'), 'utf8'));
-const names = ['tests/kar97-update-idle-policy.cjs', 'tests/kar134-schema-core.cjs'];
-assert.deepEqual(ledger.entries.map(e=>e.test).sort(), names.slice().sort());
-const read = p => fs.readFileSync(path.join(root,p));
-const hash = b => crypto.createHash('sha1').update('blob '+b.length+'\0').update(b).digest('hex');
-for (const e of ledger.entries) {
-  assert.equal(hash(read(e.test)),e.blob);
-  assert.equal(resolveDisposition(root,e.test).status,e.status);
-  const run = spawnSync(process.execPath,[path.join(root,'tests/kar210-test-disposition.cjs'),e.test],{cwd:root,encoding:'utf8'});
-  assert.equal(run.status,0,run.stderr);
-  assert.match(run.stdout,/NOT_EXECUTED/);
-  assert.doesNotMatch(run.stdout,/\bPASS\b/);
-}
-const fixture = fs.mkdtempSync(path.join(os.tmpdir(),'kar210-disposition-'));
-const copy = p => { const dst=path.join(fixture,p);fs.mkdirSync(path.dirname(dst),{recursive:true});fs.copyFileSync(path.join(root,p),dst); };
-const put = (p,v) => {const dst=path.join(fixture,p);fs.mkdirSync(path.dirname(dst),{recursive:true});fs.writeFileSync(dst,typeof v==='string'?v:JSON.stringify(v));};
-const deny = (fn) => assert.throws(fn);
+const root=path.resolve(__dirname,'..');
+const {validateDispositions}=require('./kar210-test-disposition.cjs');
+const LEDGER='docs/maintenance/KAR210_ACTIVE_TEST_DISPOSITIONS.json';
+const OWNERS=["package.json","scripts/build.sh","scripts/coverage-gate.sh",".github/workflows/kar-work-pr.yml",".github/workflows/kar-ci.yml",".github/workflows/kar-release.yml"];
+const data=JSON.parse(fs.readFileSync(path.join(root,LEDGER),'utf8'));
+const inactive=validateDispositions(root);
+assert.equal(inactive.size,11);
+const read=p=>fs.readFileSync(path.join(root,p));
+for(const owner of OWNERS) for(const test of inactive.keys())
+  assert.ok(!read(owner).toString().replace(/\\/g,'/').includes(test),'Inactive path in active owner');
+const invocation=spawnSync(process.execPath,[path.join(root,'tests/kar210-test-disposition.cjs'),data.entries[0].test],{cwd:root,encoding:'utf8'});
+assert.notEqual(invocation.status,0,'Old per-test skip interface must be gone');
+const fixture=fs.mkdtempSync(path.join(os.tmpdir(),'kar210-suite-'));
+const copy=p=>{const dst=path.join(fixture,p);fs.mkdirSync(path.dirname(dst),{recursive:true});fs.copyFileSync(path.join(root,p),dst);};
+const put=(p,v)=>{const dst=path.join(fixture,p);fs.mkdirSync(path.dirname(dst),{recursive:true});fs.writeFileSync(dst,typeof v==='string'?v:JSON.stringify(v));};
+let negatives=0;
+const deny=()=>{assert.throws(()=>validateDispositions(fixture));negatives++;};
 try {
-  for (const p of ['manifest.json','package.json','package-lock.json','release/release-spec.json','scripts/product_version.py','scripts/package.py','coverage/safety-critical-public-apis.json','docs/maintenance/KAR210_BASELINE_RESTORE_LEDGER.json','docs/maintenance/KAR210_BASELINE_TARGET.json','docs/maintenance/KAR210_ACTIVE_TEST_DISPOSITIONS.json',...names,...ledger.entries.flatMap(e=>e.retained)]) copy(p);
-  const entry=ledger.entries.find(e=>e.test===names[0]);
-  assert.equal(resolveDisposition(fixture,entry.test).status,'excluded-C');
-  deny(()=>resolveDisposition(fixture,'tests/v1234-insertion-lock-runtime.cjs'));
-  put(entry.module,'// unexpectedly restored');
-  deny(()=>resolveDisposition(fixture,entry.test));
-  fs.unlinkSync(path.join(fixture,entry.module));
-  put(entry.test,'// altered historic evidence');
-  deny(()=>resolveDisposition(fixture,entry.test));copy(entry.test);
-  const bad=structuredClone(ledger);bad.entries.push({...entry});
-  put('docs/maintenance/KAR210_ACTIVE_TEST_DISPOSITIONS.json',bad);deny(()=>resolveDisposition(fixture,entry.test));copy('docs/maintenance/KAR210_ACTIVE_TEST_DISPOSITIONS.json');
+  for(const p of new Set([...OWNERS,'manifest.json','package-lock.json','release/release-spec.json','scripts/product_version.py','scripts/package.py','coverage/safety-critical-public-apis.json','docs/maintenance/KAR210_BASELINE_RESTORE_LEDGER.json','docs/maintenance/KAR210_BASELINE_TARGET.json',LEDGER,...inactive.keys(),...data.entries.flatMap(e=>e.retained)])) copy(p);
+  assert.equal(validateDispositions(fixture).size,inactive.size);
+  const entry=data.entries[0];
+  put(entry.module,'// unexpectedly restored');deny();fs.unlinkSync(path.join(fixture,entry.module));
+  put(entry.test,'// altered historical evidence');deny();copy(entry.test);
+  const duplicate=structuredClone(data);duplicate.entries.push({...entry});put(LEDGER,duplicate);deny();copy(LEDGER);
+  const missing=structuredClone(data);missing.entries.pop();put(LEDGER,missing);deny();copy(LEDGER);
+  const wrong=structuredClone(data);wrong.entries[0].module='src/shared/runtime-deps.js';put(LEDGER,wrong);deny();copy(LEDGER);
   const safety=JSON.parse(read('coverage/safety-critical-public-apis.json'));safety.apis[0].tests.push(entry.test);
-  put('coverage/safety-critical-public-apis.json',safety);deny(()=>resolveDisposition(fixture,entry.test));copy('coverage/safety-critical-public-apis.json');
-  const pack=read('scripts/package.py').toString();put('scripts/package.py',pack.replace('runtime=[','runtime=[\''+entry.module+'\','));
-  deny(()=>resolveDisposition(fixture,entry.test));copy('scripts/package.py');
-  const manifest=JSON.parse(read('manifest.json'));manifest.version='2.0.0.1';put('manifest.json',manifest);
-  deny(()=>resolveDisposition(fixture,entry.test));copy('manifest.json');
-  const previous=structuredClone(ledger);previous.entries[0].module='src/shared/runtime-deps.js';
-  put('docs/maintenance/KAR210_ACTIVE_TEST_DISPOSITIONS.json',previous);deny(()=>resolveDisposition(fixture,entry.test));copy('docs/maintenance/KAR210_ACTIVE_TEST_DISPOSITIONS.json');
-  const pkg=JSON.parse(read('package.json'));
-  pkg.scripts.test=pkg.scripts.test.replace('node '+entry.retained[0]+' && ','');
-  put('package.json',pkg);deny(()=>resolveDisposition(fixture,entry.test));copy('package.json');
-  const wrongOwner=JSON.parse(read('package.json'));wrongOwner.scripts.test=wrongOwner.scripts.test.replace('node tests/kar210-test-disposition.cjs '+entry.test,'node '+entry.test);
-  put('package.json',wrongOwner);deny(()=>resolveDisposition(fixture,entry.test));copy('package.json');
-  // Historical 1.x continues to execute the original suite, not disposition it.
-  const version='1.25.12';for(const p of ['manifest.json','package.json','package-lock.json','release/release-spec.json']){
-    const j=JSON.parse(read(p));j.version=version;if(p==='package.json')j.displayVersion=version;if(p==='package-lock.json')j.packages[''].version=version;if(p==='release/release-spec.json')j.packageVersion=version;put(p,j);
-  }
-  assert.equal(resolveDisposition(fixture,entry.test).status,'active');
+  put('coverage/safety-critical-public-apis.json',safety);deny();copy('coverage/safety-critical-public-apis.json');
+  put('scripts/package.py',read('scripts/package.py').toString().replace('runtime=[','runtime=[\''+entry.module+'\','));deny();copy('scripts/package.py');
+  const bad=JSON.parse(read('package.json'));bad.scripts.test+=' && node '+entry.test;
+  put('package.json',bad);deny();copy('package.json');
+  const wrap=JSON.parse(read('package.json'));wrap.scripts.test+=' && node tests/kar210-test-disposition.cjs '+entry.test;
+  put('package.json',wrap);deny();copy('package.json');
+  put('scripts/build.sh',read('scripts/build.sh').toString()+'\nnode '+entry.test+'\n');deny();copy('scripts/build.sh');
+  const lost=JSON.parse(read('package.json'));lost.scripts.test=lost.scripts.test.replace('node '+entry.retained[0]+' && ','');
+  put('package.json',lost);deny();copy('package.json');
+  const witness=data.deferredWitnesses[0];put(witness.test,'// lost product witness');deny();copy(witness.test);
+  const manifest=JSON.parse(read('manifest.json'));manifest.version='2.0.0.1';put('manifest.json',manifest);deny();copy('manifest.json');
+  assert.equal(validateDispositions(fixture).size,inactive.size);
 } finally {fs.rmSync(fixture,{recursive:true,force:true});}
-console.log('PASS KAR-210 explicit baseline disposition contract: two source-bound records, historical invocation and fail-closed negatives');
+console.log('PASS KAR-210 active suite separation: '+negatives+' fail-closed negatives, original evidence and inactive product witness preserved');

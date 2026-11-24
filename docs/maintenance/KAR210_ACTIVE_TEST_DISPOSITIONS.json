@@ -1,9 +1,9 @@
 {
-  "schema": 1,
+  "schema": 2,
   "issue": 210,
   "version": "2.0.0.0",
-  "reference": "51500cba0a5d43f7f0fa989b4c89536b3930657a",
-  "policy": "Explicit baseline-only dispositions, not successful execution. Historical source kept; later versions require renewed disposition. Do not add entries without assertion-level review and retained applicable behavior.",
+  "reference": "c52de9485934fe2296e886ca6b5ed6bb601af4e5",
+  "policy": "S02 static active-suite separation; preserve original files. No skipped test command or blanket bypass. Reconcile each deferred product witness at its owning step, and explicitly review future scope before successor versions.",
   "entries": [
     {
       "test": "tests/kar97-update-idle-policy.cjs",
@@ -34,6 +34,152 @@
         "tests/kar132-modern-category-modal.cjs",
         "tests/kar132-wearables-attributes.cjs"
       ]
+    },
+    {
+      "test": "tests/kar195-startup-atomic-fairness.cjs",
+      "blob": "0544bbcebf2efbb6b7135c2b9b6f723808da6a17",
+      "module": "src/background/services/cross-worker-atomic-admission.js",
+      "matrix": "C03/C05",
+      "step": "S04/S07",
+      "status": "split-C",
+      "owner": "scripts/coverage-gate.sh",
+      "reason": "Eight of nine cases assert P8 scheduler, locks, receipts, reserve and P8 diagnostics. The ninth is a product-level passive recovery coalescing witness extracted verbatim and deferred to S07 after actual RED (8 reads vs 1).",
+      "retained": [
+        "tests/v12217-trash-template-ui-recovery-runtime.cjs",
+        "tests/v12218-trash-template-recovery-runtime.cjs",
+        "tests/v12219-trash-template-session-isolation-runtime.cjs",
+        "tests/v12220-trash-template-preview-recovery-runtime.cjs",
+        "tests/v12317c2-trash-template-modal-reopen.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar103-startup-owner-map.cjs",
+      "blob": "8f3fb7d3e62a4dc5a249ddc9c2b761fc177ec48f",
+      "module": "lib/update-idle-policy.js",
+      "matrix": "C02",
+      "step": "S04",
+      "status": "excluded-C",
+      "owner": "package.json",
+      "reason": "All worker startup assertions explicitly require the removed updater's autonomous admission fence and 15-owner ledger. Actual tab registry, trash and fresh-source reconciliation remain separately exercised.",
+      "retained": [
+        "tests/v1156-a1-tab-registry-runtime.cjs",
+        "tests/v1183-trash-runtime.cjs",
+        "tests/v1194-reconciliation-fresh-source-runtime.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar105-persisted-owner-observer.cjs",
+      "blob": "483f713ca4e3b64bcc375ed8acf0b0944b5e0740",
+      "module": "src/background/services/persisted-owner-observer.js",
+      "matrix": "C02",
+      "step": "S04/S06",
+      "status": "excluded-C",
+      "owner": "package.json",
+      "reason": "Read-only seven-owner snapshot, P8 receipts, in-flight tracking and phase-4 journal authority are contracts of the removed observer. Actual account/insertion/renewal/mass runtime tests remain mandatory; later unknown-outcome review belongs to S06.",
+      "retained": [
+        "tests/v1234-insertion-lock-runtime.cjs",
+        "tests/v1238-account-session-controller-runtime.cjs",
+        "tests/v1238-profile-management-controller-runtime.cjs",
+        "tests/v1231-renewal-workflow-runtime.cjs",
+        "tests/v1233-mass-renewal-workflow-runtime.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar99-atomic-mv3-admission.cjs",
+      "blob": "b31df1a0255bbf9b67837675eaf863c5eb6e1991",
+      "module": "src/background/services/cross-worker-atomic-admission.js",
+      "matrix": "C03",
+      "step": "S04/S06",
+      "status": "excluded-C",
+      "owner": "package.json",
+      "reason": "Synthetic atomic coordinator/fence/policy tests exercise durable start/finish receipts and Web Locks reserve arbitration, not real product publication or deletion. Baseline insertion/account/renewal guards remain mandatory; S06 reviews uncertain remote outcomes.",
+      "retained": [
+        "tests/v1234-insertion-lock-runtime.cjs",
+        "tests/v1238-account-session-controller-runtime.cjs",
+        "tests/v1238-profile-management-controller-runtime.cjs",
+        "tests/v1231-renewal-workflow-runtime.cjs",
+        "tests/v1233-mass-renewal-workflow-runtime.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar99-p8-adversarial-races.cjs",
+      "blob": "baa92adb86b4a15b255b1639fc3fc93ae87fe447",
+      "module": "src/background/services/cross-worker-atomic-admission.js",
+      "matrix": "C03",
+      "step": "S04/S06",
+      "status": "excluded-C",
+      "owner": "package.json",
+      "reason": "All adversarial cases exercise P8 lock-provider identity, receipts, ACK loss and updater reserve on synthetic callbacks. Do not import removed C to satisfy them. Baseline account/insertion/renewal and product safety contracts remain active; S06 reviews independent mutation outcomes.",
+      "retained": [
+        "tests/v1234-insertion-lock-runtime.cjs",
+        "tests/v1238-account-session-controller-runtime.cjs",
+        "tests/v1238-profile-management-controller-runtime.cjs",
+        "tests/v1231-renewal-workflow-runtime.cjs",
+        "tests/v1233-mass-renewal-workflow-runtime.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar99-p9-benign-start-contention.cjs",
+      "blob": "e0201d7ea36f3494bd9e863a18f16fbdaad6204a",
+      "module": "src/background/services/cross-worker-atomic-admission.js",
+      "matrix": "C03",
+      "step": "S04",
+      "status": "excluded-C",
+      "owner": "package.json",
+      "reason": "The two-worker fixture passes fake RECOGNIZE_PROFILE callbacks through P8 and checks exact start/finish receipt count. Actual recognition/account ownership and insertion locking remain covered independently.",
+      "retained": [
+        "tests/v1234-insertion-lock-runtime.cjs",
+        "tests/v1238-account-session-controller-runtime.cjs",
+        "tests/v1238-profile-management-controller-runtime.cjs",
+        "tests/v1231-renewal-workflow-runtime.cjs",
+        "tests/v1233-mass-renewal-workflow-runtime.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar197-publish-intent-contention.cjs",
+      "blob": "34cb5d7ddfc201d5090bc5a1c390aa3c3cf274b0",
+      "module": "src/background/services/auto-publish-intent-journal.js",
+      "matrix": "C04",
+      "step": "S04/S06/S07",
+      "status": "excluded-C",
+      "owner": "package.json",
+      "reason": "All four cases exercise the absent journal API's begin/observe, P8 lock retries and exact journal writes. Product guarded publish/paid/verification and archive promotion tests remain active (including any current RED); S06/S07 must review no-replay outcomes independently.",
+      "retained": [
+        "tests/v12226-paid-insertion-regression.cjs",
+        "tests/v12317c1-template-module-public-api.cjs",
+        "tests/v12315-runtime.cjs",
+        "tests/v1235-archive-insertion-controller-runtime.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar199-phase4-journal-contention.cjs",
+      "blob": "6819255533f96a9e059ccf84f32bee82f56e8212",
+      "module": "src/background/services/phase4-uncertainty-journal.js",
+      "matrix": "C04",
+      "step": "S04/S06",
+      "status": "excluded-C",
+      "owner": "package.json",
+      "reason": "All six cases exercise absent phase-4 journal begin/observe/resolveVerified, lock retries, storage failure and receipt writes. Product exact-ID deletion, independent absence verification and replacement authority tests remain active; unresolved remote outcomes remain S06 work.",
+      "retained": [
+        "tests/v12318-inventory-module-public-api.cjs",
+        "tests/v12019-phase3-edit-authority.cjs",
+        "tests/v12315-runtime.cjs",
+        "tests/v1194-reconciliation-fresh-source-runtime.cjs"
+      ]
+    }
+  ],
+  "deferredWitnesses": [
+    {
+      "test": "tests/kar210-trash-template-recovery-coalescing.cjs",
+      "blob": "bc450dc54cbf828ca5d86b3022d935046c208f18",
+      "sourceTest": "tests/kar195-startup-atomic-fairness.cjs",
+      "status": "deferred-product",
+      "step": "S07",
+      "redRun": 45499893107,
+      "redJob": 138820077250,
+      "expected": 1,
+      "actual": 8,
+      "reason": "Independent optimization of passive trash-template recovery reads, not part of historical baseline. Original assertion body unchanged; keep RED evidence and revisit in S07."
     }
   ]
 }

@@ -32,6 +32,8 @@ const ownerPaths = {
   'KAR main CI': '.github/workflows/kar-ci.yml',
   'KAR Release hosted CI': '.github/workflows/kar-release.yml'
 };
+// S02 only: reviewed inactive paths are still immutable historical evidence.
+const inactive = require('./kar210-test-disposition.cjs').validateDispositions(root);
 const referencedByOwner = new Map();
 const pattern = /tests\/[A-Za-z0-9_.\/-]+\.(?:cjs|mjs|js|py|ps1|json|sh|txt)/g;
 for (const [owner, file] of Object.entries(ownerPaths)) {
@@ -55,6 +57,12 @@ for (const r of registry.tests) {
     assert.ok(r.entrypoints.length > 0, 'Active test has no entrypoint evidence: ' + r.path);
     for (const owner of r.entrypoints) {
       assert.ok(referencedByOwner.has(owner), 'Unrecognized owner: ' + owner);
+      const disposition=inactive.get(r.path);
+      if(disposition) {
+        assert.equal(disposition.owner,ownerPaths[owner],'Historical invocation owner not covered by reviewed disposition');
+        assert.ok(!referencedByOwner.get(owner).has(r.path),'Inactive path still referenced');
+        continue;
+      }
       assert.ok(referencedByOwner.get(owner).has(r.path),
         'Baseline invocation vanished from ' + owner + ': ' + r.path);
     }
@@ -90,7 +98,7 @@ for (const addition of additions) {
     phase4HelperOwners.every(testPath =>
       [...referencedByOwner.values()].some(set => set.has(testPath)) &&
       read(testPath).includes("require('./helpers/phase4-locks.cjs')"));
-  assert.ok(directlyInvoked || verifiedPhase4Helper,
+  assert.ok(directlyInvoked || verifiedPhase4Helper || inactive.has(addition),
     'Unregistered new executable test/fixture with no top-level invocation: ' + addition);
 }
 for (const paths of referencedByOwner.values()) for (const p of paths) {
@@ -138,6 +146,7 @@ for (const api of safety.apis) {
   assert.ok(api.tests?.length, 'Safety critical method missing negative test: ' + api.method);
   for (const p of api.tests) {
     criticalRefs++;
+    assert.ok(!inactive.has(p),'Safety-critical negative cannot be inactive: '+p);
     assert.ok(records.has(p) && fs.existsSync(full(p)),
       'Safety-critical negative/fail-closed test missing: ' + p);
   }
@@ -161,6 +170,6 @@ assert.ok(fs.existsSync(full('tests/e2e/run_browser_e2e_supervisor.py')),
   'Nine-scenario isolated Chromium supervisor missing');
 console.log('PASS KAR-167 T1 test/coverage closure: '+records.size+
   ' historical test/fixture paths preserved, '+registry.counts.byRole['direct-or-hosted']+
-  ' top-level referenced, '+additions.length+' registered new source additions, 2 durable coverage contracts,'+
+  ' original direct-or-hosted records (reviewed inactive paths explicitly separated), '+additions.length+' registered new source additions, 2 durable coverage contracts,'+
   ' 1 unchanged E2E Gold, '+safety.apis.length+' safety-critical APIs / '+criticalRefs+
   ' explicit negative test references; runtime/Gold/100%-public no-regression contracts intact');
