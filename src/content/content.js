@@ -602,7 +602,9 @@
           try {
             const url = new URL(location.href);
             if (/\/p-anzeige-bearbeiten\.html$/i.test(url.pathname)) return /^\d+$/.test(String(url.searchParams.get("adId") || "")) ? String(url.searchParams.get("adId")) : null;
-            return url.pathname.match(/\/(\d+)-\d+-\d+(?:\/|$)/)?.[1] || null;
+            // Use the existing shared exact public-URL parser for both
+            // canonical and short ID-only URLs. A URL is still NOT DOM proof.
+            return ManagedNavigation?.publicAdIdFromUrl?.(url.href) || null;
           } catch { return null; }
         })(),
         // Existing Kleinanzeigen account/profile identity used by the app.

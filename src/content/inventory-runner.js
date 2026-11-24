@@ -206,7 +206,23 @@
           requireCompleteRoster: message.requireCompleteRoster === true,
           onReadOnlyPageObserved
         })
-      ).then(result => sendResponse({ ok: true, result }), error => sendResponse({ ok: false, error: error.message }));
+      ).then(result => sendResponse({ ok: true, result }), error => {
+        // Preserve fixed scan failure classifications across the existing
+        // request boundary, without exposing arbitrary strings in telemetry.
+        const known={
+          'KR_MY_ADS_ROSTER_INCOMPLETE':'KR_MY_ADS_ROSTER_INCOMPLETE',
+          'KR_MY_ADS_ACCOUNT_CHANGED_DURING_SCAN':'KR_MY_ADS_ACCOUNT_CHANGED_DURING_SCAN',
+          'Anzeige kann nur über „Meine Anzeigen“ mit tab=PROJECTS gesucht werden.':'KR_MY_ADS_WRONG_PAGE',
+          'Phase 4 hat die Ansicht „Meine Anzeigen“ / PROJECTS verlassen; Abbruch aus Sicherheitsgründen.':'KR_MY_ADS_WRONG_PAGE',
+          'Seitennavigation in „Meine Anzeigen“ wiederholt sich; Abbruch aus Sicherheitsgründen.':'KR_MY_ADS_PAGINATION_LOOP',
+          'Nächste Seite von „Meine Anzeigen“ konnte nicht geladen werden.':'KR_MY_ADS_PAGE_CHANGE_TIMEOUT',
+          [`Mehr als ${MAX_PHASE4_PAGES} Seiten in „Meine Anzeigen“ erkannt; Abbruch aus Sicherheitsgründen.`]:'KR_MY_ADS_PAGE_LIMIT',
+          'Anzeigen-ID ist ungültig.':'KR_MY_ADS_INVALID_ID'
+        };
+        const errorCode=Object.hasOwn(known,error?.message)?known[error.message]:
+          Object.hasOwn(known,error?.code)?known[error.code]:null;
+        sendResponse({ok:false,error:error.message,errorCode});
+      });
       return true;
     }
     if (message?.type === 'VERIFY_OWN_AD_ABSENT_BY_ID') {

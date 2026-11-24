@@ -72,6 +72,10 @@
                 evidence?.state==='verified'&&evidence.adId===newAdId){
               note(kind,'verified');return true;
             }
+            // Fixed reason only; no URL, account, ID, or page content.
+            note(kind,loadedId!==newAdId?'url-not-ready':
+              status?.adId!==newAdId?'page-status-id-missing':
+              !owned?'ownership-not-ready':evidence?.state!=='verified'?'dom-evidence-not-ready':'evidence-id-missing');
             if(attempt<2)await direct.delay(500);
           }
           note(kind,'not-ready');return false;
@@ -139,7 +143,13 @@
             if(status.profileName&&normalizedName(status.profileName)!==normalizedName(expectedName))
               deny(stage+'-account');
             if(direct&&!archive&&allowReady&&(!status.profileName||
-                (Number.isInteger(status.expectedOnline)&&status.expectedOnline>0&&status.listingCount===0))){
+                (Object.hasOwn(status,'expectedOnline')&&(
+                  !Number.isSafeInteger(status.expectedOnline)||status.expectedOnline<0||
+                  !Number.isSafeInteger(status.listingCount)||status.listingCount<0||
+                  (status.expectedOnline>0&&status.listingCount===0)||
+                  status.listingCount>status.expectedOnline||
+                  (status.hasNext===false&&status.listingCount!==status.expectedOnline)
+                )))){
               note(stage,'waiting');
               await sendTabRequestWithBootstrap(tabId,{type:'WAIT_FOR_MY_ADS_READY',
                 expectedProfileName:expectedName,timeoutMs:5000});
@@ -152,12 +162,27 @@
           };
           await assertStatus('my-ads-before',true);
           note('my-ads-search','begin');
-          const presence=await sendTabRequestWithBootstrap(tabId,{
-            type:'FIND_OWN_AD_BY_ID',adId:newAdId,
-            expectedProfileName:expectedName,
-            correlation:{fillId:intent.fillId,
-              ...(archive?{archiveInsertionId:intent.workflowId}:{renewalId:intent.workflowId})}
-          });
+          let presence;
+          try {
+            presence=await sendTabRequestWithBootstrap(tabId,{
+              type:'FIND_OWN_AD_BY_ID',adId:newAdId,
+              expectedProfileName:expectedName,
+              correlation:{fillId:intent.fillId,
+                ...(archive?{archiveInsertionId:intent.workflowId}:{renewalId:intent.workflowId})}
+            });
+          } catch(error) {
+            const reasons={
+              KR_MY_ADS_ROSTER_INCOMPLETE:'roster-incomplete',
+              KR_MY_ADS_ACCOUNT_CHANGED_DURING_SCAN:'account-changed',
+              KR_MY_ADS_WRONG_PAGE:'wrong-page',
+              KR_MY_ADS_PAGINATION_LOOP:'pagination-loop',
+              KR_MY_ADS_PAGE_CHANGE_TIMEOUT:'page-change-timeout',
+              KR_MY_ADS_PAGE_LIMIT:'page-limit',
+              KR_MY_ADS_INVALID_ID:'invalid-id'
+            };
+            note('my-ads-search',Object.hasOwn(reasons,error?.code)?reasons[error.code]:'request-failed');
+            throw error;
+          }
           await assertStatus('my-ads-after'); // Account after navigation / full pagination.
           if(presence?.found!==true||String(presence.adId||'')!==newAdId
               ||presence.evidence!=='found-in-my-ads-full-pagination-scan'

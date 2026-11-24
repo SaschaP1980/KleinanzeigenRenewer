@@ -447,8 +447,14 @@ async function resumePendingRenewals() {
       if (renewal?.autoReplacementAllowed && !renewal?.phase4AttemptsExhaustedAt && /^\d+$/.test(String(renewal?.newAdId || '')) && (String(renewal?.status || '') === 'verified' || String(renewal?.stage || '') === 'replacement-ready' || String(renewal?.stage || '').startsWith('source-delete'))) {
         scheduleAutomaticRenewalReplacement(renewal.renewalId, 'service-worker-resume');
       } else if (renewal?.status === 'submitted' && renewal?.targetTabId && !renewal?.newAdId) {
-        const fill = Object.values(fills).find(item => item?.renewalId === renewal.renewalId && item?.targetTabId === renewal.targetTabId);
-        if (fill) {
+        // Resume only the original submitted fill. Never create a new
+        // fill or replay Publish when the remote outcome is uncertain.
+        const fill = fills[renewal.fillId];
+        if (renewal.stage === 'publish-submitted' && fill?.fillId === renewal.fillId
+            && fill.renewalId === renewal.renewalId && !fill.archiveInsertionId
+            && fill.targetTabId === renewal.targetTabId
+            && String(fill.sourceAdId || '') === String(renewal.sourceAdId || '')
+            && fill.status === 'running' && fill.stage === 'publish-submitted') {
           const detected = await detectPublishedAdForFill(renewal.targetTabId, renewal.sourceAdId);
           if (detected?.adId) await confirmPublishedRenewal(fill, detected);
         }
