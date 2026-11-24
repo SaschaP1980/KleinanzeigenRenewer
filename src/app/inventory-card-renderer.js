@@ -36,19 +36,6 @@
       const runtimeMessage = options.runtimeMessage || (async () => null);
       const renderAppNotice = options.renderAppNotice || (() => {});
       const setStatus = options.setStatus || (() => {});
-      const getTrashRetentionDays = options.getTrashRetentionDays || (() => null);
-      const trashRetentionPhrase = () => {
-        const days = getTrashRetentionDays();
-        return days === 'infinite' ? 'unbegrenzt'
-          : [10, 30, 60, 90, 180, 360].includes(days) ? 'für ' + days + ' Tage'
-          : 'entsprechend der gespeicherten Aufbewahrungsdauer';
-      };
-      const requireVerifiedTrashRetention = () => {
-        if (getTrashRetentionDays() != null) return true;
-        setStatus('error', 'Papierkorb-Aufbewahrung nicht verfügbar',
-          'Die gespeicherte Aufbewahrungsdauer muss vor dem Verschieben erneut geprüft werden.');
-        return false;
-      };
       const refreshInventories = options.refreshInventories || (async () => {});
       const friendlyErrorMessage = options.friendlyErrorMessage || (error => String(error?.message || error || ''));
       const setOnlineAvailabilityNotice = options.setOnlineAvailabilityNotice || (() => {});
@@ -118,7 +105,6 @@ function makeInventoryExportActionButton(record) {
   return exportButton;
 }
 
-
 function makeCompactInventoryExportButton(record) {
   const exportButton = makeCompactIconButton({
     icon: 'zip-export',
@@ -179,12 +165,12 @@ function renderCompactInventoryRow(record) {
     finishButton.addEventListener('click', async () => {
       if (!requireAccountBoundAction()) return;
       const renewalId = String(record.renewal.renewalId || '');
-      if (!await confirmAction({ title: 'Austausch abschließen?', text: 'Die bisherige Anzeige wird bei Kleinanzeigen gelöscht. Die neue Anzeige bleibt erhalten.', detail: 'Die bisherige Anzeige wird erst nach bestätigter Löschung ' + trashRetentionPhrase() + ' im Papierkorb gesichert.', confirmLabel: 'Austausch abschließen', danger: true })) return;
+      if (!await confirmAction({ title: 'Austausch abschließen?', text: 'Die bisherige Anzeige wird bei Kleinanzeigen gelöscht. Die neue Anzeige bleibt erhalten.', detail: 'Die bisherige Anzeige wird erst nach bestätigter Löschung für 30 Tage im Papierkorb gesichert.', confirmLabel: 'Austausch abschließen', danger: true })) return;
       setCompactButtonsBusy(peers, true);
       try {
         const result = await runtimeMessage({ type: 'FINISH_RENEWAL_REPLACEMENT', renewalId });
-        renderAppNotice(result?.notice || { kind: 'success', title: 'Neu inseriert', text: 'Die bisherige Anzeige wurde gelöscht und bleibt ' + trashRetentionPhrase() + ' im Papierkorb.' });
-        setStatus('ready', 'Austausch abgeschlossen', 'Die bisherige Anzeige wurde gelöscht, ' + trashRetentionPhrase() + ' im Papierkorb gesichert und die neue Anzeige im Inventar übernommen.');
+        renderAppNotice(result?.notice || { kind: 'success', title: 'Neu inseriert', text: 'Die bisherige Anzeige wurde gelöscht und bleibt noch 30 Tage im Papierkorb.' });
+        setStatus('ready', 'Austausch abgeschlossen', 'Die bisherige Anzeige wurde gelöscht, 30 Tage im Papierkorb gesichert und die neue Anzeige im Inventar übernommen.');
         await refreshInventories();
       } catch (error) {
         setCompactButtonsBusy(peers, false);
@@ -215,13 +201,11 @@ function renderCompactInventoryRow(record) {
 
     deleteButton.addEventListener('click', async () => {
       const renewalId = String(record.renewal.renewalId || '');
-      if (!requireVerifiedTrashRetention()) return;
       if (!await confirmAction({ title: 'In Papierkorb verschieben?', text: `„${record.title || record.adId}“ wird nur lokal in den Papierkorb verschoben.`, detail: 'Bei Kleinanzeigen wird weder die neue noch die bisherige Anzeige gelöscht oder verändert.', confirmLabel: 'In Papierkorb', danger: true })) return;
-      if (!requireVerifiedTrashRetention()) return;
       setCompactButtonsBusy(peers, true);
       try {
         await runtimeMessage({ type: 'REMOVE_REPLACEMENT_READY_LOCAL', renewalId });
-        setStatus('ready', 'In Papierkorb verschoben', 'Der neue lokale Eintrag wurde ' + trashRetentionPhrase() + ' gesichert. Bei Kleinanzeigen wurde nichts gelöscht oder verändert.');
+        setStatus('ready', 'In Papierkorb verschoben', 'Der neue lokale Eintrag wurde für 30 Tage gesichert. Bei Kleinanzeigen wurde nichts gelöscht oder verändert.');
         await refreshInventories();
       } catch (error) {
         setCompactButtonsBusy(peers, false);
@@ -335,13 +319,11 @@ function renderCompactInventoryRow(record) {
   });
 
   deleteButton.addEventListener('click', async () => {
-    if (!requireVerifiedTrashRetention()) return;
-    if (!await confirmAction({ title: 'In Papierkorb verschieben?', text: `„${record.title || record.adId}“ wird ${trashRetentionPhrase()} im Papierkorb aufbewahrt.`, detail: 'Die Anzeige bei Kleinanzeigen bleibt unverändert.', confirmLabel: 'In Papierkorb', danger: true })) return;
-    if (!requireVerifiedTrashRetention()) return;
+    if (!await confirmAction({ title: 'In Papierkorb verschieben?', text: `„${record.title || record.adId}“ wird 30 Tage im Papierkorb aufbewahrt.`, detail: 'Die Anzeige bei Kleinanzeigen bleibt unverändert.', confirmLabel: 'In Papierkorb', danger: true })) return;
     setCompactButtonsBusy(peers, true);
     try {
       await runtimeMessage({ type: 'DELETE_INVENTORY', inventoryId: record.inventoryId });
-      setStatus('ready', 'In Papierkorb verschoben', 'Der Eintrag bleibt ' + trashRetentionPhrase() + ' als Vorlage erhalten. Die Anzeige bei Kleinanzeigen wurde nicht verändert.');
+      setStatus('ready', 'In Papierkorb verschoben', 'Der Eintrag bleibt 30 Tage als Vorlage erhalten. Die Anzeige bei Kleinanzeigen wurde nicht verändert.');
       await refreshInventories();
     } catch (error) {
       setCompactButtonsBusy(peers, false);
@@ -438,7 +420,7 @@ function renderInventories(records = currentRecords) {
     facts.className = 'summary-facts';
     const factRows = [
       makeInfoLine('Kategorie', categoryLabel(record)),
-      makeInfoLine('Artikeltyp', artLabel(record)),
+      makeInfoLine('Art', artLabel(record)),
       makeInfoLine('Preis', displayPriceWithType(record)),
       makeInfoLine('Endet am', endDateWithRelativeLabel(record)),
       makeListingDateInfoLine(record)
@@ -484,7 +466,7 @@ function renderInventories(records = currentRecords) {
         removeButton.type = 'button';
         removeButton.className = 'danger-button compact-action';
         removeButton.textContent = 'In Papierkorb';
-        removeButton.title = 'Verschiebt nur diesen lokalen Eintrag ' + trashRetentionPhrase() + ' in den Papierkorb. Bei Kleinanzeigen wird nichts gelöscht.';
+        removeButton.title = 'Verschiebt nur diesen lokalen Eintrag für 30 Tage in den Papierkorb. Bei Kleinanzeigen wird nichts gelöscht.';
         if (autoCompleting) {
           removeButton.disabled = true;
         }
@@ -495,7 +477,7 @@ function renderInventories(records = currentRecords) {
           const sourceAdId = String(record.renewal.sourceAdId || '');
           const newAdId = String(record.adId || record.renewal.newAdId || '');
           void logAppEvent('USER_RENEWAL_REPLACEMENT_FINISH_CLICK', { renewalId, sourceAdId, newAdId, inventoryId: record.inventoryId });
-          if (!await confirmAction({ title: 'Austausch abschließen?', text: 'Die bisherige Anzeige wird bei Kleinanzeigen gelöscht. Die neue Anzeige bleibt erhalten.', detail: 'Die bisherige Anzeige wird erst nach bestätigter Löschung ' + trashRetentionPhrase() + ' im Papierkorb gesichert.', confirmLabel: 'Austausch abschließen', danger: true })) {
+          if (!await confirmAction({ title: 'Austausch abschließen?', text: 'Die bisherige Anzeige wird bei Kleinanzeigen gelöscht. Die neue Anzeige bleibt erhalten.', detail: 'Die bisherige Anzeige wird erst nach bestätigter Löschung für 30 Tage im Papierkorb gesichert.', confirmLabel: 'Austausch abschließen', danger: true })) {
             void logAppEvent('USER_RENEWAL_REPLACEMENT_FINISH_CANCELLED', { renewalId, sourceAdId, newAdId });
             return;
           }
@@ -507,8 +489,8 @@ function renderInventories(records = currentRecords) {
           try {
             const result = await runtimeMessage({ type: 'FINISH_RENEWAL_REPLACEMENT', renewalId });
             void logAppEvent('USER_RENEWAL_REPLACEMENT_FINISH_SUCCEEDED', { renewalId, sourceAdId, newAdId, inventoryId: result?.inventoryId || '' });
-            renderAppNotice(result?.notice || { kind: 'success', title: 'Neu inseriert', text: 'Die bisherige Anzeige wurde gelöscht und bleibt ' + trashRetentionPhrase() + ' im Papierkorb. Die neue Anzeige ist jetzt im Inventar gespeichert.' });
-            setStatus('ready', 'Austausch abgeschlossen', 'Die bisherige Anzeige wurde gelöscht, ' + trashRetentionPhrase() + ' im Papierkorb gesichert und die neue Anzeige im Inventar übernommen.');
+            renderAppNotice(result?.notice || { kind: 'success', title: 'Neu inseriert', text: 'Die bisherige Anzeige wurde gelöscht und bleibt noch 30 Tage im Papierkorb. Die neue Anzeige ist jetzt im Inventar gespeichert.' });
+            setStatus('ready', 'Austausch abgeschlossen', 'Die bisherige Anzeige wurde gelöscht, 30 Tage im Papierkorb gesichert und die neue Anzeige im Inventar übernommen.');
             await refreshInventories();
           } catch (error) {
             void logAppEvent('USER_RENEWAL_REPLACEMENT_FINISH_FAILED', { renewalId, sourceAdId, newAdId, message: error.message }, 'error');
@@ -558,19 +540,17 @@ function renderInventories(records = currentRecords) {
         removeButton.addEventListener('click', async () => {
           const renewalId = String(record.renewal.renewalId || '');
           void logAppEvent('USER_REMOVE_REPLACEMENT_READY_LOCAL_CLICK', { renewalId, inventoryId: record.inventoryId, sourceAdId: record.renewal.sourceAdId || '', newAdId: record.adId || '' });
-          if (!requireVerifiedTrashRetention()) return;
           if (!await confirmAction({ title: 'In Papierkorb verschieben?', text: `„${record.title || record.adId}“ wird nur lokal in den Papierkorb verschoben.`, detail: 'Bei Kleinanzeigen wird weder die neue noch die bisherige Anzeige gelöscht oder verändert.', confirmLabel: 'In Papierkorb', danger: true })) {
             void logAppEvent('USER_REMOVE_REPLACEMENT_READY_LOCAL_CANCELLED', { renewalId, inventoryId: record.inventoryId });
             return;
           }
-          if (!requireVerifiedTrashRetention()) return;
           finishButton.disabled = true;
           updateButton.disabled = true;
           removeButton.disabled = true;
           try {
             await runtimeMessage({ type: 'REMOVE_REPLACEMENT_READY_LOCAL', renewalId });
             void logAppEvent('USER_REMOVE_REPLACEMENT_READY_LOCAL_SUCCEEDED', { renewalId, inventoryId: record.inventoryId });
-            setStatus('ready', 'In Papierkorb verschoben', 'Der neue lokale Eintrag wurde ' + trashRetentionPhrase() + ' gesichert. Bei Kleinanzeigen wurde nichts gelöscht oder verändert.');
+            setStatus('ready', 'In Papierkorb verschoben', 'Der neue lokale Eintrag wurde für 30 Tage gesichert. Bei Kleinanzeigen wurde nichts gelöscht oder verändert.');
             await refreshInventories();
           } catch (error) {
             void logAppEvent('USER_REMOVE_REPLACEMENT_READY_LOCAL_FAILED', { renewalId, inventoryId: record.inventoryId, message: error.message }, 'error');
@@ -773,17 +753,15 @@ function renderInventories(records = currentRecords) {
     deleteButton.textContent = 'In Papierkorb';
     deleteButton.addEventListener('click', async () => {
       void logAppEvent('USER_DELETE_INVENTORY_CLICK', { inventoryId: record.inventoryId, adId: record.adId || '' });
-      if (!requireVerifiedTrashRetention()) return;
-      if (!await confirmAction({ title: 'In Papierkorb verschieben?', text: `„${record.title || record.adId}“ wird ${trashRetentionPhrase()} im Papierkorb aufbewahrt.`, detail: 'Die Anzeige bei Kleinanzeigen bleibt unverändert.', confirmLabel: 'In Papierkorb', danger: true })) {
+      if (!await confirmAction({ title: 'In Papierkorb verschieben?', text: `„${record.title || record.adId}“ wird 30 Tage im Papierkorb aufbewahrt.`, detail: 'Die Anzeige bei Kleinanzeigen bleibt unverändert.', confirmLabel: 'In Papierkorb', danger: true })) {
         void logAppEvent('USER_DELETE_INVENTORY_CANCELLED', { inventoryId: record.inventoryId, adId: record.adId || '' });
         return;
       }
-      if (!requireVerifiedTrashRetention()) return;
       deleteButton.disabled = true;
       try {
         await runtimeMessage({ type: 'DELETE_INVENTORY', inventoryId: record.inventoryId });
         void logAppEvent('USER_DELETE_INVENTORY_SUCCEEDED', { inventoryId: record.inventoryId, adId: record.adId || '' });
-        setStatus('ready', 'In Papierkorb verschoben', 'Der Eintrag bleibt ' + trashRetentionPhrase() + ' als Vorlage erhalten. Die Anzeige bei Kleinanzeigen wurde nicht verändert.');
+        setStatus('ready', 'In Papierkorb verschoben', 'Der Eintrag bleibt 30 Tage als Vorlage erhalten. Die Anzeige bei Kleinanzeigen wurde nicht verändert.');
         await refreshInventories();
       } catch (error) {
         void logAppEvent('USER_DELETE_INVENTORY_FAILED', { inventoryId: record.inventoryId, adId: record.adId || '', message: error.message }, 'error');

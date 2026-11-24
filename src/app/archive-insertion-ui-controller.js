@@ -165,7 +165,6 @@ function archiveProgressModel(session) {
   if (status === 'complete' || stage === 'complete') {
     states[1] = 'success'; states[2] = 'success'; states[3] = fast ? 'skipped' : 'success'; states[4] = 'success';
   }
-  if (status === 'publish-blocked') states[1] = 'error';
   if (status === 'needs-review') {
     states[1] = 'success'; states[2] = 'success'; states[3] = fast ? 'skipped' : 'error'; states[4] = 'success';
   }
@@ -178,7 +177,7 @@ function archiveProgressModel(session) {
 
 function showArchiveInsertionProgress(session, { forceOpen = false } = {}) {
   if (!session) return;
-  archiveDialogMode = ['complete', 'needs-review', 'publish-blocked'].includes(String(session.status || '')) ? 'complete' : 'progress';
+  archiveDialogMode = ['complete', 'needs-review'].includes(String(session.status || '')) ? 'complete' : 'progress';
   setTrackedArchiveInsertionId(session.archiveInsertionId || trackedArchiveInsertionId || '');
   trackedArchiveNewAdId = String(session.newAdId || trackedArchiveNewAdId || '') || null;
   trackedArchiveNewPublicUrl = String(session.newPublicUrl || trackedArchiveNewPublicUrl || '') || null;
@@ -198,7 +197,7 @@ function showArchiveInsertionProgress(session, { forceOpen = false } = {}) {
     archiveInsertIntro.classList.remove('hidden');
   }
   setArchivePhaseStates(model.states);
-  archiveBackgroundHint?.classList.toggle('hidden', ['complete', 'needs-review', 'error', 'cancelled', 'publish-blocked'].includes(String(session.status || '')));
+  archiveBackgroundHint?.classList.toggle('hidden', ['complete', 'needs-review', 'error', 'cancelled'].includes(String(session.status || '')));
 
   if (session.status === 'complete') {
     if (archiveInsertTitle) archiveInsertTitle.textContent = 'Anzeige erfolgreich inseriert';
@@ -208,14 +207,6 @@ function showArchiveInsertionProgress(session, { forceOpen = false } = {}) {
     const canOpen = /^\d+$/.test(String(session.newAdId || ''));
     archiveProgressView?.classList.toggle('hidden', !canOpen);
     archiveProgressEdit?.classList.toggle('hidden', !canOpen);
-  } else if (session.status === 'publish-blocked') {
-    if (archiveInsertTitle) archiveInsertTitle.textContent = 'Automatische Veröffentlichung gesperrt';
-    const code = /^KR_[A-Z0-9_]{1,100}$/.test(String(session.lastError || ''))
-      ? String(session.lastError) : 'KR_PUBLISH_INTENT_UNVERIFIED';
-    setArchiveProgressMessage('error', 'Veröffentlichung gesperrt – Status prüfen',
-      'Die Veröffentlichungsfreigabe wurde abgelehnt (' + code + '). Der Online-Status ist nicht unabhängig bestätigt. Bitte zunächst die Anzeige unter „Meine Anzeigen“ prüfen. Keine erneute Veröffentlichung oder ZIP-Einfügung starten.');
-    archiveProgressView?.classList.add('hidden');
-    archiveProgressEdit?.classList.add('hidden');
   } else if (session.status === 'needs-review') {
     if (archiveInsertTitle) archiveInsertTitle.textContent = 'Anzeige inseriert – Prüfung erforderlich';
     setArchiveProgressMessage('error', 'Angaben prüfen', 'Die neue Anzeige stimmt nicht vollständig mit den Daten aus dem ZIP überein.');

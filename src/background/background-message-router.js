@@ -11,7 +11,6 @@
     "LOG_DIAGNOSTIC_EVENT": Object.freeze({ handler: "LOG_DIAGNOSTIC_EVENT", preSafety: false }),
     "SET_ACCOUNT_GATE_DIAGNOSTIC_STATE": Object.freeze({ handler: "SET_ACCOUNT_GATE_DIAGNOSTIC_STATE", preSafety: false }),
     "STORE_GALLERY_DIAGNOSTIC": Object.freeze({ handler: "STORE_GALLERY_DIAGNOSTIC", preSafety: false }),
-    "GET_DIAGNOSTIC_OCCUPANCY": Object.freeze({ handler: "GET_DIAGNOSTIC_OCCUPANCY", preSafety: false }),
     "GET_DIAGNOSTIC_EXPORT": Object.freeze({ handler: "GET_DIAGNOSTIC_EXPORT", preSafety: false }),
     "RESET_DIAGNOSTICS": Object.freeze({ handler: "RESET_DIAGNOSTICS", preSafety: false }),
     "RESET_ACTIVE_WORKFLOWS": Object.freeze({ handler: "RESET_ACTIVE_WORKFLOWS", preSafety: false }),
@@ -20,9 +19,6 @@
     "GET_TAB_REGISTRY_SNAPSHOT": Object.freeze({ handler: "GET_TAB_REGISTRY_SNAPSHOT", preSafety: false }),
     "REACTIVATE_DISCARDED_TABS": Object.freeze({ handler: "REACTIVATE_DISCARDED_TABS", preSafety: false }),
     "GET_RENEWAL_CONFIGURATION": Object.freeze({ handler: "GET_RENEWAL_CONFIGURATION", preSafety: false }),
-    "GET_TRASH_RETENTION_CONFIGURATION": Object.freeze({ handler: "GET_TRASH_RETENTION_CONFIGURATION", preSafety: false }),
-    "PREVIEW_TRASH_RETENTION_CHANGE": Object.freeze({ handler: "PREVIEW_TRASH_RETENTION_CHANGE", preSafety: false }),
-    "COMMIT_TRASH_RETENTION_CHANGE": Object.freeze({ handler: "COMMIT_TRASH_RETENTION_CHANGE", preSafety: false }),
     "SET_RENEWAL_MODE": Object.freeze({ handler: "SET_RENEWAL_MODE", preSafety: false }),
     "SET_RENEWAL_PHASE_ATTEMPTS": Object.freeze({ handler: "SET_RENEWAL_PHASE_ATTEMPTS", preSafety: false }),
     "OPEN_EDIT_AD": Object.freeze({ handler: "OPEN_EDIT_AD", preSafety: false }),
@@ -85,9 +81,6 @@
     "GET_APP_NOTICE": Object.freeze({ handler: "GET_APP_NOTICE", preSafety: false }),
     "DISMISS_APP_NOTICE": Object.freeze({ handler: "DISMISS_APP_NOTICE", preSafety: false }),
     "RENEWAL_PUBLISH_CLICKED": Object.freeze({ handler: "RENEWAL_PUBLISH_CLICKED", preSafety: false }),
-    // Genuine pre-click permit is a routed, fenced operation. A content message
-    // never provides its own P8 admission token: only the admitted callback does.
-    "AUTHORIZE_AUTOMATIC_PUBLISH": Object.freeze({ handler: "AUTHORIZE_AUTOMATIC_PUBLISH", preSafety: false }),
     "GET_TEMPLATE_FILL_SESSION": Object.freeze({ handler: "GET_TEMPLATE_FILL_SESSION", preSafety: false }),
     "GET_TEMPLATE_IMAGE_CHUNK": Object.freeze({ handler: "GET_TEMPLATE_IMAGE_CHUNK", preSafety: false }),
     "UPDATE_TEMPLATE_FILL_SESSION": Object.freeze({ handler: "UPDATE_TEMPLATE_FILL_SESSION", preSafety: false }),
@@ -101,20 +94,6 @@
     if (!registry?.route || !registry?.errorFor) throw new Error('background-message-router requires MessageContractRegistry.');
     if (typeof assertPlatformAccessAllowedForRequest !== 'function') throw new Error('background-message-router requires platform safety guard.');
 
-    // Allow only genuinely read-only or essential safety-control routes during a fence.
-    // All other current/future routes are conservatively treated as mutations.
-    const UNFENCED_ROUTES = new Set([
-      'GET_NATIVE_UPDATE_STATUS', 'GET_BACKGROUND_EPOCH',
-      'GET_PLATFORM_ACCESS_RESTRICTION', 'PLATFORM_ACCESS_RESTRICTED',
-      'GET_PROFILE_STATE', 'LIST_INVENTORIES', 'LIST_TRASH',
-      // Read-only occupancy must stay available under transient Web Locks
-      // contention. ZIP export is deliberately NOT exempt: its durable P8
-      // receipt is the diagnosticExport owner's cross-worker safety proof.
-      'GET_DIAGNOSTIC_OCCUPANCY',
-      'OPEN_APP_WINDOW', 'GET_APP_NOTICE', 'GET_DIAGNOSTICS'
-    ]);
-    const withWorkflowAdmission = options.withWorkflowAdmission;
-
     async function dispatch(message, sender, { messageContract = null } = {}) {
       const contract = messageContract || registry.route(message?.type, 'background');
       if (contract.action !== 'accept') throw registry.errorFor(contract);
@@ -123,28 +102,6 @@
       const handler = handlers[descriptor.handler];
       if (typeof handler !== 'function') throw new Error(`Background handler fehlt: ${descriptor.handler}`);
       if (!descriptor.preSafety) await assertPlatformAccessAllowedForRequest(message);
-      if (typeof withWorkflowAdmission === 'function' && !UNFENCED_ROUTES.has(descriptor.handler)) {
-        // Keep the private source-issued P8 receipt in-band for this exact
-        // admitted handler; never copy provenance from message or sender.
-        if (descriptor.handler !== 'RESET_DIAGNOSTICS')
-          return withWorkflowAdmission(descriptor.handler,
-            admissionReceipt => handler(message, sender, admissionReceipt));
-
-        // P8 can fail while closing its durable receipt AFTER a reset ran.
-        // Do not expose that BUSY as a pre-admission retryable response.
-        let handlerStarted = false;
-        try {
-          return await withWorkflowAdmission(descriptor.handler, admissionReceipt => {
-            handlerStarted = true;
-            return handler(message, sender, admissionReceipt);
-          });
-        } catch (error) {
-          if (handlerStarted && error?.code === 'KR_UPDATE_FENCE_ATOMIC_BUSY')
-            throw Object.assign(new Error('KR_DIAGNOSTIC_RESET_OUTCOME_UNVERIFIED'),
-              { code: 'KR_DIAGNOSTIC_RESET_OUTCOME_UNVERIFIED' });
-          throw error;
-        }
-      }
       return handler(message, sender);
     }
 

@@ -1,28 +1,13 @@
-importScripts("../shared/runtime-deps.js", "../shared/message-contract-registry.js", "../shared/renewal-policy.js", "background-message-router.js", "services/native-update-status-gateway.js", "services/native-status-bridge.js", "services/update-workflow-fence.js", "repositories/profile-repository.js", "repositories/inventory-repository.js", "repositories/inventory-image-store.js", "services/inventory-capture-service.js", "services/inventory-refresh-service.js", "services/trash-service.js", "controllers/trash-management-controller.js", "services/diagnostics-service.js", "services/diagnostic-correlation-service.js", "services/listing-url-evidence-service.js", "services/tab-registry.js", "services/managed-tab-worker-service.js", "services/content-connection-manager.js", "services/account-probe-service.js", "controllers/profile-management-controller.js", "controllers/account-session-controller.js", "controllers/manual-listing-navigation-controller.js", "controllers/platform-safety-controller.js", "controllers/tab-lifecycle-observer.js", "controllers/workflow-emergency-reset-controller.js", "lib/bulk-run-guard.js", "controllers/single-inventory-controller.js", "services/bulk-worker-service.js", "services/bulk-reconciliation-service.js", "controllers/bulk-inventory-controller.js", "controllers/mass-renewal-controller.js", "services/mass-renewal-watchdog-service.js", "controllers/mass-renewal-workflow-controller.js", "services/renewal-verification-flow.js", "services/renewal-reinventory-flow.js", "services/renewal-phase1-retry-service.js", "services/paid-checkout-recovery-service.js", "controllers/renewal-workflow-controller.js", "services/renewal-verification-service.js", "repositories/renewal-state-repository.js", "services/template-fill-service.js", "services/insertion-lock-service.js", "controllers/template-fill-controller.js", "services/trash-template-publish-detection-service.js", "services/archive-insertion-service.js", "services/archive-insertion-verification-service.js", "services/archive-insertion-recovery-service.js", "controllers/archive-insertion-controller.js", "services/remote-delete-replacement-service.js", "services/published-inventory-resolver.js", "services/diagnostic-export-service.js", "services/public-listing-evidence-service.js", "services/renewal-public-evidence-coordinator.js", "../shared/managed-navigation.js", "lib/inventory-reconciliation.js", "../shared/my-ads-readiness.js", "lib/inventory-scope.js", "../shared/platform-hardening.js", "services/tab-load-coordinator.js", "../shared/template-schema-core.js", "services/persisted-owner-observer.js", "services/additional-owner-observer.js", "services/phase4-uncertainty-journal.js", "services/cross-worker-atomic-admission.js", "services/auto-publish-intent-journal.js", "services/publish-intent-authorization-service.js");
-// Private updater policy/authority: no content/app IPC route; production proof
-// sources remain intentionally absent until each of 15 owners is grounded.
-importScripts("../../lib/update-idle-policy.js", "services/trusted-owner-authority.js");
+importScripts("../shared/runtime-deps.js", "../shared/message-contract-registry.js", "../shared/renewal-policy.js", "background-message-router.js", "services/native-update-status-gateway.js", "services/native-status-bridge.js", "repositories/profile-repository.js", "repositories/inventory-repository.js", "repositories/inventory-image-store.js", "services/trash-service.js", "services/diagnostics-service.js", "services/tab-registry.js", "services/managed-tab-worker-service.js", "services/content-connection-manager.js", "services/account-probe-service.js", "controllers/profile-management-controller.js", "controllers/account-session-controller.js", "controllers/platform-safety-controller.js", "controllers/tab-lifecycle-observer.js", "controllers/workflow-emergency-reset-controller.js", "lib/bulk-run-guard.js", "controllers/single-inventory-controller.js", "services/bulk-worker-service.js", "services/bulk-reconciliation-service.js", "controllers/bulk-inventory-controller.js", "controllers/mass-renewal-controller.js", "services/mass-renewal-watchdog-service.js", "controllers/mass-renewal-workflow-controller.js", "services/renewal-verification-flow.js", "services/renewal-reinventory-flow.js", "services/paid-checkout-recovery-service.js", "controllers/renewal-workflow-controller.js", "services/renewal-verification-service.js", "repositories/renewal-state-repository.js", "services/template-fill-service.js", "services/insertion-lock-service.js", "controllers/template-fill-controller.js", "services/archive-insertion-service.js", "services/archive-insertion-verification-service.js", "services/archive-insertion-recovery-service.js", "controllers/archive-insertion-controller.js", "services/remote-delete-replacement-service.js", "services/published-inventory-resolver.js", "services/diagnostic-export-service.js", "services/public-listing-evidence-service.js", "../shared/managed-navigation.js", "lib/inventory-reconciliation.js", "../shared/my-ads-readiness.js", "lib/inventory-scope.js", "../shared/platform-hardening.js", "services/tab-load-coordinator.js");
 
 const KRDeps = globalThis.KRDeps;
 if (!KRDeps) throw new Error('runtime-deps.js must load before background.js');
-const TemplateSchemaCore = KRDeps.require('KRTemplateSchemaCore');
 const MessageContractRegistry = KRDeps.require('KRMessageContractRegistry');
 const RenewalPolicy = KRDeps.require('KRRenewalPolicy');
 const BackgroundMessageRouter = KRDeps.require('KRBackgroundMessageRouter');
 const NativeUpdateStatusGateway = KRDeps.require('KRNativeUpdateStatusGateway');
 const NativeStatusBridge = KRDeps.require('KRNativeStatusBridge');
-const UpdateWorkflowFence = KRDeps.require('KRUpdateWorkflowFence');
-const UpdateIdlePolicy = KRDeps.require('KRUpdateIdlePolicy');
-const TrustedOwnerAuthority = KRDeps.require('KRTrustedOwnerAuthority');
-const AtomicMV3Admission = KRDeps.require('KRAtomicMV3Admission');
-const AutoPublishIntentJournal = KRDeps.require('KRAutoPublishIntentJournal');
-const PublishIntentAuthorizationService = KRDeps.require('KRPublishIntentAuthorizationService');
-const PersistedOwnerObserver = KRDeps.require('KRPersistedOwnerObserver');
-const AdditionalOwnerObserver = KRDeps.require('KRAdditionalOwnerObserver');
-const Phase4UncertaintyJournal = KRDeps.require('KRPhase4UncertaintyJournal');
 const DiagnosticsService = KRDeps.require('KRDiagnosticsService');
-const DiagnosticCorrelationService = KRDeps.require('KRDiagnosticCorrelationService');
-const ListingUrlEvidenceService = KRDeps.require('KRListingUrlEvidenceService');
 const TabRegistry = KRDeps.require('KRTabRegistry');
 const ManagedNavigation = KRDeps.require('KRManagedNavigation');
 const InventoryReconciliation = KRDeps.require('KRInventoryReconciliation');
@@ -34,16 +19,12 @@ const TabLoadCoordinator = KRDeps.require('KRTabLoadCoordinator');
 const ProfileRepository = KRDeps.require('KRProfileRepository');
 const InventoryRepository = KRDeps.require('KRInventoryRepository');
 const InventoryImageStore = KRDeps.require('KRInventoryImageStore');
-const InventoryCaptureService = KRDeps.require('KRInventoryCaptureService');
-const InventoryRefreshService = KRDeps.require('KRInventoryRefreshService');
 const TrashService = KRDeps.require('KRTrashService');
-const TrashManagementController = KRDeps.require('KRTrashManagementController');
 const ManagedTabWorkerService = KRDeps.require('KRManagedTabWorkerService');
 const ContentConnectionManager = KRDeps.require('KRContentConnectionManager');
 const AccountProbeService = KRDeps.require('KRAccountProbeService');
 const ProfileManagementController = KRDeps.require('KRProfileManagementController');
 const AccountSessionController = KRDeps.require('KRAccountSessionController');
-const ManualListingNavigationController = KRDeps.require('KRManualListingNavigationController');
 const PlatformSafetyController = KRDeps.require('KRPlatformSafetyController');
 const WorkflowEmergencyResetController = KRDeps.require('KRWorkflowEmergencyResetController');
 const TabLifecycleObserver = KRDeps.require('KRTabLifecycleObserver');
@@ -55,18 +36,15 @@ const MassRenewalWorkflowController = KRDeps.require('KRMassRenewalWorkflowContr
 const RenewalVerificationService = KRDeps.require('KRRenewalVerificationService');
 const RenewalStateRepository = KRDeps.require('KRRenewalStateRepository');
 const RenewalWorkflowController = KRDeps.require('KRRenewalWorkflowController');
-const RenewalPhase1RetryService = KRDeps.require('KRRenewalPhase1RetryService');
 const TemplateFillService = KRDeps.require('KRTemplateFillService');
 const InsertionLockService = KRDeps.require('KRInsertionLockService');
 const TemplateFillController = KRDeps.require('KRTemplateFillController');
-const TrashTemplatePublishDetectionService = KRDeps.require('KRTrashTemplatePublishDetectionService');
 const ArchiveInsertionService = KRDeps.require('KRArchiveInsertionService');
 const ArchiveInsertionController = KRDeps.require('KRArchiveInsertionController');
 const RemoteDeleteReplacementService = KRDeps.require('KRRemoteDeleteReplacementService');
 const PublishedInventoryResolver = KRDeps.require('KRPublishedInventoryResolver');
 const DiagnosticExportService = KRDeps.require('KRDiagnosticExportService');
 const PublicListingEvidenceService = KRDeps.require('KRPublicListingEvidenceService');
-const RenewalPublicEvidenceCoordinator = KRDeps.require('KRRenewalPublicEvidenceCoordinator');
 
 const DB_NAME = "kleinanzeigen-renewal";
 const DB_VERSION = 2;
@@ -92,7 +70,7 @@ const RUNTIME_EPOCH_KEY = "runtimeEpochV1";
 const BULK_RETRY_POLL_MS = 500;
 const BULK_WORKER_TAB_CREATE_MAX_ATTEMPTS = 2;
 const BULK_WORKER_TAB_CREATE_RETRY_MS = 200;
-const CONTENT_SCRIPT_FILES = ["src/shared/runtime-deps.js", "src/shared/message-contract-registry.js", "src/shared/managed-navigation.js", "src/shared/platform-hardening.js", "src/content/platform-guard-content.js", "src/content/image-extractor.js", "src/content/form-extractor.js", "src/shared/template-schema-core.js", "src/content/paid-insertion-guard.js", "src/content/template-category-flow.js", "src/content/template-form-fields.js", "src/content/template-image-upload.js", "src/content/template-verification.js", "src/content/template-schema-preflight.js", "src/content/template-publish-flow.js", "src/content/template-filler.js", "src/shared/my-ads-readiness.js", "src/content/inventory-roster-parser.js", "src/content/inventory-readiness.js", "src/content/inventory-status-overlay.js", "src/content/inventory-delete-operations.js", "src/content/inventory-run-loop.js", "src/content/inventory-runner.js", "src/content/content.js"];
+const CONTENT_SCRIPT_FILES = ["src/shared/runtime-deps.js", "src/shared/message-contract-registry.js", "src/shared/managed-navigation.js", "src/shared/platform-hardening.js", "src/content/platform-guard-content.js", "src/content/image-extractor.js", "src/content/form-extractor.js", "src/content/paid-insertion-guard.js", "src/content/template-category-flow.js", "src/content/template-form-fields.js", "src/content/template-image-upload.js", "src/content/template-verification.js", "src/content/template-publish-flow.js", "src/content/template-filler.js", "src/shared/my-ads-readiness.js", "src/content/inventory-roster-parser.js", "src/content/inventory-readiness.js", "src/content/inventory-status-overlay.js", "src/content/inventory-delete-operations.js", "src/content/inventory-run-loop.js", "src/content/inventory-runner.js", "src/content/content.js"];
 const CONTENT_BOOTSTRAP_WAITS_MS = [80, 140, 240, 400, 650];
 const CONTENT_BOOTSTRAP_NAVIGATION_WAIT_MS = 30000;
 const DIAGNOSTIC_BATCH_FLUSH_MS = 1200;
@@ -135,7 +113,7 @@ const MASS_RENEWAL_MAX_ITEMS = 10;
 const MASS_RENEWAL_BATCH_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 const MASS_RENEWAL_WATCHDOG_STALE_MS = 5 * 60 * 1000;
 const MASS_RENEWAL_WATCHDOG_TICK_MS = 20 * 1000;
-const TRASH_RETENTION_MS = 30 * 24 * 60 * 60 * 1000; // Legacy 30-day fallback for older contracts.
+const TRASH_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 const APP_NOTICE_KEY = "appNoticeV1";
 const PLATFORM_ACCESS_RESTRICTION_KEY = "platformAccessRestrictionV1";
 const PLATFORM_ACCESS_RESTRICTION_ERROR_CODE = "KR_PLATFORM_ACCESS_RESTRICTED";
@@ -188,8 +166,7 @@ function requireTemplateFillController() {
     readArchiveInsertionSessions, persistArchiveInsertionSession,
     recordRenewalPhaseAttemptError, canRetryRenewalPhase1, restartRenewalPhase1Attempt,
     evictTemplateImageTransfersForFill, classifyKleinanzeigenInsertionErrorUrl,
-    cryptoApi: crypto, chromeApi: chrome, TemplateSchemaCore, queueMicrotaskFn: queueMicrotask,
-    withAutonomousAdmission,
+    cryptoApi: crypto, chromeApi: chrome, queueMicrotaskFn: queueMicrotask,
     TEMPLATE_TARGET_URL, TAB_ROLES, TERMINAL_TEMPLATE_FILL_STATUSES
   });
   return templateFillController;
@@ -217,10 +194,7 @@ function requireRemoteDeleteReplacementService() {
     renewalMaxPhaseAttempts, isPhase4DeleteTransportInterruption, assertMassRenewalManualActionAllowed, getInventory, normalBrowserWindowId,
     renewalPhaseAttemptAvailable, renewalAttemptState, delay, renewalPhaseRetryDelayMs, logRenewalPhaseAttemptStarted,
     logRenewalPhaseAttemptFailed, isNonRetryableRenewalSafetyError, renewalAttemptDetails, setAppNotice, markMassRenewalItemSucceeded,
-    IDBKeyRangeCtor: globalThis.IDBKeyRange, captureEmergencyResetGeneration, assertEmergencyResetGeneration,
-    beginPhase4Attempt: current => requirePhase4UncertaintyJournal().begin(current),
-    observePhase4Attempts: renewalId => requirePhase4UncertaintyJournal().observe(renewalId),
-    resolvePhase4Attempt: request => requirePhase4UncertaintyJournal().resolveVerified(request)
+    IDBKeyRangeCtor: globalThis.IDBKeyRange, captureEmergencyResetGeneration, assertEmergencyResetGeneration
   });
   return remoteDeleteReplacementService;
 }
@@ -247,17 +221,73 @@ function sessionCorrelationContext(session, extra = {}) {
   return { ...correlationContext(session, extra), ...extra };
 }
 
-let diagnosticCorrelationService = null;
-function requireDiagnosticCorrelationService() {
-  if (!diagnosticCorrelationService) diagnosticCorrelationService = DiagnosticCorrelationService.create({
-    correlationContext,
-    storageLocal: chrome.storage.local,
-    RENEWAL_SESSIONS_KEY, MASS_RENEWAL_BATCH_KEY, ARCHIVE_INSERTION_SESSIONS_KEY
-  });
-  return diagnosticCorrelationService;
+function correlationContextFromBindings(baseContext = {}, bindings = {}) {
+  let result = correlationContext(baseContext);
+  const fillSessions = Object.values(bindings.fillSessions || {}).filter(Boolean);
+  const renewalSessions = Object.values(bindings.renewalSessions || {}).filter(Boolean);
+  const archiveSessions = Object.values(bindings.archiveSessions || {}).filter(Boolean);
+  const bulkRun = bindings.bulkRun && typeof bindings.bulkRun === 'object' ? bindings.bulkRun : null;
+  const massBatch = bindings.massBatch && typeof bindings.massBatch === 'object' ? bindings.massBatch : null;
+  const senderTabId = Number(baseContext?.senderTabId || 0) || null;
+
+  const fill = fillSessions.find(item =>
+    (result.fillId && String(item?.fillId || '') === String(result.fillId)) ||
+    (result.renewalId && String(item?.renewalId || '') === String(result.renewalId)) ||
+    (senderTabId && Number(item?.targetTabId || 0) === senderTabId)
+  ) || null;
+  if (fill) result = correlationContext(result, fill);
+
+  const renewal = renewalSessions.find(item =>
+    (result.renewalId && String(item?.renewalId || '') === String(result.renewalId)) ||
+    (result.fillId && String(item?.fillId || '') === String(result.fillId)) ||
+    (fill?.renewalId && String(item?.renewalId || '') === String(fill.renewalId)) ||
+    (senderTabId && Number(item?.targetTabId || 0) === senderTabId)
+  ) || null;
+  if (renewal) result = correlationContext(result, renewal);
+
+  const archive = archiveSessions.find(item =>
+    (result.archiveInsertionId && String(item?.archiveInsertionId || '') === String(result.archiveInsertionId)) ||
+    (result.fillId && String(item?.fillId || '') === String(result.fillId)) ||
+    (senderTabId && Number(item?.targetTabId || 0) === senderTabId)
+  ) || null;
+  if (archive) result = correlationContext(result, archive);
+
+  const massBatchId = String(result.massBatchId || renewal?.massBatchId || fill?.massBatchId || '');
+  const massItems = Array.isArray(massBatch?.items) ? massBatch.items : [];
+  const massItem = massItems.find(item =>
+    (result.renewalId && String(item?.renewalId || '') === String(result.renewalId)) ||
+    (result.operationId && String(item?.operationId || '') === String(result.operationId))
+  ) || null;
+  if (massItem) result = correlationContext(result, massItem, { massBatchId: massBatch?.batchId || massBatchId });
+
+  const bulkMatches = bulkRun && (
+    (result.bulkRunId && String(bulkRun.bulkRunId || bulkRun.runId || '') === String(result.bulkRunId)) ||
+    (result.runId && String(bulkRun.runId || '') === String(result.runId)) ||
+    (senderTabId && [bulkRun.sourceTabId, bulkRun.workerTabId, bulkRun.metadataTabId].some(value => Number(value || 0) === senderTabId))
+  );
+  if (bulkMatches) result = correlationContext(result, bulkRun);
+
+  if (massBatch && (massBatchId && String(massBatch.batchId || '') === massBatchId || massItem)) {
+    result = correlationContext(result, { ...massBatch, massBatchId: massBatch.batchId || massBatchId });
+  }
+  return result;
 }
+
 async function resolveClientDiagnosticCorrelation(message = {}, sender = {}) {
-  return requireDiagnosticCorrelationService().resolveClientDiagnosticCorrelation(message, sender);
+  const senderTabId = Number(sender?.tab?.id || 0) || null;
+  const base = correlationContext(message?.context || {}, message?.details || {});
+  if (base.operationId) return base;
+  const stored = await chrome.storage.local.get([
+    'bulkInventoryRun', 'templateFillSessions', RENEWAL_SESSIONS_KEY,
+    MASS_RENEWAL_BATCH_KEY, ARCHIVE_INSERTION_SESSIONS_KEY
+  ]).catch(() => ({}));
+  return correlationContextFromBindings({ ...base, senderTabId }, {
+    bulkRun: stored?.bulkInventoryRun || null,
+    fillSessions: stored?.templateFillSessions || {},
+    renewalSessions: stored?.[RENEWAL_SESSIONS_KEY] || {},
+    massBatch: stored?.[MASS_RENEWAL_BATCH_KEY] || null,
+    archiveSessions: stored?.[ARCHIVE_INSERTION_SESSIONS_KEY] || {}
+  });
 }
 
 async function withInsertionStartGate(task) { return requireInsertionLockService().withInsertionStartGate(task); }
@@ -377,6 +407,7 @@ function classifyKleinanzeigenInsertionErrorUrl(rawUrl, evidence = {}) {
   }
 }
 
+
 async function getRenewalConfiguration() {
   const stored = await chrome.storage.local.get([RENEWAL_MODE_KEY, RENEWAL_FAST_MODE_ACK_KEY, RENEWAL_PHASE_ATTEMPTS_KEY]);
   return {
@@ -408,6 +439,7 @@ async function setRenewalPhaseAttempts(message) {
   }, { module: 'background', operation: 'renewal-configuration' }).catch(() => {});
   return configuration;
 }
+
 
 let managedTabWorkerService = null;
 function requireManagedTabWorkerService() {
@@ -641,8 +673,7 @@ async function openOrFocusAppWindow() {
 
 let inventoryRepository = null;
 let inventoryImageStore = null;
-let trashManagementController = null;
-let diagnosticsService = null; // Required by eager diagnostic-session startup and runtime message error handling.
+let trashService = null;
 
 function requireInventoryRepository() {
   if (inventoryRepository) return inventoryRepository;
@@ -654,9 +685,6 @@ function requireInventoryRepository() {
   });
   return inventoryRepository;
 }
-
-// Retained public storage facade: renewal and legacy IndexedDB consumers use this.
-function openDatabase() { return requireInventoryRepository().openDatabase(); }
 
 function requireInventoryImageStore() {
   if (inventoryImageStore) return inventoryImageStore;
@@ -671,15 +699,16 @@ function requireInventoryImageStore() {
   return inventoryImageStore;
 }
 
-function requireTrashManagementController() {
-  if (!trashManagementController) trashManagementController = TrashManagementController.create({
-    TrashService, inventoryRepository: requireInventoryRepository(),
-    storageLocal: chrome.storage.local, selectedProfileKey: SELECTED_PROFILE_KEY,
-    logDiagnostic, broadcastInventoryChanged, withAutonomousAdmission
-  });
-  return trashManagementController;
+function requireTrashService() {
+  if (trashService) return trashService;
+  if (!TrashService?.create) throw new Error('trash-service.js must load before trash storage is used');
+  trashService = TrashService.create({ inventoryRepository: requireInventoryRepository(), retentionMs: TRASH_RETENTION_MS });
+  return trashService;
 }
-function requireTrashService() { return requireTrashManagementController().service; }
+
+function openDatabase() { return requireInventoryRepository().openDatabase(); }
+
+let diagnosticsService = null;
 
 function requireDiagnosticsService() {
   if (diagnosticsService) return diagnosticsService;
@@ -711,7 +740,6 @@ function flushDiagnosticBuffer() { return requireDiagnosticsService().flush(); }
 function logDiagnostic(level, event, details = {}, meta = {}) { return requireDiagnosticsService().log(level, event, details, meta); }
 function storeGalleryDiagnostic(message, sender) { return requireDiagnosticsService().storeGallery(message, sender); }
 function readRecentGalleryDiagnostics() { return requireDiagnosticsService().readRecentGallery(); }
-function readDiagnosticOccupancy() { return requireDiagnosticsService().occupancy(); }
 function resetDiagnostics() { return requireDiagnosticsService().reset(); }
 
 async function logClientDiagnostic(message, sender) {
@@ -775,6 +803,7 @@ function requireProfileManagementController() {
 
 async function readProfiles() { return requireProfileManagementController().readProfiles(); }
 
+
 async function getProfileState() { return requireProfileManagementController().getProfileState(); }
 async function setSelectedProfile(message) { return requireProfileManagementController().setSelectedProfile(message); }
 async function prepareProfileBackupImport(message) { return requireProfileManagementController().prepareProfileBackupImport(message); }
@@ -786,42 +815,217 @@ async function assignUnprofiledInventories(message) { return requireProfileManag
 
 if (chrome?.storage?.local) void logDiagnostic('info', 'DIAGNOSTIC_SESSION_STARTED', { sessionId: currentDiagnosticSessionId() }, { module: 'background', operation: 'diagnostic-session' }).catch(() => {});
 
-let inventoryCaptureService = null;
-function requireInventoryCaptureService() {
-  if (!inventoryCaptureService) inventoryCaptureService = InventoryCaptureService.create({
-    templateSchemaCore: TemplateSchemaCore,
-    logDiagnostic,
-    commitInventory: (record, stagedImages) => requireInventoryRepository().commit(record, stagedImages),
-    getInventory,
-    broadcastInventoryChanged
-  });
-  return inventoryCaptureService;
+function isTrustedProdAdImageUrl(url) {
+  return url.protocol === "https:"
+    && url.hostname === "img.kleinanzeigen.de"
+    && /^\/api\/v1\/prod-ads\/images\/[0-9a-f]{2}\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(url.pathname);
 }
+
+function jpegCandidates(rawUrl) {
+  const url = new URL(rawUrl);
+  if (url.protocol !== "https:" || url.hostname !== "img.kleinanzeigen.de") throw new Error("Unzulässige Bildquelle");
+  const candidates = [];
+  const rule = url.searchParams.get("rule");
+
+  // Kleinanzeigen' own prod-ads UUID endpoint is trusted. Real edit-form tests show
+  // that the hidden adImages[n].url may omit a visible rule while the same endpoint
+  // still supports the established large JPEG variant. Try that verified variant
+  // first, but only for this narrowly matched Kleinanzeigen CDN path.
+  if (isTrustedProdAdImageUrl(url) || rule) {
+    const large = new URL(url);
+    large.searchParams.set("rule", "$_57.JPG");
+    candidates.push(large.toString());
+  }
+
+  if (rule) {
+    const jpeg = new URL(url);
+    jpeg.searchParams.set("rule", rule.replace(/\.(AUTO|JPG|JPEG|PNG|WEBP|AVIF|GIF)$/i, ".JPG"));
+    candidates.push(jpeg.toString());
+  }
+  candidates.push(url.toString());
+  return [...new Set(candidates)];
+}
+
+function sourceUrlsForImage(source) {
+  if (typeof source === "string") return [source];
+  if (!source || typeof source !== "object") return [];
+  return [...new Set([
+    source.downloadUrl,
+    ...(Array.isArray(source.sourceUrls) ? source.sourceUrls : []),
+    source.url,
+    ...(Array.isArray(source.variants) ? source.variants : [])
+  ].filter(Boolean))];
+}
+
+function detectImageMime(bytes) {
+  const ascii = (start, end) => String.fromCharCode(...bytes.slice(start,end));
+  if (bytes[0]===255 && bytes[1]===216 && bytes[2]===255) return "image/jpeg";
+  if (bytes[0]===137 && ascii(1,4)==="PNG" && bytes[4]===13 && bytes[5]===10 && bytes[6]===26 && bytes[7]===10) return "image/png";
+  if (["GIF87a","GIF89a"].includes(ascii(0,6))) return "image/gif";
+  if (ascii(0,4)==="RIFF" && ascii(8,12)==="WEBP") return "image/webp";
+  if (ascii(4,8)==="ftyp") {
+    const boxSize = ((bytes[0]<<24) | (bytes[1]<<16) | (bytes[2]<<8) | bytes[3]) >>> 0;
+    for (let i=8;i+4<=Math.min(bytes.length,boxSize);i+=4) {
+      if (i!==12 && ["avif","avis"].includes(ascii(i,i+4))) return "image/avif";
+    }
+  }
+  return null;
+}
+
+function largeEnough(width, height, source) {
+  const thumbnailWidth = Number(source?.thumbnailWidth || 0);
+  const thumbnailHeight = Number(source?.thumbnailHeight || 0);
+  if (!thumbnailWidth || !thumbnailHeight) return { ok: true, evidence: "decoded-dimensions-no-thumbnail-baseline" };
+  const areaRatio = (width * height) / Math.max(1, thumbnailWidth * thumbnailHeight);
+  const edgeRatio = Math.max(width, height) / Math.max(1, Math.max(thumbnailWidth, thumbnailHeight));
+  return {
+    ok: areaRatio >= 4 && edgeRatio >= 1.5,
+    evidence: `decoded-vs-thumbnail:${width}x${height}/${thumbnailWidth}x${thumbnailHeight}`
+  };
+}
+
+async function downloadInventoryImage(source, requireJpeg = false, requireLarge = false) {
+  const sourceUrls = sourceUrlsForImage(source);
+  if (!sourceUrls.length) throw new Error("Keine zulässige Bildquelle vorhanden");
+  let lastError = null;
+  let fallback = null;
+  const attempted = new Set();
+  for (const rawUrl of sourceUrls) {
+    const candidates = source?.preferExactDownloadUrl === true && rawUrl === source?.downloadUrl
+      ? [rawUrl, ...jpegCandidates(rawUrl).filter(candidate => candidate !== rawUrl)]
+      : jpegCandidates(rawUrl);
+    for (const candidate of candidates) {
+      if (attempted.has(candidate)) continue;
+      attempted.add(candidate);
+      try {
+        const response = await fetch(candidate, { credentials: "omit", cache: "no-cache", redirect: "error", signal: AbortSignal.timeout(20000) });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const blob = await response.blob();
+        if (!blob.size || blob.size > (requireJpeg ? 12 : 20) * 1024 * 1024) throw new Error("Bild ist leer oder überschreitet das Dateigrößenlimit");
+        const signatureMime = detectImageMime(new Uint8Array(await blob.slice(0,256).arrayBuffer()));
+        if (!signatureMime) throw new Error("Bildformat anhand der Dateidaten nicht erkannt");
+        const value = {
+          blob: blob.slice(0, blob.size, signatureMime),
+          sourceUrl: rawUrl,
+          fetchedUrl: candidate,
+          mimeType: signatureMime,
+          responseMimeType: blob.type,
+          formatEvidence: "file-signature",
+          size: blob.size
+        };
+        if (signatureMime === "image/jpeg") {
+          if (requireJpeg || requireLarge) {
+            const bitmap = await createImageBitmap(value.blob);
+            try {
+              if (!bitmap.width || !bitmap.height) throw new Error("JPEG enthält keine gültigen Bildabmessungen");
+              value.width = bitmap.width;
+              value.height = bitmap.height;
+              value.formatEvidence = "file-signature-and-decode";
+              if (requireLarge) {
+                const large = largeEnough(bitmap.width, bitmap.height, source);
+                value.largeImageEvidence = large.evidence;
+                if (!large.ok) throw new Error(`JPEG ist nur Thumbnail-Größe (${bitmap.width}×${bitmap.height})`);
+              }
+            } finally {
+              bitmap.close();
+            }
+          }
+          const digest = await crypto.subtle.digest("SHA-256", await value.blob.arrayBuffer());
+          value.sha256 = [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, "0")).join("");
+          return value;
+        }
+        const digest = await crypto.subtle.digest("SHA-256", await value.blob.arrayBuffer());
+        value.sha256 = [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, "0")).join("");
+        fallback ||= value;
+      } catch (error) {
+        lastError = error;
+      }
+    }
+  }
+  if (fallback && !requireJpeg) return fallback;
+  if (requireLarge) throw lastError || new Error("Keine große dekodierbare JPEG-Version verfügbar");
+  if (requireJpeg && fallback) throw new Error("Keine dekodierbare JPEG-Version verfügbar (erkannt: " + fallback.mimeType + ")");
+  throw lastError || new Error("Bild konnte nicht geladen werden");
+}
+
+// Both stores commit together; a failed request rolls back deletes and puts.
+async function commitInventory(record, stagedImages) { return requireInventoryRepository().commit(record, stagedImages); }
+
+let inventorySaveRunning = false;
 async function saveInventory(extracted, options = {}) {
-  return requireInventoryCaptureService().saveInventory(extracted, options);
+  if (inventorySaveRunning) throw new Error("Eine Erfassung läuft bereits. Bitte warten.");
+  inventorySaveRunning = true;
+  try {
+    if (!extracted?.adId || !Array.isArray(extracted.images)) {
+      throw new Error("Keine eindeutige Anzeigen-ID oder Bildliste vorhanden.");
+    }
+    const inventoryId = String(options.inventoryIdOverride || extracted.adId);
+    const capturedAt = new Date().toISOString();
+    await logDiagnostic('info', 'INVENTORY_SAVE_STARTED', { inventoryId, adId: String(extracted.adId), imageCount: extracted.images.length }, { module: 'background', operation: 'inventory-save', context: { adId: String(extracted.adId) } }).catch(() => {});
+    const stagedImages = [];
+    const imageResults = [];
+    let totalBytes = 0;
+    for (let index = 0; index < extracted.images.length; index += 1) {
+      let downloaded;
+      await logDiagnostic('info', 'INVENTORY_IMAGE_DOWNLOAD_STARTED', { inventoryId, image: index + 1, total: extracted.images.length, imageId: extracted.images[index]?.imageId || null }, { module: 'background', operation: 'inventory-image', context: { adId: String(extracted.adId) } }).catch(() => {});
+      try {
+        downloaded = await downloadInventoryImage(extracted.images[index], extracted.extraction?.requiresJpeg === true, extracted.extraction?.requiresLargeJpeg === true);
+        if (extracted.extraction?.requiresJpeg && (downloaded.mimeType !== "image/jpeg" || downloaded.formatEvidence !== "file-signature-and-decode")) throw new Error("JPEG-Prüfung fehlgeschlagen");
+        await logDiagnostic('info', 'INVENTORY_IMAGE_DOWNLOAD_SUCCEEDED', { inventoryId, image: index + 1, total: extracted.images.length, mimeType: downloaded.mimeType, size: downloaded.size, width: downloaded.width || null, height: downloaded.height || null }, { module: 'background', operation: 'inventory-image', context: { adId: String(extracted.adId) } }).catch(() => {});
+      } catch (error) {
+        await logDiagnostic('error', 'INVENTORY_IMAGE_DOWNLOAD_FAILED', { inventoryId, image: index + 1, total: extracted.images.length, message: String(error.message || error).slice(0, 500), stack: String(error.stack || '').slice(0, 2000) }, { module: 'background', operation: 'inventory-image', context: { adId: String(extracted.adId) } }).catch(() => {});
+        throw new Error(`Bild ${index + 1} konnte nicht gesichert werden: ${error.message}. Vorhandenes Inventar bleibt erhalten.`);
+      }
+      totalBytes += downloaded.size;
+      if (totalBytes > 128 * 1024 * 1024) throw new Error("Bildbestand überschreitet 128 MiB. Vorhandenes Inventar bleibt erhalten.");
+      const imageKey = `${inventoryId}:${index}`;
+      stagedImages.push({ imageKey, inventoryId, position: index, ...downloaded, capturedAt });
+      const { blob, ...metadata } = downloaded;
+      imageResults.push({ imageId: extracted.images[index].imageId, identityType: extracted.images[index].identityType, sourceFormatHint: extracted.images[index].sourceFormatHint, variants: extracted.images[index].variants, isPrimary: Boolean(extracted.images[index].isPrimary || index === 0), downloadSource: extracted.images[index].downloadSource || null, ...metadata, imageKey, position: index, locallyStored: true, uploadReady: downloaded.mimeType === "image/jpeg" });
+    }
+    const record = {
+      ...extracted, inventoryId, schemaVersion: 2, capturedAt,
+      images: imageResults,
+      imageSummary: {
+        discovered: imageResults.length,
+        locallyStored: imageResults.length,
+        uploadReadyJpeg: imageResults.filter(image => image.uploadReady).length
+      }
+    };
+    await commitInventory(record, stagedImages);
+    // Diagnostics must never turn a completed commit into an apparent failure.
+    await logDiagnostic("info", "INVENTORY_SAVED", {
+      inventoryId, imageSummary: record.imageSummary, atomicCommit: true
+    }).catch(() => {});
+    broadcastInventoryChanged('saved', { inventoryId, adId: String(record.adId || inventoryId), capturedAt: record.capturedAt });
+    return record;
+  } finally {
+    inventorySaveRunning = false;
+  }
 }
 
 async function readAllInventoryRecords() { return requireInventoryRepository().readAll(); }
 
 async function readInventoryRecordsForProfile(profileId) { return requireInventoryRepository().readForProfile(profileId); }
 
+
 function invalidateTrashPurgeSchedule() { requireTrashService().invalidatePurgeSchedule(); }
 
-async function purgeExpiredTrash() { return requireTrashManagementController().purgeExpiredTrash(); }
+async function purgeExpiredTrash() {
+  const result = await requireTrashService().purgeExpired();
+  if (!result.purged) return { purged: 0, skipped: result.skipped === true, nextDueAt: result.nextDueAt };
+  await logDiagnostic('info', 'TRASH_EXPIRED_PURGED', { count: result.expired.length, inventoryIds: result.expired.map(record => String(record.inventoryId || '')).slice(0, 100) }, { module: 'background', operation: 'trash-purge' }).catch(() => {});
+  broadcastInventoryChanged('trash-expired-purged', { count: result.expired.length });
+  return { purged: result.expired.length, nextDueAt: result.nextDueAt };
+}
 
 async function listInventories(profileId) { await purgeExpiredTrash(); const records = (await readInventoryRecordsForProfile(profileId)).filter(record => !isTrashRecord(record)); return records.sort((a, b) => String(b.capturedAt || '').localeCompare(String(a.capturedAt || ''))); }
 
 async function listTrashEntries(profileId) { await purgeExpiredTrash(); return requireTrashService().list(profileId); }
 
-async function getTrashRetentionConfiguration() { return requireTrashService().getConfiguration(); }
-async function previewTrashRetentionChange(message) {
-  return requireTrashService().previewRetentionChange(message?.retentionDays, message?.selectedProfileId);
-}
-async function commitTrashRetentionChange(message) {
-  return requireTrashManagementController().commitTrashRetentionChange(message);
-}
 
 async function setAccountGateDiagnosticState(message = {}) { return requireAccountSessionController().setAccountGateDiagnosticState(message); }
+
 
 let diagnosticExportService = null;
 function requireDiagnosticExportService() {
@@ -882,8 +1086,21 @@ async function deleteInventoryStorageRecord(inventoryId) { return requireInvento
 
 async function moveInventoryToTrash(inventoryId, reason = 'manual', context = {}) { return requireTrashService().moveToTrash(inventoryId, reason, context); }
 
-async function resetTrashRetention(inventoryId) { return requireTrashManagementController().resetTrashRetention(inventoryId); }
-async function deleteTrashEntry(inventoryId) { return requireTrashManagementController().deleteTrashEntry(inventoryId); }
+async function resetTrashRetention(inventoryId) {
+  const id = String(inventoryId || '');
+  const updated = await requireTrashService().resetRetention(id);
+  await logDiagnostic('info', 'TRASH_RETENTION_RESET', { inventoryId: id, adId: updated.adId || null, expiresAt: updated.trash?.expiresAt || null }, { module: 'background', operation: 'trash-retention-reset', context: { adId: updated.adId || null } }).catch(() => {});
+  broadcastInventoryChanged('trash-retention-reset', { inventoryId: id, adId: updated.adId || null, expiresAt: updated.trash?.expiresAt || null });
+  return { inventoryId: id, expiresAt: updated.trash?.expiresAt || null, retentionResetAt: updated.trash?.retentionResetAt || null };
+}
+
+async function deleteTrashEntry(inventoryId) {
+  const id = String(inventoryId || '');
+  const record = await requireTrashService().deleteEntry(id);
+  await logDiagnostic('info', 'TRASH_ENTRY_PERMANENTLY_DELETED', { inventoryId: id, adId: record.adId || null, trashedAt: record.trash?.trashedAt || null }, { module: 'background', operation: 'trash-delete', context: { adId: record.adId || null } }).catch(() => {});
+  broadcastInventoryChanged('trash-entry-deleted', { inventoryId: id, adId: record.adId || null });
+  return { deleted: true, inventoryId: id };
+}
 
 async function deleteInventory(inventoryId) {
   const active = await getBulkRunState();
@@ -900,8 +1117,6 @@ async function deleteInventory(inventoryId) {
 }
 
 async function removeReplacementReadyLocal(message) { return requireRemoteDeleteReplacementService().removeReplacementReadyLocal(message); }
-
-async function recoverEmergencyResetCandidateAtomic(session) { return requireRemoteDeleteReplacementService().recoverEmergencyResetCandidateAtomic(session); }
 
 async function promoteRenewalCandidateAtomic(session) { return requireRemoteDeleteReplacementService().promoteRenewalCandidateAtomic(session); }
 
@@ -921,11 +1136,11 @@ async function assertMassRenewalManualActionAllowed(message = {}) {
   if (batch?.status === 'running') throw new Error('Das Neu-Inserieren läuft noch. Einzelne Wiederholungen sind erst in der Abschlussübersicht möglich.');
 }
 
-function verifyRenewalSourceAbsenceFresh(...args) { return requireRemoteDeleteReplacementService().verifyRenewalSourceAbsenceFresh(...args); }
+async function verifyRenewalSourceAbsenceFresh(session, expectedProfile, windowId, attemptState, purpose = 'post-delete') { return requireRemoteDeleteReplacementService().verifyRenewalSourceAbsenceFresh(session, expectedProfile, windowId, attemptState, purpose); }
 
-function preverifyAndTriggerRenewalSourceDeleteAttempt(...args) { return requireRemoteDeleteReplacementService().preverifyAndTriggerRenewalSourceDeleteAttempt(...args); }
+async function preverifyAndTriggerRenewalSourceDeleteAttempt(session, expectedProfile, windowId, attemptState) { return requireRemoteDeleteReplacementService().preverifyAndTriggerRenewalSourceDeleteAttempt(session, expectedProfile, windowId, attemptState); }
 
-async function finishRenewalReplacement(message, admissionReceipt) { return requireRemoteDeleteReplacementService().finishRenewalReplacement(message, admissionReceipt); }
+async function finishRenewalReplacement(message) { return requireRemoteDeleteReplacementService().finishRenewalReplacement(message); }
 
 async function discardRenewalDraft(message) {
   const renewalId = String(message?.renewalId || '');
@@ -972,7 +1187,6 @@ async function discardRenewalDraft(message) {
 }
 
 async function clearInventories(profileId) {
-  const retention = (await getTrashRetentionConfiguration()).retentionDays;
   const active = await getBulkRunState();
   if (active?.status === "running" || active?.retryAdId) throw new Error("Die Inventarliste kann während einer laufenden Erfassung oder einer einzelnen Wiederholung nicht geleert werden.");
   const renewals = await readRenewalSessions().catch(() => ({}));
@@ -991,7 +1205,7 @@ async function clearInventories(profileId) {
       const store = tx.objectStore(INVENTORY_STORE);
       for (const record of records) store.put(trashRecordFrom(record, 'inventory-cleared', { source: 'clear-inventory' }, now));
     });
-    await logDiagnostic('info', 'INVENTORY_CLEARED_TO_TRASH', { count: records.length, profileId: profileId === UNASSIGNED_PROFILE_ID ? null : (profileId || null), unassigned: profileId === UNASSIGNED_PROFILE_ID, expiresAt: retention === 'infinite' ? null : new Date(now.getTime() + retention * 24 * 60 * 60 * 1000).toISOString() }).catch(() => {});
+    await logDiagnostic('info', 'INVENTORY_CLEARED_TO_TRASH', { count: records.length, profileId: profileId === UNASSIGNED_PROFILE_ID ? null : (profileId || null), unassigned: profileId === UNASSIGNED_PROFILE_ID, expiresAt: new Date(now.getTime() + TRASH_RETENTION_MS).toISOString() }).catch(() => {});
     broadcastInventoryChanged('cleared-to-trash', { count: records.length });
     return { cleared: true, movedToTrash: records.length };
   } finally { db.close(); }
@@ -1102,6 +1316,7 @@ function normalizedBulkRosterIds(values) { return requireBulkInventoryController
 
 function bulkRosterEvidence(pages) { return requireBulkInventoryController().bulkRosterEvidence(pages); }
 
+
 async function recordBulkRosterPage(message, sender, options = {}) { return requireBulkInventoryController().recordBulkRosterPage(message, sender, options); }
 
 async function beginBulkReconciliation(message, sender) { return requireBulkInventoryController().beginBulkReconciliation(message, sender); }
@@ -1113,6 +1328,7 @@ async function moveReconciliationCandidatesToTrash(state, remoteIds) { return re
 async function finishBulkReconciliation(message, sender) { return requireBulkInventoryController().finishBulkReconciliation(message, sender); }
 
 function requireBulkSource(state, sender) { return requireBulkInventoryController().requireBulkSource(state, sender); }
+
 
 
 async function startBulkInventoryOperation(message = {}) { return requireBulkInventoryController().startBulkInventoryOperation(message); }
@@ -1184,10 +1400,6 @@ async function sendTabRequestWithBootstrap(tabId, message) {
   } catch (error) {
     const text = String(error?.message || error || '');
     if (!/Receiving end does not exist|Could not establish connection|message port closed/i.test(text)) throw error;
-    // A closed reply port can mean the source deletion already happened.
-    // Never transparently resend the destructive DELETE across bootstrap.
-    // Phase-4 journal + independent readback owns this unknown outcome.
-    if (String(message?.type || '') === 'DELETE_OWN_AD_BY_ID') throw error;
     await ensureContentConnection({ tabId });
     return sendTabRequest(tabId, message);
   }
@@ -1195,19 +1407,61 @@ async function sendTabRequestWithBootstrap(tabId, message) {
 
 const trashTemplatePublishDetectionInFlight = new Set();
 
-let trashTemplatePublishDetectionService = null;
-function requireTrashTemplatePublishDetectionService() {
-  if (!trashTemplatePublishDetectionService) trashTemplatePublishDetectionService = TrashTemplatePublishDetectionService.create({
-    sessionPort: { readFillSessions, writeFillSessions, withTemplateFillMutation },
-    tabPort: { tabRegistry, chrome, TAB_ROLES, registerShadowTab, ensureContentConnection, sendTabRequest },
-    evidencePort: { publishedAdCandidateFromUrl, URL },
-    diagnosticsPort: { logDiagnostic, sessionCorrelationContext, broadcastInventoryChanged },
-    statePort: { trashTemplatePublishDetectionInFlight }
-  });
-  return trashTemplatePublishDetectionService;
-}
 async function maybeDetectTrashTemplatePublishedAd(tabId, changeInfo = {}, tabHint = null) {
-  return requireTrashTemplatePublishDetectionService().maybeDetectTrashTemplatePublishedAd(tabId, changeInfo, tabHint);
+  const id = Number(tabId || 0);
+  if (!id || trashTemplatePublishDetectionInFlight.has(id)) return false;
+  const candidateUrl = String(changeInfo?.url || tabHint?.url || '');
+  if (candidateUrl && !/(^|\.)kleinanzeigen\.de$/i.test((() => { try { return new URL(candidateUrl).hostname; } catch { return ''; } })())) return false;
+  const sessions = await readFillSessions().catch(() => ({}));
+  const session = Object.values(sessions).find(item => item?.templateOnly === true && Number(item?.targetTabId || 0) === id && String(item?.status || '') === 'complete' && !/^\d+$/.test(String(item?.newAdId || '')));
+  if (!session) return false;
+
+  trashTemplatePublishDetectionInFlight.add(id);
+  try {
+    const tab = tabHint?.id ? tabHint : await tabRegistry.getTabOrThrow(id, chrome.tabs, { label: 'Vorlagen-Tab', role: TAB_ROLES.TEMPLATE_TARGET, owner: { ownerType: 'trash-template', ownerId: session.fillId } });
+    const directCandidate = publishedAdCandidateFromUrl(changeInfo?.url || tab?.url || '', session.sourceAdId);
+    if (!directCandidate && changeInfo?.status !== 'complete') return false;
+    await ensureContentConnection({ tabId: id });
+    const [pageStatus, detected] = await Promise.all([
+      sendTabRequest(id, { type: 'PAGE_STATUS' }).catch(() => null),
+      sendTabRequest(id, { type: 'DETECT_PUBLISHED_AD', sourceAdId: session.sourceAdId }).catch(() => null)
+    ]);
+    const adId = String(detected?.adId || directCandidate?.adId || pageStatus?.adId || '');
+    if (!/^\d+$/.test(adId) || adId === String(session.sourceAdId || '')) return false;
+    const owned = pageStatus?.auth?.loggedIn === true && pageStatus?.auth?.ownAd === true;
+    const pageAdId = String(pageStatus?.adId || '');
+    if (!owned || (pageAdId && pageAdId !== adId)) return false;
+    const publishedUrl = String(detected?.publicUrl || directCandidate?.publicUrl || (directCandidate?.kind === 'public' ? directCandidate.url : '') || tab?.url || '');
+
+    let updated = null;
+    await withTemplateFillMutation(async () => {
+      const latest = await readFillSessions();
+      const current = latest[session.fillId];
+      if (!current?.templateOnly || Number(current.targetTabId || 0) !== id || /^\d+$/.test(String(current.newAdId || ''))) return;
+      current.newAdId = adId;
+      current.publishedUrl = publishedUrl || null;
+      current.publishedAt = new Date().toISOString();
+      current.stage = 'template-only-published';
+      current.updatedAt = current.publishedAt;
+      latest[current.fillId] = current;
+      await writeFillSessions(latest);
+      updated = current;
+    });
+    if (!updated) return false;
+    await registerShadowTab(id, TAB_ROLES.TEMPLATE_TARGET, { operationId: updated.operationId || null, fillId: updated.fillId, inventoryId: String(updated.inventoryId || ''), adId, ownerType: 'trash-template', ownerId: updated.fillId });
+    await logDiagnostic('info', 'TRASH_TEMPLATE_PUBLISHED_DETECTED', {
+      operationId: updated.operationId || null,
+      fillId: updated.fillId,
+      sourceAdId: updated.sourceAdId || null,
+      newAdId: adId,
+      targetTabId: id,
+      publishedUrl: publishedUrl || null
+    }, { module: 'background', operation: 'trash-template-publish-detection', context: sessionCorrelationContext(updated, { adId, targetTabId: id }) }).catch(() => {});
+    broadcastInventoryChanged('trash-template-published', { fillId: updated.fillId, inventoryId: updated.inventoryId || null, sourceAdId: updated.sourceAdId || null, newAdId: adId, targetTabId: id });
+    return true;
+  } finally {
+    trashTemplatePublishDetectionInFlight.delete(id);
+  }
 }
 
 function isPhase4DeleteTransportInterruption(error) {
@@ -1299,17 +1553,16 @@ async function normalBrowserWindowId() {
   return focused?.id ?? null;
 }
 
-let manualListingNavigationController = null;
-function requireManualListingNavigationController() {
-  if (!manualListingNavigationController) manualListingNavigationController = ManualListingNavigationController.create({
-    navigationPort: { normalBrowserWindowId, createAutomationTab, waitForTabComplete, chrome },
-    evidencePort: { getInventory, normalizeKnownPublicAdUrl, publicUrlForInventoryRecord, directPublicUrlForAdId },
-    diagnosticsPort: { logDiagnostic }
-  });
-  return manualListingNavigationController;
-}
 async function openEditAd(message) {
-  return requireManualListingNavigationController().openEditAd(message);
+  const adId = String(message?.adId || '');
+  if (!/^\d+$/.test(adId)) throw new Error('Anzeigen-ID ist ungültig.');
+  const url = `https://www.kleinanzeigen.de/p-anzeige-bearbeiten.html?adId=${encodeURIComponent(adId)}`;
+  const windowId = await normalBrowserWindowId();
+  const tab = await createAutomationTab({ ...(windowId ? { windowId } : {}), url, active: true });
+  if (!tab?.id) throw new Error('Bearbeiten-Tab konnte nicht geöffnet werden.');
+  if (windowId) await chrome.windows.update(windowId, { focused: true }).catch(() => {});
+  await logDiagnostic('info', 'EDIT_AD_OPENED', { adId, tabId: tab.id, windowId: tab.windowId ?? windowId }, { module: 'background', operation: 'open-edit-ad', context: { adId, tabId: tab.id } }).catch(() => {});
+  return { adId, tabId: tab.id };
 }
 
 let publicListingEvidenceService = null;
@@ -1317,9 +1570,7 @@ function requirePublicListingEvidenceService() {
   if (!publicListingEvidenceService) {
     publicListingEvidenceService = PublicListingEvidenceService.create({
       URL, chromeTabs: chrome.tabs, delay, ensureContentConnection, sendTabRequestWithBootstrap,
-      readOnlyMetadataTimeoutMs: READONLY_METADATA_TIMEOUT_MS,
-      normalizeProfileName, createAutomationTab, waitForTabComplete, closeRegistryTabs,
-      MY_ADS_PROJECTS_URL, TAB_LOAD_TIMEOUT_RENEWAL_MS
+      readOnlyMetadataTimeoutMs: READONLY_METADATA_TIMEOUT_MS
     });
   }
   return publicListingEvidenceService;
@@ -1328,7 +1579,58 @@ function requirePublicListingEvidenceService() {
 function normalizeKnownPublicAdUrl(rawUrl, expectedAdId) { return requirePublicListingEvidenceService().normalizeKnownPublicAdUrl(rawUrl, expectedAdId); }
 
 async function openReadOnlyAd(message) {
-  return requireManualListingNavigationController().openReadOnlyAd(message);
+  const adId = String(message?.adId || '');
+  if (!/^\d+$/.test(adId)) throw new Error('Anzeigen-ID ist ungültig.');
+
+  let url = '';
+  let urlSource = 'id-fallback';
+  const inventoryId = String(message?.inventoryId || '');
+  const inventoryRecord = inventoryId ? await getInventory(inventoryId).catch(() => null) : null;
+  if (inventoryRecord && String(inventoryRecord?.adId || '') === adId) {
+    url = normalizeKnownPublicAdUrl(publicUrlForInventoryRecord(inventoryRecord), adId);
+    if (url) urlSource = 'inventory-public-url';
+  }
+  if (!url) {
+    url = normalizeKnownPublicAdUrl(message?.publicUrl, adId);
+    if (url) urlSource = 'message-public-url';
+  }
+  if (!url) url = directPublicUrlForAdId(adId);
+
+  const windowId = await normalBrowserWindowId();
+  const tab = await createAutomationTab({ ...(windowId ? { windowId } : {}), url, active: true });
+  if (!tab?.id) throw new Error('Die öffentliche Anzeige konnte nicht geöffnet werden.');
+  if (windowId) await chrome.windows.update(windowId, { focused: true }).catch(() => {});
+  await logDiagnostic('info', 'READONLY_AD_OPENED', {
+    adId, inventoryId: inventoryId || null, tabId: tab.id, windowId: tab.windowId ?? windowId,
+    requestedUrl: url, urlSource
+  }, { module: 'background', operation: 'open-readonly-ad', context: { adId, tabId: tab.id } }).catch(() => {});
+
+  let finalTab = null;
+  try {
+    finalTab = await waitForTabComplete(tab.id, {
+      timeoutMs: 12000,
+      purpose: 'read-only-navigation',
+      label: 'Öffentliche Anzeige',
+      operation: 'open-readonly-ad',
+      context: { adId, tabId: tab.id }
+    });
+  } catch (error) {
+    finalTab = await chrome.tabs.get(tab.id).catch(() => null);
+    await logDiagnostic('info', 'READONLY_AD_NAVIGATION_PENDING', {
+      adId, tabId: tab.id, requestedUrl: url, urlSource,
+      currentUrl: String(finalTab?.url || '').slice(0, 1200),
+      message: String(error?.message || error || '').slice(0, 500)
+    }, { module: 'background', operation: 'open-readonly-ad', context: { adId, tabId: tab.id } }).catch(() => {});
+  }
+  if (finalTab?.url) {
+    const finalUrl = String(finalTab.url);
+    const finalPublicUrl = normalizeKnownPublicAdUrl(finalUrl, adId);
+    await logDiagnostic(finalPublicUrl ? 'info' : 'warning', 'READONLY_AD_NAVIGATION_RESOLVED', {
+      adId, tabId: tab.id, requestedUrl: url, urlSource, finalUrl: finalUrl.slice(0, 1200),
+      expectedAdConfirmed: Boolean(finalPublicUrl)
+    }, { module: 'background', operation: 'open-readonly-ad', context: { adId, tabId: tab.id } }).catch(() => {});
+  }
+  return { adId, tabId: tab.id, url, urlSource, finalUrl: finalTab?.url || null };
 }
 
 let tabLoadCoordinator = null;
@@ -1368,17 +1670,23 @@ function publicUrlForInventoryRecord(record) { return requirePublicListingEviden
 
 function directPublicUrlForAdId(adId) { return requirePublicListingEvidenceService().directPublicUrlForAdId(adId); }
 
+
 function publicAvailabilityPending(record) { return requirePublicListingEvidenceService().publicAvailabilityPending(record); }
 
 function publicAvailabilitySnapshot(options = {}) { return requirePublicListingEvidenceService().publicAvailabilitySnapshot(options); }
 
-let listingUrlEvidenceService = null;
-function requireListingUrlEvidenceService() {
-  if (!listingUrlEvidenceService) listingUrlEvidenceService = ListingUrlEvidenceService.create({ URL });
-  return listingUrlEvidenceService;
-}
 function singleInventorySourceFromUrl(rawUrl) {
-  return requireListingUrlEvidenceService().singleInventorySourceFromUrl(rawUrl);
+  try {
+    const url = new URL(String(rawUrl || ''));
+    if (url.protocol !== 'https:' || !/^(?:www\.)?kleinanzeigen\.de$/i.test(url.hostname)) return null;
+    if (/\/p-anzeige-bearbeiten\.html$/i.test(url.pathname)) {
+      const adId = String(url.searchParams.get('adId') || '');
+      return /^\d+$/.test(adId) ? { adId, mode: 'edit', publicUrl: '' } : null;
+    }
+    const publicMatch = url.pathname.match(/\/s-anzeige\/[^/]+\/(\d+)-\d+-\d+(?:\/)?$/i);
+    if (publicMatch) return { adId: publicMatch[1], mode: 'public', publicUrl: `${url.origin}${url.pathname}` };
+  } catch { /* invalid URL */ }
+  return null;
 }
 
 async function extractSingleInventoryEdit(tabId, adId, correlation = {}, { ownedWorker = false } = {}) {
@@ -1409,7 +1717,29 @@ async function extractSingleInventoryEdit(tabId, adId, correlation = {}, { owned
 }
 
 function detectPublishedAdFromKnownUrl(rawUrl, sourceAdId = '') {
-  return requireListingUrlEvidenceService().detectPublishedAdFromKnownUrl(rawUrl, sourceAdId);
+  try {
+    const url = new URL(String(rawUrl || ''));
+    if (!/(^|\.)kleinanzeigen\.de$/i.test(url.hostname)) return null;
+    let adId = '';
+    let publicUrl = '';
+    let kind = '';
+    const publicMatch = url.pathname.match(/\/s-anzeige\/[^/]+\/(\d+)-\d+-\d+(?:\/)?$/i);
+    if (publicMatch) {
+      adId = publicMatch[1];
+      publicUrl = `${url.origin}${url.pathname}`;
+      kind = 'public';
+    } else if (/\/p-anzeige-bearbeiten\.html$/i.test(url.pathname)) {
+      adId = String(url.searchParams.get('adId') || '');
+      kind = 'edit';
+    } else if (/\/p-anzeige-aufgeben-bestaetigung\.html$/i.test(url.pathname)) {
+      adId = String(url.searchParams.get('addId') || url.searchParams.get('adId') || '');
+      kind = 'confirmation';
+    }
+    if (!/^\d+$/.test(adId) || adId === String(sourceAdId || '')) return null;
+    return { adId, publicUrl: publicUrl || null, candidateCount: 1, kind, detectionSource: 'tab-url' };
+  } catch {
+    return null;
+  }
 }
 
 async function detectPublishedAdForFill(tabId, sourceAdId) {
@@ -1421,28 +1751,418 @@ async function detectPublishedAdForFill(tabId, sourceAdId) {
   return detected?.adId ? { ...detected, detectionSource: detected.detectionSource || 'content' } : null;
 }
 
-let renewalPublicEvidenceCoordinator = null;
-function requireRenewalPublicEvidenceCoordinator() {
-  if (!renewalPublicEvidenceCoordinator) renewalPublicEvidenceCoordinator = RenewalPublicEvidenceCoordinator.create({
-    tabPort: {
-      assertPlatformAccessAllowed, tabLoadSignalVersion, waitForTabLoadSignal, kleinanzeigenTabMeta, normalBrowserWindowId, createAutomationTab, registerManagedWorkerTab, updateAutomationTab, closeManagedWorkerTab, waitForExpectedTabComplete, ensureContentConnection, sendTabRequestWithBootstrap, tabRegistry, chrome, ManagedNavigation
-    },
-    diagnosticsPort: { logDiagnostic, correlationContext, sessionCorrelationContext },
-    policyPort: { renewalAttemptState, isNonRetryableRenewalSafetyError, normalizeProfileName },
-    evidencePort: { extractReadOnlyMetadata, normalizeKnownPublicAdUrl, directPublicUrlForAdId },
-    configPort: { TAB_LOAD_TIMEOUT_RENEWAL_MS, TAB_LOAD_SAFETY_POLL_MS, RENEWAL_PUBLIC_READONLY_READINESS_TIMEOUT_MS, READONLY_METADATA_TIMEOUT_MS, RENEWAL_DIRECT_READONLY_TIMEOUT_MS, MY_ADS_PROJECTS_URL }
-  });
-  return renewalPublicEvidenceCoordinator;
+async function waitForRenewalPublicAdComplete(tabId, expectedAdId, options = {}) {
+  const timeoutMs = Math.max(1000, Number(options.timeoutMs || TAB_LOAD_TIMEOUT_RENEWAL_MS));
+  const purpose = String(options.purpose || 'renewal-public-verification').slice(0, 80);
+  const label = String(options.label || 'Öffentlicher Renewal-Prüftab').slice(0, 120);
+  const operation = String(options.operation || 'renewal-public-verification').slice(0, 80);
+  const context = options.context && typeof options.context === 'object' ? options.context : { tabId };
+  const started = Date.now();
+  const deadline = started + timeoutMs;
+  let lastAssessment = null;
+  while (Date.now() < deadline) {
+    await assertPlatformAccessAllowed({ operation, context });
+    const observedVersion = tabLoadSignalVersion(tabId);
+    const tab = await tabRegistry.getTabOrThrow(tabId, chrome.tabs, { label });
+    const assessment = ManagedNavigation.assessPublicAd(tab, expectedAdId);
+    lastAssessment = assessment;
+    if (assessment.state === ManagedNavigation.STATES.READY) {
+      await logDiagnostic('info', 'RENEWAL_PUBLIC_TARGET_LOAD_TIMING', {
+        tabId,
+        expectedAdId: String(expectedAdId || ''),
+        observedAdId: assessment.observedAdId || null,
+        purpose,
+        durationMs: Date.now() - started,
+        timeoutMs,
+        navigationReason: assessment.reason,
+        ...kleinanzeigenTabMeta(tab)
+      }, { module: 'background', operation, context }).catch(() => {});
+      return tab;
+    }
+    if (assessment.state === ManagedNavigation.STATES.OFF_TARGET) {
+      const error = new Error(`${label} hat nicht die erwartete öffentliche Anzeige erreicht.`);
+      error.code = 'KR_RENEWAL_PUBLIC_OFF_TARGET';
+      error.verificationClass = 'off-target';
+      error.navigationReason = assessment.reason;
+      error.currentUrl = assessment.currentUrl || assessment.pendingUrl || '';
+      error.observedAdId = assessment.observedAdId || '';
+      await logDiagnostic('warning', 'RENEWAL_PUBLIC_TARGET_OFF_TARGET', {
+        tabId,
+        expectedAdId: String(expectedAdId || ''),
+        observedAdId: error.observedAdId || null,
+        purpose,
+        durationMs: Date.now() - started,
+        navigationReason: assessment.reason,
+        currentUrl: String(error.currentUrl || '').slice(0, 1200),
+        ...kleinanzeigenTabMeta(tab)
+      }, { module: 'background', operation, context }).catch(() => {});
+      throw error;
+    }
+    const remainingMs = Math.max(1, deadline - Date.now());
+    await waitForTabLoadSignal(tabId, observedVersion, Math.min(TAB_LOAD_SAFETY_POLL_MS, remainingMs));
+  }
+  const lastTab = await chrome.tabs.get(tabId).catch(() => null);
+  const error = new Error(`${label} wurde nicht rechtzeitig auf der erwarteten öffentlichen Anzeige vollständig geladen.`);
+  error.code = 'KR_RENEWAL_PUBLIC_TIMEOUT';
+  error.verificationClass = 'temporarily-unavailable';
+  error.navigationReason = lastAssessment?.reason || 'timeout';
+  error.currentUrl = String(lastTab?.url || '');
+  await logDiagnostic('warning', 'RENEWAL_PUBLIC_TARGET_TIMEOUT', {
+    tabId,
+    expectedAdId: String(expectedAdId || ''),
+    purpose,
+    durationMs: Date.now() - started,
+    timeoutMs,
+    navigationReason: error.navigationReason,
+    ...(lastTab ? kleinanzeigenTabMeta(lastTab) : {})
+  }, { module: 'background', operation, context }).catch(() => {});
+  throw error;
 }
+
+function renewalVerificationAttemptNumber(correlation = {}) {
+  return Math.max(1, Number(renewalAttemptState(correlation, 3).attempt || 1));
+}
+
+function classifyRenewalVerificationFailure(error) {
+  if (isNonRetryableRenewalSafetyError(error)) return 'platform-restricted';
+  const code = String(error?.code || '');
+  if (code === 'KR_RENEWAL_PUBLIC_OFF_TARGET' || code === 'KR_TAB_NAVIGATION_OFF_TARGET') return 'off-target';
+  if (code === 'KR_RENEWAL_PUBLIC_TIMEOUT' || code === 'KR_TAB_NAVIGATION_TIMEOUT') return 'temporarily-unavailable';
+  const text = String(error?.message || error || '');
+  if (/Navigation rejected|No tab with id|Receiving end does not exist|Could not establish connection|message port closed|message channel closed/i.test(text)) return 'transient-navigation-failure';
+  return String(error?.verificationClass || 'temporarily-unavailable');
+}
+
+async function createFreshRenewalVerificationTab(targetUrl, newAdId, publicUrlVariant, correlation = {}, { purpose = 'public' } = {}) {
+  const requestedUrl = String(targetUrl || '');
+  if (!requestedUrl) throw new Error('Ziel-URL der Renewal-Verifikation fehlt.');
+  const verificationAttempt = renewalVerificationAttemptNumber(correlation);
+  const windowId = await normalBrowserWindowId();
+  const tab = await createAutomationTab({ ...(windowId ? { windowId } : {}), url: 'about:blank', active: false });
+  if (!tab?.id) throw new Error('Frischer Renewal-Verifikationstab konnte nicht geöffnet werden.');
+  const owner = {
+    ...correlationContext(correlation),
+    ownerType: purpose === 'public' ? 'renewal-public-verification' : 'renewal-my-ads-verification',
+    ownerId: correlation?.renewalId || correlation?.operationId || newAdId,
+    adId: String(newAdId || ''),
+    verificationAttempt,
+    publicUrlVariant: String(publicUrlVariant || purpose)
+  };
+  await registerManagedWorkerTab(tab.id, purpose === 'public' ? 'renewal-public-verification' : 'renewal-my-ads-verification', owner);
+  await logDiagnostic('info', 'RENEWAL_VERIFICATION_TAB_CREATED', {
+    newAdId: String(newAdId || ''),
+    workerTabId: tab.id,
+    verificationAttempt,
+    purpose,
+    publicUrlVariant: String(publicUrlVariant || purpose),
+    requestedUrl,
+    freshTab: true,
+    initialUrl: 'about:blank'
+  }, { module: 'background', operation: 'renewal-verification-navigation', context: sessionCorrelationContext(correlation, { adId: String(newAdId || ''), workerTabId: tab.id }) }).catch(() => {});
+  try {
+    await updateAutomationTab(tab.id, { url: requestedUrl });
+    await logDiagnostic('info', 'RENEWAL_VERIFICATION_NAVIGATION_REQUESTED', {
+      newAdId: String(newAdId || ''),
+      workerTabId: tab.id,
+      verificationAttempt,
+      purpose,
+      publicUrlVariant: String(publicUrlVariant || purpose),
+      requestedUrl,
+      freshTab: true
+    }, { module: 'background', operation: 'renewal-verification-navigation', context: sessionCorrelationContext(correlation, { adId: String(newAdId || ''), workerTabId: tab.id }) }).catch(() => {});
+    return { tabId: tab.id, requestedUrl, verificationAttempt, purpose, publicUrlVariant: String(publicUrlVariant || purpose) };
+  } catch (error) {
+    const verificationClass = classifyRenewalVerificationFailure(error);
+    await logDiagnostic(isNonRetryableRenewalSafetyError(error) ? 'error' : 'warning', 'RENEWAL_VERIFICATION_NAVIGATION_REJECTED', {
+      newAdId: String(newAdId || ''),
+      workerTabId: tab.id,
+      verificationAttempt,
+      purpose,
+      publicUrlVariant: String(publicUrlVariant || purpose),
+      requestedUrl,
+      freshTab: true,
+      verificationClass,
+      message: String(error?.message || error || '').slice(0, 500)
+    }, { module: 'background', operation: 'renewal-verification-navigation', context: sessionCorrelationContext(correlation, { adId: String(newAdId || ''), workerTabId: tab.id }) }).catch(() => {});
+    error.verificationClass = verificationClass;
+    await closeFreshRenewalVerificationTab({
+      tabId: tab.id,
+      verificationAttempt,
+      purpose,
+      publicUrlVariant: String(publicUrlVariant || purpose)
+    }, newAdId, correlation, isNonRetryableRenewalSafetyError(error) ? 'navigation-safety-stop' : 'navigation-request-failed').catch(() => {});
+    throw error;
+  }
+}
+
+async function closeFreshRenewalVerificationTab(tabInfo, newAdId, correlation = {}, reason = 'verification-finished') {
+  const tabId = Number(tabInfo?.tabId || 0);
+  if (!tabId) return;
+  await logDiagnostic('info', 'RENEWAL_VERIFICATION_TAB_CLOSED', {
+    newAdId: String(newAdId || ''),
+    workerTabId: tabId,
+    verificationAttempt: tabInfo?.verificationAttempt ?? renewalVerificationAttemptNumber(correlation),
+    purpose: tabInfo?.purpose || null,
+    publicUrlVariant: tabInfo?.publicUrlVariant || null,
+    freshTab: true,
+    reason
+  }, { module: 'background', operation: 'renewal-verification-navigation', context: sessionCorrelationContext(correlation, { adId: String(newAdId || ''), workerTabId: tabId }) }).catch(() => {});
+  await closeManagedWorkerTab(tabId).catch(() => {});
+}
+
+async function waitForRenewalPublicReadOnlyReady(tabId, expectedAdId, timeoutMs = RENEWAL_PUBLIC_READONLY_READINESS_TIMEOUT_MS, correlation = {}) {
+  const started = Date.now();
+  const effectiveTimeoutMs = Math.max(READONLY_METADATA_TIMEOUT_MS, Number(timeoutMs || RENEWAL_PUBLIC_READONLY_READINESS_TIMEOUT_MS));
+  const context = sessionCorrelationContext(correlation, { adId: String(expectedAdId || ''), workerTabId: Number(tabId || 0) || null });
+  const result = await extractReadOnlyMetadata(tabId, expectedAdId, effectiveTimeoutMs, { silentFailures: true });
+  if (result.ok) {
+    await logDiagnostic('info', 'RENEWAL_PUBLIC_READONLY_READY', {
+      newAdId: String(expectedAdId || ''),
+      workerTabId: Number(tabId || 0) || null,
+      durationMs: result.durationMs ?? (Date.now() - started),
+      timeoutMs: effectiveTimeoutMs,
+      sameFreshTab: true
+    }, { module: 'background', operation: 'renewal-public-verification', context }).catch(() => {});
+    return result;
+  }
+  await logDiagnostic('warning', 'RENEWAL_PUBLIC_READONLY_TIMEOUT', {
+    newAdId: String(expectedAdId || ''),
+    workerTabId: Number(tabId || 0) || null,
+    durationMs: result.durationMs ?? (Date.now() - started),
+    timeoutMs: effectiveTimeoutMs,
+    sameFreshTab: true,
+    message: String(result.error || 'Read-only-Metadaten wurden nicht rechtzeitig erkannt.').slice(0, 500)
+  }, { module: 'background', operation: 'renewal-public-verification', context }).catch(() => {});
+  return result;
+}
+
 async function probeFreshRenewalPublicUrl(url, expectedAdId, publicUrlVariant, timeoutMs = READONLY_METADATA_TIMEOUT_MS, correlation = {}) {
-  return requireRenewalPublicEvidenceCoordinator().probeFreshRenewalPublicUrl(url, expectedAdId, publicUrlVariant, timeoutMs, correlation);
+  let tabInfo = null;
+  try {
+    tabInfo = await createFreshRenewalVerificationTab(url, expectedAdId, publicUrlVariant, correlation, { purpose: 'public' });
+    const context = sessionCorrelationContext(correlation, { adId: String(expectedAdId || ''), workerTabId: tabInfo.tabId });
+    await waitForRenewalPublicAdComplete(tabInfo.tabId, expectedAdId, {
+      timeoutMs: TAB_LOAD_TIMEOUT_RENEWAL_MS,
+      purpose: `renewal-public-${publicUrlVariant}`,
+      label: 'Öffentlicher Renewal-Prüftab',
+      operation: 'renewal-public-verification',
+      context
+    });
+    await ensureContentConnection({ tabId: tabInfo.tabId });
+    const result = await waitForRenewalPublicReadOnlyReady(tabInfo.tabId, expectedAdId, Math.max(timeoutMs, RENEWAL_PUBLIC_READONLY_READINESS_TIMEOUT_MS), correlation);
+    const finalTab = await chrome.tabs.get(tabInfo.tabId).catch(() => null);
+    const finalAssessment = ManagedNavigation.assessPublicAd(finalTab || {}, expectedAdId);
+    if (!result.ok || finalAssessment.state !== ManagedNavigation.STATES.READY) {
+      const verificationClass = finalAssessment.state === ManagedNavigation.STATES.OFF_TARGET ? 'off-target' : 'temporarily-unavailable';
+      const failure = {
+        ...result,
+        ok: false,
+        requestedUrl: String(url),
+        finalUrl: String(finalTab?.url || ''),
+        observedAdId: finalAssessment.observedAdId || null,
+        verificationClass,
+        publicUrlVariant,
+        workerTabId: tabInfo.tabId,
+        freshTab: true
+      };
+      await logDiagnostic('warning', 'RENEWAL_PUBLIC_VERIFICATION_UNRESOLVED', {
+        newAdId: String(expectedAdId || ''),
+        workerTabId: tabInfo.tabId,
+        verificationAttempt: tabInfo.verificationAttempt,
+        publicUrlVariant,
+        requestedUrl: String(url),
+        finalUrl: failure.finalUrl,
+        observedAdId: failure.observedAdId,
+        verificationClass,
+        message: String(result.error || 'Read-only-Metadaten wurden nicht eindeutig bestätigt.').slice(0, 500),
+        freshTab: true
+      }, { module: 'background', operation: 'renewal-public-verification', context }).catch(() => {});
+      return failure;
+    }
+    const resolvedUrl = normalizeKnownPublicAdUrl(result.metadata?.sourceUrl || finalTab?.url || '', expectedAdId) || '';
+    const verified = {
+      ...result,
+      ok: true,
+      requestedUrl: String(url),
+      finalUrl: String(finalTab?.url || ''),
+      observedAdId: finalAssessment.observedAdId || String(expectedAdId),
+      verificationClass: 'confirmed',
+      publicUrlVariant,
+      workerTabId: tabInfo.tabId,
+      freshTab: true,
+      resolvedUrl
+    };
+    await logDiagnostic('info', 'RENEWAL_PUBLIC_VERIFICATION_CONFIRMED', {
+      newAdId: String(expectedAdId || ''),
+      workerTabId: tabInfo.tabId,
+      verificationAttempt: tabInfo.verificationAttempt,
+      publicUrlVariant,
+      requestedUrl: String(url),
+      finalUrl: verified.finalUrl,
+      resolvedUrl: resolvedUrl || null,
+      observedAdId: verified.observedAdId,
+      durationMs: result.durationMs ?? null,
+      freshTab: true
+    }, { module: 'background', operation: 'renewal-public-verification', context }).catch(() => {});
+    return verified;
+  } catch (error) {
+    if (isNonRetryableRenewalSafetyError(error)) throw error;
+    const verificationClass = classifyRenewalVerificationFailure(error);
+    const finalTab = tabInfo?.tabId ? await chrome.tabs.get(tabInfo.tabId).catch(() => null) : null;
+    await logDiagnostic('warning', 'RENEWAL_PUBLIC_VERIFICATION_FAILED', {
+      newAdId: String(expectedAdId || ''),
+      workerTabId: tabInfo?.tabId || null,
+      verificationAttempt: tabInfo?.verificationAttempt || renewalVerificationAttemptNumber(correlation),
+      publicUrlVariant,
+      requestedUrl: String(url),
+      finalUrl: String(finalTab?.url || ''),
+      verificationClass,
+      message: String(error?.message || error || '').slice(0, 500),
+      freshTab: true
+    }, { module: 'background', operation: 'renewal-public-verification', context: sessionCorrelationContext(correlation, { adId: String(expectedAdId || ''), workerTabId: tabInfo?.tabId || null }) }).catch(() => {});
+    return {
+      ok: false,
+      metadata: null,
+      durationMs: 0,
+      requestedUrl: String(url),
+      finalUrl: String(finalTab?.url || ''),
+      error: String(error?.message || error || '').slice(0, 500),
+      verificationClass,
+      publicUrlVariant,
+      workerTabId: tabInfo?.tabId || null,
+      freshTab: true
+    };
+  } finally {
+    if (tabInfo?.tabId) await closeFreshRenewalVerificationTab(tabInfo, expectedAdId, correlation, 'public-verification-finished');
+  }
 }
+
+async function findRenewalAdInMyAdsFresh(adId, expectedProfileName, correlation = {}) {
+  let tabInfo = null;
+  try {
+    tabInfo = await createFreshRenewalVerificationTab(MY_ADS_PROJECTS_URL, adId, 'my-ads', correlation, { purpose: 'my-ads' });
+    const context = sessionCorrelationContext(correlation, { adId: String(adId || ''), workerTabId: tabInfo.tabId });
+    await waitForExpectedTabComplete(tabInfo.tabId, MY_ADS_PROJECTS_URL, {
+      timeoutMs: TAB_LOAD_TIMEOUT_RENEWAL_MS,
+      purpose: 'renewal-my-ads-fresh',
+      label: 'Frischer „Meine Anzeigen“-Prüftab',
+      operation: 'renewal-my-ads-fallback',
+      context
+    });
+    await ensureContentConnection({ tabId: tabInfo.tabId });
+    const status = await sendTabRequestWithBootstrap(tabInfo.tabId, { type: 'MY_ADS_STATUS' });
+    if (!status?.isMyAdsPage || !status?.isProjectsTab) throw new Error('„Meine Anzeigen“-Fallback befindet sich nicht eindeutig im PROJECTS-Tab.');
+    const expectedProfile = normalizeProfileName(expectedProfileName || '');
+    const actualProfile = normalizeProfileName(status?.profileName || '');
+    if (expectedProfile) {
+      if (!actualProfile) throw new Error('Das Kleinanzeigen-Konto konnte beim „Meine Anzeigen“-Fallback nicht eindeutig erkannt werden.');
+      if (expectedProfile.toLocaleLowerCase('de-DE') !== actualProfile.toLocaleLowerCase('de-DE')) {
+        throw new Error('Der „Meine Anzeigen“-Fallback ist mit einem anderen Kleinanzeigen-Konto angemeldet.');
+      }
+    }
+    const result = await sendTabRequestWithBootstrap(tabInfo.tabId, { type: 'FIND_OWN_AD_BY_ID', adId: String(adId), correlation: correlationContext(correlation) });
+    await logDiagnostic(result?.found ? 'info' : 'warning', result?.found ? 'RENEWAL_MY_ADS_FRESH_FOUND' : 'RENEWAL_MY_ADS_FRESH_NOT_FOUND', {
+      newAdId: String(adId || ''),
+      workerTabId: tabInfo.tabId,
+      verificationAttempt: tabInfo.verificationAttempt,
+      found: Boolean(result?.found),
+      page: result?.page ?? null,
+      pagesScanned: result?.pagesScanned ?? null,
+      publicUrl: result?.publicUrl || null,
+      freshTab: true
+    }, { module: 'background', operation: 'renewal-my-ads-fallback', context }).catch(() => {});
+    return { ...result, profileName: actualProfile || null, workerTabId: tabInfo.tabId, freshTab: true };
+  } finally {
+    if (tabInfo?.tabId) await closeFreshRenewalVerificationTab(tabInfo, adId, correlation, 'my-ads-verification-finished');
+  }
+}
+
 function renewalEvidenceFailureClass(results = []) {
-  return requireRenewalPublicEvidenceCoordinator().renewalEvidenceFailureClass(results);
+  const classes = results.map(item => String(item?.verificationClass || '')).filter(Boolean);
+  if (classes.includes('transient-navigation-failure')) return 'transient-navigation-failure';
+  if (classes.includes('off-target')) return 'off-target';
+  return 'temporarily-unavailable';
 }
+
 async function resolveRenewalPublicEvidence(newAdId, expectedProfileName, correlation = {}) {
-  return requireRenewalPublicEvidenceCoordinator().resolveRenewalPublicEvidence(newAdId, expectedProfileName, correlation);
+  const knownPublicUrl = String(correlation?.newPublicUrl || '');
+  const canonicalKnownUrl = normalizeKnownPublicAdUrl(knownPublicUrl, newAdId);
+  const directIdUrl = directPublicUrlForAdId(newAdId);
+  const attempts = [];
+
+  if (canonicalKnownUrl) {
+    const canonical = await probeFreshRenewalPublicUrl(canonicalKnownUrl, newAdId, 'canonical', RENEWAL_DIRECT_READONLY_TIMEOUT_MS, correlation);
+    attempts.push(canonical);
+    if (canonical.ok) {
+      return { readOnlyResult: canonical, publicUrl: canonical.resolvedUrl || canonicalKnownUrl, ownAdsPresence: null, myAds: null, method: 'canonical-fresh', verificationClass: 'confirmed', publicAttempts: attempts };
+    }
+  }
+
+  if (directIdUrl) {
+    const idDirect = await probeFreshRenewalPublicUrl(directIdUrl, newAdId, 'id-direct', READONLY_METADATA_TIMEOUT_MS, correlation);
+    attempts.push(idDirect);
+    if (idDirect.ok) {
+      return { readOnlyResult: idDirect, publicUrl: idDirect.resolvedUrl || canonicalKnownUrl || '', ownAdsPresence: null, myAds: null, method: 'id-direct-fresh', verificationClass: 'confirmed', publicAttempts: attempts };
+    }
+  }
+
+  let myAds = null;
+  try {
+    myAds = await findRenewalAdInMyAdsFresh(newAdId, expectedProfileName, correlation);
+  } catch (error) {
+    if (isNonRetryableRenewalSafetyError(error)) throw error;
+    const verificationClass = classifyRenewalVerificationFailure(error);
+    await logDiagnostic('warning', 'RENEWAL_MY_ADS_FRESH_FAILED', {
+      newAdId,
+      verificationAttempt: renewalVerificationAttemptNumber(correlation),
+      verificationClass,
+      message: String(error?.message || error || '').slice(0, 500),
+      freshTab: true
+    }, { module: 'background', operation: 'renewal-my-ads-fallback', context: sessionCorrelationContext(correlation, { adId: newAdId }) }).catch(() => {});
+    const fallbackResult = attempts.at(-1) || { ok: false, metadata: null, durationMs: 0, error: String(error?.message || error || '') };
+    return {
+      readOnlyResult: fallbackResult,
+      publicUrl: canonicalKnownUrl || '',
+      ownAdsPresence: null,
+      myAds: { found: null, error: String(error?.message || error || '').slice(0, 500) },
+      method: 'fresh-public+my-ads-error',
+      verificationClass: verificationClass === 'platform-restricted' ? verificationClass : renewalEvidenceFailureClass([...attempts, { verificationClass }]),
+      publicAttempts: attempts
+    };
+  }
+
+  const myAdsPublicUrl = normalizeKnownPublicAdUrl(myAds?.publicUrl || '', newAdId);
+  if (myAds?.found && myAdsPublicUrl && myAdsPublicUrl !== canonicalKnownUrl) {
+    const myAdsCanonical = await probeFreshRenewalPublicUrl(myAdsPublicUrl, newAdId, 'my-ads-canonical', READONLY_METADATA_TIMEOUT_MS, correlation);
+    attempts.push(myAdsCanonical);
+    if (myAdsCanonical.ok) {
+      return { readOnlyResult: myAdsCanonical, publicUrl: myAdsCanonical.resolvedUrl || myAdsPublicUrl, ownAdsPresence: true, myAds, method: 'my-ads-canonical-fresh', verificationClass: 'confirmed', publicAttempts: attempts };
+    }
+  }
+
+  const verificationClass = renewalEvidenceFailureClass(attempts);
+  const lastPublic = attempts.at(-1) || { ok: false, metadata: null, durationMs: 0, error: 'Öffentliche Verifikation lieferte kein eindeutiges Ergebnis.', verificationClass };
+  await logDiagnostic('warning', 'RENEWAL_PUBLIC_EVIDENCE_UNRESOLVED', {
+    newAdId,
+    verificationAttempt: renewalVerificationAttemptNumber(correlation),
+    verificationClass,
+    ownAdsPresence: myAds?.found === true ? true : (myAds?.found === false ? false : null),
+    myAdsPage: myAds?.page ?? null,
+    publicAttemptCount: attempts.length,
+    publicUrlVariants: attempts.map(item => item.publicUrlVariant).filter(Boolean),
+    freshTabsOnly: attempts.every(item => item.freshTab === true)
+  }, { module: 'background', operation: 'renewal-public-verification', context: sessionCorrelationContext(correlation, { adId: newAdId }) }).catch(() => {});
+  return {
+    readOnlyResult: lastPublic,
+    publicUrl: myAdsPublicUrl || canonicalKnownUrl || '',
+    ownAdsPresence: myAds?.found === true ? true : (myAds?.found === false ? false : null),
+    myAds,
+    method: myAds?.found ? 'my-ads-found-public-unresolved' : 'public-unresolved',
+    verificationClass,
+    publicAttempts: attempts
+  };
 }
+
 
 async function extractReadOnlyMetadata(tabId, expectedAdId, timeoutMs = READONLY_METADATA_TIMEOUT_MS, options = {}) { return requirePublicListingEvidenceService().extractReadOnlyMetadata(tabId, expectedAdId, timeoutMs, options); }
 
@@ -1454,53 +2174,290 @@ function mergeListingMetadata(extracted, existingMeta = {}, readOnlyResult = nul
 
 async function captureSingleInventory(message) { return requireSingleInventoryController().captureSingleInventory(message); }
 
-let inventoryRefreshService = null;
-function requireInventoryRefreshService() {
-  if (!inventoryRefreshService) inventoryRefreshService = InventoryRefreshService.create({
-    getInventory,
-    assertSelectedProfileMatchesLiveAccount,
-    publicAvailabilityPending,
-    getBulkRunState,
-    normalizeKnownPublicAdUrl,
-    publicUrlForInventoryRecord,
-    directPublicUrlForAdId,
-    logDiagnostic,
-    probeFreshRenewalPublicUrl,
-    mergeListingMetadata,
-    publicAvailabilitySnapshot,
-    putInventoryRecordOnly,
-    broadcastInventoryChanged,
-    renewalEvidenceFailureClass,
-    readRenewalSessions,
-    normalBrowserWindowId,
-    createAutomationTab,
-    extractReadOnlyMetadata,
-    waitForTabComplete,
-    ensureContentConnection,
-    sendTabRequestWithBootstrap,
-    delay,
-    requirePublicListingEvidenceService,
-    saveInventory,
-    normalizeRenewalMode,
-    compareRenewalRecords,
-    renewalOutcomeForComparison,
-    persistRenewalSession,
-    sessionCorrelationContext,
-    closeRegistryTabs,
-    RENEWAL_DIRECT_READONLY_TIMEOUT_MS,
-    READONLY_METADATA_TIMEOUT_MS,
-    TAB_LOAD_TIMEOUT_RENEWAL_MS,
-    BULK_RETRY_TIMEOUT_MS,
-    BULK_RETRY_POLL_MS,
-    RENEWAL_MODE_SAFE
-  });
-  return inventoryRefreshService;
-}
 async function checkInventoryOnlineStatus(message) {
-  return requireInventoryRefreshService().checkInventoryOnlineStatus(message);
+  const inventoryId = String(message?.inventoryId || message?.adId || '');
+  const existing = await getInventory(inventoryId);
+  if (!existing) throw new Error('Lokaler Inventareintrag wurde nicht gefunden.');
+  if (existing?.profileId) await assertSelectedProfileMatchesLiveAccount({ expectedProfileId: existing.profileId, expectedProfileName: existing.profileName || '', purpose: 'inventory-online-status' });
+  const adId = String(existing.adId || message?.adId || '');
+  if (!/^\d+$/.test(adId)) throw new Error('Inventareintrag besitzt keine gültige Anzeigen-ID.');
+  if (!publicAvailabilityPending(existing)) return { online: true, pending: false, record: existing, alreadyResolved: true };
+  const run = await getBulkRunState().catch(() => null);
+  if (run?.status === 'running' || run?.retryAdId) throw new Error('Während einer laufenden Erfassung oder Wiederholung kann der Online-Status nicht geprüft werden.');
+
+  const operationId = crypto.randomUUID();
+  const canonicalUrl = normalizeKnownPublicAdUrl(publicUrlForInventoryRecord(existing), adId);
+  const directUrl = directPublicUrlForAdId(adId);
+  const attempts = [];
+  let confirmed = null;
+  await logDiagnostic('info', 'INVENTORY_ONLINE_STATUS_CHECK_STARTED', {
+    operationId, inventoryId, adId, canonicalUrlAvailable: Boolean(canonicalUrl), directUrlAvailable: Boolean(directUrl)
+  }, { module: 'background', operation: 'inventory-online-status', context: { operationId, adId } }).catch(() => {});
+
+  if (canonicalUrl) {
+    const canonical = await probeFreshRenewalPublicUrl(canonicalUrl, adId, 'canonical', RENEWAL_DIRECT_READONLY_TIMEOUT_MS, { operationId, adId });
+    attempts.push(canonical);
+    if (canonical.ok) confirmed = canonical;
+  }
+  if (!confirmed && directUrl) {
+    const direct = await probeFreshRenewalPublicUrl(directUrl, adId, 'id-direct', READONLY_METADATA_TIMEOUT_MS, { operationId, adId });
+    attempts.push(direct);
+    if (direct.ok) confirmed = direct;
+  }
+
+  const checkedAt = new Date().toISOString();
+  if (confirmed) {
+    const resolvedUrl = normalizeKnownPublicAdUrl(confirmed.resolvedUrl || confirmed.metadata?.sourceUrl || canonicalUrl, adId) || canonicalUrl || '';
+    existing.listingMeta = mergeListingMetadata(existing, existing.listingMeta || {}, confirmed, {
+      publicUrl: resolvedUrl || null,
+      source: 'online-status-check'
+    });
+    existing.listingMeta.publicAvailability = {
+      ...publicAvailabilitySnapshot({
+        online: true,
+        verificationClass: 'confirmed',
+        method: confirmed.publicUrlVariant || 'public-readonly',
+        publicUrl: resolvedUrl || null,
+        checkedAt
+      }),
+      status: 'online'
+    };
+    if (resolvedUrl) existing.publicUrl = resolvedUrl;
+    await putInventoryRecordOnly(existing);
+    await logDiagnostic('info', 'INVENTORY_ONLINE_STATUS_CONFIRMED', {
+      operationId, inventoryId, adId, publicUrl: resolvedUrl || null, attemptCount: attempts.length,
+      variants: attempts.map(item => item.publicUrlVariant).filter(Boolean)
+    }, { module: 'background', operation: 'inventory-online-status', context: { operationId, adId } }).catch(() => {});
+    broadcastInventoryChanged('inventory-online-status-confirmed', { inventoryId, adId });
+    return { online: true, pending: false, record: existing };
+  }
+
+  const verificationClass = renewalEvidenceFailureClass(attempts);
+  existing.listingMeta = {
+    ...(existing.listingMeta || {}),
+    publicAvailability: {
+      ...publicAvailabilitySnapshot({
+        online: false,
+        verificationClass,
+        method: attempts.at(-1)?.publicUrlVariant || null,
+        publicUrl: canonicalUrl || null,
+        checkedAt
+      }),
+      status: 'pending'
+    }
+  };
+  await putInventoryRecordOnly(existing);
+  await logDiagnostic('info', 'INVENTORY_ONLINE_STATUS_STILL_PENDING', {
+    operationId, inventoryId, adId, verificationClass, attemptCount: attempts.length,
+    variants: attempts.map(item => item.publicUrlVariant).filter(Boolean)
+  }, { module: 'background', operation: 'inventory-online-status', context: { operationId, adId } }).catch(() => {});
+  broadcastInventoryChanged('inventory-online-status-pending', { inventoryId, adId });
+  return { online: false, pending: true, record: existing, verificationClass };
 }
+
+// KAR-143: the public detail page can omit the expiration shown on the
+// seller's own listing card. Reuse the existing exact-ID read-only scan of
+// "Meine Anzeigen". Require account continuity before and after pagination;
+// never copy another account's or another Ad-ID's expiration into inventory.
+async function readInventoryRefreshOwnAdsEndDate(adId, expectedProfileName, windowId = null) {
+  const wanted = String(adId || '');
+  const expected = normalizeProfileName(expectedProfileName || '');
+  if (!/^\d+$/.test(wanted)) throw new Error('Anzeigen-ID der Ablaufdatumprüfung ist ungültig.');
+  if (!expected) throw new Error('Konto für Ablaufdatumprüfung nicht eindeutig erfasst.');
+  let ownerTabId = null;
+  try {
+    const created = await createAutomationTab({
+      ...(windowId ? { windowId } : {}),
+      url: MY_ADS_PROJECTS_URL,
+      active: false
+    });
+    if (!created?.id) throw new Error('„Meine Anzeigen“-Prüftab konnte nicht geöffnet werden.');
+    ownerTabId = created.id;
+    await waitForTabComplete(ownerTabId, {
+      timeoutMs: TAB_LOAD_TIMEOUT_RENEWAL_MS,
+      purpose: 'inventory-refresh-own-ads',
+      label: 'Ablaufdatum-Prüftab',
+      operation: 'inventory-refresh-own-ads',
+      context: { adId: wanted, workerTabId: ownerTabId }
+    });
+    await ensureContentConnection({ tabId: ownerTabId });
+
+    const assertOwnerProfile = status => {
+      const observed = normalizeProfileName(status?.profileName || '');
+      if (!status?.isMyAdsPage || !status?.isProjectsTab || !observed ||
+          observed.toLocaleLowerCase('de-DE') !== expected.toLocaleLowerCase('de-DE')) {
+        throw new Error('Konto für Ablaufdatumprüfung stimmt nicht eindeutig mit dem Inventarprofil überein.');
+      }
+    };
+    assertOwnerProfile(await sendTabRequestWithBootstrap(ownerTabId, { type: 'MY_ADS_STATUS' }));
+    const card = await sendTabRequestWithBootstrap(ownerTabId, { type: 'FIND_OWN_AD_BY_ID', adId: wanted });
+    assertOwnerProfile(await sendTabRequestWithBootstrap(ownerTabId, { type: 'MY_ADS_STATUS' }));
+    if (!card?.found) throw new Error('Anzeigenkarte für Ablaufdatumprüfung nicht gefunden.');
+    if (String(card.adId || '') !== wanted) throw new Error('Anzeigen-ID der gefundenen Anzeigenkarte stimmt nicht überein.');
+
+    const endDateDisplay = String(card.endDateDisplay || '').trim();
+    const endDateIso = String(card.endDateIso || '').trim();
+    const displayParts = endDateDisplay.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+    const isoParts = endDateIso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!displayParts || !isoParts ||
+        [displayParts[3], displayParts[2], displayParts[1]].join('-') !== endDateIso) {
+      throw new Error('Ablaufdatum der Anzeigenkarte fehlt oder ist widersprüchlich.');
+    }
+    const year = Number(isoParts[1]), month = Number(isoParts[2]), day = Number(isoParts[3]);
+    const parsed = new Date(Date.UTC(year, month - 1, day));
+    if (!Number.isFinite(parsed.getTime()) || parsed.getUTCFullYear() !== year ||
+        parsed.getUTCMonth() !== month - 1 || parsed.getUTCDate() !== day) {
+      throw new Error('Ablaufdatum der Anzeigenkarte ist ungültig.');
+    }
+    return {
+      adId: wanted, endDateDisplay, endDateIso,
+      pagesScanned: card.pagesScanned ?? null, evidence: 'my-ads-exact-id-owner-verified'
+    };
+  } finally {
+    if (ownerTabId) {
+      await closeRegistryTabs([ownerTabId], 'inventory-refresh-own-ads-finished', 'Ablaufdatum-Prüftab').catch(() => {});
+    }
+  }
+}
+
 async function refreshInventoryRecord(message) {
-  return requireInventoryRefreshService().refreshInventoryRecord(message);
+  const inventoryId = String(message?.inventoryId || message?.adId || '');
+  const existing = await getInventory(inventoryId);
+  if (!existing) throw new Error('Lokaler Inventareintrag wurde nicht gefunden.');
+  if (existing?.profileId) await assertSelectedProfileMatchesLiveAccount({ expectedProfileId: existing.profileId, expectedProfileName: existing.profileName || '', purpose: 'inventory-refresh' });
+  const adId = String(existing.adId || message?.adId || '');
+  if (!/^\d+$/.test(adId)) throw new Error('Inventareintrag besitzt keine gültige Anzeigen-ID.');
+  const run = await getBulkRunState().catch(() => null);
+  if (run?.status === 'running' || run?.retryAdId) throw new Error('Während einer laufenden Erfassung oder Wiederholung kann eine Anzeige nicht aktualisiert werden.');
+  const renewals = await readRenewalSessions().catch(() => ({}));
+  if (Object.values(renewals).some(item => !['cancelled', 'replaced'].includes(String(item?.status || '')) && String(item?.sourceInventoryId || '') === inventoryId)) {
+    throw new Error('Die Quellanzeige ist während eines laufenden Renewal-Vorgangs gesperrt.');
+  }
+
+  let workerTabId = null;
+  let metadataTabId = null;
+  const publicUrl = publicUrlForInventoryRecord(existing);
+  await logDiagnostic('info', 'INVENTORY_REFRESH_STARTED', { inventoryId, adId, readOnlyMetadataRequested: Boolean(publicUrl) }, { module: 'background', operation: 'inventory-refresh', context: { adId } }).catch(() => {});
+  try {
+    const windowId = await normalBrowserWindowId();
+    const editPromise = createAutomationTab({ ...(windowId ? { windowId } : {}), url: `https://www.kleinanzeigen.de/p-anzeige-bearbeiten.html?adId=${encodeURIComponent(adId)}`, active: false });
+    const metadataPromise = publicUrl
+      ? createAutomationTab({ ...(windowId ? { windowId } : {}), url: publicUrl, active: false })
+      : Promise.resolve(null);
+    const [editResult, metadataResult] = await Promise.allSettled([editPromise, metadataPromise]);
+    if (editResult.status !== 'fulfilled' || !editResult.value?.id) throw new Error('Aktualisierungs-Worker konnte nicht geöffnet werden.');
+    workerTabId = editResult.value.id;
+    if (metadataResult.status === 'fulfilled' && metadataResult.value?.id) metadataTabId = metadataResult.value.id;
+
+    await logDiagnostic('info', 'INVENTORY_REFRESH_WORKERS_OPENED', { adId, workerTabId, metadataTabId, parallel: true }, { module: 'background', operation: 'inventory-refresh', context: { adId, workerTabId, metadataTabId } }).catch(() => {});
+    const readOnlyPromise = metadataTabId
+      ? extractReadOnlyMetadata(metadataTabId, adId)
+      : Promise.resolve({ ok: false, metadata: null, durationMs: 0, error: 'Keine öffentliche Detail-URL verfügbar.' });
+
+    await waitForTabComplete(workerTabId, { timeoutMs: TAB_LOAD_TIMEOUT_RENEWAL_MS, purpose: 'inventory-refresh-edit', label: 'Aktualisierungs-Worker', operation: 'inventory-refresh', context: { adId, workerTabId } });
+    await ensureContentConnection({ tabId: workerTabId });
+    const deadline = Date.now() + BULK_RETRY_TIMEOUT_MS;
+    let extracted = null;
+    let lastReason = '';
+    while (Date.now() < deadline) {
+      try {
+        extracted = await sendTabRequestWithBootstrap(workerTabId, { type: 'EXTRACT_CURRENT_AD' });
+        if (String(extracted?.adId || '') === adId) break;
+        lastReason = `Worker-Anzeige ${extracted?.adId || 'unbekannt'} entspricht nicht ${adId}.`;
+        extracted = null;
+      } catch (error) {
+        lastReason = String(error.message || error).slice(0, 300);
+      }
+      await delay(BULK_RETRY_POLL_MS);
+    }
+    if (!extracted) throw new Error(lastReason || 'Anzeige wurde nicht rechtzeitig inventarisierbar.');
+
+    const readOnlyResult = await readOnlyPromise;
+    let ownerCardEndDate = null;
+    // The public listing can have a posting date but no expiry. Only when
+    // the expiry is missing do we read the owner's exact card and reuse the
+    // existing bounded multi-page FIND_OWN_AD_BY_ID parser.
+    if (!readOnlyResult.ok || !readOnlyResult.metadata?.endDateDisplay) {
+      try {
+        ownerCardEndDate = await readInventoryRefreshOwnAdsEndDate(adId, existing.profileName || '', windowId);
+        await logDiagnostic('info', 'INVENTORY_REFRESH_OWN_AD_END_DATE_CONFIRMED', {
+          adId, source: ownerCardEndDate.evidence, pagesScanned: ownerCardEndDate.pagesScanned,
+          endDateDisplay: ownerCardEndDate.endDateDisplay
+        }, { module: 'background', operation: 'inventory-refresh-own-ads', context: { adId } }).catch(() => {});
+      } catch (error) {
+        // Read-only enrichment must never corrupt a complete edit snapshot or
+        // replace a known date with a guess on a wrong-account/absent card.
+        await logDiagnostic('warning', 'INVENTORY_REFRESH_OWN_AD_END_DATE_UNAVAILABLE', {
+          adId, message: String(error?.message || error).slice(0, 400)
+        }, { module: 'background', operation: 'inventory-refresh-own-ads', context: { adId } }).catch(() => {});
+      }
+    }
+    if (!readOnlyResult.ok) {
+      await logDiagnostic('warning', 'INVENTORY_REFRESH_READONLY_UNAVAILABLE', { adId, durationMs: readOnlyResult.durationMs, message: readOnlyResult.error }, { module: 'background', operation: 'inventory-refresh-readonly', context: { adId, metadataTabId } }).catch(() => {});
+    } else {
+      await logDiagnostic('info', 'INVENTORY_REFRESH_READONLY_SUCCEEDED', { adId, durationMs: readOnlyResult.durationMs, hasEndDate: Boolean(readOnlyResult.metadata?.endDateDisplay), hasListingDate: Boolean(readOnlyResult.metadata?.listingDateDisplay) }, { module: 'background', operation: 'inventory-refresh-readonly', context: { adId, metadataTabId } }).catch(() => {});
+    }
+    extracted.profileId = existing.profileId || null;
+    extracted.profileName = existing.profileName || null;
+    if (existing?.renewal?.renewalId || String(existing?.recordKind || '').startsWith('renewal-')) {
+      extracted.recordKind = existing.recordKind || 'renewal-candidate';
+      extracted.renewal = existing.renewal ? { ...existing.renewal, updatedAt: new Date().toISOString() } : null;
+    }
+    extracted.listingMeta = mergeListingMetadata(extracted, existing.listingMeta || {}, readOnlyResult, {
+      endDateDisplay: ownerCardEndDate?.endDateDisplay || existing.listingMeta?.endDateDisplay || existing.endDateDisplay || null,
+      endDateIso: ownerCardEndDate?.endDateIso || existing.listingMeta?.endDateIso || null,
+      publicUrl,
+      source: 'manual-inventory-refresh'
+    });
+    if (ownerCardEndDate) extracted.listingMeta.endDateSource = ownerCardEndDate.evidence;
+    let saved = await saveInventory(extracted, { inventoryIdOverride: inventoryId });
+    if (existing?.renewal?.renewalId) {
+      const sessions = await readRenewalSessions();
+      const session = sessions[String(existing.renewal.renewalId)];
+      if (session && String(session.skeletonInventoryId || '') === inventoryId) {
+        const source = await getInventory(session.sourceInventoryId);
+        if (!source) throw new Error('Quellinventar für die erneute Renewal-Verifikation wurde nicht gefunden.');
+        const safeFullVerification = normalizeRenewalMode(session.renewalMode) === RENEWAL_MODE_SAFE;
+        const comparison = await compareRenewalRecords(source, saved, {
+          onlineConfirmed: readOnlyResult.ok,
+          requirePublicAvailability: !safeFullVerification
+        });
+        session.comparison = comparison;
+        const outcome = renewalOutcomeForComparison(comparison);
+        session.status = outcome.status;
+        session.stage = outcome.stage;
+        if (safeFullVerification && comparison.status === 'match') {
+          session.status = 'verified';
+          session.stage = 'replacement-ready';
+          session.publicAvailabilityPending = !readOnlyResult.ok;
+          session.publicAvailability = publicAvailabilitySnapshot({
+            online: Boolean(readOnlyResult.ok),
+            verificationClass: readOnlyResult.ok ? 'confirmed' : 'temporarily-unavailable',
+            method: readOnlyResult.ok ? 'manual-refresh-readonly' : null,
+            publicUrl: publicUrl || null
+          });
+          saved.listingMeta = { ...(saved.listingMeta || {}), publicAvailability: { ...session.publicAvailability } };
+          await putInventoryRecordOnly(saved);
+        }
+        session.verifiedAt = comparison.status === 'match' ? new Date().toISOString() : null;
+        session.lastError = null;
+        await persistRenewalSession(session);
+        saved = await getInventory(inventoryId) || saved;
+        await logDiagnostic(comparison.status === 'match' ? 'info' : 'warning', 'RENEWAL_REFRESH_REVERIFIED', {
+          renewalId: session.renewalId, sourceAdId: session.sourceAdId, newAdId: session.newAdId, status: comparison.status, mismatchCount: comparison.mismatches.length, uncertaintyCount: comparison.uncertainties.length
+        }, { module: 'background', operation: 'renewal-refresh-verify', context: sessionCorrelationContext(session, { renewalId: session.renewalId, adId }) }).catch(() => {});
+      }
+    }
+    await closeRegistryTabs([workerTabId, metadataTabId], 'inventory-refresh-worker-finished', 'Aktualisierungs-Worker');
+    workerTabId = null;
+    metadataTabId = null;
+    await logDiagnostic('info', 'INVENTORY_REFRESH_SUCCEEDED', { inventoryId: saved.inventoryId, adId, imageCount: saved.imageSummary?.discovered || 0, readOnlyMetadata: readOnlyResult.ok }, { module: 'background', operation: 'inventory-refresh', context: { adId } }).catch(() => {});
+    return saved;
+  } catch (error) {
+    await closeRegistryTabs([workerTabId, metadataTabId], 'inventory-refresh-worker-failed', 'Aktualisierungs-Worker');
+    await logDiagnostic('error', 'INVENTORY_REFRESH_FAILED', { inventoryId, adId, message: String(error.message || error).slice(0, 600), stack: String(error.stack || '').slice(0, 2400) }, { module: 'background', operation: 'inventory-refresh', context: { adId, workerTabId, metadataTabId } }).catch(() => {});
+    throw error;
+  }
 }
 
 function classifyBulkEditWorkerNavigation(tab, expectedAdId) { return requireBulkInventoryController().classifyBulkEditWorkerNavigation(tab, expectedAdId); }
@@ -1527,7 +2484,9 @@ async function finishBulkRun(message, sender) { return requireBulkInventoryContr
 
 async function failBulkRun(message, sender) { return requireBulkInventoryController().failBulkRun(message, sender); }
 
+
 async function retryBulkFailure(message) { return requireBulkInventoryController().retryBulkFailure(message); }
+
 
 let massRenewalController = null;
 function requireMassRenewalController() {
@@ -1583,7 +2542,6 @@ function requireMassRenewalWorkflowController() {
       publicAvailabilityPending, readFillSessions, classifyKleinanzeigenInsertionErrorUrl,
       terminalizeTemplateFillOnPlatformError, terminalizeTemplateFillForWatchdog, persistRenewalSession,
       cryptoApi: globalThis.crypto, chromeApi: chrome, queueMicrotaskFn: globalThis.queueMicrotask,
-      withAutonomousAdmission: (kind, task) => withAutonomousAdmission(kind, task),
       setTimeoutFn: globalThis.setTimeout, clearTimeoutFn: globalThis.clearTimeout,
       MASS_RENEWAL_MAX_ITEMS, MASS_RENEWAL_WATCHDOG_STALE_MS, MASS_RENEWAL_WATCHDOG_TICK_MS,
       UNASSIGNED_PROFILE_ID
@@ -1608,6 +2566,7 @@ async function massRenewalWatchdogTick(message, sender) { return requireMassRene
 function resetMassRenewalWorkflowRuntimeState() { return requireMassRenewalWorkflowController().resetRuntimeState(); }
 
 
+
 async function readRenewalSessions() { return requireRenewalStateRepository().readRenewalSessions(); }
 async function writeRenewalSessions(sessions) { return requireRenewalStateRepository().writeRenewalSessions(sessions); }
 
@@ -1617,6 +2576,7 @@ function archiveInsertionPublicSnapshot(session) { return requireArchiveInsertio
 function broadcastArchiveInsertionState(session, reason = 'session-updated') { return requireArchiveInsertionService().broadcastArchiveInsertionState(session, reason); }
 async function persistArchiveInsertionSession(session, options = {}) { return requireArchiveInsertionService().persistArchiveInsertionSession(session, options); }
 async function getArchiveInsertionStatus(message) { return requireArchiveInsertionService().getArchiveInsertionStatus(message); }
+
 
 let archiveInsertionController = null;
 function requireArchiveInsertionController() {
@@ -1631,7 +2591,6 @@ function requireArchiveInsertionController() {
       createAutomationTab, registerShadowTab, closePublishedRenewalTargetTab,
       assertSelectedProfileMatchesLiveAccount, getRenewalConfiguration, withInsertionStartGate, assertInsertionStartAvailable,
       readFillSessions, writeFillSessions, detectPublishedAdForFill,
-      withAutonomousAdmission, resolvePublishIntent: resolveManagedPublishIntent,
       correlationContext, sessionCorrelationContext, delay, logDiagnostic, setAppNotice, broadcastInventoryChanged,
       cryptoApi: globalThis.crypto, chromeApi: chrome,
       MY_ADS_PROJECTS_URL, TAB_LOAD_TIMEOUT_RENEWAL_MS, BULK_RETRY_TIMEOUT_MS, BULK_RETRY_POLL_MS,
@@ -1652,67 +2611,17 @@ function renewalPublicSnapshot(session) { return requireRenewalStateRepository()
 
 
 let renewalWorkflowController = null;
-let phase4Journal = null;
-function requirePhase4UncertaintyJournal() {
-  if (!phase4Journal) {
-    phase4Journal = Phase4UncertaintyJournal.create({
-      storageLocal: chrome.storage.local, clock: () => Date.now(),
-      newToken: () => crypto.randomUUID(), workerInstanceId: ownerWorkerInstanceId,
-      verifyRemoteOutcome: receipt => requireRemoteDeleteReplacementService().verifyPhase4RemoteOutcomeFresh(receipt),
-      lockName: AtomicMV3Admission.LOCK_NAME,
-      lockManager: globalThis.navigator?.locks,
-      onSample: s => logDiagnostic('info','RENEWAL_PHASE4_JOURNAL_LOCK_CONTENTION',s).catch(()=>{})
-    });
-  }
-  return phase4Journal;
-}
-let autoPublishIntentJournal = null;
-function requireAutoPublishIntentJournal() {
-  if (!autoPublishIntentJournal) {
-    autoPublishIntentJournal = AutoPublishIntentJournal.create({
-      storageLocal: chrome.storage.local, clock: () => Date.now(),
-      newToken: () => crypto.randomUUID(), workerInstanceId: ownerWorkerInstanceId,
-      lockName: AtomicMV3Admission.LOCK_NAME,
-      lockManager: globalThis.navigator?.locks,
-      onSample: sample => requireDiagnosticsService().recordPublishIntentSample(sample),
-      verifyRemoteOutcome: (intent, newAdId) => verifyAutoPublishRemoteOutcomeFresh(intent, newAdId)
-    });
-  }
-  return autoPublishIntentJournal;
-}
-// A redirect is not publication proof; independent My Ads verification is.
-let publishIntentAuthorizationService = null;
-function requirePublishIntentAuthorizationService() {
-  if (!publishIntentAuthorizationService) publishIntentAuthorizationService = PublishIntentAuthorizationService.create({
-    sessionPort: { readArchiveInsertionSessions, readRenewalSessions, readFillSessions },
-    accountPort: { assertSelectedProfileMatchesLiveAccount, normalizeProfileName },
-    tabPort: { createManagedWorkerTab, waitForTabComplete, ensureContentConnection, sendTabRequestWithBootstrap, closeManagedWorkerTab },
-    journalPort: { requireAutoPublishIntentJournal },
-    configPort: { MY_ADS_PROJECTS_URL, TAB_LOAD_TIMEOUT_PHASE4_MS, URL }
-  });
-  return publishIntentAuthorizationService;
-}
-async function verifyAutoPublishRemoteOutcomeFresh(intent, newAdId) {
-  return requirePublishIntentAuthorizationService().verifyAutoPublishRemoteOutcomeFresh(intent, newAdId);
-}
-async function resolveManagedPublishIntent(fill, detected) {
-  return requirePublishIntentAuthorizationService().resolveManagedPublishIntent(fill, detected);
-}
-async function authorizeAutomaticPublish(message, sender, admissionReceipt) {
-  return requirePublishIntentAuthorizationService().authorizeAutomaticPublish(message, sender, admissionReceipt);
-}
 function requireRenewalWorkflowController() {
   if (!renewalWorkflowController) {
     renewalWorkflowController = RenewalWorkflowController.create({
       assertMassRenewalManualActionAllowed, broadcastInventoryChanged, closeManagedWorkerTab, closeRegistryTab,
       compareRenewalRecords, correlationContext, createManagedWorkerTab, delay, detectPublishedAdForFill,
       dropMassRenewalProgress, ensureContentConnection, evaluateCheckoutRecoveryProof, finishRenewalReplacement,
-      withAutonomousAdmission, resolvePublishIntent: resolveManagedPublishIntent,
       flushDiagnosticBuffer, getInventory, isCheckoutAbortedRecoveryCandidate, isNonRetryableRenewalSafetyError,
       isSafeLegacyManualEmergencyReset, logDiagnostic, logRenewalPhaseAttemptFailed, logRenewalPhaseAttemptStarted,
       massRenewalBatchCounts, massRenewalTerminalOutcome, mergeListingMetadata, mutateMassRenewalBatch,
       normalBrowserWindowId, normalizeKnownPublicAdUrl, normalizeProfileName, normalizeRenewalMode, normalizeRenewalPhaseAttempts,
-      persistArchiveInsertionSession, publicAvailabilitySnapshot, putInventoryRecordOnly, recoverEmergencyResetCandidateAtomic, queueMassRenewalProgress,
+      persistArchiveInsertionSession, publicAvailabilitySnapshot, putInventoryRecordOnly, queueMassRenewalProgress,
       readArchiveInsertionSessions, readDiagnostics, readFillSessions, readInventoryRecordsForProfile, readProfiles,
       readRenewalSessions, reconcileMassRenewalBatchSession, renewalAttemptState, renewalComparisonWaitsOnlyForOnline,
       renewalInsertionMeta, renewalMaxPhaseAttempts, renewalAttemptDetails, renewalOutcomeForComparison, renewalPhaseAttemptAvailable,
@@ -1858,8 +2767,31 @@ function insertionLockMessage(lock) { return requireInsertionLockService().inser
 async function assertInsertionStartAvailable(request = {}) { return await requireInsertionLockService().assertInsertionStartAvailable(request); }
 
 function publishedAdCandidateFromUrl(rawUrl, sourceAdId = '') {
-  return requireListingUrlEvidenceService().publishedAdCandidateFromUrl(rawUrl, sourceAdId);
+  try {
+    const url = new URL(String(rawUrl || ''));
+    if (url.protocol !== 'https:' || !/(^|\.)kleinanzeigen\.de$/i.test(url.hostname)) return null;
+    let adId = '';
+    let kind = '';
+    let publicUrl = '';
+    const publicMatch = url.pathname.match(/\/s-anzeige\/[^/]+\/(\d+)-\d+-\d+(?:\/)?$/i);
+    if (publicMatch) {
+      adId = publicMatch[1];
+      kind = 'public';
+      publicUrl = `${url.origin}${url.pathname}`;
+    } else if (/\/p-anzeige-bearbeiten\.html$/i.test(url.pathname)) {
+      adId = String(url.searchParams.get('adId') || '');
+      kind = 'edit';
+    } else if (/\/p-anzeige-aufgeben-bestaetigung\.html$/i.test(url.pathname)) {
+      adId = String(url.searchParams.get('addId') || url.searchParams.get('adId') || '');
+      kind = 'confirmation';
+    }
+    if (!/^\d+$/.test(adId) || adId === String(sourceAdId || '')) return null;
+    return { adId, kind, publicUrl, url: url.href };
+  } catch {
+    return null;
+  }
 }
+
 
 function recoverableTrashTemplateFill(session) { return requireTemplateFillController().recoverableTrashTemplateFill(session); }
 
@@ -1894,24 +2826,115 @@ async function startTemplateFill(inventoryId, options = {}) { return await requi
 
 const renewalPhase1RetryInFlight = new Set();
 
-let renewalPhase1RetryService = null;
-function requireRenewalPhase1RetryService() {
-  if (!renewalPhase1RetryService) renewalPhase1RetryService = RenewalPhase1RetryService.create({
-    sessionPort: { readRenewalSessions, readFillSessions, writeFillSessions, persistRenewalSession },
-    policyPort: { renewalPhaseAttemptAvailable, renewalAttemptState, beginRenewalPhaseAttempt, normalizeRenewalMode, renewalMaxPhaseAttempts },
-    tabPort: { createAutomationTab, registerShadowTab, closeRegistryTab, updateAutomationTab },
-    diagnosticsPort: { correlationContext, sessionCorrelationContext, logDiagnostic },
-    configPort: { crypto, TEMPLATE_TARGET_URL, TAB_ROLES },
-    statePort: { renewalPhase1RetryInFlight }
-  });
-  return renewalPhase1RetryService;
+function phase1PublishBoundaryReached(renewal, fill = null) {
+  if (/^\d+$/.test(String(renewal?.newAdId || ''))) return true;
+  if (renewal?.publishClickedAt || fill?.publishClickedAt) return true;
+  const statuses = [renewal?.status, fill?.status].map(value => String(value || ''));
+  if (statuses.some(status => ['submitted', 'new-id-confirmed', 'reinventorizing', 'verifying', 'verified', 'replaced'].includes(status))) return true;
+  const stages = [renewal?.stage, fill?.stage].map(value => String(value || ''));
+  return stages.some(stage => ['publish-submitted', 'new-id-confirmed'].includes(stage));
 }
+
 function canRetryRenewalPhase1(renewal, fill = null) {
-  return requireRenewalPhase1RetryService().canRetryRenewalPhase1(renewal, fill);
+  if (!renewal?.renewalId || phase1PublishBoundaryReached(renewal, fill)) return false;
+  if (['cancelled', 'replaced'].includes(String(renewal.status || ''))) return false;
+  return renewalPhaseAttemptAvailable(renewal, 1);
 }
+
 async function restartRenewalPhase1Attempt(renewalId, failedFillId, reason = 'phase-1-fill-failed') {
-  return requireRenewalPhase1RetryService().restartRenewalPhase1Attempt(renewalId, failedFillId, reason);
+  const id = String(renewalId || '');
+  if (!id || renewalPhase1RetryInFlight.has(id)) return false;
+  renewalPhase1RetryInFlight.add(id);
+  try {
+    const [renewals, fills] = await Promise.all([readRenewalSessions(), readFillSessions()]);
+    const renewal = renewals[id];
+    const failedFill = fills[String(failedFillId || '')];
+    if (!renewal || !failedFill) return false;
+    if (String(renewal.fillId || '') !== String(failedFill.fillId || '')) return false;
+    if (!canRetryRenewalPhase1(renewal, failedFill)) return false;
+
+    const previousTargetTabId = Number(renewal.targetTabId || failedFill.targetTabId || 0) || null;
+    const previousAttempt = renewalAttemptState(renewal, 1);
+    const attemptState = beginRenewalPhaseAttempt(renewal, 1, { lastError: failedFill.result?.issues?.[0] || renewal.lastError || reason });
+    const fillId = crypto.randomUUID();
+    const tab = await createAutomationTab({ url: 'about:blank', active: false });
+    if (!tab?.id) throw new Error('Neuer Kleinanzeigen-Tab für den Phase-1-Wiederholungsversuch konnte nicht geöffnet werden.');
+
+    renewal.fillId = fillId;
+    renewal.targetTabId = tab.id;
+    renewal.status = 'draft';
+    renewal.stage = 'phase1-retry-started';
+    renewal.lastError = null;
+    renewal.updatedAt = new Date().toISOString();
+    await persistRenewalSession(renewal);
+
+    const nextFill = {
+      operationId: renewal.operationId || failedFill.operationId || null,
+      parentOperationId: renewal.parentOperationId || failedFill.parentOperationId || null,
+      fillId,
+      renewalId: id,
+      skeletonInventoryId: renewal.skeletonInventoryId,
+      inventoryId: renewal.sourceInventoryId,
+      sourceAdId: renewal.sourceAdId,
+      targetTabId: tab.id,
+      targetUrl: TEMPLATE_TARGET_URL,
+      renewalMode: normalizeRenewalMode(renewal.renewalMode),
+      maxPhaseAttempts: renewalMaxPhaseAttempts(renewal),
+      phase1Attempt: attemptState.attempt,
+      phase1AttemptId: attemptState.attemptId,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      status: 'waiting',
+      stage: 'tab-opened',
+      result: null,
+      autoReplacementAllowed: Boolean(renewal.autoReplacementAllowed),
+      startConfirmedAt: renewal.startConfirmedAt || failedFill.startConfirmedAt || null,
+      massBatchId: renewal.massBatchId || failedFill.massBatchId || null,
+      massBatchItemIndex: renewal.massBatchItemIndex ?? failedFill.massBatchItemIndex ?? null
+    };
+    fills[fillId] = nextFill;
+    await writeFillSessions(fills);
+    await registerShadowTab(tab.id, TAB_ROLES.RENEWAL_TARGET, { ...correlationContext(renewal), ownerType: 'renewal', ownerId: id, inventoryId: String(renewal.sourceInventoryId || ''), adId: String(renewal.sourceAdId || '') });
+
+    if (previousTargetTabId && previousTargetTabId !== tab.id) {
+      await closeRegistryTab(previousTargetTabId, 'renewal-phase1-retry', 'Vorheriger Phase-1-Zieltab').catch(() => {});
+    }
+
+    await updateAutomationTab(tab.id, { url: TEMPLATE_TARGET_URL, active: true });
+    await logDiagnostic('warning', 'RENEWAL_PHASE1_ATTEMPT_RESTARTED', {
+      renewalId: id,
+      sourceAdId: renewal.sourceAdId,
+      previousFillId: failedFill.fillId,
+      fillId,
+      previousAttempt: previousAttempt.attempt,
+      attempt: attemptState.attempt,
+      maxAttempts: renewalMaxPhaseAttempts(renewal),
+      phase1AttemptId: attemptState.attemptId,
+      reason: String(reason || '').slice(0, 300)
+    }, { module: 'background', operation: 'renewal-phase-1', context: sessionCorrelationContext(renewal, { renewalId: id, fillId, adId: renewal.sourceAdId, targetTabId: tab.id }) }).catch(() => {});
+    return true;
+  } catch (error) {
+    const renewals = await readRenewalSessions().catch(() => ({}));
+    const renewal = renewals[id];
+    if (renewal && !phase1PublishBoundaryReached(renewal)) {
+      renewal.status = 'verification-failed';
+      renewal.stage = 'phase1-retry-start-failed';
+      renewal.lastError = String(error.message || error).slice(0, 800);
+      await persistRenewalSession(renewal).catch(() => {});
+    }
+    await logDiagnostic('error', 'RENEWAL_PHASE1_RETRY_START_FAILED', {
+      renewalId: id,
+      fillId: failedFillId || null,
+      message: String(error.message || error).slice(0, 800)
+    }, { module: 'background', operation: 'renewal-phase-1', context: sessionCorrelationContext(renewal || { renewalId: id }, { renewalId: id }) }).catch(() => {});
+    return false;
+  } finally {
+    renewalPhase1RetryInFlight.delete(id);
+  }
 }
+
+
+
 
 async function deleteImagesByInventoryId(inventoryId) { return requireInventoryImageStore().deleteByInventoryId(inventoryId); }
 
@@ -2007,11 +3030,11 @@ chrome.storage?.onChanged?.addListener((changes, areaName) => {
 
 chrome.tabs?.onUpdated?.addListener((tabId, changeInfo, tab) => {
   if (changeInfo?.status || changeInfo?.url) notifyTabLoadWaiters(tabId, { kind: 'updated', status: changeInfo.status || tab?.status || null, url: changeInfo.url || tab?.url || null, tab });
-  if (tab?.id) void withAutonomousAdmission('tab-lifecycle-update', () => observeTabLifecycleUpdate(tab)).catch(() => {});
+  if (tab?.id) void observeTabLifecycleUpdate(tab).catch(() => {});
   const observedUrl = String(changeInfo.url || tab?.url || '');
   const platformError = classifyKleinanzeigenInsertionErrorUrl(observedUrl, { title: tab?.title || '' });
   if (platformError.isError) {
-    void withAutonomousAdmission('template-error-terminalize', () => terminalizeTemplateFillOnPlatformError(tabId, observedUrl, { ...platformError, title: tab?.title || '', source: 'tab-navigation' })).catch(async error => {
+    void terminalizeTemplateFillOnPlatformError(tabId, observedUrl, { ...platformError, title: tab?.title || '', source: 'tab-navigation' }).catch(async error => {
       await logDiagnostic('error', 'KLEINANZEIGEN_ERROR_PAGE_TERMINALIZATION_FAILED', {
         tabId, path: platformError.path || null, errorCode: platformError.errorCode || null,
         message: String(error.message || error).slice(0, 800)
@@ -2020,7 +3043,7 @@ chrome.tabs?.onUpdated?.addListener((tabId, changeInfo, tab) => {
   }
   if (changeInfo.status !== 'complete' || renewalPublishDetectionInFlight.has(tabId)) return;
   renewalPublishDetectionInFlight.add(tabId);
-  void withAutonomousAdmission('renewal-publish-detection', async () => {
+  (async () => {
     const fills = await readFillSessions();
     const fill = Object.values(fills).find(item => item?.targetTabId === tabId && (item?.renewalId || item?.archiveInsertionId) && item?.stage === 'publish-submitted' && item?.status === 'running');
     if (!fill) return;
@@ -2054,19 +3077,15 @@ chrome.tabs?.onUpdated?.addListener((tabId, changeInfo, tab) => {
         message: String(error.message || error).slice(0, 500)
       }, { module: 'background', operation: fill.archiveInsertionId ? 'archive-import-publish-detect' : 'renewal-publish-detect', context: sessionCorrelationContext(fill, { renewalId: fill.renewalId || null, adId: fill.sourceAdId, targetTabId: tabId }) }).catch(() => {});
     }
-  }).catch(error => {
-    void logDiagnostic('warning', 'RENEWAL_PUBLISH_AUTO_ADMISSION_REJECTED', {
-      errorCode: String(error?.code || ''), tabId
-    }, { module: 'background', operation: 'renewal-publish-auto-admission' }).catch(() => {});
-  }).finally(() => renewalPublishDetectionInFlight.delete(tabId));
+  })().finally(() => renewalPublishDetectionInFlight.delete(tabId));
 });
 
 chrome.tabs?.onActivated?.addListener(({ tabId }) => {
-  void withAutonomousAdmission('tab-activated', () => requireTabLifecycleObserver().handleActivated(tabId)).catch(() => {});
+  void requireTabLifecycleObserver().handleActivated(tabId).catch(() => {});
 });
 
 chrome.tabs?.onRemoved?.addListener(tabId => {
-  void withAutonomousAdmission('tab-removed', () => requireTabLifecycleObserver().handleRemoved(tabId)).catch(() => {});
+  void requireTabLifecycleObserver().handleRemoved(tabId).catch(() => {});
 });
 
 
@@ -2081,7 +3100,6 @@ function requireWorkflowEmergencyResetController() {
       RenewalStateRepository, readRenewalSessions, writeRenewalSessions, renewalHoldsInsertionLock,
       isSafeLegacyManualEmergencyReset, isSafePrePublishPaidInsertion, emergencyResetRenewalState,
       readArchiveInsertionSessions, writeArchiveInsertionSessions, readMassRenewalBatch, writeMassRenewalBatch,
-      recoverEmergencyResetCandidateAtomic,
       touchMassRenewalItemProgress, getTabRegistrySnapshot, TAB_STATES,
       logDiagnostic, sessionCorrelationContext, broadcastInventoryChanged
     });
@@ -2138,134 +3156,7 @@ function requireNativeStatusBridge() {
   return nativeStatusBridge;
 }
 
-// KAR-195 P8 timing aggregation is owned by KRDiagnosticsService.
-// No trusted 15-owner snapshot provider exists yet: reserve always fails closed.
-let atomicMV3Admission = null;
-function requireAtomicMV3Admission() {
-  if(!atomicMV3Admission) {
-    if(typeof AtomicMV3Admission?.create!=='function')
-      throw new Error('KR_UPDATE_FENCE_ATOMIC_UNAVAILABLE');
-    atomicMV3Admission=AtomicMV3Admission.create({
-      storageLocal:chrome.storage.local,lockManager:globalThis.navigator?.locks,
-      workerInstanceId:ownerWorkerInstanceId,clock:()=>Date.now(),
-      newToken:()=>crypto.randomUUID(),
-      onSample:sample=>requireDiagnosticsService().recordAtomicSample(sample)
-    });
-  }
-  return atomicMV3Admission;
-}
-let updateWorkflowFence = null;
-function requireUpdateWorkflowFence() {
-  if (!updateWorkflowFence) {
-    if (typeof UpdateWorkflowFence?.create !== 'function')
-      throw new Error('KR_UPDATE_FENCE_UNAVAILABLE');
-    updateWorkflowFence = UpdateWorkflowFence.create({
-      storageLocal: chrome.storage.local,
-      clock: () => Date.now(),
-      newToken: () => crypto.randomUUID(),
-      atomicCoordinator: requireAtomicMV3Admission()
-    });
-  }
-  return updateWorkflowFence;
-}
-// This tracker covers positively identified autonomous paths only. Message
-// handlers, detached tasks and previous worker generations still need their
-// own complete proofs before KAR-97 can treat ANY owner as confirmed idle.
-const ownerWorkerInstanceId = crypto.randomUUID();
-let persistedOwnerObserver = null;
-function requirePersistedOwnerObserver() {
-  if (!persistedOwnerObserver) {
-    if (typeof PersistedOwnerObserver?.create !== 'function') throw new Error('KR_UPDATE_OWNER_OBSERVER_UNAVAILABLE');
-    persistedOwnerObserver = PersistedOwnerObserver.create({
-      storageLocal: chrome.storage.local, storageSession: chrome.storage.session, clock: () => Date.now(),
-      workerInstanceId:ownerWorkerInstanceId
-    });
-  }
-  return persistedOwnerObserver;
-}
-// The private gate uses the existing, read-only authenticated Kleinanzeigen
-// account/profile match from KRAdditionalOwnerObserver (without an extra
-// seller userId or email syntax check). It remains FAIL-CLOSED for updater
-// reserve: 15 crash-durable owner-completion producers and independent
-// NativeHost transaction recovery are still absent. A matched account
-// is never equivalent to all-15 owner IDLE.
-// Do not add an app/content route to captureForReserve/reserveThroughFence.
-const privateOwnerUpdateAuthority = typeof TrustedOwnerAuthority?.create === 'function'
-  && typeof UpdateIdlePolicy?.evaluate === 'function'
-  ? TrustedOwnerAuthority.create({
-  storageLocal: chrome.storage.local, storageSession: chrome.storage.session,
-  clock: () => Date.now(), newToken: () => crypto.randomUUID(),
-  workerInstanceId: ownerWorkerInstanceId,
-  ownerPolicy: UpdateIdlePolicy, lockManager: globalThis.navigator?.locks,
-  // This function is invoked only inside a later private capture under the
-  // existing Web Lock. The observer independently rechecks PAGE_STATUS.
-  readLiveAccountReadOnly: () => requireAdditionalOwnerObserver().observe(),
-  readBrowserTabsReadOnly: () => requireAdditionalOwnerObserver().readVerifiedUnmanagedTabsReadOnly()
-}) : null;
-// In older VM fixture harnesses this module is intentionally absent; that
-// keeps only the optional *positive* updater authority disabled. Ordinary
-// routed safety remains enforced by the existing P8 admission gate.
-void privateOwnerUpdateAuthority;
-// Additional owner observation is ACTIVE/UNKNOWN only and cannot grant a lease.
-let additionalOwnerObserver = null;
-function requireAdditionalOwnerObserver() {
-  if (!additionalOwnerObserver) {
-    if (typeof AdditionalOwnerObserver?.create !== 'function')
-      throw new Error('KR_ADDITIONAL_OWNER_OBSERVER_UNAVAILABLE');
-    additionalOwnerObserver = AdditionalOwnerObserver.create({
-      storageLocal:chrome.storage.local,storageSession:chrome.storage.session,
-      clock:()=>Date.now(),workerInstanceId:ownerWorkerInstanceId,
-      queryBrowserTabsReadOnly:()=>chrome.tabs.query({}),
-      readAccountPageStatusReadOnly:tabId=>sendTabRequest(tabId,{type:'PAGE_STATUS'})
-    });
-  }
-  return additionalOwnerObserver;
-}
-const AUTONOMOUS_PERSISTED_OWNER_KINDS = Object.freeze({
-  'bulk-runtime-recovery': ['bulkInventory', 'bulkReconciliation'],
-  'bulk-watchdog': ['bulkInventory'],
-  'renewal-resume': ['renewal', 'insertionLock'],
-  'renewal-detached-verify': ['renewal', 'insertionLock'],
-  'renewal-detached-retry': ['renewal', 'insertionLock'],
-  'renewal-auto-phase4': ['renewal', 'insertionLock'],
-  'renewal-publish-detection': ['renewal', 'templateFill', 'archiveInsertion', 'insertionLock'],
-  'mass-resume': ['massRenewal', 'insertionLock'],
-  'mass-renewal-next-item': ['massRenewal', 'insertionLock'],
-  'mass-renewal-watchdog-timer': ['massRenewal', 'insertionLock'],
-  'renewal-phase1-retry': ['renewal', 'templateFill', 'insertionLock'],
-  'archive-resume': ['archiveInsertion', 'templateFill', 'insertionLock'],
-  'archive-postpublish-detached': ['archiveInsertion', 'templateFill', 'insertionLock'],
-  'template-error-terminalize': ['renewal', 'templateFill', 'archiveInsertion', 'insertionLock'],
-  // Tab-driven paths can update several persisted sessions or reload a managed
-  // worker; conservatively hold every candidate owner until the handler settles.
-  'trash-publish-detection': ['templateFill', 'insertionLock'],
-  'tab-removed': ['bulkInventory', 'bulkReconciliation', 'renewal', 'templateFill', 'archiveInsertion', 'insertionLock'],
-  'tab-lifecycle-update': ['bulkInventory', 'bulkReconciliation', 'renewal', 'massRenewal', 'templateFill', 'archiveInsertion', 'insertionLock']
-});
-// Routed/autonomous callbacks share P8 fence and owner trackers; missing sources fail closed.
-function withAutonomousAdmission(kind, task) {
-  try {
-    const names = AUTONOMOUS_PERSISTED_OWNER_KINDS[kind];
-    if (names) {
-      const admittedTask = task;
-      task = admissionReceipt => requirePersistedOwnerObserver().track(names, () => admittedTask(admissionReceipt));
-    }
-    const started = task;
-    const namesForKind = AdditionalOwnerObserver.ownersForOperation(kind, 'autonomous');
-    task = admissionReceipt => requireAdditionalOwnerObserver().track(namesForKind, () => started(admissionReceipt));
-    return requireUpdateWorkflowFence().withAdmission('AUTONOMOUS:' + kind, task);
-  } catch (error) { return Promise.reject(error); }
-}
-// All currently fenced routed handlers can transitively mutate any persisted
-// workflow; conservatively count all seven for the lifetime of their admitted
-// Promise. The same existing fence arbitrates admission. This is in-memory
-// BUSY evidence only, never proof of idle after restart or update permission.
-function withRoutedAdmission(type, task) {
-  const namesForType = AdditionalOwnerObserver.ownersForOperation(type, 'routed');
-  return requireUpdateWorkflowFence().withAdmission(type, admissionReceipt => requirePersistedOwnerObserver().track(PersistedOwnerObserver.OWNERS, () => namesForType.length ? requireAdditionalOwnerObserver().track(namesForType, () => task(admissionReceipt)) : task(admissionReceipt)));
-}
 const backgroundMessageRouter = BackgroundMessageRouter.create({
-  withWorkflowAdmission: (type, task) => withRoutedAdmission(type, task),
   MessageContractRegistry,
   assertPlatformAccessAllowedForRequest,
   handlers: Object.freeze({
@@ -2278,7 +3169,6 @@ const backgroundMessageRouter = BackgroundMessageRouter.create({
   "LOG_DIAGNOSTIC_EVENT": (message, sender) => logClientDiagnostic(message, sender),
   "SET_ACCOUNT_GATE_DIAGNOSTIC_STATE": (message, sender) => setAccountGateDiagnosticState(message),
   "STORE_GALLERY_DIAGNOSTIC": (message, sender) => storeGalleryDiagnostic(message, sender),
-  "GET_DIAGNOSTIC_OCCUPANCY": (message, sender) => readDiagnosticOccupancy(),
   "GET_DIAGNOSTIC_EXPORT": (message, sender) => requireDiagnosticExportService().buildDiagnosticExport(),
   "RESET_DIAGNOSTICS": (message, sender) => resetDiagnostics(),
   "RESET_ACTIVE_WORKFLOWS": (message, sender) => resetActiveWorkflows(),
@@ -2287,9 +3177,6 @@ const backgroundMessageRouter = BackgroundMessageRouter.create({
   "GET_TAB_REGISTRY_SNAPSHOT": (message, sender) => getTabRegistrySnapshot(),
   "REACTIVATE_DISCARDED_TABS": (message, sender) => reactivateDiscardedTabs(message),
   "GET_RENEWAL_CONFIGURATION": (message, sender) => getRenewalConfiguration(),
-  "GET_TRASH_RETENTION_CONFIGURATION": (message, sender) => getTrashRetentionConfiguration(),
-  "PREVIEW_TRASH_RETENTION_CHANGE": (message, sender) => previewTrashRetentionChange(message),
-  "COMMIT_TRASH_RETENTION_CHANGE": (message, sender) => commitTrashRetentionChange(message),
   "SET_RENEWAL_MODE": (message, sender) => setRenewalMode(message),
   "SET_RENEWAL_PHASE_ATTEMPTS": (message, sender) => setRenewalPhaseAttempts(message),
   "OPEN_EDIT_AD": (message, sender) => openEditAd(message),
@@ -2314,7 +3201,7 @@ const backgroundMessageRouter = BackgroundMessageRouter.create({
   "DELETE_TRASH_ENTRY": (message, sender) => deleteTrashEntry(message.inventoryId),
   "RESET_TRASH_RETENTION": (message, sender) => resetTrashRetention(message.inventoryId),
   "REMOVE_REPLACEMENT_READY_LOCAL": (message, sender) => removeReplacementReadyLocal(message),
-  "FINISH_RENEWAL_REPLACEMENT": (message, sender, admissionReceipt) => finishRenewalReplacement(message, admissionReceipt),
+  "FINISH_RENEWAL_REPLACEMENT": (message, sender) => finishRenewalReplacement(message),
   "DISCARD_RENEWAL_DRAFT": (message, sender) => discardRenewalDraft(message),
   "CLEAR_INVENTORIES": (message, sender) => clearInventories(Object.prototype.hasOwnProperty.call(message, 'profileId') ? message.profileId : undefined),
   "START_BULK_INVENTORY_OPERATION": (message, sender) => startBulkInventoryOperation(message),
@@ -2344,10 +3231,7 @@ const backgroundMessageRouter = BackgroundMessageRouter.create({
   "START_TEMPLATE_FILL": (message, sender) => startTemplateFill(message.inventoryId, { autoReplacementAllowed: message.autoReplacementAllowed === true, startConfirmationVersion: message.startConfirmationVersion }),
   "START_ARCHIVE_INSERTION": (message, sender) => startArchiveInsertion(message),
   "GET_ARCHIVE_INSERTION_STATUS": (message, sender) => getArchiveInsertionStatus(message),
-  "START_TRASH_TEMPLATE_FILL": (message, sender) => {
-    if (message?.schemaTestScenario != null) throw new Error('Manueller Schema-Prüfmodus wurde entfernt.');
-    return startTrashTemplateFill(message.inventoryId, { supersedeFillId: message.supersedeFillId || null });
-  },
+  "START_TRASH_TEMPLATE_FILL": (message, sender) => startTrashTemplateFill(message.inventoryId, { supersedeFillId: message.supersedeFillId || null }),
   "GET_TRASH_TEMPLATE_FILL_STATUS": (message, sender) => getTrashTemplateFillStatus(message),
   "GET_RECOVERABLE_TRASH_TEMPLATE_FILL": (message, sender) => getRecoverableTrashTemplateFill(),
   "PREPARE_TRASH_TEMPLATE_INVENTORY_CAPTURE": (message, sender) => prepareTrashTemplateInventoryCapture(message),
@@ -2355,7 +3239,6 @@ const backgroundMessageRouter = BackgroundMessageRouter.create({
   "GET_APP_NOTICE": (message, sender) => getAppNotice(),
   "DISMISS_APP_NOTICE": (message, sender) => dismissAppNotice(message),
   "RENEWAL_PUBLISH_CLICKED": (message, sender) => markRenewalPublishClicked(message, sender),
-  "AUTHORIZE_AUTOMATIC_PUBLISH": (message, sender, admissionReceipt) => authorizeAutomaticPublish(message, sender, admissionReceipt),
   "GET_TEMPLATE_FILL_SESSION": (message, sender) => getTemplateFillSession(sender),
   "GET_TEMPLATE_IMAGE_CHUNK": (message, sender) => templateImageChunk(message, sender),
   "UPDATE_TEMPLATE_FILL_SESSION": (message, sender) => updateTemplateFillSession(message, sender),
@@ -2402,7 +3285,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 chrome.tabs?.onUpdated?.addListener((tabId, changeInfo, tab) => {
   if (!changeInfo?.url && changeInfo?.status !== 'complete') return;
-  void withAutonomousAdmission('trash-publish-detection', () => maybeDetectTrashTemplatePublishedAd(tabId, changeInfo, tab)).catch(error => {
+  void maybeDetectTrashTemplatePublishedAd(tabId, changeInfo, tab).catch(error => {
     void logDiagnostic('warning', 'TRASH_TEMPLATE_PUBLISH_DETECTION_FAILED', {
       tabId: Number(tabId || 0) || null,
       message: String(error?.message || error || '').slice(0, 500)
@@ -2416,27 +3299,24 @@ chrome.action?.onClicked?.addListener(() => {
   });
 });
 
-// Startup maintenance mutates local registry/trash state outside the message router.
-// Deny it while the persisted update lease is held, including after an MV3 restart.
-// These short tasks use the same admission service as routed workflow requests.
-void withAutonomousAdmission('tab-registry-boot', () => reconcileTabRegistry()).catch(() => {});
-chrome.runtime.onStartup?.addListener(() => { void withAutonomousAdmission('tab-registry-startup', () => reconcileTabRegistry()).catch(() => {}); });
+void reconcileTabRegistry().catch(() => {});
+chrome.runtime.onStartup?.addListener(() => { void reconcileTabRegistry().catch(() => {}); });
 
-// Configurable local-trash expiry is mutating maintenance, not just a read.
-// All three autonomous launch paths must observe the persistent update fence.
-void withAutonomousAdmission('trash-purge-boot', () => purgeExpiredTrash()).catch(() => {});
-chrome.runtime.onStartup?.addListener(() => { void withAutonomousAdmission('trash-purge-startup', () => purgeExpiredTrash()).catch(() => {}); });
-chrome.runtime.onInstalled?.addListener(() => { void withAutonomousAdmission('trash-purge-installed', () => purgeExpiredTrash()).catch(() => {}); });
+// Opportunistic lifecycle cleanup is sufficient for the 30-day archive: it runs
+// whenever the service worker starts, and again before each inventory/trash listing.
+void purgeExpiredTrash().catch(() => {});
+chrome.runtime.onStartup?.addListener(() => { void purgeExpiredTrash().catch(() => {}); });
+chrome.runtime.onInstalled?.addListener(() => { void purgeExpiredTrash().catch(() => {}); });
 
 // Bulk inventory recovery: extension reload/browser restart invalidates the session lease,
 // while an independent watchdog enforces the hard per-item deadline even if the source loop stalls.
-void withAutonomousAdmission('bulk-runtime-recovery', () => ensureBulkRuntimeRecovery()).catch(() => {});
-void withAutonomousAdmission('bulk-watchdog', () => bulkRunWatchdogTick()).catch(() => {});
-if (typeof setInterval === 'function') setInterval(() => { void withAutonomousAdmission('bulk-watchdog', () => bulkRunWatchdogTick()).catch(() => {}); }, BULK_RUN_WATCHDOG_TICK_MS);
+void ensureBulkRuntimeRecovery().catch(() => {});
+void bulkRunWatchdogTick().catch(() => {});
+if (typeof setInterval === 'function') setInterval(() => { void bulkRunWatchdogTick().catch(() => {}); }, BULK_RUN_WATCHDOG_TICK_MS);
 
 // Recover persisted workflows only when no platform safety stop is active.
 void readPlatformAccessRestriction().then(state => {
   if (state?.active) return;
-  void withAutonomousAdmission('renewal-resume', () => resumePendingRenewals()).finally(() => withAutonomousAdmission('mass-resume', () => resumeMassRenewalBatch()).catch(() => {})).catch(() => {});
-  void withAutonomousAdmission('archive-resume', () => resumePendingArchiveInsertions()).catch(() => {});
+  void resumePendingRenewals().finally(() => resumeMassRenewalBatch().catch(() => {})).catch(() => {});
+  void resumePendingArchiveInsertions().catch(() => {});
 }).catch(() => {});

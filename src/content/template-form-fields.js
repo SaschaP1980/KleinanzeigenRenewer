@@ -392,91 +392,6 @@
     return null; // never infer a boolean from display text or a truthy string
   }
 
-  // Read-only evidence for a failed choice. Observe only the exact linked menu
-  // (if exposed); unrelated popups and incomplete/virtualized rows never prove
-  // that a technical value has been removed. No raw DOM or option lists are logged.
-  function readCurrentOptionEvidence(attribute, input) {
-    const name = resolvedAttributeName(attribute);
-    const effectiveKey = name.slice('attributeMap['.length, -1);
-    const control = input && findAttributeControl(input, { ...attribute, key: effectiveKey,
-      controlId: effectiveKey !== attribute.key ? effectiveKey : attribute.controlId });
-    const links = String(control?.getAttribute?.('aria-controls') ||
-      control?.getAttribute?.('aria-owns') || '').split(/\s+/).filter(Boolean);
-    const linked = links.map(id => document.getElementById(id)).filter(root => root && visible(root));
-    const root = linked.length === 1 ? linked[0] : null;
-    const options = root ? [...root.querySelectorAll('[role="option"],[role="menuitem"]')]
-      .filter(element => visible(element)) : [];
-    const wanted = clean(attribute.displayValue || attribute.technicalValue).toLocaleLowerCase('de-DE');
-    const matches = options.filter(element => visibleText(element).toLocaleLowerCase('de-DE') === wanted);
-    const values = options.map(element => element.getAttribute('data-value') ??
-      element.getAttribute('value')).filter(value => value !== null && value !== '');
-    const virtualized = Boolean(root?.querySelector?.('[data-virtualizer],[data-virtual]')) ||
-      options.some(element => Number(element.getAttribute('aria-setsize')) > options.length);
-    return {
-      technicalKey: effectiveKey.slice(0, 128),
-      controlKind: control?.getAttribute?.('role') || control?.tagName?.toLowerCase() || 'unknown',
-      controlPresent: Boolean(control),
-      controlDisabled: Boolean(control?.disabled || control?.getAttribute?.('aria-disabled') === 'true'),
-      expanded: control?.getAttribute?.('aria-expanded') || 'unknown',
-      linkedPopupCount: linked.length, visibleOptionCount: options.length,
-      matchingLabelCount: matches.length, explicitTechnicalIdCount: values.length,
-      optionEvidence: !root ? 'unknown' : virtualized || !options.length || values.length !== options.length
-        ? 'partial-or-hydrating' : 'enumerated',
-      technicalReadbackMatch: Boolean(input && String(input.value) === String(attribute.technicalValue))
-    };
-  }
-
-  // KAR-201: native category-246 listboxes render human labels without an
-  // option 'value'. Never synthesize a technical ID from an index or label.
-  // Only a React-owned hidden-field transition AND exact displayed label
-  // after clicking one unique, linked, enabled li[role=option] may recover it.
-  async function recoverExactDisplayOnlyOption(input, attribute, technicalName) {
-    const key = technicalName.slice('attributeMap['.length, -1);
-    const label = clean(attribute.displayValue || '');
-    if (!label || /^(bitte wählen|auswählen|select)$/i.test(label) ||
-        !input || input.type !== 'hidden')
-      throw new Error('Gespeicherte Auswahl hat keinen sicheren Textwert.');
-    const control = document.getElementById(key);
-    if (!control || !visible(control) || control.tagName !== 'BUTTON' ||
-        control.getAttribute('role') !== 'combobox' || control.disabled ||
-        control.getAttribute('aria-disabled') === 'true')
-      throw new Error('Eindeutiges Dropdown für „' + (attribute.label || key) + '“ fehlt.');
-    const labelNode = document.getElementById(key + '-selected-option');
-    if (!labelNode || !control.contains(labelNode))
-      throw new Error('Anzeigetext des Auswahlfeldes ist nicht eindeutig zugeordnet.');
-    control.focus?.();
-    if (control.getAttribute('aria-expanded') !== 'true') control.click();
-    const menu = await waitFor(() => {
-      const linked = String(control.getAttribute('aria-controls') || '').trim();
-      if (!linked || /\s/.test(linked)) return null;
-      const root = document.getElementById(linked);
-      if (!root || !visible(root) || root.getAttribute('role') !== 'listbox' ||
-          root.getAttribute('aria-labelledby') !== key || control.getAttribute('aria-expanded') !== 'true')
-        return null;
-      return root;
-    }, { timeout: 1800, interval: 70, description: 'Eindeutige Auswahlliste „' + key + '“' });
-    const choices = [...menu.querySelectorAll('[role="option"]')]
-      .filter(option => visible(option) && option.getAttribute('aria-disabled') !== 'true' &&
-        clean(visibleText(option)).toLocaleLowerCase('de-DE') === label.toLocaleLowerCase('de-DE'));
-    if (choices.length !== 1)
-      throw new Error('Auswahl „' + label + '“ ist nicht genau einmal im zugehörigen Dropdown vorhanden.');
-    const before = String(input.value || '');
-    choices[0].click();
-    const confirmed = await waitFor(() => {
-      const refreshed = exactDynamicInput(technicalName);
-      const shown = document.getElementById(key + '-selected-option');
-      const activeControl = document.getElementById(key);
-      const resolved = String(refreshed?.value || '');
-      if (!resolved || !shown || !activeControl?.contains(shown) ||
-          clean(shown.textContent) !== label || activeControl.getAttribute('aria-expanded') === 'true')
-        return null;
-      // Re-read the React-owned value, never assign it ourselves. A nonempty
-      // preexisting hidden value is allowed only if final label also matches.
-      return { technicalValue: resolved, displayValue: label, previousValueChanged: before !== resolved };
-    }, { timeout: 1800, interval: 70, description: 'Sichtbarer und technischer Auswahlwert „' + key + '“' });
-    return confirmed;
-  }
-
   async function fillDynamicAttributeWithRetries(attribute, fillId) {
     const name = resolvedAttributeName(attribute);
     const isSmartwatches = String(document.querySelector('form input[name="categoryId"]')?.value) === '405';
@@ -488,18 +403,8 @@
       interval: 60,
       description: 'Merkmal „' + (attribute.label || attribute.key) + '“'
     });
-    const hasTechnicalValue = attribute.technicalValue !== null &&
-      attribute.technicalValue !== undefined && attribute.technicalValue !== '';
-    const technicalValue = hasTechnicalValue ? String(attribute.technicalValue) : null;
+    const technicalValue = String(attribute.technicalValue);
     const displayValue = attribute.displayValue || technicalValue;
-    if (!hasTechnicalValue) {
-      // Preflight must have admitted this strictly legacy display-only case.
-      // Do not consume three full selector retries where the exact list is absent.
-      const recovered = await recoverExactDisplayOnlyOption(initial, attribute, name);
-      return { attempt: 1, alreadySet: false, controlType: 'hidden',
-        technicalName: name, recoveredTechnicalValue: recovered.technicalValue,
-        verifiedDisplayValue: recovered.displayValue };
-    }
     let lastError = null;
 
     for (let attempt = 1; attempt <= LOCAL_ATTRIBUTE_SELECTION_ATTEMPTS; attempt += 1) {
@@ -545,14 +450,6 @@
         }
       }
 
-      if (lastError && typeof readCurrentOptionEvidence === 'function') {
-        try {
-          void diagnostic(fillId, 'TEMPLATE_ATTRIBUTE_OPTION_EVIDENCE', {
-            key: attribute.key, attempt, maxAttempts: LOCAL_ATTRIBUTE_SELECTION_ATTEMPTS,
-            ...readCurrentOptionEvidence(attribute, input)
-          }, 'warning');
-        } catch (_) { /* diagnostic observation may never change fill outcome */ }
-      }
       if (attempt < LOCAL_ATTRIBUTE_SELECTION_ATTEMPTS) {
         void diagnostic(fillId, 'TEMPLATE_ATTRIBUTE_LOCAL_RETRY', {
           key: attribute.key, label: attribute.label || attribute.key,
@@ -566,26 +463,17 @@
     throw lastError || new Error('Merkmal „' + (attribute.label || attribute.key) + '“ konnte nicht gesetzt werden.');
   }
 
-  async function fillDynamicAttributes(template, fillId, onRecoveredDisplayOnly = null) {
+  async function fillDynamicAttributes(template, fillId) {
     const issues = [];
     for (const attribute of template.dynamicAttributes || []) {
-      if (!attribute?.key) continue;
-      const hasTechnical = attribute.technicalValue !== null &&
-        attribute.technicalValue !== undefined && attribute.technicalValue !== '';
-      const hasDisplay = clean(attribute.displayValue || '').length > 0 && attribute.status !== 'empty';
-      if (!hasTechnical && !hasDisplay) continue;
+      if (!attribute?.key || attribute.technicalValue === null || attribute.technicalValue === undefined || attribute.technicalValue === '') continue;
       try {
         const result = await fillDynamicAttributeWithRetries(attribute, fillId);
-        if (result.recoveredTechnicalValue && typeof onRecoveredDisplayOnly === 'function') {
-          onRecoveredDisplayOnly({ key: attribute.key, technicalValue: result.recoveredTechnicalValue,
-            displayValue: result.verifiedDisplayValue });
-        }
         void diagnostic(fillId, 'TEMPLATE_ATTRIBUTE_SET', {
           key: attribute.key,
           label: attribute.label || attribute.key,
           controlType: attribute.controlType || null,
-          technicalValue: result.recoveredTechnicalValue ? null : String(attribute.technicalValue),
-          displayOnlyRecovered: Boolean(result.recoveredTechnicalValue),
+          technicalValue: String(attribute.technicalValue),
           attempt: result.attempt,
           maxAttempts: LOCAL_ATTRIBUTE_SELECTION_ATTEMPTS,
           localRetryRecovered: result.attempt > 1,
