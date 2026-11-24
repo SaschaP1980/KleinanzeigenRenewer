@@ -1616,7 +1616,7 @@ function requirePhase4UncertaintyJournal() {
       verifyRemoteOutcome: receipt => requireRemoteDeleteReplacementService().verifyPhase4RemoteOutcomeFresh(receipt),
       requireCommitContext: true,
       prepareCommitContext: r => requireAdditionalOwnerObserver().prepareRemoteCommitContextReadOnly(r,'phase4'),
-      verifyCommitContext: (r,w) => requireAdditionalOwnerObserver().verifyRemoteCommitContextReadOnly(r,'phase4',w),
+      verifyCommitContext: (r,w) => requireAdditionalOwnerObserver().verifyRemoteCommitContextReadOnly(r,'phase4',w,null,reason=>{void logDiagnostic('warning','RENEWAL_PHASE4_COMMIT_ACCOUNT_REJECTED',{reason}).catch(()=>{});}),
       lockName: AtomicMV3Admission.LOCK_NAME,
       lockManager: globalThis.navigator?.locks,
       lockWaitMs: 12000,

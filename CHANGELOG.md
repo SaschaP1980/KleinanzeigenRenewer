@@ -4,6 +4,12 @@ This is the canonical version-specific history for Kleinanzeigen Manager. Entrie
 
 All distinct historical section bodies from the former root README and CHANGELOG are preserved with source labels and line numbers. The [KAR-170 migration ledger](docs/maintenance/KAR170_CHANGELOG_MIGRATION.json) identifies their original Git blobs and body checksums. Overlapping versions retain distinct factual notes; older references to planned builds or native/CI acceptance are **historical**, not live status.
 
+## v1.25.35 — KAR-206 explicit detail-page deletion evidence (Work only; not released)
+
+- Native v1.25.34 confirmed DELETE and later source roster absence, but final independent proof remained blocked. Native DOM capture shows explicit visible deleted title/gallery markers and the main listing ID. Prefer a fresh authenticated exact-ID detail observation, retain complete roster absence fallback when evidence is unavailable; never treat hidden, contradictory, wrong-ID, active/reserved/sold or access-error states as deletion proof.
+- Existing PAGE_STATUS read-only route carries the opt-in detail status. Journal accepts separate typed detail evidence (zero roster pages) alongside legacy roster evidence; independent target/account/P8 witness, immutable receipts, private R1 full-roster checks and no-replay guarantees remain.
+- Add bounded fresh read-only retry for recognized transient readiness/transport errors and privacy-safe readiness/remote/commit stage diagnostics. No new remote mutation or permissions. Focused baseline RED 3/3, isolated GREEN 3/3; full hosted validation and native acceptance separate.
+
 ## v1.25.34 — KAR-206 queued Phase4 lock and explicit pre-intent continuation (Work only; not released)
 
 - Native v1.25.33 publication and Phase3 passed; Phase4 pre-intent journal acquisition denied 16 times in 1.246 s with zero hold time, before any DELETE. Production Phase4 begin/resolve now queue on the original exclusive P8 Web Lock with an abortable 12-second acquisition; no lock stealing, no timeout of a held critical section.

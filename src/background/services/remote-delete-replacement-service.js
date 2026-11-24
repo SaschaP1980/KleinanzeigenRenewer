@@ -700,6 +700,7 @@ async function verifyPhase4RemoteOutcomeFresh(receipt, onR1ReadOnlyStage = null,
       if(url.protocol!=='https:'||!/^(?:www\.)?kleinanzeigen\.de$/i.test(url.hostname)||url.port||url.username||url.password)throw deny();
       if(status?.auth?.loggedIn!==true||!status.profileName||normalized(status.profileName)!==normalized(expected))throw deny();
       if(match&&(match[1]||match[2])!==sourceId)throw deny();
+      if(status.adId&&status.adId!==sourceId)throw deny();
       const evidence=status.phase4DetailEvidence;
       if(evidence?.adId&&evidence.adId!==sourceId)throw deny();
       if(evidence?.state==='unavailable'||!evidence){

@@ -129,23 +129,31 @@ async function run(){
    await assert.rejects(verify('not-in-my-ads-full-pagination-scan',0),/KR_PHASE4_JOURNAL_UNVERIFIED/);
  });
  await check('production detail source proof avoids roster absence but still requires independent target',async()=>{
-   function fixture(state,targetFound=true){
-     let tabs=0;const calls=[],closed=[],logs=[];
+   function fixture(state,targetFound=true,opts={}){
+     let tabs=0,readiness=0;const calls=[],closed=[],logs=[];
      const remote=Remote.create({phase4DetailEvidenceEnabled:true,normalizeProfileName:s=>String(s||'').trim(),createManagedWorkerTab:async()=>({id:++tabs}),waitForTabComplete:async()=>{},ensureContentConnection:async()=>{},closeManagedWorkerTab:async id=>closed.push(id),logDiagnostic:async(...args)=>logs.push(args),sendTabRequestWithBootstrap:async(id,msg)=>{
        calls.push(msg.type);
-       if(msg.type==='PAGE_STATUS')return {url:'https://www.kleinanzeigen.de/s-anzeige/100',adId:'100',auth:{loggedIn:true},profileName:'Account',phase4DetailEvidence:{state,adId:'100'}};
+       if(msg.type==='PAGE_STATUS')return {url:opts.url||'https://www.kleinanzeigen.de/s-anzeige/100',adId:opts.id||'100',auth:{loggedIn:true},profileName:opts.profile||'Account',phase4DetailEvidence:{state,adId:'100'}};
        if(msg.type==='MY_ADS_STATUS')return {isMyAdsPage:true,isProjectsTab:true,profileName:'Account'};
-       if(msg.type==='WAIT_FOR_MY_ADS_READY')return {isMyAdsPage:true,isProjectsTab:true,profileName:'Account',currentPage:1,expectedOnline:1,listingCount:1,hasNext:false};
+       if(msg.type==='WAIT_FOR_MY_ADS_READY'){if(opts.retry&&readiness++===0)throw Object.assign(Error('transient'),{code:'KR_MY_ADS_INCONSISTENT',reasonCode:'single-page-incomplete',details:{expectedOnline:1,listingCount:0,profileName:'private',listingIds:['100']}});return {isMyAdsPage:true,isProjectsTab:true,profileName:'Account',currentPage:1,expectedOnline:1,listingCount:1,hasNext:false};}
        if(msg.type==='VERIFY_OWN_AD_ABSENT_BY_ID')return {verified:true,adId:'100',evidence:'not-in-my-ads-full-pagination-scan',pagesScanned:1};
        if(msg.type==='FIND_OWN_AD_BY_ID')return {found:targetFound,adId:'200',evidence:'found-in-my-ads-full-pagination-scan',pagesScanned:1,page:1};
        throw Error('unexpected '+msg.type);
      }});
-     return {run:()=>remote.verifyPhase4RemoteOutcomeFresh({renewalId:'r',attemptId:'a',profileId:'Account',sourceAdId:'100',newAdId:'200'}),calls,closed};
+     return {run:()=>remote.verifyPhase4RemoteOutcomeFresh({renewalId:'r',attemptId:'a',profileId:'Account',sourceAdId:'100',newAdId:'200'}),calls,closed,logs};
    }
    const yes=fixture('deleted');assert.equal((await yes.run()).sourceEvidence,'detail-page-explicit-deleted');assert.equal(yes.calls.includes('VERIFY_OWN_AD_ABSENT_BY_ID'),false);assert.equal(yes.calls.includes('FIND_OWN_AD_BY_ID'),true);
    const fallback=fixture('unavailable');assert.equal((await fallback.run()).sourceEvidence,'not-in-my-ads-full-pagination-scan');
    for(const status of ['active','reserved','sold','identity-mismatch','contradictory']){const f=fixture(status);await assert.rejects(f.run(),/KR_PHASE4_JOURNAL_/);assert.equal(f.calls.includes('VERIFY_OWN_AD_ABSENT_BY_ID'),false);}
    await assert.rejects(fixture('deleted',false).run(),/KR_PHASE4_JOURNAL_/);
+   for(const opts of [{id:'999'},{profile:'Other'},{url:'https://evil.example/s-anzeige/100'},{url:'https://www.kleinanzeigen.de/s-anzeige/999'}]){
+     const f=fixture('deleted',true,opts);await assert.rejects(f.run(),/KR_PHASE4_JOURNAL_/);assert.equal(f.calls.includes('VERIFY_OWN_AD_ABSENT_BY_ID'),false);assert.equal(f.calls.includes('FIND_OWN_AD_BY_ID'),false);
+   }
+   const retry=fixture('deleted',true,{retry:true});assert.equal((await retry.run()).targetPresent,true);
+   assert.equal(retry.calls.filter(x=>x==='WAIT_FOR_MY_ADS_READY').length,2);
+   assert.equal(retry.calls.filter(x=>x==='PAGE_STATUS').length,1);
+   assert.equal(retry.closed.length,3);
+   assert.ok(retry.logs.some(x=>x[1]==='RENEWAL_PHASE4_READONLY_FAILURE_DETAIL'&&x[2].reasonCode==='single-page-incomplete'&&x[2].listingCount===0&&!Object.hasOwn(x[2],'profileName')&&!Object.hasOwn(x[2],'listingIds')));
  });
  return {passed,failed};
 }
