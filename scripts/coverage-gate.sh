@@ -13,6 +13,8 @@ python3 tests/kar210-ci-version.py
 python3 tests/kar210-release-version.py
 python3 tests/kar210-archive-version.py
 python3 tests/kar210-work-pr-version.py
+python3 tests/kar210-hotfix.py
+python3 tests/kar210-hotfix-workflow.py
 # KAR-195: deterministic two-worker P8 startup fan-out (fresh / near-capacity).
 NODE_V8_COVERAGE="$raw" node tests/kar195-startup-atomic-fairness.cjs
 # GitHub's clean checkout does not include locally generated coverage manifests.
