@@ -12,14 +12,14 @@ jobs:
   focused-diagnostics:
     if: >-
       github.ref == 'refs/heads/work/KAR-210' &&
-      github.event.head_commit.message == 'test(KAR-210): run one-shot exact-source D diagnostics'
+      github.event.head_commit.message == 'test(KAR-210): verify historical link closure'
     runs-on: ubuntu-24.04
     timeout-minutes: 8
     steps:
       - uses: actions/checkout@v5
         id: checkout
         with:
-          ref: ca2de17e01dab7e9b296a279635d3cb1a983ad85
+          ref: 87551c7772909d0f445b674618bbee4a27d105e5
           fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@v4
@@ -29,42 +29,10 @@ jobs:
       - name: Verify exact source basis
         id: basis
         run: |
-          test "$(git rev-parse HEAD)" = 'ca2de17e01dab7e9b296a279635d3cb1a983ad85'
+          test "$(git rev-parse HEAD)" = '87551c7772909d0f445b674618bbee4a27d105e5'
           git status --short
           node --version
           python3 --version
-      - name: Baseline source identity (not a build)
-        if: always() && steps.basis.outcome == 'success'
-        run: python3 tests/kar210-baseline-restore.py
-      - name: Canonical version and D source syntax
-        if: always() && steps.basis.outcome == 'success'
-        run: |
-          python3 scripts/product_version.py
-          node --check tests/kar141-m2-package-runtime.cjs
-          node --check tests/kar167-script-closure.cjs
-          node --check tests/kar167-final-repository-closure.cjs
-          node --check tests/kar170-documentation-contract.cjs
-      - name: KAR-141 package scope and identity
-        if: always() && steps.basis.outcome == 'success'
-        run: node tests/kar141-m2-package-runtime.cjs
-      - name: KAR-167 script ownership
-        if: always() && steps.basis.outcome == 'success'
-        run: node tests/kar167-script-closure.cjs
-      - name: KAR-167 historical layout
+      - name: Verify historical layout and repaired documentation links
         if: always() && steps.basis.outcome == 'success'
         run: node tests/kar167-file-layout.cjs
-      - name: KAR-167 icons and assets
-        if: always() && steps.basis.outcome == 'success'
-        run: node tests/kar167-icons-closure.cjs
-      - name: KAR-167 test and coverage registry
-        if: always() && steps.basis.outcome == 'success'
-        run: node tests/kar167-test-coverage-closure.cjs
-      - name: KAR-174 relocated UI assets
-        if: always() && steps.basis.outcome == 'success'
-        run: node tests/kar174-ui-asset-relocation.cjs
-      - name: KAR-170 canonical documentation
-        if: always() && steps.basis.outcome == 'success'
-        run: node tests/kar170-documentation-contract.cjs
-      - name: KAR-167 final repository closure (unsealed ZIP prerequisite still enforced)
-        if: always() && steps.basis.outcome == 'success'
-        run: node tests/kar167-final-repository-closure.cjs
