@@ -52,8 +52,8 @@ const category22Values = () => ([
     reason:'already-selected-exact-readback'}
 ]);
 async function evaluate({sourceKind='edit-form', stagePatch={}, reportPatch={},
-    changes=validDiff(), categoryId='22',
-    attributes=category22Attrs(), valueEvidence=category22Values()} = {}) {
+    changes=validDiff(), categoryId='22', sourceCategoryId=categoryId,
+    observedCategoryPatch={}, attributes=category22Attrs(), valueEvidence=category22Values()} = {}) {
   const events = [], transitions = [];
   let reviewCount = 0;
   const deps = {
@@ -95,7 +95,7 @@ async function evaluate({sourceKind='edit-form', stagePatch={}, reportPatch={},
   };
   const session = {fillId:'synthetic-206',
     template:{categoryId,dynamicAttributes:attributes,templateSchema:{source:sourceKind,
-      snapshot:{categoryId,fields:[
+      snapshot:{categoryId:sourceCategoryId,fields:[
         {key:'attribute:baby_kinderkleidung.brand',kind:'text',requiredState:'unknown',optionValues:null},
         {key:'attribute:baby_kinderkleidung.condition',kind:'button',requiredState:'unknown',optionValues:null}
       ]},fingerprint:'b'.repeat(64)}}};
@@ -103,7 +103,7 @@ async function evaluate({sourceKind='edit-form', stagePatch={}, reportPatch={},
     base:{stage:'base',formMode:'posting-create'},
     category:{stage:'category',categoryId,
       leafConfirmed:true,observedPath:true,evidence:'partial-ids',
-      levels:[{technicalId:null},{technicalId:categoryId}]},
+      levels:[{technicalId:null},{technicalId:categoryId}],...observedCategoryPatch},
     attributes:{categoryId,fields:[{key:'attribute:synthetic.choice'}]}
   };
   const allowed = await review(session,observed,stages,report);
@@ -128,45 +128,51 @@ test('native v1.25.25 category-22 fourteen schema-mode differences resume verifi
   assert.ok(r.events.some(x=>x.event==='KAR206_CROSS_MODE_SCHEMA_NONCOMPARABLE'));
   assert.equal(r.transitions.includes('schema-reference-review-pending'),false);
 });
-test('category-22 exceptional fields need exact trusted source semantics',async()=>{
-  const changes=observedCategory22Diff();
-  const brand='baby_kinderkleidung.brand',condition='baby_kinderkleidung.condition';
+test('a verified edit snapshot is not a time-series baseline for unrelated create-form controls',async()=>{
   const scenarios=[
-    {attributes:category22Attrs().filter(x=>x.key!==brand)},
-    {attributes:category22Attrs().map(x=>x.key===brand?{...x,status:'captured'}:x)},
-    {attributes:category22Attrs().map(x=>x.key===brand?{...x,displayValue:'Synthetic brand'}:x)},
-    {attributes:category22Attrs().map(x=>x.key===brand?{...x,technicalValue:'brand-technical'}:x)},
-    {attributes:category22Attrs().filter(x=>x.key!==condition)},
-    {attributes:category22Attrs().map(x=>x.key===condition?{...x,status:'empty'}:x)},
-    {attributes:category22Attrs().map(x=>x.key===condition?{...x,technicalValue:''}:x)},
-    {valueEvidence:category22Values().filter(x=>x.key!==condition)},
-    {valueEvidence:category22Values().map(x=>x.key===condition?{...x,status:'incompatible'}:x)}
+    [{type:'control-kind-changed',key:'attribute:synthetic.choice',before:'text',after:'combobox'}],
+    [{type:'control-kind-changed',key:'attribute:synthetic.condition',before:'button',after:'hidden'}],
+    [{type:'control-kind-changed',key:'attribute:synthetic.choice',before:'checkbox',after:'combobox'}],
+    [{type:'requiredness-changed',key:'attribute:synthetic.choice',before:'optional',after:'required'}],
+    [{type:'field-added',key:'attribute:synthetic.new',after:{kind:'combobox'}}],
+    [{type:'field-removed',key:'attribute:synthetic.other',before:{kind:'button'}}],
+    [{type:'valid-options-changed',key:'attribute:synthetic.choice',before:['A'],after:['B']}]
   ];
-  for(const scenario of scenarios) {
-    const r=await evaluate({changes,...scenario});
-    assert.equal(r.allowed,false,JSON.stringify(scenario));
+  for(const changes of scenarios) {
+    const r=await evaluate({changes});
+    assert.equal(r.allowed,true,'edit/create differences alone are not temporal evidence: '+JSON.stringify(changes));
+    assert.equal(r.reviewCount,0);
+  }
+});
+test('real preflight problems block regardless of unrelated edit/create representation',async()=>{
+  const cases=[
+    {complete:false,issues:['saved selected attribute not present']},
+    {complete:false,issues:['required field empty']},
+    {complete:false,issues:['missing technical option']},
+    {complete:false,issues:['saved source fingerprint invalid']},
+    {complete:false,issues:['current category does not match']},
+    {complete:true,issues:[],valueCompatibility:'incompatible'}
+  ];
+  for (const reportPatch of cases){
+    const r=await evaluate({changes:observedCategory22Diff(),reportPatch});
+    assert.equal(r.allowed,false,JSON.stringify(reportPatch));
     assert.equal(r.reviewCount,1);
   }
 });
-test('new conversion shapes are accepted only for the observed category 22 field identities',async()=>{
-  const changes=observedCategory22Diff();
+test('wrong category, unverified target, or unknown diff vocabulary still stays fail-closed',async()=>{
   const cases=[
-    changes.map(x=>x.key==='attribute:baby_kinderkleidung.brand'
-      ?{...x,key:'attribute:unrelated.brand'}:x),
-    changes.map(x=>x.key==='attribute:baby_kinderkleidung.condition'
-      ?{...x,key:'attribute:unrelated.condition'}:x),
-    changes.map(x=>x.key==='attribute:baby_kinderkleidung.condition'
-      ?{...x,after:'checkbox'}:x),
-    changes.map(x=>x.key==='attribute:baby_kinderkleidung.brand'
-      ?{...x,before:'hidden'}:x)
+    {sourceCategoryId:'405'},
+    {observedCategoryPatch:{categoryId:'405'}},
+    {observedCategoryPatch:{leafConfirmed:false}},
+    {observedCategoryPatch:{observedPath:false}},
+    {changes:[{type:'untrusted-schema-op',key:'attribute:synthetic.choice'}]},
+    {changes:[{type:'control-kind-changed',key:null}]}
   ];
-  for(const diff of cases){
-    const r=await evaluate({changes:diff});
-    assert.equal(r.allowed,false,JSON.stringify(diff));
+  for(const scenario of cases){
+    const r=await evaluate({...scenario,changes:scenario.changes||observedCategory22Diff()});
+    assert.equal(r.allowed,false,JSON.stringify(scenario));
     assert.equal(r.reviewCount,1);
   }
-  const otherCategory=await evaluate({changes,categoryId:'405'});
-  assert.equal(otherCategory.allowed,false,'category specific evidence cannot migrate to other numeric category');
 });
 test('current live F3 drift or incompatible saved selection still blocks the 14-change fixture',async()=>{
   const changes=observedCategory22Diff();
@@ -223,21 +229,18 @@ test('preflight issue, invalid evidence or changed source category keeps review'
     assert.equal(r.reviewCount,1);
   }
 });
-test('genuine structural additions/removals and unproven control conversions keep review',async()=>{
-  const cases=[
-    [{type:'field-removed',key:'attribute:synthetic.choice'}],
-    [{type:'field-added',key:'attribute:synthetic.new'}],
-    [{type:'control-kind-changed',key:'attribute:synthetic.choice',before:'checkbox',after:'combobox'}],
-    [{type:'control-kind-changed',key:'attribute:synthetic.choice',before:'button',after:'text'}],
-    [{type:'requiredness-changed',key:'attribute:synthetic.choice',before:'optional',after:'required'}],
-    [{type:'valid-options-changed',key:'attribute:synthetic.choice',before:['A'],after:['B']}],
-    [{type:'requiredness-uncertain',key:'attribute:synthetic.choice',before:'optional',after:'unknown'}]
+test('a real changed live F3 still reviews even when cross-mode archive happens to differ',async()=>{
+  const diff=[
+    {type:'field-added',key:'attribute:synthetic.new'},
+    {type:'field-removed',key:'attribute:synthetic.missing'},
+    {type:'valid-options-changed',key:'attribute:synthetic.selected'}
   ];
-  for (const changes of cases) {
-    const r=await evaluate({changes});
-    assert.equal(r.allowed,false,JSON.stringify(changes));
-    assert.equal(r.reviewCount,1);
-  }
+  const r=await evaluate({changes:diff,stagePatch:{attributes:{
+    ...stable(),status:'changed',currentFingerprint:'f'.repeat(64),
+    changes:[{type:'field-added',key:'attribute:synthetic.new'}]
+  }}});
+  assert.equal(r.allowed,false);
+  assert.equal(r.reviewCount,1);
 });
 test('review stays before dynamic filling, image upload, pre-publish gate and native publish',()=>{
   const fill=source.slice(source.indexOf('  async function runFillSession('),
