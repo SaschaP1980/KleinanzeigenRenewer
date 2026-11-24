@@ -1634,7 +1634,7 @@ function requireAutoPublishIntentJournal() {
   }
   return autoPublishIntentJournal;
 }
-// A redirect is not publication proof; independent My Ads verification is.
+// A redirect is not publication proof; authenticated edit + independent public evidence or the existing My Ads proof is required.
 let publishIntentAuthorizationService = null;
 function requirePublishIntentAuthorizationService() {
   if (!publishIntentAuthorizationService) publishIntentAuthorizationService = PublishIntentAuthorizationService.create({
@@ -1642,6 +1642,8 @@ function requirePublishIntentAuthorizationService() {
     accountPort: { assertSelectedProfileMatchesLiveAccount, normalizeProfileName },
     tabPort: { createManagedWorkerTab, waitForTabComplete, ensureContentConnection, sendTabRequestWithBootstrap, closeManagedWorkerTab },
     journalPort: { requireAutoPublishIntentJournal },
+    verificationPort: { delay, onStage: ({stage,result}) => logDiagnostic('info',
+      'KAR206_PUBLISH_VERIFICATION_STAGE', {stage,result}).catch(()=>{}) },
     configPort: { MY_ADS_PROJECTS_URL, TAB_LOAD_TIMEOUT_PHASE4_MS, URL }
   });
   return publishIntentAuthorizationService;

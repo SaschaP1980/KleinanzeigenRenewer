@@ -31,6 +31,19 @@
         (id(row.admissionToken)&&row.admissionToken.length>=12))
       &&key===PREFIX+row.fillId+'_'+row.attemptId;
   }
+  // Historical roster proofs retain their exact cardinality contract.
+  // The direct route is Renewal-only and requires BOTH independently
+  // observed IDs; it cannot carry manufactured roster page counters.
+  function validTargetEvidence(row){
+    if(row.targetEvidence==='found-in-my-ads-full-pagination-scan')
+      return Number.isSafeInteger(row.targetPagesScanned)&&row.targetPagesScanned>=1
+        &&Number.isSafeInteger(row.targetFoundPage)&&row.targetFoundPage>=1
+        &&row.targetFoundPage<=row.targetPagesScanned
+        &&!Object.hasOwn(row,'targetEditAdId')&&!Object.hasOwn(row,'targetPublicAdId');
+    return row.kind==='renewal'&&row.targetEvidence==='verified-edit-and-public-listing'
+      &&adId(row.newAdId)&&row.targetEditAdId===row.newAdId&&row.targetPublicAdId===row.newAdId
+      &&!Object.hasOwn(row,'targetPagesScanned')&&!Object.hasOwn(row,'targetFoundPage');
+  }
   function validResolution(key,row,intent){
     return object(row)&&validIntent(PREFIX+intent?.fillId+'_'+intent?.attemptId,intent)
       &&row.schema===1&&row.state==='resolved-confirmed'
@@ -39,10 +52,7 @@
       &&row.profileId===intent.profileId&&row.sourceAdId===intent.sourceAdId
       &&row.targetTabId===intent.targetTabId&&adId(row.newAdId)
       &&row.newAdId!==intent.sourceAdId&&row.targetPresent===true
-      &&row.targetEvidence==='found-in-my-ads-full-pagination-scan'
-      &&Number.isSafeInteger(row.targetPagesScanned)&&row.targetPagesScanned>=1
-      &&Number.isSafeInteger(row.targetFoundPage)&&row.targetFoundPage>=1
-      &&row.targetFoundPage<=row.targetPagesScanned
+      &&validTargetEvidence(row)
       &&Number.isSafeInteger(row.verifiedAtMs)&&row.verifiedAtMs>=intent.createdAtMs
       &&key===RESOLUTION_PREFIX+row.fillId+'_'+row.attemptId;
   }
@@ -254,10 +264,7 @@
       if(!object(proof)||proof.fillId!==intent.fillId||proof.workflowId!==intent.workflowId
         ||proof.kind!==intent.kind||proof.profileId!==intent.profileId
         ||proof.sourceAdId!==intent.sourceAdId||proof.newAdId!==newAdId
-        ||proof.targetPresent!==true||proof.targetEvidence!=='found-in-my-ads-full-pagination-scan'
-        ||!Number.isSafeInteger(proof.targetPagesScanned)||proof.targetPagesScanned<1
-        ||!Number.isSafeInteger(proof.targetFoundPage)||proof.targetFoundPage<1
-        ||proof.targetFoundPage>proof.targetPagesScanned) {
+        ||proof.targetPresent!==true||!validTargetEvidence(proof)) {
         noteResolutionDenied('remote-outcome-unverified');
         throw denied('KR_PUBLISH_INTENT_UNVERIFIED');
       }
@@ -315,7 +322,9 @@
           profileId:intent.profileId,sourceAdId:intent.sourceAdId,
           targetTabId:intent.targetTabId,attemptId:intent.attemptId,newAdId,
           targetPresent:true,targetEvidence:proof.targetEvidence,
-          targetPagesScanned:proof.targetPagesScanned,targetFoundPage:proof.targetFoundPage,
+          ...(proof.targetEvidence==='verified-edit-and-public-listing'
+            ?{targetEditAdId:proof.targetEditAdId,targetPublicAdId:proof.targetPublicAdId}
+            :{targetPagesScanned:proof.targetPagesScanned,targetFoundPage:proof.targetFoundPage}),
           verifiedAtMs});
         const key=RESOLUTION_PREFIX+intent.fillId+'_'+intent.attemptId;
         if((await read([key]))[key]!==undefined)

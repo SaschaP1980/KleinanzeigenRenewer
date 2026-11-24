@@ -1657,11 +1657,17 @@ async function verifyRemoteCommitContextReadOnly(original, sourceKind, witness=n
           ||pubResult.sourceAdId!==publish.sourceAdId
           ||pubResult.targetTabId!==publish.targetTabId
           ||pubResult.newAdId!==phase.newAdId||pubResult.targetPresent!==true
-          ||pubResult.targetEvidence!=='found-in-my-ads-full-pagination-scan'
-          ||!Number.isSafeInteger(pubResult.targetPagesScanned)
-          ||pubResult.targetPagesScanned<1
-          ||!Number.isSafeInteger(pubResult.targetFoundPage)
-          ||pubResult.targetFoundPage<1||pubResult.targetFoundPage>pubResult.targetPagesScanned
+          ||!((
+            pubResult.targetEvidence==='found-in-my-ads-full-pagination-scan'
+            &&Number.isSafeInteger(pubResult.targetPagesScanned)&&pubResult.targetPagesScanned>=1
+            &&Number.isSafeInteger(pubResult.targetFoundPage)&&pubResult.targetFoundPage>=1
+            &&pubResult.targetFoundPage<=pubResult.targetPagesScanned
+            &&!Object.hasOwn(pubResult,'targetEditAdId')&&!Object.hasOwn(pubResult,'targetPublicAdId')
+          )||(
+            pubResult.targetEvidence==='verified-edit-and-public-listing'
+            &&pubResult.targetEditAdId===phase.newAdId&&pubResult.targetPublicAdId===phase.newAdId
+            &&!Object.hasOwn(pubResult,'targetPagesScanned')&&!Object.hasOwn(pubResult,'targetFoundPage')
+          ))
           ||!ms(pubResult.verifiedAtMs)||pubResult.verifiedAtMs<publish.createdAtMs)
           return output('PUBLICATION_OUTCOME_UNVERIFIED');
         // Completed renewals remove their transient sessions. Only a pair

@@ -172,6 +172,57 @@
     };
   }
 
+  // For publication proof the ID from the requested URL is not enough.
+  // Reuse the established edit-form extractor; require an independent
+  // server-provided structured ID or a real form control/action ID.
+  function publicationEditEvidence() {
+    try {
+      const url=new URL(location.href);
+      if(url.protocol!=='https:'||!['www.kleinanzeigen.de','kleinanzeigen.de'].includes(url.hostname)||
+          url.pathname!=='/p-anzeige-bearbeiten.html')return {state:'not-ready'};
+      const wanted=url.searchParams.get('adId')||'';
+      if(!/^\d+$/.test(wanted))return {state:'not-ready'};
+      const edit=KRForm.extract(document,location.href);
+      if(edit?.conflict||edit?.diagnostics?.identityConflict||
+          edit?.blockingIssues?.includes('structured-ad-identity'))return {state:'identity-conflict'};
+      if(!edit?.eligible||!edit.form||!edit.title||!edit.description)return {state:'not-ready'};
+      const ids=[];
+      const structuredId=edit.diagnostics?.structuredSource?.adId;
+      if(/^\d+$/.test(String(structuredId??'')))ids.push(String(structuredId));
+      for(const input of edit.form.querySelectorAll('input[name]')){
+        if(/^(adId|ad_id|advertisementId)$/i.test(input.name||input.getAttribute('name')||'')
+            &&/^\d+$/.test(String(input.value||'')))ids.push(String(input.value));
+      }
+      const rawAction=edit.form.getAttribute('action');
+      if(rawAction){
+        const action=new URL(rawAction,url.href);
+        if(action.origin!==url.origin)return {state:'identity-conflict'};
+        for(const key of ['adId','ad_id','advertisementId']){
+          const id=action.searchParams.get(key)||'';
+          if(/^\d+$/.test(id))ids.push(id);
+        }
+      }
+      if(edit.adId!==wanted||ids.some(id=>id!==wanted))return {state:'identity-conflict'};
+      return ids.length?{state:'verified',adId:wanted}:{state:'not-ready'};
+    }catch{return {state:'not-ready'};}
+  }
+
+  // A public confirmation needs actual public listing DOM and a matching
+  // independently supplied canonical/OG identity, not just the address bar.
+  function publicationPublicEvidence(){
+    try {
+      const wanted=ManagedNavigation.publicAdIdFromUrl(location.href);
+      if(!wanted)return {state:'not-ready'};
+      const ids=[document.querySelector('link[rel="canonical"]')?.href,meta('og:url')]
+        .filter(Boolean).map(raw=>ManagedNavigation.publicAdIdFromUrl(raw)).filter(Boolean);
+      if(ids.some(id=>id!==wanted))return {state:'identity-conflict'};
+      const title=textFrom(['#viewad-title','[data-testid="ad-title"]']);
+      const description=textFrom(['#viewad-description-text','[data-testid="ad-description"]']);
+      if(!ids.length||!title||!description)return {state:'not-ready'};
+      return {state:'verified',adId:wanted};
+    }catch{return {state:'not-ready'};}
+  }
+
   function extractBreadcrumbs() {
     const containers = document.querySelectorAll('[aria-label*="readcrumb" i], [data-testid*="breadcrumb" i], .breadcrump, .breadcrumb');
     for (const container of containers) {
@@ -556,7 +607,9 @@
         })(),
         // Existing Kleinanzeigen account/profile identity used by the app.
         // The website owns authentication; no email/seller-ID inference here.
-        profileName: auth.loggedIn ? (InventoryRun?.detectedProfileName?.(document) || null) : null
+        profileName: auth.loggedIn ? (InventoryRun?.detectedProfileName?.(document) || null) : null,
+        ...(message.publicationEditProof===true?{publicationEditEvidence:publicationEditEvidence()}:{}),
+        ...(message.publicationPublicProof===true?{publicationPublicEvidence:publicationPublicEvidence()}:{})
       } });
       return;
     }
