@@ -18,6 +18,7 @@ module.exports=[
   read('mass-renewal-workflow-controller.js'),
   read('src/background/services/mass-renewal-watchdog-service.js'),
   read('renewal-verification-service.js'),
+  read('src/background/services/renewal-local-discard-service.js'),
   read('renewal-workflow-controller.js'),
   read('renewal-verification-flow.js'),
   read('renewal-reinventory-flow.js'),
