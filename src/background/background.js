@@ -219,6 +219,7 @@ function requireRemoteDeleteReplacementService() {
     renewalPhaseAttemptAvailable, renewalAttemptState, delay, renewalPhaseRetryDelayMs, logRenewalPhaseAttemptStarted,
     logRenewalPhaseAttemptFailed, isNonRetryableRenewalSafetyError, renewalAttemptDetails, setAppNotice, markMassRenewalItemSucceeded,
     IDBKeyRangeCtor: globalThis.IDBKeyRange, captureEmergencyResetGeneration, assertEmergencyResetGeneration,
+    phase4DetailEvidenceEnabled: true,
     beginPhase4Attempt: current => requirePhase4UncertaintyJournal().begin(current),
     observePhase4Attempts: renewalId => requirePhase4UncertaintyJournal().observe(renewalId),
     resolvePhase4Attempt: request => requirePhase4UncertaintyJournal().resolveVerified(request)
@@ -1619,6 +1620,7 @@ function requirePhase4UncertaintyJournal() {
       lockName: AtomicMV3Admission.LOCK_NAME,
       lockManager: globalThis.navigator?.locks,
       lockWaitMs: 12000,
+      onResolutionStage: stage => {void logDiagnostic('info','RENEWAL_PHASE4_JOURNAL_RESOLUTION_STAGE',{stage}).catch(()=>{});},
       onSample: s => logDiagnostic('info','RENEWAL_PHASE4_JOURNAL_LOCK_CONTENTION',s).catch(()=>{})
     });
   }

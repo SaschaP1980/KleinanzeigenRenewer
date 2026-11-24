@@ -45,6 +45,24 @@
       const PHASE4_JOURNAL_TIMEOUT_MS = boundedMs(options.phase4JournalTimeoutMs, 45000);
       const PHASE4_READONLY_TIMEOUT_MS = boundedMs(options.phase4ReadOnlyRequestTimeoutMs, 180000);
 
+      const detailEvidenceEnabled=options.phase4DetailEvidenceEnabled===true;
+      const readinessReasons=new Set(['profile-pending','online-count-pending','online-count-mismatch','listing-count-pending','listings-pending','listing-count-ahead','zero-not-empty','single-page-incomplete','not-projects','wrong-page','wrong-profile']);
+      function phase4ReadOnlyFailure(error,step){
+        const reason=readinessReasons.has(error?.reasonCode)?error.reasonCode:null;
+        const knownCodes=['KR_MY_ADS_INVALID','KR_MY_ADS_NOT_READY','KR_MY_ADS_INCONSISTENT','KR_MY_ADS_READINESS_TIMEOUT','KR_PHASE4_JOURNAL_REMOTE_UNVERIFIED','KR_PHASE4_JOURNAL_UNVERIFIED'];
+        const code=knownCodes.includes(error?.code)?error.code:'UNCLASSIFIED';
+        const d=error?.details||{};
+        const count=k=>Number.isSafeInteger(d[k])&&d[k]>=0?d[k]:null;
+        void Promise.resolve().then(()=>logDiagnostic('warning','RENEWAL_PHASE4_READONLY_FAILURE_DETAIL',{
+          step,code,reasonCode:reason,expectedOnline:count('expectedOnline'),listingCount:count('listingCount'),currentPage:count('currentPage'),hasNext:typeof d.hasNext==='boolean'?d.hasNext:null
+        },{module:'background',operation:'renewal-phase-4'})).catch(()=>{});
+      }
+      function transientReadOnly(error){
+        if(['KR_MY_ADS_READINESS_TIMEOUT','KR_MY_ADS_INCONSISTENT','KR_MY_ADS_NOT_READY'].includes(error?.code))
+          return readinessReasons.has(error?.reasonCode)&&!['wrong-profile','wrong-page','not-projects'].includes(error.reasonCode);
+        return error?.code==='KR_PHASE4_JOURNAL_REMOTE_UNVERIFIED'||
+          /Receiving end does not exist|Could not establish connection|message port closed|back\/forward cache/i.test(String(error?.message||''));
+      }
       function phase4Milestone(event, step, requestType, limit, started) {
         // Low-cardinality only: no account/ad/tab/worker IDs, URLs or tokens.
         // Best effort without an awaited competing diagnostic P8 owner.
@@ -105,6 +123,7 @@
               ? 'RENEWAL_PHASE4_DELETE_RESPONSE_TIMEOUT'
               : timeout ? 'RENEWAL_PHASE4_READONLY_TIMEOUT' : 'RENEWAL_PHASE4_REQUEST_FAILED',
             step,message.type,timeoutMs,started);
+          if(detailEvidenceEnabled&&message.type!=='DELETE_OWN_AD_BY_ID')phase4ReadOnlyFailure(error,step);
           throw error;
         } finally {
           if(timer!==undefined) clearTimeout(timer);
@@ -565,7 +584,10 @@ async function verifyPhase4RemoteOutcomeFresh(receipt, onR1ReadOnlyStage = null,
     throw new Error('KR_R1_PRIVATE_WITNESS_INVALID');
   // Only fixed stage codes are exposed to the private owner R1 witness.
   // The callback cannot supply scan results or approve a remote outcome.
-  const stage = code => { if(typeof onR1ReadOnlyStage==='function') onR1ReadOnlyStage(code); };
+  const stage = code => {
+    if(typeof onR1ReadOnlyStage==='function') onR1ReadOnlyStage(code);
+    if(detailEvidenceEnabled&&!onR1ReadOnlyStage)void Promise.resolve().then(()=>logDiagnostic('info','RENEWAL_PHASE4_REMOTE_STAGE',{stage:code},{module:'background',operation:'renewal-phase-4'})).catch(()=>{});
+  };
   // A caller cannot submit a success object: the trusted background service
   // obtains two independent, freshly loaded My Ads pages, under the recorded
   // source account. Neither the original deletion response nor local cache
@@ -577,7 +599,7 @@ async function verifyPhase4RemoteOutcomeFresh(receipt, onR1ReadOnlyStage = null,
       || sourceId === targetId || !receipt?.renewalId)
     throw new Error('KR_PHASE4_JOURNAL_UNVERIFIED');
   const normalized = text => normalizeProfileName(text).toLocaleLowerCase('de-DE');
-  async function scanFresh(kind, id, command) {
+  async function scanFreshOnce(kind, id, command) {
     let tabId = null;
     try {
       stage(kind === 'source' ? 'SOURCE_TAB_REQUESTED' : 'TARGET_TAB_REQUESTED');
@@ -648,10 +670,56 @@ async function verifyPhase4RemoteOutcomeFresh(receipt, onR1ReadOnlyStage = null,
       if (tabId) await closeManagedWorkerTab(tabId).catch(() => {});
     }
   }
-  const source = await scanFresh('source',sourceId,'VERIFY_OWN_AD_ABSENT_BY_ID');
+  // The private R1 lifecycle witness keeps its established roster contract.
+  const direct=detailEvidenceEnabled&&!onR1ReadOnlyStage&&!r1PrivateWitness;
+  async function scanFresh(kind,id,command){
+    for(let attempt=1;;attempt++){
+      try{return await scanFreshOnce(kind,id,command);}
+      catch(error){
+        if(!direct||attempt>=2||!transientReadOnly(error))throw error;
+        phase4ReadOnlyFailure(error,'retry-'+kind);
+      }
+    }
+  }
+  async function detailSource(){
+    let tabId=null;
+    const deny=()=>Object.assign(new Error('KR_PHASE4_JOURNAL_UNVERIFIED'),{code:'KR_PHASE4_JOURNAL_UNVERIFIED'});
+    try{
+      stage('DETAIL_SOURCE_TAB_REQUESTED');
+      const tab=await createManagedWorkerTab({url:'https://www.kleinanzeigen.de/s-anzeige/'+sourceId,active:false},
+        'renewal-phase4-independent-source-detail',{ownerType:'renewal',ownerId:receipt.renewalId,adId:sourceId,phaseAttemptId:receipt.attemptId});
+      if(!Number.isSafeInteger(tab?.id)||tab.id<=0)throw deny();
+      tabId=tab.id;
+      await waitForTabComplete(tabId,{timeoutMs:TAB_LOAD_TIMEOUT_PHASE4_MS,purpose:'renewal-phase4-independent-source-detail',operation:'renewal-phase-4'});
+      await ensureContentConnection({tabId});
+      const status=await boundedPhase4TabRequest(tabId,{type:'PAGE_STATUS',phase4DetailProof:true},
+        'journal-source-detail',PHASE4_STATUS_TIMEOUT_MS,'KR_PHASE4_JOURNAL_REMOTE_UNVERIFIED');
+      let url;
+      try{url=new URL(status?.url||'');}catch{throw deny();}
+      const match=url.pathname.match(/^\/s-anzeige\/(?:(\d+)|[^/]+\/(\d+)-\d+-\d+)\/?$/i);
+      if(url.protocol!=='https:'||!/^(?:www\.)?kleinanzeigen\.de$/i.test(url.hostname)||url.port||url.username||url.password)throw deny();
+      if(status?.auth?.loggedIn!==true||!status.profileName||normalized(status.profileName)!==normalized(expected))throw deny();
+      if(match&&(match[1]||match[2])!==sourceId)throw deny();
+      const evidence=status.phase4DetailEvidence;
+      if(evidence?.adId&&evidence.adId!==sourceId)throw deny();
+      if(evidence?.state==='unavailable'||!evidence){
+        stage('DETAIL_SOURCE_UNAVAILABLE');return null;
+      }
+      if(!match||status.adId!==sourceId||evidence.state!=='deleted'||evidence.adId!==sourceId){
+        stage('DETAIL_SOURCE_CONTRADICTORY');throw deny();
+      }
+      stage('DETAIL_SOURCE_DELETED');
+      return {verified:true,adId:sourceId,evidence:'detail-page-explicit-deleted',pagesScanned:0};
+    }catch(error){
+      phase4ReadOnlyFailure(error,'source-detail');
+      if(transientReadOnly(error)){stage('DETAIL_SOURCE_UNAVAILABLE');return null;}
+      throw error;
+    }finally{if(tabId)await closeManagedWorkerTab(tabId).catch(()=>{});}
+  }
+  const source = (direct?await detailSource():null) || await scanFresh('source',sourceId,'VERIFY_OWN_AD_ABSENT_BY_ID');
   if (source?.verified !== true || String(source.adId || '') !== sourceId
-      || source.evidence !== 'not-in-my-ads-full-pagination-scan'
-      || !Number.isSafeInteger(source.pagesScanned) || source.pagesScanned < 1)
+      || !(source.evidence==='not-in-my-ads-full-pagination-scan'&&Number.isSafeInteger(source.pagesScanned)&&source.pagesScanned>=1
+         || direct&&source.evidence==='detail-page-explicit-deleted'&&source.pagesScanned===0))
     throw new Error('KR_PHASE4_JOURNAL_UNVERIFIED');
   stage('SOURCE_RESULT_VERIFIED');
   const target = await scanFresh('target',targetId,'FIND_OWN_AD_BY_ID');

@@ -20,10 +20,15 @@
   const denied = code => Object.assign(new Error(code), {code});
   const safeId = value => typeof value === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(value);
   const adId = value => typeof value === 'string' && /^\d+$/.test(value);
+  function validSourceEvidence(row) {
+    return row.sourceEvidence==='not-in-my-ads-full-pagination-scan'
+      ? Number.isSafeInteger(row.sourcePagesScanned)&&row.sourcePagesScanned>=1
+      : row.sourceEvidence==='detail-page-explicit-deleted'&&row.sourcePagesScanned===0;
+  }
   function create({storageLocal, clock, newToken, workerInstanceId,
     verifyRemoteOutcome = null, verifyCommitContext = null,
     prepareCommitContext = null, requireCommitContext = false,
-    lockManager = null, lockName = null, onSample = null, lockWaitMs = 0} = {}) {
+    lockManager = null, lockName = null, onSample = null, onResolutionStage = null, lockWaitMs = 0} = {}) {
     if (typeof storageLocal?.get !== 'function' || typeof storageLocal?.set !== 'function'
         || typeof clock !== 'function' || typeof newToken !== 'function')
       throw denied('KR_PHASE4_JOURNAL_STORAGE');
@@ -138,6 +143,7 @@
           (safeId(row.admissionToken) && row.admissionToken.length >= 12))
         && key === PREFIX + row.renewalId + '_' + row.attemptId;
     }
+    const resolutionStage=(stage)=>{if(typeof onResolutionStage==='function'){try{onResolutionStage(stage);}catch{}}};
     function validateResolution(row, key, original) {
       return isRecord(row) && row.schema === SCHEMA && row.state === 'resolved-confirmed'
         && safeId(row.renewalId) && safeId(row.attemptId) && safeId(row.workerInstanceId)
@@ -146,11 +152,9 @@
         && row.sourceAdId !== row.newAdId && Number.isSafeInteger(row.verifiedAtMs)
         && isRecord(original) && validate(original, PREFIX + row.renewalId + '_' + row.attemptId)
         && row.verifiedAtMs >= original.createdAtMs
-        && Number.isSafeInteger(row.sourcePagesScanned)
-        && row.sourcePagesScanned >= 1 && Number.isSafeInteger(row.targetPagesScanned)
+        && validSourceEvidence(row) && Number.isSafeInteger(row.targetPagesScanned)
         && row.targetPagesScanned >= 1 && Number.isSafeInteger(row.targetFoundPage)
         && row.targetFoundPage >= 1 && row.targetFoundPage <= row.targetPagesScanned
-        && row.sourceEvidence === 'not-in-my-ads-full-pagination-scan'
         && row.targetEvidence === 'found-in-my-ads-full-pagination-scan'
         && key === RESOLUTION_PREFIX + row.renewalId + '_' + row.attemptId;
     }
@@ -276,6 +280,7 @@
         throw denied('KR_PHASE4_JOURNAL_UNVERIFIED');
       // Initial validation and final durable commit share the origin-wide
       // mutex with admission/reserve, but NEVER hold it over remote navigation.
+      resolutionStage('resolve-read-start');
       let originSignature;
       const original = await withAtomic(async () => {
         const before = await observe(renewalId);
@@ -284,17 +289,18 @@
         originSignature=await originalP8Signature(before.attempts[0]);
         return before.attempts[0];
       }, 'resolve-read');
+      resolutionStage('resolve-read-complete');
       if (typeof verifyRemoteOutcome !== 'function')
         throw denied('KR_PHASE4_JOURNAL_UNVERIFIED');
       let proof;
+      resolutionStage('remote-proof-start');
       try { proof = await verifyRemoteOutcome(Object.freeze({...original})); }
-      catch { throw denied('KR_PHASE4_JOURNAL_UNVERIFIED'); }
+      catch { resolutionStage('remote-proof-failed'); throw denied('KR_PHASE4_JOURNAL_UNVERIFIED'); }
       if (!isRecord(proof) || proof.profileId !== original.profileId
           || proof.sourceAdId !== original.sourceAdId || proof.newAdId !== original.newAdId
           || proof.sourceAbsent !== true || proof.targetPresent !== true
-          || proof.sourceEvidence !== 'not-in-my-ads-full-pagination-scan'
+          || !validSourceEvidence(proof)
           || proof.targetEvidence !== 'found-in-my-ads-full-pagination-scan'
-          || !Number.isSafeInteger(proof.sourcePagesScanned) || proof.sourcePagesScanned < 1
           || !Number.isSafeInteger(proof.targetPagesScanned) || proof.targetPagesScanned < 1
           || !Number.isSafeInteger(proof.targetFoundPage) || proof.targetFoundPage < 1
           || proof.targetFoundPage > proof.targetPagesScanned)
@@ -308,17 +314,21 @@
         throw denied('KR_PHASE4_JOURNAL_UNVERIFIED');
       // Prepare an owned read-only My Ads tab OUTSIDE the origin lock.
       // No remote navigation is permitted in the locked commit section.
+      resolutionStage('remote-proof-validated');
       let witness=null;
       if(requireCommitContext){
+        resolutionStage('commit-witness-start');
         try{witness=await prepareCommitContext(Object.freeze({...original}));}
-        catch{throw denied('KR_PHASE4_JOURNAL_UNVERIFIED');}
+        catch{resolutionStage('commit-witness-failed');throw denied('KR_PHASE4_JOURNAL_UNVERIFIED');}
         if(!witness||!Number.isSafeInteger(witness.tabId)||witness.tabId<=0||
             typeof witness.close!=='function')
           throw denied('KR_PHASE4_JOURNAL_UNVERIFIED');
       }
       // Always inspect the receipt again after the remote verification; neither
       // a changed account nor lost storage can become a positive outcome.
+      resolutionStage('resolve-write-start');
       try{return await withAtomic(async () => {
+      resolutionStage('resolve-write-acquired');
       const after = await observe(renewalId);
       if (after.attempts.length !== 1 || !exactlySame(after.attempts[0], original))
         throw denied('KR_PHASE4_JOURNAL_UNRESOLVED');
@@ -331,7 +341,8 @@
         let accepted = false;
         try { accepted = await verifyCommitContext(Object.freeze({...original}),witness); }
         catch { /* fail closed */ }
-        if (accepted !== true) throw denied('KR_PHASE4_JOURNAL_UNVERIFIED');
+        if (accepted !== true) {resolutionStage('commit-account-unverified');throw denied('KR_PHASE4_JOURNAL_UNVERIFIED');}
+        resolutionStage('commit-account-verified');
       }
       if (after.resolutions.length) {
         const prior = after.resolutions[0];
@@ -363,6 +374,7 @@
       const final = await observe(renewalId);
       if (final.resolutions.length !== 1 || !exactlySame(final.resolutions[0], resolved))
         throw denied('KR_PHASE4_JOURNAL_STORAGE');
+      resolutionStage('resolution-persisted');
       return resolved;
       }, 'resolve-write');}finally{
         if(witness)await Promise.resolve().then(()=>witness.close()).catch(()=>{});

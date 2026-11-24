@@ -223,6 +223,54 @@
     }catch{return {state:'not-ready'};}
   }
 
+  // Positive deletion evidence, scoped to the main listing, never URL alone.
+  function phase4DetailEvidence() {
+    try {
+      const url=new URL(location.href);
+      const match=url.pathname.match(/^\/s-anzeige\/(?:(\d+)|[^/]+\/(\d+)-\d+-\d+)\/?$/i);
+      if(url.protocol!=='https:'||!/^(?:www\.)?kleinanzeigen\.de$/i.test(url.hostname)||
+          url.port||url.username||url.password||!match)return {state:'unavailable'};
+      const wanted=match[1]||match[2];
+      const main=document.querySelector('#viewad-main');
+      const title=main?.querySelector('#viewad-title');
+      const box=main?.querySelector('#viewad-ad-id-box');
+      const product=main?.querySelector('#viewad-product');
+      if(!main||!title||!box||!product)return {state:'unavailable'};
+      const ids=[...box.querySelectorAll('li')].map(n=>normalize(n.textContent));
+      if(ids.length!==2||ids[0]!=='Anzeigen-ID'||!/^\d+$/.test(ids[1]))return {state:'unavailable'};
+      const adId=ids[1];
+      if(adId!==wanted)return {state:'identity-mismatch',adId};
+      function visible(node) {
+        if(!node||!node.getClientRects().length)return false;
+        for(let n=node;n;n=n.parentElement){
+          const style=getComputedStyle(n);
+          if(n.hidden||n.classList?.contains('is-hidden')||n.getAttribute('aria-hidden')==='true'||
+              style.display==='none'||style.visibility==='hidden'||style.visibility==='collapse'||style.opacity==='0')return false;
+        }
+        return true;
+      }
+      if(!visible(title))return {state:'unavailable',adId};
+      const label=node=>normalize(node.textContent).replace(/\s*[•·]\s*$/,'').trim().toLocaleLowerCase('de-DE');
+      const titles=[...main.querySelectorAll('#viewad-title .pvap-reserved-title')].filter(visible).map(label);
+      const veils=[...main.querySelectorAll('#viewad-product .galleryimage-element.current .pvap-reserved-image-veil')].filter(visible);
+      const markers=veils.flatMap(v=>[...v.querySelectorAll('.pvap-reserved-veil-text')].filter(visible).map(label));
+      const labels=[...titles,...markers].filter(Boolean);
+      const trash=veils.some(v=>visible(v.querySelector('.icon-trash-light-gray-big')));
+      if(new Set(labels).size>1)return {state:'contradictory',adId};
+      if(labels.includes('gelöscht')||trash){
+        if(titles.includes('gelöscht')&&markers.includes('gelöscht')&&trash)
+          return {state:'deleted',adId};
+        return {state:'contradictory',adId};
+      }
+      if(labels.includes('reserviert'))return {state:'reserved',adId};
+      if(labels.includes('verkauft'))return {state:'sold',adId};
+      if(labels.length)return {state:'contradictory',adId};
+      const action=main.querySelector('#viewad-contact-button');
+      if(visible(action)&&!action.disabled&&action.getAttribute('aria-disabled')!=='true')return {state:'active',adId};
+      return {state:'unavailable',adId};
+    }catch{return {state:'unavailable'};}
+  }
+
   function extractBreadcrumbs() {
     const containers = document.querySelectorAll('[aria-label*="readcrumb" i], [data-testid*="breadcrumb" i], .breadcrump, .breadcrumb');
     for (const container of containers) {
@@ -611,7 +659,8 @@
         // The website owns authentication; no email/seller-ID inference here.
         profileName: auth.loggedIn ? (InventoryRun?.detectedProfileName?.(document) || null) : null,
         ...(message.publicationEditProof===true?{publicationEditEvidence:publicationEditEvidence()}:{}),
-        ...(message.publicationPublicProof===true?{publicationPublicEvidence:publicationPublicEvidence()}:{})
+        ...(message.publicationPublicProof===true?{publicationPublicEvidence:publicationPublicEvidence()}:{}),
+        ...(message.phase4DetailProof===true?{phase4DetailEvidence:phase4DetailEvidence()}:{})
       } });
       return;
     }

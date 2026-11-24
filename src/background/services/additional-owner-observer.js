@@ -1624,9 +1624,9 @@ async function verifyRemoteCommitContextReadOnly(original, sourceKind, witness=n
           ||resolution.renewalId!==renewalId||resolution.attemptId!==attemptId
           ||resolution.profileId!==phase.profileId
           ||resolution.sourceAdId!==phase.sourceAdId||resolution.newAdId!==phase.newAdId
-          ||resolution.sourceEvidence!=='not-in-my-ads-full-pagination-scan'
+          ||!(resolution.sourceEvidence==='not-in-my-ads-full-pagination-scan'&&Number.isSafeInteger(resolution.sourcePagesScanned)&&resolution.sourcePagesScanned>=1
+            ||resolution.sourceEvidence==='detail-page-explicit-deleted'&&resolution.sourcePagesScanned===0)
           ||resolution.targetEvidence!=='found-in-my-ads-full-pagination-scan'
-          ||!Number.isSafeInteger(resolution.sourcePagesScanned)||resolution.sourcePagesScanned<1
           ||!Number.isSafeInteger(resolution.targetPagesScanned)||resolution.targetPagesScanned<1
           ||!Number.isSafeInteger(resolution.targetFoundPage)||resolution.targetFoundPage<1
           ||resolution.targetFoundPage>resolution.targetPagesScanned
