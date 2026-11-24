@@ -10,7 +10,9 @@ concurrency:
   cancel-in-progress: false
 jobs:
   focused-diagnostics:
-    if: github.ref == 'refs/heads/work/KAR-210' && github.event.head_commit.message == 'ci(KAR-210): one-shot exact-source D diagnostics'
+    if: >-
+      github.ref == 'refs/heads/work/KAR-210' &&
+      github.event.head_commit.message == 'test(KAR-210): run one-shot exact-source D diagnostics'
     runs-on: ubuntu-24.04
     timeout-minutes: 8
     steps:
