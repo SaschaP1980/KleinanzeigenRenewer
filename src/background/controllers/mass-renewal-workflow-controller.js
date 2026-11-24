@@ -187,14 +187,16 @@ async function reconcileMassRenewalBatchSession(session, options = {}) {
     const item = (batch.items || []).find(entry => String(entry.renewalId || '') === String(session.renewalId || '') || Number(entry.index) === Number(session.massBatchItemIndex));
     if (!item) return { changed: false };
     if (options.progressOnly === true && !['running', 'retrying'].includes(String(item.status || ''))) return { changed: false };
-    const before = JSON.stringify([item.renewalId, item.renewalStatus, item.stage, item.newAdId, item.publicAvailabilityPending, item.lastError]);
+    const before = JSON.stringify([item.renewalId, item.renewalStatus, item.stage, item.newAdId, item.publicAvailabilityPending, item.lastError,item.publishResolutionState,item.publishResolutionReason]);
     item.renewalId = session.renewalId || item.renewalId || null;
     item.renewalStatus = session.status || null;
     item.stage = session.stage || item.stage || null;
     item.newAdId = session.newAdId || item.newAdId || null;
     item.publicAvailabilityPending = session.publicAvailabilityPending === true;
+    item.publishResolutionState=session.publishResolutionState||null;
+    item.publishResolutionReason=session.publishResolutionReason||null;
     if (session.lastError) item.lastError = session.lastError;
-    const after = JSON.stringify([item.renewalId, item.renewalStatus, item.stage, item.newAdId, item.publicAvailabilityPending, item.lastError]);
+    const after = JSON.stringify([item.renewalId, item.renewalStatus, item.stage, item.newAdId, item.publicAvailabilityPending, item.lastError,item.publishResolutionState,item.publishResolutionReason]);
     if (before !== after) touchMassRenewalItemProgress(item);
     const terminal = massRenewalTerminalOutcome(session);
     if (terminal && ['running', 'retrying'].includes(String(item.status || ''))) {

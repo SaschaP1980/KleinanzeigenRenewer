@@ -425,7 +425,7 @@ async function confirmPublishedRenewal(fill, detected) {
   }
   const binding=await currentSubmittedPublication(fill);
   if(!binding)return null;
-  const {fills:fillSessions,current:currentFill,renewal}=binding;
+  const {fills:fillSessions,current:currentFill}=binding;
   currentFill.status = 'complete';
   currentFill.stage = 'new-id-confirmed';
   currentFill.newAdId = newAdId;
@@ -434,8 +434,14 @@ async function confirmPublishedRenewal(fill, detected) {
   fillSessions[currentFill.fillId] = currentFill;
   await writeFillSessions(fillSessions);
 
-  // The original session was independently re-read immediately before
-  // marking the fill. The journal already verified its final account witness.
+  // Do not resurrect a concurrently cancelled/reset Renewal after the
+  // fill write. The immutable proof remains available for safe recovery.
+  const renewals=await readRenewalSessions();
+  const renewal=renewals[fill.renewalId];
+  if(!renewal||renewal.fillId!==fill.fillId||renewal.targetTabId!==fill.targetTabId||
+      String(renewal.sourceAdId||'')!==String(fill.sourceAdId||'')||
+      renewal.status!=='submitted'||renewal.stage!=='publish-submitted'||renewal.newAdId||
+      renewal.massBatchTerminal===true||renewal.emergencyResetAt)return null;
   renewal.publishResolutionState = null;
   renewal.publishResolutionReason = null;
   renewal.newAdId = newAdId;

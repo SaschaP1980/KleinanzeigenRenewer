@@ -146,6 +146,10 @@ assert.ok(controller && typeof controller.persistRenewalSession === 'function');
   await resumed.resumePendingRenewals();
   assert.equal(detections,1);assert.equal(journalReads,1);
   assert.equal(renewalSessions.r2.newAdId,null);
+  assert.equal(renewalSessions.r2.publishResolutionState,'blocked');
+  assert.equal(renewalSessions.r2.publishResolutionReason,'verification-failed');
+  const blockedWrites=calls.filter(([name])=>name==='writeRenewalSessions').length;
+  assert.equal(blockedWrites,1,'only the local UI outcome is persisted after denied proof');
   for(const invalid of [{...original,sourceAdId:'999'},{...original,targetTabId:43},
       {...original,fillId:'other'},{...original,status:'cancelled'},{...original,stage:'auto-publish-ready'},
       {...original,archiveInsertionId:'archive'}]){
@@ -154,6 +158,43 @@ assert.ok(controller && typeof controller.persistRenewalSession === 'function');
   rows={f2:original};renewalSessions={r2:{...submitted,stage:'other'}};
   await resumed.resumePendingRenewals();
   assert.equal(detections,1);assert.equal(journalReads,1);
-  assert.ok(!calls.some(([name])=>['writeFillSessions','writeRenewalSessions','finishRenewalReplacement','createManagedWorkerTab','sendTabRequestWithBootstrap','retirePublishedRenewalTargetTab'].includes(name)));
-  console.log('PASS KAR-206 exact submitted Renewal recovery and invalid binding denial; no replay or write after denied proof');
+  assert.equal(calls.filter(([name])=>name==='writeRenewalSessions').length,blockedWrites,'invalid binding must not write');
+  assert.ok(!calls.some(([name])=>['writeFillSessions','finishRenewalReplacement','createManagedWorkerTab','sendTabRequestWithBootstrap','retirePublishedRenewalTargetTab'].includes(name)));
+  console.log('PASS KAR-206 exact submitted Renewal recovery and invalid binding denial; only local blocked UI state, no replay or remote mutation');
+
+  const busy=()=>Object.assign(Error('KR_PUBLISH_INTENT_ATOMIC_BUSY'),{code:'KR_PUBLISH_INTENT_ATOMIC_BUSY'});
+  async function exercise(mode){
+    renewalSessions={r2:{...submitted}};
+    rows={f2:{...original}};
+    const attempts=[],delays=[],states=[];
+    const d=registered.create({...deps,
+      readFillSessions:async()=>structuredClone(rows),
+      writeFillSessions:async value=>{rows=structuredClone(value);},
+      delay:async ms=>{delays.push(ms);if(mode==='cancel')renewalSessions.r2={...submitted,status:'cancelled',stage:'emergency-reset-unverified',emergencyResetAt:'now'};},
+      resolvePublishIntent:async(fill,detected)=>{
+        attempts.push([fill.fillId,detected.adId]);
+        states.push(renewalSessions.r2.publishResolutionState||null);
+        if(mode==='non-retryable')throw Error('KR_PUBLISH_INTENT_UNVERIFIED');
+        if(mode!=='success'||attempts.length<3)throw busy();
+        return {state:'resolved-confirmed',newAdId:'456',fillId:'f2'};
+      }});
+    const outcome=await d.confirmPublishedRenewal(original,{adId:'456'}).then(v=>({v}),e=>({e}));
+    return {outcome,attempts,delays,states,session:renewalSessions.r2,fill:rows.f2};
+  }
+  const success=await exercise('success');
+  assert.equal(success.attempts.length,3);assert.deepEqual(success.delays,[1000,2000]);
+  assert.deepEqual(success.states,[null,'retrying','retrying']);
+  assert.equal(success.session.newAdId,'456');assert.equal(success.fill.stage,'new-id-confirmed');
+  assert.equal(success.session.publishResolutionState,null);
+  const exhausted=await exercise('exhausted');
+  assert.equal(exhausted.attempts.length,3);assert.equal(exhausted.outcome.e.code,'KR_PUBLISH_INTENT_ATOMIC_BUSY');
+  assert.equal(exhausted.session.publishResolutionState,'blocked');assert.equal(exhausted.session.publishResolutionReason,'lock-busy');
+  assert.equal(exhausted.session.newAdId,null);assert.equal(exhausted.fill.stage,'publish-submitted');
+  const hard=await exercise('non-retryable');
+  assert.equal(hard.attempts.length,1);assert.equal(hard.delays.length,0);
+  assert.equal(hard.session.publishResolutionState,'blocked');assert.equal(hard.session.publishResolutionReason,'verification-failed');
+  const cancelled=await exercise('cancel');
+  assert.equal(cancelled.attempts.length,1);assert.equal(cancelled.session.status,'cancelled');
+  assert.equal(cancelled.session.newAdId,null);assert.equal(cancelled.fill.stage,'publish-submitted');
+  console.log('PASS KAR-206 bounded read-only busy retry, final blocked state, success clearing, nonretryable denial and cancellation safety');
 })().catch(error => { console.error(error); process.exitCode = 1; });

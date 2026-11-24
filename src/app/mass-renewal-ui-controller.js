@@ -492,7 +492,9 @@ function massRenewalPhaseModel(item, batch) {
       status: item?.renewalStatus || '',
       stage: item?.stage || '',
       newAdId: item?.newAdId || '',
-      lastError: item?.lastError || null
+      lastError: item?.lastError || null,
+      publishResolutionState:item?.publishResolutionState||null,
+      publishResolutionReason:item?.publishResolutionReason||null
     }
   };
   const model = renewalProgressModel(pseudoRecord);
@@ -539,6 +541,10 @@ function massRenewalActivePhase(phaseModel) {
 function massRenewalItemDetail(item, batch, phaseModel = massRenewalPhaseModel(item, batch)) {
   const status = String(item?.status || 'queued');
   if (String(item?.stage || '') === 'paid-insertion-required') return 'Kleinanzeigen verlangt eine kostenpflichtige Einstellung – manuelle Entscheidung erforderlich.';
+  if(item?.stage==='publish-submitted'&&item?.renewalStatus==='submitted'){
+    if(item.publishResolutionState==='blocked')return 'Veröffentlichungsbestätigung blockiert – nicht erneut inserieren.';
+    if(item.publishResolutionState==='retrying')return 'Veröffentlichungsbestätigung wird wiederholt – kein erneutes Inserieren.';
+  }
   if (['needs-review', 'error'].includes(status)) return String(item?.lastError || 'Weitere Prüfung erforderlich.');
   if (status === 'success' && item?.newAdId) return `Neue Anzeigen-ID ${item.newAdId}`;
   if (status === 'queued') return 'Wartet auf Start';

@@ -1676,6 +1676,16 @@ function renewalProgressModel(record) {
     return { states, title, text, kind, mode, newAdId: String(record?.adId || renewal.newAdId || '') };
   }
 
+  if (stage === 'publish-submitted' && status === 'submitted' && !hasNewId &&
+      ['retrying','blocked'].includes(renewal.publishResolutionState)) {
+    const retrying=renewal.publishResolutionState==='retrying';
+    states[1]=retrying?'waiting':'error';
+    kind=retrying?'waiting':'error';
+    title=retrying?'Veröffentlichungsbestätigung wird wiederholt …':'Veröffentlichungsbestätigung blockiert';
+    text=retrying?'Die bereits eingereichte Anzeige wird erneut geprüft, nicht erneut veröffentlicht.':
+      'Der Vorgang ist angehalten. Die bisherige Anzeige wird nicht gelöscht. Bitte nicht erneut inserieren.';
+    return {states,title,text,kind,mode,newAdId:''};
+  }
   if (stage === 'publish-submitted' || status === 'submitted') {
     states[1] = 'active';
     title = 'Anzeige wird veröffentlicht …';
