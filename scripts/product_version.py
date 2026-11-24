@@ -5,6 +5,7 @@ import copy
 import json
 from pathlib import Path
 import re
+import sys
 
 _COMPONENT = r'(?:0|[1-9][0-9]{0,4})'
 _NUMERIC = re.compile(rf'{_COMPONENT}(?:\.{_COMPONENT}){{2,3}}')
@@ -93,11 +94,49 @@ def bump_metadata(meta, kind):
     return future
 
 
+def validate_release_transition(product, mode, tags):
+    """Check regular product tags numerically; never reinterpret correction IDs."""
+    new = parse(active_version(product))
+    require(mode in ('fast', 'work'), 'unknown release mode')
+    ordinary = []
+    corrections = []
+    for tag in tags:
+        if not tag:
+            continue
+        require(tag.startswith('v'), 'unexpected product tag')
+        label = tag[1:]
+        match = _CORRECTION.fullmatch(label)
+        if match:
+            basis = parse(match.group(1))
+            require(basis[0] < 2, 'invalid correction tag')
+            corrections.append(basis)
+        else:
+            ordinary.append(parse(active_version(label)))
+    if corrections:
+        require(ordinary and max(corrections) < max(ordinary),
+                'unresolved historical correction tag; reconcile numeric basis first')
+    if ordinary:
+        old = max(ordinary)
+        require(new > old, 'release version must advance')
+        require((new[:2] == old[:2]) == (mode == 'fast'),
+                'release mode does not match major/minor change')
+    return product
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--root', type=Path, default=Path(__file__).resolve().parent.parent)
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument('--release-mode', choices=('fast', 'work'))
+    mode.add_argument('--version', help='validate a regular product version without reading metadata')
     args = parser.parse_args()
-    print(validate_metadata({p: json.loads((args.root / p).read_text(encoding='utf-8')) for p in META}))
+    if args.version is not None:
+        print(active_version(args.version))
+        return
+    product = validate_metadata({p: json.loads((args.root / p).read_text(encoding='utf-8')) for p in META})
+    if args.release_mode:
+        validate_release_transition(product, args.release_mode, sys.stdin.read().splitlines())
+    print(product)
 
 
 if __name__ == '__main__':
