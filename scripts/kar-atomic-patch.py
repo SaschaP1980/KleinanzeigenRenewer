@@ -12,6 +12,9 @@ import subprocess
 import sys
 import tempfile
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import product_version
+
 ROOT = Path(__file__).resolve().parent.parent
 META = ("manifest.json", "package.json", "package-lock.json", "release/release-spec.json")
 VERSION = re.compile(r"^1\.(23|24|25)\.(0|[1-9][0-9]*)$")
@@ -29,37 +32,48 @@ def digest(data):
 
 
 def successor(version):
-    require(isinstance(version, str) and VERSION.fullmatch(version),
-            "regular 1.23.x, 1.24.x or 1.25.x PATCH required, no correction or minor jump")
-    minor, patch = map(int, version.split(".")[1:])
-    require((minor == 23 and patch >= 22 or minor in (24, 25)) and patch < 2147483647,
+    # The existing atomic builder remains PATCH-only. HOTFIX must have its
+    # own explicit authorization and metadata/commit scope.
+    try:
+        parts = product_version.parse(product_version.active_version(version))
+    except ValueError as exc:
+        require(False, str(exc))
+    if parts[0] == 2:
+        require(parts[2] < 65535, "PATCH outside safe range")
+        return product_version.advance(version, "patch")
+    require(VERSION.fullmatch(version),
+            "regular 1.23.x, 1.24.x, 1.25.x or 2.x.y.z PATCH required")
+    minor, patch = parts[1:3]
+    require((minor == 23 and patch >= 22 or minor in (24, 25)) and patch < 65535,
             "PATCH outside safe range")
     return "1." + str(minor) + "." + str(patch + 1)
 
 
 def metadata_plan(meta):
-    require(set(meta) == set(META) and all(isinstance(meta[p], dict) for p in META),
-            "four JSON metadata objects required")
-    current = meta["manifest.json"].get("version")
+    try:
+        current = product_version.validate_metadata(meta)
+    except ValueError as exc:
+        require(False, str(exc))
     next_version = successor(current)
-    require(all(meta[p].get("version") == current for p in META),
-            "four-file version mismatch")
-    require(meta["package.json"].get("displayVersion") == current, "displayVersion mismatch")
-    require(meta["package-lock.json"].get("packages", {}).get("", {}).get("version") == current,
-            "package-lock root version mismatch")
-    require(meta["release/release-spec.json"].get("packageVersion") == current,
-            "release-spec packageVersion mismatch")
     spec = meta["release/release-spec.json"]
     expected_next_minor = "1.24.0" if current.startswith("1.23.") else "TBD"
-    require(spec.get("directBasis") == "1.23.20_c1" and
+    expected_basis = "1.23.48" if current.startswith("2.") else "1.23.20_c1"
+    require(spec.get("directBasis") == expected_basis and
             spec.get("nextPlannedBuild") == expected_next_minor,
             "basis/next-minor policy drift")
-    future = copy.deepcopy(meta)
-    for p in META:
-        future[p]["version"] = next_version
-    future["package.json"]["displayVersion"] = next_version
-    future["package-lock.json"]["packages"][""]["version"] = next_version
-    future["release/release-spec.json"]["packageVersion"] = next_version
+    if current.startswith("2."):
+        future = product_version.bump_metadata(meta, "patch")
+    else:
+        future = copy.deepcopy(meta)
+        for p in META:
+            future[p]["version"] = next_version
+        future["package.json"]["displayVersion"] = next_version
+        future["package-lock.json"]["packages"][""]["version"] = next_version
+        future["release/release-spec.json"]["packageVersion"] = next_version
+        if "version_name" in future["manifest.json"]:
+            future["manifest.json"]["version_name"] = next_version
+    require(product_version.validate_metadata(future) == next_version,
+            "next metadata version mismatch")
     return current, next_version, future
 
 
@@ -140,10 +154,20 @@ def sealed_prior_archive(issue, base, head, relative, current):
     # Do not require the later main SHA to precede the earlier Work ZIP seal.
     git("merge-base", "--is-ancestor", base, head)
     git("merge-base", "--is-ancestor", seal, head)
-    for item in META:
-        old_meta = json.loads(run("git", "show", seal + ":" + item))
-        require(old_meta.get("version") == current,
-                "previous Work ZIP metadata version mismatch at " + item)
+    if current.startswith("2."):
+        sealed_meta = {item: json.loads(run("git", "show", seal + ":" + item))
+                       for item in META}
+        try:
+            require(product_version.validate_metadata(sealed_meta) == current,
+                    "previous Work ZIP metadata version mismatch")
+        except ValueError as exc:
+            require(False, str(exc))
+    else:
+        # Historical seals retain their original three-component contract.
+        for item in META:
+            old_meta = json.loads(run("git", "show", seal + ":" + item))
+            require(old_meta.get("version") == current,
+                    "previous Work ZIP metadata version mismatch at " + item)
     return run("git", "show", seal + ":" + relative, binary=True), "work"
 
 
