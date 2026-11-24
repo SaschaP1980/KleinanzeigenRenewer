@@ -2,9 +2,9 @@
   'use strict';
   const API = Object.freeze({
     create(options = {}) {
-      const {readArchiveInsertionSessions,readFillSessions,getInventory,isTrashRecord,persistArchiveInsertionSession,deleteImagesByInventoryId,logDiagnostic,setAppNotice,broadcastInventoryChanged,normalizeRenewalMode,cryptoApi,compareArchiveInsertionRecords,runArchiveInsertionPostPublish,confirmPublishedArchiveInsertion,withAutonomousAdmission}=options;
+      const {readArchiveInsertionSessions,readFillSessions,getInventory,isTrashRecord,persistArchiveInsertionSession,deleteImagesByInventoryId,logDiagnostic,setAppNotice,broadcastInventoryChanged,normalizeRenewalMode,cryptoApi,compareArchiveInsertionRecords,runArchiveInsertionPostPublish,confirmPublishedArchiveInsertion,detectPublishedAdForFill,withAutonomousAdmission}=options;
       const crypto=cryptoApi;
-      const required={readArchiveInsertionSessions,readFillSessions,getInventory,isTrashRecord,persistArchiveInsertionSession,deleteImagesByInventoryId,logDiagnostic,setAppNotice,broadcastInventoryChanged,normalizeRenewalMode,compareArchiveInsertionRecords,runArchiveInsertionPostPublish,confirmPublishedArchiveInsertion,withAutonomousAdmission};
+      const required={readArchiveInsertionSessions,readFillSessions,getInventory,isTrashRecord,persistArchiveInsertionSession,deleteImagesByInventoryId,logDiagnostic,setAppNotice,broadcastInventoryChanged,normalizeRenewalMode,compareArchiveInsertionRecords,runArchiveInsertionPostPublish,confirmPublishedArchiveInsertion,detectPublishedAdForFill,withAutonomousAdmission};
       for(const [name,value] of Object.entries(required)) if(typeof value!=='function') throw new Error(`archive recovery service dependency ${name} is required`);
       if(!crypto?.randomUUID) throw new Error('archive recovery service crypto API is required');
 async function completeRecoveredArchiveInsertionIfAlreadyInventoried(session) {
@@ -80,11 +80,35 @@ async function resumePendingArchiveInsertions() {
       }
       // Publish-intent denial is an unresolved remote mutation boundary, not an idle/retryable draft.
       if (['complete', 'needs-review', 'error', 'cancelled', 'publish-blocked'].includes(String(session?.status || ''))) continue;
-      if (session?.status === 'submitted' && session?.targetTabId && !session?.newAdId) {
-        const fill = Object.values(fills).find(item => item?.archiveInsertionId === session.archiveInsertionId && item?.targetTabId === session.targetTabId);
+      // The actual ZIP post-submit stage is persisted as
+      // status=filling/stage=publish-submitted by TemplateFillController.
+      // A legacy submitted state remains valid for old interrupted sessions.
+      // Only retry READ-ONLY detection of the existing publication; never
+      // create a tab for publication, click Publish or fabricate a new ID.
+      const submitted = session?.status === 'submitted'
+        || (session?.status === 'filling' && session?.stage === 'publish-submitted');
+      if (submitted && Number.isSafeInteger(session?.targetTabId) &&
+          session.targetTabId > 0 && !session?.newAdId) {
+        const fill = Object.values(fills).find(item =>
+          item?.fillId === session.fillId &&
+          item?.archiveInsertionId === session.archiveInsertionId &&
+          item?.targetTabId === session.targetTabId &&
+          String(item?.sourceAdId || '') === String(session.sourceAdId || '') &&
+          item?.status === 'running' && item?.stage === 'publish-submitted');
         if (fill) {
           const detected = await detectPublishedAdForFill(session.targetTabId, session.sourceAdId);
-          if (detected?.adId) await confirmPublishedArchiveInsertion(fill, detected);
+          if (detected?.adId) {
+            // The original immutable P8 publication intent, separately verified
+            // same-account My Ads listing, and exact attempt are ALL required by
+            // confirmPublishedArchiveInsertion. Any rejection stays pending.
+            await confirmPublishedArchiveInsertion(fill, detected);
+          } else {
+            await logDiagnostic('info', 'ARCHIVE_INSERT_RESUME_AWAITING_PUBLICATION_PROOF', {
+              archiveInsertionId: session.archiveInsertionId,
+              status: session.status, stage: session.stage,
+              proofAvailable: false, newPublishAttempted: false
+            }, { module: 'background', operation: 'archive-import-resume' }).catch(() => {});
+          }
         }
       } else if (/^\d+$/.test(String(session?.newAdId || '')) && ['published', 'finding', 'checking', 'saving'].includes(String(session?.status || ''))) {
         void withAutonomousAdmission('archive-postpublish-detached', () => runArchiveInsertionPostPublish(session.archiveInsertionId)).catch(() => {});
