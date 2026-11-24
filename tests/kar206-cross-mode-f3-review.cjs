@@ -22,8 +22,38 @@ const validDiff = () => ([
   {type:'valid-options-changed',key:'field:adType',before:['OFFER'],after:['OFFER','WANTED']},
   {type:'valid-options-changed',key:'field:buyNow',before:[],after:['false','true']}
 ]);
+// Reproduce the exact STRUCTURAL shape of the owner's v1.25.25 diagnosis.
+// Attribute keys and conversion types only, never a private listing payload.
+const observedCategory22Diff = () => ([
+  ...['altersgruppe','art','color','eigenschaften','groesse','material','type']
+    .map(key => ({type:'control-kind-changed',
+      key:'attribute:baby_kinderkleidung.'+key,before:'button',after:'combobox'})),
+  {type:'control-kind-changed',key:'attribute:baby_kinderkleidung.brand',
+    before:'text',after:'combobox'},
+  {type:'control-kind-changed',key:'attribute:baby_kinderkleidung.condition',
+    before:'button',after:'hidden'},
+  ...['art','groesse','type'].map(key=>({type:'requiredness-uncertain',
+    key:'attribute:baby_kinderkleidung.'+key,before:'unknown',after:'required'})),
+  {type:'valid-options-changed',key:'field:adType',
+    before:['OFFER'],after:['OFFER','WANTED']},
+  {type:'valid-options-changed',key:'field:buyNow',
+    before:[],after:['false','true']}
+]);
+const category22Attrs = () => ([
+  {key:'baby_kinderkleidung.brand',status:'empty',technicalValue:'',
+    displayValue:'Bitte wählen'},
+  {key:'baby_kinderkleidung.condition',status:'captured',
+    technicalValue:'synthetic-condition-id',displayValue:'Synthetic condition'}
+]);
+const category22Values = () => ([
+  {key:'baby_kinderkleidung.condition',status:'unverified',
+    reason:'technical-options-unknown'},
+  {key:'baby_kinderkleidung.groesse',status:'confirmed',
+    reason:'already-selected-exact-readback'}
+]);
 async function evaluate({sourceKind='edit-form', stagePatch={}, reportPatch={},
-    changes=validDiff(), categoryId='22'} = {}) {
+    changes=validDiff(), categoryId='22',
+    attributes=category22Attrs(), valueEvidence=category22Values()} = {}) {
   const events = [], transitions = [];
   let reviewCount = 0;
   const deps = {
@@ -60,10 +90,15 @@ async function evaluate({sourceKind='edit-form', stagePatch={}, reportPatch={},
     complete:true,issues:[],valueCompatibility:'unverified',
     sourceFingerprint:'b'.repeat(64),currentFingerprint:hash,
     comparison:{status:'schema-changed',changes},
+    valueEvidence,
     ...reportPatch
   };
   const session = {fillId:'synthetic-206',
-    template:{categoryId,templateSchema:{source:sourceKind, snapshot:{categoryId}, fingerprint:'b'.repeat(64)}}};
+    template:{categoryId,dynamicAttributes:attributes,templateSchema:{source:sourceKind,
+      snapshot:{categoryId,fields:[
+        {key:'attribute:baby_kinderkleidung.brand',kind:'text',requiredState:'unknown',optionValues:null},
+        {key:'attribute:baby_kinderkleidung.condition',kind:'button',requiredState:'unknown',optionValues:null}
+      ]},fingerprint:'b'.repeat(64)}}};
   const observed = {
     base:{stage:'base',formMode:'posting-create'},
     category:{stage:'category',categoryId,
@@ -81,6 +116,70 @@ test('verified edit capture with same independent F1/F2/F3 live reference procee
   assert.ok(r.events.some(x=>x.event==='KAR206_CROSS_MODE_SCHEMA_NONCOMPARABLE'),
     'record narrowly scoped privacy-safe reason');
   assert.equal(r.transitions.includes('schema-reference-review-pending'),false);
+});
+test('native v1.25.25 category-22 fourteen schema-mode differences resume verified fill',async()=>{
+  const changes=observedCategory22Diff();
+  assert.equal(changes.length,14);
+  assert.equal(changes.filter(x=>x.type==='control-kind-changed').length,9);
+  assert.equal(changes.filter(x=>x.type==='requiredness-uncertain').length,3);
+  const r=await evaluate({changes});
+  assert.equal(r.allowed,true,'a stable create-form F3 may not be blocked by known edit/create differences');
+  assert.equal(r.reviewCount,0,'no artificial F3 modal on the real 14-change pattern');
+  assert.ok(r.events.some(x=>x.event==='KAR206_CROSS_MODE_SCHEMA_NONCOMPARABLE'));
+  assert.equal(r.transitions.includes('schema-reference-review-pending'),false);
+});
+test('category-22 exceptional fields need exact trusted source semantics',async()=>{
+  const changes=observedCategory22Diff();
+  const brand='baby_kinderkleidung.brand',condition='baby_kinderkleidung.condition';
+  const scenarios=[
+    {attributes:category22Attrs().filter(x=>x.key!==brand)},
+    {attributes:category22Attrs().map(x=>x.key===brand?{...x,status:'captured'}:x)},
+    {attributes:category22Attrs().map(x=>x.key===brand?{...x,displayValue:'Synthetic brand'}:x)},
+    {attributes:category22Attrs().map(x=>x.key===brand?{...x,technicalValue:'brand-technical'}:x)},
+    {attributes:category22Attrs().filter(x=>x.key!==condition)},
+    {attributes:category22Attrs().map(x=>x.key===condition?{...x,status:'empty'}:x)},
+    {attributes:category22Attrs().map(x=>x.key===condition?{...x,technicalValue:''}:x)},
+    {valueEvidence:category22Values().filter(x=>x.key!==condition)},
+    {valueEvidence:category22Values().map(x=>x.key===condition?{...x,status:'incompatible'}:x)}
+  ];
+  for(const scenario of scenarios) {
+    const r=await evaluate({changes,...scenario});
+    assert.equal(r.allowed,false,JSON.stringify(scenario));
+    assert.equal(r.reviewCount,1);
+  }
+});
+test('new conversion shapes are accepted only for the observed category 22 field identities',async()=>{
+  const changes=observedCategory22Diff();
+  const cases=[
+    changes.map(x=>x.key==='attribute:baby_kinderkleidung.brand'
+      ?{...x,key:'attribute:unrelated.brand'}:x),
+    changes.map(x=>x.key==='attribute:baby_kinderkleidung.condition'
+      ?{...x,key:'attribute:unrelated.condition'}:x),
+    changes.map(x=>x.key==='attribute:baby_kinderkleidung.condition'
+      ?{...x,after:'checkbox'}:x),
+    changes.map(x=>x.key==='attribute:baby_kinderkleidung.brand'
+      ?{...x,before:'hidden'}:x)
+  ];
+  for(const diff of cases){
+    const r=await evaluate({changes:diff});
+    assert.equal(r.allowed,false,JSON.stringify(diff));
+    assert.equal(r.reviewCount,1);
+  }
+  const otherCategory=await evaluate({changes,categoryId:'405'});
+  assert.equal(otherCategory.allowed,false,'category specific evidence cannot migrate to other numeric category');
+});
+test('current live F3 drift or incompatible saved selection still blocks the 14-change fixture',async()=>{
+  const changes=observedCategory22Diff();
+  const changed=await evaluate({changes,stagePatch:{attributes:{...stable(),status:'changed',
+    currentFingerprint:'f'.repeat(64),changes:[{type:'field-added'}]}}});
+  assert.equal(changed.allowed,false);
+  assert.equal(changed.reviewCount,1);
+  const incompatible=await evaluate({changes,reportPatch:{valueCompatibility:'incompatible'}});
+  assert.equal(incompatible.allowed,false);
+  assert.equal(incompatible.reviewCount,1);
+  const invalid=await evaluate({changes,reportPatch:{complete:false,issues:['required field missing']}});
+  assert.equal(invalid.allowed,false);
+  assert.equal(invalid.reviewCount,1);
 });
 test('a truly different F3 current form still requires review',async()=>{
   const r=await evaluate({stagePatch:{attributes:{...stable(),status:'changed',
