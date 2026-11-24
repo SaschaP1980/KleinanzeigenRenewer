@@ -7,6 +7,16 @@ const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const crypto = require('node:crypto');
 const root = path.resolve(__dirname, '..');
+// KAR-210: active suite must not invoke retired/deferred product tests.
+const activeOwners = ['package.json','scripts/build.sh','scripts/coverage-gate.sh',
+  '.github/workflows/kar-work-pr.yml','.github/workflows/kar-ci.yml','.github/workflows/kar-release.yml'];
+const inactiveTests = ['tests/kar97-update-idle-policy.cjs','tests/kar134-schema-core.cjs',
+  'tests/kar195-startup-atomic-fairness.cjs','tests/kar210-trash-template-recovery-coalescing.cjs'];
+for (const owner of activeOwners) {
+  const source=fs.readFileSync(path.join(root,owner),'utf8').replace(/\\/g,'/');
+  for(const inactive of inactiveTests) assert.ok(!source.includes(inactive),
+    'Inactive test still referenced by active owner '+owner+': '+inactive);
+}
 const { resolveDisposition } = require('./kar210-test-disposition.cjs');
 const ledger = JSON.parse(fs.readFileSync(path.join(root, 'docs/maintenance/KAR210_ACTIVE_TEST_DISPOSITIONS.json'), 'utf8'));
 const names = ['tests/kar97-update-idle-policy.cjs', 'tests/kar134-schema-core.cjs'];
