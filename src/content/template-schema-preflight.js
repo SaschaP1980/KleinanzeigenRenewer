@@ -432,7 +432,9 @@
       }
       if (comparison?.status === 'category-mismatch') issues.push('Das aktuelle Formular gehört zu einer anderen Kategorie.');
       if (comparison?.status === 'schema-changed')
-        warnings.push('Kleinanzeigen hat Felder oder Auswahlmöglichkeiten verändert. Alle gespeicherten Werte müssen bestätigt werden.');
+        warnings.push(template.templateSchema?.source === 'edit-form'
+          ? 'Gespeichertes Bearbeitungsformular und aktuelles Erstellformular unterscheiden sich technisch. Das ist allein kein Nachweis für eine aktuelle Änderung bei Kleinanzeigen. Gespeicherte Werte werden dennoch einzeln geprüft.'
+          : 'Kleinanzeigen hat Felder oder Auswahlmöglichkeiten verändert. Alle gespeicherten Werte müssen bestätigt werden.');
       const valueCompatibility = valueEvidence.some(item => ['incompatible', 'ambiguous'].includes(item.status))
         ? 'incompatible' : valueEvidence.some(item => item.status === 'unverified')
           ? 'unverified' : 'confirmed';
