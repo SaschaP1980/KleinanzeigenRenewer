@@ -1,0 +1,131 @@
+name: KAR-206 v1.25.32 publication resolution lock and UI Work-only gate
+on:
+  push:
+    branches: [work/KAR-206]
+permissions:
+  contents: write
+jobs:
+  tested-work-zip:
+    if: contains(github.event.head_commit.message, 'KAR206-PACKAGE-START')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: true
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify isolated exact Work HEAD, new version and no current ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/work/KAR-206"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git ls-remote origin refs/heads/work/KAR-206 | cut -f1)" = "$GITHUB_SHA"
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "4d7ae5130730776927748e2517fdf9aadaf098cd"
+          test ! -e release/kleinanzeigen-renewal-chrome-v1.25.32.zip
+          test -f release/kleinanzeigen-renewal-chrome-v1.25.31.zip
+          test "$(sha256sum release/kleinanzeigen-renewal-chrome-v1.25.31.zip | cut -d ' ' -f1)" = "eba996c4f3ccad9d756aa9a3280095c2988a1d54b0c0f99cea8ee0739872e85e"
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          m=json.loads(Path('manifest.json').read_text())
+          p=json.loads(Path('package.json').read_text())
+          lock=json.loads(Path('package-lock.json').read_text())
+          spec=json.loads(Path('release/release-spec.json').read_text())
+          assert m['version']==p['version']==p['displayVersion']==lock['version']==lock['packages']['']['version']==spec['version']=='1.25.32'
+          assert set(m['permissions'])=={'activeTab','storage','unlimitedStorage','scripting','nativeMessaging'}
+          assert Path('tests/kar206-cross-mode-f3-review.cjs').is_file()
+          assert 'kar206-cross-mode-f3-review.cjs' in p['scripts']['test']
+          assert Path('tests/kar206-empty-archive-attribute-handoff.cjs').is_file()
+          assert Path('tests/kar206-local-unfinished-renewal-discard.cjs').is_file()
+          assert 'kar206-local-unfinished-renewal-discard.cjs' in p['scripts']['test']
+          assert Path('src/background/services/renewal-local-discard-service.js').is_file()
+          assert Path('tests/kar206-direct-edit-publish-evidence.cjs').is_file()
+          assert 'kar206-direct-edit-publish-evidence.cjs' in p['scripts']['test']
+          assert 'kar206-direct-edit-content-evidence.cjs' in p['scripts']['test']
+          assert Path('tests/kar206-short-public-url-integration.cjs').is_file()
+          assert 'kar206-short-public-url-integration.cjs' in p['scripts']['test']
+          assert Path('tests/kar206-publish-resolution-lock-ui.cjs').is_file()
+          assert 'kar206-publish-resolution-lock-ui.cjs' in p['scripts']['test']
+          print('PASS pinned v1.25.32 Work-only identity and regression registration')
+          PY
+      - name: Build exact Chrome ZIP and commit locally before validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/kar206-v12532/pack" "$RUNNER_TEMP/kar206-v12532/unpacked"
+          python3 scripts/package.py "$RUNNER_TEMP/kar206-v12532/pack"
+          ZIP="$RUNNER_TEMP/kar206-v12532/pack/kleinanzeigen-renewal-chrome-v1.25.32.zip"
+          test -s "$ZIP"
+          unzip -t "$ZIP" >/dev/null
+          unzip -q "$ZIP" -d "$RUNNER_TEMP/kar206-v12532/unpacked"
+          cp "$ZIP" release/kleinanzeigen-renewal-chrome-v1.25.32.zip
+          git add -f -- release/kleinanzeigen-renewal-chrome-v1.25.32.zip
+          test "$(git diff --cached --name-only)" = "release/kleinanzeigen-renewal-chrome-v1.25.32.zip"
+          git -c user.name='KAR Work-only CI' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m "build(KAR-206): archive source-exact Work-only v1.25.32 Chrome ZIP"
+          echo "WORK_ZIP=$ZIP" >> "$GITHUB_ENV"
+      - name: Full mandatory safety, regression and coverage gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci
+          rm .github/workflows/kar206-work-v12532-package-temporary.yml
+          bash scripts/coverage-gate.sh
+          git restore .github/workflows/kar206-work-v12532-package-temporary.yml
+          git diff --exit-code
+          test -z "$(git status --porcelain --untracked-files=no)"
+      - name: Mandatory isolated packaged real Chromium E2E
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pip install --disable-pip-version-check -r tests/e2e/requirements.txt
+          python3 -m playwright install --with-deps --no-shell chromium
+          export KR_CHROME_BINARY="$(python3 -c 'from playwright.sync_api import sync_playwright; p=sync_playwright().start(); print(p.chromium.executable_path); p.stop()')"
+          export KR_E2E_BROWSER_CHANNEL=chromium
+          export KR_E2E_EXTENSION_ROOT="$RUNNER_TEMP/kar206-v12532/unpacked"
+          python3 tests/e2e/run_browser_e2e_supervisor.py --report "$RUNNER_TEMP/kar206-v12532/e2e.json"
+          python3 - <<'PY'
+          import json,os
+          from pathlib import Path
+          r=json.loads((Path(os.environ['RUNNER_TEMP'])/'kar206-v12532'/'e2e.json').read_text())
+          assert r['scenarioCount']==9 and r['passed']==9 and r['failed']==0 and r['cleanupFailed']==0,r
+          print('PASS v1.25.32 exact package Chromium 9/9')
+          PY
+      - name: Verify ZIP/source parity, fast-forward exact Work ref and audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git ls-remote origin refs/heads/work/KAR-206 | cut -f1)" = "$GITHUB_SHA"
+          test -z "$(git status --porcelain --untracked-files=no)"
+          test "$(git diff-tree --no-commit-id --name-only -r HEAD)" = "release/kleinanzeigen-renewal-chrome-v1.25.32.zip"
+          python3 scripts/verify_committed_chrome_zip.py --report "$RUNNER_TEMP/kar206-v12532/parity.json"
+          git push origin HEAD:refs/heads/work/KAR-206
+          ACTUAL="$(git ls-remote origin refs/heads/work/KAR-206 | cut -f1)"
+          test "$ACTUAL" = "$(git rev-parse HEAD)"
+          python3 - <<'PY'
+          import hashlib,json,os
+          from pathlib import Path
+          z=Path('release/kleinanzeigen-renewal-chrome-v1.25.32.zip')
+          data={'version':'1.25.32','workOnly':True,'mainMerged':False,
+            'published':False,'ownerNativeAccepted':False,
+            'bytes':z.stat().st_size,'sha256':hashlib.sha256(z.read_bytes()).hexdigest()}
+          (Path(os.environ['RUNNER_TEMP'])/'kar206-v12532'/'build.json').write_text(json.dumps(data,indent=2)+'\n')
+          print(json.dumps(data))
+          PY
+      - name: Preserve Work-only validation, parity and browser results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kar206-v12532-work-validation-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/kar206-v12532/build.json
+            ${{ runner.temp }}/kar206-v12532/parity.json
+            ${{ runner.temp }}/kar206-v12532/e2e.json
+          if-no-files-found: warn
+          retention-days: 30
+# Temporary exact-version Work-only CI; no GitHub Release, merge, or real ad mutation.
+
+# Owner v1.25.25 real category-22 edit/create 14-diff focused RED->GREEN; native re-test not implied.

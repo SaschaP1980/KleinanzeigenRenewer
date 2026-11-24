@@ -4,6 +4,13 @@ This is the canonical version-specific history for Kleinanzeigen Manager. Entrie
 
 All distinct historical section bodies from the former root README and CHANGELOG are preserved with source labels and line numbers. The [KAR-170 migration ledger](docs/maintenance/KAR170_CHANGELOG_MIGRATION.json) identifies their original Git blobs and body checksums. Overlapping versions retain distinct factual notes; older references to planned builds or native/CI acceptance are **historical**, not live status.
 
+## v1.25.32 — KAR-206 publication resolution lock and truthful UI (Work only; not released)
+
+- Native v1.25.31 exact authenticated Edit and short public proof passed, but final immutable resolution write exhausted 16 opportunistic Web Lock acquisitions. Production resolution read/write now use the same exclusive P8 origin lock via a 12-second abortable queued acquisition. No lock stealing, no deadline after acquiring; before-click admission unchanged.
+- Original submitted Renewal may retry at most three complete read-only resolution attempts on pre-acquisition busy; re-read exact fill/session before retry and confirmation, preserve immutable P8 origin, account witness, durable readback and Phase 3/4 safeguards. No retry for non-busy proof/identity/storage denial or cancelled/reset workflow. Never repeat Publish.
+- Persist non-authorizing resolution UI state and fixed reason: waiting during retry, blocked/error if no continuation, with no misleading background-running hint in the stopped modal. Project through the inventory snapshot and mass progress without changing remote authority.
+- Test-first actual journal/dialog fixture RED 1/8 then GREEN 8/8 in isolated JS; controller retry, failure, cancellation and UI-state regression registered. Mandatory hosted full safety, coverage, packaged Chromium and exact ZIP parity before delivery; native recovery pending.
+
 ## v1.25.31 — KAR-206 short public URL publication proof (Work only; not released)
 
 - Native v1.25.30 direct authenticated Edit probe passed; public verification did not, because the real content PAGE_STATUS recognized canonical slug/ID-category-location URLs only and returned null for the short numeric-ID path used by the fresh public probe. Reuse the existing shared exact public ID parser in PAGE_STATUS, without accepting a URL alone as independent DOM evidence.

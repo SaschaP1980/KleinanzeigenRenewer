@@ -41,7 +41,7 @@ test('authenticated full pagination gives bounded page counts without IDs',()=>{
  assert.match(ops,/await onReadOnlyPageObserved/);
 });
 test('no additional public message, permissions, or update authority',()=>{
- assert.equal(manifest.version,'1.25.31', 'current Work build must preserve R1 permission and IPC boundaries');
+ assert.equal(manifest.version,'1.25.32', 'current Work build must preserve R1 permission and IPC boundaries');
  assert.deepEqual(manifest.permissions,
    ['activeTab','storage','unlimitedStorage','scripting','nativeMessaging']);
  assert.doesNotMatch(registry,/KAR171_R1_CONTENT_(?:ACK|UPDATE)/);

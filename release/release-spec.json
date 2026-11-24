@@ -1,12 +1,16 @@
 {
-  "version": "1.25.31",
+  "version": "1.25.32",
   "project": "kleinanzeigen Manager / Kleinanzeigen Renewal",
-  "epic": "KAR-206-short-public-url-publication-proof",
+  "epic": "KAR-206-publication-resolution-lock-and-ui",
   "goldBaseline": "1.21.15",
   "directBasis": "1.23.20_c1",
   "directBasisNativeGreen": true,
   "directBasisObservation": "v1.23.20_c1 ist RELEASE_GREEN und besitzt reale Fast-3er-Goldlinien. Zwei spätere reale Massenläufe vom 10.10.2026 zeigten jedoch einen flüchtigen Titel-Fill-/DOM-State-Fehler: Diagnose 11-22-33 (SHA-256 0ac5642d4fb6b69575c88d6e116fa2152ad0cd84c512f38198afddfa3c72a4df) mit 3/7 temporären Titel-Mismatches und Diagnose 12-03-51 (SHA-256 161cabb74e8a8eb454c91e3c35dc8158a7a782b9d0354fb4e003d12e487db641) mit 5/10. Unveränderte Titel konnten in späteren Versuchen erfolgreich sein; daher wird v1.23.22 als enger Correction-Build vor EPIC-REF-003 erstellt.",
   "scope": [
+    "KAR-206 v1.25.32: after native v1.25.31 exact authenticated edit and public proof passed, resolve-write exhausted opportunistic attempts. Production post-click resolution read/write now queue on the SAME exclusive P8 origin lock with bounded abortable 12-second acquisition, no stealing or timeout during a held critical section. Before-click admission unchanged.",
+    "At most three original-session read-only resolution attempts on acquisition busy, no retry of identity/account/storage/other denial, no repeat publish; preserve immutable origin and final account witness and source deletion gates.",
+    "Persist non-authorizing retrying/blocked resolution state with fixed reason, rendered in Phase 1 and shortcut/mass progress as waiting/error, clear on successful confirmation. No false phase completion or old-ad deletion. Native recovery pending; full CI and exact Work ZIP parity required.",
+
     "KAR-206 v1.25.31: native v1.25.30 direct authenticated edit proof passed, but PAGE_STATUS rejected the actual short public URL with a missing ID. Reuse the shared exact public URL parser for short and canonical forms; retain independent DOM evidence, account binding, immutable P8 and existing source-retirement guards.",
     "Real content listener-to-verifier regression with short and canonical URL, negative missing/conflicting DOM proof and privacy-safe roster scan failure reasons. Existing worker startup recovery only accepts the exact submitted original fill/session; no republish. Broader initial My Ads readiness wait on missing/inconsistent count, no weaker evidence.",
     "No new runtime route or permissions. Full mandatory CI, packaged Chromium and exact ZIP parity required before Work delivery; native recovery still pending.",
@@ -165,7 +169,7 @@
     "Validate canonical all-profile affected-count preview and fail-closed cancellation when the active profile or trash snapshot changes.",
     "Verify local-only atomic record-and-image deletion under exact inventory IDs, retention-reset boundaries and MV3 interruption; assert no remote Kleinanzeigen mutation."
   ],
-  "packageVersion": "1.25.31",
+  "packageVersion": "1.25.32",
   "directBasisNativePending": false,
   "architectureFiles": [
     {
