@@ -18,7 +18,10 @@ assert.match(classifier, /message channel closed/);
 assert.match(classifier, /message port closed/);
 pass('Phase-4 classifier recognizes observed post-confirmation channel loss');
 
-const phase4 = background.match(/async function finishRenewalReplacement\(message(?:, admissionReceipt = null)?\) \{[\s\S]*?\n\}\n\nasync function discardRenewalDraft/)?.[0] || '';
+// Check the exact real Phase-4 service owner, not forwarding-facade adjacency.
+const phase4Owner = fs.readFileSync(path.join(root,'src/background/services/remote-delete-replacement-service.js'),'utf8');
+const phase4 = phase4Owner.match(/async function finishRenewalReplacement[\s\S]*?\n}\n/)?.[0] || '';
+assert.ok(phase4,'real Phase-4 service owner must remain present');
 const phase4Verifier = background.match(/async function verifyRenewalSourceAbsenceFresh[\s\S]*?\n}\n\nasync function preverifyAndTriggerRenewalSourceDeleteAttempt/)?.[0] || '';
 const phase4Delete = background.match(/async function preverifyAndTriggerRenewalSourceDeleteAttempt[\s\S]*?\n}\n\nasync function finishRenewalReplacement/)?.[0] || '';
 assert.ok(phase4, 'finishRenewalReplacement must exist');

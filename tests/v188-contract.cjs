@@ -49,7 +49,10 @@ assert.match(background, /feedbackType: result\.deletion\?\.feedback\?\.type \|\
 assert.match(background, /feedbackMethod: result\.deletion\?\.feedback\?\.method \|\| null/);
 pass('optional success-feedback evidence is propagated into Phase-4 diagnostics');
 
-const phase4 = background.match(/async function finishRenewalReplacement\(message(?:, admissionReceipt = null)?\) \{[\s\S]*?\n\}\n\nasync function discardRenewalDraft/)?.[0] || '';
+// Check the exact real Phase-4 service owner, not forwarding-facade adjacency.
+const phase4Owner = fs.readFileSync(path.join(root,'src/background/services/remote-delete-replacement-service.js'),'utf8');
+const phase4 = phase4Owner.match(/async function finishRenewalReplacement[\s\S]*?\n}\n/)?.[0] || '';
+assert.ok(phase4,'real Phase-4 service owner must remain present');
 const phase4Verifier = background.match(/async function verifyRenewalSourceAbsenceFresh[\s\S]*?\n}\n\nasync function preverifyAndTriggerRenewalSourceDeleteAttempt/)?.[0] || '';
 assert.ok(phase4, 'finishRenewalReplacement must exist');
 assert.match(phase4, /source-delete-verification-pending/);

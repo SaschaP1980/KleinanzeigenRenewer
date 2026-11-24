@@ -82,7 +82,10 @@ assert.doesNotMatch(trashStart, /startConfirmationVersion/);
 assert.match(filler, /if \(session\?\.templateOnly\) return await prepareTemplateOnlyComplete\(session\)/);
 pass('trash recovery remains template-only and cannot inherit full-renewal authorization');
 
-const phase4 = background.match(/async function finishRenewalReplacement\(message(?:, admissionReceipt = null)?\) \{[\s\S]*?\n\}\n\nasync function discardRenewalDraft/)?.[0] || '';
+// Check the exact real Phase-4 service owner, not forwarding-facade adjacency.
+const phase4Owner = fs.readFileSync(path.join(root,'src/background/services/remote-delete-replacement-service.js'),'utf8');
+const phase4 = phase4Owner.match(/async function finishRenewalReplacement[\s\S]*?\n}\n/)?.[0] || '';
+assert.ok(phase4,'real Phase-4 service owner must remain present');
 const phase4Verifier = background.match(/async function verifyRenewalSourceAbsenceFresh[\s\S]*?\n}\n\nasync function preverifyAndTriggerRenewalSourceDeleteAttempt/)?.[0] || '';
 assert.match(phase4Verifier, /VERIFY_OWN_AD_ABSENT_BY_ID/);
 assert.match(phase4, /verifyRenewalSourceAbsenceFresh\(session/);

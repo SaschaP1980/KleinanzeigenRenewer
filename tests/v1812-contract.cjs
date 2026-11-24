@@ -37,7 +37,10 @@ assert.match(promote, /inventories\.put\(promoted\)/);
 assert.doesNotMatch(promote, /sourceImageCursor/);
 pass('phase 4 atomically keeps the old source and its images in trash while promoting the new record');
 
-const phase4 = background.match(/async function finishRenewalReplacement\(message(?:, admissionReceipt = null)?\) \{[\s\S]*?\n\}\n\nasync function discardRenewalDraft/)?.[0] || '';
+// Check the exact real Phase-4 service owner, not forwarding-facade adjacency.
+const phase4Owner = fs.readFileSync(path.join(root,'src/background/services/remote-delete-replacement-service.js'),'utf8');
+const phase4 = phase4Owner.match(/async function finishRenewalReplacement[\s\S]*?\n}\n/)?.[0] || '';
+assert.ok(phase4,'real Phase-4 service owner must remain present');
 assert.match(phase4, /setAppNotice/);
 assert.match(phase4, /Austausch erfolgreich abgeschlossen|Neu inseriert/);
 assert.match(phase4, /closeCompletedRenewalTargetTab\(session\)/);
