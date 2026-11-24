@@ -138,6 +138,95 @@ const RULES = Object.freeze({
       "tests/v12315-runtime.cjs",
       "tests/v1194-reconciliation-fresh-source-runtime.cjs"
     ]
+  },
+  "tests/kar148-article-type.cjs": {
+    "module": "src/app/inventory-card-renderer.js",
+    "matrix": "B01",
+    "step": "S08",
+    "status": "deferred-B",
+    "owner": "package.json",
+    "retained": [
+      "tests/kar210-baseline-retained-behavior.cjs",
+      "tests/v12314-runtime.cjs"
+    ],
+    "featureAbsence": {
+      "marker": "makeInfoLine('Artikeltyp'",
+      "baselineBlob": "f3cc492f85469cc62a33f812fe5a5b2dcd2db726",
+      "donorBlob": "d4381c4aa64f8532484daa5992a25249244cf774",
+      "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
+    }
+  },
+  "tests/kar150-ui-preference.cjs": {
+    "module": "src/app/mass-renewal-ui-controller.js",
+    "matrix": "B04",
+    "step": "S08",
+    "status": "deferred-B",
+    "owner": "package.json",
+    "retained": [
+      "tests/v1233-mass-renewal-workflow-runtime.cjs",
+      "tests/v1238-account-session-controller-runtime.cjs",
+      "tests/v12226-paid-insertion-regression.cjs"
+    ],
+    "featureAbsence": {
+      "marker": "massRenewalStopOnErrorPreferenceV1",
+      "baselineBlob": "813aedc109538d3afb387f6f47648bdfe12fe303",
+      "donorBlob": "1c22cb5bd91623337164744046fbc03622839c68",
+      "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
+    }
+  },
+  "tests/kar164-trash-sort.cjs": {
+    "module": "src/app/inventory-view.js",
+    "matrix": "B07",
+    "step": "S09",
+    "status": "deferred-B",
+    "owner": "package.json",
+    "retained": [
+      "tests/kar210-baseline-retained-behavior.cjs",
+      "tests/v12314-runtime.cjs",
+      "tests/v1183-trash-runtime.cjs"
+    ],
+    "featureAbsence": {
+      "marker": "deriveTrashView",
+      "baselineBlob": "da0c66d512f939c1acf5285995ca6f6057154826",
+      "donorBlob": "932da5bec1449715771a53221912e025ad001928",
+      "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
+    }
+  },
+  "tests/kar165-trash-retention-warning.cjs": {
+    "module": "src/app/app.css",
+    "matrix": "B06",
+    "step": "S09",
+    "status": "deferred-B",
+    "owner": "scripts/coverage-gate.sh",
+    "retained": [
+      "tests/kar210-baseline-retained-behavior.cjs",
+      "tests/v1183-trash-runtime.cjs"
+    ],
+    "featureAbsence": {
+      "marker": "trash-retention-countdown-urgent",
+      "baselineBlob": "4d69502577fd25ad94ac7a6dd80c9cc3a45afbe0",
+      "donorBlob": "39248c01f41a7a1410411c7965624e525926b2ac",
+      "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
+    }
+  },
+  "tests/kar147-diagnostic-occupancy.cjs": {
+    "module": "src/background/services/diagnostics-service.js",
+    "matrix": "B10",
+    "step": "S10",
+    "status": "deferred-B",
+    "owner": "package.json",
+    "retained": [
+      "tests/kar210-baseline-retained-behavior.cjs",
+      "tests/v1177-performance1-diagnostics.cjs",
+      "tests/v1200-diagnostic-reset.cjs",
+      "tests/v1237-diagnostic-export-runtime.cjs"
+    ],
+    "featureAbsence": {
+      "marker": "async function occupancy",
+      "baselineBlob": "5c7f8f8d74a9fdbb47843a69a70a32fc1e7a7d94",
+      "donorBlob": "7200c95284718a167013aabd045be4789b7c0c75",
+      "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
+    }
   }
 });
 const OWNERS = Object.freeze(["package.json","scripts/build.sh","scripts/coverage-gate.sh",".github/workflows/kar-work-pr.yml",".github/workflows/kar-ci.yml",".github/workflows/kar-release.yml"]);
@@ -182,8 +271,20 @@ function validateDispositions(root) {
     assert.equal(record?.workBlob,e.blob,'Original test provenance mismatch');
     assert.match(e.blob,/^[a-f0-9]{40}$/);
     assert.equal(gitBlob(read(e.test)),e.blob,'Historical test source changed');
-    assert.ok(target.absent.includes(e.module)&&source.laterPackageEntries.some(r=>r.path===e.module),'Excluded implementation lacks exact source disposition');
-    assert.ok(!fs.existsSync(file(e.module))&&!packaged.includes(e.module),'Excluded or deferred implementation present');
+    assert.deepEqual(e.featureAbsence,expected.featureAbsence,'Unreviewed feature absence evidence');
+    if(e.featureAbsence) {
+      const proof=e.featureAbsence;
+      assert.equal(e.status,'deferred-B');
+      assert.equal(target.expected.find(r=>r.path===e.module)?.sha,proof.baselineBlob,'Missing exact historical feature source');
+      assert.equal(gitBlob(read(e.module)),proof.baselineBlob,'Baseline capability source changed; re-evaluate disposition');
+      assert.ok(packaged.includes(e.module)&&!target.absent.includes(e.module));
+      assert.ok(!read(e.module).toString().includes(proof.marker),'Deferred capability already present');
+      assert.match(proof.donorBlob,/^[a-f0-9]{40}$/);
+      assert.equal(proof.donorCommit,'4d7ae5130730776927748e2517fdf9aadaf098cd');
+    } else {
+      assert.ok(target.absent.includes(e.module)&&source.laterPackageEntries.some(r=>r.path===e.module),'Excluded implementation lacks exact source disposition');
+      assert.ok(!fs.existsSync(file(e.module))&&!packaged.includes(e.module),'Excluded or deferred implementation present');
+    }
     assert.ok(!safety.apis.some(api=>api.tests.includes(e.test)),'Safety-critical negative cannot be dispositioned');
     for(const [owner,refs] of ownerRefs) assert.ok(!refs.has(e.test),'Inactive test still referenced by '+owner+': '+e.test);
     for(const retained of e.retained) {

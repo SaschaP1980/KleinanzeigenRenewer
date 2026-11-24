@@ -1,4 +1,4 @@
-name: KAR-210 later feature scope RED and retained behavior
+name: KAR-210 later feature scope GREEN
 on:
   push:
     branches: ['work/KAR-210']
@@ -9,7 +9,7 @@ jobs:
   review:
     if: >-
       github.ref == 'refs/heads/work/KAR-210' &&
-      github.event.head_commit.message == 'test(KAR-210): characterize retained baseline presentation and diagnostics'
+      github.event.head_commit.message == 'test(KAR-210): defer five later QoL feature suites with baseline witnesses'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -21,8 +21,23 @@ jobs:
           node-version: '22'
       - name: Install pinned dependencies
         run: npm ci --ignore-scripts
-      - name: Later-feature active scope RED
-        run: node tests/kar210-test-disposition-contract.cjs
-      - name: Retained independent runtime behavior
+      - name: Scope contract
+        run: npm run test:baseline-dispositions
+      - name: Independent baseline behavior
         if: always()
-        run: node tests/kar210-baseline-retained-behavior.cjs
+        run: npm run test:baseline-retained
+      - name: Historical test ownership and safety references
+        if: always()
+        run: node tests/kar167-test-coverage-closure.cjs
+      - name: Retained runtime tests
+        if: always()
+        run: |
+          export NODE_OPTIONS='--require ./tests/v12222-vm-legacy-bridge.cjs'
+          node tests/v12314-runtime.cjs
+          node tests/v1233-mass-renewal-workflow-runtime.cjs
+          node tests/v1238-account-session-controller-runtime.cjs
+          node tests/v12226-paid-insertion-regression.cjs
+          node tests/v1183-trash-runtime.cjs
+          node tests/v1177-performance1-diagnostics.cjs
+          node tests/v1200-diagnostic-reset.cjs
+          node tests/v1237-diagnostic-export-runtime.cjs

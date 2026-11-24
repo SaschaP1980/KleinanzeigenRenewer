@@ -12,7 +12,7 @@ const OWNERS=["package.json","scripts/build.sh","scripts/coverage-gate.sh",".git
 for(const owner of OWNERS) for(const test of ["tests/kar148-article-type.cjs","tests/kar150-ui-preference.cjs","tests/kar164-trash-sort.cjs","tests/kar165-trash-retention-warning.cjs","tests/kar147-diagnostic-occupancy.cjs"]) assert.ok(!fs.readFileSync(path.join(root,owner),'utf8').includes(test),'Later feature still active: '+test+' in '+owner);
 const data=JSON.parse(fs.readFileSync(path.join(root,LEDGER),'utf8'));
 const inactive=validateDispositions(root);
-assert.equal(inactive.size,11);
+assert.equal(inactive.size,16);
 const read=p=>fs.readFileSync(path.join(root,p));
 for(const owner of OWNERS) for(const test of inactive.keys())
   assert.ok(!read(owner).toString().replace(/\\/g,'/').includes(test),'Inactive path in active owner');
@@ -24,7 +24,7 @@ const put=(p,v)=>{const dst=path.join(fixture,p);fs.mkdirSync(path.dirname(dst),
 let negatives=0;
 const deny=()=>{assert.throws(()=>validateDispositions(fixture));negatives++;};
 try {
-  for(const p of new Set([...OWNERS,'manifest.json','package-lock.json','release/release-spec.json','scripts/product_version.py','scripts/package.py','coverage/safety-critical-public-apis.json','docs/maintenance/KAR210_BASELINE_RESTORE_LEDGER.json','docs/maintenance/KAR210_BASELINE_TARGET.json',LEDGER,...inactive.keys(),...data.entries.flatMap(e=>e.retained)])) copy(p);
+  for(const p of new Set([...OWNERS,'manifest.json','package-lock.json','release/release-spec.json','scripts/product_version.py','scripts/package.py','coverage/safety-critical-public-apis.json','docs/maintenance/KAR210_BASELINE_RESTORE_LEDGER.json','docs/maintenance/KAR210_BASELINE_TARGET.json',LEDGER,...inactive.keys(),...data.entries.flatMap(e=>e.retained),...data.entries.filter(e=>e.featureAbsence).map(e=>e.module)])) copy(p);
   assert.equal(validateDispositions(fixture).size,inactive.size);
   const entry=data.entries[0];
   put(entry.module,'// unexpectedly restored');deny();fs.unlinkSync(path.join(fixture,entry.module));
@@ -43,6 +43,10 @@ try {
   const lost=JSON.parse(read('package.json'));lost.scripts.test=lost.scripts.test.replace('node '+entry.retained[0]+' && ','');
   put('package.json',lost);deny();copy('package.json');
   const witness=data.deferredWitnesses[0];put(witness.test,'// lost product witness');deny();copy(witness.test);
+  const feature=data.entries.find(e=>e.featureAbsence);
+  put(feature.module,read(feature.module).toString()+'\n'+feature.featureAbsence.marker);deny();copy(feature.module);
+  const tampered=structuredClone(data);tampered.entries.find(e=>e.featureAbsence).featureAbsence.marker='unreviewed';
+  put(LEDGER,tampered);deny();copy(LEDGER);
   const manifest=JSON.parse(read('manifest.json'));manifest.version='2.0.0.1';put('manifest.json',manifest);deny();copy('manifest.json');
   assert.equal(validateDispositions(fixture).size,inactive.size);
 } finally {fs.rmSync(fixture,{recursive:true,force:true});}

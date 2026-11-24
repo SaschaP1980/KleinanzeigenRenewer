@@ -65,8 +65,12 @@ function renderRecord(record, compact) {
 }
 
 test('baseline saved Art summary is read-only and does not guess from title', () => {
-  const Helpers=require('../src/app/shared-ui-helpers.js');
-  const api=Helpers.create({document:{createElement(){return {};}}});
+  const fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
+  const modules={};
+  const context={KRDeps:{register(name,api){modules[name]=api;}}};
+  context.globalThis=context;
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../src/app/shared-ui-helpers.js'),'utf8'),context,{filename:'shared-ui-helpers.js'});
+  const api=modules.KRSharedUiHelpers.create({document:{createElement(){return {};}}});
   const record={title:'Unrelated title',dynamicAttributes:[
     {label:'Zustand',displayValue:'Neu'},
     {label:'Art',displayValue:'Original Art',technicalValue:'original'},

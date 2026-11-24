@@ -2,7 +2,7 @@
   "schema": 2,
   "issue": 210,
   "version": "2.0.0.0",
-  "reference": "c52de9485934fe2296e886ca6b5ed6bb601af4e5",
+  "reference": "e94d5a761a7a07730a2f49b65196c5eda06b3aaa",
   "policy": "S02 static active-suite separation; preserve original files. No skipped test command or blanket bypass. Reconcile each deferred product witness at its owning step, and explicitly review future scope before successor versions.",
   "entries": [
     {
@@ -166,6 +166,110 @@
         "tests/v12315-runtime.cjs",
         "tests/v1194-reconciliation-fresh-source-runtime.cjs"
       ]
+    },
+    {
+      "test": "tests/kar148-article-type.cjs",
+      "blob": "944fc42545df535395354e6370a02c10818539d3",
+      "module": "src/app/inventory-card-renderer.js",
+      "matrix": "B01",
+      "step": "S08",
+      "status": "deferred-B",
+      "owner": "package.json",
+      "reason": "Later Art/Typ summary, ordered field semantics and heading are S08 UI feature. Baseline Art-only exact saved-value and no-title-guess behavior independently characterized.",
+      "retained": [
+        "tests/kar210-baseline-retained-behavior.cjs",
+        "tests/v12314-runtime.cjs"
+      ],
+      "featureAbsence": {
+        "marker": "makeInfoLine('Artikeltyp'",
+        "baselineBlob": "f3cc492f85469cc62a33f812fe5a5b2dcd2db726",
+        "donorBlob": "d4381c4aa64f8532484daa5992a25249244cf774",
+        "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
+      }
+    },
+    {
+      "test": "tests/kar150-ui-preference.cjs",
+      "blob": "bfddff42d2171eb5b22a227b7484e16679e78771",
+      "module": "src/app/mass-renewal-ui-controller.js",
+      "matrix": "B04",
+      "step": "S08",
+      "status": "deferred-B",
+      "owner": "package.json",
+      "reason": "Only new durable stop-on-error preference, tooltip and switch storage gating are under test. Baseline batch execution, account guards and paid-insertion safety remain active. Mixed workflow tests remain active for review.",
+      "retained": [
+        "tests/v1233-mass-renewal-workflow-runtime.cjs",
+        "tests/v1238-account-session-controller-runtime.cjs",
+        "tests/v12226-paid-insertion-regression.cjs"
+      ],
+      "featureAbsence": {
+        "marker": "massRenewalStopOnErrorPreferenceV1",
+        "baselineBlob": "813aedc109538d3afb387f6f47648bdfe12fe303",
+        "donorBlob": "1c22cb5bd91623337164744046fbc03622839c68",
+        "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
+      }
+    },
+    {
+      "test": "tests/kar164-trash-sort.cjs",
+      "blob": "ad8aa711a3d5e18941185c4a45f880b9bd27df14",
+      "module": "src/app/inventory-view.js",
+      "matrix": "B07",
+      "step": "S09",
+      "status": "deferred-B",
+      "owner": "package.json",
+      "reason": "New pure deadline-sort function, infinity/unknown ordering and sort UI are S09. Baseline raw trash render, no record mutation and replacement of stale rows retained by independent fixture.",
+      "retained": [
+        "tests/kar210-baseline-retained-behavior.cjs",
+        "tests/v12314-runtime.cjs",
+        "tests/v1183-trash-runtime.cjs"
+      ],
+      "featureAbsence": {
+        "marker": "deriveTrashView",
+        "baselineBlob": "da0c66d512f939c1acf5285995ca6f6057154826",
+        "donorBlob": "932da5bec1449715771a53221912e025ad001928",
+        "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
+      }
+    },
+    {
+      "test": "tests/kar165-trash-retention-warning.cjs",
+      "blob": "739dcb32f197dcdd7945fde5368620e18952abf9",
+      "module": "src/app/app.css",
+      "matrix": "B06",
+      "step": "S09",
+      "status": "deferred-B",
+      "owner": "scripts/coverage-gate.sh",
+      "reason": "Later color thresholds, countdown suffix and expired wording are S09. Independent baseline test retains exact known/unknown expiry text and stale row replacement in compact and detailed views; local trash mutation test remains active.",
+      "retained": [
+        "tests/kar210-baseline-retained-behavior.cjs",
+        "tests/v1183-trash-runtime.cjs"
+      ],
+      "featureAbsence": {
+        "marker": "trash-retention-countdown-urgent",
+        "baselineBlob": "4d69502577fd25ad94ac7a6dd80c9cc3a45afbe0",
+        "donorBlob": "39248c01f41a7a1410411c7965624e525926b2ac",
+        "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
+      }
+    },
+    {
+      "test": "tests/kar147-diagnostic-occupancy.cjs",
+      "blob": "c7ef6e1d13bf127a22d68aa435d8adfc78909645",
+      "module": "src/background/services/diagnostics-service.js",
+      "matrix": "B10",
+      "step": "S10",
+      "status": "deferred-B",
+      "owner": "package.json",
+      "reason": "Occupancy API/bar/ARIA refresh and unknown display are S10 feature. Independent actual baseline service fixture retains bounded cap, pending flush, redaction, reset blocker and retained reset marker. Existing diagnostic batching/reset/export tests remain mandatory.",
+      "retained": [
+        "tests/kar210-baseline-retained-behavior.cjs",
+        "tests/v1177-performance1-diagnostics.cjs",
+        "tests/v1200-diagnostic-reset.cjs",
+        "tests/v1237-diagnostic-export-runtime.cjs"
+      ],
+      "featureAbsence": {
+        "marker": "async function occupancy",
+        "baselineBlob": "5c7f8f8d74a9fdbb47843a69a70a32fc1e7a7d94",
+        "donorBlob": "7200c95284718a167013aabd045be4789b7c0c75",
+        "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
+      }
     }
   ],
   "deferredWitnesses": [
