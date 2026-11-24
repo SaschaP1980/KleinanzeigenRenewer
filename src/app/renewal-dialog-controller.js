@@ -103,7 +103,9 @@
         if (stage === 'source-delete-status-unverified' || stage === 'source-delete-outcome-unverified') {
           states[4] = 'error';
           title = 'Austausch nicht abgeschlossen';
-          text = 'Neue Anzeige bestätigt; alte Anzeige noch nicht nachweislich gelöscht. Bitte beide Anzeigen in „Meine Anzeigen“ prüfen. Kein automatischer zweiter Löschversuch.';
+          text = renewal.phase4PreIntentBlocked===true
+            ? 'Neue Anzeige bestätigt; Löschjournal vor dem Löschauftrag blockiert. Im Inventar „Löschung fortsetzen“ wählen. Keine erneute Veröffentlichung.'
+            : 'Neue Anzeige bestätigt; alte Anzeige noch nicht nachweislich gelöscht. Bitte beide Anzeigen in „Meine Anzeigen“ prüfen. Kein automatischer zweiter Löschversuch.';
           kind = 'error';
           return { states, title, text, kind, mode, newAdId: String(record?.adId || renewal.newAdId || '') };
         }

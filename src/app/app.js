@@ -304,6 +304,7 @@ let trashViewState = { direction: 'desc' };
 let globalListViewMode = 'detailed';
 let inventorySearchTimer = null;
 let inventoryLiveRefreshTimer = null;
+let inventoryLiveRefreshReason = null;
 let globalRefreshFeedbackTimer = null;
 const discardedTabBackoff = new Map();
 const managedWorkerTabIds = new Set();
@@ -2657,9 +2658,16 @@ async function refreshRenewalProgressOnly() {
 }
 
 function scheduleLiveInventoryRefresh(reason = 'changed', delayMs = 140) {
-  if (inventoryLiveRefreshTimer) clearTimeout(inventoryLiveRefreshTimer);
+  if (inventoryLiveRefreshTimer) {
+    clearTimeout(inventoryLiveRefreshTimer);
+    // A later progress event must not downgrade a pending full card refresh.
+    if(reason==='renewal-updated'&&inventoryLiveRefreshReason&&inventoryLiveRefreshReason!=='renewal-updated')
+      reason=inventoryLiveRefreshReason;
+  }
+  inventoryLiveRefreshReason=reason;
   inventoryLiveRefreshTimer = setTimeout(async () => {
     inventoryLiveRefreshTimer = null;
+    inventoryLiveRefreshReason = null;
     try {
       if (reason === 'renewal-updated') await refreshRenewalProgressOnly();
       else await refreshInventories();

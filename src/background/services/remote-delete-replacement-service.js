@@ -74,6 +74,8 @@
             ? 'RENEWAL_PHASE4_JOURNAL_BEGIN_TIMEOUT'
             : 'RENEWAL_PHASE4_JOURNAL_BEGIN_FAILED',
             step,'JOURNAL',PHASE4_JOURNAL_TIMEOUT_MS,started);
+          // Only a denial of acquisition is a proven pre-intent stop.
+          if(error?.code==='KR_PHASE4_JOURNAL_ATOMIC_BUSY')error.phase4PreIntentBusy=true;
           // The async journal may commit after the observer's timeout.
           // Never proceed to remote deletion and never assume no receipt exists.
           throw error;
@@ -825,20 +827,19 @@ async function preverifyAndTriggerRenewalSourceDeleteAttempt(session, expectedPr
 
 // Persist visible, non-destructive Phase-4 uncertainty before returning an error.
 // In particular the source and verified target remain untouched in local storage.
-async function markPhase4Unverified(session, code) {
+async function markPhase4Unverified(session, code, preIntentProven=false) {
   const journalUncertain = String(code || '').startsWith('KR_PHASE4_JOURNAL_');
   session.status = 'verified';
   session.stage = journalUncertain ? 'source-delete-outcome-unverified' : 'source-delete-status-unverified';
   session.lastError = String(code || 'KR_PHASE4_STATUS_UNVERIFIED');
+  const beforeIntent=preIntentProven===true&&code==='KR_PHASE4_JOURNAL_ATOMIC_BUSY'&&!session.sourceDeleteAction&&
+    !session.sourceDeleteTransportInterrupted&&!session.sourceDeleteVerificationPendingAt;
+  session.phase4PreIntentProven=beforeIntent;
   session.sourceDeleteUnverifiedAt = new Date().toISOString();
   await persistRenewalSession(session);
-  const beforeIntent=code==='KR_PHASE4_JOURNAL_ATOMIC_BUSY'&&!session.sourceDeleteAction&&
-    !session.sourceDeleteTransportInterrupted&&!session.sourceDeleteVerificationPendingAt;
   const text = beforeIntent
     ? 'Neue Anzeige bestätigt; Löschjournal vor dem Löschauftrag blockiert. Austausch nach erneuter Prüfung fortsetzen.'
     : 'Neue Anzeige bestätigt; alte Anzeige noch nicht nachweislich gelöscht. Bitte zunächst beide Anzeigen in „Meine Anzeigen“ prüfen. Kein automatischer zweiter Löschversuch.';
-  // A full refresh is needed, not a progress-only patch of the old card.
-  try{broadcastInventoryChanged?.('renewal-phase4-unverified',{renewalId:session.renewalId});}catch{}
   // Do not await a diagnostic write; it can contend for the very same P8
   // admission lock whose transient delay led here.
   void Promise.resolve().then(() => logDiagnostic('warning', 'RENEWAL_PHASE4_UNVERIFIED', {
@@ -855,6 +856,8 @@ async function markPhase4Unverified(session, code) {
     sourceAdId: session.sourceAdId,
     newAdId: session.newAdId
   }).catch(() => {});
+  // A full refresh is needed, not a progress-only patch of the old card.
+  try{broadcastInventoryChanged?.('renewal-phase4-unverified',{renewalId:session.renewalId});}catch{}
 }
 
 async function finishRenewalReplacement(message, admissionReceipt = null) {
@@ -867,7 +870,7 @@ async function finishRenewalReplacement(message, admissionReceipt = null) {
   const session = renewals[renewalId];
   if (!session) throw new Error('Renewal-Vorgang wurde nicht gefunden.');
   const preIntentBlocked=session.status==='verified' && session.stage==='source-delete-outcome-unverified' &&
-    session.lastError==='KR_PHASE4_JOURNAL_ATOMIC_BUSY' && !session.emergencyResetAt &&
+    session.lastError==='KR_PHASE4_JOURNAL_ATOMIC_BUSY' && session.phase4PreIntentProven!==false && !session.emergencyResetAt &&
     !session.sourceDeleteAction && !session.sourceDeleteTransportInterrupted &&
     !session.sourceDeleteVerificationPendingAt;
   const explicitPreIntentResume=preIntentBlocked && message?.type==='FINISH_RENEWAL_REPLACEMENT' &&
@@ -1064,7 +1067,7 @@ async function finishRenewalReplacement(message, admissionReceipt = null) {
       // automatic retry loop or be mislabeled as a completed remote deletion.
       const code = String(error?.code || error?.message || '');
       if (code === 'KR_PHASE4_STATUS_TIMEOUT' || code.startsWith('KR_PHASE4_JOURNAL_')) {
-        await markPhase4Unverified(session, code);
+        await markPhase4Unverified(session, code, error?.phase4PreIntentBusy===true);
         throw error;
       }
       // Never retry a potentially dispatched DELETE after durable intent.

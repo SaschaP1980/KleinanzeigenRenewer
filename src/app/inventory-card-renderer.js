@@ -192,6 +192,12 @@ function wirePhase4Recovery(button,record,allowed){
     if(button.disabled||!requireAccountBoundAction())return;
     button.disabled=true;
     try{
+      if(preIntent&&!await confirmAction({
+        title:'Löschung fortsetzen?',
+        text:'Die bereits veröffentlichte neue Anzeige wird erneut geprüft. Die bisherige Anzeige wird nur gelöscht, wenn noch kein Löschauftrag erfolgt sein kann.',
+        detail:'Ein vorhandener Lösch-Receipt wird ausschließlich geprüft. Es wird keine weitere Anzeige veröffentlicht.',
+        confirmLabel:'Austausch sicher fortsetzen',danger:true
+      })){button.disabled=!allowed;return;}
       const result=await runtimeMessage({type:'FINISH_RENEWAL_REPLACEMENT',renewalId:record.renewal.renewalId,recoveryOnly:!preIntent});
       renderAppNotice(result?.notice);
       setStatus('ready','Austausch abgeschlossen','Löschung unabhängig bestätigt; neue Anzeige im Inventar übernommen.');
