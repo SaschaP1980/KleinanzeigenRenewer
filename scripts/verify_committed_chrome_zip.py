@@ -19,6 +19,9 @@ import sys
 import tempfile
 import zipfile
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from product_version import active_version, archive_version, parse
+
 ROOT = Path(__file__).resolve().parent.parent
 KEY_SHA256 = "70507977688f3465a60227cd0261bd07d92fad620625cd7ebff8f0856d9c5ed3"
 EXTENSION_ID = "hafahjhhgiipdegfkgacchmnacgblnah"
@@ -43,19 +46,16 @@ def check_identity(manifest: dict, app_id: str):
     require(isinstance(manifest, dict), "manifest must be a JSON object")
     require(manifest.get("manifest_version") == 3, "MV3 manifest required")
     version = manifest.get("version")
-    require(isinstance(version, str) and (
-        re.fullmatch(r"[01]\.[0-9]+\.[0-9]+", version) is not None
-        or re.fullmatch(r"2(?:\.(?:0|[1-9][0-9]{0,4})){3}", version) is not None
-    ), "manifest version invalid")
-    parts = tuple(map(int, version.split(".")))
-    if parts[0] == 2:
-        require(all(part <= 65535 for part in parts), "manifest version invalid")
-        # S02 isolated technical baseline retains the historical permission
-        # contract. S04 removes nativeMessaging explicitly, not by relaxing
-        # the identity gate or inferring a new permission set from the tuple.
+    try:
+        parts = parse(active_version(version))
+    except ValueError:
+        require(False, "manifest version invalid")
+    if parts[0] >= 2:
+        # S02 retains the historical permission contract until S04 explicitly
+        # removes nativeMessaging; never infer permission changes from a bump.
         expected_permissions = PERMISSIONS | {"nativeMessaging"}
     else:
-        expected_permissions = PERMISSIONS | ({"nativeMessaging"} if parts >= (1, 23, 30) else set())
+        expected_permissions = PERMISSIONS | ({"nativeMessaging"} if parts >= (1, 23, 30, 0) else set())
     require(set(manifest.get("permissions") or []) == expected_permissions
             and len(manifest.get("permissions") or []) == len(expected_permissions),
             "manifest permissions changed without explicit authorization")
@@ -123,10 +123,17 @@ def reject_base_collision(root: Path, relative: str, committed: bytes, base_sha:
     return "unchanged-existing-path"
 
 
+def checked_archive_version(manifest: dict):
+    try:
+        return archive_version(manifest)
+    except ValueError as exc:
+        raise ValueError("KAR48_ZIP_PARITY_FAILED: unsafe/unsupported package version") from exc
+
+
 def run_self_test(root: Path):
     source_manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
     app_id = (root / "APP_ID.txt").read_text(encoding="utf-8")
-    version = source_manifest.get("version_name") or source_manifest["version"]
+    version = checked_archive_version(source_manifest)
     archive_path = root / "release" / f"kleinanzeigen-renewal-chrome-v{version}.zip"
     if archive_path.is_file():
         current = archive_path.read_bytes()
@@ -196,9 +203,7 @@ def main():
         run_self_test(ROOT)
         return
     manifest = json.loads((ROOT / "manifest.json").read_text(encoding="utf-8"))
-    version = manifest.get("version_name") or manifest["version"]
-    require(re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+(?:_c[0-9]+)?", version) is not None,
-            "unsafe/unsupported package version")
+    version = checked_archive_version(manifest)
     relative = f"release/kleinanzeigen-renewal-chrome-v{version}.zip"
     archive = ROOT / relative
     require(archive.is_file(), "versioned Chrome ZIP missing from committed release/")
