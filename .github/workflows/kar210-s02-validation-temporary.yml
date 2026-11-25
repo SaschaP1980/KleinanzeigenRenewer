@@ -61,7 +61,7 @@ jobs:
           node -e 'const s=require("./coverage/coverage-summary.json"),a=require("./coverage/architecture-audit.json"); console.log("CP34_MEASURED "+JSON.stringify({summary:s,audit:a}));'
           for n in 67 258 473 499 512; do
             echo "CP34_CLOSURE_LOG_$n"
-            cat "/tmp/kar210-cp34/$n.log"
+            cat "/tmp/kar210-cp34/$(printf '%03d' "$n").log"
           done
           node scripts/coverage-no-regression.cjs
       - uses: actions/upload-artifact@v4
