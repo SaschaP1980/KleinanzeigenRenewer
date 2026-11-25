@@ -125,5 +125,28 @@
       "v1226: routine action snapshot flood",
       "v1227 pre-refactor and modularization: routine sidebar diagnostics"
     ]
+  },
+  "focusedValidation": {
+    "runId": 45605249404,
+    "jobId": 139174335700,
+    "head": "75968da978ae8e8ca98c318d2d53b9c18854381f",
+    "passed": 11,
+    "failed": 4,
+    "completeHistoricalContracts": 8,
+    "completeContractGroups": 67,
+    "partialHistoricalGroups": 23,
+    "exactHistoricalRuntimeFiles": 122,
+    "negativeFixtures": 59,
+    "red": [
+      "v1220: KAR-48 self-test refuses missing committed target archive; no unauthorized build or synthetic PATCH bypass",
+      "v1226: routine action snapshot flood",
+      "v1227 pre-refactor and modularization: routine sidebar diagnostics"
+    ]
+  },
+  "builderGuard": {
+    "runId": 45604988699,
+    "jobId": 139173469273,
+    "result": "failure",
+    "reason": "No explicit authorized marker; no build executed."
   }
 }
