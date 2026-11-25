@@ -29,8 +29,17 @@ confirm(worker.includes('observeTabLifecycleUpdate(tab)'), 'tabs listener direct
  confirm(worker.includes('const backgroundMessageRouter = BackgroundMessageRouter.create('),'actual background router');
 });
 test('actual historical router: all eight original routes reject platform denial before handler; settlement and failure propagate',async()=>{
- require('../src/shared/runtime-deps.js');
- const Registry=require('../src/shared/message-contract-registry.js'),Router=require('../src/background/background-message-router.js');
+ // Use the same real classic-script VM filenames as the existing shared registry
+ // tests; the coverage reporter prefers exact filesystem URLs over VM basenames.
+ const ctx=vm.createContext({console});
+ for(const file of ['runtime-deps.js','message-contract-registry.js'])vm.runInContext(read('src/shared/'+file),ctx,{filename:file});
+ const Registry=ctx.KRDeps.require('KRMessageContractRegistry'),Router=require('../src/background/background-message-router.js');
+ const rejected=Router.create({MessageContractRegistry:Registry,assertPlatformAccessAllowedForRequest:async()=>assert.fail('invalid route must not enter platform guard'),handlers:{PAGE_STATUS:()=>assert.fail('wrong-target handler must not run')}});
+ for(const [type,code] of [['NOT_A_REGISTERED_REQUEST','KR_MESSAGE_CONTRACT_UNKNOWN'],['PAGE_STATUS','KR_MESSAGE_CONTRACT_TARGET_MISMATCH']])await assert.rejects(rejected.dispatch({type},{}),e=>e.code===code);
+ // Reinjection must preserve the identical dependency object and reject replacement.
+ vm.runInContext(read('src/shared/runtime-deps.js'),ctx,{filename:'runtime-deps.js'});vm.runInContext(read('src/shared/message-contract-registry.js'),ctx,{filename:'message-contract-registry.js'});
+ assert.equal(ctx.KRDeps.require('KRMessageContractRegistry'),Registry);
+ assert.throws(()=>ctx.KRDeps.register('KRMessageContractRegistry',{}),/Duplicate dependency/);
  const routed=['START_BULK_INVENTORY_OPERATION','START_MASS_RENEWAL_BATCH','START_TEMPLATE_FILL','START_ARCHIVE_INSERTION','RETRY_RENEWAL_VERIFICATION','DELETE_TRASH_ENTRY','GET_MASS_RENEWAL_BATCH_STATUS','UPDATE_TEMPLATE_FILL_SESSION'];
  for(const type of routed){
   let calls=0,checks=0,release;const sender={tab:{id:11}},message={type};

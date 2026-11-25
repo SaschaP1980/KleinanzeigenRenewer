@@ -114,5 +114,26 @@
   "originalsUnchanged": true,
   "activeSequenceBefore": 512,
   "activeSequenceAfter": 508,
-  "qualification": "Five reviewed historical architecture-dependent commands removed from active suite, one actual product witness added; no successful execution credit for inactive contracts. Genuine RED and mandatory D remain active. Validation pending."
+  "qualification": "Five reviewed historical architecture-dependent commands removed from active suite, one actual product witness added; no successful execution credit for inactive contracts. Genuine RED and mandatory D remain active. Validation pending.",
+  "firstDiagnostic": {
+    "sourceCommit": "593c11dcf10c0665b9c6f0ba9d7dcebf486788d9",
+    "workflowCommit": "b02c34a1c6e566e2858d6bbc3cf6cc1115a666d6",
+    "runId": 45616993637,
+    "jobId": 139214837382,
+    "counts": {
+      "PASS": 467,
+      "FAIL": 41,
+      "TIMEOUT": 0
+    },
+    "coverage": {
+      "public": 811,
+      "lines": 45.11,
+      "branches": 25.49,
+      "sharedLines": 91.63,
+      "sharedGold": 91.83
+    },
+    "regressedCommand": "node tests/v12320-final-closure.cjs",
+    "independentGate": "RED",
+    "reason": "Shared line floor regression after adding new CommonJS exact-file registry loader. Reporter prefers exact URLs to VM filenames; causal attribution is a hypothesis pending rerun. Restore consistent real classic-script execution and add wrong-target/unknown route, reinjection and duplicate dependency denial tests. No threshold changes."
+  }
 }
