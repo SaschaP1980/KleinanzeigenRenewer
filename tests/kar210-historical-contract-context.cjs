@@ -38,9 +38,9 @@ function legacyPatchMetadata(root) {
   assert.equal(values[0].version,'1.25.12');
   return Object.fromEntries(['manifest','pkg','lock','spec'].map((k,i)=>[k,values[i]]));
 }
-// Only these two later extracted owners are eligible for S02 rebinding.
+// Only these individually reviewed later extracted owners are eligible for S02 rebinding.
 function historicalBackgroundOwner(root, extracted) {
-  const allowed=['src/background/services/renewal-public-evidence-coordinator.js','src/background/controllers/manual-listing-navigation-controller.js'];
+  const allowed=['src/background/services/renewal-public-evidence-coordinator.js','src/background/controllers/manual-listing-navigation-controller.js','src/background/services/listing-url-evidence-service.js'];
   assert.ok(allowed.includes(extracted),'unreviewed historical owner');
   if(!isRestored(root)) return extracted;
   const actual=captureOwner(root);

@@ -105,5 +105,34 @@
         "Exact S02 identity before historical feature-era selection; legacy lists unchanged; historical permissions explicit. All behavior assertions unchanged; remaining mismatches require individual review."
       ]
     }
+  ],
+  "firstFocusedValidation": {
+    "runId": 45581102256,
+    "jobId": 139091079664,
+    "head": "443cd641bdb3946bde9e1ba9e2f043eca5e9dc11",
+    "passed": 11,
+    "failed": 3,
+    "failures": [
+      "v1131 later display-only recovery",
+      "v1132 later URL evidence owner",
+      "v1138 later navigation owner"
+    ]
+  },
+  "followup": [
+    {
+      "test": "v1131",
+      "change": "Historical exact verification, image completeness, needs-review and sole complete-gated advance; later display-only recovery assertions unchanged outside S02; S05/S07 obligations retained.",
+      "retainedRuntimeTests": [
+        "tests/kar210-kar201-baseline-safety.cjs"
+      ]
+    },
+    {
+      "test": "v1132",
+      "change": "Execute actual hash-checked historical URL detector, retain confirmation/source-ID rejection and add foreign host and adId fallback tests. Later service registration/delegation remains outside S02."
+    },
+    {
+      "test": "v1138",
+      "change": "Use exact historical background navigation owner and scope assertions to actual openReadOnlyAd. Retain canonical URL tests, later delegation assertion outside S02."
+    }
   ]
 }

@@ -21,7 +21,7 @@ jobs:
         shell: bash
         run: |
           failed=0
-          for f in tests/v1120-contract.cjs tests/v1121-contract.cjs tests/v1130-contract.cjs tests/v1131-contract.cjs tests/v1132-contract.cjs tests/v1133-contract.cjs tests/v1134-contract.cjs tests/v1135-contract.cjs tests/v1136-contract.cjs tests/v1137-contract.cjs tests/v1138-contract.cjs tests/kar210-baseline-version-contract.cjs tests/current-patch-policy-regression.cjs tests/kar210-test-disposition-contract.cjs; do
+          for f in tests/v1120-contract.cjs tests/v1121-contract.cjs tests/v1130-contract.cjs tests/v1131-contract.cjs tests/v1132-contract.cjs tests/v1133-contract.cjs tests/v1134-contract.cjs tests/v1135-contract.cjs tests/v1136-contract.cjs tests/v1137-contract.cjs tests/v1138-contract.cjs tests/kar210-kar201-baseline-safety.cjs tests/kar210-kar175-public-navigation-baseline.cjs tests/kar210-baseline-version-contract.cjs tests/current-patch-policy-regression.cjs tests/kar210-test-disposition-contract.cjs; do
             echo "CP22_BEGIN $f"
             if NODE_OPTIONS='--require ./tests/v12222-vm-legacy-bridge.cjs' node "$f"; then echo "CP22_PASS $f"; else echo "CP22_FAIL $f"; failed=1; fi
           done

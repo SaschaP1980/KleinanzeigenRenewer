@@ -27,9 +27,11 @@ if ((restored || includesSupportedRelease(['1.20.12','1.20.13','1.20.14','1.20.1
 }
 
 // Read-only opening must prefer a known canonical public URL over the ambiguous ID-only fallback.
-const manualNav = fs.readFileSync(path.join(root,'src/background/controllers/manual-listing-navigation-controller.js'),'utf8');
+const manualNavSource = fs.readFileSync(path.join(root,require('./kar210-historical-contract-context.cjs').historicalBackgroundOwner(root,'src/background/controllers/manual-listing-navigation-controller.js')),'utf8');
+const manualNav = restored ? (manualNavSource.match(/async function openReadOnlyAd\(message\) \{[\s\S]*?\n\}/)?.[0] || '') : manualNavSource;
+assert.ok(manualNav);
 assert.match(background, /function normalizeKnownPublicAdUrl\(/);
-assert.match(background, /requireManualListingNavigationController\(\)\.openReadOnlyAd\(message\)/);
+if (!restored) assert.match(background, /requireManualListingNavigationController\(\)\.openReadOnlyAd\(message\)/);
 assert.match(manualNav, /publicUrlForInventoryRecord\(inventoryRecord\)/);
 assert.match(manualNav, /urlSource = 'inventory-public-url'/);
 assert.match(manualNav, /READONLY_AD_NAVIGATION_RESOLVED/);

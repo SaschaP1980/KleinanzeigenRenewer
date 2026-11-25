@@ -82,8 +82,18 @@ function loadZipWriter() {
   // KAR-201 keeps ZIP-specific extended verification while using an immutable
   // transient model for independently recovered display-only technical IDs.
   assert.match(filler, /session\.archiveInsertionId\s*\?\s*verifyArchiveTemplate\((?:template|finalTemplate)(?:,\s*verificationForm)?\)\s*:\s*verify\((?:template|finalTemplate)(?:,\s*verificationForm)?\)/);
-  assert.match(filler, /const finalTemplate = recovered\.size/);
-  assert.match(filler, /String\(hidden\[0\]\.value\) !== proof\.technicalValue/);
+  if (restored) {
+    // S05/S07 own later display-only recovery. Historical form verification remains mandatory.
+    const run = filler.slice(filler.indexOf('async function runFillSession('), filler.indexOf('async function runPendingFill('));
+    assert.match(run, /issues\.push\(\.\.\.\(session\.archiveInsertionId \? verifyArchiveTemplate\(template, verificationForm\) : verify\(template, verificationForm\)\)\)/);
+    assert.match(run, /const complete = uniqueIssues\.length === 0 && imagesComplete/);
+    assert.match(run, /status: complete \? 'running' : 'needs-review'/);
+    assert.match(run, /if \(complete\) \{\s*const continuation = await advanceAfterVerifiedFill/);
+    assert.equal((run.match(/advanceAfterVerifiedFill\(/g) || []).length, 1);
+  } else {
+    assert.match(filler, /const finalTemplate = recovered\.size/);
+    assert.match(filler, /String\(hidden\[0\]\.value\) !== proof\.technicalValue/);
+  }
   assert.match(filler, /function verifyArchiveTemplate\(template(?:,\s*root\s*=\s*document)?\)/);
   assert.ok(filler.includes('ZIP-Neu-Inserat läuft'));
 
