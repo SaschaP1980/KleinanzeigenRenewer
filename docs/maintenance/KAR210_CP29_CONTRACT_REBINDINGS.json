@@ -118,5 +118,27 @@
         "Exact S02 identity where applicable; original behavior assertions retained except individually described fixed-retention historical branches."
       ]
     }
-  ]
+  ],
+  "focusedValidation": {
+    "runId": 45604031024,
+    "jobId": 139170081489,
+    "head": "df723a269970acfcb4f0a8c2d7f91326697575e6",
+    "passed": 16,
+    "failed": 2,
+    "completeHistoricalContracts": 11,
+    "explicitPassingGroupLines": 55,
+    "partialHistoricalGroups": 10,
+    "retainedRuntimeCommandsPassed": 2,
+    "negativeFixtures": 59,
+    "red": [
+      "v12111: historical startup shows literal zero before verified profile-bound read; original later unknown-count and oscillation-only runtime assertions retained, latter not reached",
+      "v12112: historical routine sidebar logging remains; performance/diagnostic RED retained"
+    ]
+  },
+  "builderGuard": {
+    "runId": 45604031161,
+    "jobId": 139170083814,
+    "result": "failure",
+    "reason": "No explicit authorized marker; no build executed."
+  }
 }
