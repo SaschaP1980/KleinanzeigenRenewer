@@ -26,3 +26,5 @@ jobs:
             if NODE_OPTIONS='--require ./tests/v12222-vm-legacy-bridge.cjs' node "$f"; then echo "CP30_PASS $f"; else echo "CP30_FAIL $f"; failed=1; fi
           done
           exit "$failed"
+
+# CP30 follow-up: verify exact historical runtime parity and preserve delivery RED.

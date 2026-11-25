@@ -12,7 +12,8 @@
       "originalCommit": "ac841e9ef4b74a04cec772113d487a10500915b4",
       "changes": [
         "Exact S02 identity; no broad PATCH predicate changes.",
-        "All original nine E2E scenario declarations, Gold metadata, build and nested D governance assertions retained. No native execution claimed."
+        "All original nine E2E scenario declarations, Gold metadata, build and nested D governance assertions retained. No native execution claimed.",
+        "Focused original eight E2E foundation groups and KAR-46 exact-head static gate pass; nested KAR-48 missing target archive self-test remains RED, do not bypass. KAR-50/KAR-52 later assertions not reached."
       ]
     },
     {
@@ -21,7 +22,8 @@
       "originalCommit": "ac841e9ef4b74a04cec772113d487a10500915b4",
       "changes": [
         "Exact S02 identity; no broad PATCH predicate changes.",
-        "Gold historical patch-specific unchanged-file checks retained outside S02; exact baseline identity replaces version-only branch. Controlled accordion assertions unchanged."
+        "Gold historical patch-specific unchanged-file checks retained outside S02; exact baseline identity replaces version-only branch. Controlled accordion assertions unchanged.",
+        "Follow-up: exact historical 122-file target blob verification instead of misleading Gold unchanged-file message; original Gold delta contract remains outside S02."
       ]
     },
     {
@@ -110,5 +112,18 @@
         "Exact S02 identity; no broad PATCH predicate changes."
       ]
     }
-  ]
+  ],
+  "firstFocused": {
+    "runId": 45604988802,
+    "jobId": 139173470629,
+    "head": "c77a6d306f1dddfa8acc124313ddb27fc5d19577",
+    "passed": 11,
+    "failed": 4,
+    "completeHistoricalContracts": 8,
+    "red": [
+      "v1220: KAR-48 self-test refuses missing committed target archive; no unauthorized build or synthetic PATCH bypass",
+      "v1226: routine action snapshot flood",
+      "v1227 pre-refactor and modularization: routine sidebar diagnostics"
+    ]
+  }
 }

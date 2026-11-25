@@ -23,7 +23,7 @@ if (manifest.version === '1.22.0') {
   for (const [file, expected] of Object.entries(gold.runtimeFileSha256)) assert.equal(sha(file), expected, `Gold runtime parity changed: ${file}`);
   pass(`v1.22.0 production runtime parity to Gold (${Object.keys(gold.runtimeFileSha256).length} files)`);
 } else {
-  pass('Gold parity remains recorded; patch-specific runtime delta is verified by its own contract');
+  pass(restored ? 'Gold metadata remains recorded; S02 historical runtime has its own exact baseline contract' : 'Gold parity remains recorded; patch-specific runtime delta is verified by its own contract');
 }
 for (const file of ['tests/e2e/run_browser_e2e.py','tests/e2e/run.cjs','tests/e2e/README.md','tests/e2e/requirements.txt']) assert.ok(fs.existsSync(path.join(root,file)), `missing ${file}`);
 pass('browser E2E harness files exist');
