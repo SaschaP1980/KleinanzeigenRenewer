@@ -50,4 +50,32 @@ function historicalBackgroundOwner(root, extracted) {
   assert.equal(fs.existsSync(path.join(root,extracted)),false);
   return actual;
 }
-module.exports={isRestored,captureOwner,legacyPatchMetadata,historicalBackgroundOwner};
+// Exact S02 pending release contract, not a release/coverage acceptance shortcut.
+function assertPendingS02Release(root) {
+  assert.equal(isRestored(root),true,'only the exact restored S02 baseline qualifies');
+  const spec=JSON.parse(fs.readFileSync(path.join(root,'release/release-spec.json'),'utf8'));
+  assert.equal(spec.validationStatus,'SOURCE_RESTORED_GATES_PENDING');
+  assert.equal(spec.version,'2.0.0.0');assert.equal(spec.packageVersion,'2.0.0.0');
+  assert.equal(spec.directBasis,'1.23.48');assert.equal(spec.directBasisNativeGreen,false);
+  assert.equal(spec.directBasisNativePending,true);
+  assert.equal(spec.nativeSmokeRequired,true);
+  assert.equal(spec.nextPlannedBuild,'TBD');
+  assert.equal(spec.nextPlannedBuildGoal,'Determined by separately authorized open GitHub Issues.');
+  assert.ok(spec.nativeSmokeChecks.some(x=>/Do not install this intermediate checkpoint on live data/.test(x)&&/S03 compatibility and S04 updater removal/.test(x)));
+  assert.ok(spec.nativeSmokeChecks.some(x=>/separately authorized native acceptance/.test(x)&&/Chrome identity, boot, profile\/locks/.test(x)&&/matched Fast-3 budgets/.test(x)));
+  assert.equal(spec.performanceRunRequired,true);
+  assert.deepEqual(spec.performanceBudget,{mode:'fast',fastHardwareMeanSeconds:25,slowHardwareMeanSeconds:45,fastThreeSeconds:75,slowThreeSeconds:135,acceptanceStep:'S12',status:'pending'});
+  assert.match(spec.performanceRule,/25 s\/ad faster hardware \(Fast-3 <=75 s\)/);
+  assert.match(spec.performanceRule,/45 s\/ad slower hardware \(Fast-3 <=135 s\)/);
+  assert.match(spec.performanceRule,/separately authorized native operations only after S03\/S04\/S05/);
+  assert.match(spec.performanceRule,/Historical Goldlines retained as historical evidence; no new measurement/);
+  assert.deepEqual(spec.performanceGoldlines.map(x=>[x.label,x.version,x.mode,x.totalSeconds,x.averageSeconds,x.result]),[
+    ['bestehende Referenzmessung','1.23.20_c1','fast',61.277,20.426,'3/3 erfolgreich, 0 Warnungen, 0 Fehler'],
+    ['alter Rechner','1.23.20_c1','fast',110.34,36.771,'3/3 erfolgreich, 0 Warnungen, 0 Fehler']
+  ]);
+  assert.notEqual(spec.performanceGoldlines[0].hardware,spec.performanceGoldlines[1].hardware);
+  assert.equal(spec.coverage.status,'pending');
+  assert.deepEqual(spec.coverage.publicFunctions,{covered:null,total:null,percent:null});
+  return spec;
+}
+module.exports={isRestored,captureOwner,legacyPatchMetadata,historicalBackgroundOwner,assertPendingS02Release};
