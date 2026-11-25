@@ -28,6 +28,7 @@ function fixture({source=true,candidate=true,candidateId='200',profile='Owner',v
  const row={renewalId:'r',sourceInventoryId:'old',skeletonInventoryId:'new',sourceAdId:'100',newAdId:'200',status:'verified',stage:'replacement-ready'};
  const sent=[],closed=[],persisted=[],opened=[],promotions=[],notices=[];let attempts=0;
  const api=Remote.create({
+  TRASH_RETENTION_MS:30*24*60*60*1000, // exact historical production retention constant
   readRenewalSessions:async()=>({r:row}),getInventory:async id=>id==='old'?(source?{inventoryId:id,adId:'100',profileName:profile}:null):(candidate?{inventoryId:id,adId:candidateId,profileName:profile}:null),getBulkRunState:async()=>({status:bulk?'running':'complete'}),
   assertMassRenewalManualActionAllowed:async()=>{},normalBrowserWindowId:async()=>null,persistRenewalSession:async s=>{persisted.push(structuredClone(s));return s;},
   createManagedWorkerTab:async(_opts,kind)=>{const id=73+opened.length;opened.push({id,kind});return {id};},waitForTabComplete:async()=>{},ensureContentConnection:async()=>{},closeManagedWorkerTab:async id=>closed.push(id),

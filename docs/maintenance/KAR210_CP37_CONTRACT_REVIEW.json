@@ -205,5 +205,15 @@
   "originalsUnchanged": true,
   "activeSequenceBefore": 505,
   "activeSequenceAfter": 498,
-  "qualification": "Eight C02/C03/C04 mechanism contracts reviewed individually under S01; explicit independently active real product and RED witnesses; no credit for inactive originals or claim of new target probes/journal equivalence. Validation pending."
+  "qualification": "Eight C02/C03/C04 mechanism contracts reviewed individually under S01; explicit independently active real product and RED witnesses; no credit for inactive originals or claim of new target probes/journal equivalence. Validation pending.",
+  "firstFocused": {
+    "sourceCommit": "bdfe8908c96eec88133cacbd1e6b2d79dda01e0b",
+    "workflowCommit": "bcac354f95064e1ddb2402690cabdc50ca1d9701",
+    "runId": 45642143890,
+    "jobId": 139303356427,
+    "result": "8/9 commands, new witness 3/4",
+    "failure": "Positive control entered actual promoteRenewalCandidateAtomic but fixture lacked required TRASH_RETENTION_MS, causing RangeError Invalid time value at Date.toISOString before openDatabase. Inject exact historical production constant (30 * 24 * 60 * 60 * 1000), no runtime or assertion change.",
+    "diagnosticJobId": 139303357453,
+    "diagnosticState": "in_progress"
+  }
 }
