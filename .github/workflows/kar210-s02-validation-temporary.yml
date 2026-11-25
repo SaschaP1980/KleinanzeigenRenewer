@@ -1,4 +1,4 @@
-name: KAR-210 KAR-201 scope RED
+name: KAR-210 KAR-201 scope GREEN
 on:
   push:
     branches: ['work/KAR-210']
@@ -9,7 +9,7 @@ jobs:
   review:
     if: >-
       github.ref == 'refs/heads/work/KAR-210' &&
-      github.event.head_commit.message == 'test(KAR-210): characterize KAR-201 baseline safety before scope separation'
+      github.event.head_commit.message == 'test(KAR-210): separate later KAR-201 mechanisms and retain baseline safety'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -20,6 +20,21 @@ jobs:
         with:
           node-version: '22'
       - run: npm ci --ignore-scripts
-      - run: node tests/kar210-test-disposition-contract.cjs
-      - if: always()
+      - name: Disposition scope
+        run: npm run test:baseline-dispositions
+      - name: Independent KAR-201 safety
+        if: always()
         run: node tests/kar210-kar201-baseline-safety.cjs
+      - name: Original historical safety and API contracts
+        if: always()
+        run: |
+          export NODE_OPTIONS='--require ./tests/v12222-vm-legacy-bridge.cjs'
+          node tests/kar132-wearables-attributes.cjs
+          node tests/v12022-optional-images.cjs
+          node tests/v12226-paid-insertion-regression.cjs
+          node tests/v1234-template-fill-controller-runtime.cjs
+          node tests/v1235-archive-insertion-controller-runtime.cjs
+          node tests/v12317c1-template-module-public-api.cjs
+      - name: Historical closure and safety references
+        if: always()
+        run: node tests/kar167-test-coverage-closure.cjs

@@ -227,6 +227,98 @@ const RULES = Object.freeze({
       "donorBlob": "7200c95284718a167013aabd045be4789b7c0c75",
       "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
     }
+  },
+  "tests/kar201-legacy-options.cjs": {
+    "module": "src/shared/template-schema-core.js",
+    "matrix": "A04",
+    "step": "S05/S07",
+    "status": "deferred-A",
+    "owner": "package.json",
+    "retained": [
+      "tests/kar210-kar201-baseline-safety.cjs",
+      "tests/kar132-wearables-attributes.cjs",
+      "tests/v12022-optional-images.cjs",
+      "tests/v12226-paid-insertion-regression.cjs",
+      "tests/v1234-template-fill-controller-runtime.cjs",
+      "tests/v1235-archive-insertion-controller-runtime.cjs",
+      "tests/v12317c1-template-module-public-api.cjs"
+    ]
+  },
+  "tests/kar201-native-display-only.cjs": {
+    "module": "src/shared/template-schema-core.js",
+    "matrix": "A04",
+    "step": "S05/S07",
+    "status": "deferred-A",
+    "owner": "package.json",
+    "retained": [
+      "tests/kar210-kar201-baseline-safety.cjs",
+      "tests/kar132-wearables-attributes.cjs",
+      "tests/v12022-optional-images.cjs",
+      "tests/v12226-paid-insertion-regression.cjs",
+      "tests/v1234-template-fill-controller-runtime.cjs",
+      "tests/v1235-archive-insertion-controller-runtime.cjs",
+      "tests/v12317c1-template-module-public-api.cjs"
+    ]
+  },
+  "tests/kar201-partial-archive-prefill.cjs": {
+    "module": "src/shared/template-schema-core.js",
+    "matrix": "B12",
+    "step": "S05/S07",
+    "status": "deferred-B",
+    "owner": "package.json",
+    "retained": [
+      "tests/kar210-kar201-baseline-safety.cjs",
+      "tests/kar132-wearables-attributes.cjs",
+      "tests/v12022-optional-images.cjs",
+      "tests/v12226-paid-insertion-regression.cjs",
+      "tests/v1234-template-fill-controller-runtime.cjs",
+      "tests/v1235-archive-insertion-controller-runtime.cjs",
+      "tests/v12317c1-template-module-public-api.cjs"
+    ]
+  },
+  "tests/kar201-session-evidence.cjs": {
+    "module": "src/content/template-publish-flow.js",
+    "matrix": "A04/B12",
+    "step": "S05/S07",
+    "status": "deferred-B",
+    "owner": "package.json",
+    "retained": [
+      "tests/kar210-kar201-baseline-safety.cjs",
+      "tests/kar132-wearables-attributes.cjs",
+      "tests/v12022-optional-images.cjs",
+      "tests/v12226-paid-insertion-regression.cjs",
+      "tests/v1234-template-fill-controller-runtime.cjs",
+      "tests/v1235-archive-insertion-controller-runtime.cjs",
+      "tests/v12317c1-template-module-public-api.cjs"
+    ],
+    "featureAbsence": {
+      "marker": "proof?.verified === true",
+      "baselineBlob": "b4cb626bc91ca9389f9d997f9f161ef88ebdd16d",
+      "donorBlob": "4aae30251e836646e595010619f4876fb7f7f635",
+      "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
+    }
+  },
+  "tests/kar201-manual-standalone.cjs": {
+    "module": "src/background/controllers/template-fill-controller.js",
+    "matrix": "B12",
+    "step": "S05/S07",
+    "status": "deferred-B",
+    "owner": "package.json",
+    "retained": [
+      "tests/kar210-kar201-baseline-safety.cjs",
+      "tests/kar132-wearables-attributes.cjs",
+      "tests/v12022-optional-images.cjs",
+      "tests/v12226-paid-insertion-regression.cjs",
+      "tests/v1234-template-fill-controller-runtime.cjs",
+      "tests/v1235-archive-insertion-controller-runtime.cjs",
+      "tests/v12317c1-template-module-public-api.cjs"
+    ],
+    "featureAbsence": {
+      "marker": "async function approveManualStandaloneRelease",
+      "baselineBlob": "c01b419766420bf1ed9b0e8cccb5d4a91e867cdd",
+      "donorBlob": "d773395115da20d8ef3520b64decd20260aff2d9",
+      "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
+    }
   }
 });
 const OWNERS = Object.freeze(["package.json","scripts/build.sh","scripts/coverage-gate.sh",".github/workflows/kar-work-pr.yml",".github/workflows/kar-ci.yml",".github/workflows/kar-release.yml"]);

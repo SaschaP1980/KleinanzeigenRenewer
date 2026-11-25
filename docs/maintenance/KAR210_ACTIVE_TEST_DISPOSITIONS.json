@@ -2,7 +2,7 @@
   "schema": 2,
   "issue": 210,
   "version": "2.0.0.0",
-  "reference": "e94d5a761a7a07730a2f49b65196c5eda06b3aaa",
+  "reference": "08df4f11f9935e5d7b7551a37ce5b3f708e47497",
   "policy": "S02 static active-suite separation; preserve original files. No skipped test command or blanket bypass. Reconcile each deferred product witness at its owning step, and explicitly review future scope before successor versions.",
   "entries": [
     {
@@ -268,6 +268,113 @@
         "marker": "async function occupancy",
         "baselineBlob": "5c7f8f8d74a9fdbb47843a69a70a32fc1e7a7d94",
         "donorBlob": "7200c95284718a167013aabd045be4789b7c0c75",
+        "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
+      }
+    },
+    {
+      "test": "tests/kar201-legacy-options.cjs",
+      "blob": "ebef4a52b68053cc93eaa81e29aac780a006a91c",
+      "module": "src/shared/template-schema-core.js",
+      "matrix": "A04",
+      "step": "S05/S07",
+      "status": "deferred-A",
+      "owner": "package.json",
+      "reason": "All catalog and fingerprint assertions depend on absent preflight; retain exact unique technical readback, wrong/missing/duplicate field rejection and 11-image handoff independently.",
+      "retained": [
+        "tests/kar210-kar201-baseline-safety.cjs",
+        "tests/kar132-wearables-attributes.cjs",
+        "tests/v12022-optional-images.cjs",
+        "tests/v12226-paid-insertion-regression.cjs",
+        "tests/v1234-template-fill-controller-runtime.cjs",
+        "tests/v1235-archive-insertion-controller-runtime.cjs",
+        "tests/v12317c1-template-module-public-api.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar201-native-display-only.cjs",
+      "blob": "19df1c2512710c33aaedd63245d529026c9de841",
+      "module": "src/shared/template-schema-core.js",
+      "matrix": "A04",
+      "step": "S05/S07",
+      "status": "deferred-A",
+      "owner": "package.json",
+      "reason": "ARIA label-only recovery and proof of newly recovered technical IDs require later schema preflight; exact saved technical readback and mismatch rejection remain. Label-only values are a later S05 compatibility gap, not claimed as supported.",
+      "retained": [
+        "tests/kar210-kar201-baseline-safety.cjs",
+        "tests/kar132-wearables-attributes.cjs",
+        "tests/v12022-optional-images.cjs",
+        "tests/v12226-paid-insertion-regression.cjs",
+        "tests/v1234-template-fill-controller-runtime.cjs",
+        "tests/v1235-archive-insertion-controller-runtime.cjs",
+        "tests/v12317c1-template-module-public-api.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar201-partial-archive-prefill.cjs",
+      "blob": "9c86d3fc5db3e21e1b64dfdd2c8c8b03d2285007",
+      "module": "src/shared/template-schema-core.js",
+      "matrix": "B12",
+      "step": "S05/S07",
+      "status": "deferred-B",
+      "owner": "package.json",
+      "reason": "Partial optional-key skip policy, schema proof and manual standalone offer are later S07 flow. Keep actual historical runner image handoff, source integrity, failed readback/image state and zero automatic advancement.",
+      "retained": [
+        "tests/kar210-kar201-baseline-safety.cjs",
+        "tests/kar132-wearables-attributes.cjs",
+        "tests/v12022-optional-images.cjs",
+        "tests/v12226-paid-insertion-regression.cjs",
+        "tests/v1234-template-fill-controller-runtime.cjs",
+        "tests/v1235-archive-insertion-controller-runtime.cjs",
+        "tests/v12317c1-template-module-public-api.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar201-session-evidence.cjs",
+      "blob": "1c43084985261e74410f9d253caf191b3a738b38",
+      "module": "src/content/template-publish-flow.js",
+      "matrix": "A04/B12",
+      "step": "S05/S07",
+      "status": "deferred-B",
+      "owner": "package.json",
+      "reason": "Later schemaPreflight proof fields and sanitization belong to S05/S07. Actual historical session mutation tests preserve wrong-tab rejection, failed-state persistence, terminal protection and no invented archive ID.",
+      "retained": [
+        "tests/kar210-kar201-baseline-safety.cjs",
+        "tests/kar132-wearables-attributes.cjs",
+        "tests/v12022-optional-images.cjs",
+        "tests/v12226-paid-insertion-regression.cjs",
+        "tests/v1234-template-fill-controller-runtime.cjs",
+        "tests/v1235-archive-insertion-controller-runtime.cjs",
+        "tests/v12317c1-template-module-public-api.cjs"
+      ],
+      "featureAbsence": {
+        "marker": "proof?.verified === true",
+        "baselineBlob": "b4cb626bc91ca9389f9d997f9f161ef88ebdd16d",
+        "donorBlob": "4aae30251e836646e595010619f4876fb7f7f635",
+        "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
+      }
+    },
+    {
+      "test": "tests/kar201-manual-standalone.cjs",
+      "blob": "397beb2084e52af272290d4d6c53b29313571e3a",
+      "module": "src/background/controllers/template-fill-controller.js",
+      "matrix": "B12",
+      "step": "S05/S07",
+      "status": "deferred-B",
+      "owner": "package.json",
+      "reason": "Two-step owner detachment, consent token and trusted manual standalone click are absent later capability; keep existing guarded publish, template-only no-auto-publish, wrong-tab denial, paid stop and source record preservation. Full manual detachment negative cases remain S07.",
+      "retained": [
+        "tests/kar210-kar201-baseline-safety.cjs",
+        "tests/kar132-wearables-attributes.cjs",
+        "tests/v12022-optional-images.cjs",
+        "tests/v12226-paid-insertion-regression.cjs",
+        "tests/v1234-template-fill-controller-runtime.cjs",
+        "tests/v1235-archive-insertion-controller-runtime.cjs",
+        "tests/v12317c1-template-module-public-api.cjs"
+      ],
+      "featureAbsence": {
+        "marker": "async function approveManualStandaloneRelease",
+        "baselineBlob": "c01b419766420bf1ed9b0e8cccb5d4a91e867cdd",
+        "donorBlob": "d773395115da20d8ef3520b64decd20260aff2d9",
         "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
       }
     }

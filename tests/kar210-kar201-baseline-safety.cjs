@@ -16,7 +16,7 @@ const extract=(file,start,end,ctx,name)=>{
 const clone=x=>JSON.parse(JSON.stringify(x));
 const template={categoryId:'246',title:'Synthetic fixture',description:'Synthetic',price:{value:'12'},images:Array.from({length:11},(_,i)=>({imageKey:'synthetic-'+i})),dynamicAttributes:[{key:'dekoration.color',label:'Farbe',technicalValue:'other',displayValue:'Andere Farben'}]};
 function formFixture({wrongCategory=false,wrongValue=false,missing=false,duplicate=false}={}){
-  const {document}=parseHTML('<html><body><form><input name="categoryId" value="'+(wrongCategory?'405':'246')+'"><input name="title" value="Synthetic fixture"><textarea name="description">Synthetic</textarea><input name="priceAmount" value="12">'+(missing?'':'<input type="hidden" name="attributeMap[dekoration.color]" value="'+(wrongValue?'white':'other')+'">')+(duplicate?'<input type="hidden" name="attributeMap[dekoration.color]" value="other">':'')+'</form></body></html>');
+  const {document}=parseHTML('<html><body><form><input name="categoryId" value="'+(wrongCategory?'405':'246')+'"><input name="title" value="Synthetic fixture"><textarea name="description">Synthetic</textarea><input name="priceAmount" value="12">'+(missing?'':'<input type="hidden" name="attributeMap[dekoration.color]" value="'+(wrongValue?'white':'other')+'">')+(duplicate?'<input type="hidden" name="attributeMap[dekoration.color]" value="other">':'')+Array.from({length:11},(_,i)=>'<input type="hidden" name="adImages['+i+'].url" value="synthetic-'+i+'">').join('')+'</form></body></html>');
   return {document,form:document.querySelector('form')};
 }
 test('exact technical readback accepts unique match and rejects wrong, absent and duplicate fields',()=>{
@@ -45,7 +45,7 @@ test('actual fill runner transfers all 11 image records in order and never advan
 test('actual session mutation rejects wrong tab and preserves terminal failed archive state and source images',async()=>{
   const local={data:{},async get(k){return {[k]:clone(this.data[k]??{})};},async set(p){Object.assign(this.data,clone(p));}};
   const api=Service.create({storageLocal:local});
-  const initial={fillId:'fill',targetTabId:42,archiveInsertionId:'archive',inventoryId:'archive:fixture',status:'running',stage:'form-ready'};
+  const initial={fillId:'fill',targetTabId:42,createdAt:new Date().toISOString(),archiveInsertionId:'archive',inventoryId:'archive:fixture',status:'running',stage:'form-ready'};
   await api.writeFillSessions({fill:initial});
   const archives={archive:{archiveInsertionId:'archive',status:'filling',newAdId:null,sourceRecord:clone(template)}};
   const ctx={withTemplateFillMutation:api.withTemplateFillMutation,readFillSessions:api.readFillSessions,writeFillSessions:api.writeFillSessions,TERMINAL_TEMPLATE_FILL_STATUSES:api.TERMINAL_TEMPLATE_FILL_STATUSES,isTransientTemplateFillProgress:api.isTransientTemplateFillProgress,evictTemplateImageTransfersForFill:api.evictTemplateImageTransfersForFill,readArchiveInsertionSessions:async()=>clone(archives),persistArchiveInsertionSession:async a=>{archives.archive=clone(a);},logDiagnostic:async()=>{},sessionCorrelationContext:()=>({})};
