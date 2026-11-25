@@ -1,0 +1,132 @@
+name: KAR-210 CP41 clean historical baseline validation
+on:
+  push:
+    branches: [work/KAR-210]
+    paths: ['.github/workflows/kar210-cp41-validation.yml']
+permissions:
+  contents: read
+jobs:
+  gate-package:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: 468e8468781d351be05a7bce62cba592612bdba1
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify exact clean source and version
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = '468e8468781d351be05a7bce62cba592612bdba1'
+          test -z "$(git status --porcelain)"
+          test ! -e '.github/workflows/kar210-cp41-validation.yml'
+          test "$(python3 scripts/product_version.py)" = 2.0.0.0
+          python3 tests/kar210-baseline-restore.py
+      - run: npm ci
+      - name: Build twice and verify candidate archive (not committed proof)
+        shell: bash
+        run: |
+          set -euo pipefail
+          E="$RUNNER_TEMP/cp41"
+          mkdir -p "$E/a" "$E/b"
+          python3 scripts/package.py "$E/a"
+          python3 scripts/package.py "$E/b"
+          export E
+          python3 - <<'PY'
+          import hashlib,json,os,sys,pathlib
+          sys.path.insert(0,'scripts')
+          import verify_committed_chrome_zip as v
+          root=pathlib.Path('.')
+          e=pathlib.Path(os.environ['E'])
+          name='kleinanzeigen-renewal-chrome-v2.0.0.0.zip'
+          a=(e/'a'/name).read_bytes()
+          b=(e/'b'/name).read_bytes()
+          m=json.loads((root/'manifest.json').read_text())
+          result=v.validate_bytes(a,b,m,(root/'APP_ID.txt').read_text())
+          result.update(proof='two clean candidate builds, not committed archive',sourceHead='468e8468781d351be05a7bce62cba592612bdba1',version=m['version'])
+          result['baseCollision']=v.reject_base_collision(root,'release/'+name,a,'4d7ae5130730776927748e2517fdf9aadaf098cd')
+          print('CP41_PACKAGE '+json.dumps(result),flush=True)
+          (e/'package.json').write_text(json.dumps(result,indent=2))
+          dst=root/'release'/name
+          assert not dst.exists()
+          dst.write_bytes(a)
+          PY
+          unzip -t "release/kleinanzeigen-renewal-chrome-v2.0.0.0.zip" >/dev/null
+          test -z "$(git diff --name-only)"
+      - name: Mandatory full unmodified quality gate on exact source with generated candidate
+        run: |
+          set -euo pipefail
+          node tests/kar-ci-contract.cjs
+          node tests/kar68-native-status-gateway.cjs
+          bash scripts/coverage-gate.sh
+      - name: Preserve actual coverage and architecture
+        if: always()
+        run: |
+          if test -f coverage/coverage-summary.json && test -f coverage/architecture-audit.json; then
+            node -e 'const s=require("./coverage/coverage-summary.json"),a=require("./coverage/architecture-audit.json");console.log("CP41_MEASURED "+JSON.stringify({summary:s,audit:a}))'
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cp41-chrome-candidate-and-evidence
+          path: |
+            ${{ runner.temp }}/cp41/a/kleinanzeigen-renewal-chrome-v2.0.0.0.zip
+            ${{ runner.temp }}/cp41/package.json
+            coverage/coverage-summary.json
+            coverage/architecture-audit.json
+          if-no-files-found: warn
+          retention-days: 14
+  browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: 468e8468781d351be05a7bce62cba592612bdba1
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Prepare exact-source candidate and Chromium
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = '468e8468781d351be05a7bce62cba592612bdba1'
+          test -z "$(git status --porcelain)"
+          mkdir -p "$RUNNER_TEMP/cp41-browser" "$RUNNER_TEMP/cp41-extension"
+          python3 scripts/package.py "$RUNNER_TEMP/cp41-browser"
+          ZIP="$RUNNER_TEMP/cp41-browser/kleinanzeigen-renewal-chrome-v2.0.0.0.zip"
+          unzip -t "$ZIP" >/dev/null
+          unzip -q "$ZIP" -d "$RUNNER_TEMP/cp41-extension"
+          sha256sum "$ZIP"
+          cp "$ZIP" release/
+          python3 -m pip install --disable-pip-version-check -r tests/e2e/requirements.txt
+          python3 -m playwright install --no-shell chromium
+          BINARY="$(python3 -c 'from playwright.sync_api import sync_playwright; p=sync_playwright().start(); print(p.chromium.executable_path); p.stop()')"
+          test -x "$BINARY"
+          echo "KR_CHROME_BINARY=$BINARY" >> "$GITHUB_ENV"
+          echo "KR_E2E_BROWSER_CHANNEL=chromium" >> "$GITHUB_ENV"
+          echo "KR_E2E_EXTENSION_ROOT=$RUNNER_TEMP/cp41-extension" >> "$GITHUB_ENV"
+      - name: Existing KAR-161 startup fixture (characterize, not silently bypass)
+        run: python3 tests/e2e/kar161-startup-smoke.py
+      - name: Nine actual packaged Chromium scenarios
+        if: success() || failure()
+        run: |
+          set -euo pipefail
+          test -x "$KR_CHROME_BINARY"
+          python3 tests/e2e/run_browser_e2e_supervisor.py --report "$RUNNER_TEMP/cp41-browser/browser-e2e-report.json"
+          python3 tests/e2e/verify_pr_e2e_report.py --report "$RUNNER_TEMP/cp41-browser/browser-e2e-report.json" --zip "$RUNNER_TEMP/cp41-browser/kleinanzeigen-renewal-chrome-v2.0.0.0.zip" --expected-head '468e8468781d351be05a7bce62cba592612bdba1' --out "$RUNNER_TEMP/cp41-browser/e2e-attestation.json"
+      - name: Record actual browser report
+        if: always()
+        run: |
+          if test -f "$RUNNER_TEMP/cp41-browser/browser-e2e-report.json"; then
+            python3 -c 'import json,sys; r=json.load(open(sys.argv[1])); print("CP41_E2E "+json.dumps(r))' "$RUNNER_TEMP/cp41-browser/browser-e2e-report.json"
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cp41-packaged-browser-evidence
+          path: ${{ runner.temp }}/cp41-browser/*.json
+          if-no-files-found: warn
+          retention-days: 14
