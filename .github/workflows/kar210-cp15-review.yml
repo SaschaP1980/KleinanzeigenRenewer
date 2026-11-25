@@ -1,0 +1,32 @@
+name: KAR-210 CP15 authorization budget trash template schema review
+on:
+  push:
+    branches: [work/KAR-210]
+    paths: ['.github/workflows/kar210-cp15-review.yml']
+permissions:
+  contents: read
+jobs:
+  review:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --ignore-scripts
+      - run: node --test tests/kar210-kar175-trash-template-baseline.cjs tests/kar210-kar175-budget-schema-baseline.cjs
+      - run: node tests/kar210-test-disposition-contract.cjs
+  legacy-witness:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test tests/kar210-kar134-legacy-session-witness.cjs

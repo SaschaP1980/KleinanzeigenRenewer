@@ -717,6 +717,89 @@
         "tests/v1236-public-listing-evidence-runtime.cjs"
       ],
       "reason": "Later pure URL owner absent; original independent URL behavior assertion body retained byte-for-byte at actual historical owner. HTTPS checks of inventory source and published candidate, foreign origin and exact source-ID exclusion remain active. No broader URL trust or new publish authority claimed."
+    },
+    {
+      "test": "tests/kar175-publish-intent-authorization.cjs",
+      "blob": "8b3415dca7de0ec06cff0e422f106af3c1957f16",
+      "module": "src/background/services/publish-intent-authorization-service.js",
+      "matrix": "A08/A09/A10/A11/C04/D05",
+      "step": "S04/S06/S11",
+      "status": "excluded-C",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-kar201-baseline-safety.cjs",
+        "tests/kar210-kar197-baseline-safety.cjs",
+        "tests/kar210-kar175-phase1-retry-baseline.cjs",
+        "tests/kar210-kar175-public-navigation-baseline.cjs",
+        "tests/v1234-insertion-lock-runtime.cjs",
+        "tests/v1238-account-session-controller-runtime.cjs",
+        "tests/v12226-paid-insertion-regression.cjs"
+      ],
+      "reason": "Original cases operate on absent P8 admission, journal receipt and intent-resolution authority, including its new post-receipt account recheck and independent three-message presence probe. Do not claim those mechanisms implemented. Existing content guarded publish, wrong-tab session updates, insertion lock, submitted boundary, fresh public proof/account mismatch and phase-4 independent safety remain active. S06 must assess real uncertain outcomes, sender/page/account continuity and exact-ID product proof without the excluded architecture; no new runtime or journal authorized."
+    },
+    {
+      "test": "tests/kar175-background-budget.cjs",
+      "blob": "751a6f4fe96a0c4d5ca9b477069abd95f097fbff",
+      "module": "src/background/services/inventory-capture-service.js",
+      "matrix": "C04/D05",
+      "step": "S11",
+      "status": "deferred-D",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-kar175-budget-schema-baseline.cjs",
+        "tests/kar210-kar175-public-navigation-baseline.cjs",
+        "tests/kar210-inventory-save-refresh-baseline.cjs"
+      ],
+      "reason": "Original 30 percent donor entrypoint target and nine-owner presence contract cannot hold for deliberately restored historical source. Preserve full original and all nine absent paths as explicit evidence, measure historical characters/UTF8 bytes/lines and guard against S02 growth. Do not count donor budget as passed or relax D03 public coverage/architecture gate. S11 must reconcile cohesive ownership and budgets with actual retained modules, excluding C04 authorization."
+    },
+    {
+      "test": "tests/kar175-trash-template-publish-detection.cjs",
+      "blob": "80a766b922761e75c56cf5796e68c3103192b240",
+      "module": "src/background/services/trash-template-publish-detection-service.js",
+      "matrix": "A15/D05",
+      "step": "S07/S11",
+      "status": "deferred-D",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-kar175-trash-template-baseline.cjs",
+        "tests/v12217-trash-template-recovery-runtime.cjs",
+        "tests/v12219-trash-template-session-isolation-runtime.cjs",
+        "tests/kar210-kar175-correlation-url-baseline.cjs"
+      ],
+      "reason": "Later extraction absent; execute historical exact production detector and actual URL candidate parser with synthetic sessions and tabs. Check foreign URL, wrong tab, ownership, mismatching page ID, same source, duplicate/new ID, mutation-time ownership, actual local handoff and failure lock cleanup. Does not prove live account binding or native Chrome behavior; preserve S07 verification/recovery obligations."
+    },
+    {
+      "test": "tests/kar134-runtime-cleanup.cjs",
+      "blob": "0b7d6ce19a8e4377c490bbb258b1910de5da5637",
+      "module": "src/shared/template-schema-core.js",
+      "matrix": "A03/A06/D05",
+      "step": "S03/S05/S11",
+      "status": "deferred-A",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-kar175-budget-schema-baseline.cjs",
+        "tests/kar210-kar134-legacy-session-witness.cjs",
+        "tests/kar210-bootstrap-schema-boundaries.cjs",
+        "tests/kar210-kar201-baseline-safety.cjs"
+      ],
+      "reason": "Historical source lacks later F3 authority and schema preflight by deliberate baseline choice. Retain original independent absence assertions and message boundary verbatim; preserve retired persisted test-session rejection as genuine independent RED, not hidden with absent schema runtime. S03 must address legacy session data before live upgrade; S05 reconciles structural review, adoption and fail-closed product outcomes."
+    },
+    {
+      "test": "tests/kar134-schema-preflight.cjs",
+      "blob": "9f3471a9eaa5649251d39973882e792c82cf653e",
+      "module": "src/content/template-schema-preflight.js",
+      "matrix": "A02/A03/A04/A05/A06",
+      "step": "S03/S05/S07",
+      "status": "deferred-A",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-kar134-legacy-session-witness.cjs",
+        "tests/kar210-kar175-budget-schema-baseline.cjs",
+        "tests/kar210-kar201-baseline-safety.cjs",
+        "tests/v12317-template-filler-runtime.cjs",
+        "tests/v12317c1-template-module-public-api.cjs"
+      ],
+      "reason": "57 original cases retained intact for future meaningful compatibility and review adaptation. Most exercise absent schema fingerprint, option probing, F1/F2/F3 monitor and adoption; independent normal saved-field transport and retired-session rejection copied to active tests with actual historical service, alongside existing exact technical readback, image/order and guarded publish tests. Legacy session denial remains active RED; display-only options, empty required/optional distinction, unknown/corrupt schema and consent obligations not declared satisfied."
     }
   ],
   "deferredWitnesses": [

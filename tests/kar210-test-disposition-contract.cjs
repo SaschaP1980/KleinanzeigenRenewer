@@ -13,7 +13,7 @@ for(const owner of OWNERS) for(const test of ["tests/kar148-article-type.cjs","t
 for(const owner of OWNERS) for(const test of ["tests/kar201-legacy-options.cjs","tests/kar201-session-evidence.cjs","tests/kar201-native-display-only.cjs","tests/kar201-partial-archive-prefill.cjs","tests/kar201-manual-standalone.cjs"]) assert.ok(!fs.readFileSync(path.join(root,owner),'utf8').includes(test),'KAR-201 later feature still active: '+test+' in '+owner);
 const data=JSON.parse(fs.readFileSync(path.join(root,LEDGER),'utf8'));
 const inactive=validateDispositions(root);
-assert.equal(inactive.size,40);
+assert.equal(inactive.size,45);
 const read=p=>fs.readFileSync(path.join(root,p));
 for(const owner of OWNERS) for(const test of inactive.keys())
   assert.ok(!read(owner).toString().replace(/\\/g,'/').includes(test),'Inactive path in active owner');
@@ -24,6 +24,12 @@ assert.equal(readOriginal('tests/kar210-diagnostic-reset-unknown.cjs'),exactRese
 function readOriginal(p){return fs.readFileSync(path.join(root,p),'utf8');}
 const exactUrl=readOriginal('tests/kar175-listing-url-evidence.cjs');
 assert.ok(readOriginal('tests/kar210-kar175-correlation-url-baseline.cjs').includes(exactUrl.slice(exactUrl.indexOf('const edit=service.singleInventorySourceFromUrl'),exactUrl.indexOf('console.log('))),'Original pure URL assertion body must remain exact');
+const exactCleanup=readOriginal('tests/kar134-runtime-cleanup.cjs');
+const scopeSource=readOriginal('tests/kar210-kar175-budget-schema-baseline.cjs');
+assert.ok(scopeSource.includes(exactCleanup.slice(exactCleanup.indexOf('for (const label of ['),exactCleanup.indexOf('assert.match(controller, /Boolean'))),'Independent cleanup assertions changed');
+const exactPreflight=readOriginal('tests/kar134-schema-preflight.cjs');
+const legacyStart=exactPreflight.indexOf('await assert.rejects(service.getTemplateFillSession({tab:{id:72}})');
+assert.ok(legacyStart>=0&&readOriginal('tests/kar210-kar134-legacy-session-witness.cjs').includes(exactPreflight.slice(legacyStart,exactPreflight.indexOf('\n  });',legacyStart))),'Persisted legacy session denial assertion lost');
 const invocation=spawnSync(process.execPath,[path.join(root,'tests/kar210-test-disposition.cjs'),data.entries[0].test],{cwd:root,encoding:'utf8'});
 assert.notEqual(invocation.status,0,'Old per-test skip interface must be gone');
 const fixture=fs.mkdtempSync(path.join(os.tmpdir(),'kar210-suite-'));

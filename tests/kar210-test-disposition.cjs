@@ -602,6 +602,74 @@ const RULES = Object.freeze({
       "tests/v12010-managed-navigation-runtime.cjs",
       "tests/v1236-public-listing-evidence-runtime.cjs"
     ]
+  },
+  "tests/kar175-publish-intent-authorization.cjs": {
+    "module": "src/background/services/publish-intent-authorization-service.js",
+    "matrix": "A08/A09/A10/A11/C04/D05",
+    "step": "S04/S06/S11",
+    "status": "excluded-C",
+    "owner": "package.json",
+    "retained": [
+      "tests/kar210-kar201-baseline-safety.cjs",
+      "tests/kar210-kar197-baseline-safety.cjs",
+      "tests/kar210-kar175-phase1-retry-baseline.cjs",
+      "tests/kar210-kar175-public-navigation-baseline.cjs",
+      "tests/v1234-insertion-lock-runtime.cjs",
+      "tests/v1238-account-session-controller-runtime.cjs",
+      "tests/v12226-paid-insertion-regression.cjs"
+    ]
+  },
+  "tests/kar175-background-budget.cjs": {
+    "module": "src/background/services/inventory-capture-service.js",
+    "matrix": "C04/D05",
+    "step": "S11",
+    "status": "deferred-D",
+    "owner": "package.json",
+    "retained": [
+      "tests/kar210-kar175-budget-schema-baseline.cjs",
+      "tests/kar210-kar175-public-navigation-baseline.cjs",
+      "tests/kar210-inventory-save-refresh-baseline.cjs"
+    ]
+  },
+  "tests/kar175-trash-template-publish-detection.cjs": {
+    "module": "src/background/services/trash-template-publish-detection-service.js",
+    "matrix": "A15/D05",
+    "step": "S07/S11",
+    "status": "deferred-D",
+    "owner": "package.json",
+    "retained": [
+      "tests/kar210-kar175-trash-template-baseline.cjs",
+      "tests/v12217-trash-template-recovery-runtime.cjs",
+      "tests/v12219-trash-template-session-isolation-runtime.cjs",
+      "tests/kar210-kar175-correlation-url-baseline.cjs"
+    ]
+  },
+  "tests/kar134-runtime-cleanup.cjs": {
+    "module": "src/shared/template-schema-core.js",
+    "matrix": "A03/A06/D05",
+    "step": "S03/S05/S11",
+    "status": "deferred-A",
+    "owner": "package.json",
+    "retained": [
+      "tests/kar210-kar175-budget-schema-baseline.cjs",
+      "tests/kar210-kar134-legacy-session-witness.cjs",
+      "tests/kar210-bootstrap-schema-boundaries.cjs",
+      "tests/kar210-kar201-baseline-safety.cjs"
+    ]
+  },
+  "tests/kar134-schema-preflight.cjs": {
+    "module": "src/content/template-schema-preflight.js",
+    "matrix": "A02/A03/A04/A05/A06",
+    "step": "S03/S05/S07",
+    "status": "deferred-A",
+    "owner": "package.json",
+    "retained": [
+      "tests/kar210-kar134-legacy-session-witness.cjs",
+      "tests/kar210-kar175-budget-schema-baseline.cjs",
+      "tests/kar210-kar201-baseline-safety.cjs",
+      "tests/v12317-template-filler-runtime.cjs",
+      "tests/v12317c1-template-module-public-api.cjs"
+    ]
   }
 });
 const OWNERS = Object.freeze(["package.json","scripts/build.sh","scripts/coverage-gate.sh",".github/workflows/kar-work-pr.yml",".github/workflows/kar-ci.yml",".github/workflows/kar-release.yml"]);
