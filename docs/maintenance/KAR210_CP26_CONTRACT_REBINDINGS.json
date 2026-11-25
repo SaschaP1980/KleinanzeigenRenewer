@@ -78,5 +78,21 @@
         "Scope original target-bound canonical/direct/fresh worker checks to actual historical owner; later delegation retained outside S02."
       ]
     }
-  ]
+  ],
+  "focusedValidation": {
+    "runId": 45596622746,
+    "jobId": 139144264069,
+    "head": "68a560e70064b4f7e1d805fdf94f5f1c9f7be206",
+    "passed": 12,
+    "failed": 0,
+    "completeHistoricalContracts": 9,
+    "completeContractGroups": 70,
+    "negativeFixtures": 59
+  },
+  "builderGuard": {
+    "runId": 45596622504,
+    "jobId": 139144263057,
+    "result": "failure",
+    "reason": "No explicit authorized marker; no build executed."
+  }
 }
