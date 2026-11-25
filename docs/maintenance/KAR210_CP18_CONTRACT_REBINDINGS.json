@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "issue": 210,
+  "checkpoint": 18,
+  "sourceCommit": "e21b01928e918528d6c4fe898cd978c6d2edac18",
+  "historicalMetadataSource": "4d7ae5130730776927748e2517fdf9aadaf098cd",
+  "originalsRetainedInGit": true,
+  "policy": "No globally broadened version predicates, no fake absent module. All original tests remain active. Only explicit exact S02 branch can use restored source owner or historical fixture. Safety assertions unchanged. Current live acceptance and coverage remain pending.",
+  "review": [
+    {
+      "path": "tests/validate.mjs",
+      "originalBlob": "5df94ded2423b4386bb22deebfdabc8a5844654e",
+      "originalCommit": "e21b01928e918528d6c4fe898cd978c6d2edac18",
+      "changes": [
+        "Exact S02 metadata validation before legacy version branch; original permissions, identity, file presence, extraction and privacy assertions preserved; capture ownership resolves to historical background only under exact baseline guard."
+      ]
+    },
+    {
+      "path": "tests/v015-contract.cjs",
+      "originalBlob": "8ab2e8f5d15571c6bd7ee776c39de25351340075",
+      "originalCommit": "e21b01928e918528d6c4fe898cd978c6d2edac18",
+      "changes": [
+        "Actual capture owner selected only after explicit exact S02 metadata and historical source blob verification; all original image/content assertions unchanged."
+      ]
+    },
+    {
+      "path": "tests/v016-contract.cjs",
+      "originalBlob": "74699c674d681c02102c8ec09018e7e2e35d8ce5",
+      "originalCommit": "e21b01928e918528d6c4fe898cd978c6d2edac18",
+      "changes": [
+        "Actual capture owner selected only after explicit exact S02 metadata and historical source blob verification; all original image/content assertions unchanged.",
+        "Exact S02 version gate substitutes only the obsolete release-series assertion; legacy predicate and every subsequent product assertion preserved."
+      ]
+    },
+    {
+      "path": "tests/v017-contract.cjs",
+      "originalBlob": "abf05feb8cae3b35efcada9bebaf3fd372eebe1f",
+      "originalCommit": "e21b01928e918528d6c4fe898cd978c6d2edac18",
+      "changes": [
+        "Actual capture owner selected only after explicit exact S02 metadata and historical source blob verification; all original image/content assertions unchanged.",
+        "Exact S02 version gate substitutes only the obsolete release-series assertion; legacy predicate and every subsequent product assertion preserved."
+      ]
+    },
+    {
+      "path": "tests/current-patch-policy-regression.cjs",
+      "originalBlob": "943899374f09aeae0d92d18c8fceae3f7f6f9417",
+      "originalCommit": "e21b01928e918528d6c4fe898cd978c6d2edac18",
+      "changes": [
+        "On exact S02 only, use hash-pinned real 1.25.12 metadata from main for correction-era synthetic patch tests. Original 27 negative assertions and positive cases unchanged; no current native/coverage metadata fabricated."
+      ]
+    }
+  ]
+}
