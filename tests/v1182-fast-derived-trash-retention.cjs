@@ -51,13 +51,37 @@ check('trash notice is centralized and repeated per-card note is removed', () =>
   assert.doesNotMatch(js, /note\.textContent\s*=\s*['"]Einträge können nicht zurück ins Inventar verschoben werden/);
 });
 check('trash entries restart the configured retention before a separate permanent-delete action', () => {
-  assert.match(js, /Frist neu starten/);
-  assert.match(js, /RESET_TRASH_RETENTION/);
-  assert.match(bg, /resetTrashRetention/);
-  assert.match(bg, /TRASH_RETENTION_RESET/);
-  const resetIndex = js.indexOf("resetButton.textContent = 'Frist neu starten'");
-  const deleteIndex = js.indexOf("deleteButton.textContent = 'Endgültig löschen'");
-  assert.ok(resetIndex >= 0 && deleteIndex > resetIndex, 'reset action must be created before permanent delete action');
+  if (restored) {
+    const root = require('node:path').resolve(__dirname, '..');
+    const target = JSON.parse(fs.readFileSync(require('node:path').join(root,'docs/maintenance/KAR210_BASELINE_TARGET.json'),'utf8'));
+    const ownerPath = 'src/app/trash-card-renderer.js';
+    const owner = fs.readFileSync(require('node:path').join(root,ownerPath));
+    const blob = require('node:crypto').createHash('sha1').update('blob '+owner.length+'\0').update(owner).digest('hex');
+    assert.equal(blob, target.expected.find(x=>x.path===ownerPath)?.sha);
+    assert.ok(target.packaged.includes(ownerPath));
+    const renderer = owner.toString('utf8');
+    assert.match(renderer, /label: '30 Tage neu starten'/);
+    assert.match(renderer, /resetButton\.textContent = '30 Tage neu starten'/);
+    assert.match(renderer, /deleteButton\.textContent = 'Endgültig löschen'/);
+    assert.equal((renderer.match(/actions\.append\(templateButton, resetButton, exportButton, deleteButton\)/g)||[]).length,2);
+    assert.equal((renderer.match(/type: 'RESET_TRASH_RETENTION', inventoryId: record\.inventoryId/g)||[]).length,2);
+    assert.equal((renderer.match(/type: 'DELETE_TRASH_ENTRY', inventoryId: record\.inventoryId/g)||[]).length,2);
+    assert.equal((renderer.match(/confirmLabel: '30 Tage neu starten'/g)||[]).length,2);
+    assert.equal((renderer.match(/confirmLabel: 'Endgültig löschen', danger: true/g)||[]).length,2);
+    assert.match(bg, /resetTrashRetention/);
+    assert.match(bg, /TRASH_RETENTION_RESET/);
+    const service = fs.readFileSync(require('node:path').join(root,'src/background/services/trash-service.js'),'utf8');
+    assert.match(service, /options\.retentionMs \|\| 30 \* 24 \* 60 \* 60 \* 1000/);
+    assert.match(service, /async function resetRetention[\s\S]*?repository\.mutate\(id, record => \{[\s\S]*?if \(!isTrashRecord\(record\)\) throw[\s\S]*?expiresAt: new Date\(now\.getTime\(\) \+ retentionMs\)/);
+  } else {
+    assert.match(js, /Frist neu starten/);
+    assert.match(js, /RESET_TRASH_RETENTION/);
+    assert.match(bg, /resetTrashRetention/);
+    assert.match(bg, /TRASH_RETENTION_RESET/);
+    const resetIndex = js.indexOf("resetButton.textContent = 'Frist neu starten'");
+    const deleteIndex = js.indexOf("deleteButton.textContent = 'Endgültig löschen'");
+    assert.ok(resetIndex >= 0 && deleteIndex > resetIndex, 'reset action must be created before permanent delete action');
+  }
 });
 if (failures) { console.error(`${failures} v1.18.2 contract group(s) failed; ${passes} passed`); process.exit(1); }
 console.log(`${passes} v1.18.2 contract groups passed`);

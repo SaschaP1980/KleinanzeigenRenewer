@@ -28,7 +28,8 @@
       "originalCommit": "c171fe35cc21838de05141b7e803f3fe8cf79389",
       "changes": [
         "Exact S02 identity and historical feature-era branch; original behavior assertions unchanged.",
-        "Bind missing later trash-controller owner to hash-checked actual historical background; preserve reset/delete ordering and derived-date behavior."
+        "Bind missing later trash-controller owner to hash-checked actual historical background; preserve reset/delete ordering and derived-date behavior.",
+        "Focused RED: later configurable retention label and monolithic app source incompatible. Actual hash-checked compact and detailed historical trash renderer has fixed 30-day reset, explicit confirmation, separate permanent delete and action order. Historical service reset guard and expiry retained; original configurable assertions remain outside S02, S03/S09 restore policy. Independent v1183-trash-runtime and kar210-loading-retention-baseline remain active."
       ]
     },
     {
@@ -63,5 +64,13 @@
         "Exact S02 identity and historical feature-era branch; original behavior assertions unchanged."
       ]
     }
-  ]
+  ],
+  "firstFocused": {
+    "runId": 45600595417,
+    "jobId": 139158164705,
+    "head": "81224d0e2d25fb50da4503a02e474ba96a4ba3ca",
+    "passed": 9,
+    "failed": 1,
+    "reason": "v1182 later configurable retention label/source surface mismatch; eight other groups pass."
+  }
 }
