@@ -149,5 +149,22 @@
       ],
       "change": "Use already reviewed exact frozen background owner helper; retain later facade delegation outside S02; all fresh target-bound worker and safety assertions preserved."
     }
-  ]
+  ],
+  "secondFocusedValidation": {
+    "runId": 45580327367,
+    "jobId": 139088453401,
+    "head": "780493fdfa9a5b99210892e8604e1af70c9a539a",
+    "passed": 17,
+    "failed": 0,
+    "completeHistoricalContracts": 13,
+    "completeContractGroups": 109,
+    "runtimeCases": 2,
+    "negativeFixtures": 59
+  },
+  "builderGuard": {
+    "runId": 45580211376,
+    "jobId": 139088065154,
+    "result": "failure",
+    "reason": "No explicit authorized marker; no build executed."
+  }
 }
