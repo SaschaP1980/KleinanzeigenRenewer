@@ -889,6 +889,100 @@ const RULES = Object.freeze({
       "tests/kar210-kar150-uncertain-start-witness.cjs",
       "tests/kar210-p9-independent-tab-lifecycle.cjs"
     ]
+  },
+  "tests/kar113-renewal-detached-admission.cjs": {
+    "module": "src/background/services/update-workflow-fence.js",
+    "matrix": "A07/A08/A14/C03",
+    "step": "S04/S06",
+    "status": "split-C",
+    "owner": "package.json",
+    "retained": [
+      "tests/kar210-cp36-phase4-product-witness.cjs",
+      "tests/kar210-cp36-phase4-unknown-witness.cjs",
+      "tests/kar210-kar199-baseline-phase4.cjs",
+      "tests/kar199-phase4-no-transport-replay.cjs",
+      "tests/kar199-phase4-bounded-runtime.cjs",
+      "tests/kar199-phase4-unverified-state-runtime.cjs",
+      "tests/kar210-kar199-baseline-reset.cjs",
+      "tests/kar210-p13-lock-read-uncertainty.cjs",
+      "tests/v1231-renewal-workflow-runtime.cjs",
+      "tests/kar210-kar175-phase1-retry-baseline.cjs"
+    ]
+  },
+  "tests/kar115-automatic-phase4-admission.cjs": {
+    "module": "src/background/services/update-workflow-fence.js",
+    "matrix": "A07/A12/A14/C03",
+    "step": "S04/S06",
+    "status": "split-C",
+    "owner": "package.json",
+    "retained": [
+      "tests/kar210-cp36-phase4-product-witness.cjs",
+      "tests/kar210-cp36-phase4-unknown-witness.cjs",
+      "tests/kar210-kar199-baseline-phase4.cjs",
+      "tests/kar199-phase4-no-transport-replay.cjs",
+      "tests/kar199-phase4-bounded-runtime.cjs",
+      "tests/kar199-phase4-unverified-state-runtime.cjs",
+      "tests/kar210-kar199-baseline-reset.cjs",
+      "tests/kar210-p13-lock-read-uncertainty.cjs",
+      "tests/v1231-renewal-workflow-runtime.cjs"
+    ]
+  },
+  "tests/kar117-uncertain-phase4-journal.cjs": {
+    "module": "src/background/services/phase4-uncertainty-journal.js",
+    "matrix": "A12/A14/C04",
+    "step": "S04/S06",
+    "status": "split-C",
+    "owner": "package.json",
+    "retained": [
+      "tests/kar210-cp36-phase4-product-witness.cjs",
+      "tests/kar210-cp36-phase4-unknown-witness.cjs",
+      "tests/kar210-kar199-baseline-phase4.cjs",
+      "tests/kar199-phase4-no-transport-replay.cjs",
+      "tests/kar199-phase4-bounded-runtime.cjs",
+      "tests/kar199-phase4-unverified-state-runtime.cjs",
+      "tests/kar210-kar199-baseline-reset.cjs",
+      "tests/kar210-p13-lock-read-uncertainty.cjs",
+      "tests/kar210-p13-persisted-owner-baseline.cjs"
+    ]
+  },
+  "tests/kar124-phase4-journal-owner-observer.cjs": {
+    "module": "src/background/services/persisted-owner-observer.js",
+    "matrix": "A08/A14/C02/C04",
+    "step": "S04/S06",
+    "status": "split-C",
+    "owner": "package.json",
+    "retained": [
+      "tests/kar210-cp36-phase4-product-witness.cjs",
+      "tests/kar210-cp36-phase4-unknown-witness.cjs",
+      "tests/kar210-kar199-baseline-phase4.cjs",
+      "tests/kar199-phase4-no-transport-replay.cjs",
+      "tests/kar199-phase4-bounded-runtime.cjs",
+      "tests/kar199-phase4-unverified-state-runtime.cjs",
+      "tests/kar210-kar199-baseline-reset.cjs",
+      "tests/kar210-p13-lock-read-uncertainty.cjs",
+      "tests/kar210-p13-persisted-owner-baseline.cjs",
+      "tests/v1234-insertion-lock-runtime.cjs",
+      "tests/v1238-account-session-controller-runtime.cjs"
+    ]
+  },
+  "tests/kar128-manual-phase4-journal-boundary.cjs": {
+    "module": "src/background/services/phase4-uncertainty-journal.js",
+    "matrix": "A08/A12/A14/C04",
+    "step": "S04/S06",
+    "status": "split-C",
+    "owner": "package.json",
+    "retained": [
+      "tests/kar210-cp36-phase4-product-witness.cjs",
+      "tests/kar210-cp36-phase4-unknown-witness.cjs",
+      "tests/kar210-kar199-baseline-phase4.cjs",
+      "tests/kar199-phase4-no-transport-replay.cjs",
+      "tests/kar199-phase4-bounded-runtime.cjs",
+      "tests/kar199-phase4-unverified-state-runtime.cjs",
+      "tests/kar210-kar199-baseline-reset.cjs",
+      "tests/kar210-p13-lock-read-uncertainty.cjs",
+      "tests/v1238-account-session-controller-runtime.cjs",
+      "tests/kar210-p13-persisted-owner-baseline.cjs"
+    ]
   }
 });
 const OWNERS = Object.freeze(["package.json","scripts/build.sh","scripts/coverage-gate.sh",".github/workflows/kar-work-pr.yml",".github/workflows/kar-ci.yml",".github/workflows/kar-release.yml"]);

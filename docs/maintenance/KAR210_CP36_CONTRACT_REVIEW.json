@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "issue": 210,
+  "checkpoint": 36,
+  "sourceCommit": "aebf90f2b1c61606532ec8c4b25da5f4b3cdec19",
+  "review": [
+    {
+      "test": "tests/kar113-renewal-detached-admission.cjs",
+      "blob": "f8f0d42840c8008147bdc5b540dcce325f5d0374",
+      "module": "src/background/services/update-workflow-fence.js",
+      "matrix": "A07/A08/A14/C03",
+      "step": "S04/S06",
+      "status": "split-C",
+      "owner": "package.json",
+      "reason": "Original strict dependency and worker construction checks retained; verify six actual historical detached Fast/Safe/retry launch sites. P8 receipts, fence delegation and owner mapping are excluded, not proof of product safety.",
+      "retained": [
+        "tests/kar210-cp36-phase4-product-witness.cjs",
+        "tests/kar210-cp36-phase4-unknown-witness.cjs",
+        "tests/kar210-kar199-baseline-phase4.cjs",
+        "tests/kar199-phase4-no-transport-replay.cjs",
+        "tests/kar199-phase4-bounded-runtime.cjs",
+        "tests/kar199-phase4-unverified-state-runtime.cjs",
+        "tests/kar210-kar199-baseline-reset.cjs",
+        "tests/kar210-p13-lock-read-uncertainty.cjs",
+        "tests/v1231-renewal-workflow-runtime.cjs",
+        "tests/kar210-kar175-phase1-retry-baseline.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar115-automatic-phase4-admission.cjs",
+      "blob": "652b6a8dc961d74242c4817bba650c38a08f1dd3",
+      "module": "src/background/services/update-workflow-fence.js",
+      "matrix": "A07/A12/A14/C03",
+      "step": "S04/S06",
+      "status": "split-C",
+      "owner": "package.json",
+      "reason": "The updater admission refusal and callback ownership API are excluded. Independent actual scheduler checks preserve in-process duplicate prevention, one scheduled call, guard release after settlement and no synthetic outcome writes; actual Phase4 product negatives remain active.",
+      "retained": [
+        "tests/kar210-cp36-phase4-product-witness.cjs",
+        "tests/kar210-cp36-phase4-unknown-witness.cjs",
+        "tests/kar210-kar199-baseline-phase4.cjs",
+        "tests/kar199-phase4-no-transport-replay.cjs",
+        "tests/kar199-phase4-bounded-runtime.cjs",
+        "tests/kar199-phase4-unverified-state-runtime.cjs",
+        "tests/kar210-kar199-baseline-reset.cjs",
+        "tests/kar210-p13-lock-read-uncertainty.cjs",
+        "tests/v1231-renewal-workflow-runtime.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar117-uncertain-phase4-journal.cjs",
+      "blob": "f3391aac4d7c58a02455d654f61d47c944f40ea6",
+      "module": "src/background/services/phase4-uncertainty-journal.js",
+      "matrix": "A12/A14/C04",
+      "step": "S04/S06",
+      "status": "split-C",
+      "owner": "package.json",
+      "reason": "Immutable journal implementation, keys, tokens, cross-worker identity and write-readback schema belong to explicitly excluded C04. Preserve exact originals, actual pre-dispatch persistence failure denial, persisted uncertainty no-replay RED, bounded status/transport/intent tests and existing reset/identity gates; no claim of durable journal equivalence.",
+      "retained": [
+        "tests/kar210-cp36-phase4-product-witness.cjs",
+        "tests/kar210-cp36-phase4-unknown-witness.cjs",
+        "tests/kar210-kar199-baseline-phase4.cjs",
+        "tests/kar199-phase4-no-transport-replay.cjs",
+        "tests/kar199-phase4-bounded-runtime.cjs",
+        "tests/kar199-phase4-unverified-state-runtime.cjs",
+        "tests/kar210-kar199-baseline-reset.cjs",
+        "tests/kar210-p13-lock-read-uncertainty.cjs",
+        "tests/kar210-p13-persisted-owner-baseline.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar124-phase4-journal-owner-observer.cjs",
+      "blob": "343d2f5dbec4badee9448443592b12cad5ac9f66",
+      "module": "src/background/services/persisted-owner-observer.js",
+      "matrix": "A08/A14/C02/C04",
+      "step": "S04/S06",
+      "status": "split-C",
+      "owner": "package.json",
+      "reason": "All census outputs use the absent journal and owner observer. Existing independent actual persisted-owner restart and failed-read tests, Phase4 uncertainty and reset tests remain active. No idle authority or equivalent journal observation claimed.",
+      "retained": [
+        "tests/kar210-cp36-phase4-product-witness.cjs",
+        "tests/kar210-cp36-phase4-unknown-witness.cjs",
+        "tests/kar210-kar199-baseline-phase4.cjs",
+        "tests/kar199-phase4-no-transport-replay.cjs",
+        "tests/kar199-phase4-bounded-runtime.cjs",
+        "tests/kar199-phase4-unverified-state-runtime.cjs",
+        "tests/kar210-kar199-baseline-reset.cjs",
+        "tests/kar210-p13-lock-read-uncertainty.cjs",
+        "tests/kar210-p13-persisted-owner-baseline.cjs",
+        "tests/v1234-insertion-lock-runtime.cjs",
+        "tests/v1238-account-session-controller-runtime.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar128-manual-phase4-journal-boundary.cjs",
+      "blob": "3054b5ed97a300c503929033f5a90d3eaf7c3ab9",
+      "module": "src/background/services/phase4-uncertainty-journal.js",
+      "matrix": "A08/A12/A14/C04",
+      "step": "S04/S06",
+      "status": "split-C",
+      "owner": "package.json",
+      "reason": "Journal schema, storage port and receipt timings excluded. Retain independent same-profile wrong-account negatives, late asynchronous diagnostic account-switch RED at actual remote owner, pre-dispatch persistence refusal and no-repeat unknown outcome RED. Existing transport/timeouts/independent absence tests mandatory; no claim that the journal boundary was reproduced.",
+      "retained": [
+        "tests/kar210-cp36-phase4-product-witness.cjs",
+        "tests/kar210-cp36-phase4-unknown-witness.cjs",
+        "tests/kar210-kar199-baseline-phase4.cjs",
+        "tests/kar199-phase4-no-transport-replay.cjs",
+        "tests/kar199-phase4-bounded-runtime.cjs",
+        "tests/kar199-phase4-unverified-state-runtime.cjs",
+        "tests/kar210-kar199-baseline-reset.cjs",
+        "tests/kar210-p13-lock-read-uncertainty.cjs",
+        "tests/v1238-account-session-controller-runtime.cjs",
+        "tests/kar210-p13-persisted-owner-baseline.cjs"
+      ]
+    }
+  ],
+  "newProductWitness": "tests/kar210-cp36-phase4-product-witness.cjs",
+  "newSafetyRedWitness": "tests/kar210-cp36-phase4-unknown-witness.cjs",
+  "originalsUnchanged": true,
+  "activeSequenceBefore": 508,
+  "activeSequenceAfter": 505,
+  "qualification": "C02/C03/C04 mechanism separation per owner-approved S01. New direct product safety REDs for late account switch and persisted uncertainty replay; no execution credit for inactive originals, no claim of journal equivalence or runtime repair. Validation pending."
+}

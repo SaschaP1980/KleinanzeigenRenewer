@@ -13,7 +13,7 @@ for(const owner of OWNERS) for(const test of ["tests/kar148-article-type.cjs","t
 for(const owner of OWNERS) for(const test of ["tests/kar201-legacy-options.cjs","tests/kar201-session-evidence.cjs","tests/kar201-native-display-only.cjs","tests/kar201-partial-archive-prefill.cjs","tests/kar201-manual-standalone.cjs"]) assert.ok(!fs.readFileSync(path.join(root,owner),'utf8').includes(test),'KAR-201 later feature still active: '+test+' in '+owner);
 const data=JSON.parse(fs.readFileSync(path.join(root,LEDGER),'utf8'));
 const inactive=validateDispositions(root);
-assert.equal(inactive.size,58);
+assert.equal(inactive.size,63);
 const read=p=>fs.readFileSync(path.join(root,p));
 for(const owner of OWNERS) for(const test of inactive.keys())
   assert.ok(!read(owner).toString().replace(/\\/g,'/').includes(test),'Inactive path in active owner');
@@ -35,6 +35,9 @@ const original101=readOriginal('tests/kar101-autonomous-admission.cjs');
 const original107=readOriginal('tests/kar107-autonomous-owner-coverage.cjs');
 assert.ok(cp35Witness.includes(original101.slice(original101.indexOf("confirm(worker.includes('ensureBulkRuntimeRecovery()')"),original101.indexOf("confirm((mass.match"))),'original boot callback assertions retained');
 assert.ok(cp35Witness.includes(original107.slice(original107.indexOf("  ok(lifecycle.includes('persistRenewalSession(renewal)')"),original107.indexOf("  const local="))),'original lifecycle and publish checks retained');
+const cp36Witness=readOriginal('tests/kar210-cp36-phase4-product-witness.cjs');
+const original113=readOriginal('tests/kar113-renewal-detached-admission.cjs');
+for(const prefix of ['ok(controller.includes("const required','ok(bg.includes("renewalWorkflowController =']){const line=original113.split('\n').find(l=>l.startsWith(prefix));assert.ok(line&&cp36Witness.includes(line),'exact KAR113 product source check retained');}
 const invocation=spawnSync(process.execPath,[path.join(root,'tests/kar210-test-disposition.cjs'),data.entries[0].test],{cwd:root,encoding:'utf8'});
 assert.notEqual(invocation.status,0,'Old per-test skip interface must be gone');
 const fixture=fs.mkdtempSync(path.join(os.tmpdir(),'kar210-suite-'));
