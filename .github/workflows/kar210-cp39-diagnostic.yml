@@ -1,13 +1,101 @@
-name: KAR-210 checkpoint 39 focused D diagnostic
+name: KAR-210 checkpoint 39 diagnostic
 on:
   push:
-    branches: ['work/KAR-210']
+    branches: [work/KAR-210]
     paths: ['.github/workflows/kar210-cp39-diagnostic.yml']
 permissions:
   contents: read
 jobs:
+  diagnostic:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --ignore-scripts
+      - name: Characterize active commands independently
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = '${{ github.sha }}'
+          mkdir -p coverage/raw /tmp/kar210-cp39
+          node scripts/runtime-api-inventory.cjs --json > coverage/public-api-manifest.json
+          python3 - <<'PY'
+          import json,os,re,shlex,subprocess,time,pathlib
+          script=json.load(open('package.json'))['scripts']['test']
+          prefix="export NODE_OPTIONS='--require ./tests/v12222-vm-legacy-bridge.cjs'; "
+          assert script.startswith(prefix)
+          commands=script[len(prefix):].split(' && ')
+          assert len(commands)==493
+          env=dict(os.environ,NODE_OPTIONS='--require ./tests/v12222-vm-legacy-bridge.cjs',NODE_V8_COVERAGE=os.path.abspath('coverage/raw'))
+          results=[]
+          for idx,c in enumerate(commands,1):
+              assert re.fullmatch(r'node (?:--test )?tests/[\w./-]+\.(?:cjs|js|mjs)',c) or c in ('node scripts/v12319-coverage-report.cjs coverage/raw coverage','node scripts/v12319-architecture-audit.cjs'),c
+              start=time.monotonic()
+              try:
+                  p=subprocess.run(shlex.split(c),env=env,capture_output=True,text=True,errors='replace',timeout=150)
+                  rc=p.returncode
+                  output=p.stdout+'\n'+p.stderr
+              except subprocess.TimeoutExpired as e:
+                  rc=124
+                  output=str(e)
+              pathlib.Path('/tmp/kar210-cp39',f'{idx:03d}.log').write_text(output)
+              evidence=[s.strip()[:450] for s in output.splitlines() if re.search(r'Error:|AssertionError|not ok |FAIL |MODULE_NOT_FOUND|NOT_EXECUTED',s)][:3]
+              row=dict(index=idx,command=c,exitCode=rc,status='PASS' if rc==0 else 'TIMEOUT' if rc==124 else 'FAIL',seconds=round(time.monotonic()-start,3),evidence=evidence)
+              results.append(row)
+              print('CP39_ROW '+json.dumps(row,ensure_ascii=True),flush=True)
+          counts={s:sum(x['status']==s for x in results) for s in ('PASS','FAIL','TIMEOUT')}
+          print('CP39_COUNTS '+json.dumps(counts),flush=True)
+          pathlib.Path('/tmp/kar210-cp39/results.json').write_text(json.dumps(results,indent=2))
+          prior=json.load(open('docs/maintenance/KAR210_BASELINE_CHARACTERIZATION_CP38.json'))['rows']
+          assert [x['command'] for x in prior]==[x['command'] for x in results], 'active command list changed'
+          delta=[dict(index=x['index'],command=x['command'],before=y['status'],after=x['status']) for x,y in zip(results,prior) if x['status']!=y['status']]
+          print('CP39_DELTA '+json.dumps(delta),flush=True)
+          regressions=[d for d in delta if d['before']=='PASS' and d['after']!='PASS']
+          assert not regressions, regressions
+          raise SystemExit(bool(counts['FAIL'] or counts['TIMEOUT']))
+          PY
+      - name: Read actual diagnostic coverage and independent non-regression
+        if: always()
+        shell: bash
+        run: |
+          set -e
+          node -e 'const s=require("./coverage/coverage-summary.json"),a=require("./coverage/architecture-audit.json"); console.log("CP39_MEASURED "+JSON.stringify({summary:s,audit:a}));'
+          for n in 1 11 13 14 488 489; do
+            echo "CP39_CLOSURE_LOG_$n"
+            cat "/tmp/kar210-cp39/$(printf '%03d' "$n").log"
+          done
+          node scripts/coverage-no-regression.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: kar210-cp39-diagnostic
+          path: /tmp/kar210-cp39
+          retention-days: 14
+  actual-gate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --ignore-scripts
+      - run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = '${{ github.sha }}'
+          bash scripts/coverage-gate.sh
+
   focused:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 8
     steps:
       - uses: actions/checkout@v5
@@ -18,14 +106,15 @@ jobs:
         with:
           node-version: '22'
       - run: npm ci --ignore-scripts
-      - name: Exact source and focused verifier contracts
-        env:
-          EXPECTED_HEAD: ${{ github.sha }}
+      - name: Exact historical runtime and individually adapted contracts
+        shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test "$(git rev-parse HEAD)" = '${{ github.sha }}'
+          python3 tests/kar210-baseline-restore.py
           test ! -e release/kleinanzeigen-renewal-chrome-v2.0.0.0.zip
           python3 tests/kar48-archive-negative.py
           node tests/kar50-next-patch-contract.cjs
           NODE_OPTIONS='--require ./tests/v12222-vm-legacy-bridge.cjs' node tests/v1220-browser-e2e-contract.cjs
+          NODE_OPTIONS='--require ./tests/v12222-vm-legacy-bridge.cjs' node tests/kar210-test-disposition-contract.cjs
           test ! -e release/kleinanzeigen-renewal-chrome-v2.0.0.0.zip
