@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "issue": 210,
+  "checkpoint": 24,
+  "sourceCommit": "9f7a806036475076577a1ec9027b34bd16fe3d89",
+  "originalsRetainedInGit": true,
+  "policy": "Exact S02 metadata and actual historical owner only; independent lifecycle REDs remain active; no runtime or command changes. Validation pending.",
+  "review": [
+    {
+      "path": "tests/v1150-correlation.cjs",
+      "originalBlob": "a77b4d413f40f3235e08e30017dacf17457d5e87",
+      "originalCommit": "9f7a806036475076577a1ec9027b34bd16fe3d89",
+      "changes": [
+        "Exact S02 identity and historical permissions where applicable; behavior assertions unchanged."
+      ]
+    },
+    {
+      "path": "tests/v1153-correlation-runtime.cjs",
+      "originalBlob": "9967393a115e9ed37266f9562cdb74b82d11103d",
+      "originalCommit": "9f7a806036475076577a1ec9027b34bd16fe3d89",
+      "changes": [
+        "Use hash-checked actual historical background correlation function; preserve all original runtime cases and later provider wiring assertions outside S02."
+      ]
+    },
+    {
+      "path": "tests/v1156-a1-tab-registry.cjs",
+      "originalBlob": "ee3788935fea6b82ce379b72665d3da79f331a71",
+      "originalCommit": "9f7a806036475076577a1ec9027b34bd16fe3d89",
+      "changes": [
+        "Exact S02 identity and historical permissions where applicable; behavior assertions unchanged."
+      ]
+    },
+    {
+      "path": "tests/v1157-a1b-gone-worker.cjs",
+      "originalBlob": "fa927de183887ef33bc1443d1013c6a43b779064",
+      "originalCommit": "9f7a806036475076577a1ec9027b34bd16fe3d89",
+      "changes": [
+        "Exact S02 identity and historical permissions where applicable; behavior assertions unchanged."
+      ]
+    }
+  ]
+}
