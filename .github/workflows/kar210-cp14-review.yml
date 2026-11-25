@@ -19,3 +19,5 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: node --test tests/kar210-kar175-public-navigation-baseline.cjs tests/kar210-kar175-phase1-retry-baseline.cjs tests/kar210-kar175-correlation-url-baseline.cjs
       - run: node tests/kar210-test-disposition-contract.cjs
+
+# Historical public evidence provider registers through KRDeps.

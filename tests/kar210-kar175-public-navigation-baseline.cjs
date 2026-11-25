@@ -10,7 +10,10 @@ function declaration(name){
 function load(ctx,names){vm.runInNewContext(names.map(declaration).join('\n'),ctx);}
 
 const ManagedNavigation=require('../src/shared/managed-navigation.js');
-const PublicEvidence=require('../src/background/services/public-listing-evidence-service.js').create({URL});
+let publicProvider;
+vm.runInNewContext(fs.readFileSync('src/background/services/public-listing-evidence-service.js','utf8'),{URL,KRDeps:{register(name,api){assert.equal(name,'KRPublicListingEvidenceService');publicProvider=api;}}});
+assert.equal(typeof publicProvider?.create,'function');
+const PublicEvidence=publicProvider.create({URL});
 const url='https://www.kleinanzeigen.de/s-anzeige/demo/123-12-34';
 const wrong='https://www.kleinanzeigen.de/s-anzeige/demo/999-12-34';
 function fixture(){
