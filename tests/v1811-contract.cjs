@@ -40,14 +40,34 @@ assert.match(phase4Verifier, /VERIFY_OWN_AD_ABSENT_BY_ID/);
 assert.doesNotMatch(phase4Delete, /chrome\.tabs\.reload\(deleteTabId\)/);
 pass('verification runs in a separate fresh My Ads worker independent of destructive-tab lifecycle');
 
-assert.match(phase4, /while \(!verification\?\.verified && renewalPhaseAttemptAvailable\(session, 4\)\)/);
-assert.match(phase4, /renewalPhaseRetryDelayMs/);
-assert.match(phase4, /RENEWAL_PHASE4_ATTEMPT_STARTED/);
-assert.match(phase4Verifier, /RENEWAL_SOURCE_DELETE_VERIFICATION_ATTEMPT/);
-assert.match(phase4, /if \(verification\?\.verified\) \{[\s\S]*?await resolvePhase4Attempt\(/);
-assert.match(phase4, /if \(previousEvidence\.attempts\.length\) \{[\s\S]*?await resolvePhase4Attempt\(/);
-assert.match(phase4, /KR_PHASE4_JOURNAL_UNVERIFIED/);
-pass('bounded phase attempts skip already resolved DELETE and require independent source+target proof');
+if (restored) {
+  // S02 restores the historical loop, not the excluded later C journal.
+  // This is a source contract, not acceptance of bounded or replay-safe transport.
+  assert.match(phase4, /while \(renewalPhaseAttemptAvailable\(session, 4\)\)/);
+  assert.match(phase4, /renewalPhaseRetryDelayMs/);
+  assert.match(phase4, /RENEWAL_PHASE4_ATTEMPT_STARTED/);
+  assert.match(phase4Verifier, /RENEWAL_SOURCE_DELETE_VERIFICATION_ATTEMPT/);
+  assert.match(phase4, /if \(verification\?\.verified\) break/);
+  assert.match(phase4, /if \(isNonRetryableRenewalSafetyError\(error\) \|\| !renewalPhaseAttemptAvailable\(session, 4\)\) break/);
+  const pending = phase4.indexOf("session.stage = 'source-delete-verification-pending'");
+  const persist = phase4.indexOf('await persistRenewalSession(session)', pending);
+  const verify = phase4.indexOf('verification = await verifyRenewalSourceAbsenceFresh(session', persist);
+  const reject = phase4.indexOf('if (!verification?.verified)', verify);
+  const success = phase4.indexOf("session.stage = 'source-delete-verified'", reject);
+  assert.ok(pending >= 0 && persist > pending && verify > persist && reject > verify && success > reject);
+  assert.match(phase4.slice(reject, success), /throw error/);
+  assert.doesNotMatch(phase4.slice(reject, success), /promoteRenewalCandidateAtomic/);
+  pass('historical loop persists uncertainty and refuses promotion without independent absence; replay and timeout witnesses remain separate RED');
+} else {
+  assert.match(phase4, /while \(!verification\?\.verified && renewalPhaseAttemptAvailable\(session, 4\)\)/);
+  assert.match(phase4, /renewalPhaseRetryDelayMs/);
+  assert.match(phase4, /RENEWAL_PHASE4_ATTEMPT_STARTED/);
+  assert.match(phase4Verifier, /RENEWAL_SOURCE_DELETE_VERIFICATION_ATTEMPT/);
+  assert.match(phase4, /if \(verification\?\.verified\) \{[\s\S]*?await resolvePhase4Attempt\(/);
+  assert.match(phase4, /if \(previousEvidence\.attempts\.length\) \{[\s\S]*?await resolvePhase4Attempt\(/);
+  assert.match(phase4, /KR_PHASE4_JOURNAL_UNVERIFIED/);
+  pass('bounded phase attempts skip already resolved DELETE and require independent source+target proof');
+}
 
 assert.match(phase4, /session\.stage = 'replacement-ready'/);
 assert.match(phase4, /sourceDeleteVerificationFailedAt/);

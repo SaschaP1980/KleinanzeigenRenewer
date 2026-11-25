@@ -1,0 +1,132 @@
+{
+  "schemaVersion": 1,
+  "issue": 210,
+  "checkpoint": 21,
+  "sourceCommit": "5d07b5614111f0323935656fd614074a80df3ece",
+  "originalsRetainedInGit": true,
+  "policy": "Exact S02 identity only; product runtime unchanged. Historical feature branch selection and explicit mixed C split; independent actual safety REDs remain active, no product acceptance. Focused validation pending.",
+  "review": [
+    {
+      "path": "tests/v190-contract.cjs",
+      "originalBlob": "eedb09735943f7c61d4df0b7827aa2b81dde53de",
+      "originalCommit": "5d07b5614111f0323935656fd614074a80df3ece",
+      "versionPredicates": 2,
+      "changes": [
+        "Exact S02 identity checked before selecting the applicable later historical feature era. Existing legacy lists unchanged; all product assertions retained, historical permission set explicit. Earlier patch-specific hashes remain scoped to the original releases, not the restored v1.23.48."
+      ]
+    },
+    {
+      "path": "tests/v1100-contract.cjs",
+      "originalBlob": "17f37e406dc17cfc7b49b2657d032634c1d6e9e0",
+      "originalCommit": "5d07b5614111f0323935656fd614074a80df3ece",
+      "versionPredicates": 3,
+      "changes": [
+        "Exact S02 identity checked before selecting the applicable later historical feature era. Existing legacy lists unchanged; all product assertions retained, historical permission set explicit. Earlier patch-specific hashes remain scoped to the original releases, not the restored v1.23.48."
+      ]
+    },
+    {
+      "path": "tests/v1101-contract.cjs",
+      "originalBlob": "ad80f339424ff001470b20e30d89e11af5a5cd7e",
+      "originalCommit": "5d07b5614111f0323935656fd614074a80df3ece",
+      "versionPredicates": 5,
+      "changes": [
+        "Exact S02 identity checked before selecting the applicable later historical feature era. Existing legacy lists unchanged; all product assertions retained, historical permission set explicit. Earlier patch-specific hashes remain scoped to the original releases, not the restored v1.23.48."
+      ]
+    },
+    {
+      "path": "tests/v1102-contract.cjs",
+      "originalBlob": "4da17497e34ce986daeaeeabbb4cc233b236a1d4",
+      "originalCommit": "5d07b5614111f0323935656fd614074a80df3ece",
+      "versionPredicates": 2,
+      "changes": [
+        "Exact S02 identity checked before selecting the applicable later historical feature era. Existing legacy lists unchanged; all product assertions retained, historical permission set explicit. Earlier patch-specific hashes remain scoped to the original releases, not the restored v1.23.48."
+      ]
+    },
+    {
+      "path": "tests/v1103-contract.cjs",
+      "originalBlob": "55e9ea78d06f97ba5113fd368e0f8ffe7bcd77f3",
+      "originalCommit": "5d07b5614111f0323935656fd614074a80df3ece",
+      "versionPredicates": 5,
+      "changes": [
+        "Exact S02 identity checked before selecting the applicable later historical feature era. Existing legacy lists unchanged; all product assertions retained, historical permission set explicit. Earlier patch-specific hashes remain scoped to the original releases, not the restored v1.23.48."
+      ]
+    },
+    {
+      "path": "tests/v1104-contract.cjs",
+      "originalBlob": "da0ae4a647c6402bbe1b9f72eee492c44a30607f",
+      "originalCommit": "5d07b5614111f0323935656fd614074a80df3ece",
+      "versionPredicates": 9,
+      "changes": [
+        "Exact S02 identity checked before selecting the applicable later historical feature era. Existing legacy lists unchanged; all product assertions retained, historical permission set explicit. Earlier patch-specific hashes remain scoped to the original releases, not the restored v1.23.48."
+      ]
+    },
+    {
+      "path": "tests/v1110-contract.cjs",
+      "originalBlob": "88cda67dd2cb17e2962f7462df90141bbde86560",
+      "originalCommit": "5d07b5614111f0323935656fd614074a80df3ece",
+      "versionPredicates": 15,
+      "changes": [
+        "Exact S02 identity checked before selecting the applicable later historical feature era. Existing legacy lists unchanged; all product assertions retained, historical permission set explicit. Earlier patch-specific hashes remain scoped to the original releases, not the restored v1.23.48."
+      ]
+    },
+    {
+      "path": "tests/v1111-contract.cjs",
+      "originalBlob": "3153301bba7ffb16d54612535d9baa0ee59d4d95",
+      "originalCommit": "5d07b5614111f0323935656fd614074a80df3ece",
+      "versionPredicates": 10,
+      "changes": [
+        "Exact S02 identity checked before selecting the applicable later historical feature era. Existing legacy lists unchanged; all product assertions retained, historical permission set explicit. Earlier patch-specific hashes remain scoped to the original releases, not the restored v1.23.48."
+      ]
+    },
+    {
+      "path": "tests/v1112-contract.cjs",
+      "originalBlob": "8150798b5ce65e91c7650b6098525a297a241673",
+      "originalCommit": "5d07b5614111f0323935656fd614074a80df3ece",
+      "versionPredicates": 8,
+      "changes": [
+        "Exact S02 identity checked before selecting the applicable later historical feature era. Existing legacy lists unchanged; all product assertions retained, historical permission set explicit. Earlier patch-specific hashes remain scoped to the original releases, not the restored v1.23.48."
+      ]
+    },
+    {
+      "path": "tests/v1113-contract.cjs",
+      "originalBlob": "0c9a55064a4a33f65e8e38a196f7206a90443378",
+      "originalCommit": "5d07b5614111f0323935656fd614074a80df3ece",
+      "versionPredicates": 14,
+      "changes": [
+        "Exact S02 identity checked before selecting the applicable later historical feature era. Existing legacy lists unchanged; all product assertions retained, historical permission set explicit. Earlier patch-specific hashes remain scoped to the original releases, not the restored v1.23.48."
+      ]
+    },
+    {
+      "path": "tests/v1114-contract.cjs",
+      "originalBlob": "c0c6b6dc952aca5a75e87ce6e66ec04741eb428c",
+      "originalCommit": "5d07b5614111f0323935656fd614074a80df3ece",
+      "versionPredicates": 15,
+      "changes": [
+        "Exact S02 identity checked before selecting the applicable later historical feature era. Existing legacy lists unchanged; all product assertions retained, historical permission set explicit. Earlier patch-specific hashes remain scoped to the original releases, not the restored v1.23.48."
+      ]
+    },
+    {
+      "path": "tests/v1115-contract.cjs",
+      "originalBlob": "025793fa24e895d961e96e9b0e40824dc72b543a",
+      "originalCommit": "5d07b5614111f0323935656fd614074a80df3ece",
+      "versionPredicates": 11,
+      "changes": [
+        "Exact S02 identity checked before selecting the applicable later historical feature era. Existing legacy lists unchanged; all product assertions retained, historical permission set explicit. Earlier patch-specific hashes remain scoped to the original releases, not the restored v1.23.48."
+      ]
+    },
+    {
+      "path": "tests/v1811-contract.cjs",
+      "originalBlob": "599e8717a137daf03733e0e8d3a2f88dd3d96669",
+      "originalCommit": "5d07b5614111f0323935656fd614074a80df3ece",
+      "changes": [
+        "Separate later C journal implementation assertions (unchanged outside S02) from actual historical loop: persist uncertainty before fresh read-only verification; failure throws before verified stage/promotion. No claim of replay or timeout safety."
+      ],
+      "independentActiveWitnesses": [
+        "tests/kar210-kar199-baseline-phase4.cjs",
+        "tests/kar199-phase4-no-transport-replay.cjs",
+        "tests/kar199-phase4-bounded-runtime.cjs",
+        "tests/kar199-phase4-unverified-state-runtime.cjs"
+      ]
+    }
+  ]
+}
