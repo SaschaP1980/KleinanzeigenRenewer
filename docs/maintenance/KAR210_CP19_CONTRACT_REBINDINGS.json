@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "issue": 210,
+  "checkpoint": 19,
+  "sourceCommit": "69ab041899f41652bac7a86182e5abf1f8737e13",
+  "originalsRetainedInGit": true,
+  "policy": "Exact S02 version context only; no broadening of historical PATCH predicates, no runtime change, no disabled product assertions. Focused validation pending; this is not coverage or native acceptance.",
+  "review": [
+    {
+      "path": "tests/v130-contract.cjs",
+      "originalBlob": "c4ecb30d1738450d40ae62d215bdf2ffa3e76fae",
+      "originalCommit": "69ab041899f41652bac7a86182e5abf1f8737e13",
+      "changes": [
+        "Exact S02 identity validation before the legacy version-list assertion.",
+        "Use historical post-v1.16.8 toolbar/window/runner branches for the restored v1.23.48 runtime; retain their assertions.",
+        "Retain explicit permission comparison against the historical v1.23.48 permission contract on S02."
+      ]
+    },
+    {
+      "path": "tests/v150-contract.cjs",
+      "originalBlob": "bcef49bce3090e2931bacbf71f68d632a6e64d7c",
+      "originalCommit": "69ab041899f41652bac7a86182e5abf1f8737e13",
+      "changes": [
+        "Exact S02 identity validation before the legacy version-list assertion."
+      ]
+    },
+    {
+      "path": "tests/v170-contract.cjs",
+      "originalBlob": "b653d290d7bea5722b9af157f09dbc60af192017",
+      "originalCommit": "69ab041899f41652bac7a86182e5abf1f8737e13",
+      "changes": [
+        "Exact S02 identity validation before the legacy version-list assertion.",
+        "Retain explicit permission comparison against the historical v1.23.48 permission contract on S02."
+      ]
+    },
+    {
+      "path": "tests/v171-contract.cjs",
+      "originalBlob": "3452b2db2060a4a5bdd8536c897fcb4c72c4c50f",
+      "originalCommit": "69ab041899f41652bac7a86182e5abf1f8737e13",
+      "changes": [
+        "Exact S02 identity validation before the legacy version-list assertion.",
+        "On S02 require npm SemVer 2.0.0 and exact separately validated Chrome 2.0.0.0."
+      ]
+    }
+  ]
+}
