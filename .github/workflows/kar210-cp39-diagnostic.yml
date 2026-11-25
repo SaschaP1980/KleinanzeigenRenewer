@@ -1,0 +1,29 @@
+name: KAR-210 checkpoint 39 focused D diagnostic
+on:
+  push:
+    branches: ['work/KAR-210']
+    paths: ['.github/workflows/kar210-cp39-diagnostic.yml']
+permissions:
+  contents: read
+jobs:
+  focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Exact source and focused verifier contracts
+        env:
+          EXPECTED_HEAD: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test ! -e release/kleinanzeigen-renewal-chrome-v2.0.0.0.zip
+          python3 tests/kar48-archive-negative.py
+          node tests/v1220-browser-e2e-contract.cjs
+          test ! -e release/kleinanzeigen-renewal-chrome-v2.0.0.0.zip
