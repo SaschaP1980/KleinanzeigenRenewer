@@ -72,5 +72,22 @@
     "passed": 9,
     "failed": 1,
     "reason": "v1182 later configurable retention label/source surface mismatch; eight other groups pass."
+  },
+  "focusedValidation": {
+    "runId": 45600785024,
+    "jobId": 139158822170,
+    "head": "55712492912ffb86c66a3f10a28f41c6efde3ae9",
+    "passed": 12,
+    "failed": 0,
+    "completeHistoricalContracts": 7,
+    "completeContractGroups": 47,
+    "retainedRuntimeCommands": 2,
+    "negativeFixtures": 59
+  },
+  "builderGuard": {
+    "runId": 45600595188,
+    "jobId": 139158163764,
+    "result": "failure",
+    "reason": "No explicit authorized marker; no build executed."
   }
 }
