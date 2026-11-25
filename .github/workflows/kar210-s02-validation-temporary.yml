@@ -1,4 +1,4 @@
-name: KAR-210 historical architecture version GREEN
+name: KAR-210 correction release evidence GREEN
 on:
   push:
     branches: ['work/KAR-210']
@@ -9,7 +9,7 @@ jobs:
   review:
     if: >-
       github.ref == 'refs/heads/work/KAR-210' &&
-      github.event.head_commit.message == 'test(KAR-210): reconcile seven historical architecture version contracts'
+      github.event.head_commit.message == 'test(KAR-210): retain correction evidence with exact restored runtime contract'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -19,21 +19,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Explicit major baseline version negatives
-        run: node tests/kar210-baseline-version-contract.cjs
-      - name: Historical architecture contracts
+      - run: npm ci --ignore-scripts
+      - name: Historical correction evidence
+        run: node tests/v12320c1-version-release.cjs
+      - name: Exact restored runtime and historical title correction
+        if: always()
+        run: node tests/v12322-version-release.cjs
+      - name: Title and field safety
         if: always()
         run: |
           export NODE_OPTIONS='--require ./tests/v12222-vm-legacy-bridge.cjs'
-          result=0
-          node tests/v1231-version-architecture.cjs || result=1
-          node tests/v1233-version-architecture.cjs || result=1
-          node tests/v1234-version-architecture.cjs || result=1
-          node tests/v1235-version-architecture.cjs || result=1
-          node tests/v1236-version-architecture.cjs || result=1
-          node tests/v1237-version-architecture.cjs || result=1
-          node tests/v12311-version-architecture.cjs || result=1
-          exit "$result"
-      - name: Recheck retained test ownership
-        if: always()
-        run: node tests/kar167-test-coverage-closure.cjs
+          node tests/v12322-title-field-stability.cjs
+          node tests/kar132-wearables-attributes.cjs
