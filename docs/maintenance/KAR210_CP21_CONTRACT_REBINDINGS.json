@@ -128,5 +128,26 @@
         "tests/kar199-phase4-unverified-state-runtime.cjs"
       ]
     }
+  ],
+  "firstFocusedValidation": {
+    "runId": 45580211661,
+    "jobId": 139088066205,
+    "head": "10e39b36e35d6849d22ee353ce24b269f7b42609",
+    "passed": 14,
+    "failed": 2,
+    "failures": [
+      "v1112",
+      "v1114"
+    ],
+    "qualification": "v1811 historical source contract passed; no replay/timeout acceptance. Two absent later public-evidence owner paths exposed."
+  },
+  "followup": [
+    {
+      "tests": [
+        "v1112",
+        "v1114"
+      ],
+      "change": "Use already reviewed exact frozen background owner helper; retain later facade delegation outside S02; all fresh target-bound worker and safety assertions preserved."
+    }
   ]
 }

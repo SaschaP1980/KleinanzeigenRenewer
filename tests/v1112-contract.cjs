@@ -52,10 +52,10 @@ assert.match(reinventory, /if \(workerTabId\) await closeManagedWorkerTab\(worke
 assert.match(reinventory, /resolveRenewalPublicEvidence\(newAdId,[\s\S]*session\)/);
 pass('phase 2 retires its edit worker and phase 3 starts an independent fresh verification worker per attempt');
 
-const publicEvidenceOwner = fs.readFileSync(path.join(root,'src/background/services/renewal-public-evidence-coordinator.js'),'utf8');
-assert.match(background,/requireRenewalPublicEvidenceCoordinator\(\)\.resolveRenewalPublicEvidence\(/,
+const publicEvidenceOwner = fs.readFileSync(path.join(root,require('./kar210-historical-contract-context.cjs').historicalBackgroundOwner(root, 'src/background/services/renewal-public-evidence-coordinator.js')),'utf8');
+if (!restored) assert.match(background,/requireRenewalPublicEvidenceCoordinator\(\)\.resolveRenewalPublicEvidence\(/,
   'background must keep the existing renewal evidence facade wired to the registered owner');
-const ownerMethod = signature => publicEvidenceOwner.match(new RegExp(signature + '[\\s\\S]*?\\n      \\}'))?.[0] || '';
+const ownerMethod = signature => publicEvidenceOwner.match(new RegExp(signature + (restored ? '[\\s\\S]*?\\n\\}' : '[\\s\\S]*?\\n      \\}')))?.[0] || '';
 const publicWait = ownerMethod('async function waitForRenewalPublicAdComplete\\(tabId, expectedAdId,');
 const freshCreate = ownerMethod('async function createFreshRenewalVerificationTab\\(targetUrl, newAdId,');
 const freshProbe = ownerMethod('async function probeFreshRenewalPublicUrl\\(url, expectedAdId,');
