@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "issue": 210,
+  "checkpoint": 27,
+  "sourceCommit": "c171fe35cc21838de05141b7e803f3fe8cf79389",
+  "originalsRetainedInGit": true,
+  "policy": "Historical minimal baseline first; exact identity and actual reviewed owners only; genuine safety RED retained; no runtime or active command changes. Validation pending.",
+  "review": [
+    {
+      "path": "tests/v1180-ui-workflow.cjs",
+      "originalBlob": "b2708c27b2e06f18a484dce981998297bccf4137",
+      "originalCommit": "c171fe35cc21838de05141b7e803f3fe8cf79389",
+      "changes": [
+        "Exact S02 identity and historical feature-era branch; original behavior assertions unchanged."
+      ]
+    },
+    {
+      "path": "tests/v1181-reconciliation-profile-backup.cjs",
+      "originalBlob": "3b35dd08c7f418d79dcdecb58fe9d63d2c703971",
+      "originalCommit": "c171fe35cc21838de05141b7e803f3fe8cf79389",
+      "changes": [
+        "Exact S02 identity and historical feature-era branch; original behavior assertions unchanged."
+      ]
+    },
+    {
+      "path": "tests/v1182-fast-derived-trash-retention.cjs",
+      "originalBlob": "1a686895a3e4f25516b092ffd88a05e8b6d0ab3f",
+      "originalCommit": "c171fe35cc21838de05141b7e803f3fe8cf79389",
+      "changes": [
+        "Exact S02 identity and historical feature-era branch; original behavior assertions unchanged.",
+        "Bind missing later trash-controller owner to hash-checked actual historical background; preserve reset/delete ordering and derived-date behavior."
+      ]
+    },
+    {
+      "path": "tests/v1182-derived-date-runtime.cjs",
+      "originalBlob": "8167fa77e641ffdc393da80c735edf4b26a0ae39",
+      "originalCommit": "c171fe35cc21838de05141b7e803f3fe8cf79389",
+      "changes": [
+        "Retain all original KAR-143 positive and negative fixtures against actual hash-checked historical refresh/expiry reader, later service delegation outside S02. Derived-date checks unchanged."
+      ]
+    },
+    {
+      "path": "tests/v1183-trash-modal-order.cjs",
+      "originalBlob": "a0f1167faf6bf5492a6002c069fdd05a0b43f026",
+      "originalCommit": "c171fe35cc21838de05141b7e803f3fe8cf79389",
+      "changes": [
+        "Exact S02 identity and historical feature-era branch; original behavior assertions unchanged."
+      ]
+    },
+    {
+      "path": "tests/v1194-reconciliation-fresh-source.cjs",
+      "originalBlob": "29347c399ebe5e728b0a1d0beab5391a1ab9ac68",
+      "originalCommit": "c171fe35cc21838de05141b7e803f3fe8cf79389",
+      "changes": [
+        "Exact S02 identity and historical feature-era branch; original behavior assertions unchanged."
+      ]
+    },
+    {
+      "path": "tests/v1195-fresh-inventory-source.cjs",
+      "originalBlob": "6da4e59011dcbe1aac5dc08d4e8eddd3a5f0e353",
+      "originalCommit": "c171fe35cc21838de05141b7e803f3fe8cf79389",
+      "changes": [
+        "Exact S02 identity and historical feature-era branch; original behavior assertions unchanged."
+      ]
+    }
+  ]
+}
