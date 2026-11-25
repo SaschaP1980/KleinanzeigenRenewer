@@ -31,3 +31,5 @@ jobs:
         with:
           node-version: '22'
       - run: node --test tests/kar210-startup-isolation-witness.cjs
+
+# JPEG assertions preserved; bind to historical background owner.
