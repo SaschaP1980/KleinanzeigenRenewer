@@ -62,5 +62,28 @@
         "Unchanged genuine RED: historical startup waits for optional configuration/history before inventory, independent kar210-startup-isolation-witness remains active. No future loading-state feature restored."
       ]
     }
-  ]
+  ],
+  "focusedValidation": {
+    "runId": 45602661410,
+    "jobId": 139165296241,
+    "head": "fb11df2e10c36054a5c1278bd399c90ff0f530d9",
+    "passed": 10,
+    "failed": 3,
+    "completeHistoricalContracts": 5,
+    "completeContractGroups": 69,
+    "partialHistoricalGroups": 11,
+    "retainedRuntimeCommandsPassed": 2,
+    "negativeFixtures": 59,
+    "expectedRed": [
+      "v1203-hot-path-runtime: stale expiry selection deletes a record whose retention was reset after read",
+      "v12018-activity-history-bootstrap: optional startup prerequisites gate inventory",
+      "kar210-startup-isolation-witness: optional configuration blocks inventory; inspection failure mislabeled"
+    ]
+  },
+  "builderGuard": {
+    "runId": 45602661308,
+    "jobId": 139165296353,
+    "result": "failure",
+    "reason": "No explicit authorized marker; no build executed."
+  }
 }
