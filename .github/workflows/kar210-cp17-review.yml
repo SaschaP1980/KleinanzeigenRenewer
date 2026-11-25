@@ -1,0 +1,44 @@
+name: KAR-210 CP17 selection category and lifecycle contracts
+on:
+  push:
+    branches: [work/KAR-210]
+    paths: ['.github/workflows/kar210-cp17-review.yml']
+permissions:
+  contents: read
+jobs:
+  review:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --ignore-scripts
+      - run: node --test tests/kar210-kar158-compact-baseline.cjs tests/kar210-kar151-selection-baseline.cjs tests/kar210-kar150-mass-baseline.cjs
+      - run: node tests/kar210-test-disposition-contract.cjs
+  lifecycle-witness:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test tests/kar210-kar150-uncertain-start-witness.cjs tests/kar210-p9-independent-tab-lifecycle.cjs
+  category-witness:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --ignore-scripts
+      - run: node tests/kar210-kar132-independent-modal.cjs

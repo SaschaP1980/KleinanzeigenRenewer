@@ -742,6 +742,63 @@ const RULES = Object.freeze({
       "tests/kar210-kar175-public-navigation-baseline.cjs",
       "tests/kar210-p13-persisted-owner-baseline.cjs"
     ]
+  },
+  "tests/kar158-compact-category.cjs": {
+    "module": "src/app/record-card-view.js",
+    "matrix": "B01/B02",
+    "step": "S08",
+    "status": "deferred-B",
+    "owner": "package.json",
+    "retained": [
+      "tests/kar210-kar158-compact-baseline.cjs",
+      "tests/kar210-baseline-retained-behavior.cjs",
+      "tests/v12314-runtime.cjs"
+    ],
+    "featureAbsence": {
+      "marker": "categoryLine.title = categoryLine.textContent",
+      "baselineBlob": "6e9974cedd71c092df0a09b3b49f6502073e18a5",
+      "donorBlob": "2e9c7bce7209eefd9ed7efb568f5e331a8817ada",
+      "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
+    }
+  },
+  "tests/kar151-mass-title-search.cjs": {
+    "module": "src/app/mass-renewal-ui-controller.js",
+    "matrix": "B03",
+    "step": "S08",
+    "status": "deferred-B",
+    "owner": "package.json",
+    "retained": [
+      "tests/kar210-kar151-selection-baseline.cjs",
+      "tests/v1233-mass-renewal-workflow-runtime.cjs",
+      "tests/v1238-account-session-controller-runtime.cjs"
+    ],
+    "featureAbsence": {
+      "marker": "massRenewalSearchInput",
+      "baselineBlob": "813aedc109538d3afb387f6f47648bdfe12fe303",
+      "donorBlob": "1c22cb5bd91623337164744046fbc03622839c68",
+      "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
+    }
+  },
+  "tests/kar150-stop-on-error.cjs": {
+    "module": "src/app/mass-renewal-ui-controller.js",
+    "matrix": "A07/A09/A14/B04/C05",
+    "step": "S06/S08",
+    "status": "deferred-B",
+    "owner": "package.json",
+    "retained": [
+      "tests/kar210-kar150-mass-baseline.cjs",
+      "tests/kar210-kar150-uncertain-start-witness.cjs",
+      "tests/v1233-mass-renewal-workflow-runtime.cjs",
+      "tests/v12226-paid-insertion-regression.cjs",
+      "tests/v12227-paid-insertion-lock-reset-regression.cjs",
+      "tests/kar210-p13-lock-read-uncertainty.cjs"
+    ],
+    "featureAbsence": {
+      "marker": "massRenewalStopOnErrorPreferenceV1",
+      "baselineBlob": "813aedc109538d3afb387f6f47648bdfe12fe303",
+      "donorBlob": "1c22cb5bd91623337164744046fbc03622839c68",
+      "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
+    }
   }
 });
 const OWNERS = Object.freeze(["package.json","scripts/build.sh","scripts/coverage-gate.sh",".github/workflows/kar-work-pr.yml",".github/workflows/kar-ci.yml",".github/workflows/kar-release.yml"]);

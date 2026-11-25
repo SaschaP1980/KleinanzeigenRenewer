@@ -887,6 +887,72 @@
         "tests/kar210-p13-persisted-owner-baseline.cjs"
       ],
       "reason": "All original cases exercise P8 callback attribution for profile and account transition through absent observer; none proves real profile commit or live account. Keep actual historical profile controller, account gate with mismatched/unknown live identity rejection, backup and scoped public fallback tests. Persisted local selection or receipt is not authentication. S03 data and S06 account continuity obligations remain; no native upgrade or census."
+    },
+    {
+      "test": "tests/kar158-compact-category.cjs",
+      "blob": "f33119d51c3f1fe9a9266aace26e4438a4509620",
+      "module": "src/app/record-card-view.js",
+      "matrix": "B01/B02",
+      "step": "S08",
+      "status": "deferred-B",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-kar158-compact-baseline.cjs",
+        "tests/kar210-baseline-retained-behavior.cjs",
+        "tests/v12314-runtime.cjs"
+      ],
+      "reason": "Later full category + saved Art/Typ and tooltip presentation absent; retain exact independent compact hierarchy, price/title, inventory/trash and immutable record assertions, baseline leaf-only saved category and neutral/legacy fallback, CSS one-line safety. Original full-path/type ambiguity requirements remain S08.",
+      "featureAbsence": {
+        "marker": "categoryLine.title = categoryLine.textContent",
+        "baselineBlob": "6e9974cedd71c092df0a09b3b49f6502073e18a5",
+        "donorBlob": "2e9c7bce7209eefd9ed7efb568f5e331a8817ada",
+        "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
+      }
+    },
+    {
+      "test": "tests/kar151-mass-title-search.cjs",
+      "blob": "e68cc83e385e1198a868a367fcdf438694db57e0",
+      "module": "src/app/mass-renewal-ui-controller.js",
+      "matrix": "B03",
+      "step": "S08",
+      "status": "deferred-B",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-kar151-selection-baseline.cjs",
+        "tests/v1233-mass-renewal-workflow-runtime.cjs",
+        "tests/v1238-account-session-controller-runtime.cjs"
+      ],
+      "reason": "Search controls, normalization and hidden selections absent; preserve actual historical DOM order, exact selected IDs, keyboard and max-ten cap, stale profile selection purge, account gate and explicit ordered batch request, without claiming hidden-selection/search or later persisted stop-on-error. Original suite intact for S08.",
+      "featureAbsence": {
+        "marker": "massRenewalSearchInput",
+        "baselineBlob": "813aedc109538d3afb387f6f47648bdfe12fe303",
+        "donorBlob": "1c22cb5bd91623337164744046fbc03622839c68",
+        "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
+      }
+    },
+    {
+      "test": "tests/kar150-stop-on-error.cjs",
+      "blob": "b92f5f024dce5ff0664f8ea7ee6aca5467ab2a31",
+      "module": "src/app/mass-renewal-ui-controller.js",
+      "matrix": "A07/A09/A14/B04/C05",
+      "step": "S06/S08",
+      "status": "deferred-B",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-kar150-mass-baseline.cjs",
+        "tests/kar210-kar150-uncertain-start-witness.cjs",
+        "tests/v1233-mass-renewal-workflow-runtime.cjs",
+        "tests/v12226-paid-insertion-regression.cjs",
+        "tests/v12227-paid-insertion-lock-reset-regression.cjs",
+        "tests/kar210-p13-lock-read-uncertainty.cjs"
+      ],
+      "reason": "Later frozen preference and automatic ordinary-error stop intentionally deferred, not baseline default. Preserve historical ordinary continuation, explicit user stop, paid checkout mandatory stop before next start, stable ordering/deduplication and terminal no-restart; retain independent restart missing-session no-replay RED from original as active witness. Later uncertain Phase4 stop policy, preference corruption/migration/watchdog obligations remain S06/S08; no C05 backport.",
+      "featureAbsence": {
+        "marker": "massRenewalStopOnErrorPreferenceV1",
+        "baselineBlob": "813aedc109538d3afb387f6f47648bdfe12fe303",
+        "donorBlob": "1c22cb5bd91623337164744046fbc03622839c68",
+        "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
+      }
     }
   ],
   "deferredWitnesses": [
