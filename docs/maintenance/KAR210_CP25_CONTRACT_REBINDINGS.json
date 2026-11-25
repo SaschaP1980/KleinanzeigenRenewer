@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "issue": 210,
+  "checkpoint": 25,
+  "sourceCommit": "cb83680ffd1e46e8dede233b8c88fbedad5c583f",
+  "originalsRetainedInGit": true,
+  "policy": "Historical minimal baseline first; no restored later architecture, runtime or active command changes. Genuine safety RED retained.",
+  "review": [
+    {
+      "path": "tests/v1160-inventory-capture-modal.cjs",
+      "originalBlob": "1348d77c140b20ebd5c38ba7650595b145a82434",
+      "originalCommit": "cb83680ffd1e46e8dede233b8c88fbedad5c583f",
+      "changes": [
+        "Exact S02 identity and applicable historical feature-era branch; all behavior assertions unchanged pending focused CI."
+      ]
+    },
+    {
+      "path": "tests/v1161-single-inventory-edit-worker.cjs",
+      "originalBlob": "183fa9ba53e8cd18b20e757bfc7815cccde60c3a",
+      "originalCommit": "cb83680ffd1e46e8dede233b8c88fbedad5c583f",
+      "changes": [
+        "Exact S02 identity and applicable historical feature-era branch; all behavior assertions unchanged pending focused CI."
+      ]
+    },
+    {
+      "path": "tests/v1161-single-inventory-edit-worker-runtime.cjs",
+      "originalBlob": "3d3b80866bc65088a6ec4407745ad3dcbb8fff49",
+      "originalCommit": "cb83680ffd1e46e8dede233b8c88fbedad5c583f",
+      "changes": [
+        "Execute original public/edit/invalid/foreign host cases against hash-checked actual historical source router; retain later service registration outside S02."
+      ]
+    },
+    {
+      "path": "tests/v1163-single-inventory-result.cjs",
+      "originalBlob": "10a2fa805ad2026962cac636f9e1aa0cbe2617c3",
+      "originalCommit": "cb83680ffd1e46e8dede233b8c88fbedad5c583f",
+      "changes": [
+        "Exact S02 identity and applicable historical feature-era branch; all behavior assertions unchanged pending focused CI."
+      ]
+    },
+    {
+      "path": "tests/v1164-gallery-root-img.cjs",
+      "originalBlob": "d90cc18b530daa4b37d92ff6cdb89dfde750bda6",
+      "originalCommit": "cb83680ffd1e46e8dede233b8c88fbedad5c583f",
+      "changes": [
+        "Exact S02 identity and applicable historical feature-era branch; all behavior assertions unchanged pending focused CI."
+      ]
+    },
+    {
+      "path": "tests/v1165-inventory-microcopy.cjs",
+      "originalBlob": "4efc00d6c9fdab155586e10261979e091305ca74",
+      "originalCommit": "cb83680ffd1e46e8dede233b8c88fbedad5c583f",
+      "changes": [
+        "Exact S02 identity and applicable historical feature-era branch; all behavior assertions unchanged pending focused CI."
+      ]
+    },
+    {
+      "path": "tests/v1167-inventory-capture-reentry.cjs",
+      "originalBlob": "887e5261294386095f01a633ba9ea9093f948a86",
+      "originalCommit": "cb83680ffd1e46e8dede233b8c88fbedad5c583f",
+      "changes": [
+        "Exact S02 identity and applicable historical feature-era branch; all behavior assertions unchanged pending focused CI."
+      ]
+    },
+    {
+      "path": "tests/v1168-single-reentry-direct-action.cjs",
+      "originalBlob": "419508a4b387f9f997413530712c49f6869770e5",
+      "originalCommit": "cb83680ffd1e46e8dede233b8c88fbedad5c583f",
+      "changes": [
+        "Exact S02 identity and applicable historical feature-era branch; all behavior assertions unchanged pending focused CI."
+      ]
+    },
+    {
+      "path": "tests/v1169-modal-discard-ux.cjs",
+      "originalBlob": "7770a2863cec743373569b2f343a24e509324e44",
+      "originalCommit": "cb83680ffd1e46e8dede233b8c88fbedad5c583f",
+      "changes": [
+        "Exact S02 identity and applicable historical feature-era branch; all behavior assertions unchanged pending focused CI."
+      ]
+    }
+  ]
+}
