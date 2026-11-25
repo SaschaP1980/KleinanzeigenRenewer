@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "issue": 210,
+  "checkpoint": 34,
+  "sourceCommit": "dda0c3d4e0eb01be1da06c374eb70e7ff2f35e75",
+  "originalsRetainedInGit": true,
+  "policy": "Historical mixed-contract review, original product negatives retained; no runtime or D gate changes. Validation pending.",
+  "review": [
+    {
+      "path": "tests/v150-connection.cjs",
+      "originalCommit": "dda0c3d4e0eb01be1da06c374eb70e7ff2f35e75",
+      "originalBlob": "6dde78165e46ec4b1a242047757de45f26cb629e",
+      "changes": [
+        "Exact S02 version predicate; original bootstrap, ready handshake, idempotency, single-flight and terminal logging assertions unchanged."
+      ]
+    },
+    {
+      "path": "tests/kar68-native-status-gateway.cjs",
+      "originalCommit": "dda0c3d4e0eb01be1da06c374eb70e7ff2f35e75",
+      "originalBlob": "1461897a18bce3c0a4753d8c3242f6edbf87b9e2",
+      "changes": [
+        "Historical gateway admits health/check only and explicitly rejects later inspection capability and four-component installed version. No native compatibility claim; S04 removal remains mandatory. All original transport, mutating operation, replay, malformed response, timeout and concurrency negatives retained."
+      ]
+    },
+    {
+      "path": "tests/kar69-native-check.cjs",
+      "originalCommit": "dda0c3d4e0eb01be1da06c374eb70e7ff2f35e75",
+      "originalBlob": "95fa9a4cd13b9640d6b14657910408bc77afa611",
+      "changes": [
+        "S02 exact pending metadata rather than false reviewed ZIP assertion. Actual synthetic sender/window/tab, operation denial, UI read-only evidence and permissions preserved."
+      ]
+    },
+    {
+      "path": "tests/kar-release-repo-archive-contract.cjs",
+      "originalCommit": "dda0c3d4e0eb01be1da06c374eb70e7ff2f35e75",
+      "originalBlob": "f7a203ca43e902bc4c29887d1c610e18bb283664",
+      "changes": [
+        "Exact four-component Chrome/npm mapping only; actual publication ordering, provenance, digest, tag/branch, archive exclusion and explicit runtime allowlist unchanged."
+      ]
+    },
+    {
+      "path": "tests/storage.cjs",
+      "originalCommit": "dda0c3d4e0eb01be1da06c374eb70e7ff2f35e75",
+      "originalBlob": "1a1d995842898e8b7176081e00a122713149d4f2",
+      "changes": [
+        "Use exact historical in-process saveInventory owner and existing test-only downloader override; do not register absent later capture/schema provider on S02. All original IndexedDB atomicity, JPEG, empty extraction, failure and overlap assertions kept."
+      ]
+    },
+    {
+      "path": "tests/images.cjs",
+      "originalCommit": "dda0c3d4e0eb01be1da06c374eb70e7ff2f35e75",
+      "originalBlob": "41514e4ba776c54b898f2bc4dffb9999211600a4",
+      "changes": [
+        "Exact historical hash-checked image download/MIME function region executed with same isolated fetch stub; no fabricated owner/export, original extracted-service branch and all DOM/signature assertions preserved."
+      ]
+    }
+  ]
+}
