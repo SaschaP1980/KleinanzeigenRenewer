@@ -1,0 +1,461 @@
+{
+  "schema": 1,
+  "issue": 210,
+  "checkpoint": 41,
+  "source": "468e8468781d351be05a7bce62cba592612bdba1",
+  "trigger": "0b881b69c2873d5e9535f8ccfbddfd8527650123",
+  "run": 45718013941,
+  "jobIds": {
+    "gate": 139568947621,
+    "browser": 139568947375
+  },
+  "conclusion": "failure",
+  "package": {
+    "sha256": "cc9ec37d0e9bf3c7688438ad04e9df0983a71d54b0802833906d8580d5902839",
+    "bytes": 778024,
+    "runtimeEntries": 124,
+    "proof": "two clean candidate builds, not committed archive",
+    "sourceHead": "468e8468781d351be05a7bce62cba592612bdba1",
+    "version": "2.0.0.0",
+    "baseCollision": "new-path"
+  },
+  "measured": {
+    "summary": {
+      "schemaVersion": 1,
+      "engine": "Node/V8 precise coverage + Acorn source mapping",
+      "lineDefinition": "source lines containing meaningful JavaScript tokens; covered when V8 precise coverage reports execution for at least one token on the line",
+      "branchDefinition": "AST if/conditional/logical/switch arms mapped to V8 precise block counts",
+      "runtimeModules": 103,
+      "loadedRuntimeModules": 98,
+      "publicFunctions": {
+        "covered": 811,
+        "total": 811,
+        "percent": 100
+      },
+      "lines": {
+        "covered": 11600,
+        "total": 25508,
+        "percent": 45.48
+      },
+      "branches": {
+        "covered": 6387,
+        "total": 24782,
+        "percent": 25.77
+      },
+      "areas": {
+        "app": {
+          "lines": {
+            "covered": 4333,
+            "total": 9321,
+            "percent": 46.49
+          },
+          "branches": {
+            "covered": 2400,
+            "total": 9394,
+            "percent": 25.55
+          },
+          "public": {
+            "covered": 328,
+            "total": 328,
+            "percent": 100
+          }
+        },
+        "background": {
+          "lines": {
+            "covered": 4994,
+            "total": 11125,
+            "percent": 44.89
+          },
+          "branches": {
+            "covered": 2876,
+            "total": 11014,
+            "percent": 26.11
+          },
+          "public": {
+            "covered": 383,
+            "total": 383,
+            "percent": 100
+          }
+        },
+        "content": {
+          "lines": {
+            "covered": 1845,
+            "total": 4576,
+            "percent": 40.32
+          },
+          "branches": {
+            "covered": 898,
+            "total": 4008,
+            "percent": 22.41
+          },
+          "public": {
+            "covered": 76,
+            "total": 76,
+            "percent": 100
+          }
+        },
+        "popup": {
+          "lines": {
+            "covered": 0,
+            "total": 20,
+            "percent": 0
+          },
+          "branches": {
+            "covered": 0,
+            "total": 10,
+            "percent": 0
+          },
+          "public": {
+            "covered": 0,
+            "total": 0,
+            "percent": 100
+          }
+        },
+        "shared": {
+          "lines": {
+            "covered": 428,
+            "total": 466,
+            "percent": 91.85
+          },
+          "branches": {
+            "covered": 213,
+            "total": 356,
+            "percent": 59.83
+          },
+          "public": {
+            "covered": 24,
+            "total": 24,
+            "percent": 100
+          }
+        }
+      }
+    },
+    "audit": {
+      "schemaVersion": 1,
+      "runtimeModules": 103,
+      "providers": 96,
+      "roots": [
+        "src/app/account-gate.js",
+        "src/app/actions-diagnostics-controller.js",
+        "src/app/app-activity-center.js",
+        "src/app/app-elements.js",
+        "src/app/app-layout-controller.js",
+        "src/app/app.js",
+        "src/app/archive-insertion-ui-controller.js",
+        "src/app/archive-trash-insertion-ui-controller.js",
+        "src/app/control-accordion-controller.js",
+        "src/app/diagnostic-zip.js",
+        "src/app/diagnostics-controls-controller.js",
+        "src/app/inventory-candidate-model.js",
+        "src/app/inventory-capture-controller.js",
+        "src/app/inventory-capture-view.js",
+        "src/app/inventory-card-renderer.js",
+        "src/app/inventory-export.js",
+        "src/app/inventory-formatting.js",
+        "src/app/inventory-import.js",
+        "src/app/inventory-render-controller.js",
+        "src/app/inventory-view.js",
+        "src/app/mass-renewal-ui-controller.js",
+        "src/app/native-update-check-ui.js",
+        "src/app/profile-account-ui-controller.js",
+        "src/app/profile-backup-controller.js",
+        "src/app/profile-backup-storage-service.js",
+        "src/app/profile-backup.js",
+        "src/app/record-card-view.js",
+        "src/app/renewal-dialog-controller.js",
+        "src/app/renewal-settings-controller.js",
+        "src/app/shared-ui-helpers.js",
+        "src/app/tab-page-inspection-controller.js",
+        "src/app/trash-card-renderer.js",
+        "src/app/trash-template-ui-controller.js",
+        "src/background/background.js",
+        "src/content/content.js",
+        "src/content/form-extractor.js",
+        "src/content/image-extractor.js",
+        "src/content/inventory-delete-operations.js",
+        "src/content/inventory-readiness.js",
+        "src/content/inventory-roster-parser.js",
+        "src/content/inventory-run-loop.js",
+        "src/content/inventory-runner.js",
+        "src/content/inventory-status-overlay.js",
+        "src/content/paid-insertion-guard.js",
+        "src/content/platform-guard-content.js",
+        "src/content/template-category-flow.js",
+        "src/content/template-filler.js",
+        "src/content/template-form-fields.js",
+        "src/content/template-image-upload.js",
+        "src/content/template-publish-flow.js",
+        "src/content/template-verification.js",
+        "src/popup/popup.js",
+        "src/shared/managed-navigation.js",
+        "src/shared/message-contract-registry.js",
+        "src/shared/my-ads-readiness.js",
+        "src/shared/platform-hardening.js",
+        "src/shared/renewal-policy.js",
+        "src/shared/runtime-deps.js"
+      ],
+      "reachable": 103,
+      "unreachable": [],
+      "missingDependencies": [],
+      "cycles": []
+    }
+  },
+  "fullGate": {
+    "status": "FAIL",
+    "failure": "KAR-167 test coverage closure: tests/helpers/phase4-locks.cjs has only deferred owners",
+    "priorClosure": "script/workflow and icon closure PASS; all npm tests passed"
+  },
+  "browser": {
+    "schema": 2,
+    "runner": "supervisor-child-process",
+    "extensionVersion": "2.0.0.0",
+    "scenarioCount": 9,
+    "passed": 8,
+    "failed": 1,
+    "cleanupFailed": 0,
+    "elapsedSeconds": 43.35,
+    "scenarioTimeoutSeconds": 90,
+    "cleanupTimeoutSeconds": 10,
+    "results": [
+      {
+        "name": "boot-mv3",
+        "scenarioStatus": "PASS",
+        "cleanupStatus": "PASS",
+        "profileCleanupStatus": "PASS",
+        "elapsedSeconds": 0.956,
+        "details": {
+          "version": "2.0.0.0",
+          "serviceWorker": "chrome-extension://hafahjhhgiipdegfkgacchmnacgblnah/src/background/background.js",
+          "epoch": "0d125425-ef90-4dd3-9f04-6c78f6819e0a",
+          "launcherSmoke": true
+        },
+        "error": null,
+        "forceKillSucceeded": null,
+        "logTail": "PASS boot-mv3 (0.644s)\n{\"extensionVersion\": \"2.0.0.0\", \"scenarioCount\": 1, \"passed\": 1, \"failed\": 0, \"elapsedSeconds\": 0.836}\n"
+      },
+      {
+        "name": "service-worker-restart",
+        "scenarioStatus": "PASS",
+        "cleanupStatus": "PASS",
+        "profileCleanupStatus": "PASS",
+        "elapsedSeconds": 0.86,
+        "details": {
+          "epochBefore": "d6ecf7a3-b7ea-4e9c-98ab-9867c69be78b",
+          "epochAfter": "d8fc0713-edd5-4497-9ae0-29b75d207a68"
+        },
+        "error": null,
+        "forceKillSucceeded": null,
+        "logTail": "PASS service-worker-restart (0.568s)\n{\"extensionVersion\": \"2.0.0.0\", \"scenarioCount\": 1, \"passed\": 1, \"failed\": 0, \"elapsedSeconds\": 0.754}\n"
+      },
+      {
+        "name": "bulk-runtime-lease-recovery",
+        "scenarioStatus": "PASS",
+        "cleanupStatus": "PASS",
+        "profileCleanupStatus": "PASS",
+        "elapsedSeconds": 0.906,
+        "details": {
+          "runId": "e2e-orphaned-bulk-run",
+          "status": "needs-review",
+          "stage": "runtime-session-lost",
+          "epochBefore": "dec9d750-892d-474b-99f7-697c9d97dd2e",
+          "epochAfter": "d1255e5b-5421-4fc0-a8fd-8f121a4e0a10"
+        },
+        "error": null,
+        "forceKillSucceeded": null,
+        "logTail": "PASS bulk-runtime-lease-recovery (0.603s)\n{\"extensionVersion\": \"2.0.0.0\", \"scenarioCount\": 1, \"passed\": 1, \"failed\": 0, \"elapsedSeconds\": 0.792}\n"
+      },
+      {
+        "name": "accordion-rapid-toggle",
+        "scenarioStatus": "PASS",
+        "cleanupStatus": "PASS",
+        "profileCleanupStatus": "PASS",
+        "elapsedSeconds": 2.363,
+        "details": {
+          "open": true,
+          "controlled": true,
+          "animating": false,
+          "height": "",
+          "opacity": "",
+          "summaryPointerEvents": "auto",
+          "runningAnimations": 0,
+          "hitInsideSummary": true,
+          "panelHidden": false,
+          "viewport": {
+            "width": 1280,
+            "height": 900
+          },
+          "actionHitTests": [
+            {
+              "id": "fullInventoryButton",
+              "rect": {
+                "left": 39,
+                "top": 292.59375,
+                "right": 349,
+                "bottom": 330.59375,
+                "width": 310,
+                "height": 38
+              },
+              "hitTag": "BUTTON",
+              "hitId": "fullInventoryButton",
+              "insideButton": true
+            },
+            {
+              "id": "inventoryButton",
+              "rect": {
+                "left": 39,
+                "top": 337.59375,
+                "right": 349,
+                "bottom": 375.59375,
+                "width": 310,
+                "height": 38
+              },
+              "hitTag": "BUTTON",
+              "hitId": "inventoryButton",
+              "insideButton": true
+            },
+            {
+              "id": "archiveInsertButton",
+              "rect": {
+                "left": 39,
+                "top": 382.59375,
+                "right": 349,
+                "bottom": 420.59375,
+                "width": 310,
+                "height": 38
+              },
+              "hitTag": "BUTTON",
+              "hitId": "archiveInsertButton",
+              "insideButton": true
+            },
+            {
+              "id": "massRenewalButton",
+              "rect": {
+                "left": 39,
+                "top": 427.59375,
+                "right": 349,
+                "bottom": 465.59375,
+                "width": 310,
+                "height": 38
+              },
+              "hitTag": "BUTTON",
+              "hitId": "massRenewalButton",
+              "insideButton": true
+            }
+          ],
+          "pointerFocus": {
+            "activeId": "archiveInsertButton",
+            "focusVisible": false,
+            "outlineStyle": "none",
+            "outlineWidth": "0px",
+            "outlineColor": "rgb(224, 249, 241)",
+            "focusModality": "pointer"
+          },
+          "focusReturn": {
+            "activeId": "archiveInsertButton",
+            "focusVisible": false,
+            "outlineStyle": "none",
+            "outlineWidth": "0px",
+            "outlineColor": "rgb(224, 249, 241)",
+            "pointerModalityAfterReturn": "pointer"
+          },
+          "keyboardFocus": {
+            "activeId": "massRenewalButton",
+            "focusVisible": true,
+            "outlineStyle": "solid",
+            "outlineWidth": "2px",
+            "outlineColor": "rgb(77, 224, 183)",
+            "keyboardModality": "keyboard"
+          }
+        },
+        "error": null,
+        "forceKillSucceeded": null,
+        "logTail": "PASS accordion-rapid-toggle (2.043s)\n{\"extensionVersion\": \"2.0.0.0\", \"scenarioCount\": 1, \"passed\": 1, \"failed\": 0, \"elapsedSeconds\": 2.229}\n"
+      },
+      {
+        "name": "app-close-reopen-persistence",
+        "scenarioStatus": "PASS",
+        "cleanupStatus": "PASS",
+        "profileCleanupStatus": "PASS",
+        "elapsedSeconds": 1.259,
+        "details": {
+          "globalListViewModeV1": "compact",
+          "renewalPhaseAttemptsV1": 4
+        },
+        "error": null,
+        "forceKillSucceeded": null,
+        "logTail": "PASS app-close-reopen-persistence (0.974s)\n{\"extensionVersion\": \"2.0.0.0\", \"scenarioCount\": 1, \"passed\": 1, \"failed\": 0, \"elapsedSeconds\": 1.164}\n"
+      },
+      {
+        "name": "profile-switch-action-lock",
+        "scenarioStatus": "PASS",
+        "cleanupStatus": "PASS",
+        "profileCleanupStatus": "PASS",
+        "elapsedSeconds": 1.762,
+        "details": {
+          "selected": "b956288a-e985-45aa-bdfb-65a3323e3221",
+          "detected": "0a2b4ba2-c403-431d-a9f5-4659fcb96409",
+          "actionsLocked": true
+        },
+        "error": null,
+        "forceKillSucceeded": null,
+        "logTail": "PASS profile-switch-action-lock (1.445s)\n{\"extensionVersion\": \"2.0.0.0\", \"scenarioCount\": 1, \"passed\": 1, \"failed\": 0, \"elapsedSeconds\": 1.636}\n"
+      },
+      {
+        "name": "worker-tab-unexpected-close",
+        "scenarioStatus": "PASS",
+        "cleanupStatus": "PASS",
+        "profileCleanupStatus": "PASS",
+        "elapsedSeconds": 1.862,
+        "details": {
+          "closedWorkerTabs": 2,
+          "goneRegistryEntries": 2,
+          "probeReason": "probe-unavailable"
+        },
+        "error": null,
+        "forceKillSucceeded": null,
+        "logTail": "PASS worker-tab-unexpected-close (1.544s)\n{\"extensionVersion\": \"2.0.0.0\", \"scenarioCount\": 1, \"passed\": 1, \"failed\": 0, \"elapsedSeconds\": 1.733}\n"
+      },
+      {
+        "name": "bottom-clamp-four-views",
+        "scenarioStatus": "FAIL",
+        "cleanupStatus": "PASS",
+        "profileCleanupStatus": "PASS",
+        "elapsedSeconds": 32.424,
+        "details": null,
+        "error": "Page.wait_for_function: Timeout 30000ms exceeded.",
+        "forceKillSucceeded": null,
+        "logTail": "FAIL bottom-clamp-four-views: Page.wait_for_function: Timeout 30000ms exceeded.\n{\"extensionVersion\": \"2.0.0.0\", \"scenarioCount\": 1, \"passed\": 0, \"failed\": 1, \"elapsedSeconds\": 32.323}\n"
+      },
+      {
+        "name": "remote-safety-negative",
+        "scenarioStatus": "PASS",
+        "cleanupStatus": "PASS",
+        "profileCleanupStatus": "PASS",
+        "elapsedSeconds": 0.955,
+        "details": {
+          "startRejected": true,
+          "finishRejected": true,
+          "dangerousTabs": []
+        },
+        "error": null,
+        "forceKillSucceeded": null,
+        "logTail": "PASS remote-safety-negative (0.650s)\n{\"extensionVersion\": \"2.0.0.0\", \"scenarioCount\": 1, \"passed\": 1, \"failed\": 0, \"elapsedSeconds\": 0.842}\n"
+      }
+    ]
+  },
+  "startup": {
+    "status": "FAIL",
+    "evidence": [
+      "2026-11-25T23:01:37.0423188Z     report[\"checks\"][\"startupController\"] = page.evaluate(\"typeof globalThis.KRDeps?.require?.('KRTrashRetentionSettingsController')?.create\")",
+      "2026-11-25T23:01:37.0434730Z playwright._impl._errors.Error: Page.evaluate: Error: Missing dependency: KRTrashRetentionSettingsController. Check script/import order."
+    ]
+  },
+  "provenance": {
+    "historical": "f2225155e403d89d07a674c9e20f397a4f86694d",
+    "laterE2E": "b45ff7349dcdbed264b289204f47259e8e54a6d8",
+    "historicalE2E": "57fca11c0044ec1b3a5005f4e5e8e759b5107152",
+    "laterStartup": "b45d3758365652d3734a260c74f4435875ffe147",
+    "helper": "a5bb96c9fdad2fce4d13c74b4b2394c1bb59ca4d"
+  },
+  "status": "Candidate reproducible; full gate and browser RED; no runtime changes; test-only corrections pending."
+}
