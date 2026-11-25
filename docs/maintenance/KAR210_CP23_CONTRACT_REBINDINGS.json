@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "issue": 210,
+  "checkpoint": 23,
+  "sourceCommit": "a56752ea8afaf93f3f3800170d13beffb2d280a8",
+  "originalsRetainedInGit": true,
+  "policy": "Exact S02 identity only; no runtime changes; all commands active and genuine RED preserved. Validation pending.",
+  "review": [
+    {
+      "path": "tests/v1140-contract.cjs",
+      "originalBlob": "ac120885d20b4c26e37222813f74793d8c594565",
+      "originalCommit": "a56752ea8afaf93f3f3800170d13beffb2d280a8",
+      "versionPredicates": 2,
+      "changes": [
+        "Exact S02 identity and historical permission set; original legacy lists and all behavior assertions unchanged."
+      ]
+    },
+    {
+      "path": "tests/v1141-contract.cjs",
+      "originalBlob": "7e74e3db96f4032bca9a856c2a2391ab7e058e6d",
+      "originalCommit": "a56752ea8afaf93f3f3800170d13beffb2d280a8",
+      "versionPredicates": 2,
+      "changes": [
+        "Exact S02 identity and historical permission set; original legacy lists and all behavior assertions unchanged."
+      ]
+    },
+    {
+      "path": "tests/v1142-contract.cjs",
+      "originalBlob": "e94c8be4f297d22c9fd4f6f2f29ac04bcbc51ad2",
+      "originalCommit": "a56752ea8afaf93f3f3800170d13beffb2d280a8",
+      "versionPredicates": 2,
+      "changes": [
+        "Exact S02 identity and historical permission set; original legacy lists and all behavior assertions unchanged."
+      ]
+    },
+    {
+      "path": "tests/v1143-contract.cjs",
+      "originalBlob": "54de421e3846f7a56372bbb1643326f7ccc73bd8",
+      "originalCommit": "a56752ea8afaf93f3f3800170d13beffb2d280a8",
+      "versionPredicates": 2,
+      "changes": [
+        "Exact S02 identity and historical permission set; original legacy lists and all behavior assertions unchanged."
+      ]
+    },
+    {
+      "path": "tests/v1144-contract.cjs",
+      "originalBlob": "537f2a9d57b412154f02c9a025149233f862fe48",
+      "originalCommit": "a56752ea8afaf93f3f3800170d13beffb2d280a8",
+      "versionPredicates": 2,
+      "changes": [
+        "Exact S02 identity and historical permission set; original legacy lists and all behavior assertions unchanged."
+      ]
+    },
+    {
+      "path": "tests/v1145-contract.cjs",
+      "originalBlob": "a70d7978cd90f8b68dcdd52ff81b3da7b14bfbf1",
+      "originalCommit": "a56752ea8afaf93f3f3800170d13beffb2d280a8",
+      "versionPredicates": 2,
+      "changes": [
+        "Exact S02 identity and historical permission set; original legacy lists and all behavior assertions unchanged."
+      ]
+    }
+  ]
+}
