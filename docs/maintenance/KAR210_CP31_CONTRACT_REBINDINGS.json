@@ -4,7 +4,7 @@
   "checkpoint": 31,
   "sourceCommit": "414ace576f8d35f33c426c2b8ddeaf610d6cb396",
   "originalsRetainedInGit": true,
-  "policy": "S02-only exact historical contract rebinding. Preserve original non-S02 assertions, active test sequence, actual product safety RED and mandatory D gates. Focused and full validation pending.",
+  "policy": "S02-only exact historical contract rebinding. Preserve original non-S02 assertions, active test sequence, actual product safety RED and mandatory D gates. Focused GREEN and complete diagnostic evidence recorded; mandatory gate RED, not product acceptance.",
   "review": [
     {
       "path": "tests/v1230-epic-ref-002-contract.cjs",
@@ -12,7 +12,8 @@
       "changes": [
         "Exact S02 identity only; legacy predicates unchanged",
         "Historical EPIC record and entry-point evidence retained"
-      ]
+      ],
+      "originalBlob": "1c8c09c13f9f3ce764052d26094308b53032b93d"
     },
     {
       "path": "tests/v1232-version-correction.cjs",
@@ -20,7 +21,8 @@
       "changes": [
         "Exact S02 identity only; legacy predicates unchanged",
         "Historical correction evidence retained"
-      ]
+      ],
+      "originalBlob": "e732ff37cee7a1c78a2eb7056822e44e06d23f43"
     },
     {
       "path": "tests/v1235-pre-refactor-characterization.cjs",
@@ -28,7 +30,8 @@
       "changes": [
         "Exact S02 identity only; legacy predicates unchanged",
         "Historical archive terminal set; submitted and uncertainty evidence retained; independent KAR-197 product safety regression remains active"
-      ]
+      ],
+      "originalBlob": "4969531dfc57930c6990b921088637a24d8b4a45"
     },
     {
       "path": "tests/v1238-version-architecture.cjs",
@@ -36,7 +39,8 @@
       "changes": [
         "Exact S02 identity only; legacy predicates unchanged",
         "Historical in-process owners and size constraints; pending native smoke contract instead of published-release checklist length"
-      ]
+      ],
+      "originalBlob": "97a24ccd072d776b48a7956eb3190233ba6da1ab"
     },
     {
       "path": "tests/v1239-version-architecture.cjs",
@@ -44,7 +48,8 @@
       "changes": [
         "Exact S02 identity only; legacy predicates unchanged",
         "Exact historical background blob; excluded P8 owners absent; pending native smoke"
-      ]
+      ],
+      "originalBlob": "80d793c4c784f2bb62a7701c9287698031999ccc"
     },
     {
       "path": "tests/v12310-version-architecture.cjs",
@@ -52,7 +57,8 @@
       "changes": [
         "Exact S02 identity only; legacy predicates unchanged",
         "Exact historical background blob; excluded P8 owners absent; pending native smoke"
-      ]
+      ],
+      "originalBlob": "f50696cb2abe152a36f93308586c09774e3a7e1a"
     },
     {
       "path": "tests/v12312-composition-routing-characterization.cjs",
@@ -60,7 +66,8 @@
       "changes": [
         "Exact S02 identity only; legacy predicates unchanged",
         "Exact 235 historical selectors; later features explicitly absent; critical message and account gates unchanged"
-      ]
+      ],
+      "originalBlob": "d681a9c0a5ec61643015f12b270345650a17d00a"
     },
     {
       "path": "tests/v12312-app-elements-runtime.cjs",
@@ -68,7 +75,8 @@
       "changes": [
         "Exact S02 identity only; legacy predicates unchanged",
         "Exact 235 historical selectors, exact unique runtime query, deferred keys absent; actual groups and canonical selectors retained"
-      ]
+      ],
+      "originalBlob": "a0741796f1bad0f4e1317b7b0fd7abbc9a10df88"
     },
     {
       "path": "tests/v12312-version-architecture.cjs",
@@ -76,7 +84,30 @@
       "changes": [
         "Exact S02 identity only; legacy predicates unchanged",
         "Exact version and pending S12 budget plus two separate historic Gold lines; original release/architecture assertions retained"
-      ]
+      ],
+      "originalBlob": "351e21a3f4e50265752facdd48fe03b4deda7298"
     }
-  ]
+  ],
+  "focusedValidation": {
+    "sourceCommit": "7d7851d87e0acde8b57044f31fc2e714eaedfc34",
+    "runId": 45611230200,
+    "jobId": 139194972107,
+    "result": "success",
+    "commands": 13,
+    "passed": 13,
+    "failed": 0,
+    "completeHistoricalContracts": 9,
+    "completeContractGroups": 59,
+    "baselineRestoreTests": 3,
+    "retainedArchiveSafetyTests": 3,
+    "legacyPatchNegatives": 27,
+    "exactBaselineVersionNegatives": 17,
+    "scopeNegatives": 15
+  },
+  "builderGuard": {
+    "runId": 45611229959,
+    "jobId": 139194970469,
+    "result": "failure",
+    "reason": "No explicit authorized marker; no build executed."
+  }
 }
