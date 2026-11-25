@@ -457,7 +457,7 @@
     "laterStartup": "b45d3758365652d3734a260c74f4435875ffe147",
     "helper": "a5bb96c9fdad2fce4d13c74b4b2394c1bb59ca4d"
   },
-  "status": "Reproducible candidate and all nine browser scenarios GREEN; mandatory full gate RED at historical helper inventory; exact test-only closure ownership correction staged.",
+  "status": "TECHNICALLY_GREEN_CANDIDATE; clean exact-source full gate, deterministic candidate, nine real packaged Chromium scenarios and startup PASS; archive commit / Work PR exact-head CI / native / merge / release pending",
   "corrected": {
     "source": "a348cd6f9ffa6cd7647c4d85f09a2419d3461f63",
     "trigger": "1c120cba795d7e64163dba2ccaa32b3e99cb83db",
@@ -924,6 +924,479 @@
     "fullGate": {
       "status": "FAIL",
       "failure": "KAR-167 test coverage closure: unregistered tests/kar210-historical-contract-context.cjs after phase4 helper fix; two additional fixtures identified by exhaustive executable-path inventory"
+    }
+  },
+  "final": {
+    "source": "4420cf0bb928b054604c4a7c2a857dcab3214039",
+    "trigger": "617f0ab7cdae669856b3245bce72aacdeb418cb4",
+    "run": 45718701302,
+    "jobIds": {
+      "gate": 139571242592,
+      "browser": 139571241907
+    },
+    "conclusion": "success",
+    "package": {
+      "sha256": "cc9ec37d0e9bf3c7688438ad04e9df0983a71d54b0802833906d8580d5902839",
+      "bytes": 778024,
+      "runtimeEntries": 124,
+      "proof": "two clean candidate builds, not committed archive",
+      "sourceHead": "4420cf0bb928b054604c4a7c2a857dcab3214039",
+      "version": "2.0.0.0",
+      "baseCollision": "new-path"
+    },
+    "measured": {
+      "summary": {
+        "schemaVersion": 1,
+        "engine": "Node/V8 precise coverage + Acorn source mapping",
+        "lineDefinition": "source lines containing meaningful JavaScript tokens; covered when V8 precise coverage reports execution for at least one token on the line",
+        "branchDefinition": "AST if/conditional/logical/switch arms mapped to V8 precise block counts",
+        "runtimeModules": 103,
+        "loadedRuntimeModules": 98,
+        "publicFunctions": {
+          "covered": 811,
+          "total": 811,
+          "percent": 100
+        },
+        "lines": {
+          "covered": 11600,
+          "total": 25508,
+          "percent": 45.48
+        },
+        "branches": {
+          "covered": 6387,
+          "total": 24782,
+          "percent": 25.77
+        },
+        "areas": {
+          "app": {
+            "lines": {
+              "covered": 4333,
+              "total": 9321,
+              "percent": 46.49
+            },
+            "branches": {
+              "covered": 2400,
+              "total": 9394,
+              "percent": 25.55
+            },
+            "public": {
+              "covered": 328,
+              "total": 328,
+              "percent": 100
+            }
+          },
+          "background": {
+            "lines": {
+              "covered": 4994,
+              "total": 11125,
+              "percent": 44.89
+            },
+            "branches": {
+              "covered": 2876,
+              "total": 11014,
+              "percent": 26.11
+            },
+            "public": {
+              "covered": 383,
+              "total": 383,
+              "percent": 100
+            }
+          },
+          "content": {
+            "lines": {
+              "covered": 1845,
+              "total": 4576,
+              "percent": 40.32
+            },
+            "branches": {
+              "covered": 898,
+              "total": 4008,
+              "percent": 22.41
+            },
+            "public": {
+              "covered": 76,
+              "total": 76,
+              "percent": 100
+            }
+          },
+          "popup": {
+            "lines": {
+              "covered": 0,
+              "total": 20,
+              "percent": 0
+            },
+            "branches": {
+              "covered": 0,
+              "total": 10,
+              "percent": 0
+            },
+            "public": {
+              "covered": 0,
+              "total": 0,
+              "percent": 100
+            }
+          },
+          "shared": {
+            "lines": {
+              "covered": 428,
+              "total": 466,
+              "percent": 91.85
+            },
+            "branches": {
+              "covered": 213,
+              "total": 356,
+              "percent": 59.83
+            },
+            "public": {
+              "covered": 24,
+              "total": 24,
+              "percent": 100
+            }
+          }
+        }
+      },
+      "audit": {
+        "schemaVersion": 1,
+        "runtimeModules": 103,
+        "providers": 96,
+        "roots": [
+          "src/app/account-gate.js",
+          "src/app/actions-diagnostics-controller.js",
+          "src/app/app-activity-center.js",
+          "src/app/app-elements.js",
+          "src/app/app-layout-controller.js",
+          "src/app/app.js",
+          "src/app/archive-insertion-ui-controller.js",
+          "src/app/archive-trash-insertion-ui-controller.js",
+          "src/app/control-accordion-controller.js",
+          "src/app/diagnostic-zip.js",
+          "src/app/diagnostics-controls-controller.js",
+          "src/app/inventory-candidate-model.js",
+          "src/app/inventory-capture-controller.js",
+          "src/app/inventory-capture-view.js",
+          "src/app/inventory-card-renderer.js",
+          "src/app/inventory-export.js",
+          "src/app/inventory-formatting.js",
+          "src/app/inventory-import.js",
+          "src/app/inventory-render-controller.js",
+          "src/app/inventory-view.js",
+          "src/app/mass-renewal-ui-controller.js",
+          "src/app/native-update-check-ui.js",
+          "src/app/profile-account-ui-controller.js",
+          "src/app/profile-backup-controller.js",
+          "src/app/profile-backup-storage-service.js",
+          "src/app/profile-backup.js",
+          "src/app/record-card-view.js",
+          "src/app/renewal-dialog-controller.js",
+          "src/app/renewal-settings-controller.js",
+          "src/app/shared-ui-helpers.js",
+          "src/app/tab-page-inspection-controller.js",
+          "src/app/trash-card-renderer.js",
+          "src/app/trash-template-ui-controller.js",
+          "src/background/background.js",
+          "src/content/content.js",
+          "src/content/form-extractor.js",
+          "src/content/image-extractor.js",
+          "src/content/inventory-delete-operations.js",
+          "src/content/inventory-readiness.js",
+          "src/content/inventory-roster-parser.js",
+          "src/content/inventory-run-loop.js",
+          "src/content/inventory-runner.js",
+          "src/content/inventory-status-overlay.js",
+          "src/content/paid-insertion-guard.js",
+          "src/content/platform-guard-content.js",
+          "src/content/template-category-flow.js",
+          "src/content/template-filler.js",
+          "src/content/template-form-fields.js",
+          "src/content/template-image-upload.js",
+          "src/content/template-publish-flow.js",
+          "src/content/template-verification.js",
+          "src/popup/popup.js",
+          "src/shared/managed-navigation.js",
+          "src/shared/message-contract-registry.js",
+          "src/shared/my-ads-readiness.js",
+          "src/shared/platform-hardening.js",
+          "src/shared/renewal-policy.js",
+          "src/shared/runtime-deps.js"
+        ],
+        "reachable": 103,
+        "unreachable": [],
+        "missingDependencies": [],
+        "cycles": []
+      }
+    },
+    "browser": {
+      "schema": 2,
+      "runner": "supervisor-child-process",
+      "extensionVersion": "2.0.0.0",
+      "scenarioCount": 9,
+      "passed": 9,
+      "failed": 0,
+      "cleanupFailed": 0,
+      "elapsedSeconds": 17.62,
+      "scenarioTimeoutSeconds": 90,
+      "cleanupTimeoutSeconds": 10,
+      "results": [
+        {
+          "name": "boot-mv3",
+          "scenarioStatus": "PASS",
+          "cleanupStatus": "PASS",
+          "profileCleanupStatus": "PASS",
+          "elapsedSeconds": 1.316,
+          "details": {
+            "version": "2.0.0.0",
+            "serviceWorker": "chrome-extension://hafahjhhgiipdegfkgacchmnacgblnah/src/background/background.js",
+            "epoch": "b36f57a4-1e62-48af-a907-7bc76201f7d3",
+            "launcherSmoke": true
+          },
+          "error": null,
+          "forceKillSucceeded": null,
+          "logTail": "PASS boot-mv3 (0.934s)\n{\"extensionVersion\": \"2.0.0.0\", \"scenarioCount\": 1, \"passed\": 1, \"failed\": 0, \"elapsedSeconds\": 1.202}\n"
+        },
+        {
+          "name": "service-worker-restart",
+          "scenarioStatus": "PASS",
+          "cleanupStatus": "PASS",
+          "profileCleanupStatus": "PASS",
+          "elapsedSeconds": 1.209,
+          "details": {
+            "epochBefore": "df559aea-55b0-44b7-a92c-6e9bc6674860",
+            "epochAfter": "7811de9d-71f3-4881-9f16-616180c9331b"
+          },
+          "error": null,
+          "forceKillSucceeded": null,
+          "logTail": "PASS service-worker-restart (0.818s)\n{\"extensionVersion\": \"2.0.0.0\", \"scenarioCount\": 1, \"passed\": 1, \"failed\": 0, \"elapsedSeconds\": 1.081}\n"
+        },
+        {
+          "name": "bulk-runtime-lease-recovery",
+          "scenarioStatus": "PASS",
+          "cleanupStatus": "PASS",
+          "profileCleanupStatus": "PASS",
+          "elapsedSeconds": 1.259,
+          "details": {
+            "runId": "e2e-orphaned-bulk-run",
+            "status": "needs-review",
+            "stage": "runtime-session-lost",
+            "epochBefore": "8a0e52c3-2ee2-4781-9991-c8a9aef43a9f",
+            "epochAfter": "84156e2f-0ef9-418e-8f86-0978543f347c"
+          },
+          "error": null,
+          "forceKillSucceeded": null,
+          "logTail": "PASS bulk-runtime-lease-recovery (0.870s)\n{\"extensionVersion\": \"2.0.0.0\", \"scenarioCount\": 1, \"passed\": 1, \"failed\": 0, \"elapsedSeconds\": 1.129}\n"
+        },
+        {
+          "name": "accordion-rapid-toggle",
+          "scenarioStatus": "PASS",
+          "cleanupStatus": "PASS",
+          "profileCleanupStatus": "PASS",
+          "elapsedSeconds": 2.664,
+          "details": {
+            "open": true,
+            "controlled": true,
+            "animating": false,
+            "height": "",
+            "opacity": "",
+            "summaryPointerEvents": "auto",
+            "runningAnimations": 0,
+            "hitInsideSummary": true,
+            "panelHidden": false,
+            "viewport": {
+              "width": 1280,
+              "height": 900
+            },
+            "actionHitTests": [
+              {
+                "id": "fullInventoryButton",
+                "rect": {
+                  "left": 39,
+                  "top": 292.59375,
+                  "right": 349,
+                  "bottom": 330.59375,
+                  "width": 310,
+                  "height": 38
+                },
+                "hitTag": "BUTTON",
+                "hitId": "fullInventoryButton",
+                "insideButton": true
+              },
+              {
+                "id": "inventoryButton",
+                "rect": {
+                  "left": 39,
+                  "top": 337.59375,
+                  "right": 349,
+                  "bottom": 375.59375,
+                  "width": 310,
+                  "height": 38
+                },
+                "hitTag": "BUTTON",
+                "hitId": "inventoryButton",
+                "insideButton": true
+              },
+              {
+                "id": "archiveInsertButton",
+                "rect": {
+                  "left": 39,
+                  "top": 382.59375,
+                  "right": 349,
+                  "bottom": 420.59375,
+                  "width": 310,
+                  "height": 38
+                },
+                "hitTag": "BUTTON",
+                "hitId": "archiveInsertButton",
+                "insideButton": true
+              },
+              {
+                "id": "massRenewalButton",
+                "rect": {
+                  "left": 39,
+                  "top": 427.59375,
+                  "right": 349,
+                  "bottom": 465.59375,
+                  "width": 310,
+                  "height": 38
+                },
+                "hitTag": "BUTTON",
+                "hitId": "massRenewalButton",
+                "insideButton": true
+              }
+            ],
+            "pointerFocus": {
+              "activeId": "archiveInsertButton",
+              "focusVisible": false,
+              "outlineStyle": "none",
+              "outlineWidth": "0px",
+              "outlineColor": "rgb(224, 249, 241)",
+              "focusModality": "pointer"
+            },
+            "focusReturn": {
+              "activeId": "archiveInsertButton",
+              "focusVisible": false,
+              "outlineStyle": "none",
+              "outlineWidth": "0px",
+              "outlineColor": "rgb(224, 249, 241)",
+              "pointerModalityAfterReturn": "pointer"
+            },
+            "keyboardFocus": {
+              "activeId": "massRenewalButton",
+              "focusVisible": true,
+              "outlineStyle": "solid",
+              "outlineWidth": "2px",
+              "outlineColor": "rgb(77, 224, 183)",
+              "keyboardModality": "keyboard"
+            }
+          },
+          "error": null,
+          "forceKillSucceeded": null,
+          "logTail": "PASS accordion-rapid-toggle (2.262s)\n{\"extensionVersion\": \"2.0.0.0\", \"scenarioCount\": 1, \"passed\": 1, \"failed\": 0, \"elapsedSeconds\": 2.522}\n"
+        },
+        {
+          "name": "app-close-reopen-persistence",
+          "scenarioStatus": "PASS",
+          "cleanupStatus": "PASS",
+          "profileCleanupStatus": "PASS",
+          "elapsedSeconds": 1.713,
+          "details": {
+            "globalListViewModeV1": "compact",
+            "renewalPhaseAttemptsV1": 4
+          },
+          "error": null,
+          "forceKillSucceeded": null,
+          "logTail": "PASS app-close-reopen-persistence (1.319s)\n{\"extensionVersion\": \"2.0.0.0\", \"scenarioCount\": 1, \"passed\": 1, \"failed\": 0, \"elapsedSeconds\": 1.574}\n"
+        },
+        {
+          "name": "profile-switch-action-lock",
+          "scenarioStatus": "PASS",
+          "cleanupStatus": "PASS",
+          "profileCleanupStatus": "PASS",
+          "elapsedSeconds": 2.162,
+          "details": {
+            "selected": "e630b7e9-9070-4d13-95d3-ce9cc4681b03",
+            "detected": "acc901d1-94f3-4bba-8a5d-afea63ea860a",
+            "actionsLocked": true
+          },
+          "error": null,
+          "forceKillSucceeded": null,
+          "logTail": "PASS profile-switch-action-lock (1.747s)\n{\"extensionVersion\": \"2.0.0.0\", \"scenarioCount\": 1, \"passed\": 1, \"failed\": 0, \"elapsedSeconds\": 2.002}\n"
+        },
+        {
+          "name": "worker-tab-unexpected-close",
+          "scenarioStatus": "PASS",
+          "cleanupStatus": "PASS",
+          "profileCleanupStatus": "PASS",
+          "elapsedSeconds": 2.216,
+          "details": {
+            "closedWorkerTabs": 2,
+            "goneRegistryEntries": 2,
+            "probeReason": "probe-unavailable"
+          },
+          "error": null,
+          "forceKillSucceeded": null,
+          "logTail": "PASS worker-tab-unexpected-close (1.803s)\n{\"extensionVersion\": \"2.0.0.0\", \"scenarioCount\": 1, \"passed\": 1, \"failed\": 0, \"elapsedSeconds\": 2.071}\n"
+        },
+        {
+          "name": "bottom-clamp-four-views",
+          "scenarioStatus": "PASS",
+          "cleanupStatus": "PASS",
+          "profileCleanupStatus": "PASS",
+          "elapsedSeconds": 3.72,
+          "details": {
+            "inventory-detailed": {
+              "topBefore": 92,
+              "topAtBottom": 92,
+              "scrollY": 2872,
+              "scrollHeight": 3772
+            },
+            "inventory-compact": {
+              "topBefore": 92,
+              "topAtBottom": 92,
+              "scrollY": 750,
+              "scrollHeight": 1650
+            },
+            "trash-detailed": {
+              "topBefore": 92,
+              "topAtBottom": 92,
+              "scrollY": 2864,
+              "scrollHeight": 3764
+            },
+            "trash-compact": {
+              "topBefore": 92,
+              "topAtBottom": 92,
+              "scrollY": 742,
+              "scrollHeight": 1642
+            }
+          },
+          "error": null,
+          "forceKillSucceeded": null,
+          "logTail": "PASS bottom-clamp-four-views (3.308s)\n{\"extensionVersion\": \"2.0.0.0\", \"scenarioCount\": 1, \"passed\": 1, \"failed\": 0, \"elapsedSeconds\": 3.568}\n"
+        },
+        {
+          "name": "remote-safety-negative",
+          "scenarioStatus": "PASS",
+          "cleanupStatus": "PASS",
+          "profileCleanupStatus": "PASS",
+          "elapsedSeconds": 1.359,
+          "details": {
+            "startRejected": true,
+            "finishRejected": true,
+            "dangerousTabs": []
+          },
+          "error": null,
+          "forceKillSucceeded": null,
+          "logTail": "PASS remote-safety-negative (0.967s)\n{\"extensionVersion\": \"2.0.0.0\", \"scenarioCount\": 1, \"passed\": 1, \"failed\": 0, \"elapsedSeconds\": 1.235}\n"
+        }
+      ]
+    },
+    "startup": "PASS",
+    "fullGate": {
+      "status": "PASS",
+      "completion": "PASS v1.23.19 coverage gate",
+      "activeCommands": 480
+    },
+    "artifacts": {
+      "chrome": 15071610718,
+      "browser": 15070264389
     }
   }
 }
