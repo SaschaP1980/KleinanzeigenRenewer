@@ -1,0 +1,28 @@
+name: KAR-210 CP24 validation contract review
+on:
+  push:
+    branches: [work/KAR-210]
+    paths: ['.github/workflows/kar210-cp24-review.yml']
+permissions:
+  contents: read
+jobs:
+  review:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --ignore-scripts
+      - name: Run every adapted contract independently
+        shell: bash
+        run: |
+          failed=0
+          for f in tests/v1150-correlation.cjs tests/v1153-correlation-runtime.cjs tests/v1156-a1-tab-registry.cjs tests/v1157-a1b-gone-worker.cjs tests/kar210-baseline-version-contract.cjs tests/current-patch-policy-regression.cjs tests/kar210-test-disposition-contract.cjs; do
+            echo "CP24_BEGIN $f"
+            if NODE_OPTIONS='--require ./tests/v12222-vm-legacy-bridge.cjs' node "$f"; then echo "CP24_PASS $f"; else echo "CP24_FAIL $f"; failed=1; fi
+          done
+          exit "$failed"
