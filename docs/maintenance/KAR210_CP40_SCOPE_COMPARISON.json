@@ -2,7 +2,7 @@
   "schema": 1,
   "issue": 210,
   "checkpoint": 40,
-  "status": "comparison-prepared; hosted results pending",
+  "status": "historical comparison verified; original test restoration staged, validation pending",
   "historicalCommit": "f2225155e403d89d07a674c9e20f397a4f86694d",
   "workSource": "23b635a6a38be8f3c569b9e35978bc2cdc4ec7e8",
   "main": "4d7ae5130730776927748e2517fdf9aadaf098cd",
@@ -1086,7 +1086,7 @@
       "evidence": [
         "Error: Kategorie „Mode & Beauty“ ist nicht eindeutig (0 Treffer)."
       ],
-      "disposition": "compare-original-historical-test-before-disposition"
+      "disposition": "restore original historical assertions; exact historical blob"
     },
     {
       "index": 43,
@@ -1118,7 +1118,7 @@
       "evidence": [
         "AssertionError [ERR_ASSERTION]: S02 safety witness: a record whose expiry was reset after selection must not be deleted"
       ],
-      "disposition": "compare-original-historical-test-before-disposition"
+      "disposition": "restore original historical assertions; exact historical blob"
     },
     {
       "index": 254,
@@ -1133,7 +1133,7 @@
       "evidence": [
         "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:"
       ],
-      "disposition": "compare-original-historical-test-before-disposition"
+      "disposition": "restore original historical assertions; exact historical blob"
     },
     {
       "index": 274,
@@ -1148,7 +1148,7 @@
       "evidence": [
         "AssertionError [ERR_ASSERTION]: The input did not match the regular expression /Inventar\\s*<span id=\"inventoryHeaderCount\">…<\\/span>/. Input:"
       ],
-      "disposition": "compare-original-historical-test-before-disposition"
+      "disposition": "restore original historical assertions; explicit baseline version recognition only"
     },
     {
       "index": 275,
@@ -1163,7 +1163,7 @@
       "evidence": [
         "AssertionError [ERR_ASSERTION]: The input was expected to not match the regular expression /UI_SIDEBAR_BOTTOM_REACHED|UI_SIDEBAR_GEOMETRY_CHANGED|UI_SIDEBAR_SCROLL_SAMPLE/. Input:"
       ],
-      "disposition": "compare-original-historical-test-before-disposition"
+      "disposition": "restore original historical assertions; explicit baseline version recognition only"
     },
     {
       "index": 289,
@@ -1178,7 +1178,7 @@
       "evidence": [
         "AssertionError [ERR_ASSERTION]: routine state snapshots must not be persisted"
       ],
-      "disposition": "compare-original-historical-test-before-disposition"
+      "disposition": "restore original historical assertions; exact historical blob"
     },
     {
       "index": 290,
@@ -1193,7 +1193,7 @@
       "evidence": [
         "AssertionError [ERR_ASSERTION]: The input was expected to not match the regular expression /UI_SIDEBAR_SCROLL_SAMPLE/. Input:"
       ],
-      "disposition": "compare-original-historical-test-before-disposition"
+      "disposition": "restore original historical assertions; exact historical blob"
     },
     {
       "index": 292,
@@ -1208,8 +1208,164 @@
       "evidence": [
         "AssertionError [ERR_ASSERTION]: The input was expected to not match the regular expression /UI_SIDEBAR_SCROLL_SAMPLE/. Input:"
       ],
-      "disposition": "compare-original-historical-test-before-disposition"
+      "disposition": "restore original historical assertions; relative HTML script paths only"
     }
   ],
-  "originalTestComparison": "Run eight original tests in exact historical checkout and same original bytes in isolated Work checkout; no change to active suite or runtime, no build or release."
+  "originalTestComparison": "Run eight original tests in exact historical checkout and same original bytes in isolated Work checkout; no change to active suite or runtime, no build or release.",
+  "comparison": {
+    "run": 45712189571,
+    "job": 139549145300,
+    "sha": "7189aac3c67800274ea1fd0b37f2da7a967be8c7",
+    "conclusion": "failure",
+    "results": [
+      {
+        "index": 42,
+        "path": "tests/kar132-modern-category-modal.cjs",
+        "basis": "historical-original",
+        "exitCode": 0,
+        "status": "PASS",
+        "evidence": []
+      },
+      {
+        "index": 42,
+        "path": "tests/kar132-modern-category-modal.cjs",
+        "basis": "work-original",
+        "exitCode": 0,
+        "status": "PASS",
+        "evidence": []
+      },
+      {
+        "index": 227,
+        "path": "tests/v1203-hot-path-runtime.cjs",
+        "basis": "historical-original",
+        "exitCode": 0,
+        "status": "PASS",
+        "evidence": [
+          "PASS 3: failed image progress remains durable"
+        ]
+      },
+      {
+        "index": 227,
+        "path": "tests/v1203-hot-path-runtime.cjs",
+        "basis": "work-original",
+        "exitCode": 0,
+        "status": "PASS",
+        "evidence": [
+          "PASS 3: failed image progress remains durable"
+        ]
+      },
+      {
+        "index": 254,
+        "path": "tests/v12018-activity-history-bootstrap.cjs",
+        "basis": "historical-original",
+        "exitCode": 0,
+        "status": "PASS",
+        "evidence": []
+      },
+      {
+        "index": 254,
+        "path": "tests/v12018-activity-history-bootstrap.cjs",
+        "basis": "work-original",
+        "exitCode": 0,
+        "status": "PASS",
+        "evidence": []
+      },
+      {
+        "index": 274,
+        "path": "tests/v12111-global-view-sidebar-bottom-diagnostics.cjs",
+        "basis": "historical-original",
+        "exitCode": 0,
+        "status": "PASS",
+        "evidence": []
+      },
+      {
+        "index": 274,
+        "path": "tests/v12111-global-view-sidebar-bottom-diagnostics.cjs",
+        "basis": "work-original",
+        "exitCode": 1,
+        "status": "FAIL",
+        "evidence": [
+          "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:",
+          "actual: false,",
+          "expected: true,"
+        ]
+      },
+      {
+        "index": 275,
+        "path": "tests/v12112-sidebar-refresh-capture-polish.cjs",
+        "basis": "historical-original",
+        "exitCode": 0,
+        "status": "PASS",
+        "evidence": []
+      },
+      {
+        "index": 275,
+        "path": "tests/v12112-sidebar-refresh-capture-polish.cjs",
+        "basis": "work-original",
+        "exitCode": 1,
+        "status": "FAIL",
+        "evidence": [
+          "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:",
+          "actual: false,",
+          "expected: true,"
+        ]
+      },
+      {
+        "index": 289,
+        "path": "tests/v1226-diagnostics-actions-runtime.cjs",
+        "basis": "historical-original",
+        "exitCode": 0,
+        "status": "PASS",
+        "evidence": []
+      },
+      {
+        "index": 289,
+        "path": "tests/v1226-diagnostics-actions-runtime.cjs",
+        "basis": "work-original",
+        "exitCode": 0,
+        "status": "PASS",
+        "evidence": []
+      },
+      {
+        "index": 290,
+        "path": "tests/v1227-pre-refactor-characterization.cjs",
+        "basis": "historical-original",
+        "exitCode": 0,
+        "status": "PASS",
+        "evidence": [
+          "PASS tab lifecycle preserves expected-close, gone and discarded distinctions"
+        ]
+      },
+      {
+        "index": 290,
+        "path": "tests/v1227-pre-refactor-characterization.cjs",
+        "basis": "work-original",
+        "exitCode": 0,
+        "status": "PASS",
+        "evidence": [
+          "PASS tab lifecycle preserves expected-close, gone and discarded distinctions"
+        ]
+      },
+      {
+        "index": 292,
+        "path": "tests/v1227-modularization.cjs",
+        "basis": "historical-original",
+        "exitCode": 0,
+        "status": "PASS",
+        "evidence": []
+      },
+      {
+        "index": 292,
+        "path": "tests/v1227-modularization.cjs",
+        "basis": "work-original",
+        "exitCode": 1,
+        "status": "FAIL",
+        "evidence": [
+          "AssertionError [ERR_ASSERTION]: The input did not match the regular expression /<script src=\"src\\/app\\/app-layout-controller\\.js\"><\\/script>[\\s\\S]*<script src=\"src\\/app\\/tab-page-inspection-controller\\.js\"><\\/script>[\\s\\S]*<script src=\"src\\/app\\/shared-ui-helpers\\.js\"><\\/script>[\\s\\S]*<script src=\"src\\/app\\/app\\.js\"><\\/script>/. Input:",
+          "actual: '<!doctype html>\\n' +",
+          "expected: /<script src=\"src\\/app\\/app-layout-controller\\.js\"><\\/script>[\\s\\S]*<script src=\"src\\/app\\/tab-page-inspection-controller\\.js\"><\\/script>[\\s\\S]*<script src=\"src\\/app\\/shared-ui-helpers\\.js\"><\\/script>[\\s\\S]*<script src=\"src\\/app\\/app\\.js\"><\\/script>/,"
+        ]
+      }
+    ]
+  }
 }

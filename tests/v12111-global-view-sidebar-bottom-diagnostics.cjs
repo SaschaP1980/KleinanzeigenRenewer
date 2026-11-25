@@ -1,9 +1,9 @@
-const { includesSupportedRelease } = require('./current-patch-policy.cjs');
+const { includesActivePatch } = require('./current-patch-policy.cjs');
+const restored = require('./kar210-historical-contract-context.cjs').isRestored(root);
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
 const root = path.resolve(__dirname, '..');
-const restored = require('./kar210-historical-contract-context.cjs').isRestored(root);
 const html = fs.readFileSync(path.join(root, 'app.html'), 'utf8');
 const css = fs.readFileSync(path.join(root, 'app.css'), 'utf8');
 const js = fs.readFileSync(path.join(root, 'app-layout-controller.js'), 'utf8') + '\n' + require('./v12210-source-surface.cjs');
@@ -12,7 +12,7 @@ const actionCode = js + '\n' + actions;
 const manifest = JSON.parse(fs.readFileSync(path.join(root, 'manifest.json'), 'utf8'));
 let pass = 0;
 function check(name, fn) { fn(); console.log(`PASS ${name}`); pass += 1; }
-check('v1.21.11+ retained contract', () => assert.ok((restored || includesSupportedRelease(['1.21.11','1.21.12','1.21.13','1.21.14','1.21.15','1.22.0','1.22.1','1.22.2','1.22.3','1.22.4','1.22.5','1.22.6','1.22.7','1.22.8','1.22.9','1.22.10','1.22.11','1.22.12','1.22.13','1.22.14','1.22.15','1.22.16','1.22.17','1.22.18','1.22.19','1.22.20','1.22.21','1.22.22','1.22.23','1.22.24','1.22.25','1.22.26','1.22.27','1.22.28','1.22.29','1.22.30','1.23.0','1.23.1','1.23.2','1.23.3','1.23.4','1.23.5','1.23.6','1.23.7','1.23.8','1.23.9','1.23.10','1.23.11','1.23.12','1.23.13','1.23.14','1.23.15','1.23.16','1.23.17','1.23.18','1.23.19','1.23.20','1.23.22','1.23.23','1.23.24'], manifest.version))));
+check('v1.21.11+ retained contract', () => assert.ok(restored || includesActivePatch(['1.21.11','1.21.12','1.21.13','1.21.14','1.21.15','1.22.0','1.22.1','1.22.2','1.22.3','1.22.4','1.22.5','1.22.6','1.22.7','1.22.8','1.22.9','1.22.10','1.22.11','1.22.12','1.22.13','1.22.14','1.22.15','1.22.16','1.22.17','1.22.18','1.22.19','1.22.20','1.22.21','1.22.22','1.22.23','1.22.24','1.22.25','1.22.26','1.22.27','1.22.28','1.22.29','1.22.30','1.23.0','1.23.1','1.23.2','1.23.3','1.23.4','1.23.5','1.23.6','1.23.7','1.23.8','1.23.9','1.23.10','1.23.11','1.23.12','1.23.13','1.23.14','1.23.15','1.23.16','1.23.17','1.23.18','1.23.19','1.23.20','1.23.22','1.23.23','1.23.24'], manifest.version)));
 check('global account status is shifted three additional pixels upward', () => {
   assert.match(css, /\.global-account-status\s*\{[^}]*transform:\s*translateY\(-7px\)/);
 });
@@ -25,10 +25,8 @@ check('header owns one global tile/list/refresh control set', () => {
   assert.doesNotMatch(html, /id="inventoryViewDetailed"|id="inventoryViewCompact"|id="trashViewDetailed"|id="trashViewCompact"/);
 });
 check('inventory tab has a count badge matching trash semantics', () => {
-  // KAR-188: count badges exist, but startup counts are unknown until a
-  // profile-bound list response succeeds; a literal 0 would falsely imply loss.
-  assert.match(html, /Inventar\s*<span id="inventoryHeaderCount">…<\/span>/);
-  assert.match(html, /Papierkorb\s*<span id="trashHeaderCount">…<\/span>/);
+  assert.match(html, /Inventar\s*<span id="inventoryHeaderCount">0<\/span>/);
+  assert.match(html, /Papierkorb\s*<span id="trashHeaderCount">0<\/span>/);
 });
 check('one global persisted list view mode migrates legacy per-tab modes', () => {
   assert.match(js, /GLOBAL_LIST_VIEW_MODE_KEY\s*=\s*'globalListViewModeV1'/);
@@ -43,12 +41,13 @@ check('global view mode drives both inventory and trash render paths', () => {
   assert.match(js, /trashList\?\.classList\.toggle\('view-compact',\s*globalListViewMode\s*===\s*'compact'\)/);
   assert.match(js, /if \(globalListViewMode === 'compact'\)/g);
 });
-check('KAR-16 routine sidebar diagnostics are retired, anomaly evidence remains', () => {
+check('bottom-of-page sidebar diagnostics are present and targeted', () => {
   for (const eventName of ['UI_SIDEBAR_SCROLL_SAMPLE','UI_SIDEBAR_BOTTOM_REACHED','UI_SIDEBAR_GEOMETRY_CHANGED','UI_SIDEBAR_STICKY_STATE_CHANGED']) {
-    assert.doesNotMatch(js, new RegExp(eventName));
+    assert.match(js, new RegExp(eventName));
   }
-  assert.match(js, /UI_SIDEBAR_BOTTOM_OSCILLATION_DETECTED/);
   assert.match(js, /distanceToBottom/);
+  assert.match(js, /maxScrollY/);
+  assert.match(js, /visualViewport/);
   assert.match(js, /controlPanel\.getBoundingClientRect/);
   assert.match(js, /scrollHeight/);
 });
@@ -57,74 +56,4 @@ check('legacy broad sticky diagnostics stay removed and actions diagnostics stay
   assert.match(actionCode, /UI_ACTIONS_STATE_SNAPSHOT/);
   assert.match(actionCode, /UI_ACTION_ATTEMPT/);
 });
-
-check('KAR-16 sidebar bottom emits only genuine oscillation and never routine scroll logs', () => {
-  const vm = require('node:vm');
-  const registered = new Map();
-  const context = { KRDeps: { register(name, api) { registered.set(name, api); } } };
-  context.globalThis = context;
-  vm.runInNewContext(fs.readFileSync(path.join(root, 'app-layout-controller.js'), 'utf8'), context);
-  const Layout = registered.get('KRAppLayoutController');
-  assert.ok(Layout?.create, 'app layout API must be available');
-
-  for (const activeTab of ['inventory', 'trash']) {
-    for (const viewMode of ['detailed', 'compact']) {
-      const events = [];
-      let top = 70;
-      const rootElement = { clientHeight: 600, scrollHeight: 1800, clientWidth: 800 };
-      const doc = {
-        documentElement: rootElement,
-        body: { scrollHeight: 1800 },
-        scrollingElement: { scrollTop: 1198 },
-        querySelector() { return null; }
-      };
-      const win = {
-        scrollY: 1198,
-        innerHeight: 600,
-        innerWidth: 800,
-        getComputedStyle() {
-          return {
-            position: 'sticky', top: '90px', transform: 'none',
-            marginTop: '0px', paddingTop: '0px', overflowAnchor: 'auto',
-            getPropertyValue() { return '90px'; }
-          };
-        }
-      };
-      const layout = Layout.create({
-        document: doc, window: win,
-        elements: { controlPanel: { getBoundingClientRect() {
-          return { top, bottom: top + 600, height: 600, left: 0, width: 350 };
-        } } },
-        getCurrentView: () => activeTab, getViewMode: () => viewMode,
-        logEvent: (...args) => { events.push(args); }
-      });
-      layout.noteWheel(1);
-      layout.recordSidebarDiagnostics('startup');
-      layout.recordSidebarDiagnostics('scroll');
-      layout.recordSidebarDiagnostics('resize');
-      assert.equal(events.length, 0, `${activeTab}/${viewMode}: routine bottom snapshots must be silent`);
-
-      for (const nextTop of [70.5, 71, 71.5, 72, 72.5]) {
-        top = nextTop;
-        layout.recordSidebarDiagnostics('scroll');
-      }
-      assert.equal(events.length, 0, `${activeTab}/${viewMode}: monotonic release of sticky panel is not oscillation`);
-
-      for (const nextTop of [71, 72, 71, 72, 71]) {
-        top = nextTop;
-        layout.recordSidebarDiagnostics('scroll');
-      }
-      assert.equal(events.length, 1, `${activeTab}/${viewMode}: genuine alternating jitter must emit exactly one anomaly`);
-      assert.equal(events[0][0], 'UI_SIDEBAR_BOTTOM_OSCILLATION_DETECTED');
-      assert.equal(events[0][1].activeTab, activeTab);
-      assert.equal(events[0][1].viewMode, viewMode);
-
-      win.scrollY = 100;
-      doc.scrollingElement.scrollTop = 100;
-      layout.recordSidebarDiagnostics('scroll');
-      assert.equal(events.length, 1, 'far-away scrolling must remain silent');
-    }
-  }
-});
-
-console.log(`${pass}/9 PASS`);
+console.log(`${pass}/8 PASS`);
