@@ -140,5 +140,15 @@
     "jobId": 139062659482,
     "result": "failure",
     "reason": "No explicit authorized marker; no build executed; unrelated to focused test acceptance."
+  },
+  "thirdFocusedValidation": {
+    "runId": 45572909389,
+    "jobId": 139063678693,
+    "head": "ee55139deb1945ec17d66338f0a2e3b9b382f291",
+    "passed": 15,
+    "failed": 0,
+    "contractGroups": 63,
+    "runtimeCases": 7,
+    "negativeFixtures": 59
   }
 }
