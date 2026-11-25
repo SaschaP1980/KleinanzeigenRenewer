@@ -32,3 +32,5 @@ jobs:
         with:
           node-version: '22'
       - run: node --test tests/kar210-diagnostic-reset-unknown.cjs
+
+# Historical trash service is registered through KRDeps, not CommonJS.

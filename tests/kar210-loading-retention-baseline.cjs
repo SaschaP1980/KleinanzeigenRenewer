@@ -1,7 +1,9 @@
 'use strict';
 // Historical refresh and local retention only; no later loading-generation/policy implementation.
 const assert=require('node:assert/strict'),test=require('node:test'),vm=require('node:vm'),fs=require('node:fs');
-const Trash=require('../src/background/services/trash-service.js');
+let Trash;
+vm.runInNewContext(fs.readFileSync('src/background/services/trash-service.js','utf8'),{KRDeps:{register(name,api){if(name==='KRTrashService')Trash=api;}}});
+assert.equal(typeof Trash?.create,'function');
 const copy=x=>structuredClone(x);
 test('actual historical profile-scoped refresh renders persisted 61/90 and retains verified rows on rejected read',async()=>{
  const source=fs.readFileSync('src/app/app.js','utf8');
