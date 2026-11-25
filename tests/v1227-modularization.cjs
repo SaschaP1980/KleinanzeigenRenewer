@@ -1,3 +1,5 @@
+const root = require('node:path').resolve(__dirname, '..');
+const restored = require('./kar210-historical-contract-context.cjs').isRestored(root);
 const fs=require('fs'),assert=require('assert/strict');
 const app=fs.readFileSync('app.js','utf8'),html=fs.readFileSync('app.html','utf8');
 const layout=fs.readFileSync('app-layout-controller.js','utf8');
@@ -6,7 +8,7 @@ const helpers=fs.readFileSync('shared-ui-helpers.js','utf8');
 let n=0;const pass=m=>{n++;console.log('PASS '+m)};
 assert.match(html,/<script src="app-layout-controller\.js"><\/script>[\s\S]*<script src="tab-page-inspection-controller\.js"><\/script>[\s\S]*<script src="shared-ui-helpers\.js"><\/script>[\s\S]*<script src="app\.js"><\/script>/);pass('new app modules load before app entrypoint');
 for(const dep of ['KRAppLayoutController','KRTabPageInspectionController','KRSharedUiHelpers']) assert.match(app,new RegExp(`KRDeps\\.require\\('${dep}'\\)`)); pass('app consumes all three modules through KRDeps');
-assert.doesNotMatch(app,/let sidebarBottomLastWheelDeltaY|let sidebarBottomLastSnapshot|let stickyHeaderSyncFrame/);assert.match(layout,/let stickyHeaderSyncFrame/);assert.match(layout,/let lastBottomTop/);pass('sticky/sidebar anomaly state ownership remains in layout controller');
+assert.doesNotMatch(app,/let sidebarBottomLastWheelDeltaY|let sidebarBottomLastSnapshot|let stickyHeaderSyncFrame/);assert.match(layout,/let stickyHeaderSyncFrame/);if (restored) { assert.match(layout,/let lastSnapshot = null/); assert.match(layout,/let recentTopChanges = \[\]/); } else assert.match(layout,/let lastBottomTop/);pass('sticky/sidebar anomaly state ownership remains in layout controller');
 assert.doesNotMatch(app,/chrome\.tabs\.sendMessage\(tabId, message/);assert.match(tabs,/chromeApi\.tabs\.sendMessage/);assert.match(tabs,/ENSURE_CONTENT_CONNECTION/);pass('tab message/recovery implementation moved out of app');
 assert.doesNotMatch(app,/function makeCompactIconButton\([^)]*\)\s*\{[\s\S]{0,500}document\.createElement\('button'\)/);assert.match(helpers,/function makeCompactIconButton/);pass('shared compact UI construction moved into helper module');
 assert.match(app,/function scheduleListStickyHeaderSync\(\) \{ return requireAppLayoutController\(\)\.scheduleStickyHeaderSync\(\); \}/);pass('app retains thin sticky facade');

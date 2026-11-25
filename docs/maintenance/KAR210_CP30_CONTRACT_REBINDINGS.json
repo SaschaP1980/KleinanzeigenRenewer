@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "issue": 210,
+  "checkpoint": 30,
+  "sourceCommit": "ac841e9ef4b74a04cec772113d487a10500915b4",
+  "originalsRetainedInGit": true,
+  "policy": "Historical minimal baseline first; retain D and genuine safety RED, no production or active command changes. Validation pending.",
+  "review": [
+    {
+      "path": "tests/v1220-browser-e2e-contract.cjs",
+      "originalBlob": "e0acdfd6adcc578d28fa2e9e30478c4aef28cb7b",
+      "originalCommit": "ac841e9ef4b74a04cec772113d487a10500915b4",
+      "changes": [
+        "Exact S02 identity; no broad PATCH predicate changes.",
+        "All original nine E2E scenario declarations, Gold metadata, build and nested D governance assertions retained. No native execution claimed."
+      ]
+    },
+    {
+      "path": "tests/v1221-actions-controlled-accordion.cjs",
+      "originalBlob": "4a11d7205777cb0a5baae5ace31753b3e804756d",
+      "originalCommit": "ac841e9ef4b74a04cec772113d487a10500915b4",
+      "changes": [
+        "Exact S02 identity; no broad PATCH predicate changes.",
+        "Gold historical patch-specific unchanged-file checks retained outside S02; exact baseline identity replaces version-only branch. Controlled accordion assertions unchanged."
+      ]
+    },
+    {
+      "path": "tests/v1223-action-focus-modality.cjs",
+      "originalBlob": "6d5ada9734f218ebd7a7dbee31d7b4aa176ca458",
+      "originalCommit": "ac841e9ef4b74a04cec772113d487a10500915b4",
+      "changes": [
+        "Exact S02 identity; no broad PATCH predicate changes."
+      ]
+    },
+    {
+      "path": "tests/v1226-diagnostics-actions-runtime.cjs",
+      "originalBlob": "971cb907715512a2921452ab4a85716fdde2a240",
+      "originalCommit": "ac841e9ef4b74a04cec772113d487a10500915b4",
+      "changes": [
+        "Unchanged genuine routine diagnostic logging RED; original test retained."
+      ]
+    },
+    {
+      "path": "tests/v1227-pre-refactor-characterization.cjs",
+      "originalBlob": "4180912476b5e7dd7bb2deb6af4303073e1b9528",
+      "originalCommit": "ac841e9ef4b74a04cec772113d487a10500915b4",
+      "changes": [
+        "Unchanged genuine routine diagnostic logging RED; original test retained."
+      ]
+    },
+    {
+      "path": "tests/v1227-modularization.cjs",
+      "originalBlob": "972c0ef9bb5e4f261f8670104770cb72e4def5bc",
+      "originalCommit": "ac841e9ef4b74a04cec772113d487a10500915b4",
+      "changes": [
+        "Exact S02 identity; no broad PATCH predicate changes.",
+        "Actual historical layout state owner; routine logging RED retained."
+      ]
+    },
+    {
+      "path": "tests/v12210-pre-refactor-characterization.cjs",
+      "originalBlob": "b089b0194d4ed646cdacc455bf643bddf6a8a793",
+      "originalCommit": "ac841e9ef4b74a04cec772113d487a10500915b4",
+      "changes": [
+        "Exact S02 identity; no broad PATCH predicate changes.",
+        "Historical fixed retention label; scan actual packaged JS rather than empty root JS surface for submit bypass."
+      ]
+    },
+    {
+      "path": "tests/v12211-modularization.cjs",
+      "originalBlob": "77e4fc2a809e4a0e59e3c3ed8dade54feea64cc9",
+      "originalCommit": "ac841e9ef4b74a04cec772113d487a10500915b4",
+      "changes": [
+        "Exact S02 identity; no broad PATCH predicate changes.",
+        "Exact historical import order, read-only native status still historical until S04, absence of later services; historical expiry index retained, independent CP28 stale expiry race RED remains active. Original later policy checks outside S02."
+      ]
+    },
+    {
+      "path": "tests/v12221-modularization.cjs",
+      "originalBlob": "e80a02ae4d1e35c4cfb9369770f7f848c54709b4",
+      "originalCommit": "ac841e9ef4b74a04cec772113d487a10500915b4",
+      "changes": [
+        "Exact S02 identity; no broad PATCH predicate changes.",
+        "Actual historical thin facade without excluded P8 receipt; original exact-ID independent absence and atomic promotion checks unchanged; independent DELETE replay RED remains."
+      ]
+    },
+    {
+      "path": "tests/v12224-message-contract-registry-runtime.cjs",
+      "originalBlob": "6a56351eb851f683e19f0a544f8d7a4172a6f253",
+      "originalCommit": "ac841e9ef4b74a04cec772113d487a10500915b4",
+      "changes": [
+        "Exact S02 identity; no broad PATCH predicate changes.",
+        "Exact hash-pinned 103 contracts (83 background, 10 content, 7 my-ads, 3 app), actual router coverage and fail-closed unknown/cross-target behavior retained. No later retention/occupancy/publish-intent contracts fabricated."
+      ]
+    },
+    {
+      "path": "tests/v12225-message-contract-enforcement-runtime.cjs",
+      "originalBlob": "8854996642a38f4d9ac7df69133218e5ffa17987",
+      "originalCommit": "ac841e9ef4b74a04cec772113d487a10500915b4",
+      "changes": [
+        "Exact S02 identity; no broad PATCH predicate changes.",
+        "Exact hash-pinned 103 contracts (83 background, 10 content, 7 my-ads, 3 app), actual router coverage and fail-closed unknown/cross-target behavior retained. No later retention/occupancy/publish-intent contracts fabricated."
+      ]
+    },
+    {
+      "path": "tests/v12228-pre-patch-characterization.cjs",
+      "originalBlob": "12896ee8c6617c3b4e6c50c4b84cd8879f3d1454",
+      "originalCommit": "ac841e9ef4b74a04cec772113d487a10500915b4",
+      "changes": [
+        "Exact S02 identity; no broad PATCH predicate changes."
+      ]
+    }
+  ]
+}
