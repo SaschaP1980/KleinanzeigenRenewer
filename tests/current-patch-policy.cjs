@@ -97,4 +97,31 @@ function includesActivePatch(knownVersions, version) {
     (knownVersions.includes('1.23.24') && isCurrentPatchVersion(version));
 }
 
-module.exports = { isCurrentPatchVersion, assertCompatibleCurrentPatch, includesActivePatch, includesSupportedRelease, expectedManifestPermissions };
+// KAR-210: explicit S02 major baseline, never an alias for legacy PATCH.
+function assertRestoredBaselineVersion(root = require('node:path').resolve(__dirname,'..')) {
+  const fs=require('node:fs'),path=require('node:path'),{execFileSync}=require('node:child_process');
+  const read=p=>JSON.parse(fs.readFileSync(path.join(root,p),'utf8'));
+  const manifest=read('manifest.json'), pkg=read('package.json'), spec=read('release/release-spec.json');
+  const actual=execFileSync('python3',[path.join(root,'scripts/product_version.py'),'--root',root],{encoding:'utf8'}).trim();
+  assert.equal(actual,'2.0.0.0','Only exact KAR-210 S02 target is reviewed');
+  assert.equal(manifest.version,actual);
+  assert.equal(manifest.manifest_version,3);
+  assert.equal(manifest.version_name,undefined);
+  assert.equal(pkg.version,'2.0.0');
+  assert.equal(pkg.displayVersion,actual);
+  assert.equal(spec.directBasis,'1.23.48');
+  assert.equal(spec.goldBaseline,'1.21.15');
+  assert.equal(spec.performanceRunRequired,true);
+  assert.deepEqual([...manifest.permissions].sort(),[...PERMISSIONS,'nativeMessaging'].sort());
+  assert.deepEqual([...manifest.host_permissions].sort(),[...HOST_PERMISSIONS].sort());
+  assert.equal(createHash('sha256').update(Buffer.from(manifest.key||'','base64')).digest('hex'),MANIFEST_KEY_SHA256);
+  assert.equal(spec.safety.runtimeSubmitCalls,0);
+  assert.equal(spec.safety.runtimeRequestSubmitCalls,0);
+  assert.equal(spec.safety.noNewRuntimeBoundary,true);
+  assert.equal(spec.safety.publishViaVisibleGuardedControlOnly,true);
+  assert.equal(spec.safety.unsafePostPublishRemainsFailClosed,true);
+  // Real coverage and native acceptance are separate gates, never inferred from a version.
+  return actual;
+}
+
+module.exports = { assertRestoredBaselineVersion, isCurrentPatchVersion, assertCompatibleCurrentPatch, includesActivePatch, includesSupportedRelease, expectedManifestPermissions };
