@@ -3,7 +3,7 @@ const test=require('node:test'),assert=require('node:assert/strict');
 const {harness}=require('./kar210-kar150-mass-fixture.cjs');
 test('historical ordinary failure advances in order, paid checkout always stops before another item',async()=>{
  const h=harness({failures:['one']});const created=await h.workflow.startMassRenewalBatch({inventoryIds:['one','two','two','three']});
- assert.deepEqual(created.items.map(x=>x.inventoryId),['one','two','three']);
+ assert.deepEqual(Array.from(created.items,x=>x.inventoryId),['one','two','three']);
  await h.workflow.startNextMassRenewalItem(created.batchId);
  let batch=await h.controller.readMassRenewalBatch();assert.equal(batch.status,'running');assert.deepEqual(batch.items.map(x=>x.status),['error','queued','queued']);
  await h.workflow.startNextMassRenewalItem(created.batchId);

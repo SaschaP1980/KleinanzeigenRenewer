@@ -42,3 +42,5 @@ jobs:
           node-version: '22'
       - run: npm ci --ignore-scripts
       - run: node tests/kar210-kar132-independent-modal.cjs
+
+# Normalize cross-realm array container, preserve exact ID assertions.
