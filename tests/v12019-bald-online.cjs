@@ -1,3 +1,6 @@
+const root = require('node:path').resolve(__dirname, '..');
+const historical = require('./kar210-historical-contract-context.cjs');
+const restored = historical.isRestored(root);
 const fs = require('node:fs');
 const assert = require('node:assert/strict');
 const bg = fs.readFileSync('background.js', 'utf8');
@@ -15,10 +18,10 @@ assert.match(app, /type:\s*'CHECK_INVENTORY_ONLINE_STATUS'/); pass('pending CTA 
 assert.match(bg, /async function checkInventoryOnlineStatus\(message\)/); pass('background implements dedicated online-status check');
 // KAR-175: production background remains the message facade; real online
 // evidence rules are now in the same in-process owner called by that facade.
-const refreshOwner = fs.readFileSync('src/background/services/inventory-refresh-service.js', 'utf8');
-assert.match(bg, /requireInventoryRefreshService\(\)\.checkInventoryOnlineStatus\(message\)/);
+const refreshOwner = fs.readFileSync(require('node:path').join(root, historical.historicalBackgroundOwner(root, 'src/background/services/inventory-refresh-service.js')), 'utf8');
+if (!restored) assert.match(bg, /requireInventoryRefreshService\(\)\.checkInventoryOnlineStatus\(message\)/);
 const onlineStart = refreshOwner.indexOf('async function checkInventoryOnlineStatus');
-const onlineEnd = refreshOwner.indexOf('\nasync function ', onlineStart + 20);
+const onlineEnd = restored ? refreshOwner.indexOf('\n}',onlineStart)+2 : refreshOwner.indexOf('\nasync function ', onlineStart + 20);
 const online = refreshOwner.slice(onlineStart, onlineEnd > onlineStart ? onlineEnd : undefined);
 assert.match(online, /canonical/); pass('online-status check attempts canonical route');
 assert.match(online, /id-direct/); pass('online-status check attempts ID-direct route');

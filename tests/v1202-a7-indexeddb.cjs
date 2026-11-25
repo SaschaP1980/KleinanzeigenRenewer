@@ -1,3 +1,6 @@
+const root = require('node:path').resolve(__dirname, '..');
+const historical = require('./kar210-historical-contract-context.cjs');
+const restored = historical.isRestored(root);
 const fs = require('fs');
 const assert = require('assert');
 let n = 0; const pass = m => { n += 1; console.log(`PASS ${n}: ${m}`); };
@@ -25,15 +28,25 @@ const purgeEnd = bg.indexOf('\nasync function listInventories', purgeStart);
 // policy must be evaluated for each persisted trash item; exact-ID revalidation
 // and attached image removal occur atomically in IndexedDB, not by trusting
 // the legacy trashExpiresAt index as an authority to permanently delete.
-const owner = fs.readFileSync('src/background/controllers/trash-management-controller.js', 'utf8');
-assert.match(bg.slice(purgeStart, purgeEnd), /requireTrashManagementController\(\)\.purgeExpiredTrash\(\)/);
-assert.match(owner, /await service\.purgeExpired\(\)/);
-assert.match(trash, /await repository\.readAll\(\)/);
-assert.match(trash, /repository\.deleteTrashIfEligible\(/);
-assert.match(repo, /async function deleteTrashIfEligible\(/);
-assert.match(repo, /transaction\(\[inventoryStoreName, imageStoreName\], 'readwrite'\)/);
-assert.match(repo, /index\(["']trashExpiresAt["']\)/);
-pass('trash expiry reads the current policy and applies atomic ID/age/image guards instead of stale expiry-index assumptions');
+if (restored) {
+  assert.match(bg.slice(purgeStart, purgeEnd), /await requireTrashService\(\)\.purgeExpired\(\)/);
+  assert.match(trash, /repository\.readTrashExpiryState\(nowMs\)/);
+  assert.match(repo, /async function readTrashExpiryState\(nowMs = Date\.now\(\)\)/);
+  assert.match(repo, /index\(["']trashExpiresAt["']\)/);
+  assert.match(repo, /async function deleteWithImages\(inventoryId\)/);
+  assert.match(repo, /transaction\(\[inventoryStoreName, imageStoreName\], 'readwrite'\)/);
+  pass('historical fixed expiry index and atomic local image/record deletion are retained; eligibility race separately remains RED');
+} else {
+  const owner = fs.readFileSync('src/background/controllers/trash-management-controller.js', 'utf8');
+  assert.match(bg.slice(purgeStart, purgeEnd), /requireTrashManagementController\(\)\.purgeExpiredTrash\(\)/);
+  assert.match(owner, /await service\.purgeExpired\(\)/);
+  assert.match(trash, /await repository\.readAll\(\)/);
+  assert.match(trash, /repository\.deleteTrashIfEligible\(/);
+  assert.match(repo, /async function deleteTrashIfEligible\(/);
+  assert.match(repo, /transaction\(\[inventoryStoreName, imageStoreName\], 'readwrite'\)/);
+  assert.match(repo, /index\(["']trashExpiresAt["']\)/);
+  pass('trash expiry reads the current policy and applies atomic ID/age/image guards instead of stale expiry-index assumptions');
+}
 
 const countStart = bg.indexOf('async function countUnprofiledInventories');
 const countEnd = bg.indexOf('async function recognizeProfile', countStart);
