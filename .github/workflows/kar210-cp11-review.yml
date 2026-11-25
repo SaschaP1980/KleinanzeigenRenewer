@@ -8,8 +8,6 @@ jobs:
   review:
     runs-on: ubuntu-24.04
     timeout-minutes: 8
-    env:
-      NODE_OPTIONS: --require ./tests/v12222-vm-legacy-bridge.cjs
     steps:
       - uses: actions/checkout@v5
         with:
@@ -20,9 +18,9 @@ jobs:
       - run: npm ci
       - run: node --test tests/kar210-kar199-baseline-reset.cjs tests/kar210-kar199-baseline-phase4.cjs tests/kar210-kar197-baseline-safety.cjs
       - run: node tests/kar210-test-disposition-contract.cjs
-      - run: node tests/v12230-global-emergency-reset.cjs
-      - run: node tests/v1234-insertion-lock-runtime.cjs
-      - run: node tests/v12315-runtime.cjs
+      - run: NODE_OPTIONS='--require ./tests/v12222-vm-legacy-bridge.cjs' node tests/v12230-global-emergency-reset.cjs
+      - run: NODE_OPTIONS='--require ./tests/v12222-vm-legacy-bridge.cjs' node tests/v1234-insertion-lock-runtime.cjs
+      - run: NODE_OPTIONS='--require ./tests/v12222-vm-legacy-bridge.cjs' node tests/v12315-runtime.cjs
   no-replay-witness:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
