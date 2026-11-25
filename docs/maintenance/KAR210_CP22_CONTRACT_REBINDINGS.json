@@ -134,5 +134,22 @@
       "test": "v1138",
       "change": "Use exact historical background navigation owner and scope assertions to actual openReadOnlyAd. Retain canonical URL tests, later delegation assertion outside S02."
     }
-  ]
+  ],
+  "secondFocusedValidation": {
+    "runId": 45581237786,
+    "jobId": 139091546729,
+    "head": "08c35ebe8fefa5987687cb016fbcb8005474f130",
+    "passed": 16,
+    "failed": 0,
+    "completeHistoricalContracts": 11,
+    "completeContractGroups": 31,
+    "runtimeCases": 6,
+    "negativeFixtures": 59
+  },
+  "builderGuard": {
+    "runId": 45581102126,
+    "jobId": 139091079589,
+    "result": "failure",
+    "reason": "No explicit authorized marker; no build executed."
+  }
 }
