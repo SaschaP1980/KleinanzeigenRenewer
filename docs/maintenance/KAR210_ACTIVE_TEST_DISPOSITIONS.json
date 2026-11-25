@@ -399,6 +399,72 @@
         "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
       },
       "reason": "B14 is a later standalone-candidate recovery transaction explicitly assigned to S06. All seven original cases remain evidence, including collision, rollback and unknown-publication negatives. Historical reset is tested through actual controller/repository, preserves unresolved source/target IDs and terminal tombstones without claiming remote success. The baseline does not adopt the candidate as an independent record; S06 must implement and re-run the original product outcomes. Transport no-replay remains active RED, not dispositioned."
+    },
+    {
+      "test": "tests/kar199-phase4-ui-runtime.cjs",
+      "blob": "71a1c80b86df254028c8299f715f966644c83fe0",
+      "module": "src/app/inventory-formatting.js",
+      "matrix": "A14/B16/C04",
+      "step": "S06",
+      "status": "deferred-B",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-kar199-baseline-phase4.cjs",
+        "tests/v12019-phase3-edit-authority.cjs",
+        "tests/v12315-runtime.cjs"
+      ],
+      "featureAbsence": {
+        "marker": "source-delete-status-unverified",
+        "baselineBlob": "45bd6f6aa9d10ade0079719d3976f976f06d05f1",
+        "donorBlob": "7d8e5a43f6515649f9513c71ba487fc6c2c428ef",
+        "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
+      },
+      "reason": "Three cases assert later outcome states and rendering not present in the historical runtime; S06 must provide truthful blocked status and read-only recovery without journal coupling. The fourth normal handoff test is retained verbatim in an active baseline test, along with exact-ID, wrong-profile, fresh verification and interrupted transport service-boundary cases. No-replay and bounded outcome regressions remain active RED."
+    },
+    {
+      "test": "tests/kar197-blocked-archive-runtime.cjs",
+      "blob": "613753f8cb3c6a451c3b713c386a97fd185e3a8a",
+      "module": "src/app/archive-insertion-ui-controller.js",
+      "matrix": "B15/C04",
+      "step": "S06/S07",
+      "status": "split-C",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-kar197-baseline-safety.cjs",
+        "tests/kar210-kar201-baseline-safety.cjs",
+        "tests/v1234-insertion-lock-runtime.cjs",
+        "tests/v1235-archive-insertion-controller-runtime.cjs",
+        "tests/v1237-diagnostic-export-runtime.cjs"
+      ],
+      "featureAbsence": {
+        "marker": "publish-blocked",
+        "baselineBlob": "08688155593fff5fadf7ea4add280909b7724bac",
+        "donorBlob": "c8739f29bfb334a299cb3a36a800a59aa8d970e7",
+        "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
+      },
+      "reason": "The exact journal-blocked state, reason and telemetry are later C; retain ordinary historical failed ZIP presentation without invented success, persisted submitted-stage observation, competing insertion lock denial, monotonic revision rendering, Fast/Safe distinction, diagnostic redaction and guarded publication. Later B15 unknown publication handling remains S07, not accepted by baseline tests."
+    },
+    {
+      "test": "tests/kar197-blocked-fill-runtime.cjs",
+      "blob": "612afb978fe600edb58fda0635d7049c0da16d3e",
+      "module": "src/background/controllers/template-fill-controller.js",
+      "matrix": "A10/B15/C04",
+      "step": "S06/S07",
+      "status": "split-C",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-kar197-baseline-safety.cjs",
+        "tests/kar210-kar201-baseline-safety.cjs",
+        "tests/v1234-template-fill-controller-runtime.cjs",
+        "tests/v1231-renewal-workflow-runtime.cjs"
+      ],
+      "featureAbsence": {
+        "marker": "publishBlockReason",
+        "baselineBlob": "c01b419766420bf1ed9b0e8cccb5d4a91e867cdd",
+        "donorBlob": "d773395115da20d8ef3520b64decd20260aff2d9",
+        "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
+      },
+      "reason": "Original cases require absent journal publish-blocked and schemaPreflight fields. Retain actual historical submitted/new-ID stale pre-publish denial for archive and renewal, verify wrong-tab denial and terminal review in existing active tests, no automatic retry caused by stale pre-publish progress. S06/S07 must independently witness actual unknown-outcome no-replay and recovery before native use."
     }
   ],
   "deferredWitnesses": [

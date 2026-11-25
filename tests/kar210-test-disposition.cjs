@@ -338,6 +338,63 @@ const RULES = Object.freeze({
       "donorBlob": "b7bf8f08a43b46d36a85ef370c460203a168b687",
       "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
     }
+  },
+  "tests/kar199-phase4-ui-runtime.cjs": {
+    "module": "src/app/inventory-formatting.js",
+    "matrix": "A14/B16/C04",
+    "step": "S06",
+    "status": "deferred-B",
+    "owner": "package.json",
+    "retained": [
+      "tests/kar210-kar199-baseline-phase4.cjs",
+      "tests/v12019-phase3-edit-authority.cjs",
+      "tests/v12315-runtime.cjs"
+    ],
+    "featureAbsence": {
+      "marker": "source-delete-status-unverified",
+      "baselineBlob": "45bd6f6aa9d10ade0079719d3976f976f06d05f1",
+      "donorBlob": "7d8e5a43f6515649f9513c71ba487fc6c2c428ef",
+      "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
+    }
+  },
+  "tests/kar197-blocked-archive-runtime.cjs": {
+    "module": "src/app/archive-insertion-ui-controller.js",
+    "matrix": "B15/C04",
+    "step": "S06/S07",
+    "status": "split-C",
+    "owner": "package.json",
+    "retained": [
+      "tests/kar210-kar197-baseline-safety.cjs",
+      "tests/kar210-kar201-baseline-safety.cjs",
+      "tests/v1234-insertion-lock-runtime.cjs",
+      "tests/v1235-archive-insertion-controller-runtime.cjs",
+      "tests/v1237-diagnostic-export-runtime.cjs"
+    ],
+    "featureAbsence": {
+      "marker": "publish-blocked",
+      "baselineBlob": "08688155593fff5fadf7ea4add280909b7724bac",
+      "donorBlob": "c8739f29bfb334a299cb3a36a800a59aa8d970e7",
+      "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
+    }
+  },
+  "tests/kar197-blocked-fill-runtime.cjs": {
+    "module": "src/background/controllers/template-fill-controller.js",
+    "matrix": "A10/B15/C04",
+    "step": "S06/S07",
+    "status": "split-C",
+    "owner": "package.json",
+    "retained": [
+      "tests/kar210-kar197-baseline-safety.cjs",
+      "tests/kar210-kar201-baseline-safety.cjs",
+      "tests/v1234-template-fill-controller-runtime.cjs",
+      "tests/v1231-renewal-workflow-runtime.cjs"
+    ],
+    "featureAbsence": {
+      "marker": "publishBlockReason",
+      "baselineBlob": "c01b419766420bf1ed9b0e8cccb5d4a91e867cdd",
+      "donorBlob": "d773395115da20d8ef3520b64decd20260aff2d9",
+      "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
+    }
   }
 });
 const OWNERS = Object.freeze(["package.json","scripts/build.sh","scripts/coverage-gate.sh",".github/workflows/kar-work-pr.yml",".github/workflows/kar-ci.yml",".github/workflows/kar-release.yml"]);
@@ -385,7 +442,7 @@ function validateDispositions(root) {
     assert.deepEqual(e.featureAbsence,expected.featureAbsence,'Unreviewed feature absence evidence');
     if(e.featureAbsence) {
       const proof=e.featureAbsence;
-      assert.equal(e.status,'deferred-B');
+      assert.ok(['deferred-B','split-C'].includes(e.status),'Unexpected disposition for a packaged module');
       assert.equal(target.expected.find(r=>r.path===e.module)?.sha,proof.baselineBlob,'Missing exact historical feature source');
       assert.equal(gitBlob(read(e.module)),proof.baselineBlob,'Baseline capability source changed; re-evaluate disposition');
       assert.ok(packaged.includes(e.module)&&!target.absent.includes(e.module));
