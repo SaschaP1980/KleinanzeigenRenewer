@@ -464,7 +464,6 @@ const RULES = Object.freeze({
     "owner": "package.json",
     "retained": [
       "tests/kar210-diagnostics-baseline.cjs",
-      "tests/kar210-diagnostic-reset-unknown.cjs",
       "tests/v1200-diagnostic-reset.cjs",
       "tests/kar210-baseline-retained-behavior.cjs"
     ],
@@ -482,7 +481,6 @@ const RULES = Object.freeze({
     "status": "deferred-B",
     "owner": "package.json",
     "retained": [
-      "tests/kar210-startup-isolation-witness.cjs",
       "tests/kar210-loading-retention-baseline.cjs",
       "tests/v1238-profile-management-controller-runtime.cjs"
     ]
@@ -652,7 +650,6 @@ const RULES = Object.freeze({
     "owner": "package.json",
     "retained": [
       "tests/kar210-kar175-budget-schema-baseline.cjs",
-      "tests/kar210-kar134-legacy-session-witness.cjs",
       "tests/kar210-bootstrap-schema-boundaries.cjs",
       "tests/kar210-kar201-baseline-safety.cjs"
     ]
@@ -664,7 +661,6 @@ const RULES = Object.freeze({
     "status": "deferred-A",
     "owner": "package.json",
     "retained": [
-      "tests/kar210-kar134-legacy-session-witness.cjs",
       "tests/kar210-kar175-budget-schema-baseline.cjs",
       "tests/kar210-kar201-baseline-safety.cjs",
       "tests/v12317-template-filler-runtime.cjs",
@@ -679,7 +675,6 @@ const RULES = Object.freeze({
     "owner": "package.json",
     "retained": [
       "tests/kar210-p13-persisted-owner-baseline.cjs",
-      "tests/kar210-p13-lock-read-uncertainty.cjs",
       "tests/v1236-bulk-controller-runtime.cjs",
       "tests/v12313c1-bulk-reentry-rehydration-regression.cjs",
       "tests/v1231-renewal-workflow-runtime.cjs",
@@ -708,7 +703,6 @@ const RULES = Object.freeze({
     "retained": [
       "tests/kar210-p13-persisted-owner-baseline.cjs",
       "tests/v1156-a1-tab-registry-runtime.cjs",
-      "tests/kar99-p9-tab-gone-monotonic.cjs",
       "tests/kar210-kar175-public-navigation-baseline.cjs",
       "tests/kar210-kar199-baseline-reset.cjs"
     ]
@@ -723,9 +717,7 @@ const RULES = Object.freeze({
       "tests/kar210-kar199-baseline-reset.cjs",
       "tests/v12223c2-reset-recovery-archive-regression.cjs",
       "tests/v12230-global-emergency-reset.cjs",
-      "tests/v12213-bulk-deadlock-runtime.cjs",
-      "tests/kar199-phase4-no-transport-replay.cjs",
-      "tests/kar210-p13-lock-read-uncertainty.cjs"
+      "tests/v12213-bulk-deadlock-runtime.cjs"
     ]
   },
   "tests/kar99-p13-profile-account-closure.cjs": {
@@ -787,11 +779,9 @@ const RULES = Object.freeze({
     "owner": "package.json",
     "retained": [
       "tests/kar210-kar150-mass-baseline.cjs",
-      "tests/kar210-kar150-uncertain-start-witness.cjs",
       "tests/v1233-mass-renewal-workflow-runtime.cjs",
       "tests/v12226-paid-insertion-regression.cjs",
-      "tests/v12227-paid-insertion-lock-reset-regression.cjs",
-      "tests/kar210-p13-lock-read-uncertainty.cjs"
+      "tests/v12227-paid-insertion-lock-reset-regression.cjs"
     ],
     "featureAbsence": {
       "marker": "massRenewalStopOnErrorPreferenceV1",
@@ -809,7 +799,6 @@ const RULES = Object.freeze({
     "retained": [
       "tests/kar210-cp35-owner-product-witness.cjs",
       "tests/kar210-p13-persisted-owner-baseline.cjs",
-      "tests/kar210-p13-lock-read-uncertainty.cjs",
       "tests/v1234-insertion-lock-runtime.cjs",
       "tests/v1238-account-session-controller-runtime.cjs",
       "tests/kar68-native-status-gateway.cjs",
@@ -826,13 +815,11 @@ const RULES = Object.freeze({
     "retained": [
       "tests/kar210-cp35-owner-product-witness.cjs",
       "tests/kar210-p13-persisted-owner-baseline.cjs",
-      "tests/kar210-p13-lock-read-uncertainty.cjs",
       "tests/v1234-insertion-lock-runtime.cjs",
       "tests/v1238-account-session-controller-runtime.cjs",
       "tests/v1231-renewal-workflow-runtime.cjs",
       "tests/v1233-mass-renewal-workflow-runtime.cjs",
       "tests/kar210-kar175-phase1-retry-baseline.cjs",
-      "tests/kar210-kar150-uncertain-start-witness.cjs",
       "tests/kar210-kar199-baseline-reset.cjs"
     ]
   },
@@ -845,10 +832,8 @@ const RULES = Object.freeze({
     "retained": [
       "tests/kar210-cp35-owner-product-witness.cjs",
       "tests/kar210-p13-persisted-owner-baseline.cjs",
-      "tests/kar210-p13-lock-read-uncertainty.cjs",
       "tests/v1234-insertion-lock-runtime.cjs",
       "tests/v1238-account-session-controller-runtime.cjs",
-      "tests/kar210-p9-independent-tab-lifecycle.cjs",
       "tests/kar210-kar175-public-navigation-baseline.cjs",
       "tests/kar210-kar199-baseline-reset.cjs",
       "tests/v1233-mass-renewal-workflow-runtime.cjs",
@@ -865,7 +850,6 @@ const RULES = Object.freeze({
     "retained": [
       "tests/kar210-cp35-owner-product-witness.cjs",
       "tests/kar210-p13-persisted-owner-baseline.cjs",
-      "tests/kar210-p13-lock-read-uncertainty.cjs",
       "tests/v1234-insertion-lock-runtime.cjs",
       "tests/v1238-account-session-controller-runtime.cjs",
       "tests/v12312-background-message-router-runtime.cjs",
@@ -882,12 +866,9 @@ const RULES = Object.freeze({
     "retained": [
       "tests/kar210-cp35-owner-product-witness.cjs",
       "tests/kar210-p13-persisted-owner-baseline.cjs",
-      "tests/kar210-p13-lock-read-uncertainty.cjs",
       "tests/v1234-insertion-lock-runtime.cjs",
       "tests/v1238-account-session-controller-runtime.cjs",
-      "tests/v1238-profile-management-controller-runtime.cjs",
-      "tests/kar210-kar150-uncertain-start-witness.cjs",
-      "tests/kar210-p9-independent-tab-lifecycle.cjs"
+      "tests/v1238-profile-management-controller-runtime.cjs"
     ]
   },
   "tests/kar113-renewal-detached-admission.cjs": {
@@ -898,13 +879,8 @@ const RULES = Object.freeze({
     "owner": "package.json",
     "retained": [
       "tests/kar210-cp36-phase4-product-witness.cjs",
-      "tests/kar210-cp36-phase4-unknown-witness.cjs",
       "tests/kar210-kar199-baseline-phase4.cjs",
-      "tests/kar199-phase4-no-transport-replay.cjs",
-      "tests/kar199-phase4-bounded-runtime.cjs",
-      "tests/kar199-phase4-unverified-state-runtime.cjs",
       "tests/kar210-kar199-baseline-reset.cjs",
-      "tests/kar210-p13-lock-read-uncertainty.cjs",
       "tests/v1231-renewal-workflow-runtime.cjs",
       "tests/kar210-kar175-phase1-retry-baseline.cjs"
     ]
@@ -917,13 +893,8 @@ const RULES = Object.freeze({
     "owner": "package.json",
     "retained": [
       "tests/kar210-cp36-phase4-product-witness.cjs",
-      "tests/kar210-cp36-phase4-unknown-witness.cjs",
       "tests/kar210-kar199-baseline-phase4.cjs",
-      "tests/kar199-phase4-no-transport-replay.cjs",
-      "tests/kar199-phase4-bounded-runtime.cjs",
-      "tests/kar199-phase4-unverified-state-runtime.cjs",
       "tests/kar210-kar199-baseline-reset.cjs",
-      "tests/kar210-p13-lock-read-uncertainty.cjs",
       "tests/v1231-renewal-workflow-runtime.cjs"
     ]
   },
@@ -935,13 +906,8 @@ const RULES = Object.freeze({
     "owner": "package.json",
     "retained": [
       "tests/kar210-cp36-phase4-product-witness.cjs",
-      "tests/kar210-cp36-phase4-unknown-witness.cjs",
       "tests/kar210-kar199-baseline-phase4.cjs",
-      "tests/kar199-phase4-no-transport-replay.cjs",
-      "tests/kar199-phase4-bounded-runtime.cjs",
-      "tests/kar199-phase4-unverified-state-runtime.cjs",
       "tests/kar210-kar199-baseline-reset.cjs",
-      "tests/kar210-p13-lock-read-uncertainty.cjs",
       "tests/kar210-p13-persisted-owner-baseline.cjs"
     ]
   },
@@ -953,13 +919,8 @@ const RULES = Object.freeze({
     "owner": "package.json",
     "retained": [
       "tests/kar210-cp36-phase4-product-witness.cjs",
-      "tests/kar210-cp36-phase4-unknown-witness.cjs",
       "tests/kar210-kar199-baseline-phase4.cjs",
-      "tests/kar199-phase4-no-transport-replay.cjs",
-      "tests/kar199-phase4-bounded-runtime.cjs",
-      "tests/kar199-phase4-unverified-state-runtime.cjs",
       "tests/kar210-kar199-baseline-reset.cjs",
-      "tests/kar210-p13-lock-read-uncertainty.cjs",
       "tests/kar210-p13-persisted-owner-baseline.cjs",
       "tests/v1234-insertion-lock-runtime.cjs",
       "tests/v1238-account-session-controller-runtime.cjs"
@@ -973,13 +934,8 @@ const RULES = Object.freeze({
     "owner": "package.json",
     "retained": [
       "tests/kar210-cp36-phase4-product-witness.cjs",
-      "tests/kar210-cp36-phase4-unknown-witness.cjs",
       "tests/kar210-kar199-baseline-phase4.cjs",
-      "tests/kar199-phase4-no-transport-replay.cjs",
-      "tests/kar199-phase4-bounded-runtime.cjs",
-      "tests/kar199-phase4-unverified-state-runtime.cjs",
       "tests/kar210-kar199-baseline-reset.cjs",
-      "tests/kar210-p13-lock-read-uncertainty.cjs",
       "tests/v1238-account-session-controller-runtime.cjs",
       "tests/kar210-p13-persisted-owner-baseline.cjs"
     ]
@@ -992,14 +948,9 @@ const RULES = Object.freeze({
     "owner": "package.json",
     "retained": [
       "tests/kar210-cp37-outcome-product-witness.cjs",
-      "tests/kar210-cp36-phase4-unknown-witness.cjs",
       "tests/kar210-cp36-phase4-product-witness.cjs",
       "tests/kar210-kar199-baseline-phase4.cjs",
-      "tests/kar199-phase4-no-transport-replay.cjs",
-      "tests/kar199-phase4-bounded-runtime.cjs",
-      "tests/kar199-phase4-unverified-state-runtime.cjs",
-      "tests/kar210-p13-persisted-owner-baseline.cjs",
-      "tests/kar210-p13-lock-read-uncertainty.cjs"
+      "tests/kar210-p13-persisted-owner-baseline.cjs"
     ]
   },
   "tests/kar99-phase4-journal-atomic.cjs": {
@@ -1010,14 +961,9 @@ const RULES = Object.freeze({
     "owner": "package.json",
     "retained": [
       "tests/kar210-cp37-outcome-product-witness.cjs",
-      "tests/kar210-cp36-phase4-unknown-witness.cjs",
       "tests/kar210-cp36-phase4-product-witness.cjs",
       "tests/kar210-kar199-baseline-phase4.cjs",
-      "tests/kar199-phase4-no-transport-replay.cjs",
-      "tests/kar199-phase4-bounded-runtime.cjs",
-      "tests/kar199-phase4-unverified-state-runtime.cjs",
       "tests/kar210-p13-persisted-owner-baseline.cjs",
-      "tests/kar210-p13-lock-read-uncertainty.cjs",
       "tests/v1234-insertion-lock-runtime.cjs"
     ]
   },
@@ -1029,14 +975,9 @@ const RULES = Object.freeze({
     "owner": "package.json",
     "retained": [
       "tests/kar210-cp37-outcome-product-witness.cjs",
-      "tests/kar210-cp36-phase4-unknown-witness.cjs",
       "tests/kar210-cp36-phase4-product-witness.cjs",
       "tests/kar210-kar199-baseline-phase4.cjs",
-      "tests/kar199-phase4-no-transport-replay.cjs",
-      "tests/kar199-phase4-bounded-runtime.cjs",
-      "tests/kar199-phase4-unverified-state-runtime.cjs",
       "tests/kar210-p13-persisted-owner-baseline.cjs",
-      "tests/kar210-p13-lock-read-uncertainty.cjs",
       "tests/v1177-performance4-phase4.cjs",
       "tests/kar210-kar175-public-navigation-baseline.cjs"
     ]
@@ -1049,14 +990,9 @@ const RULES = Object.freeze({
     "owner": "package.json",
     "retained": [
       "tests/kar210-cp37-outcome-product-witness.cjs",
-      "tests/kar210-cp36-phase4-unknown-witness.cjs",
       "tests/kar210-cp36-phase4-product-witness.cjs",
       "tests/kar210-kar199-baseline-phase4.cjs",
-      "tests/kar199-phase4-no-transport-replay.cjs",
-      "tests/kar199-phase4-bounded-runtime.cjs",
-      "tests/kar199-phase4-unverified-state-runtime.cjs",
       "tests/kar210-p13-persisted-owner-baseline.cjs",
-      "tests/kar210-p13-lock-read-uncertainty.cjs",
       "tests/kar210-kar197-baseline-safety.cjs",
       "tests/kar210-kar201-baseline-safety.cjs",
       "tests/kar210-cp35-owner-product-witness.cjs",
@@ -1073,14 +1009,9 @@ const RULES = Object.freeze({
     "owner": "package.json",
     "retained": [
       "tests/kar210-cp37-outcome-product-witness.cjs",
-      "tests/kar210-cp36-phase4-unknown-witness.cjs",
       "tests/kar210-cp36-phase4-product-witness.cjs",
       "tests/kar210-kar199-baseline-phase4.cjs",
-      "tests/kar199-phase4-no-transport-replay.cjs",
-      "tests/kar199-phase4-bounded-runtime.cjs",
-      "tests/kar199-phase4-unverified-state-runtime.cjs",
       "tests/kar210-p13-persisted-owner-baseline.cjs",
-      "tests/kar210-p13-lock-read-uncertainty.cjs",
       "tests/kar210-kar197-baseline-safety.cjs",
       "tests/kar210-kar201-baseline-safety.cjs",
       "tests/kar210-cp35-owner-product-witness.cjs",
@@ -1097,14 +1028,9 @@ const RULES = Object.freeze({
     "owner": "package.json",
     "retained": [
       "tests/kar210-cp37-outcome-product-witness.cjs",
-      "tests/kar210-cp36-phase4-unknown-witness.cjs",
       "tests/kar210-cp36-phase4-product-witness.cjs",
       "tests/kar210-kar199-baseline-phase4.cjs",
-      "tests/kar199-phase4-no-transport-replay.cjs",
-      "tests/kar199-phase4-bounded-runtime.cjs",
-      "tests/kar199-phase4-unverified-state-runtime.cjs",
       "tests/kar210-p13-persisted-owner-baseline.cjs",
-      "tests/kar210-p13-lock-read-uncertainty.cjs",
       "tests/kar210-kar197-baseline-safety.cjs",
       "tests/kar210-kar201-baseline-safety.cjs",
       "tests/kar210-cp35-owner-product-witness.cjs",
@@ -1121,14 +1047,9 @@ const RULES = Object.freeze({
     "owner": "package.json",
     "retained": [
       "tests/kar210-cp37-outcome-product-witness.cjs",
-      "tests/kar210-cp36-phase4-unknown-witness.cjs",
       "tests/kar210-cp36-phase4-product-witness.cjs",
       "tests/kar210-kar199-baseline-phase4.cjs",
-      "tests/kar199-phase4-no-transport-replay.cjs",
-      "tests/kar199-phase4-bounded-runtime.cjs",
-      "tests/kar199-phase4-unverified-state-runtime.cjs",
       "tests/kar210-p13-persisted-owner-baseline.cjs",
-      "tests/kar210-p13-lock-read-uncertainty.cjs",
       "tests/kar210-cp35-owner-product-witness.cjs"
     ]
   },
@@ -1140,14 +1061,9 @@ const RULES = Object.freeze({
     "owner": "package.json",
     "retained": [
       "tests/kar210-cp37-outcome-product-witness.cjs",
-      "tests/kar210-cp36-phase4-unknown-witness.cjs",
       "tests/kar210-cp36-phase4-product-witness.cjs",
       "tests/kar210-kar199-baseline-phase4.cjs",
-      "tests/kar199-phase4-no-transport-replay.cjs",
-      "tests/kar199-phase4-bounded-runtime.cjs",
-      "tests/kar199-phase4-unverified-state-runtime.cjs",
       "tests/kar210-p13-persisted-owner-baseline.cjs",
-      "tests/kar210-p13-lock-read-uncertainty.cjs",
       "tests/kar210-kar197-baseline-safety.cjs",
       "tests/kar210-kar201-baseline-safety.cjs",
       "tests/kar210-cp35-owner-product-witness.cjs",
@@ -1164,15 +1080,12 @@ const RULES = Object.freeze({
     "owner": "package.json",
     "retained": [
       "tests/kar210-cp38-ingress-product-witness.cjs",
-      "tests/kar210-cp38-publish-uncertainty-witness.cjs",
       "tests/kar210-kar197-baseline-safety.cjs",
       "tests/kar210-kar201-baseline-safety.cjs",
       "tests/kar210-cp37-outcome-product-witness.cjs",
-      "tests/kar210-cp36-phase4-unknown-witness.cjs",
       "tests/kar210-cp35-owner-product-witness.cjs",
       "tests/v12226-paid-insertion-regression.cjs",
-      "tests/kar210-p13-persisted-owner-baseline.cjs",
-      "tests/kar210-p13-lock-read-uncertainty.cjs"
+      "tests/kar210-p13-persisted-owner-baseline.cjs"
     ]
   },
   "tests/kar99-publish-outcome.cjs": {
@@ -1183,15 +1096,12 @@ const RULES = Object.freeze({
     "owner": "package.json",
     "retained": [
       "tests/kar210-cp38-ingress-product-witness.cjs",
-      "tests/kar210-cp38-publish-uncertainty-witness.cjs",
       "tests/kar210-kar197-baseline-safety.cjs",
       "tests/kar210-kar201-baseline-safety.cjs",
       "tests/kar210-cp37-outcome-product-witness.cjs",
-      "tests/kar210-cp36-phase4-unknown-witness.cjs",
       "tests/kar210-cp35-owner-product-witness.cjs",
       "tests/v12226-paid-insertion-regression.cjs",
       "tests/kar210-p13-persisted-owner-baseline.cjs",
-      "tests/kar210-p13-lock-read-uncertainty.cjs",
       "tests/kar210-kar175-public-navigation-baseline.cjs"
     ]
   },
@@ -1203,17 +1113,13 @@ const RULES = Object.freeze({
     "owner": "package.json",
     "retained": [
       "tests/kar210-cp38-ingress-product-witness.cjs",
-      "tests/kar210-cp38-publish-uncertainty-witness.cjs",
       "tests/kar210-kar197-baseline-safety.cjs",
       "tests/kar210-kar201-baseline-safety.cjs",
       "tests/kar210-cp37-outcome-product-witness.cjs",
-      "tests/kar210-cp36-phase4-unknown-witness.cjs",
       "tests/kar210-cp35-owner-product-witness.cjs",
       "tests/v12226-paid-insertion-regression.cjs",
       "tests/kar210-p13-persisted-owner-baseline.cjs",
-      "tests/kar210-p13-lock-read-uncertainty.cjs",
-      "tests/kar210-kar175-public-navigation-baseline.cjs",
-      "tests/kar199-phase4-no-transport-replay.cjs"
+      "tests/kar210-kar175-public-navigation-baseline.cjs"
     ]
   },
   "tests/kar99-p6-ingress-closure.cjs": {
@@ -1224,15 +1130,12 @@ const RULES = Object.freeze({
     "owner": "package.json",
     "retained": [
       "tests/kar210-cp38-ingress-product-witness.cjs",
-      "tests/kar210-cp38-publish-uncertainty-witness.cjs",
       "tests/kar210-kar197-baseline-safety.cjs",
       "tests/kar210-kar201-baseline-safety.cjs",
       "tests/kar210-cp37-outcome-product-witness.cjs",
-      "tests/kar210-cp36-phase4-unknown-witness.cjs",
       "tests/kar210-cp35-owner-product-witness.cjs",
       "tests/v12226-paid-insertion-regression.cjs",
       "tests/kar210-p13-persisted-owner-baseline.cjs",
-      "tests/kar210-p13-lock-read-uncertainty.cjs",
       "tests/v1177-performance4-phase4.cjs",
       "tests/kar210-cp36-phase4-product-witness.cjs"
     ]
@@ -1245,17 +1148,12 @@ const RULES = Object.freeze({
     "owner": "package.json",
     "retained": [
       "tests/kar210-cp38-ingress-product-witness.cjs",
-      "tests/kar210-cp38-publish-uncertainty-witness.cjs",
       "tests/kar210-kar197-baseline-safety.cjs",
       "tests/kar210-kar201-baseline-safety.cjs",
       "tests/kar210-cp37-outcome-product-witness.cjs",
-      "tests/kar210-cp36-phase4-unknown-witness.cjs",
       "tests/kar210-cp35-owner-product-witness.cjs",
       "tests/v12226-paid-insertion-regression.cjs",
       "tests/kar210-p13-persisted-owner-baseline.cjs",
-      "tests/kar210-p13-lock-read-uncertainty.cjs",
-      "tests/kar210-p9-independent-tab-lifecycle.cjs",
-      "tests/kar99-p9-tab-gone-monotonic.cjs",
       "tests/v1238-account-session-controller-runtime.cjs"
     ]
   },
@@ -1267,16 +1165,12 @@ const RULES = Object.freeze({
     "owner": "package.json",
     "retained": [
       "tests/kar210-cp38-ingress-product-witness.cjs",
-      "tests/kar210-cp38-publish-uncertainty-witness.cjs",
       "tests/kar210-kar197-baseline-safety.cjs",
       "tests/kar210-kar201-baseline-safety.cjs",
       "tests/kar210-cp37-outcome-product-witness.cjs",
-      "tests/kar210-cp36-phase4-unknown-witness.cjs",
       "tests/kar210-cp35-owner-product-witness.cjs",
       "tests/v12226-paid-insertion-regression.cjs",
       "tests/kar210-p13-persisted-owner-baseline.cjs",
-      "tests/kar210-p13-lock-read-uncertainty.cjs",
-      "tests/kar210-p9-independent-tab-lifecycle.cjs",
       "tests/v1234-insertion-lock-runtime.cjs"
     ]
   },
@@ -1288,20 +1182,150 @@ const RULES = Object.freeze({
     "owner": "package.json",
     "retained": [
       "tests/kar210-cp38-ingress-product-witness.cjs",
-      "tests/kar210-cp38-publish-uncertainty-witness.cjs",
       "tests/kar210-kar197-baseline-safety.cjs",
       "tests/kar210-kar201-baseline-safety.cjs",
       "tests/kar210-cp37-outcome-product-witness.cjs",
-      "tests/kar210-cp36-phase4-unknown-witness.cjs",
       "tests/kar210-cp35-owner-product-witness.cjs",
       "tests/v12226-paid-insertion-regression.cjs",
       "tests/kar210-p13-persisted-owner-baseline.cjs",
-      "tests/kar210-p13-lock-read-uncertainty.cjs",
       "tests/v1235-archive-insertion-controller-runtime.cjs",
       "tests/v12223c2-reset-recovery-archive-regression.cjs"
     ]
   }
 });
+// Owner scope reset: exact later-only RED sources, not a test runner or generic skip.
+const SCOPE_RESET_DEFERRED = Object.freeze([
+  {
+    "test": "tests/kar199-phase4-no-transport-replay.cjs",
+    "blob": "c5a2fe989cd5777d18bf4c79aa3930cd87da9b94",
+    "status": "deferred-post-baseline",
+    "owner": "package.json",
+    "step": "S06",
+    "redRun": 45709808541,
+    "redCommandIndex": 6,
+    "reason": "Absent from original v1.23.48 test suite and tree; owner scope reset retains historical safeguards unchanged. Original later RED and source preserved; no PASS credit or future implementation approval."
+  },
+  {
+    "test": "tests/kar199-phase4-bounded-runtime.cjs",
+    "blob": "706b7e9495c5e8ffaaf8f92b74ede2afd09f3fe7",
+    "status": "deferred-post-baseline",
+    "owner": "package.json",
+    "step": "S06",
+    "redRun": 45709808541,
+    "redCommandIndex": 7,
+    "reason": "Absent from original v1.23.48 test suite and tree; owner scope reset retains historical safeguards unchanged. Original later RED and source preserved; no PASS credit or future implementation approval."
+  },
+  {
+    "test": "tests/kar199-phase4-unverified-state-runtime.cjs",
+    "blob": "6ad7e4d1351fe3d71f3f62b8bbaeaad489cf47aa",
+    "status": "deferred-post-baseline",
+    "owner": "package.json",
+    "step": "S06",
+    "redRun": 45709808541,
+    "redCommandIndex": 8,
+    "reason": "Absent from original v1.23.48 test suite and tree; owner scope reset retains historical safeguards unchanged. Original later RED and source preserved; no PASS credit or future implementation approval."
+  },
+  {
+    "test": "tests/kar210-cp36-phase4-unknown-witness.cjs",
+    "blob": "70d3c91e46d114e6111340c8d32f97b65b76faec",
+    "status": "deferred-post-baseline",
+    "owner": "package.json",
+    "step": "S06",
+    "redRun": 45709808541,
+    "redCommandIndex": 11,
+    "reason": "Absent from original v1.23.48 test suite and tree; owner scope reset retains historical safeguards unchanged. Original later RED and source preserved; no PASS credit or future implementation approval."
+  },
+  {
+    "test": "tests/kar210-cp38-publish-uncertainty-witness.cjs",
+    "blob": "40c5fec6b7f45fc2367118d9669be3dad65f4d3a",
+    "status": "deferred-post-baseline",
+    "owner": "package.json",
+    "step": "S06/S07",
+    "redRun": 45709808541,
+    "redCommandIndex": 14,
+    "reason": "Absent from original v1.23.48 test suite and tree; owner scope reset retains historical safeguards unchanged. Original later RED and source preserved; no PASS credit or future implementation approval."
+  },
+  {
+    "test": "tests/kar210-diagnostic-reset-unknown.cjs",
+    "blob": "a6f9f3c726f979add3531ae9d34c55a7d876ffe1",
+    "status": "deferred-post-baseline",
+    "owner": "package.json",
+    "step": "S10",
+    "redRun": 45709808541,
+    "redCommandIndex": 19,
+    "reason": "Absent from original v1.23.48 test suite and tree; owner scope reset retains historical safeguards unchanged. Original later RED and source preserved; no PASS credit or future implementation approval."
+  },
+  {
+    "test": "tests/kar210-startup-isolation-witness.cjs",
+    "blob": "b31f4079d028c4691395986e70269e73e6ef0717",
+    "status": "deferred-post-baseline",
+    "owner": "package.json",
+    "step": "S08",
+    "redRun": 45709808541,
+    "redCommandIndex": 20,
+    "reason": "Absent from original v1.23.48 test suite and tree; owner scope reset retains historical safeguards unchanged. Original later RED and source preserved; no PASS credit or future implementation approval."
+  },
+  {
+    "test": "tests/kar210-kar134-legacy-session-witness.cjs",
+    "blob": "3a9cfca5c9561f7d729fdf1de8cc60352b888d0b",
+    "status": "deferred-post-baseline",
+    "owner": "package.json",
+    "step": "S03/S05",
+    "redRun": 45709808541,
+    "redCommandIndex": 28,
+    "reason": "Absent from original v1.23.48 test suite and tree; owner scope reset retains historical safeguards unchanged. Original later RED and source preserved; no PASS credit or future implementation approval."
+  },
+  {
+    "test": "tests/kar210-p13-lock-read-uncertainty.cjs",
+    "blob": "02cefe5a571a6258a21affade7c9f341e5732677",
+    "status": "deferred-post-baseline",
+    "owner": "package.json",
+    "step": "S06",
+    "redRun": 45709808541,
+    "redCommandIndex": 31,
+    "reason": "Absent from original v1.23.48 test suite and tree; owner scope reset retains historical safeguards unchanged. Original later RED and source preserved; no PASS credit or future implementation approval."
+  },
+  {
+    "test": "tests/kar210-kar150-uncertain-start-witness.cjs",
+    "blob": "e2ec86af500c9df5450d198b64d747f9569be090",
+    "status": "deferred-post-baseline",
+    "owner": "package.json",
+    "step": "S06/S08",
+    "redRun": 45709808541,
+    "redCommandIndex": 35,
+    "reason": "Absent from original v1.23.48 test suite and tree; owner scope reset retains historical safeguards unchanged. Original later RED and source preserved; no PASS credit or future implementation approval."
+  },
+  {
+    "test": "tests/kar99-p9-tab-gone-monotonic.cjs",
+    "blob": "ae811891b93f36b57ec3dc47dafc4a7029fe46aa",
+    "status": "deferred-post-baseline",
+    "owner": "package.json",
+    "step": "S06",
+    "redRun": 45709808541,
+    "redCommandIndex": 39,
+    "reason": "Absent from original v1.23.48 test suite and tree; owner scope reset retains historical safeguards unchanged. Original later RED and source preserved; no PASS credit or future implementation approval."
+  },
+  {
+    "test": "tests/kar210-p9-independent-tab-lifecycle.cjs",
+    "blob": "3062c31fc4ec9b69a831216012982a8c9ccdff18",
+    "status": "deferred-post-baseline",
+    "owner": "package.json",
+    "step": "S06",
+    "redRun": 45709808541,
+    "redCommandIndex": 40,
+    "reason": "Absent from original v1.23.48 test suite and tree; owner scope reset retains historical safeguards unchanged. Original later RED and source preserved; no PASS credit or future implementation approval."
+  },
+  {
+    "test": "tests/kar210-kar132-independent-modal.cjs",
+    "blob": "e7abd647a48c4755ccd1b23d670bfea7d75b1d1b",
+    "status": "deferred-post-baseline",
+    "owner": "package.json",
+    "step": "S05",
+    "redRun": 45709808541,
+    "redCommandIndex": 43,
+    "reason": "Absent from original v1.23.48 test suite and tree; owner scope reset retains historical safeguards unchanged. Original later RED and source preserved; no PASS credit or future implementation approval."
+  }
+]);
 const OWNERS = Object.freeze(["package.json","scripts/build.sh","scripts/coverage-gate.sh",".github/workflows/kar-work-pr.yml",".github/workflows/kar-ci.yml",".github/workflows/kar-release.yml"]);
 const LEDGER = 'docs/maintenance/KAR210_ACTIVE_TEST_DISPOSITIONS.json';
 const WITNESS = 'tests/kar210-trash-template-recovery-coalescing.cjs';
@@ -1382,11 +1406,19 @@ function validateDispositions(root) {
   assert.ok(!safety.apis.some(api=>api.tests.includes(WITNESS)),'Safety-critical witness cannot be inactive');
   for(const [owner,refs] of ownerRefs) assert.ok(!refs.has(WITNESS),'Deferred witness is still active: '+owner);
   inactive.set(WITNESS,witness);
+  assert.deepEqual(ledger.scopeResetDeferred,SCOPE_RESET_DEFERRED,'Unreviewed post-baseline disposition');
+  for(const e of ledger.scopeResetDeferred) {
+    assert.equal(gitBlob(read(e.test)),e.blob,'Deferred RED evidence changed: '+e.test);
+    assert.ok(!inactive.has(e.test),'Duplicate disposition: '+e.test);
+    assert.ok(!safety.apis.some(api=>api.tests.includes(e.test)),'Historical safety-critical negative cannot be deferred');
+    for(const [owner,refs] of ownerRefs) assert.ok(!refs.has(e.test),'Deferred witness still active: '+owner+' '+e.test);
+    inactive.set(e.test,e);
+  }
   return inactive;
 }
 if(require.main===module) {
   assert.equal(process.argv.length,2,'Scope validator does not run or skip product tests');
   const inactive=validateDispositions(path.resolve(__dirname,'..'));
-  console.log('PASS KAR-210 inactive suite scope: '+(inactive.size-1)+' reviewed historical suites, 1 deferred product witness; no product execution credit');
+  console.log('PASS KAR-210 inactive suite scope: '+(inactive.size-14)+' reviewed historical suites, 1 earlier and 13 post-baseline deferred witnesses; no product execution credit');
 }
 module.exports={validateDispositions};

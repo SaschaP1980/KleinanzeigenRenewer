@@ -3,7 +3,7 @@
   "issue": 210,
   "version": "2.0.0.0",
   "reference": "08df4f11f9935e5d7b7551a37ce5b3f708e47497",
-  "policy": "S02 static active-suite separation; preserve original files. No skipped test command or blanket bypass. Reconcile each deferred product witness at its owning step, and explicitly review future scope before successor versions.",
+  "policy": "S02 static active-suite separation; preserve original files. No skipped test command or blanket bypass. Reconcile each deferred product witness at its owning step, and explicitly review future scope before successor versions. Owner 2026-11-25 baseline-only reset: 13 post-baseline RED witnesses explicitly deferred, original evidence retained, no successful execution credit.",
   "entries": [
     {
       "test": "tests/kar97-update-idle-policy.cjs",
@@ -548,7 +548,6 @@
       "owner": "package.json",
       "retained": [
         "tests/kar210-diagnostics-baseline.cjs",
-        "tests/kar210-diagnostic-reset-unknown.cjs",
         "tests/v1200-diagnostic-reset.cjs",
         "tests/kar210-baseline-retained-behavior.cjs"
       ],
@@ -569,7 +568,6 @@
       "status": "deferred-B",
       "owner": "package.json",
       "retained": [
-        "tests/kar210-startup-isolation-witness.cjs",
         "tests/kar210-loading-retention-baseline.cjs",
         "tests/v1238-profile-management-controller-runtime.cjs"
       ],
@@ -778,7 +776,6 @@
       "owner": "package.json",
       "retained": [
         "tests/kar210-kar175-budget-schema-baseline.cjs",
-        "tests/kar210-kar134-legacy-session-witness.cjs",
         "tests/kar210-bootstrap-schema-boundaries.cjs",
         "tests/kar210-kar201-baseline-safety.cjs"
       ],
@@ -793,7 +790,6 @@
       "status": "deferred-A",
       "owner": "package.json",
       "retained": [
-        "tests/kar210-kar134-legacy-session-witness.cjs",
         "tests/kar210-kar175-budget-schema-baseline.cjs",
         "tests/kar210-kar201-baseline-safety.cjs",
         "tests/v12317-template-filler-runtime.cjs",
@@ -811,7 +807,6 @@
       "owner": "package.json",
       "retained": [
         "tests/kar210-p13-persisted-owner-baseline.cjs",
-        "tests/kar210-p13-lock-read-uncertainty.cjs",
         "tests/v1236-bulk-controller-runtime.cjs",
         "tests/v12313c1-bulk-reentry-rehydration-regression.cjs",
         "tests/v1231-renewal-workflow-runtime.cjs",
@@ -846,7 +841,6 @@
       "retained": [
         "tests/kar210-p13-persisted-owner-baseline.cjs",
         "tests/v1156-a1-tab-registry-runtime.cjs",
-        "tests/kar99-p9-tab-gone-monotonic.cjs",
         "tests/kar210-kar175-public-navigation-baseline.cjs",
         "tests/kar210-kar199-baseline-reset.cjs"
       ],
@@ -864,9 +858,7 @@
         "tests/kar210-kar199-baseline-reset.cjs",
         "tests/v12223c2-reset-recovery-archive-regression.cjs",
         "tests/v12230-global-emergency-reset.cjs",
-        "tests/v12213-bulk-deadlock-runtime.cjs",
-        "tests/kar199-phase4-no-transport-replay.cjs",
-        "tests/kar210-p13-lock-read-uncertainty.cjs"
+        "tests/v12213-bulk-deadlock-runtime.cjs"
       ],
       "reason": "Original cases exclusively inspect P8 autonomous callback provenance/receipt state and never verify actual product recovery. Retain existing actual emergency reset/controller and bulk recovery tests, genuine independent no-replay RED and lock-read uncertainty; callback finish does not prove remote outcome. S06 remains responsible for bounded recovery, no new updater watchdog or census."
     },
@@ -940,11 +932,9 @@
       "owner": "package.json",
       "retained": [
         "tests/kar210-kar150-mass-baseline.cjs",
-        "tests/kar210-kar150-uncertain-start-witness.cjs",
         "tests/v1233-mass-renewal-workflow-runtime.cjs",
         "tests/v12226-paid-insertion-regression.cjs",
-        "tests/v12227-paid-insertion-lock-reset-regression.cjs",
-        "tests/kar210-p13-lock-read-uncertainty.cjs"
+        "tests/v12227-paid-insertion-lock-reset-regression.cjs"
       ],
       "reason": "Later frozen preference and automatic ordinary-error stop intentionally deferred, not baseline default. Preserve historical ordinary continuation, explicit user stop, paid checkout mandatory stop before next start, stable ordering/deduplication and terminal no-restart; retain independent restart missing-session no-replay RED from original as active witness. Later uncertain Phase4 stop policy, preference corruption/migration/watchdog obligations remain S06/S08; no C05 backport.",
       "featureAbsence": {
@@ -966,7 +956,6 @@
       "retained": [
         "tests/kar210-cp35-owner-product-witness.cjs",
         "tests/kar210-p13-persisted-owner-baseline.cjs",
-        "tests/kar210-p13-lock-read-uncertainty.cjs",
         "tests/v1234-insertion-lock-runtime.cjs",
         "tests/v1238-account-session-controller-runtime.cjs",
         "tests/kar68-native-status-gateway.cjs",
@@ -986,13 +975,11 @@
       "retained": [
         "tests/kar210-cp35-owner-product-witness.cjs",
         "tests/kar210-p13-persisted-owner-baseline.cjs",
-        "tests/kar210-p13-lock-read-uncertainty.cjs",
         "tests/v1234-insertion-lock-runtime.cjs",
         "tests/v1238-account-session-controller-runtime.cjs",
         "tests/v1231-renewal-workflow-runtime.cjs",
         "tests/v1233-mass-renewal-workflow-runtime.cjs",
         "tests/kar210-kar175-phase1-retry-baseline.cjs",
-        "tests/kar210-kar150-uncertain-start-witness.cjs",
         "tests/kar210-kar199-baseline-reset.cjs"
       ]
     },
@@ -1008,10 +995,8 @@
       "retained": [
         "tests/kar210-cp35-owner-product-witness.cjs",
         "tests/kar210-p13-persisted-owner-baseline.cjs",
-        "tests/kar210-p13-lock-read-uncertainty.cjs",
         "tests/v1234-insertion-lock-runtime.cjs",
         "tests/v1238-account-session-controller-runtime.cjs",
-        "tests/kar210-p9-independent-tab-lifecycle.cjs",
         "tests/kar210-kar175-public-navigation-baseline.cjs",
         "tests/kar210-kar199-baseline-reset.cjs",
         "tests/v1233-mass-renewal-workflow-runtime.cjs",
@@ -1031,7 +1016,6 @@
       "retained": [
         "tests/kar210-cp35-owner-product-witness.cjs",
         "tests/kar210-p13-persisted-owner-baseline.cjs",
-        "tests/kar210-p13-lock-read-uncertainty.cjs",
         "tests/v1234-insertion-lock-runtime.cjs",
         "tests/v1238-account-session-controller-runtime.cjs",
         "tests/v12312-background-message-router-runtime.cjs",
@@ -1051,12 +1035,9 @@
       "retained": [
         "tests/kar210-cp35-owner-product-witness.cjs",
         "tests/kar210-p13-persisted-owner-baseline.cjs",
-        "tests/kar210-p13-lock-read-uncertainty.cjs",
         "tests/v1234-insertion-lock-runtime.cjs",
         "tests/v1238-account-session-controller-runtime.cjs",
-        "tests/v1238-profile-management-controller-runtime.cjs",
-        "tests/kar210-kar150-uncertain-start-witness.cjs",
-        "tests/kar210-p9-independent-tab-lifecycle.cjs"
+        "tests/v1238-profile-management-controller-runtime.cjs"
       ]
     },
     {
@@ -1070,13 +1051,8 @@
       "reason": "Original strict dependency and worker construction checks retained; verify six actual historical detached Fast/Safe/retry launch sites. P8 receipts, fence delegation and owner mapping are excluded, not proof of product safety.",
       "retained": [
         "tests/kar210-cp36-phase4-product-witness.cjs",
-        "tests/kar210-cp36-phase4-unknown-witness.cjs",
         "tests/kar210-kar199-baseline-phase4.cjs",
-        "tests/kar199-phase4-no-transport-replay.cjs",
-        "tests/kar199-phase4-bounded-runtime.cjs",
-        "tests/kar199-phase4-unverified-state-runtime.cjs",
         "tests/kar210-kar199-baseline-reset.cjs",
-        "tests/kar210-p13-lock-read-uncertainty.cjs",
         "tests/v1231-renewal-workflow-runtime.cjs",
         "tests/kar210-kar175-phase1-retry-baseline.cjs"
       ]
@@ -1092,13 +1068,8 @@
       "reason": "The updater admission refusal and callback ownership API are excluded. Independent actual scheduler checks preserve in-process duplicate prevention, one scheduled call, guard release after settlement and no synthetic outcome writes; actual Phase4 product negatives remain active.",
       "retained": [
         "tests/kar210-cp36-phase4-product-witness.cjs",
-        "tests/kar210-cp36-phase4-unknown-witness.cjs",
         "tests/kar210-kar199-baseline-phase4.cjs",
-        "tests/kar199-phase4-no-transport-replay.cjs",
-        "tests/kar199-phase4-bounded-runtime.cjs",
-        "tests/kar199-phase4-unverified-state-runtime.cjs",
         "tests/kar210-kar199-baseline-reset.cjs",
-        "tests/kar210-p13-lock-read-uncertainty.cjs",
         "tests/v1231-renewal-workflow-runtime.cjs"
       ]
     },
@@ -1113,13 +1084,8 @@
       "reason": "Immutable journal implementation, keys, tokens, cross-worker identity and write-readback schema belong to explicitly excluded C04. Preserve exact originals, actual pre-dispatch persistence failure denial, persisted uncertainty no-replay RED, bounded status/transport/intent tests and existing reset/identity gates; no claim of durable journal equivalence.",
       "retained": [
         "tests/kar210-cp36-phase4-product-witness.cjs",
-        "tests/kar210-cp36-phase4-unknown-witness.cjs",
         "tests/kar210-kar199-baseline-phase4.cjs",
-        "tests/kar199-phase4-no-transport-replay.cjs",
-        "tests/kar199-phase4-bounded-runtime.cjs",
-        "tests/kar199-phase4-unverified-state-runtime.cjs",
         "tests/kar210-kar199-baseline-reset.cjs",
-        "tests/kar210-p13-lock-read-uncertainty.cjs",
         "tests/kar210-p13-persisted-owner-baseline.cjs"
       ]
     },
@@ -1134,13 +1100,8 @@
       "reason": "All census outputs use the absent journal and owner observer. Existing independent actual persisted-owner restart and failed-read tests, Phase4 uncertainty and reset tests remain active. No idle authority or equivalent journal observation claimed.",
       "retained": [
         "tests/kar210-cp36-phase4-product-witness.cjs",
-        "tests/kar210-cp36-phase4-unknown-witness.cjs",
         "tests/kar210-kar199-baseline-phase4.cjs",
-        "tests/kar199-phase4-no-transport-replay.cjs",
-        "tests/kar199-phase4-bounded-runtime.cjs",
-        "tests/kar199-phase4-unverified-state-runtime.cjs",
         "tests/kar210-kar199-baseline-reset.cjs",
-        "tests/kar210-p13-lock-read-uncertainty.cjs",
         "tests/kar210-p13-persisted-owner-baseline.cjs",
         "tests/v1234-insertion-lock-runtime.cjs",
         "tests/v1238-account-session-controller-runtime.cjs"
@@ -1157,13 +1118,8 @@
       "reason": "Journal schema, storage port and receipt timings excluded. Retain independent same-profile wrong-account negatives, late asynchronous diagnostic account-switch RED at actual remote owner, pre-dispatch persistence refusal and no-repeat unknown outcome RED. Existing transport/timeouts/independent absence tests mandatory; no claim that the journal boundary was reproduced.",
       "retained": [
         "tests/kar210-cp36-phase4-product-witness.cjs",
-        "tests/kar210-cp36-phase4-unknown-witness.cjs",
         "tests/kar210-kar199-baseline-phase4.cjs",
-        "tests/kar199-phase4-no-transport-replay.cjs",
-        "tests/kar199-phase4-bounded-runtime.cjs",
-        "tests/kar199-phase4-unverified-state-runtime.cjs",
         "tests/kar210-kar199-baseline-reset.cjs",
-        "tests/kar210-p13-lock-read-uncertainty.cjs",
         "tests/v1238-account-session-controller-runtime.cjs",
         "tests/kar210-p13-persisted-owner-baseline.cjs"
       ]
@@ -1179,14 +1135,9 @@
       "reason": "Original immutable dual-ID receipt and owner-census classifications are excluded C02/C04. Actual persisted lock/read-failure and restart unknown-outcome tests remain. Added whole product finish boundary rejects unverified independent absence and account change; no claim of journal equivalence.",
       "retained": [
         "tests/kar210-cp37-outcome-product-witness.cjs",
-        "tests/kar210-cp36-phase4-unknown-witness.cjs",
         "tests/kar210-cp36-phase4-product-witness.cjs",
         "tests/kar210-kar199-baseline-phase4.cjs",
-        "tests/kar199-phase4-no-transport-replay.cjs",
-        "tests/kar199-phase4-bounded-runtime.cjs",
-        "tests/kar199-phase4-unverified-state-runtime.cjs",
-        "tests/kar210-p13-persisted-owner-baseline.cjs",
-        "tests/kar210-p13-lock-read-uncertainty.cjs"
+        "tests/kar210-p13-persisted-owner-baseline.cjs"
       ]
     },
     {
@@ -1200,14 +1151,9 @@
       "reason": "Shared P8 Web Lock, immutable journal and resolution tokens belong to excluded C03/C04. Existing insertion lock and in-process duplicate scheduling remain active; direct persisted unknown DELETE replay remains RED. No proof of cross-worker atomicity.",
       "retained": [
         "tests/kar210-cp37-outcome-product-witness.cjs",
-        "tests/kar210-cp36-phase4-unknown-witness.cjs",
         "tests/kar210-cp36-phase4-product-witness.cjs",
         "tests/kar210-kar199-baseline-phase4.cjs",
-        "tests/kar199-phase4-no-transport-replay.cjs",
-        "tests/kar199-phase4-bounded-runtime.cjs",
-        "tests/kar199-phase4-unverified-state-runtime.cjs",
         "tests/kar210-p13-persisted-owner-baseline.cjs",
-        "tests/kar210-p13-lock-read-uncertainty.cjs",
         "tests/v1234-insertion-lock-runtime.cjs"
       ]
     },
@@ -1222,14 +1168,9 @@
       "reason": "Immutable resolution API and its additional dual fresh roster scan mechanism excluded. Actual historical finish path must reject missing or mismatched local source/candidate, source still present, unavailable scan or wrong account before promotion; verified exact source absence positive control reaches atomic promotion only. Prior target verification, exact source deletion and unknown replay remain active. No claim of new target readback or journal proof.",
       "retained": [
         "tests/kar210-cp37-outcome-product-witness.cjs",
-        "tests/kar210-cp36-phase4-unknown-witness.cjs",
         "tests/kar210-cp36-phase4-product-witness.cjs",
         "tests/kar210-kar199-baseline-phase4.cjs",
-        "tests/kar199-phase4-no-transport-replay.cjs",
-        "tests/kar199-phase4-bounded-runtime.cjs",
-        "tests/kar199-phase4-unverified-state-runtime.cjs",
         "tests/kar210-p13-persisted-owner-baseline.cjs",
-        "tests/kar210-p13-lock-read-uncertainty.cjs",
         "tests/v1177-performance4-phase4.cjs",
         "tests/kar210-kar175-public-navigation-baseline.cjs"
       ]
@@ -1245,14 +1186,9 @@
       "reason": "Private AUTHORIZE_AUTOMATIC_PUBLISH route and P8 callback tokens belong to excluded C03/C04. Actual historical registry and router must reject this absent route even with forged receipt; unknown/wrong-target denial, read-only epoch positive control, paid and stale-stage product guards retained.",
       "retained": [
         "tests/kar210-cp37-outcome-product-witness.cjs",
-        "tests/kar210-cp36-phase4-unknown-witness.cjs",
         "tests/kar210-cp36-phase4-product-witness.cjs",
         "tests/kar210-kar199-baseline-phase4.cjs",
-        "tests/kar199-phase4-no-transport-replay.cjs",
-        "tests/kar199-phase4-bounded-runtime.cjs",
-        "tests/kar199-phase4-unverified-state-runtime.cjs",
         "tests/kar210-p13-persisted-owner-baseline.cjs",
-        "tests/kar210-p13-lock-read-uncertainty.cjs",
         "tests/kar210-kar197-baseline-safety.cjs",
         "tests/kar210-kar201-baseline-safety.cjs",
         "tests/kar210-cp35-owner-product-witness.cjs",
@@ -1272,14 +1208,9 @@
       "reason": "All token provenance, immutable begin/resolve and old-worker correlation assertions use excluded P8/fence/journals. Actual missing route denial, stale publish, existing lock and account gates and unresolved delete replay stay independently active. No token or journal equivalence.",
       "retained": [
         "tests/kar210-cp37-outcome-product-witness.cjs",
-        "tests/kar210-cp36-phase4-unknown-witness.cjs",
         "tests/kar210-cp36-phase4-product-witness.cjs",
         "tests/kar210-kar199-baseline-phase4.cjs",
-        "tests/kar199-phase4-no-transport-replay.cjs",
-        "tests/kar199-phase4-bounded-runtime.cjs",
-        "tests/kar199-phase4-unverified-state-runtime.cjs",
         "tests/kar210-p13-persisted-owner-baseline.cjs",
-        "tests/kar210-p13-lock-read-uncertainty.cjs",
         "tests/kar210-kar197-baseline-safety.cjs",
         "tests/kar210-kar201-baseline-safety.cjs",
         "tests/kar210-cp35-owner-product-witness.cjs",
@@ -1299,14 +1230,9 @@
       "reason": "All historical overlap and candidate attribution tests depend on excluded census, admission and remote journal records. Keep persisted owner restart and read uncertainty, account mismatch, archive submitted lock, actual source absence and unresolved outcome witnesses; do not infer old journal authority or migration completion.",
       "retained": [
         "tests/kar210-cp37-outcome-product-witness.cjs",
-        "tests/kar210-cp36-phase4-unknown-witness.cjs",
         "tests/kar210-cp36-phase4-product-witness.cjs",
         "tests/kar210-kar199-baseline-phase4.cjs",
-        "tests/kar199-phase4-no-transport-replay.cjs",
-        "tests/kar199-phase4-bounded-runtime.cjs",
-        "tests/kar199-phase4-unverified-state-runtime.cjs",
         "tests/kar210-p13-persisted-owner-baseline.cjs",
-        "tests/kar210-p13-lock-read-uncertainty.cjs",
         "tests/kar210-kar197-baseline-safety.cjs",
         "tests/kar210-kar201-baseline-safety.cjs",
         "tests/kar210-cp35-owner-product-witness.cjs",
@@ -1326,14 +1252,9 @@
       "reason": "Every test exercises read-only P8 admission history and census, explicitly not remote outcome or authority. Original retained; actual persisted workflow and failed read guards remain independently active; no cross-worker completion claim.",
       "retained": [
         "tests/kar210-cp37-outcome-product-witness.cjs",
-        "tests/kar210-cp36-phase4-unknown-witness.cjs",
         "tests/kar210-cp36-phase4-product-witness.cjs",
         "tests/kar210-kar199-baseline-phase4.cjs",
-        "tests/kar199-phase4-no-transport-replay.cjs",
-        "tests/kar199-phase4-bounded-runtime.cjs",
-        "tests/kar199-phase4-unverified-state-runtime.cjs",
         "tests/kar210-p13-persisted-owner-baseline.cjs",
-        "tests/kar210-p13-lock-read-uncertainty.cjs",
         "tests/kar210-cp35-owner-product-witness.cjs"
       ]
     },
@@ -1348,14 +1269,9 @@
       "reason": "All revision/identity readback tests require absent journal and observer. Retain actual account gates, source/candidate exact identity rejection, independent absence proof, stale submitted and persisted lock controls. Legacy journal data migration remains S03; no historical revision or closure claim.",
       "retained": [
         "tests/kar210-cp37-outcome-product-witness.cjs",
-        "tests/kar210-cp36-phase4-unknown-witness.cjs",
         "tests/kar210-cp36-phase4-product-witness.cjs",
         "tests/kar210-kar199-baseline-phase4.cjs",
-        "tests/kar199-phase4-no-transport-replay.cjs",
-        "tests/kar199-phase4-bounded-runtime.cjs",
-        "tests/kar199-phase4-unverified-state-runtime.cjs",
         "tests/kar210-p13-persisted-owner-baseline.cjs",
-        "tests/kar210-p13-lock-read-uncertainty.cjs",
         "tests/kar210-kar197-baseline-safety.cjs",
         "tests/kar210-kar201-baseline-safety.cjs",
         "tests/kar210-cp35-owner-product-witness.cjs",
@@ -1375,15 +1291,12 @@
       "reason": "P8 before-click receipt, immutable keys and shared origin lock excluded. Real verified form, paid/ambiguous/template-only/submitted and missing private route guards remain; actual capture duplicate prevention independent of journal.",
       "retained": [
         "tests/kar210-cp38-ingress-product-witness.cjs",
-        "tests/kar210-cp38-publish-uncertainty-witness.cjs",
         "tests/kar210-kar197-baseline-safety.cjs",
         "tests/kar210-kar201-baseline-safety.cjs",
         "tests/kar210-cp37-outcome-product-witness.cjs",
-        "tests/kar210-cp36-phase4-unknown-witness.cjs",
         "tests/kar210-cp35-owner-product-witness.cjs",
         "tests/v12226-paid-insertion-regression.cjs",
-        "tests/kar210-p13-persisted-owner-baseline.cjs",
-        "tests/kar210-p13-lock-read-uncertainty.cjs"
+        "tests/kar210-p13-persisted-owner-baseline.cjs"
       ]
     },
     {
@@ -1397,15 +1310,12 @@
       "reason": "Retain manual second click/submit and null submitter negatives at actual capture listener, same-account exact target evidence and failed scan witnesses. Journal resolution, replay tokens and private approval callback excluded; no journal-equivalence claim.",
       "retained": [
         "tests/kar210-cp38-ingress-product-witness.cjs",
-        "tests/kar210-cp38-publish-uncertainty-witness.cjs",
         "tests/kar210-kar197-baseline-safety.cjs",
         "tests/kar210-kar201-baseline-safety.cjs",
         "tests/kar210-cp37-outcome-product-witness.cjs",
-        "tests/kar210-cp36-phase4-unknown-witness.cjs",
         "tests/kar210-cp35-owner-product-witness.cjs",
         "tests/v12226-paid-insertion-regression.cjs",
         "tests/kar210-p13-persisted-owner-baseline.cjs",
-        "tests/kar210-p13-lock-read-uncertainty.cjs",
         "tests/kar210-kar175-public-navigation-baseline.cjs"
       ]
     },
@@ -1420,17 +1330,13 @@
       "reason": "Preserve actual duplicate/implicit-submit negatives, ambiguous/paid automatic pause, exact target/account and interrupted roster read tests. Immutable receipt crash cases and P8 auth API excluded; legacy journal migration S03. No crash-durable equivalent claimed.",
       "retained": [
         "tests/kar210-cp38-ingress-product-witness.cjs",
-        "tests/kar210-cp38-publish-uncertainty-witness.cjs",
         "tests/kar210-kar197-baseline-safety.cjs",
         "tests/kar210-kar201-baseline-safety.cjs",
         "tests/kar210-cp37-outcome-product-witness.cjs",
-        "tests/kar210-cp36-phase4-unknown-witness.cjs",
         "tests/kar210-cp35-owner-product-witness.cjs",
         "tests/v12226-paid-insertion-regression.cjs",
         "tests/kar210-p13-persisted-owner-baseline.cjs",
-        "tests/kar210-p13-lock-read-uncertainty.cjs",
-        "tests/kar210-kar175-public-navigation-baseline.cjs",
-        "tests/kar199-phase4-no-transport-replay.cjs"
+        "tests/kar210-kar175-public-navigation-baseline.cjs"
       ]
     },
     {
@@ -1444,15 +1350,12 @@
       "reason": "Exact original delete-control, no direct submit/requestSubmit and read-only archive continuation assertions extracted; actual initial/reentry branches and user-owned template. Early managed capture and duplicate submit safety RED retained; private journal ordering and P8 bindings excluded.",
       "retained": [
         "tests/kar210-cp38-ingress-product-witness.cjs",
-        "tests/kar210-cp38-publish-uncertainty-witness.cjs",
         "tests/kar210-kar197-baseline-safety.cjs",
         "tests/kar210-kar201-baseline-safety.cjs",
         "tests/kar210-cp37-outcome-product-witness.cjs",
-        "tests/kar210-cp36-phase4-unknown-witness.cjs",
         "tests/kar210-cp35-owner-product-witness.cjs",
         "tests/v12226-paid-insertion-regression.cjs",
         "tests/kar210-p13-persisted-owner-baseline.cjs",
-        "tests/kar210-p13-lock-read-uncertainty.cjs",
         "tests/v1177-performance4-phase4.cjs",
         "tests/kar210-cp36-phase4-product-witness.cjs"
       ]
@@ -1468,17 +1371,12 @@
       "reason": "Eight supplemental census, native apply and double-probe attestation excluded. Exact PAGE_STATUS fixture and seller-link/logged-out negatives preserved; actual account and tab registry unknown/gone/read-failure tests remain. No idle or torn census authority claim.",
       "retained": [
         "tests/kar210-cp38-ingress-product-witness.cjs",
-        "tests/kar210-cp38-publish-uncertainty-witness.cjs",
         "tests/kar210-kar197-baseline-safety.cjs",
         "tests/kar210-kar201-baseline-safety.cjs",
         "tests/kar210-cp37-outcome-product-witness.cjs",
-        "tests/kar210-cp36-phase4-unknown-witness.cjs",
         "tests/kar210-cp35-owner-product-witness.cjs",
         "tests/v12226-paid-insertion-regression.cjs",
         "tests/kar210-p13-persisted-owner-baseline.cjs",
-        "tests/kar210-p13-lock-read-uncertainty.cjs",
-        "tests/kar210-p9-independent-tab-lifecycle.cjs",
-        "tests/kar99-p9-tab-gone-monotonic.cjs",
         "tests/v1238-account-session-controller-runtime.cjs"
       ]
     },
@@ -1493,16 +1391,12 @@
       "reason": "Fifteen-owner taxonomy, operation mappings, native transaction and lease classifications target excluded updater authority. Actual lifecycle, persisted lock, uncertain read and account safety remain active. No fabricated all-idle claim.",
       "retained": [
         "tests/kar210-cp38-ingress-product-witness.cjs",
-        "tests/kar210-cp38-publish-uncertainty-witness.cjs",
         "tests/kar210-kar197-baseline-safety.cjs",
         "tests/kar210-kar201-baseline-safety.cjs",
         "tests/kar210-cp37-outcome-product-witness.cjs",
-        "tests/kar210-cp36-phase4-unknown-witness.cjs",
         "tests/kar210-cp35-owner-product-witness.cjs",
         "tests/v12226-paid-insertion-regression.cjs",
         "tests/kar210-p13-persisted-owner-baseline.cjs",
-        "tests/kar210-p13-lock-read-uncertainty.cjs",
-        "tests/kar210-p9-independent-tab-lifecycle.cjs",
         "tests/v1234-insertion-lock-runtime.cjs"
       ]
     },
@@ -1517,15 +1411,12 @@
       "reason": "P8 dependency and owner mapping excluded. Two recovery paths and one confirmation continuation preserve postpublish-only behavior; exercise known published/legacy and terminal/unknown-ID cases. Submitted recovery missing detection binding retained as direct RED; broader B15 recovery deferred.",
       "retained": [
         "tests/kar210-cp38-ingress-product-witness.cjs",
-        "tests/kar210-cp38-publish-uncertainty-witness.cjs",
         "tests/kar210-kar197-baseline-safety.cjs",
         "tests/kar210-kar201-baseline-safety.cjs",
         "tests/kar210-cp37-outcome-product-witness.cjs",
-        "tests/kar210-cp36-phase4-unknown-witness.cjs",
         "tests/kar210-cp35-owner-product-witness.cjs",
         "tests/v12226-paid-insertion-regression.cjs",
         "tests/kar210-p13-persisted-owner-baseline.cjs",
-        "tests/kar210-p13-lock-read-uncertainty.cjs",
         "tests/v1235-archive-insertion-controller-runtime.cjs",
         "tests/v12223c2-reset-recovery-archive-regression.cjs"
       ]
@@ -1543,6 +1434,138 @@
       "expected": 1,
       "actual": 8,
       "reason": "Independent optimization of passive trash-template recovery reads, not part of historical baseline. Original assertion body unchanged; keep RED evidence and revisit in S07."
+    }
+  ],
+  "scopeResetDeferred": [
+    {
+      "test": "tests/kar199-phase4-no-transport-replay.cjs",
+      "blob": "c5a2fe989cd5777d18bf4c79aa3930cd87da9b94",
+      "status": "deferred-post-baseline",
+      "owner": "package.json",
+      "step": "S06",
+      "redRun": 45709808541,
+      "redCommandIndex": 6,
+      "reason": "Absent from original v1.23.48 test suite and tree; owner scope reset retains historical safeguards unchanged. Original later RED and source preserved; no PASS credit or future implementation approval."
+    },
+    {
+      "test": "tests/kar199-phase4-bounded-runtime.cjs",
+      "blob": "706b7e9495c5e8ffaaf8f92b74ede2afd09f3fe7",
+      "status": "deferred-post-baseline",
+      "owner": "package.json",
+      "step": "S06",
+      "redRun": 45709808541,
+      "redCommandIndex": 7,
+      "reason": "Absent from original v1.23.48 test suite and tree; owner scope reset retains historical safeguards unchanged. Original later RED and source preserved; no PASS credit or future implementation approval."
+    },
+    {
+      "test": "tests/kar199-phase4-unverified-state-runtime.cjs",
+      "blob": "6ad7e4d1351fe3d71f3f62b8bbaeaad489cf47aa",
+      "status": "deferred-post-baseline",
+      "owner": "package.json",
+      "step": "S06",
+      "redRun": 45709808541,
+      "redCommandIndex": 8,
+      "reason": "Absent from original v1.23.48 test suite and tree; owner scope reset retains historical safeguards unchanged. Original later RED and source preserved; no PASS credit or future implementation approval."
+    },
+    {
+      "test": "tests/kar210-cp36-phase4-unknown-witness.cjs",
+      "blob": "70d3c91e46d114e6111340c8d32f97b65b76faec",
+      "status": "deferred-post-baseline",
+      "owner": "package.json",
+      "step": "S06",
+      "redRun": 45709808541,
+      "redCommandIndex": 11,
+      "reason": "Absent from original v1.23.48 test suite and tree; owner scope reset retains historical safeguards unchanged. Original later RED and source preserved; no PASS credit or future implementation approval."
+    },
+    {
+      "test": "tests/kar210-cp38-publish-uncertainty-witness.cjs",
+      "blob": "40c5fec6b7f45fc2367118d9669be3dad65f4d3a",
+      "status": "deferred-post-baseline",
+      "owner": "package.json",
+      "step": "S06/S07",
+      "redRun": 45709808541,
+      "redCommandIndex": 14,
+      "reason": "Absent from original v1.23.48 test suite and tree; owner scope reset retains historical safeguards unchanged. Original later RED and source preserved; no PASS credit or future implementation approval."
+    },
+    {
+      "test": "tests/kar210-diagnostic-reset-unknown.cjs",
+      "blob": "a6f9f3c726f979add3531ae9d34c55a7d876ffe1",
+      "status": "deferred-post-baseline",
+      "owner": "package.json",
+      "step": "S10",
+      "redRun": 45709808541,
+      "redCommandIndex": 19,
+      "reason": "Absent from original v1.23.48 test suite and tree; owner scope reset retains historical safeguards unchanged. Original later RED and source preserved; no PASS credit or future implementation approval."
+    },
+    {
+      "test": "tests/kar210-startup-isolation-witness.cjs",
+      "blob": "b31f4079d028c4691395986e70269e73e6ef0717",
+      "status": "deferred-post-baseline",
+      "owner": "package.json",
+      "step": "S08",
+      "redRun": 45709808541,
+      "redCommandIndex": 20,
+      "reason": "Absent from original v1.23.48 test suite and tree; owner scope reset retains historical safeguards unchanged. Original later RED and source preserved; no PASS credit or future implementation approval."
+    },
+    {
+      "test": "tests/kar210-kar134-legacy-session-witness.cjs",
+      "blob": "3a9cfca5c9561f7d729fdf1de8cc60352b888d0b",
+      "status": "deferred-post-baseline",
+      "owner": "package.json",
+      "step": "S03/S05",
+      "redRun": 45709808541,
+      "redCommandIndex": 28,
+      "reason": "Absent from original v1.23.48 test suite and tree; owner scope reset retains historical safeguards unchanged. Original later RED and source preserved; no PASS credit or future implementation approval."
+    },
+    {
+      "test": "tests/kar210-p13-lock-read-uncertainty.cjs",
+      "blob": "02cefe5a571a6258a21affade7c9f341e5732677",
+      "status": "deferred-post-baseline",
+      "owner": "package.json",
+      "step": "S06",
+      "redRun": 45709808541,
+      "redCommandIndex": 31,
+      "reason": "Absent from original v1.23.48 test suite and tree; owner scope reset retains historical safeguards unchanged. Original later RED and source preserved; no PASS credit or future implementation approval."
+    },
+    {
+      "test": "tests/kar210-kar150-uncertain-start-witness.cjs",
+      "blob": "e2ec86af500c9df5450d198b64d747f9569be090",
+      "status": "deferred-post-baseline",
+      "owner": "package.json",
+      "step": "S06/S08",
+      "redRun": 45709808541,
+      "redCommandIndex": 35,
+      "reason": "Absent from original v1.23.48 test suite and tree; owner scope reset retains historical safeguards unchanged. Original later RED and source preserved; no PASS credit or future implementation approval."
+    },
+    {
+      "test": "tests/kar99-p9-tab-gone-monotonic.cjs",
+      "blob": "ae811891b93f36b57ec3dc47dafc4a7029fe46aa",
+      "status": "deferred-post-baseline",
+      "owner": "package.json",
+      "step": "S06",
+      "redRun": 45709808541,
+      "redCommandIndex": 39,
+      "reason": "Absent from original v1.23.48 test suite and tree; owner scope reset retains historical safeguards unchanged. Original later RED and source preserved; no PASS credit or future implementation approval."
+    },
+    {
+      "test": "tests/kar210-p9-independent-tab-lifecycle.cjs",
+      "blob": "3062c31fc4ec9b69a831216012982a8c9ccdff18",
+      "status": "deferred-post-baseline",
+      "owner": "package.json",
+      "step": "S06",
+      "redRun": 45709808541,
+      "redCommandIndex": 40,
+      "reason": "Absent from original v1.23.48 test suite and tree; owner scope reset retains historical safeguards unchanged. Original later RED and source preserved; no PASS credit or future implementation approval."
+    },
+    {
+      "test": "tests/kar210-kar132-independent-modal.cjs",
+      "blob": "e7abd647a48c4755ccd1b23d670bfea7d75b1d1b",
+      "status": "deferred-post-baseline",
+      "owner": "package.json",
+      "step": "S05",
+      "redRun": 45709808541,
+      "redCommandIndex": 43,
+      "reason": "Absent from original v1.23.48 test suite and tree; owner scope reset retains historical safeguards unchanged. Original later RED and source preserved; no PASS credit or future implementation approval."
     }
   ]
 }

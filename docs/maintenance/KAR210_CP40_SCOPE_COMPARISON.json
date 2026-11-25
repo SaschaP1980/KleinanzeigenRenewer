@@ -2,7 +2,7 @@
   "schema": 1,
   "issue": 210,
   "checkpoint": 40,
-  "status": "historical comparison verified; original test restoration staged, validation pending",
+  "status": "historical comparison verified; baseline test reconciliation staged, validation pending",
   "historicalCommit": "f2225155e403d89d07a674c9e20f397a4f86694d",
   "workSource": "23b635a6a38be8f3c569b9e35978bc2cdc4ec7e8",
   "main": "4d7ae5130730776927748e2517fdf9aadaf098cd",
@@ -888,7 +888,7 @@
         "not ok 1 - KAR-199 a closed DELETE response port remains unknown, not replayed",
         "name: 'AssertionError'"
       ],
-      "disposition": "post-baseline-witness; preserve RED evidence, separate from historical acceptance after explicit active-ledger reconciliation"
+      "disposition": "deferred-post-baseline; immutable original later RED source and result, not PASS"
     },
     {
       "index": 7,
@@ -905,7 +905,7 @@
         "Error: TEST_UNBOUNDED_AWAIT",
         "name: 'AssertionError'"
       ],
-      "disposition": "post-baseline-witness; preserve RED evidence, separate from historical acceptance after explicit active-ledger reconciliation"
+      "disposition": "deferred-post-baseline; immutable original later RED source and result, not PASS"
     },
     {
       "index": 8,
@@ -922,7 +922,7 @@
         "Error: TEST_UNBOUNDED_PHASE4_RECOVERY",
         "name: 'AssertionError'"
       ],
-      "disposition": "post-baseline-witness; preserve RED evidence, separate from historical acceptance after explicit active-ledger reconciliation"
+      "disposition": "deferred-post-baseline; immutable original later RED source and result, not PASS"
     },
     {
       "index": 11,
@@ -939,7 +939,7 @@
         "name: 'AssertionError'",
         "not ok 2 - KAR-117/124 product: persisted unknown DELETE after worker restart must not automatically replay without independent proof"
       ],
-      "disposition": "post-baseline-witness; preserve RED evidence, separate from historical acceptance after explicit active-ledger reconciliation"
+      "disposition": "deferred-post-baseline; immutable original later RED source and result, not PASS"
     },
     {
       "index": 14,
@@ -956,7 +956,7 @@
         "name: 'AssertionError'",
         "not ok 2 - managed publication: second implicit submit with null submitter must not replay"
       ],
-      "disposition": "post-baseline-witness; preserve RED evidence, separate from historical acceptance after explicit active-ledger reconciliation"
+      "disposition": "deferred-post-baseline; immutable original later RED source and result, not PASS"
     },
     {
       "index": 19,
@@ -973,7 +973,7 @@
         "name: 'AssertionError'",
         "not ok 2 - KAR-193 a hung reset request times out without repeating an uncertain side effect"
       ],
-      "disposition": "post-baseline-witness; preserve RED evidence, separate from historical acceptance after explicit active-ledger reconciliation"
+      "disposition": "deferred-post-baseline; immutable original later RED source and result, not PASS"
     },
     {
       "index": 20,
@@ -990,7 +990,7 @@
         "name: 'AssertionError'",
         "not ok 3 - KAR-185 independent product witness: inspection failure must not be reported as inventory failure"
       ],
-      "disposition": "post-baseline-witness; preserve RED evidence, separate from historical acceptance after explicit active-ledger reconciliation"
+      "disposition": "deferred-post-baseline; immutable original later RED source and result, not PASS"
     },
     {
       "index": 28,
@@ -1006,7 +1006,7 @@
         "not ok 2 - KAR-134 independent persisted retired schema-test session must be refused before form payload",
         "name: 'AssertionError'"
       ],
-      "disposition": "post-baseline-witness; preserve RED evidence, separate from historical acceptance after explicit active-ledger reconciliation"
+      "disposition": "deferred-post-baseline; immutable original later RED source and result, not PASS"
     },
     {
       "index": 31,
@@ -1023,7 +1023,7 @@
         "name: 'AssertionError'",
         "not ok 2 - unknown archive owner read must not authorize competing insertion"
       ],
-      "disposition": "post-baseline-witness; preserve RED evidence, separate from historical acceptance after explicit active-ledger reconciliation"
+      "disposition": "deferred-post-baseline; immutable original later RED source and result, not PASS"
     },
     {
       "index": 35,
@@ -1039,7 +1039,7 @@
         "not ok 1 - uncertain restart without persisted renewal session must not re-admit the starting item",
         "name: 'AssertionError'"
       ],
-      "disposition": "post-baseline-witness; preserve RED evidence, separate from historical acceptance after explicit active-ledger reconciliation"
+      "disposition": "deferred-post-baseline; immutable original later RED source and result, not PASS"
     },
     {
       "index": 39,
@@ -1054,7 +1054,7 @@
       "evidence": [
         "AssertionError [ERR_ASSERTION]: delayed onUpdated observation cannot revive GONE with inherited goneReason"
       ],
-      "disposition": "post-baseline-witness; preserve RED evidence, separate from historical acceptance after explicit active-ledger reconciliation"
+      "disposition": "deferred-post-baseline; immutable original later RED source and result, not PASS"
     },
     {
       "index": 40,
@@ -1071,7 +1071,7 @@
         "name: 'AssertionError'",
         "not ok 2 - independent original P9 late registration cannot resurrect GONE"
       ],
-      "disposition": "post-baseline-witness; preserve RED evidence, separate from historical acceptance after explicit active-ledger reconciliation"
+      "disposition": "deferred-post-baseline; immutable original later RED source and result, not PASS"
     },
     {
       "index": 42,
@@ -1103,7 +1103,7 @@
         "FAIL late-root-159: Kategorie „Mode & Beauty“ ist nicht eindeutig (0 Treffer).",
         "FAIL late-root-22: Kategorie „Familie, Kind & Baby“ ist nicht eindeutig (0 Treffer)."
       ],
-      "disposition": "post-baseline-witness; preserve RED evidence, separate from historical acceptance after explicit active-ledger reconciliation"
+      "disposition": "deferred-post-baseline; immutable original later RED source and result, not PASS"
     },
     {
       "index": 227,
@@ -1367,5 +1367,76 @@
         ]
       }
     ]
+  },
+  "reconciliation": {
+    "removedActiveCommands": [
+      "node --test tests/kar199-phase4-no-transport-replay.cjs",
+      "node --test tests/kar199-phase4-bounded-runtime.cjs",
+      "node --test tests/kar199-phase4-unverified-state-runtime.cjs",
+      "node --test tests/kar210-cp36-phase4-unknown-witness.cjs",
+      "node --test tests/kar210-cp38-publish-uncertainty-witness.cjs",
+      "node --test tests/kar210-diagnostic-reset-unknown.cjs",
+      "node --test tests/kar210-startup-isolation-witness.cjs",
+      "node --test tests/kar210-kar134-legacy-session-witness.cjs",
+      "node --test tests/kar210-p13-lock-read-uncertainty.cjs",
+      "node --test tests/kar210-kar150-uncertain-start-witness.cjs",
+      "node tests/kar99-p9-tab-gone-monotonic.cjs",
+      "node --test tests/kar210-p9-independent-tab-lifecycle.cjs",
+      "node tests/kar210-kar132-independent-modal.cjs"
+    ],
+    "retainedCommands": 480,
+    "modifiedRetainedReferences": 109,
+    "originalTests": [
+      {
+        "path": "tests/kar132-modern-category-modal.cjs",
+        "historicalBlob": "94eb484ad973a6d6cf7ca8b1a75a1316ab9c01e4",
+        "priorWorkBlob": "d839177574e436de46570a4fdf95803b01265585",
+        "change": "restore original historical assertions; exact historical blob"
+      },
+      {
+        "path": "tests/v1203-hot-path-runtime.cjs",
+        "historicalBlob": "a09b060e059dc306fc835e7356f30742850d6733",
+        "priorWorkBlob": "46003698e28634e47091808343f95feda1c1a8ba",
+        "change": "restore original historical assertions; exact historical blob"
+      },
+      {
+        "path": "tests/v12018-activity-history-bootstrap.cjs",
+        "historicalBlob": "c6066495112867ae189b901418ebec961700a44b",
+        "priorWorkBlob": "9b89a8a6c123bb4ec5a934426f63bd5e803134f4",
+        "change": "restore original historical assertions; exact historical blob"
+      },
+      {
+        "path": "tests/v12111-global-view-sidebar-bottom-diagnostics.cjs",
+        "historicalBlob": "49a281a15afbc5defc871d8e7fc8449ebcb4ae1d",
+        "priorWorkBlob": "49ae86f20a7f971f72bac7d41778a0c2db40705e",
+        "change": "restore original historical assertions; explicit baseline version recognition only"
+      },
+      {
+        "path": "tests/v12112-sidebar-refresh-capture-polish.cjs",
+        "historicalBlob": "650553c4d3e55f1a1ce62ccfe8f05bb19a290512",
+        "priorWorkBlob": "ad54acb50b6c829e28b27d4757ba306d41d467d9",
+        "change": "restore original historical assertions; explicit baseline version recognition only"
+      },
+      {
+        "path": "tests/v1226-diagnostics-actions-runtime.cjs",
+        "historicalBlob": "314a2d8339608ac2a6c939dc57f780a69c05d7d1",
+        "priorWorkBlob": "971cb907715512a2921452ab4a85716fdde2a240",
+        "change": "restore original historical assertions; exact historical blob"
+      },
+      {
+        "path": "tests/v1227-pre-refactor-characterization.cjs",
+        "historicalBlob": "50aeaf2f1f523b0c58eff74be7cabcd789ff2cf9",
+        "priorWorkBlob": "4180912476b5e7dd7bb2deb6af4303073e1b9528",
+        "change": "restore original historical assertions; exact historical blob"
+      },
+      {
+        "path": "tests/v1227-modularization.cjs",
+        "historicalBlob": "035a044541fb15fe068e0dc72ad5711266dfeae6",
+        "priorWorkBlob": "26f22dc9e33579a8ead6b84d0c6abca0974c2a89",
+        "change": "restore original historical assertions; relative HTML script paths only"
+      }
+    ],
+    "versionReconciliation": "pending; current source still 2.0.0.0",
+    "runtimeChanges": 0
   }
 }

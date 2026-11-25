@@ -13,7 +13,7 @@ for(const owner of OWNERS) for(const test of ["tests/kar148-article-type.cjs","t
 for(const owner of OWNERS) for(const test of ["tests/kar201-legacy-options.cjs","tests/kar201-session-evidence.cjs","tests/kar201-native-display-only.cjs","tests/kar201-partial-archive-prefill.cjs","tests/kar201-manual-standalone.cjs"]) assert.ok(!fs.readFileSync(path.join(root,owner),'utf8').includes(test),'KAR-201 later feature still active: '+test+' in '+owner);
 const data=JSON.parse(fs.readFileSync(path.join(root,LEDGER),'utf8'));
 const inactive=validateDispositions(root);
-assert.equal(inactive.size,78);
+assert.equal(inactive.size,91);
 const read=p=>fs.readFileSync(path.join(root,p));
 for(const owner of OWNERS) for(const test of inactive.keys())
   assert.ok(!read(owner).toString().replace(/\\/g,'/').includes(test),'Inactive path in active owner');
@@ -74,6 +74,8 @@ try {
   put(feature.module,read(feature.module).toString()+'\n'+feature.featureAbsence.marker);deny();copy(feature.module);
   const tampered=structuredClone(data);tampered.entries.find(e=>e.featureAbsence).featureAbsence.marker='unreviewed';
   put(LEDGER,tampered);deny();copy(LEDGER);
+  const reset=structuredClone(data);reset.scopeResetDeferred.pop();put(LEDGER,reset);deny();copy(LEDGER);
+  const post=data.scopeResetDeferred[0];put(post.test,'// altered later RED evidence');deny();copy(post.test);
   const manifest=JSON.parse(read('manifest.json'));manifest.version='2.0.0.1';put('manifest.json',manifest);deny();copy('manifest.json');
   assert.equal(validateDispositions(fixture).size,inactive.size);
 } finally {fs.rmSync(fixture,{recursive:true,force:true});}
