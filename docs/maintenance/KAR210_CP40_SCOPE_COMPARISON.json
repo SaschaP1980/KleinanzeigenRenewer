@@ -1,0 +1,1215 @@
+{
+  "schema": 1,
+  "issue": 210,
+  "checkpoint": 40,
+  "status": "comparison-prepared; hosted results pending",
+  "historicalCommit": "f2225155e403d89d07a674c9e20f397a4f86694d",
+  "workSource": "23b635a6a38be8f3c569b9e35978bc2cdc4ec7e8",
+  "main": "4d7ae5130730776927748e2517fdf9aadaf098cd",
+  "targetVersion": "2.0.0",
+  "fourComponentVersion": "postponed",
+  "policy": "Owner reset: no product safety or feature changes; preserve all historical and later test evidence; only historical regressions and applicable development infrastructure are baseline blockers.",
+  "runtime": {
+    "compared": 121,
+    "byteIdentical": 116,
+    "mechanicalOrVersionDelta": 5,
+    "priorRestoreExpected": 122,
+    "priorRestoreMatched": 122,
+    "laterAbsent": 22,
+    "entries": [
+      {
+        "historicalPath": "manifest.json",
+        "workPath": "manifest.json",
+        "historicalBlob": "22511bcc51362f0967b74206836caaba34d61c62",
+        "workBlob": "d0d3038800b5ebc01ed1e39ea4533beed6fc8089",
+        "identical": false
+      },
+      {
+        "historicalPath": "src/shared/runtime-deps.js",
+        "workPath": "src/shared/runtime-deps.js",
+        "historicalBlob": "3f3305d64f5a969f006434d99d521e23114ce423",
+        "workBlob": "3f3305d64f5a969f006434d99d521e23114ce423",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/shared/message-contract-registry.js",
+        "workPath": "src/shared/message-contract-registry.js",
+        "historicalBlob": "cc5a72fd6614034b73f2547550aa9b3cc93e1f88",
+        "workBlob": "cc5a72fd6614034b73f2547550aa9b3cc93e1f88",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/shared/renewal-policy.js",
+        "workPath": "src/shared/renewal-policy.js",
+        "historicalBlob": "0795a3eaa498905c291ce7912842e9f09600fea1",
+        "workBlob": "0795a3eaa498905c291ce7912842e9f09600fea1",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/background/background-message-router.js",
+        "workPath": "src/background/background-message-router.js",
+        "historicalBlob": "4e016a82054d8647b7a9fc5fd24d47c394d58b46",
+        "workBlob": "4e016a82054d8647b7a9fc5fd24d47c394d58b46",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/background/services/native-update-status-gateway.js",
+        "workPath": "src/background/services/native-update-status-gateway.js",
+        "historicalBlob": "e1a0ebbd7955afc37066fa1d63de8f47b0ee9c6b",
+        "workBlob": "e1a0ebbd7955afc37066fa1d63de8f47b0ee9c6b",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/background/services/native-status-bridge.js",
+        "workPath": "src/background/services/native-status-bridge.js",
+        "historicalBlob": "6f3137fbfdba6ddd080e8e10f37dfea3a67f6708",
+        "workBlob": "6f3137fbfdba6ddd080e8e10f37dfea3a67f6708",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/background/repositories/profile-repository.js",
+        "workPath": "src/background/repositories/profile-repository.js",
+        "historicalBlob": "38a9c60839530b82c49ac31117bd99183fecdf43",
+        "workBlob": "38a9c60839530b82c49ac31117bd99183fecdf43",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/background/repositories/inventory-repository.js",
+        "workPath": "src/background/repositories/inventory-repository.js",
+        "historicalBlob": "40a339ea5955c49bbc72c3b07f8e0cf0f1f8ed8b",
+        "workBlob": "40a339ea5955c49bbc72c3b07f8e0cf0f1f8ed8b",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/background/repositories/inventory-image-store.js",
+        "workPath": "src/background/repositories/inventory-image-store.js",
+        "historicalBlob": "5884016b613489d321b1600a8e6e31d17b91e7a3",
+        "workBlob": "5884016b613489d321b1600a8e6e31d17b91e7a3",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/background/services/trash-service.js",
+        "workPath": "src/background/services/trash-service.js",
+        "historicalBlob": "a5cb8f0b7fbca13b27b7eba6f3cd0303d56bedf9",
+        "workBlob": "a5cb8f0b7fbca13b27b7eba6f3cd0303d56bedf9",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/background/services/diagnostics-service.js",
+        "workPath": "src/background/services/diagnostics-service.js",
+        "historicalBlob": "5c7f8f8d74a9fdbb47843a69a70a32fc1e7a7d94",
+        "workBlob": "5c7f8f8d74a9fdbb47843a69a70a32fc1e7a7d94",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/background/services/tab-load-coordinator.js",
+        "workPath": "src/background/services/tab-load-coordinator.js",
+        "historicalBlob": "a7a0061782b8ba5e656775c451a1ef20b788fd05",
+        "workBlob": "a7a0061782b8ba5e656775c451a1ef20b788fd05",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/background/services/tab-registry.js",
+        "workPath": "src/background/services/tab-registry.js",
+        "historicalBlob": "592d6ef6845e6bf3d540ad67a6810d145b7a3390",
+        "workBlob": "592d6ef6845e6bf3d540ad67a6810d145b7a3390",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/background/services/managed-tab-worker-service.js",
+        "workPath": "src/background/services/managed-tab-worker-service.js",
+        "historicalBlob": "128a7b48ac95c9c1212c7d4bbf905fdb840fc31d",
+        "workBlob": "128a7b48ac95c9c1212c7d4bbf905fdb840fc31d",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/background/services/content-connection-manager.js",
+        "workPath": "src/background/services/content-connection-manager.js",
+        "historicalBlob": "5c54343d64903a43701e03a01f938ad4b48c7280",
+        "workBlob": "5c54343d64903a43701e03a01f938ad4b48c7280",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/background/services/account-probe-service.js",
+        "workPath": "src/background/services/account-probe-service.js",
+        "historicalBlob": "df71371bf5f1659c18a288721f708664d5d8af6d",
+        "workBlob": "df71371bf5f1659c18a288721f708664d5d8af6d",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/background/controllers/profile-management-controller.js",
+        "workPath": "src/background/controllers/profile-management-controller.js",
+        "historicalBlob": "b708d8e2eca3ee19455d5bd0dd5b4fdfc99d8236",
+        "workBlob": "b708d8e2eca3ee19455d5bd0dd5b4fdfc99d8236",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/background/controllers/account-session-controller.js",
+        "workPath": "src/background/controllers/account-session-controller.js",
+        "historicalBlob": "53b6b7c5ca40bbbee57b85194d16276cf66b28a1",
+        "workBlob": "53b6b7c5ca40bbbee57b85194d16276cf66b28a1",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/background/controllers/platform-safety-controller.js",
+        "workPath": "src/background/controllers/platform-safety-controller.js",
+        "historicalBlob": "14daa11048835d36081eb6745338a7eb9b979f67",
+        "workBlob": "14daa11048835d36081eb6745338a7eb9b979f67",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/background/controllers/tab-lifecycle-observer.js",
+        "workPath": "src/background/controllers/tab-lifecycle-observer.js",
+        "historicalBlob": "465bf655c22067bf7fac942bacdfd15475a15a03",
+        "workBlob": "465bf655c22067bf7fac942bacdfd15475a15a03",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/background/controllers/workflow-emergency-reset-controller.js",
+        "workPath": "src/background/controllers/workflow-emergency-reset-controller.js",
+        "historicalBlob": "6277947021b85fa6f1c99b5ee5d98b4736471547",
+        "workBlob": "6277947021b85fa6f1c99b5ee5d98b4736471547",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/background/lib/bulk-run-guard.js",
+        "workPath": "src/background/lib/bulk-run-guard.js",
+        "historicalBlob": "6799d4af302ceee5771722abf41d87f16dafb3e5",
+        "workBlob": "6799d4af302ceee5771722abf41d87f16dafb3e5",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/background/controllers/single-inventory-controller.js",
+        "workPath": "src/background/controllers/single-inventory-controller.js",
+        "historicalBlob": "b3411cfff78fc2294c744e20be1965587dc04cd3",
+        "workBlob": "b3411cfff78fc2294c744e20be1965587dc04cd3",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/background/services/bulk-worker-service.js",
+        "workPath": "src/background/services/bulk-worker-service.js",
+        "historicalBlob": "c9db19d30a2f3b396bfe1d026b5a5251eb7d7c10",
+        "workBlob": "c9db19d30a2f3b396bfe1d026b5a5251eb7d7c10",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/background/services/bulk-reconciliation-service.js",
+        "workPath": "src/background/services/bulk-reconciliation-service.js",
+        "historicalBlob": "27383d7760cfbcaded42790534c288a5864d1397",
+        "workBlob": "27383d7760cfbcaded42790534c288a5864d1397",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/background/controllers/bulk-inventory-controller.js",
+        "workPath": "src/background/controllers/bulk-inventory-controller.js",
+        "historicalBlob": "71e76db0be0b11a2d99d5a493a7d433b4fb9c8cc",
+        "workBlob": "71e76db0be0b11a2d99d5a493a7d433b4fb9c8cc",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/background/controllers/mass-renewal-controller.js",
+        "workPath": "src/background/controllers/mass-renewal-controller.js",
+        "historicalBlob": "f6f5bfd1a52d21a079dc15980a9425f439338dbd",
+        "workBlob": "f6f5bfd1a52d21a079dc15980a9425f439338dbd",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/background/services/mass-renewal-watchdog-service.js",
+        "workPath": "src/background/services/mass-renewal-watchdog-service.js",
+        "historicalBlob": "78b5d6289af78ef365c3f3da65b88abe992e288f",
+        "workBlob": "78b5d6289af78ef365c3f3da65b88abe992e288f",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/background/controllers/mass-renewal-workflow-controller.js",
+        "workPath": "src/background/controllers/mass-renewal-workflow-controller.js",
+        "historicalBlob": "8705bde46aa2953f457289feb4d31857b48c8ac0",
+        "workBlob": "8705bde46aa2953f457289feb4d31857b48c8ac0",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/background/services/renewal-verification-service.js",
+        "workPath": "src/background/services/renewal-verification-service.js",
+        "historicalBlob": "562f25364f72d78a8582fad19f2839ae9215bf0a",
+        "workBlob": "562f25364f72d78a8582fad19f2839ae9215bf0a",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/background/repositories/renewal-state-repository.js",
+        "workPath": "src/background/repositories/renewal-state-repository.js",
+        "historicalBlob": "855c5f7f5b299987ef35d93928cf537f86a1d99f",
+        "workBlob": "855c5f7f5b299987ef35d93928cf537f86a1d99f",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/background/services/renewal-verification-flow.js",
+        "workPath": "src/background/services/renewal-verification-flow.js",
+        "historicalBlob": "5907413ac0598c32aa2e23610a9da272c125f562",
+        "workBlob": "5907413ac0598c32aa2e23610a9da272c125f562",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/background/services/renewal-reinventory-flow.js",
+        "workPath": "src/background/services/renewal-reinventory-flow.js",
+        "historicalBlob": "e86870f3a224fb74ac5efefccd872b49da4694be",
+        "workBlob": "e86870f3a224fb74ac5efefccd872b49da4694be",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/background/services/paid-checkout-recovery-service.js",
+        "workPath": "src/background/services/paid-checkout-recovery-service.js",
+        "historicalBlob": "2ad0a1667c7f2437d48d66442ea84181ef934bb7",
+        "workBlob": "2ad0a1667c7f2437d48d66442ea84181ef934bb7",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/background/controllers/renewal-workflow-controller.js",
+        "workPath": "src/background/controllers/renewal-workflow-controller.js",
+        "historicalBlob": "739a1977e53eadaa34fd980e709b35dc82d50138",
+        "workBlob": "739a1977e53eadaa34fd980e709b35dc82d50138",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/background/services/template-fill-service.js",
+        "workPath": "src/background/services/template-fill-service.js",
+        "historicalBlob": "b89f740985c4a3e2dc4dddb290b5172b78763f53",
+        "workBlob": "b89f740985c4a3e2dc4dddb290b5172b78763f53",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/background/services/insertion-lock-service.js",
+        "workPath": "src/background/services/insertion-lock-service.js",
+        "historicalBlob": "484a844e6174507feac39190e96596f397463d0c",
+        "workBlob": "484a844e6174507feac39190e96596f397463d0c",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/background/controllers/template-fill-controller.js",
+        "workPath": "src/background/controllers/template-fill-controller.js",
+        "historicalBlob": "c01b419766420bf1ed9b0e8cccb5d4a91e867cdd",
+        "workBlob": "c01b419766420bf1ed9b0e8cccb5d4a91e867cdd",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/background/services/archive-insertion-service.js",
+        "workPath": "src/background/services/archive-insertion-service.js",
+        "historicalBlob": "18213280900016321f83e1e3557d2dc6082c92d5",
+        "workBlob": "18213280900016321f83e1e3557d2dc6082c92d5",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/background/services/archive-insertion-verification-service.js",
+        "workPath": "src/background/services/archive-insertion-verification-service.js",
+        "historicalBlob": "a275b1dcf2dd55079524d6458854432f6031d733",
+        "workBlob": "a275b1dcf2dd55079524d6458854432f6031d733",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/background/services/archive-insertion-recovery-service.js",
+        "workPath": "src/background/services/archive-insertion-recovery-service.js",
+        "historicalBlob": "78ea5071c275dd81d732a3c830a37c21e34498e1",
+        "workBlob": "78ea5071c275dd81d732a3c830a37c21e34498e1",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/background/controllers/archive-insertion-controller.js",
+        "workPath": "src/background/controllers/archive-insertion-controller.js",
+        "historicalBlob": "7ad8ca1995f8a8ed9ebc1a4c3e4aca8e53000b0b",
+        "workBlob": "7ad8ca1995f8a8ed9ebc1a4c3e4aca8e53000b0b",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/background/services/remote-delete-replacement-service.js",
+        "workPath": "src/background/services/remote-delete-replacement-service.js",
+        "historicalBlob": "0d89fea2632e2135f72deca3fbc03514630762c5",
+        "workBlob": "0d89fea2632e2135f72deca3fbc03514630762c5",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/background/services/published-inventory-resolver.js",
+        "workPath": "src/background/services/published-inventory-resolver.js",
+        "historicalBlob": "3303b36b09be46f1d34a432916486c86640d3ffd",
+        "workBlob": "3303b36b09be46f1d34a432916486c86640d3ffd",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/background/services/diagnostic-export-service.js",
+        "workPath": "src/background/services/diagnostic-export-service.js",
+        "historicalBlob": "9895c405bbc2e466cd07b9e07986be47056df24b",
+        "workBlob": "9895c405bbc2e466cd07b9e07986be47056df24b",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/background/services/public-listing-evidence-service.js",
+        "workPath": "src/background/services/public-listing-evidence-service.js",
+        "historicalBlob": "40fedc8c2c5b6787cbe144fccc4faec772ab3d2f",
+        "workBlob": "40fedc8c2c5b6787cbe144fccc4faec772ab3d2f",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/shared/managed-navigation.js",
+        "workPath": "src/shared/managed-navigation.js",
+        "historicalBlob": "76eaa5a2f34068e32d5e10e0262cc82b66993fcf",
+        "workBlob": "76eaa5a2f34068e32d5e10e0262cc82b66993fcf",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/background/lib/inventory-reconciliation.js",
+        "workPath": "src/background/lib/inventory-reconciliation.js",
+        "historicalBlob": "cb52cb425d943b3383e1043126edb66f20b3f027",
+        "workBlob": "cb52cb425d943b3383e1043126edb66f20b3f027",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/shared/my-ads-readiness.js",
+        "workPath": "src/shared/my-ads-readiness.js",
+        "historicalBlob": "71117b2646bfab61453eaad2599fe40e44c40ffa",
+        "workBlob": "71117b2646bfab61453eaad2599fe40e44c40ffa",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/background/lib/inventory-scope.js",
+        "workPath": "src/background/lib/inventory-scope.js",
+        "historicalBlob": "91c14345f2f96319fb56964a03ac034b558a6783",
+        "workBlob": "91c14345f2f96319fb56964a03ac034b558a6783",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/shared/platform-hardening.js",
+        "workPath": "src/shared/platform-hardening.js",
+        "historicalBlob": "1205667cbff11740a210dce3dd8b6b72079635bf",
+        "workBlob": "1205667cbff11740a210dce3dd8b6b72079635bf",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/content/platform-guard-content.js",
+        "workPath": "src/content/platform-guard-content.js",
+        "historicalBlob": "fcbe1f7bb83526ae6fb3a21f14ea07cd2bd2d06c",
+        "workBlob": "fcbe1f7bb83526ae6fb3a21f14ea07cd2bd2d06c",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/background/background.js",
+        "workPath": "src/background/background.js",
+        "historicalBlob": "fc09091d0bc26914e3a97578349c69f4097f50a8",
+        "workBlob": "bbdeee5b2c6125545b22de209c4d52fd1bdeb9ad",
+        "identical": false
+      },
+      {
+        "historicalPath": "src/content/image-extractor.js",
+        "workPath": "src/content/image-extractor.js",
+        "historicalBlob": "babe3c0d6068a21027439ad3a9ade2d7bd62f5a3",
+        "workBlob": "babe3c0d6068a21027439ad3a9ade2d7bd62f5a3",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/content/form-extractor.js",
+        "workPath": "src/content/form-extractor.js",
+        "historicalBlob": "97e9a880b9f3a3e61038f89206c740fdee3eb0fe",
+        "workBlob": "97e9a880b9f3a3e61038f89206c740fdee3eb0fe",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/content/paid-insertion-guard.js",
+        "workPath": "src/content/paid-insertion-guard.js",
+        "historicalBlob": "a0954cdc31d29ebc421af5cd5609a41c5e6a9e11",
+        "workBlob": "a0954cdc31d29ebc421af5cd5609a41c5e6a9e11",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/content/template-category-flow.js",
+        "workPath": "src/content/template-category-flow.js",
+        "historicalBlob": "241708472828576096c2d936061116c1dfc6c056",
+        "workBlob": "241708472828576096c2d936061116c1dfc6c056",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/content/template-form-fields.js",
+        "workPath": "src/content/template-form-fields.js",
+        "historicalBlob": "4ca1cc83328096d7498f0480d3174be5054bf42c",
+        "workBlob": "4ca1cc83328096d7498f0480d3174be5054bf42c",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/content/template-image-upload.js",
+        "workPath": "src/content/template-image-upload.js",
+        "historicalBlob": "c0a0a6cb2fda79d4a2e3bd6b161424bba6d556e1",
+        "workBlob": "c0a0a6cb2fda79d4a2e3bd6b161424bba6d556e1",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/content/template-verification.js",
+        "workPath": "src/content/template-verification.js",
+        "historicalBlob": "645ec67da2344c2ffdb195c0403584ed46f6c816",
+        "workBlob": "645ec67da2344c2ffdb195c0403584ed46f6c816",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/content/template-publish-flow.js",
+        "workPath": "src/content/template-publish-flow.js",
+        "historicalBlob": "b4cb626bc91ca9389f9d997f9f161ef88ebdd16d",
+        "workBlob": "b4cb626bc91ca9389f9d997f9f161ef88ebdd16d",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/content/template-filler.js",
+        "workPath": "src/content/template-filler.js",
+        "historicalBlob": "902706f9afbb7407a5fcf9968bd0e0c431ad1660",
+        "workBlob": "902706f9afbb7407a5fcf9968bd0e0c431ad1660",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/content/inventory-roster-parser.js",
+        "workPath": "src/content/inventory-roster-parser.js",
+        "historicalBlob": "614ccf5d2c553c1fc17ea40f8d6ff21188432ec8",
+        "workBlob": "614ccf5d2c553c1fc17ea40f8d6ff21188432ec8",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/content/inventory-readiness.js",
+        "workPath": "src/content/inventory-readiness.js",
+        "historicalBlob": "2edb08c42cb9d07aca84eda05610f66c7c76ac57",
+        "workBlob": "2edb08c42cb9d07aca84eda05610f66c7c76ac57",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/content/inventory-status-overlay.js",
+        "workPath": "src/content/inventory-status-overlay.js",
+        "historicalBlob": "62f31dfc05ce56d59e18b9bceb94c7e7647b8c88",
+        "workBlob": "62f31dfc05ce56d59e18b9bceb94c7e7647b8c88",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/content/inventory-delete-operations.js",
+        "workPath": "src/content/inventory-delete-operations.js",
+        "historicalBlob": "d1cefbd94c34818085e84bcb350493b855f30adb",
+        "workBlob": "d1cefbd94c34818085e84bcb350493b855f30adb",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/content/inventory-run-loop.js",
+        "workPath": "src/content/inventory-run-loop.js",
+        "historicalBlob": "10e34eb6d092873decb948d913bf9a32eade295e",
+        "workBlob": "10e34eb6d092873decb948d913bf9a32eade295e",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/content/inventory-runner.js",
+        "workPath": "src/content/inventory-runner.js",
+        "historicalBlob": "5096d1bbe55c7f460476a7cb038aed17709fa8ca",
+        "workBlob": "5096d1bbe55c7f460476a7cb038aed17709fa8ca",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/content/content.js",
+        "workPath": "src/content/content.js",
+        "historicalBlob": "9f33ecf4e5b9329c19aadfc6b15b6b85dd63a258",
+        "workBlob": "9f33ecf4e5b9329c19aadfc6b15b6b85dd63a258",
+        "identical": true
+      },
+      {
+        "historicalPath": "popup.html",
+        "workPath": "src/popup/popup.html",
+        "historicalBlob": "e460039e982dfdf2a17d1e279765c14a8e95f73b",
+        "workBlob": "45ef57f8c38d3bda12db01862440bcf2e2b790c9",
+        "identical": false
+      },
+      {
+        "historicalPath": "popup.css",
+        "workPath": "src/popup/popup.css",
+        "historicalBlob": "fd0fae20cbf7d47fa616ad0e00e4905729b910fb",
+        "workBlob": "fd0fae20cbf7d47fa616ad0e00e4905729b910fb",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/popup/popup.js",
+        "workPath": "src/popup/popup.js",
+        "historicalBlob": "acd6160cfaf808897b9ba929fd29362c5218d38b",
+        "workBlob": "acd6160cfaf808897b9ba929fd29362c5218d38b",
+        "identical": true
+      },
+      {
+        "historicalPath": "app.html",
+        "workPath": "src/app/app.html",
+        "historicalBlob": "301f80b114dafa99533e97c23abf0c3789d394f5",
+        "workBlob": "ea61937e56291905fa6bfc6827e948d700f21877",
+        "identical": false
+      },
+      {
+        "historicalPath": "app.css",
+        "workPath": "src/app/app.css",
+        "historicalBlob": "d4f7659e30be7cfed106659323d902c39d03ab4f",
+        "workBlob": "4d69502577fd25ad94ac7a6dd80c9cc3a45afbe0",
+        "identical": false
+      },
+      {
+        "historicalPath": "src/app/diagnostic-zip.js",
+        "workPath": "src/app/diagnostic-zip.js",
+        "historicalBlob": "5e037faf402a1eff9a4c6381e088dbd4306784b2",
+        "workBlob": "5e037faf402a1eff9a4c6381e088dbd4306784b2",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/app/inventory-view.js",
+        "workPath": "src/app/inventory-view.js",
+        "historicalBlob": "da0c66d512f939c1acf5285995ca6f6057154826",
+        "workBlob": "da0c66d512f939c1acf5285995ca6f6057154826",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/app/inventory-export.js",
+        "workPath": "src/app/inventory-export.js",
+        "historicalBlob": "73fe0cc9dcbc90d4563c88b4fbba7cad22a80b05",
+        "workBlob": "73fe0cc9dcbc90d4563c88b4fbba7cad22a80b05",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/app/inventory-import.js",
+        "workPath": "src/app/inventory-import.js",
+        "historicalBlob": "97dba22dc31b5f2c02605ad236808965643120b1",
+        "workBlob": "97dba22dc31b5f2c02605ad236808965643120b1",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/app/profile-backup.js",
+        "workPath": "src/app/profile-backup.js",
+        "historicalBlob": "31469c4d280b49f30567534b2d2fde3d1a090479",
+        "workBlob": "31469c4d280b49f30567534b2d2fde3d1a090479",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/app/account-gate.js",
+        "workPath": "src/app/account-gate.js",
+        "historicalBlob": "445e2199531c949ab76c9c3d94293826984eedfc",
+        "workBlob": "445e2199531c949ab76c9c3d94293826984eedfc",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/app/app-elements.js",
+        "workPath": "src/app/app-elements.js",
+        "historicalBlob": "63a3e08c954ab7815c9a7d45b837cc8ca91b3566",
+        "workBlob": "63a3e08c954ab7815c9a7d45b837cc8ca91b3566",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/app/profile-account-ui-controller.js",
+        "workPath": "src/app/profile-account-ui-controller.js",
+        "historicalBlob": "df960fbd2daa7ed17dbd4433059750ce869ef4e7",
+        "workBlob": "df960fbd2daa7ed17dbd4433059750ce869ef4e7",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/app/app-activity-center.js",
+        "workPath": "src/app/app-activity-center.js",
+        "historicalBlob": "4150186c38925e0546c7761861a6411e21d4f20b",
+        "workBlob": "4150186c38925e0546c7761861a6411e21d4f20b",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/app/actions-diagnostics-controller.js",
+        "workPath": "src/app/actions-diagnostics-controller.js",
+        "historicalBlob": "17c8702ed828e21bbe29dd73acb7f15986788515",
+        "workBlob": "17c8702ed828e21bbe29dd73acb7f15986788515",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/app/control-accordion-controller.js",
+        "workPath": "src/app/control-accordion-controller.js",
+        "historicalBlob": "0989d8f856402cae3824efd08f09a5f6d8296107",
+        "workBlob": "0989d8f856402cae3824efd08f09a5f6d8296107",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/app/diagnostics-controls-controller.js",
+        "workPath": "src/app/diagnostics-controls-controller.js",
+        "historicalBlob": "c1bc81088780eb534d57cb939f6a211e8b52ee68",
+        "workBlob": "c1bc81088780eb534d57cb939f6a211e8b52ee68",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/app/renewal-settings-controller.js",
+        "workPath": "src/app/renewal-settings-controller.js",
+        "historicalBlob": "eb22d0a76ccf34a18344ffc8a1dfe94df5883fc3",
+        "workBlob": "eb22d0a76ccf34a18344ffc8a1dfe94df5883fc3",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/app/app-layout-controller.js",
+        "workPath": "src/app/app-layout-controller.js",
+        "historicalBlob": "d92a3cdcbce91c71b546266d65f20551e8e04d97",
+        "workBlob": "d92a3cdcbce91c71b546266d65f20551e8e04d97",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/app/tab-page-inspection-controller.js",
+        "workPath": "src/app/tab-page-inspection-controller.js",
+        "historicalBlob": "cceecb75c47c9bd61cfb9a8376a1184fcef1bdb4",
+        "workBlob": "cceecb75c47c9bd61cfb9a8376a1184fcef1bdb4",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/app/shared-ui-helpers.js",
+        "workPath": "src/app/shared-ui-helpers.js",
+        "historicalBlob": "f70f0db392c3b2e485c19693b97dc8fc7d8745b5",
+        "workBlob": "f70f0db392c3b2e485c19693b97dc8fc7d8745b5",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/app/profile-backup-storage-service.js",
+        "workPath": "src/app/profile-backup-storage-service.js",
+        "historicalBlob": "a59f152d31fa15ff2620b54d902e1d873a124cb8",
+        "workBlob": "a59f152d31fa15ff2620b54d902e1d873a124cb8",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/app/profile-backup-controller.js",
+        "workPath": "src/app/profile-backup-controller.js",
+        "historicalBlob": "9857e2e7f6cea12774ae3a3579e8dab6ab4caaee",
+        "workBlob": "9857e2e7f6cea12774ae3a3579e8dab6ab4caaee",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/app/inventory-formatting.js",
+        "workPath": "src/app/inventory-formatting.js",
+        "historicalBlob": "45bd6f6aa9d10ade0079719d3976f976f06d05f1",
+        "workBlob": "45bd6f6aa9d10ade0079719d3976f976f06d05f1",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/app/record-card-view.js",
+        "workPath": "src/app/record-card-view.js",
+        "historicalBlob": "6e9974cedd71c092df0a09b3b49f6502073e18a5",
+        "workBlob": "6e9974cedd71c092df0a09b3b49f6502073e18a5",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/app/inventory-card-renderer.js",
+        "workPath": "src/app/inventory-card-renderer.js",
+        "historicalBlob": "f3cc492f85469cc62a33f812fe5a5b2dcd2db726",
+        "workBlob": "f3cc492f85469cc62a33f812fe5a5b2dcd2db726",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/app/trash-card-renderer.js",
+        "workPath": "src/app/trash-card-renderer.js",
+        "historicalBlob": "19f53e01867e48af39e5db5f00fc6cf34ccf68e8",
+        "workBlob": "19f53e01867e48af39e5db5f00fc6cf34ccf68e8",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/app/inventory-render-controller.js",
+        "workPath": "src/app/inventory-render-controller.js",
+        "historicalBlob": "e336b2900d8982393ae5f0d8b276dd486bb3ef95",
+        "workBlob": "e336b2900d8982393ae5f0d8b276dd486bb3ef95",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/app/renewal-dialog-controller.js",
+        "workPath": "src/app/renewal-dialog-controller.js",
+        "historicalBlob": "fefb589bf390c443d7205e24c553ebf27676654e",
+        "workBlob": "fefb589bf390c443d7205e24c553ebf27676654e",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/app/inventory-candidate-model.js",
+        "workPath": "src/app/inventory-candidate-model.js",
+        "historicalBlob": "ec74eb6c159b5000b92308f7573f19a7b33c9512",
+        "workBlob": "ec74eb6c159b5000b92308f7573f19a7b33c9512",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/app/inventory-capture-view.js",
+        "workPath": "src/app/inventory-capture-view.js",
+        "historicalBlob": "e315c6b991459d7dc678fe5cf10407764ea6cca2",
+        "workBlob": "e315c6b991459d7dc678fe5cf10407764ea6cca2",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/app/inventory-capture-controller.js",
+        "workPath": "src/app/inventory-capture-controller.js",
+        "historicalBlob": "f901a3234ce5e7f8a539d06d3ff0a4de2562ab36",
+        "workBlob": "f901a3234ce5e7f8a539d06d3ff0a4de2562ab36",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/app/mass-renewal-ui-controller.js",
+        "workPath": "src/app/mass-renewal-ui-controller.js",
+        "historicalBlob": "813aedc109538d3afb387f6f47648bdfe12fe303",
+        "workBlob": "813aedc109538d3afb387f6f47648bdfe12fe303",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/app/archive-insertion-ui-controller.js",
+        "workPath": "src/app/archive-insertion-ui-controller.js",
+        "historicalBlob": "08688155593fff5fadf7ea4add280909b7724bac",
+        "workBlob": "08688155593fff5fadf7ea4add280909b7724bac",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/app/trash-template-ui-controller.js",
+        "workPath": "src/app/trash-template-ui-controller.js",
+        "historicalBlob": "d8a1858f647e893c02d2bddc94b8bc48fa164677",
+        "workBlob": "d8a1858f647e893c02d2bddc94b8bc48fa164677",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/app/archive-trash-insertion-ui-controller.js",
+        "workPath": "src/app/archive-trash-insertion-ui-controller.js",
+        "historicalBlob": "773b14d8f4340f1332c9a11b630fa79c1ae1236c",
+        "workBlob": "773b14d8f4340f1332c9a11b630fa79c1ae1236c",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/app/app.js",
+        "workPath": "src/app/app.js",
+        "historicalBlob": "35e1209dc3c38863b4479afdbb1311aae6b185ae",
+        "workBlob": "35e1209dc3c38863b4479afdbb1311aae6b185ae",
+        "identical": true
+      },
+      {
+        "historicalPath": "src/app/native-update-check-ui.js",
+        "workPath": "src/app/native-update-check-ui.js",
+        "historicalBlob": "ac9721adc25af5d335f6d767c269101e666f986c",
+        "workBlob": "ac9721adc25af5d335f6d767c269101e666f986c",
+        "identical": true
+      },
+      {
+        "historicalPath": "icons/taskbar-16.png",
+        "workPath": "icons/taskbar-16.png",
+        "historicalBlob": "c5929874ace262956c4083c2b60c5a6cdfebabde",
+        "workBlob": "c5929874ace262956c4083c2b60c5a6cdfebabde",
+        "identical": true
+      },
+      {
+        "historicalPath": "icons/taskbar-32.png",
+        "workPath": "icons/taskbar-32.png",
+        "historicalBlob": "6dda83b1d48a523c7e1becbf642d606892ba09b2",
+        "workBlob": "6dda83b1d48a523c7e1becbf642d606892ba09b2",
+        "identical": true
+      },
+      {
+        "historicalPath": "icons/taskbar-48.png",
+        "workPath": "icons/taskbar-48.png",
+        "historicalBlob": "128c0c861723df0d5afef522914696e1f79b2cc3",
+        "workBlob": "128c0c861723df0d5afef522914696e1f79b2cc3",
+        "identical": true
+      },
+      {
+        "historicalPath": "icons/app-icon-128.png",
+        "workPath": "icons/app-icon-128.png",
+        "historicalBlob": "c37f1e15279c548b85a77f70034f62bdee92e72d",
+        "workBlob": "c37f1e15279c548b85a77f70034f62bdee92e72d",
+        "identical": true
+      },
+      {
+        "historicalPath": "icons/favicon.ico",
+        "workPath": "icons/favicon.ico",
+        "historicalBlob": "bd4706b8d830b24b86373552ff42f567b3fafabe",
+        "workBlob": "bd4706b8d830b24b86373552ff42f567b3fafabe",
+        "identical": true
+      },
+      {
+        "historicalPath": "icons/action-new-listing.svg",
+        "workPath": "icons/action-new-listing.svg",
+        "historicalBlob": "de06aec524526263c5ea23c542c410631cafda78",
+        "workBlob": "de06aec524526263c5ea23c542c410631cafda78",
+        "identical": true
+      },
+      {
+        "historicalPath": "icons/action-update.svg",
+        "workPath": "icons/action-update.svg",
+        "historicalBlob": "45fb65fbb7924d8ed2d8ffd319618f777072ae8c",
+        "workBlob": "45fb65fbb7924d8ed2d8ffd319618f777072ae8c",
+        "identical": true
+      },
+      {
+        "historicalPath": "icons/action-delete.svg",
+        "workPath": "icons/action-delete.svg",
+        "historicalBlob": "62278488e23c91c9c1528170cf234c912da0f2b7",
+        "workBlob": "62278488e23c91c9c1528170cf234c912da0f2b7",
+        "identical": true
+      },
+      {
+        "historicalPath": "icons/action-retry.svg",
+        "workPath": "icons/action-retry.svg",
+        "historicalBlob": "784397eb5a8f81ec8dadfdfb8d55d6f77fed9aa6",
+        "workBlob": "784397eb5a8f81ec8dadfdfb8d55d6f77fed9aa6",
+        "identical": true
+      },
+      {
+        "historicalPath": "icons/action-finish-renewal.svg",
+        "workPath": "icons/action-finish-renewal.svg",
+        "historicalBlob": "8c2500d1fffa24ec03a79b9fd628c6af70df667b",
+        "workBlob": "8c2500d1fffa24ec03a79b9fd628c6af70df667b",
+        "identical": true
+      },
+      {
+        "historicalPath": "icons/action-zip-export.svg",
+        "workPath": "icons/action-zip-export.svg",
+        "historicalBlob": "158877da0b6aa527bed5b8ebb29539173d452e5c",
+        "workBlob": "158877da0b6aa527bed5b8ebb29539173d452e5c",
+        "identical": true
+      },
+      {
+        "historicalPath": "icons/view-detailed.svg",
+        "workPath": "icons/view-detailed.svg",
+        "historicalBlob": "0311d8aeadb29dff60079e14444a825e1201e2c1",
+        "workBlob": "0311d8aeadb29dff60079e14444a825e1201e2c1",
+        "identical": true
+      },
+      {
+        "historicalPath": "icons/view-compact.svg",
+        "workPath": "icons/view-compact.svg",
+        "historicalBlob": "2ed840e03c7a7a99d5bef30a06a54bdb7c103518",
+        "workBlob": "2ed840e03c7a7a99d5bef30a06a54bdb7c103518",
+        "identical": true
+      }
+    ],
+    "reviewedExceptions": {
+      "manifest.json": "only version 1.23.48 -> 2.0.0.0 (to be reconciled to 2.0.0)",
+      "src/background/background.js": "APP_PAGE path relocated; equivalent getAppUrl uses APP_PAGE",
+      "src/app/app.html": "relative script and icon paths only",
+      "src/app/app.css": "relative icon mask paths only",
+      "src/popup/popup.html": "relative script and icon paths only"
+    }
+  },
+  "remainingRows": [
+    {
+      "index": 6,
+      "command": "node --test tests/kar199-phase4-no-transport-replay.cjs",
+      "path": "tests/kar199-phase4-no-transport-replay.cjs",
+      "previousStatus": "FAIL",
+      "historicalSuite": false,
+      "historicalBlob": null,
+      "workBlob": "c5a2fe989cd5777d18bf4c79aa3930cd87da9b94",
+      "category": "remote-safety",
+      "owningSteps": "S06",
+      "evidence": [
+        "not ok 1 - KAR-199 a closed DELETE response port remains unknown, not replayed",
+        "name: 'AssertionError'"
+      ],
+      "disposition": "post-baseline-witness; preserve RED evidence, separate from historical acceptance after explicit active-ledger reconciliation"
+    },
+    {
+      "index": 7,
+      "command": "node --test tests/kar199-phase4-bounded-runtime.cjs",
+      "path": "tests/kar199-phase4-bounded-runtime.cjs",
+      "previousStatus": "FAIL",
+      "historicalSuite": false,
+      "historicalBlob": null,
+      "workBlob": "706b7e9495c5e8ffaaf8f92b74ede2afd09f3fe7",
+      "category": "mixed-product-C",
+      "owningSteps": "S06",
+      "evidence": [
+        "not ok 1 - KAR-199 first MY_ADS_STATUS never answers: bounded recovery, no phase-4 intent or DELETE",
+        "Error: TEST_UNBOUNDED_AWAIT",
+        "name: 'AssertionError'"
+      ],
+      "disposition": "post-baseline-witness; preserve RED evidence, separate from historical acceptance after explicit active-ledger reconciliation"
+    },
+    {
+      "index": 8,
+      "command": "node --test tests/kar199-phase4-unverified-state-runtime.cjs",
+      "path": "tests/kar199-phase4-unverified-state-runtime.cjs",
+      "previousStatus": "FAIL",
+      "historicalSuite": false,
+      "historicalBlob": null,
+      "workBlob": "6ad7e4d1351fe3d71f3f62b8bbaeaad489cf47aa",
+      "category": "mixed-product-C",
+      "owningSteps": "S06",
+      "evidence": [
+        "not ok 1 - KAR-199 pre-intent status timeout creates recoverable user notice, no automatic retry",
+        "Error: TEST_UNBOUNDED_PHASE4_RECOVERY",
+        "name: 'AssertionError'"
+      ],
+      "disposition": "post-baseline-witness; preserve RED evidence, separate from historical acceptance after explicit active-ledger reconciliation"
+    },
+    {
+      "index": 11,
+      "command": "node --test tests/kar210-cp36-phase4-unknown-witness.cjs",
+      "path": "tests/kar210-cp36-phase4-unknown-witness.cjs",
+      "previousStatus": "FAIL",
+      "historicalSuite": false,
+      "historicalBlob": null,
+      "workBlob": "70d3c91e46d114e6111340c8d32f97b65b76faec",
+      "category": "remote-safety",
+      "owningSteps": "S06",
+      "evidence": [
+        "not ok 1 - KAR-128 product: account changes during awaited pre-delete diagnostic; no destructive dispatch under changed account",
+        "name: 'AssertionError'",
+        "not ok 2 - KAR-117/124 product: persisted unknown DELETE after worker restart must not automatically replay without independent proof"
+      ],
+      "disposition": "post-baseline-witness; preserve RED evidence, separate from historical acceptance after explicit active-ledger reconciliation"
+    },
+    {
+      "index": 14,
+      "command": "node --test tests/kar210-cp38-publish-uncertainty-witness.cjs",
+      "path": "tests/kar210-cp38-publish-uncertainty-witness.cjs",
+      "previousStatus": "FAIL",
+      "historicalSuite": false,
+      "historicalBlob": null,
+      "workBlob": "40c5fec6b7f45fc2367118d9669be3dad65f4d3a",
+      "category": "remote-safety",
+      "owningSteps": "S06/S07",
+      "evidence": [
+        "not ok 1 - managed publication: first click/native submit may pass, second explicit submit must not replay",
+        "name: 'AssertionError'",
+        "not ok 2 - managed publication: second implicit submit with null submitter must not replay"
+      ],
+      "disposition": "post-baseline-witness; preserve RED evidence, separate from historical acceptance after explicit active-ledger reconciliation"
+    },
+    {
+      "index": 19,
+      "command": "node --test tests/kar210-diagnostic-reset-unknown.cjs",
+      "path": "tests/kar210-diagnostic-reset-unknown.cjs",
+      "previousStatus": "FAIL",
+      "historicalSuite": false,
+      "historicalBlob": null,
+      "workBlob": "a6f9f3c726f979add3531ae9d34c55a7d876ffe1",
+      "category": "approved-later-product",
+      "owningSteps": "S10",
+      "evidence": [
+        "not ok 1 - KAR-193 a response without an authenticated reset boundary is never reported as success",
+        "name: 'AssertionError'",
+        "not ok 2 - KAR-193 a hung reset request times out without repeating an uncertain side effect"
+      ],
+      "disposition": "post-baseline-witness; preserve RED evidence, separate from historical acceptance after explicit active-ledger reconciliation"
+    },
+    {
+      "index": 20,
+      "command": "node --test tests/kar210-startup-isolation-witness.cjs",
+      "path": "tests/kar210-startup-isolation-witness.cjs",
+      "previousStatus": "FAIL",
+      "historicalSuite": false,
+      "historicalBlob": null,
+      "workBlob": "b31f4079d028c4691395986e70269e73e6ef0717",
+      "category": "approved-later-product",
+      "owningSteps": "S08",
+      "evidence": [
+        "not ok 2 - KAR-185 independent product witness: failed optional configuration must not prevent local inventory read",
+        "name: 'AssertionError'",
+        "not ok 3 - KAR-185 independent product witness: inspection failure must not be reported as inventory failure"
+      ],
+      "disposition": "post-baseline-witness; preserve RED evidence, separate from historical acceptance after explicit active-ledger reconciliation"
+    },
+    {
+      "index": 28,
+      "command": "node --test tests/kar210-kar134-legacy-session-witness.cjs",
+      "path": "tests/kar210-kar134-legacy-session-witness.cjs",
+      "previousStatus": "FAIL",
+      "historicalSuite": false,
+      "historicalBlob": null,
+      "workBlob": "3a9cfca5c9561f7d729fdf1de8cc60352b888d0b",
+      "category": "data-and-form-safety",
+      "owningSteps": "S03/S05",
+      "evidence": [
+        "not ok 2 - KAR-134 independent persisted retired schema-test session must be refused before form payload",
+        "name: 'AssertionError'"
+      ],
+      "disposition": "post-baseline-witness; preserve RED evidence, separate from historical acceptance after explicit active-ledger reconciliation"
+    },
+    {
+      "index": 31,
+      "command": "node --test tests/kar210-p13-lock-read-uncertainty.cjs",
+      "path": "tests/kar210-p13-lock-read-uncertainty.cjs",
+      "previousStatus": "FAIL",
+      "historicalSuite": false,
+      "historicalBlob": null,
+      "workBlob": "02cefe5a571a6258a21affade7c9f341e5732677",
+      "category": "remote-safety",
+      "owningSteps": "S06",
+      "evidence": [
+        "not ok 1 - unknown renewal owner read must not authorize competing insertion",
+        "name: 'AssertionError'",
+        "not ok 2 - unknown archive owner read must not authorize competing insertion"
+      ],
+      "disposition": "post-baseline-witness; preserve RED evidence, separate from historical acceptance after explicit active-ledger reconciliation"
+    },
+    {
+      "index": 35,
+      "command": "node --test tests/kar210-kar150-uncertain-start-witness.cjs",
+      "path": "tests/kar210-kar150-uncertain-start-witness.cjs",
+      "previousStatus": "FAIL",
+      "historicalSuite": false,
+      "historicalBlob": null,
+      "workBlob": "e2ec86af500c9df5450d198b64d747f9569be090",
+      "category": "remote-safety",
+      "owningSteps": "S06/S08",
+      "evidence": [
+        "not ok 1 - uncertain restart without persisted renewal session must not re-admit the starting item",
+        "name: 'AssertionError'"
+      ],
+      "disposition": "post-baseline-witness; preserve RED evidence, separate from historical acceptance after explicit active-ledger reconciliation"
+    },
+    {
+      "index": 39,
+      "command": "node tests/kar99-p9-tab-gone-monotonic.cjs",
+      "path": "tests/kar99-p9-tab-gone-monotonic.cjs",
+      "previousStatus": "FAIL",
+      "historicalSuite": false,
+      "historicalBlob": null,
+      "workBlob": "ae811891b93f36b57ec3dc47dafc4a7029fe46aa",
+      "category": "lifecycle-safety",
+      "owningSteps": "S06",
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: delayed onUpdated observation cannot revive GONE with inherited goneReason"
+      ],
+      "disposition": "post-baseline-witness; preserve RED evidence, separate from historical acceptance after explicit active-ledger reconciliation"
+    },
+    {
+      "index": 40,
+      "command": "node --test tests/kar210-p9-independent-tab-lifecycle.cjs",
+      "path": "tests/kar210-p9-independent-tab-lifecycle.cjs",
+      "previousStatus": "FAIL",
+      "historicalSuite": false,
+      "historicalBlob": null,
+      "workBlob": "3062c31fc4ec9b69a831216012982a8c9ccdff18",
+      "category": "lifecycle-safety",
+      "owningSteps": "S06",
+      "evidence": [
+        "not ok 1 - independent original P9 delayed onUpdated cannot revive GONE",
+        "name: 'AssertionError'",
+        "not ok 2 - independent original P9 late registration cannot resurrect GONE"
+      ],
+      "disposition": "post-baseline-witness; preserve RED evidence, separate from historical acceptance after explicit active-ledger reconciliation"
+    },
+    {
+      "index": 42,
+      "command": "node tests/kar132-modern-category-modal.cjs",
+      "path": "tests/kar132-modern-category-modal.cjs",
+      "previousStatus": "FAIL",
+      "historicalSuite": true,
+      "historicalBlob": "94eb484ad973a6d6cf7ca8b1a75a1316ab9c01e4",
+      "workBlob": "d839177574e436de46570a4fdf95803b01265585",
+      "category": "approved-later-product",
+      "owningSteps": "S05",
+      "evidence": [
+        "Error: Kategorie „Mode & Beauty“ ist nicht eindeutig (0 Treffer)."
+      ],
+      "disposition": "compare-original-historical-test-before-disposition"
+    },
+    {
+      "index": 43,
+      "command": "node tests/kar210-kar132-independent-modal.cjs",
+      "path": "tests/kar210-kar132-independent-modal.cjs",
+      "previousStatus": "FAIL",
+      "historicalSuite": false,
+      "historicalBlob": null,
+      "workBlob": "e7abd647a48c4755ccd1b23d670bfea7d75b1d1b",
+      "category": "approved-later-product",
+      "owningSteps": "S05",
+      "evidence": [
+        "KAR-132 independent: 40 PASS / 5 FAIL / 45 executed",
+        "FAIL late-root-159: Kategorie „Mode & Beauty“ ist nicht eindeutig (0 Treffer).",
+        "FAIL late-root-22: Kategorie „Familie, Kind & Baby“ ist nicht eindeutig (0 Treffer)."
+      ],
+      "disposition": "post-baseline-witness; preserve RED evidence, separate from historical acceptance after explicit active-ledger reconciliation"
+    },
+    {
+      "index": 227,
+      "command": "node tests/v1203-hot-path-runtime.cjs",
+      "path": "tests/v1203-hot-path-runtime.cjs",
+      "previousStatus": "FAIL",
+      "historicalSuite": true,
+      "historicalBlob": "a09b060e059dc306fc835e7356f30742850d6733",
+      "workBlob": "46003698e28634e47091808343f95feda1c1a8ba",
+      "category": "local-data-safety",
+      "owningSteps": "S03/S09",
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: S02 safety witness: a record whose expiry was reset after selection must not be deleted"
+      ],
+      "disposition": "compare-original-historical-test-before-disposition"
+    },
+    {
+      "index": 254,
+      "command": "node tests/v12018-activity-history-bootstrap.cjs",
+      "path": "tests/v12018-activity-history-bootstrap.cjs",
+      "previousStatus": "FAIL",
+      "historicalSuite": true,
+      "historicalBlob": "c6066495112867ae189b901418ebec961700a44b",
+      "workBlob": "9b89a8a6c123bb4ec5a934426f63bd5e803134f4",
+      "category": "mixed-historical-product",
+      "owningSteps": "S08/S10",
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:"
+      ],
+      "disposition": "compare-original-historical-test-before-disposition"
+    },
+    {
+      "index": 274,
+      "command": "node tests/v12111-global-view-sidebar-bottom-diagnostics.cjs",
+      "path": "tests/v12111-global-view-sidebar-bottom-diagnostics.cjs",
+      "previousStatus": "FAIL",
+      "historicalSuite": true,
+      "historicalBlob": "49a281a15afbc5defc871d8e7fc8449ebcb4ae1d",
+      "workBlob": "49ae86f20a7f971f72bac7d41778a0c2db40705e",
+      "category": "mixed-historical-product",
+      "owningSteps": "S08/S10/S11",
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: The input did not match the regular expression /Inventar\\s*<span id=\"inventoryHeaderCount\">…<\\/span>/. Input:"
+      ],
+      "disposition": "compare-original-historical-test-before-disposition"
+    },
+    {
+      "index": 275,
+      "command": "node tests/v12112-sidebar-refresh-capture-polish.cjs",
+      "path": "tests/v12112-sidebar-refresh-capture-polish.cjs",
+      "previousStatus": "FAIL",
+      "historicalSuite": true,
+      "historicalBlob": "650553c4d3e55f1a1ce62ccfe8f05bb19a290512",
+      "workBlob": "ad54acb50b6c829e28b27d4757ba306d41d467d9",
+      "category": "mixed-historical-product",
+      "owningSteps": "S10/S11",
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: The input was expected to not match the regular expression /UI_SIDEBAR_BOTTOM_REACHED|UI_SIDEBAR_GEOMETRY_CHANGED|UI_SIDEBAR_SCROLL_SAMPLE/. Input:"
+      ],
+      "disposition": "compare-original-historical-test-before-disposition"
+    },
+    {
+      "index": 289,
+      "command": "node tests/v1226-diagnostics-actions-runtime.cjs",
+      "path": "tests/v1226-diagnostics-actions-runtime.cjs",
+      "previousStatus": "FAIL",
+      "historicalSuite": true,
+      "historicalBlob": "314a2d8339608ac2a6c939dc57f780a69c05d7d1",
+      "workBlob": "971cb907715512a2921452ab4a85716fdde2a240",
+      "category": "approved-later-product",
+      "owningSteps": "S10",
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: routine state snapshots must not be persisted"
+      ],
+      "disposition": "compare-original-historical-test-before-disposition"
+    },
+    {
+      "index": 290,
+      "command": "node tests/v1227-pre-refactor-characterization.cjs",
+      "path": "tests/v1227-pre-refactor-characterization.cjs",
+      "previousStatus": "FAIL",
+      "historicalSuite": true,
+      "historicalBlob": "50aeaf2f1f523b0c58eff74be7cabcd789ff2cf9",
+      "workBlob": "4180912476b5e7dd7bb2deb6af4303073e1b9528",
+      "category": "mixed-historical-product",
+      "owningSteps": "S10/S11",
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: The input was expected to not match the regular expression /UI_SIDEBAR_SCROLL_SAMPLE/. Input:"
+      ],
+      "disposition": "compare-original-historical-test-before-disposition"
+    },
+    {
+      "index": 292,
+      "command": "node tests/v1227-modularization.cjs",
+      "path": "tests/v1227-modularization.cjs",
+      "previousStatus": "FAIL",
+      "historicalSuite": true,
+      "historicalBlob": "035a044541fb15fe068e0dc72ad5711266dfeae6",
+      "workBlob": "26f22dc9e33579a8ead6b84d0c6abca0974c2a89",
+      "category": "mixed-historical-product",
+      "owningSteps": "S10/S11",
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: The input was expected to not match the regular expression /UI_SIDEBAR_SCROLL_SAMPLE/. Input:"
+      ],
+      "disposition": "compare-original-historical-test-before-disposition"
+    }
+  ],
+  "originalTestComparison": "Run eight original tests in exact historical checkout and same original bytes in isolated Work checkout; no change to active suite or runtime, no build or release."
+}
