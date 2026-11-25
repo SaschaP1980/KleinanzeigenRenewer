@@ -10,6 +10,7 @@ const {validateDispositions}=require('./kar210-test-disposition.cjs');
 const LEDGER='docs/maintenance/KAR210_ACTIVE_TEST_DISPOSITIONS.json';
 const OWNERS=["package.json","scripts/build.sh","scripts/coverage-gate.sh",".github/workflows/kar-work-pr.yml",".github/workflows/kar-ci.yml",".github/workflows/kar-release.yml"];
 for(const owner of OWNERS) for(const test of ["tests/kar148-article-type.cjs","tests/kar150-ui-preference.cjs","tests/kar164-trash-sort.cjs","tests/kar165-trash-retention-warning.cjs","tests/kar147-diagnostic-occupancy.cjs"]) assert.ok(!fs.readFileSync(path.join(root,owner),'utf8').includes(test),'Later feature still active: '+test+' in '+owner);
+for(const owner of OWNERS) for(const test of ["tests/kar201-legacy-options.cjs","tests/kar201-session-evidence.cjs","tests/kar201-native-display-only.cjs","tests/kar201-partial-archive-prefill.cjs","tests/kar201-manual-standalone.cjs"]) assert.ok(!fs.readFileSync(path.join(root,owner),'utf8').includes(test),'KAR-201 later feature still active: '+test+' in '+owner);
 const data=JSON.parse(fs.readFileSync(path.join(root,LEDGER),'utf8'));
 const inactive=validateDispositions(root);
 assert.equal(inactive.size,16);

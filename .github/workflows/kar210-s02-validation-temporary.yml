@@ -1,0 +1,25 @@
+name: KAR-210 KAR-201 scope RED
+on:
+  push:
+    branches: ['work/KAR-210']
+    paths: ['.github/workflows/kar210-s02-validation-temporary.yml']
+permissions:
+  contents: read
+jobs:
+  review:
+    if: >-
+      github.ref == 'refs/heads/work/KAR-210' &&
+      github.event.head_commit.message == 'test(KAR-210): characterize KAR-201 baseline safety before scope separation'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --ignore-scripts
+      - run: node tests/kar210-test-disposition-contract.cjs
+      - if: always()
+        run: node tests/kar210-kar201-baseline-safety.cjs
