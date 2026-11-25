@@ -465,6 +465,100 @@
         "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
       },
       "reason": "Original cases require absent journal publish-blocked and schemaPreflight fields. Retain actual historical submitted/new-ID stale pre-publish denial for archive and renewal, verify wrong-tab denial and terminal review in existing active tests, no automatic retry caused by stale pre-publish progress. S06/S07 must independently witness actual unknown-outcome no-replay and recovery before native use."
+    },
+    {
+      "test": "tests/kar188-loading-state.cjs",
+      "blob": "74e44faa0e2870d4149fd0245e6e50f5e8144565",
+      "module": "src/app/inventory-loading-state.js",
+      "matrix": "B08/D",
+      "step": "S08",
+      "status": "deferred-B",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-loading-retention-baseline.cjs",
+        "tests/v1192-inventory-scope-runtime.cjs",
+        "tests/v1238-profile-management-controller-runtime.cjs"
+      ],
+      "reason": "Later independent loading/error/profile-generation UI is explicitly S08. Retain real historical refresh success, read-only profile scoping, rejection without overwriting previously verified data, and exact main Chromium runner constraint. Baseline malformed response and late profile race not claimed safe; S08 original fixtures required."
+    },
+    {
+      "test": "tests/kar186-retention-hydration.cjs",
+      "blob": "648d5b29205827935236ffe9cdd5ccdc1900c424",
+      "module": "src/app/trash-retention-settings-controller.js",
+      "matrix": "B05/B09/D",
+      "step": "S09",
+      "status": "deferred-B",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-loading-retention-baseline.cjs",
+        "tests/v1183-trash-runtime.cjs",
+        "tests/kar210-baseline-retained-behavior.cjs"
+      ],
+      "reason": "Configurable policy and verified hydration absent in fixed 30-day historical runtime; no P8 retry port. Retain fixed retention, unknown deadlines, no writes on failed scoped read, no purge of undated/invalid records, and pinned Work PR Chromium runner. S03 must reconcile newer persisted policy before live use; S09 must restore original finite/infinite and confirmation contracts."
+    },
+    {
+      "test": "tests/kar191-diagnostic-recovery.cjs",
+      "blob": "cd19069c7e4032da88a22e6f8f8ef04e141c34b6",
+      "module": "src/background/background-message-router.js",
+      "matrix": "B10/B11/C03/C05",
+      "step": "S04/S10",
+      "status": "split-C",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-diagnostics-baseline.cjs",
+        "tests/kar210-baseline-retained-behavior.cjs",
+        "tests/v1237-diagnostic-export-runtime.cjs"
+      ],
+      "featureAbsence": {
+        "marker": "withWorkflowAdmission",
+        "baselineBlob": "4e016a82054d8647b7a9fc5fd24d47c394d58b46",
+        "donorBlob": "a736990f5b93c13b93b37de92fca3b6f24432f29",
+        "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
+      },
+      "reason": "Three P8 admission/owner assertions excluded; occupancy unavailable/zero/retry UI belongs S10; denied export restores button and reports failure tested against actual historical controller. Actual registered router still requires contract acceptance and platform access; no admission dependency restored."
+    },
+    {
+      "test": "tests/kar191-diagnostic-zip-integrity.cjs",
+      "blob": "35677b40163187c1a92c17a4622d218cedb2bbd4",
+      "module": "src/app/diagnostics-controls-controller.js",
+      "matrix": "B10/B11/C05",
+      "step": "S10",
+      "status": "split-C",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-diagnostic-zip-integrity.cjs",
+        "tests/kar210-diagnostics-baseline.cjs",
+        "tests/v1237-diagnostic-export-runtime.cjs"
+      ],
+      "featureAbsence": {
+        "marker": "function boundedRequest",
+        "baselineBlob": "c1bc81088780eb534d57cb939f6a211e8b52ee68",
+        "donorBlob": "555aa5b606379a25ec4fc1fe62cd284ea215ad8a",
+        "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
+      },
+      "reason": "Preserve the first independent zero/small/near-capacity ZIP test and CRC/member decoding verbatim in an active file; verify actual historical UI export with valid data and rejection. Atomic BUSY retries excluded; hung/malformed reply and retry controls remain S10 product outcomes; no claim of historical bounded UI."
+    },
+    {
+      "test": "tests/kar193-diagnostic-reset.cjs",
+      "blob": "c29810e921638dc0e4c4cb5d76d363f2f05b9e5b",
+      "module": "src/app/diagnostics-controls-controller.js",
+      "matrix": "B11/C03/C05",
+      "step": "S04/S10",
+      "status": "split-C",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-diagnostics-baseline.cjs",
+        "tests/kar210-diagnostic-reset-unknown.cjs",
+        "tests/v1200-diagnostic-reset.cjs",
+        "tests/kar210-baseline-retained-behavior.cjs"
+      ],
+      "featureAbsence": {
+        "marker": "resetTimeoutMs",
+        "baselineBlob": "c1bc81088780eb534d57cb939f6a211e8b52ee68",
+        "donorBlob": "555aa5b606379a25ec4fc1fe62cd284ea215ad8a",
+        "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
+      },
+      "reason": "P8 admission and retry/occupancy-specific tests excluded or later S10. Independent actual reset success, blocked reset and failed request single dispatch remain active; original malformed acknowledgement and hung-reset tests copied verbatim into active RED witness, not waived. S10 must reconcile truthful reset outcomes without P8."
     }
   ],
   "deferredWitnesses": [

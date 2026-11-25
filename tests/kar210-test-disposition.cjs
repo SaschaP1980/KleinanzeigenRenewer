@@ -395,6 +395,85 @@ const RULES = Object.freeze({
       "donorBlob": "d773395115da20d8ef3520b64decd20260aff2d9",
       "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
     }
+  },
+  "tests/kar188-loading-state.cjs": {
+    "module": "src/app/inventory-loading-state.js",
+    "matrix": "B08/D",
+    "step": "S08",
+    "status": "deferred-B",
+    "owner": "package.json",
+    "retained": [
+      "tests/kar210-loading-retention-baseline.cjs",
+      "tests/v1192-inventory-scope-runtime.cjs",
+      "tests/v1238-profile-management-controller-runtime.cjs"
+    ]
+  },
+  "tests/kar186-retention-hydration.cjs": {
+    "module": "src/app/trash-retention-settings-controller.js",
+    "matrix": "B05/B09/D",
+    "step": "S09",
+    "status": "deferred-B",
+    "owner": "package.json",
+    "retained": [
+      "tests/kar210-loading-retention-baseline.cjs",
+      "tests/v1183-trash-runtime.cjs",
+      "tests/kar210-baseline-retained-behavior.cjs"
+    ]
+  },
+  "tests/kar191-diagnostic-recovery.cjs": {
+    "module": "src/background/background-message-router.js",
+    "matrix": "B10/B11/C03/C05",
+    "step": "S04/S10",
+    "status": "split-C",
+    "owner": "package.json",
+    "retained": [
+      "tests/kar210-diagnostics-baseline.cjs",
+      "tests/kar210-baseline-retained-behavior.cjs",
+      "tests/v1237-diagnostic-export-runtime.cjs"
+    ],
+    "featureAbsence": {
+      "marker": "withWorkflowAdmission",
+      "baselineBlob": "4e016a82054d8647b7a9fc5fd24d47c394d58b46",
+      "donorBlob": "a736990f5b93c13b93b37de92fca3b6f24432f29",
+      "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
+    }
+  },
+  "tests/kar191-diagnostic-zip-integrity.cjs": {
+    "module": "src/app/diagnostics-controls-controller.js",
+    "matrix": "B10/B11/C05",
+    "step": "S10",
+    "status": "split-C",
+    "owner": "package.json",
+    "retained": [
+      "tests/kar210-diagnostic-zip-integrity.cjs",
+      "tests/kar210-diagnostics-baseline.cjs",
+      "tests/v1237-diagnostic-export-runtime.cjs"
+    ],
+    "featureAbsence": {
+      "marker": "function boundedRequest",
+      "baselineBlob": "c1bc81088780eb534d57cb939f6a211e8b52ee68",
+      "donorBlob": "555aa5b606379a25ec4fc1fe62cd284ea215ad8a",
+      "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
+    }
+  },
+  "tests/kar193-diagnostic-reset.cjs": {
+    "module": "src/app/diagnostics-controls-controller.js",
+    "matrix": "B11/C03/C05",
+    "step": "S04/S10",
+    "status": "split-C",
+    "owner": "package.json",
+    "retained": [
+      "tests/kar210-diagnostics-baseline.cjs",
+      "tests/kar210-diagnostic-reset-unknown.cjs",
+      "tests/v1200-diagnostic-reset.cjs",
+      "tests/kar210-baseline-retained-behavior.cjs"
+    ],
+    "featureAbsence": {
+      "marker": "resetTimeoutMs",
+      "baselineBlob": "c1bc81088780eb534d57cb939f6a211e8b52ee68",
+      "donorBlob": "555aa5b606379a25ec4fc1fe62cd284ea215ad8a",
+      "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
+    }
   }
 });
 const OWNERS = Object.freeze(["package.json","scripts/build.sh","scripts/coverage-gate.sh",".github/workflows/kar-work-pr.yml",".github/workflows/kar-ci.yml",".github/workflows/kar-release.yml"]);
