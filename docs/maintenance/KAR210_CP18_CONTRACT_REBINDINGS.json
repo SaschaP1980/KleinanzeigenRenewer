@@ -48,6 +48,62 @@
       "changes": [
         "On exact S02 only, use hash-pinned real 1.25.12 metadata from main for correction-era synthetic patch tests. Original 27 negative assertions and positive cases unchanged; no current native/coverage metadata fabricated."
       ]
+    },
+    {
+      "path": "tests/v110-contract.cjs",
+      "originalBlob": "1634e7b07ba805c8f55390f1dec2509415c593b1",
+      "originalCommit": "e21b01928e918528d6c4fe898cd978c6d2edac18",
+      "changes": [
+        "Explicit exact S02 gate for historical version predicate; all later runtime, security, build and historical changelog assertions unchanged."
+      ]
+    },
+    {
+      "path": "tests/v111-contract.cjs",
+      "originalBlob": "a0384c26c66ca81cda952cb7c5218e79ccd14341",
+      "originalCommit": "e21b01928e918528d6c4fe898cd978c6d2edac18",
+      "changes": [
+        "Explicit exact S02 gate for historical version predicate; all later runtime, security, build and historical changelog assertions unchanged."
+      ]
+    },
+    {
+      "path": "tests/v112-contract.cjs",
+      "originalBlob": "ffecbe696b5fefe79aa93fc57fcb2a80ca38b18f",
+      "originalCommit": "e21b01928e918528d6c4fe898cd978c6d2edac18",
+      "changes": [
+        "Explicit exact S02 gate for historical version predicate; all later runtime, security, build and historical changelog assertions unchanged."
+      ]
+    },
+    {
+      "path": "tests/v113-contract.cjs",
+      "originalBlob": "31ad189b764aa49cc587906519c60e1c0eb11385",
+      "originalCommit": "e21b01928e918528d6c4fe898cd978c6d2edac18",
+      "changes": [
+        "Explicit exact S02 gate for historical version predicate; all later runtime, security, build and historical changelog assertions unchanged."
+      ]
+    },
+    {
+      "path": "tests/v114-contract.cjs",
+      "originalBlob": "d3412e8d1f741d51413e0b659cb147f9aafb9fca",
+      "originalCommit": "e21b01928e918528d6c4fe898cd978c6d2edac18",
+      "changes": [
+        "Explicit exact S02 gate for historical version predicate; all later runtime, security, build and historical changelog assertions unchanged."
+      ]
+    },
+    {
+      "path": "tests/v115-contract.cjs",
+      "originalBlob": "8c162735b0d8489b3ccf8e7fe79dc1a8a55df1d6",
+      "originalCommit": "e21b01928e918528d6c4fe898cd978c6d2edac18",
+      "changes": [
+        "Explicit exact S02 gate for historical version predicate; all later runtime, security, build and historical changelog assertions unchanged."
+      ]
+    },
+    {
+      "path": "tests/v116-contract.cjs",
+      "originalBlob": "3cef4585225399bf3d7f3e31f67a3eb6bd102aec",
+      "originalCommit": "e21b01928e918528d6c4fe898cd978c6d2edac18",
+      "changes": [
+        "Explicit exact S02 gate for historical version predicate; all later runtime, security, build and historical changelog assertions unchanged."
+      ]
     }
   ]
 }
