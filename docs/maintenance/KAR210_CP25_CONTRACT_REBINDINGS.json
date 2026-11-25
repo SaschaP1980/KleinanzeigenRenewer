@@ -78,5 +78,21 @@
         "Exact S02 identity and applicable historical feature-era branch; all behavior assertions unchanged pending focused CI."
       ]
     }
-  ]
+  ],
+  "focusedValidation": {
+    "runId": 45591662049,
+    "jobId": 139127141025,
+    "head": "16c3da93b5000aafe4e1d7a640b31f2d5877d481",
+    "passed": 12,
+    "failed": 0,
+    "completeHistoricalContracts": 9,
+    "completeContractGroups": 45,
+    "negativeFixtures": 59
+  },
+  "builderGuard": {
+    "runId": 45591661994,
+    "jobId": 139127141467,
+    "result": "failure",
+    "reason": "No explicit authorized marker; no build executed."
+  }
 }
