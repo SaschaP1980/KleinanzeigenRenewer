@@ -96,8 +96,16 @@ for (const addition of additions) {
   ];
   const verifiedPhase4Helper = addition === 'tests/helpers/phase4-locks.cjs' &&
     phase4HelperOwners.every(testPath =>
-      [...referencedByOwner.values()].some(set => set.has(testPath)) &&
+      ([...referencedByOwner.values()].some(set => set.has(testPath)) ||
+       inactive.get(testPath)?.status === 'split-C') &&
       read(testPath).includes("require('./helpers/phase4-locks.cjs')"));
+  // KAR-210: retain the exact historical helper for the two audited, deferred C04 owners.
+  if (verifiedPhase4Helper && phase4HelperOwners.some(testPath => inactive.has(testPath))) {
+    assert.ok(phase4HelperOwners.every(testPath => inactive.get(testPath)?.status === 'split-C'),
+      'Mixed active/deferred Phase-4 helper ownership must be reviewed');
+    assert.equal(gitBlobSha(addition),'a5bb96c9fdad2fce4d13c74b4b2394c1bb59ca4d',
+      'Deferred historical Phase-4 helper changed');
+  }
   assert.ok(directlyInvoked || verifiedPhase4Helper || inactive.has(addition),
     'Unregistered new executable test/fixture with no top-level invocation: ' + addition);
 }
