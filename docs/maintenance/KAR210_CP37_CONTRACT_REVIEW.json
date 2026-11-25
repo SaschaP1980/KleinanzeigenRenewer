@@ -205,7 +205,7 @@
   "originalsUnchanged": true,
   "activeSequenceBefore": 505,
   "activeSequenceAfter": 498,
-  "qualification": "Eight C02/C03/C04 mechanism contracts reviewed individually under S01; explicit independently active real product and RED witnesses; no credit for inactive originals or claim of new target probes/journal equivalence. Validation pending.",
+  "qualification": "Eight excluded C02/C03/C04 architecture commands dispositioned; one independent product witness added and passed. No execution credit for inactive originals; no journal equivalence or runtime repair. Focused and independent D GREEN; actual gate RED.",
   "firstFocused": {
     "sourceCommit": "bdfe8908c96eec88133cacbd1e6b2d79dda01e0b",
     "workflowCommit": "bcac354f95064e1ddb2402690cabdc50ca1d9701",
@@ -215,5 +215,231 @@
     "failure": "Positive control entered actual promoteRenewalCandidateAtomic but fixture lacked required TRASH_RETENTION_MS, causing RangeError Invalid time value at Date.toISOString before openDatabase. Inject exact historical production constant (30 * 24 * 60 * 60 * 1000), no runtime or assertion change.",
     "diagnosticJobId": 139303357453,
     "diagnosticState": "in_progress"
+  },
+  "firstDiagnostic": {
+    "counts": {
+      "PASS": 469,
+      "FAIL": 29,
+      "TIMEOUT": 0
+    },
+    "coverage": "2026-11-25T15:11:18.8154217Z PASS coverage no-regression: public 100% · lines 45.38% · branches 25.66%",
+    "fixtureFailure": "2026-11-25T15:10:40.3932781Z CP37_ROW {\"index\": 12, \"command\": \"node --test tests/kar210-cp37-outcome-product-witness.cjs\", \"exitCode\": 1, \"status\": \"FAIL\", \"seconds\": 0.08, \"evidence\": [\"not ok 4 - positive control: independent exact absence reaches real atomic promotion entry, not an invented successful exchange\", \"'RangeError: Invalid time value'\", \"name: 'AssertionError'\"]}",
+    "artifact": [
+      "2026-11-25T15:11:19.8221195Z SHA256 digest of uploaded artifact zip is 657bc77e75cc706638f9eb084710c21057cfd67bc394b7e84d2ea0fb9c55ab15",
+      "2026-11-25T15:11:20.1934809Z Artifact kar210-cp37-diagnostic.zip successfully finalized. Artifact ID 15036815223"
+    ]
+  },
+  "finalValidation": {
+    "sourceCommit": "8f023436f00f905dc8bd5aa3bf13ae084fed7de1",
+    "workflowCommit": "e5820f8dba88433a8cf4a159d29f52096c611217",
+    "runId": 45642387027,
+    "focusedJobId": 139304227828,
+    "diagnosticJobId": 139304228481,
+    "mandatoryGateJobId": 139304228489,
+    "counts": {
+      "PASS": 470,
+      "FAIL": 28,
+      "TIMEOUT": 0
+    },
+    "focus": "9/9; new product witness 4/4; disposition 15 negatives",
+    "coverageNoRegression": "PASS",
+    "measurement": {
+      "summary": {
+        "schemaVersion": 1,
+        "engine": "Node/V8 precise coverage + Acorn source mapping",
+        "lineDefinition": "source lines containing meaningful JavaScript tokens; covered when V8 precise coverage reports execution for at least one token on the line",
+        "branchDefinition": "AST if/conditional/logical/switch arms mapped to V8 precise block counts",
+        "runtimeModules": 103,
+        "loadedRuntimeModules": 98,
+        "publicFunctions": {
+          "covered": 811,
+          "total": 811,
+          "percent": 100
+        },
+        "lines": {
+          "covered": 11575,
+          "total": 25508,
+          "percent": 45.38
+        },
+        "branches": {
+          "covered": 6358,
+          "total": 24782,
+          "percent": 25.66
+        },
+        "areas": {
+          "app": {
+            "lines": {
+              "covered": 4330,
+              "total": 9321,
+              "percent": 46.45
+            },
+            "branches": {
+              "covered": 2397,
+              "total": 9394,
+              "percent": 25.52
+            },
+            "public": {
+              "covered": 328,
+              "total": 328,
+              "percent": 100
+            }
+          },
+          "background": {
+            "lines": {
+              "covered": 4972,
+              "total": 11125,
+              "percent": 44.69
+            },
+            "branches": {
+              "covered": 2851,
+              "total": 11014,
+              "percent": 25.89
+            },
+            "public": {
+              "covered": 383,
+              "total": 383,
+              "percent": 100
+            }
+          },
+          "content": {
+            "lines": {
+              "covered": 1845,
+              "total": 4576,
+              "percent": 40.32
+            },
+            "branches": {
+              "covered": 897,
+              "total": 4008,
+              "percent": 22.38
+            },
+            "public": {
+              "covered": 76,
+              "total": 76,
+              "percent": 100
+            }
+          },
+          "popup": {
+            "lines": {
+              "covered": 0,
+              "total": 20,
+              "percent": 0
+            },
+            "branches": {
+              "covered": 0,
+              "total": 10,
+              "percent": 0
+            },
+            "public": {
+              "covered": 0,
+              "total": 0,
+              "percent": 100
+            }
+          },
+          "shared": {
+            "lines": {
+              "covered": 428,
+              "total": 466,
+              "percent": 91.85
+            },
+            "branches": {
+              "covered": 213,
+              "total": 356,
+              "percent": 59.83
+            },
+            "public": {
+              "covered": 24,
+              "total": 24,
+              "percent": 100
+            }
+          }
+        }
+      },
+      "audit": {
+        "schemaVersion": 1,
+        "runtimeModules": 103,
+        "providers": 96,
+        "roots": [
+          "src/app/account-gate.js",
+          "src/app/actions-diagnostics-controller.js",
+          "src/app/app-activity-center.js",
+          "src/app/app-elements.js",
+          "src/app/app-layout-controller.js",
+          "src/app/app.js",
+          "src/app/archive-insertion-ui-controller.js",
+          "src/app/archive-trash-insertion-ui-controller.js",
+          "src/app/control-accordion-controller.js",
+          "src/app/diagnostic-zip.js",
+          "src/app/diagnostics-controls-controller.js",
+          "src/app/inventory-candidate-model.js",
+          "src/app/inventory-capture-controller.js",
+          "src/app/inventory-capture-view.js",
+          "src/app/inventory-card-renderer.js",
+          "src/app/inventory-export.js",
+          "src/app/inventory-formatting.js",
+          "src/app/inventory-import.js",
+          "src/app/inventory-render-controller.js",
+          "src/app/inventory-view.js",
+          "src/app/mass-renewal-ui-controller.js",
+          "src/app/native-update-check-ui.js",
+          "src/app/profile-account-ui-controller.js",
+          "src/app/profile-backup-controller.js",
+          "src/app/profile-backup-storage-service.js",
+          "src/app/profile-backup.js",
+          "src/app/record-card-view.js",
+          "src/app/renewal-dialog-controller.js",
+          "src/app/renewal-settings-controller.js",
+          "src/app/shared-ui-helpers.js",
+          "src/app/tab-page-inspection-controller.js",
+          "src/app/trash-card-renderer.js",
+          "src/app/trash-template-ui-controller.js",
+          "src/background/background.js",
+          "src/content/content.js",
+          "src/content/form-extractor.js",
+          "src/content/image-extractor.js",
+          "src/content/inventory-delete-operations.js",
+          "src/content/inventory-readiness.js",
+          "src/content/inventory-roster-parser.js",
+          "src/content/inventory-run-loop.js",
+          "src/content/inventory-runner.js",
+          "src/content/inventory-status-overlay.js",
+          "src/content/paid-insertion-guard.js",
+          "src/content/platform-guard-content.js",
+          "src/content/template-category-flow.js",
+          "src/content/template-filler.js",
+          "src/content/template-form-fields.js",
+          "src/content/template-image-upload.js",
+          "src/content/template-publish-flow.js",
+          "src/content/template-verification.js",
+          "src/popup/popup.js",
+          "src/shared/managed-navigation.js",
+          "src/shared/message-contract-registry.js",
+          "src/shared/my-ads-readiness.js",
+          "src/shared/platform-hardening.js",
+          "src/shared/renewal-policy.js",
+          "src/shared/runtime-deps.js"
+        ],
+        "reachable": 103,
+        "unreachable": [],
+        "missingDependencies": [],
+        "cycles": []
+      }
+    },
+    "mandatoryGate": "RED: closed DELETE response-port replay, missing expected rejection",
+    "builderGuards": [
+      {
+        "runId": 45642145181,
+        "jobId": 139303359969,
+        "reason": "No explicit authorized marker"
+      },
+      {
+        "runId": 45642387141,
+        "jobId": 139304229312,
+        "reason": "No explicit authorized marker"
+      }
+    ],
+    "artifact": [
+      "2026-11-25T15:12:49.4638403Z SHA256 digest of uploaded artifact zip is 1d9bfb9e9089d089dc86c662d9289eaf5cdd13f033a00d7fb762c699ae5f621e",
+      "2026-11-25T15:12:49.8082517Z Artifact kar210-cp37-diagnostic.zip successfully finalized. Artifact ID 15036500980"
+    ]
   }
 }
