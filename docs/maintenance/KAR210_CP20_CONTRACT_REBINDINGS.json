@@ -178,5 +178,24 @@
       "test": "v1811",
       "change": "Keep actual RED unchanged after metadata rebinding; later journal assertions and bounded/no replay risks not dispositioned or claimed fixed."
     }
-  ]
+  ],
+  "secondFocusedValidation": {
+    "runId": 45573892567,
+    "jobId": 139066937455,
+    "head": "88242ad51ba2c37edd255f4813439d33ce33d65e",
+    "passed": 19,
+    "failed": 1,
+    "completeRenewalContracts": 14,
+    "completeContractGroups": 125,
+    "additionalPassedGroupsBeforeFailure": 5,
+    "runtimeCases": 5,
+    "negativeFixtures": 59,
+    "remainingRed": "tests/v1811-contract.cjs: historical loop differs from later journal-based loop; original assertions retained, no claim of bounded or replay-safe remote mutation"
+  },
+  "builderGuard": {
+    "runId": 45573719511,
+    "jobId": 139066352761,
+    "result": "failure",
+    "reason": "No explicit authorized marker; no build executed."
+  }
 }
