@@ -800,6 +800,93 @@
         "tests/v12317c1-template-module-public-api.cjs"
       ],
       "reason": "57 original cases retained intact for future meaningful compatibility and review adaptation. Most exercise absent schema fingerprint, option probing, F1/F2/F3 monitor and adoption; independent normal saved-field transport and retired-session rejection copied to active tests with actual historical service, alongside existing exact technical readback, image/order and guarded publish tests. Legacy session denial remains active RED; display-only options, empty required/optional distinction, unknown/corrupt schema and consent obligations not declared satisfied."
+    },
+    {
+      "test": "tests/kar99-p13-persisted-owner-callback-closure.cjs",
+      "blob": "7978fe014c298a57973ffbf5861415dae890fcca",
+      "module": "src/background/services/persisted-owner-observer.js",
+      "matrix": "A08/A14/C02/C03",
+      "step": "S04/S06",
+      "status": "excluded-C",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-p13-persisted-owner-baseline.cjs",
+        "tests/kar210-p13-lock-read-uncertainty.cjs",
+        "tests/v1236-bulk-controller-runtime.cjs",
+        "tests/v12313c1-bulk-reentry-rehydration-regression.cjs",
+        "tests/v1231-renewal-workflow-runtime.cjs",
+        "tests/v1233-mass-renewal-workflow-runtime.cjs",
+        "tests/v1235-archive-insertion-controller-runtime.cjs",
+        "tests/kar210-kar199-baseline-reset.cjs"
+      ],
+      "reason": "All original seven-owner closure cases call the absent P13 observer and assert P8 receipt attribution, no trusted update lease, repeated census or unknown-source verdicts. Preserve exact originals and do not claim callback closure. Historical persisted renewal/archive/fill and mass insertion lock recovery and rejected owner read witnesses remain active at actual owners, plus bulk/reconciliation and reset behavior. S03/S06 must reconcile uncertain persisted outcomes before live use; no new observer or P8 admission."
+    },
+    {
+      "test": "tests/kar99-p13-native-transaction-closure.cjs",
+      "blob": "6ff163b24d363458ecd969cb270dee69a4d43898",
+      "module": "src/background/services/additional-owner-observer.js",
+      "matrix": "C01/C02",
+      "step": "S04",
+      "status": "excluded-C",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-p13-persisted-owner-baseline.cjs",
+        "tests/kar210-kar175-budget-schema-baseline.cjs"
+      ],
+      "reason": "All original cases inspect absent additional-owner native transaction closure and later update-workflow fence. Locally released/unknown reservations never prove native host completion. Exclude updater lease contract; explicitly verify absence of later observer/fence/admission from frozen package, not positive host acceptance. Legacy updater hook removal remains S04; no native operation or update state certified."
+    },
+    {
+      "test": "tests/kar99-p13-managed-tabs-closure.cjs",
+      "blob": "fc72df8615003bd3da0f9c2386f8a381be447194",
+      "module": "src/background/services/additional-owner-observer.js",
+      "matrix": "A08/A14/C02/C03",
+      "step": "S04/S06",
+      "status": "excluded-C",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-p13-persisted-owner-baseline.cjs",
+        "tests/v1156-a1-tab-registry-runtime.cjs",
+        "tests/kar99-p9-tab-gone-monotonic.cjs",
+        "tests/kar210-kar175-public-navigation-baseline.cjs",
+        "tests/kar210-kar199-baseline-reset.cjs"
+      ],
+      "reason": "All original assertions are through additional-owner observer historical P8 receipts and independent double census, not actual historical tab lifecycle owner. Retain actual historical tab registry/restart, exact worker close, ownership release refusal and transport failures, including existing RED P9 stale GONE monotonicity. No updater census, prior generation closure or detached remote work asserted."
+    },
+    {
+      "test": "tests/kar99-p13-emergency-recovery-closure.cjs",
+      "blob": "56c1d4f2e96f4322dc9cf1cbde48434fe3c6483c",
+      "module": "src/background/services/additional-owner-observer.js",
+      "matrix": "A14/C02/C03/C05",
+      "step": "S04/S06",
+      "status": "excluded-C",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-kar199-baseline-reset.cjs",
+        "tests/v12223c2-reset-recovery-archive-regression.cjs",
+        "tests/v12230-global-emergency-reset.cjs",
+        "tests/v12213-bulk-deadlock-runtime.cjs",
+        "tests/kar199-phase4-no-transport-replay.cjs",
+        "tests/kar210-p13-lock-read-uncertainty.cjs"
+      ],
+      "reason": "Original cases exclusively inspect P8 autonomous callback provenance/receipt state and never verify actual product recovery. Retain existing actual emergency reset/controller and bulk recovery tests, genuine independent no-replay RED and lock-read uncertainty; callback finish does not prove remote outcome. S06 remains responsible for bounded recovery, no new updater watchdog or census."
+    },
+    {
+      "test": "tests/kar99-p13-profile-account-closure.cjs",
+      "blob": "11bab67d8139f90876132779b3165619649e82da",
+      "module": "src/background/services/additional-owner-observer.js",
+      "matrix": "A08/A16/C02/C03",
+      "step": "S03/S04/S06",
+      "status": "excluded-C",
+      "owner": "package.json",
+      "retained": [
+        "tests/v1238-profile-management-controller-runtime.cjs",
+        "tests/v1238-account-session-controller-runtime.cjs",
+        "tests/v12010-account-gate-runtime.cjs",
+        "tests/v1181-profile-backup-zip-runtime.cjs",
+        "tests/kar210-kar175-public-navigation-baseline.cjs",
+        "tests/kar210-p13-persisted-owner-baseline.cjs"
+      ],
+      "reason": "All original cases exercise P8 callback attribution for profile and account transition through absent observer; none proves real profile commit or live account. Keep actual historical profile controller, account gate with mismatched/unknown live identity rejection, backup and scoped public fallback tests. Persisted local selection or receipt is not authentication. S03 data and S06 account continuity obligations remain; no native upgrade or census."
     }
   ],
   "deferredWitnesses": [

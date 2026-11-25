@@ -670,6 +670,78 @@ const RULES = Object.freeze({
       "tests/v12317-template-filler-runtime.cjs",
       "tests/v12317c1-template-module-public-api.cjs"
     ]
+  },
+  "tests/kar99-p13-persisted-owner-callback-closure.cjs": {
+    "module": "src/background/services/persisted-owner-observer.js",
+    "matrix": "A08/A14/C02/C03",
+    "step": "S04/S06",
+    "status": "excluded-C",
+    "owner": "package.json",
+    "retained": [
+      "tests/kar210-p13-persisted-owner-baseline.cjs",
+      "tests/kar210-p13-lock-read-uncertainty.cjs",
+      "tests/v1236-bulk-controller-runtime.cjs",
+      "tests/v12313c1-bulk-reentry-rehydration-regression.cjs",
+      "tests/v1231-renewal-workflow-runtime.cjs",
+      "tests/v1233-mass-renewal-workflow-runtime.cjs",
+      "tests/v1235-archive-insertion-controller-runtime.cjs",
+      "tests/kar210-kar199-baseline-reset.cjs"
+    ]
+  },
+  "tests/kar99-p13-native-transaction-closure.cjs": {
+    "module": "src/background/services/additional-owner-observer.js",
+    "matrix": "C01/C02",
+    "step": "S04",
+    "status": "excluded-C",
+    "owner": "package.json",
+    "retained": [
+      "tests/kar210-p13-persisted-owner-baseline.cjs",
+      "tests/kar210-kar175-budget-schema-baseline.cjs"
+    ]
+  },
+  "tests/kar99-p13-managed-tabs-closure.cjs": {
+    "module": "src/background/services/additional-owner-observer.js",
+    "matrix": "A08/A14/C02/C03",
+    "step": "S04/S06",
+    "status": "excluded-C",
+    "owner": "package.json",
+    "retained": [
+      "tests/kar210-p13-persisted-owner-baseline.cjs",
+      "tests/v1156-a1-tab-registry-runtime.cjs",
+      "tests/kar99-p9-tab-gone-monotonic.cjs",
+      "tests/kar210-kar175-public-navigation-baseline.cjs",
+      "tests/kar210-kar199-baseline-reset.cjs"
+    ]
+  },
+  "tests/kar99-p13-emergency-recovery-closure.cjs": {
+    "module": "src/background/services/additional-owner-observer.js",
+    "matrix": "A14/C02/C03/C05",
+    "step": "S04/S06",
+    "status": "excluded-C",
+    "owner": "package.json",
+    "retained": [
+      "tests/kar210-kar199-baseline-reset.cjs",
+      "tests/v12223c2-reset-recovery-archive-regression.cjs",
+      "tests/v12230-global-emergency-reset.cjs",
+      "tests/v12213-bulk-deadlock-runtime.cjs",
+      "tests/kar199-phase4-no-transport-replay.cjs",
+      "tests/kar210-p13-lock-read-uncertainty.cjs"
+    ]
+  },
+  "tests/kar99-p13-profile-account-closure.cjs": {
+    "module": "src/background/services/additional-owner-observer.js",
+    "matrix": "A08/A16/C02/C03",
+    "step": "S03/S04/S06",
+    "status": "excluded-C",
+    "owner": "package.json",
+    "retained": [
+      "tests/v1238-profile-management-controller-runtime.cjs",
+      "tests/v1238-account-session-controller-runtime.cjs",
+      "tests/v12010-account-gate-runtime.cjs",
+      "tests/v1181-profile-backup-zip-runtime.cjs",
+      "tests/kar210-kar175-public-navigation-baseline.cjs",
+      "tests/kar210-p13-persisted-owner-baseline.cjs"
+    ]
   }
 });
 const OWNERS = Object.freeze(["package.json","scripts/build.sh","scripts/coverage-gate.sh",".github/workflows/kar-work-pr.yml",".github/workflows/kar-ci.yml",".github/workflows/kar-release.yml"]);
