@@ -799,6 +799,96 @@ const RULES = Object.freeze({
       "donorBlob": "1c22cb5bd91623337164744046fbc03622839c68",
       "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
     }
+  },
+  "tests/kar99-workflow-fence.cjs": {
+    "module": "src/background/services/update-workflow-fence.js",
+    "matrix": "C02/C03",
+    "step": "S04/S06",
+    "status": "excluded-C",
+    "owner": "package.json",
+    "retained": [
+      "tests/kar210-cp35-owner-product-witness.cjs",
+      "tests/kar210-p13-persisted-owner-baseline.cjs",
+      "tests/kar210-p13-lock-read-uncertainty.cjs",
+      "tests/v1234-insertion-lock-runtime.cjs",
+      "tests/v1238-account-session-controller-runtime.cjs",
+      "tests/kar68-native-status-gateway.cjs",
+      "tests/kar69-native-check.cjs",
+      "tests/v12312-background-message-router-runtime.cjs"
+    ]
+  },
+  "tests/kar101-autonomous-admission.cjs": {
+    "module": "src/background/services/update-workflow-fence.js",
+    "matrix": "A08/A14/C03",
+    "step": "S04/S06",
+    "status": "split-C",
+    "owner": "package.json",
+    "retained": [
+      "tests/kar210-cp35-owner-product-witness.cjs",
+      "tests/kar210-p13-persisted-owner-baseline.cjs",
+      "tests/kar210-p13-lock-read-uncertainty.cjs",
+      "tests/v1234-insertion-lock-runtime.cjs",
+      "tests/v1238-account-session-controller-runtime.cjs",
+      "tests/v1231-renewal-workflow-runtime.cjs",
+      "tests/v1233-mass-renewal-workflow-runtime.cjs",
+      "tests/kar210-kar175-phase1-retry-baseline.cjs",
+      "tests/kar210-kar150-uncertain-start-witness.cjs",
+      "tests/kar210-kar199-baseline-reset.cjs"
+    ]
+  },
+  "tests/kar107-autonomous-owner-coverage.cjs": {
+    "module": "src/background/services/persisted-owner-observer.js",
+    "matrix": "A08/A14/C02/C03",
+    "step": "S04/S06",
+    "status": "split-C",
+    "owner": "package.json",
+    "retained": [
+      "tests/kar210-cp35-owner-product-witness.cjs",
+      "tests/kar210-p13-persisted-owner-baseline.cjs",
+      "tests/kar210-p13-lock-read-uncertainty.cjs",
+      "tests/v1234-insertion-lock-runtime.cjs",
+      "tests/v1238-account-session-controller-runtime.cjs",
+      "tests/kar210-p9-independent-tab-lifecycle.cjs",
+      "tests/kar210-kar175-public-navigation-baseline.cjs",
+      "tests/kar210-kar199-baseline-reset.cjs",
+      "tests/v1233-mass-renewal-workflow-runtime.cjs",
+      "tests/v1235-archive-insertion-controller-runtime.cjs",
+      "tests/v1236-bulk-controller-runtime.cjs"
+    ]
+  },
+  "tests/kar109-routed-owner-inflight.cjs": {
+    "module": "src/background/services/persisted-owner-observer.js",
+    "matrix": "A08/C02/C03",
+    "step": "S04/S06",
+    "status": "split-C",
+    "owner": "package.json",
+    "retained": [
+      "tests/kar210-cp35-owner-product-witness.cjs",
+      "tests/kar210-p13-persisted-owner-baseline.cjs",
+      "tests/kar210-p13-lock-read-uncertainty.cjs",
+      "tests/v1234-insertion-lock-runtime.cjs",
+      "tests/v1238-account-session-controller-runtime.cjs",
+      "tests/v12312-background-message-router-runtime.cjs",
+      "tests/v12225-message-contract-enforcement-runtime.cjs",
+      "tests/kar210-kar199-baseline-phase4.cjs"
+    ]
+  },
+  "tests/kar111-identity-uncertainty.cjs": {
+    "module": "src/background/services/persisted-owner-observer.js",
+    "matrix": "A08/A16/C02/C03",
+    "step": "S03/S04/S06",
+    "status": "split-C",
+    "owner": "package.json",
+    "retained": [
+      "tests/kar210-cp35-owner-product-witness.cjs",
+      "tests/kar210-p13-persisted-owner-baseline.cjs",
+      "tests/kar210-p13-lock-read-uncertainty.cjs",
+      "tests/v1234-insertion-lock-runtime.cjs",
+      "tests/v1238-account-session-controller-runtime.cjs",
+      "tests/v1238-profile-management-controller-runtime.cjs",
+      "tests/kar210-kar150-uncertain-start-witness.cjs",
+      "tests/kar210-p9-independent-tab-lifecycle.cjs"
+    ]
   }
 });
 const OWNERS = Object.freeze(["package.json","scripts/build.sh","scripts/coverage-gate.sh",".github/workflows/kar-work-pr.yml",".github/workflows/kar-ci.yml",".github/workflows/kar-release.yml"]);

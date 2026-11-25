@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "issue": 210,
+  "checkpoint": 35,
+  "sourceCommit": "036586387d6398267c7bc6fc68fab3bb67186113",
+  "review": [
+    {
+      "test": "tests/kar99-workflow-fence.cjs",
+      "blob": "a6e228ba5d611d6e60bbda1a0ad5a1617b673ab8",
+      "module": "src/background/services/update-workflow-fence.js",
+      "matrix": "C02/C03",
+      "step": "S04/S06",
+      "status": "excluded-C",
+      "owner": "package.json",
+      "reason": "Every reservation, lease, cancellation, recovery and router assertion depends on the later updater fence and idle classifier. The no-native-mutation and product route/lock controls remain active independently.",
+      "retained": [
+        "tests/kar210-cp35-owner-product-witness.cjs",
+        "tests/kar210-p13-persisted-owner-baseline.cjs",
+        "tests/kar210-p13-lock-read-uncertainty.cjs",
+        "tests/v1234-insertion-lock-runtime.cjs",
+        "tests/v1238-account-session-controller-runtime.cjs",
+        "tests/kar68-native-status-gateway.cjs",
+        "tests/kar69-native-check.cjs",
+        "tests/v12312-background-message-router-runtime.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar101-autonomous-admission.cjs",
+      "blob": "1ca3a6a901e7778c2f53569366b5529c1015e0df",
+      "module": "src/background/services/update-workflow-fence.js",
+      "matrix": "A08/A14/C03",
+      "step": "S04/S06",
+      "status": "split-C",
+      "owner": "package.json",
+      "reason": "Retain original boot, lifecycle, queued retry and watchdog callback reachability at historical owners, plus actual renewal/mass/phase-one and uncertain-start tests. Exclude only the shared updater admission wrapper and its binding requirements.",
+      "retained": [
+        "tests/kar210-cp35-owner-product-witness.cjs",
+        "tests/kar210-p13-persisted-owner-baseline.cjs",
+        "tests/kar210-p13-lock-read-uncertainty.cjs",
+        "tests/v1234-insertion-lock-runtime.cjs",
+        "tests/v1238-account-session-controller-runtime.cjs",
+        "tests/v1231-renewal-workflow-runtime.cjs",
+        "tests/v1233-mass-renewal-workflow-runtime.cjs",
+        "tests/kar210-kar175-phase1-retry-baseline.cjs",
+        "tests/kar210-kar150-uncertain-start-witness.cjs",
+        "tests/kar210-kar199-baseline-reset.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar107-autonomous-owner-coverage.cjs",
+      "blob": "8cb96c001d5f8f98730fa462553c9d29f3926f23",
+      "module": "src/background/services/persisted-owner-observer.js",
+      "matrix": "A08/A14/C02/C03",
+      "step": "S04/S06",
+      "status": "split-C",
+      "owner": "package.json",
+      "reason": "Original lifecycle persistence, publish detection and terminalization checks retained at historical owners; counters and positive observer lifetime snapshots depend on excluded census. Real restart/unknown ownership and independent tab lifecycle witnesses remain active.",
+      "retained": [
+        "tests/kar210-cp35-owner-product-witness.cjs",
+        "tests/kar210-p13-persisted-owner-baseline.cjs",
+        "tests/kar210-p13-lock-read-uncertainty.cjs",
+        "tests/v1234-insertion-lock-runtime.cjs",
+        "tests/v1238-account-session-controller-runtime.cjs",
+        "tests/kar210-p9-independent-tab-lifecycle.cjs",
+        "tests/kar210-kar175-public-navigation-baseline.cjs",
+        "tests/kar210-kar199-baseline-reset.cjs",
+        "tests/v1233-mass-renewal-workflow-runtime.cjs",
+        "tests/v1235-archive-insertion-controller-runtime.cjs",
+        "tests/v1236-bulk-controller-runtime.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar109-routed-owner-inflight.cjs",
+      "blob": "d51422240234aa3bcd540126a15b9246154c6662",
+      "module": "src/background/services/persisted-owner-observer.js",
+      "matrix": "A08/C02/C03",
+      "step": "S04/S06",
+      "status": "split-C",
+      "owner": "package.json",
+      "reason": "All seven/eight-owner counter and update lease tests rely on absent observer/fence; actual eight original route names independently exercise real registry/router platform denial before handler and original async completion/rejection. Existing product lock and owner tests remain active.",
+      "retained": [
+        "tests/kar210-cp35-owner-product-witness.cjs",
+        "tests/kar210-p13-persisted-owner-baseline.cjs",
+        "tests/kar210-p13-lock-read-uncertainty.cjs",
+        "tests/v1234-insertion-lock-runtime.cjs",
+        "tests/v1238-account-session-controller-runtime.cjs",
+        "tests/v12312-background-message-router-runtime.cjs",
+        "tests/v12225-message-contract-enforcement-runtime.cjs",
+        "tests/kar210-kar199-baseline-phase4.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar111-identity-uncertainty.cjs",
+      "blob": "1a30f24522230bc1ac7632f6fa6a66f1c86a9a98",
+      "module": "src/background/services/persisted-owner-observer.js",
+      "matrix": "A08/A16/C02/C03",
+      "step": "S03/S04/S06",
+      "status": "split-C",
+      "owner": "package.json",
+      "reason": "Lease attestation, torn census and shared updater worker generation are excluded. Independently execute historical account authority with mismatched/missing/unknown/read-failure evidence and matching live positive control; retain actual persisted lock read uncertainty and profile/restart safety tests. No claim of torn-read or cross-worker product closure.",
+      "retained": [
+        "tests/kar210-cp35-owner-product-witness.cjs",
+        "tests/kar210-p13-persisted-owner-baseline.cjs",
+        "tests/kar210-p13-lock-read-uncertainty.cjs",
+        "tests/v1234-insertion-lock-runtime.cjs",
+        "tests/v1238-account-session-controller-runtime.cjs",
+        "tests/v1238-profile-management-controller-runtime.cjs",
+        "tests/kar210-kar150-uncertain-start-witness.cjs",
+        "tests/kar210-p9-independent-tab-lifecycle.cjs"
+      ]
+    }
+  ],
+  "newProductWitness": "tests/kar210-cp35-owner-product-witness.cjs",
+  "originalsUnchanged": true,
+  "activeSequenceBefore": 512,
+  "activeSequenceAfter": 508,
+  "qualification": "Five reviewed historical architecture-dependent commands removed from active suite, one actual product witness added; no successful execution credit for inactive contracts. Genuine RED and mandatory D remain active. Validation pending."
+}
