@@ -474,6 +474,75 @@ const RULES = Object.freeze({
       "donorBlob": "555aa5b606379a25ec4fc1fe62cd284ea215ad8a",
       "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
     }
+  },
+  "tests/kar185-startup-inventory-regression.cjs": {
+    "module": "src/app/inventory-loading-state.js",
+    "matrix": "B08",
+    "step": "S08",
+    "status": "deferred-B",
+    "owner": "package.json",
+    "retained": [
+      "tests/kar210-startup-isolation-witness.cjs",
+      "tests/kar210-loading-retention-baseline.cjs",
+      "tests/v1238-profile-management-controller-runtime.cjs"
+    ]
+  },
+  "tests/kar161-trash-retention.cjs": {
+    "module": "src/background/services/trash-service.js",
+    "matrix": "B05/B09/D",
+    "step": "S03/S09",
+    "status": "deferred-B",
+    "owner": "package.json",
+    "retained": [
+      "tests/kar210-bootstrap-schema-boundaries.cjs",
+      "tests/kar210-loading-retention-baseline.cjs",
+      "tests/v1183-trash-runtime.cjs"
+    ],
+    "featureAbsence": {
+      "marker": "async function previewRetentionChange",
+      "baselineBlob": "a5cb8f0b7fbca13b27b7eba6f3cd0303d56bedf9",
+      "donorBlob": "123b7e2c89b3ce101a23c1e29c819a480574a254",
+      "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
+    }
+  },
+  "tests/kar134-l15-automatic-schema.cjs": {
+    "module": "src/shared/template-schema-core.js",
+    "matrix": "A03/A04/D05",
+    "step": "S05/S07/S11",
+    "status": "deferred-A",
+    "owner": "package.json",
+    "retained": [
+      "tests/kar210-bootstrap-schema-boundaries.cjs",
+      "tests/kar210-kar201-baseline-safety.cjs",
+      "tests/v12317c1-template-module-public-api.cjs",
+      "tests/v12226-paid-insertion-regression.cjs"
+    ]
+  },
+  "tests/kar175-inventory-capture.cjs": {
+    "module": "src/background/services/inventory-capture-service.js",
+    "matrix": "A03/D05",
+    "step": "S05/S11",
+    "status": "deferred-D",
+    "owner": "package.json",
+    "retained": [
+      "tests/kar210-inventory-save-refresh-baseline.cjs",
+      "tests/jpeg.cjs",
+      "tests/v1160-inventory-capture-runtime.cjs",
+      "tests/v12313-inventory-capture-runtime.cjs"
+    ]
+  },
+  "tests/kar175-inventory-refresh.cjs": {
+    "module": "src/background/services/inventory-refresh-service.js",
+    "matrix": "A01/A13/D05",
+    "step": "S06/S11",
+    "status": "deferred-D",
+    "owner": "package.json",
+    "retained": [
+      "tests/kar210-inventory-save-refresh-baseline.cjs",
+      "tests/v12019-phase3-edit-authority.cjs",
+      "tests/v12315-runtime.cjs",
+      "tests/v1238-account-session-controller-runtime.cjs"
+    ]
   }
 });
 const OWNERS = Object.freeze(["package.json","scripts/build.sh","scripts/coverage-gate.sh",".github/workflows/kar-work-pr.yml",".github/workflows/kar-ci.yml",".github/workflows/kar-release.yml"]);

@@ -559,6 +559,90 @@
         "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
       },
       "reason": "P8 admission and retry/occupancy-specific tests excluded or later S10. Independent actual reset success, blocked reset and failed request single dispatch remain active; original malformed acknowledgement and hung-reset tests copied verbatim into active RED witness, not waived. S10 must reconcile truthful reset outcomes without P8."
+    },
+    {
+      "test": "tests/kar185-startup-inventory-regression.cjs",
+      "blob": "c30d621217d8545e3e91f9e10aaa9f380fc77159",
+      "module": "src/app/inventory-loading-state.js",
+      "matrix": "B08",
+      "step": "S08",
+      "status": "deferred-B",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-startup-isolation-witness.cjs",
+        "tests/kar210-loading-retention-baseline.cjs",
+        "tests/v1238-profile-management-controller-runtime.cjs"
+      ],
+      "reason": "Later independent load-state provider is absent. CP12 already executes actual historical refresh and preserves 61/90 counts on failed read. Execute actual historical startup orchestration separately, retaining product RED for optional configuration failure blocking local reads and inspection failure mislabeled as inventory failure; no P8-specific retry or future retention route assumed."
+    },
+    {
+      "test": "tests/kar161-trash-retention.cjs",
+      "blob": "395eb82be82115aded1d42267d71e27a2f153d7b",
+      "module": "src/background/services/trash-service.js",
+      "matrix": "B05/B09/D",
+      "step": "S03/S09",
+      "status": "deferred-B",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-bootstrap-schema-boundaries.cjs",
+        "tests/kar210-loading-retention-baseline.cjs",
+        "tests/v1183-trash-runtime.cjs"
+      ],
+      "featureAbsence": {
+        "marker": "async function previewRetentionChange",
+        "baselineBlob": "a5cb8f0b7fbca13b27b7eba6f3cd0303d56bedf9",
+        "donorBlob": "123b7e2c89b3ce101a23c1e29c819a480574a254",
+        "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
+      },
+      "reason": "Configurable seven-position policy and preview/commit API intentionally absent in S02. Original consent, changed-candidate, stale-time, profile and indefinite-policy cases remain required for S03/S09, before any live upgrade. Preserve three original independent database/diagnostic-bootstrap assertions verbatim and CP12 fixed-retention behavior. No destructive configurable-policy behavior claimed implemented."
+    },
+    {
+      "test": "tests/kar134-l15-automatic-schema.cjs",
+      "blob": "f0e6d1216379598f2aea4e77a3a727442af38654",
+      "module": "src/shared/template-schema-core.js",
+      "matrix": "A03/A04/D05",
+      "step": "S05/S07/S11",
+      "status": "deferred-A",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-bootstrap-schema-boundaries.cjs",
+        "tests/kar210-kar201-baseline-safety.cjs",
+        "tests/v12317c1-template-module-public-api.cjs",
+        "tests/v12226-paid-insertion-regression.cjs"
+      ],
+      "reason": "Later automatic schema capture/preflight/adoption not in frozen historical runtime. Keep independent no standalone category-check UI/session creation and local-details boundary assertions verbatim; retain actual historical guarded publish and form checks. Later persisted obsolete scenario rejection and F3 authority must be reconciled at S05/S07, not claimed by absence of module."
+    },
+    {
+      "test": "tests/kar175-inventory-capture.cjs",
+      "blob": "a863f7f897740ad9044772e52b0d2d62d7c69028",
+      "module": "src/background/services/inventory-capture-service.js",
+      "matrix": "A03/D05",
+      "step": "S05/S11",
+      "status": "deferred-D",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-inventory-save-refresh-baseline.cjs",
+        "tests/jpeg.cjs",
+        "tests/v1160-inventory-capture-runtime.cjs",
+        "tests/v12313-inventory-capture-runtime.cjs"
+      ],
+      "reason": "Later in-process extraction not a baseline owner. Execute actual historical saveInventory at its current owner with synthetic image/download/commit ports, checking absent ID, no-image capture, preserved identity/order, failed download no partial commit, and single-flight recovery. Schema provenance remains S05; real download/transaction independent coverage still needed. No architectural extraction or size-credit claim."
+    },
+    {
+      "test": "tests/kar175-inventory-refresh.cjs",
+      "blob": "904a0e30afe129282474fc8f6062b938faec7083",
+      "module": "src/background/services/inventory-refresh-service.js",
+      "matrix": "A01/A13/D05",
+      "step": "S06/S11",
+      "status": "deferred-D",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-inventory-save-refresh-baseline.cjs",
+        "tests/v12019-phase3-edit-authority.cjs",
+        "tests/v12315-runtime.cjs",
+        "tests/v1238-account-session-controller-runtime.cjs"
+      ],
+      "reason": "Later extracted service absent. Execute actual historical checkInventoryOnlineStatus and refreshInventoryRecord with synthetic ports: missing/invalid IDs, account mismatch, bulk/renewal lock, confirmed/pending read-only evidence, correct record/profile and worker cleanup on ordinary failure. Any additional later recovery behaviors remain S06/S11. No new remote actions or owner extraction."
     }
   ],
   "deferredWitnesses": [
