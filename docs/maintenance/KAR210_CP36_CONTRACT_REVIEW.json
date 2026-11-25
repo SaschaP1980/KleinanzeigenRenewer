@@ -119,5 +119,225 @@
   "originalsUnchanged": true,
   "activeSequenceBefore": 508,
   "activeSequenceAfter": 505,
-  "qualification": "C02/C03/C04 mechanism separation per owner-approved S01. New direct product safety REDs for late account switch and persisted uncertainty replay; no execution credit for inactive originals, no claim of journal equivalence or runtime repair. Validation pending."
+  "qualification": "Five historical architecture commands removed; two actual product witnesses added (one PASS command, one RED command with two safety failures). No execution credit for inactive originals. Final focused and independent D GREEN; actual gate RED.",
+  "finalValidation": {
+    "sourceCommit": "bd6fb1c19ebaaae35dd4970c29760823cc28f3ad",
+    "workflowCommit": "73045b32e3b02f9bb0374ee96095cea916fac63f",
+    "runId": 45621373601,
+    "focusedJobId": 139230123286,
+    "diagnosticJobId": 139230123169,
+    "mandatoryGateJobId": 139230123194,
+    "counts": {
+      "PASS": 469,
+      "FAIL": 36,
+      "TIMEOUT": 0
+    },
+    "focus": "8/8; new product witness 3/3; disposition 15 negatives",
+    "newSafetyRed": {
+      "cases": 2,
+      "passed": 0,
+      "failed": 2,
+      "evidence": [
+        "2026-11-25T13:13:48.0636271Z CP36_ROW {\"index\": 11, \"command\": \"node --test tests/kar210-cp36-phase4-unknown-witness.cjs\", \"exitCode\": 1, \"status\": \"FAIL\", \"seconds\": 0.118, \"evidence\": [\"not ok 1 - KAR-128 product: account changes during awaited pre-delete diagnostic; no destructive dispatch under changed account\", \"name: 'AssertionError'\", \"not ok 2 - KAR-117/124 product: persisted unknown DELETE after worker restart must not automatically replay without independent proof\"]}",
+        "2026-11-25T13:14:43.8236470Z not ok 1 - KAR-128 product: account changes during awaited pre-delete diagnostic; no destructive dispatch under changed account",
+        "2026-11-25T13:14:43.8241620Z     late profile switch must not authorize DELETE",
+        "2026-11-25T13:14:43.8248497Z not ok 2 - KAR-117/124 product: persisted unknown DELETE after worker restart must not automatically replay without independent proof",
+        "2026-11-25T13:14:43.8252008Z     persisted transport uncertainty cannot authorize a new automatic DELETE"
+      ]
+    },
+    "coverageNoRegression": "PASS",
+    "measurement": {
+      "summary": {
+        "schemaVersion": 1,
+        "engine": "Node/V8 precise coverage + Acorn source mapping",
+        "lineDefinition": "source lines containing meaningful JavaScript tokens; covered when V8 precise coverage reports execution for at least one token on the line",
+        "branchDefinition": "AST if/conditional/logical/switch arms mapped to V8 precise block counts",
+        "runtimeModules": 103,
+        "loadedRuntimeModules": 98,
+        "publicFunctions": {
+          "covered": 811,
+          "total": 811,
+          "percent": 100
+        },
+        "lines": {
+          "covered": 11508,
+          "total": 25508,
+          "percent": 45.12
+        },
+        "branches": {
+          "covered": 6317,
+          "total": 24782,
+          "percent": 25.49
+        },
+        "areas": {
+          "app": {
+            "lines": {
+              "covered": 4330,
+              "total": 9321,
+              "percent": 46.45
+            },
+            "branches": {
+              "covered": 2397,
+              "total": 9394,
+              "percent": 25.52
+            },
+            "public": {
+              "covered": 328,
+              "total": 328,
+              "percent": 100
+            }
+          },
+          "background": {
+            "lines": {
+              "covered": 4905,
+              "total": 11125,
+              "percent": 44.09
+            },
+            "branches": {
+              "covered": 2810,
+              "total": 11014,
+              "percent": 25.51
+            },
+            "public": {
+              "covered": 383,
+              "total": 383,
+              "percent": 100
+            }
+          },
+          "content": {
+            "lines": {
+              "covered": 1845,
+              "total": 4576,
+              "percent": 40.32
+            },
+            "branches": {
+              "covered": 897,
+              "total": 4008,
+              "percent": 22.38
+            },
+            "public": {
+              "covered": 76,
+              "total": 76,
+              "percent": 100
+            }
+          },
+          "popup": {
+            "lines": {
+              "covered": 0,
+              "total": 20,
+              "percent": 0
+            },
+            "branches": {
+              "covered": 0,
+              "total": 10,
+              "percent": 0
+            },
+            "public": {
+              "covered": 0,
+              "total": 0,
+              "percent": 100
+            }
+          },
+          "shared": {
+            "lines": {
+              "covered": 428,
+              "total": 466,
+              "percent": 91.85
+            },
+            "branches": {
+              "covered": 213,
+              "total": 356,
+              "percent": 59.83
+            },
+            "public": {
+              "covered": 24,
+              "total": 24,
+              "percent": 100
+            }
+          }
+        }
+      },
+      "audit": {
+        "schemaVersion": 1,
+        "runtimeModules": 103,
+        "providers": 96,
+        "roots": [
+          "src/app/account-gate.js",
+          "src/app/actions-diagnostics-controller.js",
+          "src/app/app-activity-center.js",
+          "src/app/app-elements.js",
+          "src/app/app-layout-controller.js",
+          "src/app/app.js",
+          "src/app/archive-insertion-ui-controller.js",
+          "src/app/archive-trash-insertion-ui-controller.js",
+          "src/app/control-accordion-controller.js",
+          "src/app/diagnostic-zip.js",
+          "src/app/diagnostics-controls-controller.js",
+          "src/app/inventory-candidate-model.js",
+          "src/app/inventory-capture-controller.js",
+          "src/app/inventory-capture-view.js",
+          "src/app/inventory-card-renderer.js",
+          "src/app/inventory-export.js",
+          "src/app/inventory-formatting.js",
+          "src/app/inventory-import.js",
+          "src/app/inventory-render-controller.js",
+          "src/app/inventory-view.js",
+          "src/app/mass-renewal-ui-controller.js",
+          "src/app/native-update-check-ui.js",
+          "src/app/profile-account-ui-controller.js",
+          "src/app/profile-backup-controller.js",
+          "src/app/profile-backup-storage-service.js",
+          "src/app/profile-backup.js",
+          "src/app/record-card-view.js",
+          "src/app/renewal-dialog-controller.js",
+          "src/app/renewal-settings-controller.js",
+          "src/app/shared-ui-helpers.js",
+          "src/app/tab-page-inspection-controller.js",
+          "src/app/trash-card-renderer.js",
+          "src/app/trash-template-ui-controller.js",
+          "src/background/background.js",
+          "src/content/content.js",
+          "src/content/form-extractor.js",
+          "src/content/image-extractor.js",
+          "src/content/inventory-delete-operations.js",
+          "src/content/inventory-readiness.js",
+          "src/content/inventory-roster-parser.js",
+          "src/content/inventory-run-loop.js",
+          "src/content/inventory-runner.js",
+          "src/content/inventory-status-overlay.js",
+          "src/content/paid-insertion-guard.js",
+          "src/content/platform-guard-content.js",
+          "src/content/template-category-flow.js",
+          "src/content/template-filler.js",
+          "src/content/template-form-fields.js",
+          "src/content/template-image-upload.js",
+          "src/content/template-publish-flow.js",
+          "src/content/template-verification.js",
+          "src/popup/popup.js",
+          "src/shared/managed-navigation.js",
+          "src/shared/message-contract-registry.js",
+          "src/shared/my-ads-readiness.js",
+          "src/shared/platform-hardening.js",
+          "src/shared/renewal-policy.js",
+          "src/shared/runtime-deps.js"
+        ],
+        "reachable": 103,
+        "unreachable": [],
+        "missingDependencies": [],
+        "cycles": []
+      }
+    },
+    "mandatoryGate": "RED: closed DELETE response-port replay, missing expected rejection",
+    "builderGuards": [
+      {
+        "runId": 45621373701,
+        "jobId": 139230123589,
+        "reason": "No explicit authorized marker"
+      }
+    ],
+    "artifact": [
+      "2026-11-25T13:14:45.5461919Z SHA256 digest of uploaded artifact zip is 083f5638801822ba48b9435c11bdafa03e875564bba0de6746bafd8a94d5010c",
+      "2026-11-25T13:14:45.9804605Z Artifact kar210-cp36-diagnostic.zip successfully finalized. Artifact ID 15024826860"
+    ]
+  }
 }
