@@ -106,7 +106,21 @@ for (const addition of additions) {
     assert.equal(gitBlobSha(addition),'a5bb96c9fdad2fce4d13c74b4b2394c1bb59ca4d',
       'Deferred historical Phase-4 helper changed');
   }
-  assert.ok(directlyInvoked || verifiedPhase4Helper || inactive.has(addition),
+  // These three KAR-210 test-only helpers have individually reviewed imports.
+  // No arbitrary orphan helper or inactive test is granted execution credit.
+  const historicalHelperOwners = {
+    'tests/kar210-historical-contract-context.cjs': [
+      'tests/v12111-global-view-sidebar-bottom-diagnostics.cjs',
+      'tests/v12112-sidebar-refresh-capture-polish.cjs'
+    ],
+    'tests/kar210-kar150-mass-fixture.cjs': ['tests/kar210-kar150-mass-baseline.cjs'],
+    'tests/kar210-p13-owner-fixture.cjs': ['tests/kar210-p13-persisted-owner-baseline.cjs']
+  };
+  const reviewedOwners = historicalHelperOwners[addition];
+  const verifiedHistoricalHelper = Boolean(reviewedOwners && reviewedOwners.every(testPath =>
+    [...referencedByOwner.values()].some(set => set.has(testPath)) &&
+    read(testPath).includes("require('./"+path.basename(addition)+"')")));
+  assert.ok(directlyInvoked || verifiedPhase4Helper || verifiedHistoricalHelper || inactive.has(addition),
     'Unregistered new executable test/fixture with no top-level invocation: ' + addition);
 }
 for (const paths of referencedByOwner.values()) for (const p of paths) {
