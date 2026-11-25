@@ -41,6 +41,54 @@
         "Exact S02 identity validation before the legacy version-list assertion.",
         "On S02 require npm SemVer 2.0.0 and exact separately validated Chrome 2.0.0.0."
       ]
+    },
+    {
+      "path": "tests/v140-contract.cjs",
+      "originalBlob": "f745e74c7f941a3dfa1beb0e5e49a9c1d0ffd296",
+      "originalCommit": "0ad54fc94d738991aef6860f784b49f387b223bd",
+      "changes": [
+        "Exact S02 identity validation before the legacy version-list assertion.",
+        "Retain explicit historical v1.23.48 permission comparison on S02."
+      ]
+    },
+    {
+      "path": "tests/v160-contract.cjs",
+      "originalBlob": "eda6768b856ad9b012702249c3b0cac915dba07d",
+      "originalCommit": "0ad54fc94d738991aef6860f784b49f387b223bd",
+      "changes": [
+        "Exact S02 identity validation before the legacy version-list assertion.",
+        "Retain explicit historical v1.23.48 permission comparison on S02.",
+        "Explicitly distinguish npm SemVer 2.0.0 from the validated Chrome 2.0.0.0."
+      ]
+    },
+    {
+      "path": "tests/v161-contract.cjs",
+      "originalBlob": "711a197b3b19e55f648825c0bc5d5bba54d3496d",
+      "originalCommit": "0ad54fc94d738991aef6860f784b49f387b223bd",
+      "changes": [
+        "Exact S02 identity validation before the legacy version-list assertion.",
+        "Explicitly distinguish npm SemVer 2.0.0 from the validated Chrome 2.0.0.0.",
+        "Use the post-v1.17.2 or post-v1.20.1 feature-era account-health/refresh assertions for the actual restored v1.23.48 runtime. All assertion bodies retained."
+      ]
+    },
+    {
+      "path": "tests/v162-contract.cjs",
+      "originalBlob": "6059fe5e36854cdecb3594d3ed01cfe7de92a9e4",
+      "originalCommit": "0ad54fc94d738991aef6860f784b49f387b223bd",
+      "changes": [
+        "Exact S02 identity validation before the legacy version-list assertion.",
+        "Explicitly distinguish npm SemVer 2.0.0 from the validated Chrome 2.0.0.0.",
+        "Use the post-v1.17.2 or post-v1.20.1 feature-era account-health/refresh assertions for the actual restored v1.23.48 runtime. All assertion bodies retained."
+      ]
     }
-  ]
+  ],
+  "firstFocusedValidation": {
+    "runId": 45572601074,
+    "jobId": 139062658390,
+    "head": "0ad54fc94d738991aef6860f784b49f387b223bd",
+    "passed": 7,
+    "failed": 0,
+    "contractGroups": 24,
+    "negativeFixtures": 59
+  }
 }
