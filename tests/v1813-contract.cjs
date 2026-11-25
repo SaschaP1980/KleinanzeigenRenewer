@@ -35,8 +35,14 @@ assert.match(appHtml, /(?:Prüfen|Neue Anzeige prüfen|Neue Anzeige finden)/);
 assert.match(appHtml, /Bisherige Anzeige löschen/);
 // KAR-186: initial trash copy is neutral until an authorized read establishes
 // the persisted duration. An unverified 30-day message is no longer correct.
-assert.match(appHtml, /Die gespeicherte Papierkorb-Aufbewahrung wird ermittelt/);
-assert.doesNotMatch(appHtml, /Einträge im Papierkorb werden 30 Tage lokal aufbewahrt/);
+if (restored) {
+  assert.match(appHtml, /Einträge im Papierkorb werden 30 Tage lokal aufbewahrt/);
+  assert.match(appHtml, /Die Anzeige bei Kleinanzeigen bleibt unverändert\. Eine neue Anzeige wird nur vorbereitet und niemals automatisch veröffentlicht/);
+  assert.match(appHtml, /Die bisherige Anzeige bleibt danach 30 Tage als Sicherheitskopie im Papierkorb/);
+} else {
+  assert.match(appHtml, /Die gespeicherte Papierkorb-Aufbewahrung wird ermittelt/);
+  assert.doesNotMatch(appHtml, /Einträge im Papierkorb werden 30 Tage lokal aufbewahrt/);
+}
 assert.match(appHtml, /Als Vorlage neu inserieren/);
 pass('modal explains all four phases, deletion consequence and trash recovery');
 

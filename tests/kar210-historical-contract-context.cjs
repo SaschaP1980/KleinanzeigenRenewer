@@ -38,4 +38,16 @@ function legacyPatchMetadata(root) {
   assert.equal(values[0].version,'1.25.12');
   return Object.fromEntries(['manifest','pkg','lock','spec'].map((k,i)=>[k,values[i]]));
 }
-module.exports={isRestored,captureOwner,legacyPatchMetadata};
+// Only these two later extracted owners are eligible for S02 rebinding.
+function historicalBackgroundOwner(root, extracted) {
+  const allowed=['src/background/services/renewal-public-evidence-coordinator.js','src/background/controllers/manual-listing-navigation-controller.js'];
+  assert.ok(allowed.includes(extracted),'unreviewed historical owner');
+  if(!isRestored(root)) return extracted;
+  const actual=captureOwner(root);
+  const target=JSON.parse(fs.readFileSync(path.join(root,'docs/maintenance/KAR210_BASELINE_TARGET.json'),'utf8'));
+  assert.ok(target.absent.includes(extracted));
+  assert.ok(!target.packaged.includes(extracted));
+  assert.equal(fs.existsSync(path.join(root,extracted)),false);
+  return actual;
+}
+module.exports={isRestored,captureOwner,legacyPatchMetadata,historicalBackgroundOwner};

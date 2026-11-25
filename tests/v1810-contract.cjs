@@ -50,11 +50,12 @@ assert.match(reinventory, /resolveRenewalPublicEvidence\(newAdId,[\s\S]*session\
 assert.match(reinventory, /compareRenewalRecords\(source, candidate/);
 pass('retry first re-inventories the saved new ad through its edit page before final comparison');
 
-const renewalPublicOwner = fs.readFileSync(path.join(root, 'src/background/services/renewal-public-evidence-coordinator.js'), 'utf8');
-assert.match(background,/requireRenewalPublicEvidenceCoordinator\(\)\.resolveRenewalPublicEvidence\(/,
+const renewalPublicOwner = fs.readFileSync(path.join(root, require('./kar210-historical-contract-context.cjs').historicalBackgroundOwner(root, 'src/background/services/renewal-public-evidence-coordinator.js')), 'utf8');
+if (!restored) assert.match(background,/requireRenewalPublicEvidenceCoordinator\(\)\.resolveRenewalPublicEvidence\(/,
   'composition root must delegate to new exact-ID evidence owner');
 const resolverStart = renewalPublicOwner.indexOf('async function resolveRenewalPublicEvidence');
-const resolverEnd = renewalPublicOwner.indexOf('\n      return Object.freeze({', resolverStart);
+const resolverEnd = restored ? renewalPublicOwner.indexOf('\n}', resolverStart) : renewalPublicOwner.indexOf('\n      return Object.freeze({', resolverStart);
+assert.ok(resolverStart >= 0 && resolverEnd > resolverStart);
 const resolver = renewalPublicOwner.slice(resolverStart, resolverEnd);
 assert.match(resolver, /normalizeKnownPublicAdUrl\(knownPublicUrl, newAdId\)/);
 assert.match(resolver, /directPublicUrlForAdId\(newAdId\)/);
@@ -64,7 +65,7 @@ assert.match(resolver, /findRenewalAdInMyAdsFresh\(newAdId, expectedProfileName,
 assert.doesNotMatch(resolver, /reusedWorker/);
 pass('Safe-Mode public verification is ID-centered and uses fresh isolated workers rather than a recycled verification tab');
 
-const myAdsHelper = renewalPublicOwner.match(/async function findRenewalAdInMyAdsFresh\(adId, expectedProfileName,[\s\S]*?\n      \}/)?.[0] || '';
+const myAdsHelper = (restored ? renewalPublicOwner.match(/async function findRenewalAdInMyAdsFresh\(adId, expectedProfileName,[\s\S]*?\n\}/) : renewalPublicOwner.match(/async function findRenewalAdInMyAdsFresh\(adId, expectedProfileName,[\s\S]*?\n      \}/))?.[0] || '';
 assert.match(myAdsHelper, /MY_ADS_PROJECTS_URL/);
 assert.match(myAdsHelper, /MY_ADS_STATUS/);
 assert.match(myAdsHelper, /FIND_OWN_AD_BY_ID/);

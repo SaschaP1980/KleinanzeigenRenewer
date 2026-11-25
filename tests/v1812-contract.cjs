@@ -20,9 +20,20 @@ pass('v1.8.12 version aligned');
 assert.match(background, /const TRASH_RETENTION_MS = 30 \* 24 \* 60 \* 60 \* 1000/);
 assert.match(background, /recordKind: 'trash'/);
 assert.match(background, /expiresAt/);
-assert.match(background, /getRetentionDays/);
-assert.match(background, /deleteTrashIfEligible/);
-pass('legacy 30-day fallback and configurable finite/indefinite local trash retention are preserved');
+if (restored) {
+  // Configurable retention belongs to S03/S09. Check the actual fixed-policy owner.
+  const trash = fs.readFileSync(path.join(root, 'src/background/services/trash-service.js'), 'utf8');
+  assert.match(background, /retentionMs: TRASH_RETENTION_MS/);
+  assert.match(trash, /expiresAt: new Date\(at.getTime\(\) \+ retentionMs\).toISOString\(\)/);
+  assert.match(trash, /if \(!record \|\| !isTrashRecord\(record\)\) throw new Error/);
+  assert.match(trash, /if \(!Number.isFinite\(expires\)\) continue/);
+  assert.match(trash, /if \(expires <= nowMs\) expired.push\(record\)/);
+  assert.match(trash, /repository.deleteWithImages\(record.inventoryId\)/);
+} else {
+  assert.match(background, /getRetentionDays/);
+  assert.match(background, /deleteTrashIfEligible/);
+}
+pass(restored ? 'historical fixed 30-day retention, trash-only deletion and valid expiry safeguards' : 'legacy 30-day fallback and configurable finite/indefinite local trash retention are preserved');
 
 const deleteInventory = background.match(/async function deleteInventory\(inventoryId\) \{[\s\S]*?\n\}/)?.[0] || '';
 assert.match(deleteInventory, /moveInventoryToTrash/);

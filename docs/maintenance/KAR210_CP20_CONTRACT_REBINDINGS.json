@@ -141,5 +141,42 @@
       ],
       "modifiedMetadataLines": 5
     }
+  ],
+  "firstFocusedValidation": {
+    "runId": 45573719614,
+    "jobId": 139066353021,
+    "head": "2c02ff7d28b2a8eb2ec06017f59c5e0d766cefe7",
+    "passed": 13,
+    "failed": 5,
+    "failedTests": [
+      "v1810",
+      "v1811",
+      "v1812",
+      "v1813",
+      "v1814"
+    ],
+    "qualification": "All ten v180–v189 contracts and three independent controls PASS; five later owner/feature/Phase-4 mismatches exposed."
+  },
+  "followup": [
+    {
+      "test": "v1810",
+      "change": "Exact historical background owner, preserve resolver and profile-scoped My Ads assertions; later extraction assertion remains outside S02."
+    },
+    {
+      "test": "v1812",
+      "change": "Historical fixed policy actual service/expiry/trash-only guard; configurable-policy assertions retained outside S02, S03/S09 required."
+    },
+    {
+      "test": "v1813",
+      "change": "Historical fixed retention copy and template-only/local safety; later copy assertion retained outside S02."
+    },
+    {
+      "test": "v1814",
+      "change": "Exact historical background navigation owner; explicit exact-ID/URL binding, later delegation assertion retained outside S02."
+    },
+    {
+      "test": "v1811",
+      "change": "Keep actual RED unchanged after metadata rebinding; later journal assertions and bounded/no replay risks not dispositioned or claimed fixed."
+    }
   ]
 }
