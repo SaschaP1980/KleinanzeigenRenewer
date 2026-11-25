@@ -13,7 +13,7 @@ for(const owner of OWNERS) for(const test of ["tests/kar148-article-type.cjs","t
 for(const owner of OWNERS) for(const test of ["tests/kar201-legacy-options.cjs","tests/kar201-session-evidence.cjs","tests/kar201-native-display-only.cjs","tests/kar201-partial-archive-prefill.cjs","tests/kar201-manual-standalone.cjs"]) assert.ok(!fs.readFileSync(path.join(root,owner),'utf8').includes(test),'KAR-201 later feature still active: '+test+' in '+owner);
 const data=JSON.parse(fs.readFileSync(path.join(root,LEDGER),'utf8'));
 const inactive=validateDispositions(root);
-assert.equal(inactive.size,71);
+assert.equal(inactive.size,78);
 const read=p=>fs.readFileSync(path.join(root,p));
 for(const owner of OWNERS) for(const test of inactive.keys())
   assert.ok(!read(owner).toString().replace(/\\/g,'/').includes(test),'Inactive path in active owner');
@@ -38,6 +38,11 @@ assert.ok(cp35Witness.includes(original107.slice(original107.indexOf("  ok(lifec
 const cp36Witness=readOriginal('tests/kar210-cp36-phase4-product-witness.cjs');
 const original113=readOriginal('tests/kar113-renewal-detached-admission.cjs');
 for(const prefix of ['ok(controller.includes("const required','ok(bg.includes("renewalWorkflowController =']){const line=original113.split('\n').find(l=>l.startsWith(prefix));assert.ok(line&&cp36Witness.includes(line),'exact KAR113 product source check retained');}
+const cp38Witness=readOriginal('tests/kar210-cp38-ingress-product-witness.cjs');
+const ingress=readOriginal('tests/kar99-p6-ingress-closure.cjs');
+for(const [start,end] of [['const ownDelete =','const verify ='],['const verify =','const archiveConfirm ='],['const contentDir =','// Execute the actual']])assert.ok(cp38Witness.includes(ingress.slice(ingress.indexOf(start),ingress.indexOf(end))),'original ingress source assertions retained');
+const owners=readOriginal('tests/kar99-additional-owner-producers.cjs');
+assert.ok(cp38Witness.includes(owners.slice(owners.indexOf("  const vm=require('node:vm');",owners.indexOf('// E3B:')),owners.indexOf('  const hints=ids=>'))),'exact PAGE_STATUS product fixture retained');
 const invocation=spawnSync(process.execPath,[path.join(root,'tests/kar210-test-disposition.cjs'),data.entries[0].test],{cwd:root,encoding:'utf8'});
 assert.notEqual(invocation.status,0,'Old per-test skip interface must be gone');
 const fixture=fs.mkdtempSync(path.join(os.tmpdir(),'kar210-suite-'));

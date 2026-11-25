@@ -1155,6 +1155,151 @@ const RULES = Object.freeze({
       "tests/kar210-kar175-public-navigation-baseline.cjs",
       "tests/v1234-insertion-lock-runtime.cjs"
     ]
+  },
+  "tests/kar99-auto-publish-intent.cjs": {
+    "module": "src/background/services/auto-publish-intent-journal.js",
+    "matrix": "A08/A09/A10/C03/C04",
+    "step": "S04/S06",
+    "status": "split-C",
+    "owner": "package.json",
+    "retained": [
+      "tests/kar210-cp38-ingress-product-witness.cjs",
+      "tests/kar210-cp38-publish-uncertainty-witness.cjs",
+      "tests/kar210-kar197-baseline-safety.cjs",
+      "tests/kar210-kar201-baseline-safety.cjs",
+      "tests/kar210-cp37-outcome-product-witness.cjs",
+      "tests/kar210-cp36-phase4-unknown-witness.cjs",
+      "tests/kar210-cp35-owner-product-witness.cjs",
+      "tests/v12226-paid-insertion-regression.cjs",
+      "tests/kar210-p13-persisted-owner-baseline.cjs",
+      "tests/kar210-p13-lock-read-uncertainty.cjs"
+    ]
+  },
+  "tests/kar99-publish-outcome.cjs": {
+    "module": "src/background/services/auto-publish-intent-journal.js",
+    "matrix": "A08/A10/A11/A14/C04",
+    "step": "S04/S06",
+    "status": "split-C",
+    "owner": "package.json",
+    "retained": [
+      "tests/kar210-cp38-ingress-product-witness.cjs",
+      "tests/kar210-cp38-publish-uncertainty-witness.cjs",
+      "tests/kar210-kar197-baseline-safety.cjs",
+      "tests/kar210-kar201-baseline-safety.cjs",
+      "tests/kar210-cp37-outcome-product-witness.cjs",
+      "tests/kar210-cp36-phase4-unknown-witness.cjs",
+      "tests/kar210-cp35-owner-product-witness.cjs",
+      "tests/v12226-paid-insertion-regression.cjs",
+      "tests/kar210-p13-persisted-owner-baseline.cjs",
+      "tests/kar210-p13-lock-read-uncertainty.cjs",
+      "tests/kar210-kar175-public-navigation-baseline.cjs"
+    ]
+  },
+  "tests/kar99-p6-adversarial.cjs": {
+    "module": "src/background/services/auto-publish-intent-journal.js",
+    "matrix": "A08/A09/A10/A11/A14/C03/C04",
+    "step": "S03/S04/S06",
+    "status": "split-C",
+    "owner": "package.json",
+    "retained": [
+      "tests/kar210-cp38-ingress-product-witness.cjs",
+      "tests/kar210-cp38-publish-uncertainty-witness.cjs",
+      "tests/kar210-kar197-baseline-safety.cjs",
+      "tests/kar210-kar201-baseline-safety.cjs",
+      "tests/kar210-cp37-outcome-product-witness.cjs",
+      "tests/kar210-cp36-phase4-unknown-witness.cjs",
+      "tests/kar210-cp35-owner-product-witness.cjs",
+      "tests/v12226-paid-insertion-regression.cjs",
+      "tests/kar210-p13-persisted-owner-baseline.cjs",
+      "tests/kar210-p13-lock-read-uncertainty.cjs",
+      "tests/kar210-kar175-public-navigation-baseline.cjs",
+      "tests/kar199-phase4-no-transport-replay.cjs"
+    ]
+  },
+  "tests/kar99-p6-ingress-closure.cjs": {
+    "module": "src/background/services/auto-publish-intent-journal.js",
+    "matrix": "A09/A10/A11/A12/A14/C03/C04",
+    "step": "S04/S06",
+    "status": "split-C",
+    "owner": "package.json",
+    "retained": [
+      "tests/kar210-cp38-ingress-product-witness.cjs",
+      "tests/kar210-cp38-publish-uncertainty-witness.cjs",
+      "tests/kar210-kar197-baseline-safety.cjs",
+      "tests/kar210-kar201-baseline-safety.cjs",
+      "tests/kar210-cp37-outcome-product-witness.cjs",
+      "tests/kar210-cp36-phase4-unknown-witness.cjs",
+      "tests/kar210-cp35-owner-product-witness.cjs",
+      "tests/v12226-paid-insertion-regression.cjs",
+      "tests/kar210-p13-persisted-owner-baseline.cjs",
+      "tests/kar210-p13-lock-read-uncertainty.cjs",
+      "tests/v1177-performance4-phase4.cjs",
+      "tests/kar210-cp36-phase4-product-witness.cjs"
+    ]
+  },
+  "tests/kar99-additional-owner-producers.cjs": {
+    "module": "src/background/services/additional-owner-observer.js",
+    "matrix": "A08/A14/C01/C02/C03",
+    "step": "S04/S06",
+    "status": "split-C",
+    "owner": "package.json",
+    "retained": [
+      "tests/kar210-cp38-ingress-product-witness.cjs",
+      "tests/kar210-cp38-publish-uncertainty-witness.cjs",
+      "tests/kar210-kar197-baseline-safety.cjs",
+      "tests/kar210-kar201-baseline-safety.cjs",
+      "tests/kar210-cp37-outcome-product-witness.cjs",
+      "tests/kar210-cp36-phase4-unknown-witness.cjs",
+      "tests/kar210-cp35-owner-product-witness.cjs",
+      "tests/v12226-paid-insertion-regression.cjs",
+      "tests/kar210-p13-persisted-owner-baseline.cjs",
+      "tests/kar210-p13-lock-read-uncertainty.cjs",
+      "tests/kar210-p9-independent-tab-lifecycle.cjs",
+      "tests/kar99-p9-tab-gone-monotonic.cjs",
+      "tests/v1238-account-session-controller-runtime.cjs"
+    ]
+  },
+  "tests/kar99-p7-integrated-owner-authority.cjs": {
+    "module": "src/background/services/additional-owner-observer.js",
+    "matrix": "A08/A14/C02/C03",
+    "step": "S04/S06",
+    "status": "excluded-C",
+    "owner": "package.json",
+    "retained": [
+      "tests/kar210-cp38-ingress-product-witness.cjs",
+      "tests/kar210-cp38-publish-uncertainty-witness.cjs",
+      "tests/kar210-kar197-baseline-safety.cjs",
+      "tests/kar210-kar201-baseline-safety.cjs",
+      "tests/kar210-cp37-outcome-product-witness.cjs",
+      "tests/kar210-cp36-phase4-unknown-witness.cjs",
+      "tests/kar210-cp35-owner-product-witness.cjs",
+      "tests/v12226-paid-insertion-regression.cjs",
+      "tests/kar210-p13-persisted-owner-baseline.cjs",
+      "tests/kar210-p13-lock-read-uncertainty.cjs",
+      "tests/kar210-p9-independent-tab-lifecycle.cjs",
+      "tests/v1234-insertion-lock-runtime.cjs"
+    ]
+  },
+  "tests/kar130-archive-detached-admission.cjs": {
+    "module": "src/background/services/update-workflow-fence.js",
+    "matrix": "A07/A08/A14/C03",
+    "step": "S04/S06/S07",
+    "status": "split-C",
+    "owner": "package.json",
+    "retained": [
+      "tests/kar210-cp38-ingress-product-witness.cjs",
+      "tests/kar210-cp38-publish-uncertainty-witness.cjs",
+      "tests/kar210-kar197-baseline-safety.cjs",
+      "tests/kar210-kar201-baseline-safety.cjs",
+      "tests/kar210-cp37-outcome-product-witness.cjs",
+      "tests/kar210-cp36-phase4-unknown-witness.cjs",
+      "tests/kar210-cp35-owner-product-witness.cjs",
+      "tests/v12226-paid-insertion-regression.cjs",
+      "tests/kar210-p13-persisted-owner-baseline.cjs",
+      "tests/kar210-p13-lock-read-uncertainty.cjs",
+      "tests/v1235-archive-insertion-controller-runtime.cjs",
+      "tests/v12223c2-reset-recovery-archive-regression.cjs"
+    ]
   }
 });
 const OWNERS = Object.freeze(["package.json","scripts/build.sh","scripts/coverage-gate.sh",".github/workflows/kar-work-pr.yml",".github/workflows/kar-ci.yml",".github/workflows/kar-release.yml"]);
