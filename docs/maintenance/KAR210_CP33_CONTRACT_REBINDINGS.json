@@ -70,5 +70,24 @@
         "Only exact S02 version/pending release, historical native module arithmetic (103 modules, 810 base public functions) and frozen runtime composition source are rebound. Original hard 100% dynamic coverage, actual total arithmetic, line/branch global and per-area thresholds, architecture closure, safety and release pipeline gates are not weakened. Actual failure must remain RED if observed."
       ]
     }
-  ]
+  ],
+  "firstDiagnostic": {
+    "sourceCommit": "e50534fcdc1b32c480dabb61de457c29343d9b98",
+    "workflowCommit": "5f715a7a01f076349817dcc2f29efd0a778e03b8",
+    "runId": 45613184483,
+    "jobId": 139201731687,
+    "counts": {
+      "PASS": 460,
+      "FAIL": 52,
+      "TIMEOUT": 0
+    },
+    "observedPublicFunctions": {
+      "covered": 811,
+      "total": 811,
+      "percent": 100
+    },
+    "coverageNoRegression": "PASS",
+    "closureBlocker": "Both final closure tests failed with ENOENT for explicitly absent later retention settings controller, before coverage arithmetic. Historical roster assessment is real and counted as +1 under existing arithmetic.",
+    "correction": "Only exact S02 checks file existence for deferred retention accessor; original non-S02 check remains mandatory. Exact frozen source/absent module check remains active."
+  }
 }
