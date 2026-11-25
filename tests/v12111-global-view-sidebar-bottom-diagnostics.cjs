@@ -1,9 +1,9 @@
 const { includesActivePatch } = require('./current-patch-policy.cjs');
-const restored = require('./kar210-historical-contract-context.cjs').isRestored(root);
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
 const root = path.resolve(__dirname, '..');
+const restored = require('./kar210-historical-contract-context.cjs').isRestored(root);
 const html = fs.readFileSync(path.join(root, 'app.html'), 'utf8');
 const css = fs.readFileSync(path.join(root, 'app.css'), 'utf8');
 const js = fs.readFileSync(path.join(root, 'app-layout-controller.js'), 'utf8') + '\n' + require('./v12210-source-surface.cjs');

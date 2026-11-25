@@ -1,4 +1,4 @@
-name: KAR-210 checkpoint 39 diagnostic
+name: KAR-210 checkpoint 40 diagnostic
 on:
   push:
     branches: [work/KAR-210]
