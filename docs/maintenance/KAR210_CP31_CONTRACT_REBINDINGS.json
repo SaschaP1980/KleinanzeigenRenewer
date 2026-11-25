@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "issue": 210,
+  "checkpoint": 31,
+  "sourceCommit": "414ace576f8d35f33c426c2b8ddeaf610d6cb396",
+  "originalsRetainedInGit": true,
+  "policy": "S02-only exact historical contract rebinding. Preserve original non-S02 assertions, active test sequence, actual product safety RED and mandatory D gates. Focused and full validation pending.",
+  "review": [
+    {
+      "path": "tests/v1230-epic-ref-002-contract.cjs",
+      "originalCommit": "414ace576f8d35f33c426c2b8ddeaf610d6cb396",
+      "changes": [
+        "Exact S02 identity only; legacy predicates unchanged",
+        "Historical EPIC record and entry-point evidence retained"
+      ]
+    },
+    {
+      "path": "tests/v1232-version-correction.cjs",
+      "originalCommit": "414ace576f8d35f33c426c2b8ddeaf610d6cb396",
+      "changes": [
+        "Exact S02 identity only; legacy predicates unchanged",
+        "Historical correction evidence retained"
+      ]
+    },
+    {
+      "path": "tests/v1235-pre-refactor-characterization.cjs",
+      "originalCommit": "414ace576f8d35f33c426c2b8ddeaf610d6cb396",
+      "changes": [
+        "Exact S02 identity only; legacy predicates unchanged",
+        "Historical archive terminal set; submitted and uncertainty evidence retained; independent KAR-197 product safety regression remains active"
+      ]
+    },
+    {
+      "path": "tests/v1238-version-architecture.cjs",
+      "originalCommit": "414ace576f8d35f33c426c2b8ddeaf610d6cb396",
+      "changes": [
+        "Exact S02 identity only; legacy predicates unchanged",
+        "Historical in-process owners and size constraints; pending native smoke contract instead of published-release checklist length"
+      ]
+    },
+    {
+      "path": "tests/v1239-version-architecture.cjs",
+      "originalCommit": "414ace576f8d35f33c426c2b8ddeaf610d6cb396",
+      "changes": [
+        "Exact S02 identity only; legacy predicates unchanged",
+        "Exact historical background blob; excluded P8 owners absent; pending native smoke"
+      ]
+    },
+    {
+      "path": "tests/v12310-version-architecture.cjs",
+      "originalCommit": "414ace576f8d35f33c426c2b8ddeaf610d6cb396",
+      "changes": [
+        "Exact S02 identity only; legacy predicates unchanged",
+        "Exact historical background blob; excluded P8 owners absent; pending native smoke"
+      ]
+    },
+    {
+      "path": "tests/v12312-composition-routing-characterization.cjs",
+      "originalCommit": "414ace576f8d35f33c426c2b8ddeaf610d6cb396",
+      "changes": [
+        "Exact S02 identity only; legacy predicates unchanged",
+        "Exact 235 historical selectors; later features explicitly absent; critical message and account gates unchanged"
+      ]
+    },
+    {
+      "path": "tests/v12312-app-elements-runtime.cjs",
+      "originalCommit": "414ace576f8d35f33c426c2b8ddeaf610d6cb396",
+      "changes": [
+        "Exact S02 identity only; legacy predicates unchanged",
+        "Exact 235 historical selectors, exact unique runtime query, deferred keys absent; actual groups and canonical selectors retained"
+      ]
+    },
+    {
+      "path": "tests/v12312-version-architecture.cjs",
+      "originalCommit": "414ace576f8d35f33c426c2b8ddeaf610d6cb396",
+      "changes": [
+        "Exact S02 identity only; legacy predicates unchanged",
+        "Exact version and pending S12 budget plus two separate historic Gold lines; original release/architecture assertions retained"
+      ]
+    }
+  ]
+}
