@@ -60,5 +60,21 @@
         "Exact S02 identity and historical permission set; original legacy lists and all behavior assertions unchanged."
       ]
     }
-  ]
+  ],
+  "focusedValidation": {
+    "runId": 45588453022,
+    "jobId": 139116005611,
+    "head": "e1f7d68ca07beb3ff1fea7b1645b28d71c80bc13",
+    "passed": 9,
+    "failed": 0,
+    "completeHistoricalContracts": 6,
+    "completeContractGroups": 6,
+    "negativeFixtures": 59
+  },
+  "builderGuard": {
+    "runId": 45588452924,
+    "jobId": 139116004377,
+    "result": "failure",
+    "reason": "No explicit authorized marker; no build executed."
+  }
 }
