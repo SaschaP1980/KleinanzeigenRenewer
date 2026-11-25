@@ -1,0 +1,28 @@
+name: KAR-210 CP27 validation contract review
+on:
+  push:
+    branches: [work/KAR-210]
+    paths: ['.github/workflows/kar210-cp27-review.yml']
+permissions:
+  contents: read
+jobs:
+  review:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --ignore-scripts
+      - name: Run every adapted contract independently
+        shell: bash
+        run: |
+          failed=0
+          for f in tests/v1180-ui-workflow.cjs tests/v1181-reconciliation-profile-backup.cjs tests/v1182-fast-derived-trash-retention.cjs tests/v1182-derived-date-runtime.cjs tests/v1183-trash-modal-order.cjs tests/v1194-reconciliation-fresh-source.cjs tests/v1195-fresh-inventory-source.cjs tests/kar210-baseline-version-contract.cjs tests/current-patch-policy-regression.cjs tests/kar210-test-disposition-contract.cjs; do
+            echo "CP27_BEGIN $f"
+            if NODE_OPTIONS='--require ./tests/v12222-vm-legacy-bridge.cjs' node "$f"; then echo "CP27_PASS $f"; else echo "CP27_FAIL $f"; failed=1; fi
+          done
+          exit "$failed"
