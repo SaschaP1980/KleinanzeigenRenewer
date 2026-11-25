@@ -377,6 +377,28 @@
         "donorBlob": "d773395115da20d8ef3520b64decd20260aff2d9",
         "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
       }
+    },
+    {
+      "test": "tests/kar199-emergency-reset-candidate-recovery.cjs",
+      "blob": "d9b84ab970e69231e535d505814b407de7f776da",
+      "module": "src/background/services/remote-delete-replacement-service.js",
+      "matrix": "B14",
+      "step": "S06",
+      "status": "deferred-B",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-kar199-baseline-reset.cjs",
+        "tests/v12230-global-emergency-reset.cjs",
+        "tests/v12315-runtime.cjs",
+        "tests/v12019-phase3-edit-authority.cjs"
+      ],
+      "featureAbsence": {
+        "marker": "async function recoverEmergencyResetCandidateAtomic",
+        "baselineBlob": "0d89fea2632e2135f72deca3fbc03514630762c5",
+        "donorBlob": "b7bf8f08a43b46d36a85ef370c460203a168b687",
+        "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
+      },
+      "reason": "B14 is a later standalone-candidate recovery transaction explicitly assigned to S06. All seven original cases remain evidence, including collision, rollback and unknown-publication negatives. Historical reset is tested through actual controller/repository, preserves unresolved source/target IDs and terminal tombstones without claiming remote success. The baseline does not adopt the candidate as an independent record; S06 must implement and re-run the original product outcomes. Transport no-replay remains active RED, not dispositioned."
     }
   ],
   "deferredWitnesses": [

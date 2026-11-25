@@ -319,6 +319,25 @@ const RULES = Object.freeze({
       "donorBlob": "d773395115da20d8ef3520b64decd20260aff2d9",
       "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
     }
+  },
+  "tests/kar199-emergency-reset-candidate-recovery.cjs": {
+    "module": "src/background/services/remote-delete-replacement-service.js",
+    "matrix": "B14",
+    "step": "S06",
+    "status": "deferred-B",
+    "owner": "package.json",
+    "retained": [
+      "tests/kar210-kar199-baseline-reset.cjs",
+      "tests/v12230-global-emergency-reset.cjs",
+      "tests/v12315-runtime.cjs",
+      "tests/v12019-phase3-edit-authority.cjs"
+    ],
+    "featureAbsence": {
+      "marker": "async function recoverEmergencyResetCandidateAtomic",
+      "baselineBlob": "0d89fea2632e2135f72deca3fbc03514630762c5",
+      "donorBlob": "b7bf8f08a43b46d36a85ef370c460203a168b687",
+      "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
+    }
   }
 });
 const OWNERS = Object.freeze(["package.json","scripts/build.sh","scripts/coverage-gate.sh",".github/workflows/kar-work-pr.yml",".github/workflows/kar-ci.yml",".github/workflows/kar-release.yml"]);
