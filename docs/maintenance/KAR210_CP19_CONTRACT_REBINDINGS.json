@@ -80,6 +80,41 @@
         "Explicitly distinguish npm SemVer 2.0.0 from the validated Chrome 2.0.0.0.",
         "Use the post-v1.17.2 or post-v1.20.1 feature-era account-health/refresh assertions for the actual restored v1.23.48 runtime. All assertion bodies retained."
       ]
+    },
+    {
+      "path": "tests/v120-contract.cjs",
+      "originalBlob": "98f5dd5b50b9ba9e220d83bc5cfb122a8456c887",
+      "originalCommit": "adb9f18b986072e2cf0d3b1921ac1d21192dd229",
+      "changes": [
+        "Exact restored version and historical permission contract.",
+        "S02-only fixed retention local confirmation and DELETE_INVENTORY action assertions; original configurable-policy/hydration assertions remain executable unchanged outside S02. S03/S09 remain responsible for data migration and verified configurable retention."
+      ],
+      "baselineOwner": {
+        "path": "src/app/inventory-card-renderer.js",
+        "blob": "f3cc492f85469cc62a33f812fe5a5b2dcd2db726"
+      },
+      "retainedRuntimeTests": [
+        "tests/kar210-loading-retention-baseline.cjs",
+        "tests/v1183-trash-runtime.cjs"
+      ]
+    },
+    {
+      "path": "tests/v116-images.cjs",
+      "originalBlob": "79592515ef21835605e1be50b041abe8c05253ea",
+      "originalCommit": "adb9f18b986072e2cf0d3b1921ac1d21192dd229",
+      "changes": [
+        "S02 requires absence of later schema-preflight capability and verifies actual image errors, archive/normal verifier results, needs-review and sole advance call gated by complete. All seven image assertions groups remain active.",
+        "Original later partial-preflight assertion preserved outside S02; S05/S07 retain explicit A04/B12 obligations; no claim that partial archive prefill is implemented."
+      ],
+      "baselineOwner": {
+        "path": "src/content/template-filler.js",
+        "blob": "902706f9afbb7407a5fcf9968bd0e0c431ad1660"
+      },
+      "retainedRuntimeTests": [
+        "tests/kar210-kar201-baseline-safety.cjs",
+        "tests/v12317c1-template-module-public-api.cjs",
+        "tests/v12022-optional-images.cjs"
+      ]
     }
   ],
   "firstFocusedValidation": {
@@ -90,5 +125,20 @@
     "failed": 0,
     "contractGroups": 24,
     "negativeFixtures": 59
+  },
+  "secondFocusedValidation": {
+    "runId": 45572767947,
+    "jobId": 139063203446,
+    "head": "adb9f18b986072e2cf0d3b1921ac1d21192dd229",
+    "passed": 11,
+    "failed": 0,
+    "contractGroups": 51,
+    "negativeFixtures": 59
+  },
+  "builderGuard": {
+    "runId": 45572601038,
+    "jobId": 139062659482,
+    "result": "failure",
+    "reason": "No explicit authorized marker; no build executed; unrelated to focused test acceptance."
   }
 }
