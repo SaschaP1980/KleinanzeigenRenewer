@@ -543,6 +543,65 @@ const RULES = Object.freeze({
       "tests/v12315-runtime.cjs",
       "tests/v1238-account-session-controller-runtime.cjs"
     ]
+  },
+  "tests/kar175-renewal-public-evidence.cjs": {
+    "module": "src/background/services/renewal-public-evidence-coordinator.js",
+    "matrix": "A11/D05",
+    "step": "S06/S11",
+    "status": "deferred-D",
+    "owner": "package.json",
+    "retained": [
+      "tests/kar210-kar175-public-navigation-baseline.cjs",
+      "tests/v12010-managed-navigation-runtime.cjs",
+      "tests/v1236-public-listing-evidence-runtime.cjs"
+    ]
+  },
+  "tests/kar175-renewal-phase1-retry.cjs": {
+    "module": "src/background/services/renewal-phase1-retry-service.js",
+    "matrix": "A10/D05",
+    "step": "S06/S11",
+    "status": "deferred-D",
+    "owner": "package.json",
+    "retained": [
+      "tests/kar210-kar175-phase1-retry-baseline.cjs",
+      "tests/kar210-kar199-baseline-reset.cjs",
+      "tests/kar210-kar197-baseline-safety.cjs"
+    ]
+  },
+  "tests/kar175-manual-navigation.cjs": {
+    "module": "src/background/controllers/manual-listing-navigation-controller.js",
+    "matrix": "D05",
+    "step": "S11",
+    "status": "deferred-D",
+    "owner": "package.json",
+    "retained": [
+      "tests/kar210-kar175-public-navigation-baseline.cjs",
+      "tests/v1236-public-listing-evidence-runtime.cjs"
+    ]
+  },
+  "tests/kar175-diagnostic-correlation.cjs": {
+    "module": "src/background/services/diagnostic-correlation-service.js",
+    "matrix": "D05",
+    "step": "S11",
+    "status": "deferred-D",
+    "owner": "package.json",
+    "retained": [
+      "tests/kar210-kar175-correlation-url-baseline.cjs",
+      "tests/v1150-correlation-runtime.cjs",
+      "tests/v1153-correlation-propagation.cjs"
+    ]
+  },
+  "tests/kar175-listing-url-evidence.cjs": {
+    "module": "src/background/services/listing-url-evidence-service.js",
+    "matrix": "A11/D05",
+    "step": "S06/S11",
+    "status": "deferred-D",
+    "owner": "package.json",
+    "retained": [
+      "tests/kar210-kar175-correlation-url-baseline.cjs",
+      "tests/v12010-managed-navigation-runtime.cjs",
+      "tests/v1236-public-listing-evidence-runtime.cjs"
+    ]
   }
 });
 const OWNERS = Object.freeze(["package.json","scripts/build.sh","scripts/coverage-gate.sh",".github/workflows/kar-work-pr.yml",".github/workflows/kar-ci.yml",".github/workflows/kar-release.yml"]);

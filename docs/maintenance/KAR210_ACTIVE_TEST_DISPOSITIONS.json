@@ -643,6 +643,80 @@
         "tests/v1238-account-session-controller-runtime.cjs"
       ],
       "reason": "Later extracted service absent. Execute actual historical checkInventoryOnlineStatus and refreshInventoryRecord with synthetic ports: missing/invalid IDs, account mismatch, bulk/renewal lock, confirmed/pending read-only evidence, correct record/profile and worker cleanup on ordinary failure. Any additional later recovery behaviors remain S06/S11. No new remote actions or owner extraction."
+    },
+    {
+      "test": "tests/kar175-renewal-public-evidence.cjs",
+      "blob": "bd567cf0937e24cb3041d2ac765e1e373e6b5e40",
+      "module": "src/background/services/renewal-public-evidence-coordinator.js",
+      "matrix": "A11/D05",
+      "step": "S06/S11",
+      "status": "deferred-D",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-kar175-public-navigation-baseline.cjs",
+        "tests/v12010-managed-navigation-runtime.cjs",
+        "tests/v1236-public-listing-evidence-runtime.cjs"
+      ],
+      "reason": "Later coordinator absent. Execute actual historical public probe, worker creation/close, My Ads fallback and failure classification with synthetic tab/metadata ports and real ManagedNavigation/public URL policy. Retain exact-ID, inert registered workers, account mismatch, unknown outcome and platform-stop cleanup; no extraction or new navigation probes."
+    },
+    {
+      "test": "tests/kar175-renewal-phase1-retry.cjs",
+      "blob": "93dc4ede9640c8b3c71638737b16b6c941d0ece6",
+      "module": "src/background/services/renewal-phase1-retry-service.js",
+      "matrix": "A10/D05",
+      "step": "S06/S11",
+      "status": "deferred-D",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-kar175-phase1-retry-baseline.cjs",
+        "tests/kar210-kar199-baseline-reset.cjs",
+        "tests/kar210-kar197-baseline-safety.cjs"
+      ],
+      "reason": "Later service owner absent. Execute actual historical boundary and retry orchestration with synthetic persisted sessions and tabs: attempt eligibility, new ID/submitted prohibition, in-flight duplicate, wrong fill, fresh inert tab and session handoff, failure cleanup. Historical shared emergency reset in-flight contract remains active."
+    },
+    {
+      "test": "tests/kar175-manual-navigation.cjs",
+      "blob": "82b8aa0d4d695dc6283a23a8ffd0ab335dfd1867",
+      "module": "src/background/controllers/manual-listing-navigation-controller.js",
+      "matrix": "D05",
+      "step": "S11",
+      "status": "deferred-D",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-kar175-public-navigation-baseline.cjs",
+        "tests/v1236-public-listing-evidence-runtime.cjs"
+      ],
+      "reason": "Later controller absent; historical openEditAd and openReadOnlyAd tested at actual owner with actual URL normalization, exact ID, saved URL preference, rejected foreign origin, direct fallback, pending result and window focus. Synthetic navigation only."
+    },
+    {
+      "test": "tests/kar175-diagnostic-correlation.cjs",
+      "blob": "5e1b3286d996f45d5cfca6a38384bdb8cedb3f12",
+      "module": "src/background/services/diagnostic-correlation-service.js",
+      "matrix": "D05",
+      "step": "S11",
+      "status": "deferred-D",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-kar175-correlation-url-baseline.cjs",
+        "tests/v1150-correlation-runtime.cjs",
+        "tests/v1153-correlation-propagation.cjs"
+      ],
+      "reason": "Later diagnostic owner absent. Actual historical correlation functions and context fields exercised; known operation bypasses storage, fill/renewal/bulk/mass binding resolves with one read, rejection returns safe existing context. No P8 or new diagnostics in hot path."
+    },
+    {
+      "test": "tests/kar175-listing-url-evidence.cjs",
+      "blob": "dc65c8094065ad31af01560749a0dbffc2a7c657",
+      "module": "src/background/services/listing-url-evidence-service.js",
+      "matrix": "A11/D05",
+      "step": "S06/S11",
+      "status": "deferred-D",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-kar175-correlation-url-baseline.cjs",
+        "tests/v12010-managed-navigation-runtime.cjs",
+        "tests/v1236-public-listing-evidence-runtime.cjs"
+      ],
+      "reason": "Later pure URL owner absent; original independent URL behavior assertion body retained byte-for-byte at actual historical owner. HTTPS checks of inventory source and published candidate, foreign origin and exact source-ID exclusion remain active. No broader URL trust or new publish authority claimed."
     }
   ],
   "deferredWitnesses": [
