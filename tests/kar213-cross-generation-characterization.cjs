@@ -166,3 +166,20 @@ test('W3 aged running mass batch with unresolved item survives read',async()=>{
   assert.deepEqual(read,batch);
   assert.deepEqual(local.snapshot().massRenewalBatchV1,batch);
 });
+
+test('W2 synchronous IndexedDB write failure must abort entire restore transaction',async()=>{
+  const idb=new IDBFactory();
+  const repo=loadRegistry(['src/background/repositories/inventory-repository.js']).require('KRInventoryRepository').create({indexedDB:idb,IDBKeyRange});
+  const db=await repo.openDatabase();db.close();
+  const backup=BackupStorage.create({indexedDB:idb,IDBKeyRange});
+  const payload={targetProfileId:profile.profileId,targetProfileName:profile.displayName,activeInventory:[active],trashEntries:[trash],images:imageRows};
+  await backup.replaceProfileIndexedData(payload);
+  await assert.rejects(backup.replaceProfileIndexedData({...payload,activeInventory:[{...active,title:'must not persist'}],images:[imageRows[0],{...imageRows[1],invalidUncloneable:()=>{}}]}));
+  const after=await backup.snapshotProfileIndexedData(profile.profileId);
+  assert.deepEqual(after.records.sort((a,b)=>a.inventoryId.localeCompare(b.inventoryId)),[active,trash]);
+  assert.equal(after.images.length,2);
+  for(const row of after.images) {
+    const idx=imageRows.findIndex(r=>r.imageKey===row.imageKey);
+    assert.deepEqual(new Uint8Array(await row.blob.arrayBuffer()),data[idx]);
+  }
+});
