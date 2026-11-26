@@ -22,6 +22,7 @@
         ensureContentConnection,
         evaluateCheckoutRecoveryProof,
         finishRenewalReplacement,
+        recoverEmergencyResetCandidateAtomic,
         flushDiagnosticBuffer,
         getInventory,
         isCheckoutAbortedRecoveryCandidate,
@@ -408,6 +409,13 @@ async function resumePendingRenewals() {
     // Imported donor uncertainty is evidence, not authority to resume.
     if (legacyOutcomeBlocked(renewal)) continue;
     try {
+      if (renewal?.status === 'cancelled' && renewal?.stage === 'emergency-reset-unverified'
+          && /^\d+$/.test(String(renewal?.newAdId || ''))) {
+        if (typeof recoverEmergencyResetCandidateAtomic === 'function') {
+          await recoverEmergencyResetCandidateAtomic(renewal);
+        }
+        continue;
+      }
       const checkoutRecovery = await tryRecoverAbortedPaidCheckout(renewal, 'service-worker-resume');
       if (checkoutRecovery.recovered) continue;
       if (isSafeLegacyManualEmergencyReset(renewal)) {

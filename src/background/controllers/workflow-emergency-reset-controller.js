@@ -5,7 +5,7 @@
       const {bumpEmergencyResetGeneration,resetMassRenewalWorkflowRuntimeState,automaticReplacementInFlight,renewalPhase1RetryInFlight,renewalPublishDetectionInFlight,trashTemplatePublishDetectionInFlight,
         mutateBulkRunState,closeRegistryTabs,closeRegistryTab,releaseBulkSourceOwnership,readFillSessions,writeFillSessions,requireTemplateFillService,
         RenewalStateRepository,readRenewalSessions,writeRenewalSessions,renewalHoldsInsertionLock,isSafeLegacyManualEmergencyReset,isSafePrePublishPaidInsertion,emergencyResetRenewalState,
-        readArchiveInsertionSessions,writeArchiveInsertionSessions,readMassRenewalBatch,writeMassRenewalBatch,touchMassRenewalItemProgress,getTabRegistrySnapshot,TAB_STATES,
+        readArchiveInsertionSessions,writeArchiveInsertionSessions,readMassRenewalBatch,writeMassRenewalBatch,recoverEmergencyResetCandidateAtomic,touchMassRenewalItemProgress,getTabRegistrySnapshot,TAB_STATES,
         logDiagnostic,sessionCorrelationContext,broadcastInventoryChanged}=options;
       const required={bumpEmergencyResetGeneration,resetMassRenewalWorkflowRuntimeState,mutateBulkRunState,closeRegistryTabs,closeRegistryTab,releaseBulkSourceOwnership,readFillSessions,writeFillSessions,requireTemplateFillService,readRenewalSessions,writeRenewalSessions,renewalHoldsInsertionLock,isSafeLegacyManualEmergencyReset,isSafePrePublishPaidInsertion,emergencyResetRenewalState,readArchiveInsertionSessions,writeArchiveInsertionSessions,readMassRenewalBatch,writeMassRenewalBatch,touchMassRenewalItemProgress,getTabRegistrySnapshot,logDiagnostic,sessionCorrelationContext,broadcastInventoryChanged};
       for(const [name,value] of Object.entries(required)) if(typeof value!=='function') throw new Error(`workflow emergency reset dependency ${name} is required`);
@@ -113,6 +113,26 @@ async function resetActiveWorkflows() {
   const registry = await getTabRegistrySnapshot().catch(() => []);
   const managedTabs = (registry || []).filter(entry => entry?.lifecycleState !== TAB_STATES.GONE && entry?.managed === true).map(entry => Number(entry.tabId || 0)).filter(Boolean);
   await closeRegistryTabs(managedTabs, 'manual-emergency-reset', 'Kleinanzeigen-Worker').catch(() => {});
+
+  // B14 is a local recovery of a previously verified candidate, not a remote action.
+  // Read back durable cancellation rather than acting on the in-memory reset proposal.
+  if (typeof recoverEmergencyResetCandidateAtomic === 'function'
+      && Object.values(renewals).some(row => row?.status === 'cancelled'
+        && row?.stage === 'emergency-reset-unverified' && /^\d+$/.test(String(row?.newAdId || '')))) {
+    const persistedRenewals = await readRenewalSessions().catch(() => ({}));
+    for (const renewal of Object.values(persistedRenewals)) {
+      if (renewal?.status !== 'cancelled' || renewal?.stage !== 'emergency-reset-unverified'
+          || !/^\d+$/.test(String(renewal?.newAdId || ''))) continue;
+      try {
+        await recoverEmergencyResetCandidateAtomic(renewal);
+      } catch (error) {
+        await logDiagnostic('warning', 'RENEWAL_EMERGENCY_CANDIDATE_RECOVERY_DEFERRED', {
+          renewalId: renewal.renewalId || null, sourceAdId: renewal.sourceAdId || null,
+          newAdId: renewal.newAdId || null, reason: String(error?.message || error).slice(0, 200)
+        }, { module: 'background', operation: 'workflow-emergency-reset' }).catch(() => {});
+      }
+    }
+  }
 
   await logDiagnostic('warning', 'ACTIVE_WORKFLOWS_EMERGENCY_RESET', {
     affected, bulkRunId: bulk?.runId || null, managedTabsClosed: managedTabs.length,

@@ -1138,6 +1138,8 @@ async function deleteInventory(inventoryId) {
 
 async function removeReplacementReadyLocal(message) { return requireRemoteDeleteReplacementService().removeReplacementReadyLocal(message); }
 
+async function recoverEmergencyResetCandidateAtomic(session) { return requireRemoteDeleteReplacementService().recoverEmergencyResetCandidateAtomic(session); }
+
 async function promoteRenewalCandidateAtomic(session) { return requireRemoteDeleteReplacementService().promoteRenewalCandidateAtomic(session); }
 
 function renewalTargetTabStillOwned(tab, session) { return requireRemoteDeleteReplacementService().renewalTargetTabStillOwned(tab, session); }
@@ -2641,7 +2643,7 @@ function requireRenewalWorkflowController() {
       assertMassRenewalManualActionAllowed, broadcastInventoryChanged, closeManagedWorkerTab, closeRegistryTab,
       compareRenewalRecords, correlationContext, createManagedWorkerTab, delay, detectPublishedAdForFill,
       dropMassRenewalProgress, ensureContentConnection, evaluateCheckoutRecoveryProof, finishRenewalReplacement,
-      flushDiagnosticBuffer, getInventory, isCheckoutAbortedRecoveryCandidate, isNonRetryableRenewalSafetyError,
+      recoverEmergencyResetCandidateAtomic, flushDiagnosticBuffer, getInventory, isCheckoutAbortedRecoveryCandidate, isNonRetryableRenewalSafetyError,
       isSafeLegacyManualEmergencyReset, logDiagnostic, logRenewalPhaseAttemptFailed, logRenewalPhaseAttemptStarted,
       massRenewalBatchCounts, massRenewalTerminalOutcome, mergeListingMetadata, mutateMassRenewalBatch,
       normalBrowserWindowId, normalizeKnownPublicAdUrl, normalizeProfileName, normalizeRenewalMode, normalizeRenewalPhaseAttempts,
@@ -3124,7 +3126,7 @@ function requireWorkflowEmergencyResetController() {
       RenewalStateRepository, readRenewalSessions, writeRenewalSessions, renewalHoldsInsertionLock,
       isSafeLegacyManualEmergencyReset, isSafePrePublishPaidInsertion, emergencyResetRenewalState,
       readArchiveInsertionSessions, writeArchiveInsertionSessions, readMassRenewalBatch, writeMassRenewalBatch,
-      touchMassRenewalItemProgress, getTabRegistrySnapshot, TAB_STATES,
+      recoverEmergencyResetCandidateAtomic, touchMassRenewalItemProgress, getTabRegistrySnapshot, TAB_STATES,
       logDiagnostic, sessionCorrelationContext, broadcastInventoryChanged
     });
   }
