@@ -1,3 +1,5 @@
+const root = require('node:path').resolve(__dirname, '..');
+const restored = require('./kar210-historical-contract-context.cjs').isRestored(root);
 const { isCurrentPatchVersion } = require('./current-patch-policy.cjs');
 const fs = require('node:fs');
 const assert = require('node:assert/strict');
@@ -11,13 +13,18 @@ const profileManagement = fs.readFileSync('profile-management-controller.js', 'u
 let n = 0;
 const pass = label => { n += 1; console.log(`PASS ${label}`); };
 
+if (restored) {
+  assert.match(bg, /^importScripts\("\.\.\/shared\/runtime-deps\.js", "\.\.\/shared\/message-contract-registry\.js", "\.\.\/shared\/renewal-policy\.js", "background-message-router\.js", "services\/native-update-status-gateway\.js", "services\/native-status-bridge\.js", "repositories\/profile-repository\.js", "repositories\/inventory-repository\.js", "repositories\/inventory-image-store\.js", "services\/trash-service\.js",/);
+  assert.doesNotMatch(bg.split('\n')[0], /inventory-capture-service|inventory-refresh-service|update-workflow-fence/);
+} else {
 assert.match(bg, /^importScripts\("\.\.\/shared\/runtime-deps\.js", "\.\.\/shared\/message-contract-registry\.js", (?:"\.\.\/shared\/renewal-policy\.js", "background-message-router\.js", )?(?:"services\/native-update-status-gateway\.js", "services\/native-status-bridge\.js", (?:"services\/update-workflow-fence\.js", )?)?"repositories\/profile-repository\.js", "repositories\/inventory-repository\.js", "repositories\/inventory-image-store\.js", "services\/inventory-capture-service\.js", "services\/inventory-refresh-service\.js", "services\/trash-service\.js",/);
+}
 pass('repository and trash modules load before background entrypoint');
 
 // Strict version-specific import registration guard for the reviewed new gateway.
 // Keep the historical four-permission runtime prefix unchanged before v1.23.30.
 const observedManifest = JSON.parse(fs.readFileSync('manifest.json', 'utf8'));
-const reviewedNative = /^1\.23\.(?:3\d|[4-9]\d|[1-9]\d{2,})$/.test(observedManifest.version) ||
+const reviewedNative = restored || /^1\.23\.(?:3\d|[4-9]\d|[1-9]\d{2,})$/.test(observedManifest.version) ||
   ['1.24.0', '1.25.0'].includes(observedManifest.version) || isCurrentPatchVersion(observedManifest.version);
 const exactNewPair = /"background-message-router\.js", "services\/native-update-status-gateway\.js", "services\/native-status-bridge\.js", (?:"services\/update-workflow-fence\.js", )?"repositories\/profile-repository\.js"/;
 if (reviewedNative) assert.match(bg, exactNewPair);
@@ -68,7 +75,13 @@ assert.match(trash, /let nextPurgeDueAt = null/);
 assert.match(trash, /async function moveToTrash/);
 assert.match(trash, /async function resetRetention/);
 assert.match(trash, /async function purgeExpired/);
-assert.match(trash, /await repository\.readAll\(\)/); assert.match(trash, /repository\.deleteTrashIfEligible\(/); assert.match(inventory, /async function deleteTrashIfEligible/);
+if (restored) {
+  assert.match(trash, /repository\.readTrashExpiryState\(nowMs\)/);
+  assert.match(inventory, /async function readTrashExpiryState/);
+  assert.match(inventory, /async function deleteWithImages/);
+} else {
+  assert.match(trash, /await repository\.readAll\(\)/); assert.match(trash, /repository\.deleteTrashIfEligible\(/); assert.match(inventory, /async function deleteTrashIfEligible/);
+}
 pass('trash retention state and storage mechanics moved to trash service');
 
 const deleteProfile = profileManagement.match(/async function deleteProfile\(message\) \{[\s\S]*?\n      \}\n\n      async function ensureProfile/)?.[0] || '';

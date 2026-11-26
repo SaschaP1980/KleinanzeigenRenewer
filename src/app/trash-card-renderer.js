@@ -6,7 +6,6 @@
       const formatting = options.formatting || {};
       const sharedUiHelpers = options.sharedUiHelpers || {};
       const recordCardView = options.recordCardView;
-      const InventoryView = options.InventoryView || globalThis.KRDeps?.optional?.('KRInventoryView') || (typeof require === 'function' ? require('./inventory-view.js') : null);
       if (!recordCardView) throw new Error('record-card-view.js must load before trash card rendering');
       const { trashList, inventoryHeaderCount, trashHeaderCount, trashCount } = options.elements || {};
       const formatDate = formatting.formatDate;
@@ -24,13 +23,6 @@
       const confirmAction = options.confirmAction || (async () => false);
       const runtimeMessage = options.runtimeMessage || (async () => null);
       const setStatus = options.setStatus || (() => {});
-      const getTrashRetentionDays = options.getTrashRetentionDays || (() => null);
-      function requireVerifiedRetention() {
-        if (getTrashRetentionDays() != null) return true;
-        setStatus('error', 'Papierkorb-Aufbewahrung nicht verfügbar',
-          'Die gespeicherte Aufbewahrungsdauer muss vor dem Neustart der Frist erneut geprüft werden.');
-        return false;
-      }
       const refreshInventories = options.refreshInventories || (async () => {});
       const friendlyErrorMessage = options.friendlyErrorMessage || (error => String(error?.message || error || ''));
       const logAppEvent = options.logAppEvent || (async () => {});
@@ -43,13 +35,11 @@
       let currentTrashRecords = [];
       let selectedProfileId = '';
       let globalListViewMode = 'detailed';
-      let trashViewState = { direction: 'desc' };
       function updateContext(context={}) {
         if (Array.isArray(context.records)) currentRecords=context.records;
         if (Array.isArray(context.trashRecords)) currentTrashRecords=context.trashRecords;
         if (Object.prototype.hasOwnProperty.call(context,'selectedProfileId')) selectedProfileId=String(context.selectedProfileId||'');
         if (Object.prototype.hasOwnProperty.call(context,'globalListViewMode')) globalListViewMode=String(context.globalListViewMode||'')==='compact'?'compact':'detailed';
-        if (context.trashViewState && typeof context.trashViewState === 'object') trashViewState = { direction: context.trashViewState.direction === 'asc' ? 'asc' : 'desc' };
       }
 
 function renderCompactTrashRow(record) {
@@ -63,8 +53,8 @@ function renderCompactTrashRow(record) {
   rememberCompactButtonDisabled(templateButton);
   const resetButton = makeCompactIconButton({
     icon: 'update',
-    label: 'Frist neu starten',
-    title: 'Startet die konfigurierte lokale Aufbewahrungsfrist dieses Papierkorb-Eintrags ab jetzt erneut.'
+    label: '30 Tage neu starten',
+    title: 'Setzt die lokale Aufbewahrungsfrist dieses Papierkorb-Eintrags ab jetzt wieder auf volle 30 Tage.'
   });
   rememberCompactButtonDisabled(resetButton);
   const exportButton = makeCompactIconButton({
@@ -82,15 +72,13 @@ function renderCompactTrashRow(record) {
     openTrashTemplateDialog(record);
   });
   resetButton.addEventListener('click', async () => {
-    if (!requireVerifiedRetention()) return;
     void logAppEvent('USER_TRASH_RETENTION_RESET_CLICK', { inventoryId: record.inventoryId, adId: record.adId || '', view: 'compact' });
-    if (!await confirmAction({ title: 'Aufbewahrung neu starten?', text: `„${record.title || record.adId}“ wird ab jetzt erneut entsprechend der konfigurierten Dauer aufbewahrt.`, detail: 'Der Eintrag bleibt im Papierkorb. Im Inventar und bei Kleinanzeigen wird nichts verändert.', confirmLabel: 'Frist neu starten' })) return;
-    if (!requireVerifiedRetention()) return;
+    if (!await confirmAction({ title: 'Aufbewahrung neu starten?', text: `„${record.title || record.adId}“ bleibt ab jetzt wieder 30 Tage im Papierkorb.`, detail: 'Der Eintrag bleibt im Papierkorb. Im Inventar und bei Kleinanzeigen wird nichts verändert.', confirmLabel: '30 Tage neu starten' })) return;
     setCompactButtonsBusy(peers, true);
     try {
       const result = await runtimeMessage({ type: 'RESET_TRASH_RETENTION', inventoryId: record.inventoryId });
       void logAppEvent('USER_TRASH_RETENTION_RESET_SUCCEEDED', { inventoryId: record.inventoryId, adId: record.adId || '', expiresAt: result?.expiresAt || null, view: 'compact' });
-      setStatus('ready', 'Aufbewahrung neu gestartet', 'Die konfigurierte Aufbewahrungsfrist beginnt für diesen Eintrag erneut.');
+      setStatus('ready', 'Aufbewahrung neu gestartet', 'Der Papierkorb-Eintrag bleibt ab jetzt wieder 30 Tage erhalten.');
       await refreshInventories();
     } catch (error) {
       setCompactButtonsBusy(peers, false);
@@ -146,10 +134,7 @@ function renderTrash(records = currentTrashRecords) {
     return;
   }
 
-  const visibleRecords = InventoryView?.deriveTrashView
-    ? InventoryView.deriveTrashView(currentTrashRecords, trashViewState)
-    : [...currentTrashRecords];
-  for (const record of visibleRecords) {
+  for (const record of currentTrashRecords) {
     if (globalListViewMode === 'compact') {
       trashList.append(renderCompactTrashRow(record));
       continue;
@@ -179,7 +164,7 @@ function renderTrash(records = currentTrashRecords) {
     facts.append(makeInfoLine('Preis', displayPriceWithType(record)));
     facts.append(makeInfoLine('ID', String(record.adId || 'unbekannt')));
     facts.append(makeInfoLine('Im Papierkorb', formatDate(record.trash?.trashedAt)));
-    const expiryRow = makeInfoLine('Aufbewahrung', trashRetentionPresentation(record), true);
+    const expiryRow = makeInfoLine('Aufbewahrung', trashRetentionPresentation(record));
     expiryRow.classList.add('trash-expiry');
     facts.append(expiryRow);
     facts.append(makeInfoLine('Grund', trashReasonLabel(record)));
@@ -239,18 +224,16 @@ function renderTrash(records = currentTrashRecords) {
     const resetButton = document.createElement('button');
     resetButton.type = 'button';
     resetButton.className = 'secondary compact-action';
-    resetButton.textContent = 'Frist neu starten';
-    resetButton.title = 'Startet die konfigurierte lokale Aufbewahrungsfrist dieses Papierkorb-Eintrags ab jetzt erneut.';
+    resetButton.textContent = '30 Tage neu starten';
+    resetButton.title = 'Setzt die lokale Aufbewahrungsfrist dieses Papierkorb-Eintrags ab jetzt wieder auf volle 30 Tage.';
     resetButton.addEventListener('click', async () => {
-      if (!requireVerifiedRetention()) return;
       void logAppEvent('USER_TRASH_RETENTION_RESET_CLICK', { inventoryId: record.inventoryId, adId: record.adId || '' });
-      if (!await confirmAction({ title: 'Aufbewahrung neu starten?', text: `„${record.title || record.adId}“ wird ab jetzt erneut entsprechend der konfigurierten Dauer aufbewahrt.`, detail: 'Der Eintrag bleibt im Papierkorb. Im Inventar und bei Kleinanzeigen wird nichts verändert.', confirmLabel: 'Frist neu starten' })) return;
-      if (!requireVerifiedRetention()) return;
+      if (!await confirmAction({ title: 'Aufbewahrung neu starten?', text: `„${record.title || record.adId}“ bleibt ab jetzt wieder 30 Tage im Papierkorb.`, detail: 'Der Eintrag bleibt im Papierkorb. Im Inventar und bei Kleinanzeigen wird nichts verändert.', confirmLabel: '30 Tage neu starten' })) return;
       resetButton.disabled = true;
       try {
         const result = await runtimeMessage({ type: 'RESET_TRASH_RETENTION', inventoryId: record.inventoryId });
         void logAppEvent('USER_TRASH_RETENTION_RESET_SUCCEEDED', { inventoryId: record.inventoryId, adId: record.adId || '', expiresAt: result?.expiresAt || null });
-        setStatus('ready', 'Aufbewahrung neu gestartet', 'Die konfigurierte Aufbewahrungsfrist beginnt für diesen Eintrag erneut.');
+        setStatus('ready', 'Aufbewahrung neu gestartet', 'Der Papierkorb-Eintrag bleibt ab jetzt wieder 30 Tage erhalten.');
         await refreshInventories();
       } catch (error) {
         resetButton.disabled = false;
@@ -305,7 +288,7 @@ function renderTrash(records = currentTrashRecords) {
       body.dataset.loaded = 'true';
       const rows = [
         ['Im Papierkorb', formatDate(record.trash?.trashedAt)],
-        ['Automatische Löschung', record.trash?.retentionIndefinite === true ? 'Keine (unbegrenzt)' : formatDate(record.trash?.expiresAt)],
+        ['Automatische Löschung', formatDate(record.trash?.expiresAt)],
         ['Grund', trashReasonLabel(record)],
         ['Preis', displayPriceWithType(record)],
         ['Kategorie', categoryLabel(record)],

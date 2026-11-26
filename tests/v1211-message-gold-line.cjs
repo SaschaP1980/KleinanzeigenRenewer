@@ -3,6 +3,7 @@ const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
 const root = path.resolve(__dirname, '..');
+const restored = require('./kar210-historical-contract-context.cjs').isRestored(root);
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 const app = require('./v12210-source-surface.cjs') + '\n' + read('mass-renewal-ui-controller.js') + '\n' + read('archive-trash-insertion-ui-controller.js');
 const activity = read('app-activity-center.js');
@@ -12,7 +13,7 @@ const manifest = JSON.parse(read('manifest.json'));
 let pass = 0;
 const ok = (label, fn) => { fn(); pass += 1; console.log('PASS', label); };
 
-ok('version is next patch', () => assert.ok(includesSupportedRelease(['1.21.1','1.21.2','1.21.3','1.21.4','1.21.5','1.21.6','1.21.7','1.21.8','1.21.9','1.21.10','1.21.11','1.21.12','1.21.13','1.21.14','1.21.15','1.22.0','1.22.1','1.22.2','1.22.3','1.22.4','1.22.5','1.22.6','1.22.7','1.22.8','1.22.9','1.22.10','1.22.11','1.22.12','1.22.13','1.22.14','1.22.15','1.22.16','1.22.17','1.22.18','1.22.19','1.22.20','1.22.21','1.22.22','1.22.23','1.22.24','1.22.25','1.22.26','1.22.27','1.22.28','1.22.29','1.22.30','1.23.0','1.23.1','1.23.2','1.23.3','1.23.4','1.23.5','1.23.6','1.23.7','1.23.8','1.23.9','1.23.10','1.23.11','1.23.12','1.23.13','1.23.14','1.23.15','1.23.16','1.23.17','1.23.18','1.23.19','1.23.20','1.23.22','1.23.23','1.23.24'], manifest.version)));
+ok('version is next patch', () => assert.ok((restored || includesSupportedRelease(['1.21.1','1.21.2','1.21.3','1.21.4','1.21.5','1.21.6','1.21.7','1.21.8','1.21.9','1.21.10','1.21.11','1.21.12','1.21.13','1.21.14','1.21.15','1.22.0','1.22.1','1.22.2','1.22.3','1.22.4','1.22.5','1.22.6','1.22.7','1.22.8','1.22.9','1.22.10','1.22.11','1.22.12','1.22.13','1.22.14','1.22.15','1.22.16','1.22.17','1.22.18','1.22.19','1.22.20','1.22.21','1.22.22','1.22.23','1.22.24','1.22.25','1.22.26','1.22.27','1.22.28','1.22.29','1.22.30','1.23.0','1.23.1','1.23.2','1.23.3','1.23.4','1.23.5','1.23.6','1.23.7','1.23.8','1.23.9','1.23.10','1.23.11','1.23.12','1.23.13','1.23.14','1.23.15','1.23.16','1.23.17','1.23.18','1.23.19','1.23.20','1.23.22','1.23.23','1.23.24'], manifest.version))));
 ok('activity model supports facts and semantic history label', () => {
   assert.match(activity, /facts:\s*String\(activity\.facts/);
   assert.match(activity, /badgeLabel:\s*String\(activity\.badgeLabel/);
@@ -32,9 +33,11 @@ ok('count mismatch has dedicated concise gold-line', () => {
   assert.match(fn, /Kleinanzeigen meldet .* laufende Anzeigen/);
 });
 ok('bulk render uses model title instead of generic needs-review label', () => {
-  const start = app.indexOf('function renderBulkState');
-  const end = app.indexOf('\nasync function refreshBulkStatus', start);
-  const fn = app.slice(start, end);
+  const actual = restored ? read('src/app/app.js') : app;
+  const start = actual.indexOf('function renderBulkState');
+  const end = actual.indexOf('\nasync function refreshBulkStatus', start);
+  assert.ok(start >= 0 && end > start);
+  const fn = actual.slice(start, end);
   assert.doesNotMatch(fn, /'needs-review':\s*'Erfassung – Prüfung erforderlich'/);
   assert.match(fn, /activityModel\.facts/);
   assert.match(fn, /badgeLabel:\s*activityModel\.badgeLabel/);

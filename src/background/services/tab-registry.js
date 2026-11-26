@@ -95,15 +95,6 @@
 
   function create({ storageSession, now = () => Date.now(), tombstoneMs = DEFAULT_TOMBSTONE_MS } = {}) {
     if (!storageSession?.get || !storageSession?.set) throw new Error('TabRegistry benötigt chrome.storage.session.');
-    // tabRegistryV1 is one shared storage value. Concurrent Chrome onUpdated,
-    // onRemoved and workflow callbacks must never read the same old snapshot
-    // and overwrite each other's independently newer lifecycle entries.
-    let registryMutationTail = Promise.resolve();
-    function serializeRegistryMutation(action) {
-      const result = registryMutationTail.then(action, action);
-      registryMutationTail = result.then(() => undefined, () => undefined);
-      return result;
-    }
 
     async function readRaw() {
       const stored = await storageSession.get([REGISTRY_KEY, LEGACY_MANAGED_KEY]).catch(() => ({}));
@@ -142,7 +133,6 @@
     }
 
     async function prune(registry = null) {
-      return serializeRegistryMutation(async () => {
       const entries = registry || await readRaw();
       const threshold = Number(tombstoneMs) || DEFAULT_TOMBSTONE_MS;
       const current = Number(now());
@@ -162,20 +152,14 @@
       }
       if (changed) await writeRaw(entries);
       return entries;
-      });
     }
 
     async function upsert(tabId, patch = {}) {
-      return serializeRegistryMutation(async () => {
       const id = Number(tabId || 0);
       if (!id) return null;
       const registry = await readRaw();
       const key = String(id);
       const previous = registry[key] || {};
-      // Terminal tab IDs cannot be reopened by an event that was already
-      // queued before tabs.onRemoved, nor by a late managed registration.
-      // Chrome does not recycle tab IDs during this browser session.
-      if (previous.lifecycleState === STATES.GONE) return previous;
       const timestamp = iso(now);
       const nextOwner = { ...(previous.owner || {}), ...ownerFrom(patch.owner || patch) };
       const next = {
@@ -199,7 +183,6 @@
       registry[key] = next;
       await writeRaw(registry);
       return next;
-      });
     }
 
     async function register(tabId, { role, kind = null, managed = false, owner = {}, url = null, windowId = null } = {}) {
@@ -249,7 +232,6 @@
     }
 
     async function markClosing(tabId, reason = 'workflow-close') {
-      return serializeRegistryMutation(async () => {
       const id = Number(tabId || 0);
       if (!id) return null;
       const registry = await readRaw();
@@ -266,11 +248,9 @@
       };
       await writeRaw(registry);
       return registry[key];
-      });
     }
 
     async function clearClosing(tabId) {
-      return serializeRegistryMutation(async () => {
       const id = Number(tabId || 0);
       if (!id) return null;
       const registry = await readRaw();
@@ -281,11 +261,9 @@
       registry[key] = { ...previous, updatedAt: timestamp, closeIntentReason: null, closeIntentAt: null };
       await writeRaw(registry);
       return registry[key];
-      });
     }
 
     async function markGone(tabId, reason = 'removed') {
-      return serializeRegistryMutation(async () => {
       const id = Number(tabId || 0);
       if (!id) return null;
       const registry = await readRaw();
@@ -309,11 +287,9 @@
       };
       await writeRaw(registry);
       return registry[key];
-      });
     }
 
     async function releaseOwnership(tabId, expectedOwner = {}, { role = null, url = null, managed = null } = {}) {
-      return serializeRegistryMutation(async () => {
       const id = Number(tabId || 0);
       if (!id) return { released: false, reason: 'invalid-tab-id', entry: null };
       const registry = await readRaw();
@@ -339,7 +315,6 @@
       registry[key] = next;
       await writeRaw(registry);
       return { released: true, reason: 'released', entry: next };
-      });
     }
 
     async function get(tabId) {

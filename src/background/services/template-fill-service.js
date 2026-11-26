@@ -79,7 +79,6 @@
         return {
           inventoryId: record.inventoryId, sourceAdId: record.adId, title: record.title || '', description: record.description || '',
           categoryId: record.category?.id ?? record.categoryIdFromUrl ?? null, categoryPath: record.category?.path || record.categoryPath || [],
-          templateSchema: record.templateSchema || null,
           dynamicAttributes: (record.dynamicAttributes || []).map(attribute => ({ key: attribute.key, label: attribute.label, technicalValue: attribute.technicalValue, displayValue: attribute.displayValue, controlType: attribute.controlType, controlId: attribute.controlId, required: Boolean(attribute.required) })),
           adType: record.adType ? { value: record.adType.value, displayValue: record.adType.displayValue } : null,
           shipping: record.shipping ? { value: record.shipping.value, displayValue: record.shipping.displayValue, methods: (record.shipping.methods || []).map(method => ({ id: method.id, label: method.label || '' })) } : null,
@@ -107,7 +106,7 @@
       function templateFillHoldsInsertionLock(session) { return Boolean(session?.templateOnly) && ['waiting', 'running'].includes(String(session.status || '')); }
 
       function isRecoverableTrashTemplateSession(session) {
-        if (!session?.templateOnly || session.schemaTestScenario) return false;
+        if (!session?.templateOnly) return false;
         const status = String(session.status || '');
         const stage = String(session.stage || '');
         if (['waiting', 'running'].includes(status)) return true;
@@ -130,8 +129,6 @@
         const sessions = await readFillSessions();
         const session = Object.values(sessions).find(item => item?.targetTabId === tabId && ['waiting', 'running'].includes(item.status));
         if (!session) return null;
-        // A persisted session from a retired development probe must never resume.
-        if (session.schemaTestScenario) throw new Error('Veralteter Schema-Testvorgang kann nicht fortgesetzt werden.');
         const record = session.archiveInsertionId && session.archiveTemplate ? session.archiveTemplate : await getInventory(session.inventoryId);
         if (!record) throw new Error('Vorlageninventar wurde nach dem Öffnen des Tabs nicht gefunden.');
         session.status = 'running';
@@ -144,8 +141,7 @@
           renewalId: session.renewalId || null, archiveInsertionId: session.archiveInsertionId || null, templateOnly: Boolean(session.templateOnly),
           autoReplacementAllowed: Boolean(session.autoReplacementAllowed), trashInventoryId: session.trashInventoryId || null,
           status: session.status || null, stage: session.stage || null,
-          result: session.result ? { complete: Boolean(session.result.complete), issues: Array.isArray(session.result.issues) ? session.result.issues.slice(0, 50) : [],
-            schemaPreflight: session.result.schemaPreflight ? { ...session.result.schemaPreflight } : null } : null,
+          result: session.result ? { complete: Boolean(session.result.complete), issues: Array.isArray(session.result.issues) ? session.result.issues.slice(0, 50) : [] } : null,
           template: templatePayload(record)
         };
       }

@@ -55,12 +55,12 @@
         if (!renewal?.renewalId || !/^\d+$/.test(String(record?.adId || renewal?.newAdId || ''))) return false;
         const status = String(renewal.status || '');
         const stage = String(renewal.stage || '');
-        return !['source-delete-status-unverified','source-delete-outcome-unverified'].includes(stage) && (status === 'verified' || stage === 'replacement-ready');
+        return status === 'verified' || stage === 'replacement-ready';
       }
 
       function renewalAutoCompletionPending(record) {
         const renewal = record?.renewal;
-        if (!renewal?.autoReplacementAllowed || renewal?.autoReplacementFailedAt || ['source-delete-status-unverified','source-delete-outcome-unverified'].includes(String(renewal?.stage || ''))) return false;
+        if (!renewal?.autoReplacementAllowed || renewal?.autoReplacementFailedAt) return false;
         const stage = String(renewal.stage || '');
         return stage === 'replacement-ready' || stage.startsWith('source-delete');
       }
@@ -69,7 +69,6 @@
         const status = String(record?.renewal?.status || '');
         const stage = String(record?.renewal?.stage || '');
         if (!record?.renewal?.renewalId) return '';
-        if (['source-delete-status-unverified','source-delete-outcome-unverified'].includes(stage)) return 'AUSTAUSCH UNGEKLÄRT';
         if (renewalAutoCompletionPending(record)) return stage.startsWith('source-delete') ? 'AUSTAUSCH LÄUFT' : 'AUSTAUSCH STARTET';
         if (renewalIsReplacementReady(record)) return 'AUSTAUSCH BEREIT';
         if (status === 'waiting-for-online') return 'VERÖFFENTLICHUNG NOCH NICHT BESTÄTIGT';
@@ -82,7 +81,6 @@
 
       function renewalStatusText(record) {
         const label = renewalStatusLabel(record);
-        if (label === 'AUSTAUSCH UNGEKLÄRT') return 'Austausch ungeklärt · prüfen';
         if (label === 'AUSTAUSCH LÄUFT') return 'Austausch läuft …';
         if (label === 'AUSTAUSCH STARTET') return 'Austausch startet …';
         if (label === 'AUSTAUSCH BEREIT') return 'Geprüft · Austausch bereit';
@@ -113,32 +111,22 @@
         return 'Manuell aus Inventar entfernt';
       }
 
-      function remainingTrashDays(record, now = Date.now()) {
-        const expires = Date.parse(record?.trash?.expiresAt || '');
-        const referenceTime = Number(now);
-        if (!Number.isFinite(expires) || !Number.isFinite(referenceTime)) return null;
-        // Keep the existing upward-rounded whole-day semantics for future deadlines.
-        // Zero means the deadline has already been reached, not that an entry was deleted.
-        return Math.max(0, Math.ceil((expires - referenceTime) / (24 * 60 * 60 * 1000)));
-      }
-
       function trashRetentionLabel(record, now = Date.now()) {
-        if (record?.trash?.retentionIndefinite === true) return 'Unbegrenzt (∞)';
-        const days = remainingTrashDays(record, now);
-        if (days === null) return 'Ablauf unbekannt';
-        if (days === 0) return 'Frist abgelaufen';
+        const expires = Date.parse(record?.trash?.expiresAt || '');
+        if (!Number.isFinite(expires)) return 'Ablauf unbekannt';
+        const ms = Math.max(0, expires - Number(now));
+        const days = Math.max(1, Math.ceil(ms / (24 * 60 * 60 * 1000)));
         return days === 1 ? 'Noch 1 Tag' : `Noch ${days} Tage`;
       }
 
       function trashRetentionPresentation(record, now = Date.now()) {
-        if (record?.trash?.retentionIndefinite === true) return 'Unbegrenzt (∞) – bis zur ausdrücklichen endgültigen Löschung';
-        const days = remainingTrashDays(record, now);
-        if (days === null) return 'Aufbewahrung unbekannt';
-        const date = formatCalendarDate(record.trash.expiresAt);
-        const remaining = days === 0
-          ? 'Frist abgelaufen'
-          : days === 1 ? 'noch 1 Tag' : `noch ${days} Tage`;
-        return `Im Papierkorb bis ${date} (${remaining})`;
+        const expiresAt = String(record?.trash?.expiresAt || '');
+        const expires = Date.parse(expiresAt);
+        if (!Number.isFinite(expires)) return 'Aufbewahrung unbekannt';
+        const ms = Math.max(0, expires - Number(now));
+        const days = Math.max(1, Math.ceil(ms / (24 * 60 * 60 * 1000)));
+        const remaining = days === 1 ? 'noch 1 Tag' : `noch ${days} Tage`;
+        return `Im Papierkorb bis ${formatCalendarDate(expiresAt)} (${remaining})`;
       }
 
       return Object.freeze({

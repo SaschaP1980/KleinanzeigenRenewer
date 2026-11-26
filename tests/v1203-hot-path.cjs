@@ -1,3 +1,6 @@
+const root = require('node:path').resolve(__dirname, '..');
+const historical = require('./kar210-historical-contract-context.cjs');
+const restored = historical.isRestored(root);
 const fs = require('node:fs');
 const assert = require('node:assert/strict');
 const bg = require('./v12215-source-surface.cjs');
@@ -31,8 +34,18 @@ assert.match(bg, /function invalidateTrashPurgeSchedule\(/); assert.match(trash,
 const purgeStart = bg.indexOf('async function purgeExpiredTrash');
 const purgeEnd = bg.indexOf('\nasync function listInventories', purgeStart);
 const purgeBlock = bg.slice(purgeStart, purgeEnd);
-assert.match(purgeBlock, /requireTrashManagementController\(\)\.purgeExpiredTrash\(\)/); assert.match(trash, /shouldSkipPurge\(nowMs\)/); pass('ordinary reads skip redundant purge work until the next policy-derived due timestamp');
-assert.match(trash, /await repository\.readAll\(\)/); assert.match(trash, /repository\.deleteTrashIfEligible\(/); assert.match(repo, /async function deleteTrashIfEligible/); pass('policy-aware purge verifies actual trash age and deletion inside an atomic local transaction');
+if (restored) {
+  assert.match(purgeBlock, /await requireTrashService\(\)\.purgeExpired\(\)/);
+  assert.match(trash, /shouldSkipPurge\(nowMs\)/);
+  pass('historical purge skips redundant scans until the next stored expiry');
+  assert.match(trash, /repository\.readTrashExpiryState\(nowMs\)/);
+  assert.match(repo, /async function readTrashExpiryState/);
+  assert.match(repo, /transaction\(\[inventoryStoreName, imageStoreName\], 'readwrite'\)/);
+  pass('historical expiry index and atomic image/record removal retained, not atomic eligibility');
+} else {
+  assert.match(purgeBlock, /requireTrashManagementController\(\)\.purgeExpiredTrash\(\)/); assert.match(trash, /shouldSkipPurge\(nowMs\)/); pass('ordinary reads skip redundant purge work until the next policy-derived due timestamp');
+  assert.match(trash, /await repository\.readAll\(\)/); assert.match(trash, /repository\.deleteTrashIfEligible\(/); assert.match(repo, /async function deleteTrashIfEligible/); pass('policy-aware purge verifies actual trash age and deletion inside an atomic local transaction');
+}
 
 assert.match(bg, /const DIAGNOSTIC_BATCH_FLUSH_MS = 1200;/); pass('routine diagnostic flush window is widened for lower write churn');
 assert.match(bg, /const DIAGNOSTIC_BATCH_MAX_PENDING = 120;/); pass('diagnostic pending buffer tolerates larger routine batches');

@@ -1,0 +1,401 @@
+{
+  "schemaVersion": 1,
+  "issue": 210,
+  "checkpoint": 38,
+  "sourceCommit": "7fe1d2d8d3eac3c8ac29aa99c904090e30070acf",
+  "review": [
+    {
+      "test": "tests/kar99-auto-publish-intent.cjs",
+      "blob": "67b688a24af9a29f9aae960e2f92b7c49c2b7ed7",
+      "module": "src/background/services/auto-publish-intent-journal.js",
+      "matrix": "A08/A09/A10/C03/C04",
+      "step": "S04/S06",
+      "status": "split-C",
+      "owner": "package.json",
+      "reason": "P8 before-click receipt, immutable keys and shared origin lock excluded. Real verified form, paid/ambiguous/template-only/submitted and missing private route guards remain; actual capture duplicate prevention independent of journal.",
+      "retained": [
+        "tests/kar210-cp38-ingress-product-witness.cjs",
+        "tests/kar210-cp38-publish-uncertainty-witness.cjs",
+        "tests/kar210-kar197-baseline-safety.cjs",
+        "tests/kar210-kar201-baseline-safety.cjs",
+        "tests/kar210-cp37-outcome-product-witness.cjs",
+        "tests/kar210-cp36-phase4-unknown-witness.cjs",
+        "tests/kar210-cp35-owner-product-witness.cjs",
+        "tests/v12226-paid-insertion-regression.cjs",
+        "tests/kar210-p13-persisted-owner-baseline.cjs",
+        "tests/kar210-p13-lock-read-uncertainty.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar99-publish-outcome.cjs",
+      "blob": "a6ecc6a537e11d2e4c67c7910f56317721ffb143",
+      "module": "src/background/services/auto-publish-intent-journal.js",
+      "matrix": "A08/A10/A11/A14/C04",
+      "step": "S04/S06",
+      "status": "split-C",
+      "owner": "package.json",
+      "reason": "Retain manual second click/submit and null submitter negatives at actual capture listener, same-account exact target evidence and failed scan witnesses. Journal resolution, replay tokens and private approval callback excluded; no journal-equivalence claim.",
+      "retained": [
+        "tests/kar210-cp38-ingress-product-witness.cjs",
+        "tests/kar210-cp38-publish-uncertainty-witness.cjs",
+        "tests/kar210-kar197-baseline-safety.cjs",
+        "tests/kar210-kar201-baseline-safety.cjs",
+        "tests/kar210-cp37-outcome-product-witness.cjs",
+        "tests/kar210-cp36-phase4-unknown-witness.cjs",
+        "tests/kar210-cp35-owner-product-witness.cjs",
+        "tests/v12226-paid-insertion-regression.cjs",
+        "tests/kar210-p13-persisted-owner-baseline.cjs",
+        "tests/kar210-p13-lock-read-uncertainty.cjs",
+        "tests/kar210-kar175-public-navigation-baseline.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar99-p6-adversarial.cjs",
+      "blob": "3627a0031f11366c0c53c05ad6eb7bd4008978b1",
+      "module": "src/background/services/auto-publish-intent-journal.js",
+      "matrix": "A08/A09/A10/A11/A14/C03/C04",
+      "step": "S03/S04/S06",
+      "status": "split-C",
+      "owner": "package.json",
+      "reason": "Preserve actual duplicate/implicit-submit negatives, ambiguous/paid automatic pause, exact target/account and interrupted roster read tests. Immutable receipt crash cases and P8 auth API excluded; legacy journal migration S03. No crash-durable equivalent claimed.",
+      "retained": [
+        "tests/kar210-cp38-ingress-product-witness.cjs",
+        "tests/kar210-cp38-publish-uncertainty-witness.cjs",
+        "tests/kar210-kar197-baseline-safety.cjs",
+        "tests/kar210-kar201-baseline-safety.cjs",
+        "tests/kar210-cp37-outcome-product-witness.cjs",
+        "tests/kar210-cp36-phase4-unknown-witness.cjs",
+        "tests/kar210-cp35-owner-product-witness.cjs",
+        "tests/v12226-paid-insertion-regression.cjs",
+        "tests/kar210-p13-persisted-owner-baseline.cjs",
+        "tests/kar210-p13-lock-read-uncertainty.cjs",
+        "tests/kar210-kar175-public-navigation-baseline.cjs",
+        "tests/kar199-phase4-no-transport-replay.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar99-p6-ingress-closure.cjs",
+      "blob": "5669630f9659bd7d6aae5400c0fa2e6ee0cc0bb8",
+      "module": "src/background/services/auto-publish-intent-journal.js",
+      "matrix": "A09/A10/A11/A12/A14/C03/C04",
+      "step": "S04/S06",
+      "status": "split-C",
+      "owner": "package.json",
+      "reason": "Exact original delete-control, no direct submit/requestSubmit and read-only archive continuation assertions extracted; actual initial/reentry branches and user-owned template. Early managed capture and duplicate submit safety RED retained; private journal ordering and P8 bindings excluded.",
+      "retained": [
+        "tests/kar210-cp38-ingress-product-witness.cjs",
+        "tests/kar210-cp38-publish-uncertainty-witness.cjs",
+        "tests/kar210-kar197-baseline-safety.cjs",
+        "tests/kar210-kar201-baseline-safety.cjs",
+        "tests/kar210-cp37-outcome-product-witness.cjs",
+        "tests/kar210-cp36-phase4-unknown-witness.cjs",
+        "tests/kar210-cp35-owner-product-witness.cjs",
+        "tests/v12226-paid-insertion-regression.cjs",
+        "tests/kar210-p13-persisted-owner-baseline.cjs",
+        "tests/kar210-p13-lock-read-uncertainty.cjs",
+        "tests/v1177-performance4-phase4.cjs",
+        "tests/kar210-cp36-phase4-product-witness.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar99-additional-owner-producers.cjs",
+      "blob": "e7d5841d71ef5dc6af3c1d6fa61e981620fa155c",
+      "module": "src/background/services/additional-owner-observer.js",
+      "matrix": "A08/A14/C01/C02/C03",
+      "step": "S04/S06",
+      "status": "split-C",
+      "owner": "package.json",
+      "reason": "Eight supplemental census, native apply and double-probe attestation excluded. Exact PAGE_STATUS fixture and seller-link/logged-out negatives preserved; actual account and tab registry unknown/gone/read-failure tests remain. No idle or torn census authority claim.",
+      "retained": [
+        "tests/kar210-cp38-ingress-product-witness.cjs",
+        "tests/kar210-cp38-publish-uncertainty-witness.cjs",
+        "tests/kar210-kar197-baseline-safety.cjs",
+        "tests/kar210-kar201-baseline-safety.cjs",
+        "tests/kar210-cp37-outcome-product-witness.cjs",
+        "tests/kar210-cp36-phase4-unknown-witness.cjs",
+        "tests/kar210-cp35-owner-product-witness.cjs",
+        "tests/v12226-paid-insertion-regression.cjs",
+        "tests/kar210-p13-persisted-owner-baseline.cjs",
+        "tests/kar210-p13-lock-read-uncertainty.cjs",
+        "tests/kar210-p9-independent-tab-lifecycle.cjs",
+        "tests/kar99-p9-tab-gone-monotonic.cjs",
+        "tests/v1238-account-session-controller-runtime.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar99-p7-integrated-owner-authority.cjs",
+      "blob": "b065253e970b0d2881a42a8184f26758faac155e",
+      "module": "src/background/services/additional-owner-observer.js",
+      "matrix": "A08/A14/C02/C03",
+      "step": "S04/S06",
+      "status": "excluded-C",
+      "owner": "package.json",
+      "reason": "Fifteen-owner taxonomy, operation mappings, native transaction and lease classifications target excluded updater authority. Actual lifecycle, persisted lock, uncertain read and account safety remain active. No fabricated all-idle claim.",
+      "retained": [
+        "tests/kar210-cp38-ingress-product-witness.cjs",
+        "tests/kar210-cp38-publish-uncertainty-witness.cjs",
+        "tests/kar210-kar197-baseline-safety.cjs",
+        "tests/kar210-kar201-baseline-safety.cjs",
+        "tests/kar210-cp37-outcome-product-witness.cjs",
+        "tests/kar210-cp36-phase4-unknown-witness.cjs",
+        "tests/kar210-cp35-owner-product-witness.cjs",
+        "tests/v12226-paid-insertion-regression.cjs",
+        "tests/kar210-p13-persisted-owner-baseline.cjs",
+        "tests/kar210-p13-lock-read-uncertainty.cjs",
+        "tests/kar210-p9-independent-tab-lifecycle.cjs",
+        "tests/v1234-insertion-lock-runtime.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar130-archive-detached-admission.cjs",
+      "blob": "bb241dcf2751205f8d034af408d8ae1df391fa06",
+      "module": "src/background/services/update-workflow-fence.js",
+      "matrix": "A07/A08/A14/C03",
+      "step": "S04/S06/S07",
+      "status": "split-C",
+      "owner": "package.json",
+      "reason": "P8 dependency and owner mapping excluded. Two recovery paths and one confirmation continuation preserve postpublish-only behavior; exercise known published/legacy and terminal/unknown-ID cases. Submitted recovery missing detection binding retained as direct RED; broader B15 recovery deferred.",
+      "retained": [
+        "tests/kar210-cp38-ingress-product-witness.cjs",
+        "tests/kar210-cp38-publish-uncertainty-witness.cjs",
+        "tests/kar210-kar197-baseline-safety.cjs",
+        "tests/kar210-kar201-baseline-safety.cjs",
+        "tests/kar210-cp37-outcome-product-witness.cjs",
+        "tests/kar210-cp36-phase4-unknown-witness.cjs",
+        "tests/kar210-cp35-owner-product-witness.cjs",
+        "tests/v12226-paid-insertion-regression.cjs",
+        "tests/kar210-p13-persisted-owner-baseline.cjs",
+        "tests/kar210-p13-lock-read-uncertainty.cjs",
+        "tests/v1235-archive-insertion-controller-runtime.cjs",
+        "tests/v12223c2-reset-recovery-archive-regression.cjs"
+      ]
+    }
+  ],
+  "newProductWitness": "tests/kar210-cp38-ingress-product-witness.cjs",
+  "newSafetyWitness": "tests/kar210-cp38-publish-uncertainty-witness.cjs",
+  "originalsUnchanged": true,
+  "activeSequenceBefore": 498,
+  "activeSequenceAfter": 493,
+  "qualification": "Final seven later-architecture commands dispositioned; two independent actual product witnesses added (one PASS, one RED command). Original tests preserved, no inactive execution credit, no journal equivalence or runtime repair. Focused and independent D GREEN; actual mandatory gate RED.",
+  "finalValidation": {
+    "sourceCommit": "db88c0a52c3a7c2a36f1da29089e3d260255bd17",
+    "workflowCommit": "18e9e43b4ec295f82f62b1861993c9ae4b44fb3f",
+    "runId": 45647053668,
+    "focusedJobId": 139320736455,
+    "diagnosticJobId": 139320736368,
+    "mandatoryGateJobId": 139320735716,
+    "counts": {
+      "PASS": 471,
+      "FAIL": 22,
+      "TIMEOUT": 0
+    },
+    "focus": "8/8; ingress witness 4/4; disposition 15 negatives",
+    "newSafetyEvidence": [
+      "2026-11-25T15:37:14.5880127Z not ok 1 - managed publication: first click/native submit may pass, second explicit submit must not replay",
+      "2026-11-25T15:37:14.5882568Z     second submit not blocked",
+      "2026-11-25T15:37:14.5886428Z not ok 2 - managed publication: second implicit submit with null submitter must not replay",
+      "2026-11-25T15:37:14.5887832Z     implicit duplicate submit not blocked",
+      "2026-11-25T15:37:14.5892439Z not ok 3 - managed initial/reentry publication capture must be armed before asynchronous work; not for user-owned template-only",
+      "2026-11-25T15:37:14.5900160Z ok 4 - Fast presence positive and negative controls: absent/failed/incorrect account and missing target never schedule replacement",
+      "2026-11-25T15:37:14.5901477Z not ok 5 - Fast presence must reject wrong exact target ID before marking verified or scheduling deletion",
+      "2026-11-25T15:37:14.5902877Z     mismatched target evidence authorized replacement",
+      "2026-11-25T15:37:14.5905939Z not ok 6 - Fast presence must not authorize replacement if live account changes during roster read",
+      "2026-11-25T15:37:14.5907467Z     account change authorized replacement",
+      "2026-11-25T15:37:14.5910695Z not ok 7 - historical submitted archive recovery detects existing publication without republishing"
+    ],
+    "coverageNoRegression": "PASS",
+    "measurement": {
+      "summary": {
+        "schemaVersion": 1,
+        "engine": "Node/V8 precise coverage + Acorn source mapping",
+        "lineDefinition": "source lines containing meaningful JavaScript tokens; covered when V8 precise coverage reports execution for at least one token on the line",
+        "branchDefinition": "AST if/conditional/logical/switch arms mapped to V8 precise block counts",
+        "runtimeModules": 103,
+        "loadedRuntimeModules": 98,
+        "publicFunctions": {
+          "covered": 811,
+          "total": 811,
+          "percent": 100
+        },
+        "lines": {
+          "covered": 11595,
+          "total": 25508,
+          "percent": 45.46
+        },
+        "branches": {
+          "covered": 6381,
+          "total": 24782,
+          "percent": 25.75
+        },
+        "areas": {
+          "app": {
+            "lines": {
+              "covered": 4330,
+              "total": 9321,
+              "percent": 46.45
+            },
+            "branches": {
+              "covered": 2397,
+              "total": 9394,
+              "percent": 25.52
+            },
+            "public": {
+              "covered": 328,
+              "total": 328,
+              "percent": 100
+            }
+          },
+          "background": {
+            "lines": {
+              "covered": 4992,
+              "total": 11125,
+              "percent": 44.87
+            },
+            "branches": {
+              "covered": 2874,
+              "total": 11014,
+              "percent": 26.09
+            },
+            "public": {
+              "covered": 383,
+              "total": 383,
+              "percent": 100
+            }
+          },
+          "content": {
+            "lines": {
+              "covered": 1845,
+              "total": 4576,
+              "percent": 40.32
+            },
+            "branches": {
+              "covered": 897,
+              "total": 4008,
+              "percent": 22.38
+            },
+            "public": {
+              "covered": 76,
+              "total": 76,
+              "percent": 100
+            }
+          },
+          "popup": {
+            "lines": {
+              "covered": 0,
+              "total": 20,
+              "percent": 0
+            },
+            "branches": {
+              "covered": 0,
+              "total": 10,
+              "percent": 0
+            },
+            "public": {
+              "covered": 0,
+              "total": 0,
+              "percent": 100
+            }
+          },
+          "shared": {
+            "lines": {
+              "covered": 428,
+              "total": 466,
+              "percent": 91.85
+            },
+            "branches": {
+              "covered": 213,
+              "total": 356,
+              "percent": 59.83
+            },
+            "public": {
+              "covered": 24,
+              "total": 24,
+              "percent": 100
+            }
+          }
+        }
+      },
+      "audit": {
+        "schemaVersion": 1,
+        "runtimeModules": 103,
+        "providers": 96,
+        "roots": [
+          "src/app/account-gate.js",
+          "src/app/actions-diagnostics-controller.js",
+          "src/app/app-activity-center.js",
+          "src/app/app-elements.js",
+          "src/app/app-layout-controller.js",
+          "src/app/app.js",
+          "src/app/archive-insertion-ui-controller.js",
+          "src/app/archive-trash-insertion-ui-controller.js",
+          "src/app/control-accordion-controller.js",
+          "src/app/diagnostic-zip.js",
+          "src/app/diagnostics-controls-controller.js",
+          "src/app/inventory-candidate-model.js",
+          "src/app/inventory-capture-controller.js",
+          "src/app/inventory-capture-view.js",
+          "src/app/inventory-card-renderer.js",
+          "src/app/inventory-export.js",
+          "src/app/inventory-formatting.js",
+          "src/app/inventory-import.js",
+          "src/app/inventory-render-controller.js",
+          "src/app/inventory-view.js",
+          "src/app/mass-renewal-ui-controller.js",
+          "src/app/native-update-check-ui.js",
+          "src/app/profile-account-ui-controller.js",
+          "src/app/profile-backup-controller.js",
+          "src/app/profile-backup-storage-service.js",
+          "src/app/profile-backup.js",
+          "src/app/record-card-view.js",
+          "src/app/renewal-dialog-controller.js",
+          "src/app/renewal-settings-controller.js",
+          "src/app/shared-ui-helpers.js",
+          "src/app/tab-page-inspection-controller.js",
+          "src/app/trash-card-renderer.js",
+          "src/app/trash-template-ui-controller.js",
+          "src/background/background.js",
+          "src/content/content.js",
+          "src/content/form-extractor.js",
+          "src/content/image-extractor.js",
+          "src/content/inventory-delete-operations.js",
+          "src/content/inventory-readiness.js",
+          "src/content/inventory-roster-parser.js",
+          "src/content/inventory-run-loop.js",
+          "src/content/inventory-runner.js",
+          "src/content/inventory-status-overlay.js",
+          "src/content/paid-insertion-guard.js",
+          "src/content/platform-guard-content.js",
+          "src/content/template-category-flow.js",
+          "src/content/template-filler.js",
+          "src/content/template-form-fields.js",
+          "src/content/template-image-upload.js",
+          "src/content/template-publish-flow.js",
+          "src/content/template-verification.js",
+          "src/popup/popup.js",
+          "src/shared/managed-navigation.js",
+          "src/shared/message-contract-registry.js",
+          "src/shared/my-ads-readiness.js",
+          "src/shared/platform-hardening.js",
+          "src/shared/renewal-policy.js",
+          "src/shared/runtime-deps.js"
+        ],
+        "reachable": 103,
+        "unreachable": [],
+        "missingDependencies": [],
+        "cycles": []
+      }
+    },
+    "mandatoryGate": "RED: closed DELETE response-port replay, missing expected rejection",
+    "builderGuards": [
+      {
+        "runId": 45647053775,
+        "jobId": 139320737859,
+        "reason": "No explicit authorized marker"
+      }
+    ],
+    "artifact": [
+      "2026-11-25T15:37:15.8455825Z SHA256 digest of uploaded artifact zip is 3f51f88159811aacfe9e7d50a701078db76273707e7ba4b5dd5b4da2efae34de",
+      "2026-11-25T15:37:16.2411492Z Artifact kar210-cp38-diagnostic.zip successfully finalized. Artifact ID 15038396316"
+    ]
+  }
+}

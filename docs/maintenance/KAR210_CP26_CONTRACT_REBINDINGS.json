@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "issue": 210,
+  "checkpoint": 26,
+  "sourceCommit": "66cffbc6d06542461ba8695b7db98099ad6c57ab",
+  "originalsRetainedInGit": true,
+  "policy": "Historical minimal baseline first; exact identity and reviewed actual owners, independent genuine RED retained; no runtime or active command change. Validation pending.",
+  "review": [
+    {
+      "path": "tests/v1170-a1b-authority.cjs",
+      "originalBlob": "c318949fc7dbcd695737a73ca8677e4652ef33ec",
+      "originalCommit": "66cffbc6d06542461ba8695b7db98099ad6c57ab",
+      "changes": [
+        "Exact S02 identity and historical feature selection; original behavioral assertions retained."
+      ]
+    },
+    {
+      "path": "tests/v1171-phase-retries.cjs",
+      "originalBlob": "7f7f5a77dfb34aab18ba9dcd5f5e15bbaa37d6cb",
+      "originalCommit": "66cffbc6d06542461ba8695b7db98099ad6c57ab",
+      "changes": [
+        "Exact S02 identity and historical feature selection; original behavioral assertions retained."
+      ]
+    },
+    {
+      "path": "tests/v1171-phase-retry-policy-runtime.cjs",
+      "originalBlob": "b3da9ef514bc774cbfc6ca3c65cb9783dbeaad10",
+      "originalCommit": "66cffbc6d06542461ba8695b7db98099ad6c57ab",
+      "changes": [
+        "Execute original bounded retry and persisted publish boundary cases against hash-checked historical owner; keep later service wiring outside S02."
+      ]
+    },
+    {
+      "path": "tests/v1172-account-modal-ux.cjs",
+      "originalBlob": "768bef9d728a5eaa4951d51ebf523ec1faaa071b",
+      "originalCommit": "66cffbc6d06542461ba8695b7db98099ad6c57ab",
+      "changes": [
+        "Exact S02 identity and historical feature selection; original behavioral assertions retained."
+      ]
+    },
+    {
+      "path": "tests/v1173-profile-status-ux.cjs",
+      "originalBlob": "64db2c9969f4d341acb8dd09fb81c6c8ba5db463",
+      "originalCommit": "66cffbc6d06542461ba8695b7db98099ad6c57ab",
+      "changes": [
+        "Exact S02 identity and historical feature selection; original behavioral assertions retained."
+      ]
+    },
+    {
+      "path": "tests/v1174-sidebar-header-ux.cjs",
+      "originalBlob": "482386505cbba6a285256d204fe0767775badca1",
+      "originalCommit": "66cffbc6d06542461ba8695b7db98099ad6c57ab",
+      "changes": [
+        "Exact S02 identity and historical feature selection; original behavioral assertions retained."
+      ]
+    },
+    {
+      "path": "tests/v1176-guided-trash-template.cjs",
+      "originalBlob": "2b8788970f763de77b6ff7726de32b5fd54a6455",
+      "originalCommit": "66cffbc6d06542461ba8695b7db98099ad6c57ab",
+      "changes": [
+        "Retain guided UI, passive detection and historical own-ad/source-ID/target-tab checks; later account-bound service wiring remains outside S02, independent product safety witnesses remain active."
+      ]
+    },
+    {
+      "path": "tests/v1176-trash-template-publish-runtime.cjs",
+      "originalBlob": "80815f7e6d07ea5c47424600a38e95143bf00c77",
+      "originalCommit": "66cffbc6d06542461ba8695b7db98099ad6c57ab",
+      "changes": [
+        "Original public/edit/source-ID/foreign-host runtime cases execute actual hash-checked historical parser; later service registration retained outside S02."
+      ]
+    },
+    {
+      "path": "tests/v1178-phase3-public-url.cjs",
+      "originalBlob": "cdf7b14081a0c1659f96a5628faf87f7ba8ac360",
+      "originalCommit": "66cffbc6d06542461ba8695b7db98099ad6c57ab",
+      "changes": [
+        "Scope original target-bound canonical/direct/fresh worker checks to actual historical owner; later delegation retained outside S02."
+      ]
+    }
+  ],
+  "focusedValidation": {
+    "runId": 45596622746,
+    "jobId": 139144264069,
+    "head": "68a560e70064b4f7e1d805fdf94f5f1c9f7be206",
+    "passed": 12,
+    "failed": 0,
+    "completeHistoricalContracts": 9,
+    "completeContractGroups": 70,
+    "negativeFixtures": 59
+  },
+  "builderGuard": {
+    "runId": 45596622504,
+    "jobId": 139144263057,
+    "result": "failure",
+    "reason": "No explicit authorized marker; no build executed."
+  }
+}

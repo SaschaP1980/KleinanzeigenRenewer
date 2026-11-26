@@ -4,32 +4,42 @@ const path = require('path');
 const vm = require('vm');
 
 const root = path.resolve(__dirname, '..');
+const historical = require('./kar210-historical-contract-context.cjs');
+const restored = historical.isRestored(root);
 const bg = fs.readFileSync(path.join(root, 'background.js'), 'utf8');
 const fields = bg.match(/const CORRELATION_CONTEXT_FIELDS = Object\.freeze\(\[[\s\S]*?\]\);/)?.[0] || '';
 const start = bg.indexOf('function correlationContext(...sources)');
 const end = bg.indexOf('\n}', start);
 assert.ok(fields && start >= 0 && end > start, 'original correlation context projection missing');
-const service = fs.readFileSync(path.join(root, 'src/background/services/diagnostic-correlation-service.js'), 'utf8');
-assert.ok(service.includes('function correlationContextFromBindings('), 'private multi-workflow correlation implementation must remain in its registered service');
-assert.ok(bg.includes('requireDiagnosticCorrelationService().resolveClientDiagnosticCorrelation(message, sender)'), 'entrypoint must delegate to trusted owner');
-const testOnly = service.replace(
-  'return Object.freeze({resolveClientDiagnosticCorrelation});',
-  'return Object.freeze({resolveClientDiagnosticCorrelation,correlationContextFromBindings});'
-);
-assert.notStrictEqual(testOnly, service, 'test-only private API exposure must not change production API');
+const service = fs.readFileSync(path.join(root, historical.historicalBackgroundOwner(root, 'src/background/services/diagnostic-correlation-service.js')), 'utf8');
 const sandbox = {};
 sandbox.globalThis = sandbox;
-sandbox.KRDeps = {register(name, api){
-  assert.strictEqual(name,'KRDiagnosticCorrelationService');
-  sandbox.__provider = api;
-}};
-vm.runInNewContext(`${fields}\n${bg.slice(start, end+2)}\n${testOnly}\nglobalThis.__ctx = correlationContext;`, sandbox);
-assert.strictEqual(typeof sandbox.__provider?.create,'function');
-sandbox.__resolve = sandbox.__provider.create({
-  correlationContext: sandbox.__ctx, storageLocal: {get: async () => ({})},
-  RENEWAL_SESSIONS_KEY:'renewalSessions', MASS_RENEWAL_BATCH_KEY:'massRenewalBatch',
-  ARCHIVE_INSERTION_SESSIONS_KEY:'archiveInsertionSessions'
-}).correlationContextFromBindings;
+if (restored) {
+  const binding = service.match(/function correlationContextFromBindings\(baseContext = \{\}, bindings = \{\}\) \{[\s\S]*?\n\}/)?.[0];
+  const entry = service.match(/async function resolveClientDiagnosticCorrelation\(message = \{\}, sender = \{\}\) \{[\s\S]*?\n\}/)?.[0];
+  assert.ok(binding && entry, 'actual historical correlation owner functions required');
+  assert.match(entry, /return correlationContextFromBindings\(\{ \.\.\.base, senderTabId \},/);
+  vm.runInNewContext(fields + '\n' + bg.slice(start, end+2) + '\n' + binding + '\nglobalThis.__resolve = correlationContextFromBindings;', sandbox);
+} else {
+  assert.ok(service.includes('function correlationContextFromBindings('), 'private multi-workflow correlation implementation must remain in its registered service');
+  assert.ok(bg.includes('requireDiagnosticCorrelationService().resolveClientDiagnosticCorrelation(message, sender)'), 'entrypoint must delegate to trusted owner');
+  const testOnly = service.replace(
+    'return Object.freeze({resolveClientDiagnosticCorrelation});',
+    'return Object.freeze({resolveClientDiagnosticCorrelation,correlationContextFromBindings});'
+  );
+  assert.notStrictEqual(testOnly, service, 'test-only private API exposure must not change production API');
+  sandbox.KRDeps = {register(name, api){
+    assert.strictEqual(name,'KRDiagnosticCorrelationService');
+    sandbox.__provider = api;
+  }};
+  vm.runInNewContext(`${fields}\n${bg.slice(start, end+2)}\n${testOnly}\nglobalThis.__ctx = correlationContext;`, sandbox);
+  assert.strictEqual(typeof sandbox.__provider?.create,'function');
+  sandbox.__resolve = sandbox.__provider.create({
+    correlationContext: sandbox.__ctx, storageLocal: {get: async () => ({})},
+    RENEWAL_SESSIONS_KEY:'renewalSessions', MASS_RENEWAL_BATCH_KEY:'massRenewalBatch',
+    ARCHIVE_INSERTION_SESSIONS_KEY:'archiveInsertionSessions'
+  }).correlationContextFromBindings;
+}
 
 const bindings = {
   bulkRun: { operationId: 'bulk-op', bulkRunId: 'bulk-run', runId: 'bulk-run', sourceTabId: 10, workerTabId: 11, metadataTabId: 12 },

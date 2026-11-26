@@ -1,0 +1,445 @@
+{
+  "schemaVersion": 1,
+  "issue": 210,
+  "checkpoint": 37,
+  "sourceCommit": "0d87bf654cbae0ef60129af38aae325c2a73f290",
+  "review": [
+    {
+      "test": "tests/kar99-phase4-resolution-observer.cjs",
+      "blob": "0562f041dffb746cf4395370e8cc4afedae731fd",
+      "module": "src/background/services/phase4-uncertainty-journal.js",
+      "matrix": "A12/A14/C02/C04",
+      "step": "S04/S06",
+      "status": "split-C",
+      "owner": "package.json",
+      "reason": "Original immutable dual-ID receipt and owner-census classifications are excluded C02/C04. Actual persisted lock/read-failure and restart unknown-outcome tests remain. Added whole product finish boundary rejects unverified independent absence and account change; no claim of journal equivalence.",
+      "retained": [
+        "tests/kar210-cp37-outcome-product-witness.cjs",
+        "tests/kar210-cp36-phase4-unknown-witness.cjs",
+        "tests/kar210-cp36-phase4-product-witness.cjs",
+        "tests/kar210-kar199-baseline-phase4.cjs",
+        "tests/kar199-phase4-no-transport-replay.cjs",
+        "tests/kar199-phase4-bounded-runtime.cjs",
+        "tests/kar199-phase4-unverified-state-runtime.cjs",
+        "tests/kar210-p13-persisted-owner-baseline.cjs",
+        "tests/kar210-p13-lock-read-uncertainty.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar99-phase4-journal-atomic.cjs",
+      "blob": "d409641aa82fcd61f94eced95f0ba4bac7173002",
+      "module": "src/background/services/phase4-uncertainty-journal.js",
+      "matrix": "A08/A12/A14/C03/C04",
+      "step": "S04/S06",
+      "status": "split-C",
+      "owner": "package.json",
+      "reason": "Shared P8 Web Lock, immutable journal and resolution tokens belong to excluded C03/C04. Existing insertion lock and in-process duplicate scheduling remain active; direct persisted unknown DELETE replay remains RED. No proof of cross-worker atomicity.",
+      "retained": [
+        "tests/kar210-cp37-outcome-product-witness.cjs",
+        "tests/kar210-cp36-phase4-unknown-witness.cjs",
+        "tests/kar210-cp36-phase4-product-witness.cjs",
+        "tests/kar210-kar199-baseline-phase4.cjs",
+        "tests/kar199-phase4-no-transport-replay.cjs",
+        "tests/kar199-phase4-bounded-runtime.cjs",
+        "tests/kar199-phase4-unverified-state-runtime.cjs",
+        "tests/kar210-p13-persisted-owner-baseline.cjs",
+        "tests/kar210-p13-lock-read-uncertainty.cjs",
+        "tests/v1234-insertion-lock-runtime.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar99-phase4-outcome-reconciliation.cjs",
+      "blob": "0dbbc154d6ba7baa4bc43ce65ecdaa993e4d8334",
+      "module": "src/background/services/phase4-uncertainty-journal.js",
+      "matrix": "A11/A12/A13/A14/C04",
+      "step": "S04/S06",
+      "status": "split-C",
+      "owner": "package.json",
+      "reason": "Immutable resolution API and its additional dual fresh roster scan mechanism excluded. Actual historical finish path must reject missing or mismatched local source/candidate, source still present, unavailable scan or wrong account before promotion; verified exact source absence positive control reaches atomic promotion only. Prior target verification, exact source deletion and unknown replay remain active. No claim of new target readback or journal proof.",
+      "retained": [
+        "tests/kar210-cp37-outcome-product-witness.cjs",
+        "tests/kar210-cp36-phase4-unknown-witness.cjs",
+        "tests/kar210-cp36-phase4-product-witness.cjs",
+        "tests/kar210-kar199-baseline-phase4.cjs",
+        "tests/kar199-phase4-no-transport-replay.cjs",
+        "tests/kar199-phase4-bounded-runtime.cjs",
+        "tests/kar199-phase4-unverified-state-runtime.cjs",
+        "tests/kar210-p13-persisted-owner-baseline.cjs",
+        "tests/kar210-p13-lock-read-uncertainty.cjs",
+        "tests/v1177-performance4-phase4.cjs",
+        "tests/kar210-kar175-public-navigation-baseline.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar99-p13f2e2d2b2a-real-publish-route.cjs",
+      "blob": "110a6bf09c5389d4246ce67bb5dd4a5a9033e513",
+      "module": "src/background/services/cross-worker-atomic-admission.js",
+      "matrix": "A08/A09/A10/C03/C04",
+      "step": "S04/S06",
+      "status": "split-C",
+      "owner": "package.json",
+      "reason": "Private AUTHORIZE_AUTOMATIC_PUBLISH route and P8 callback tokens belong to excluded C03/C04. Actual historical registry and router must reject this absent route even with forged receipt; unknown/wrong-target denial, read-only epoch positive control, paid and stale-stage product guards retained.",
+      "retained": [
+        "tests/kar210-cp37-outcome-product-witness.cjs",
+        "tests/kar210-cp36-phase4-unknown-witness.cjs",
+        "tests/kar210-cp36-phase4-product-witness.cjs",
+        "tests/kar210-kar199-baseline-phase4.cjs",
+        "tests/kar199-phase4-no-transport-replay.cjs",
+        "tests/kar199-phase4-bounded-runtime.cjs",
+        "tests/kar199-phase4-unverified-state-runtime.cjs",
+        "tests/kar210-p13-persisted-owner-baseline.cjs",
+        "tests/kar210-p13-lock-read-uncertainty.cjs",
+        "tests/kar210-kar197-baseline-safety.cjs",
+        "tests/kar210-kar201-baseline-safety.cjs",
+        "tests/kar210-cp35-owner-product-witness.cjs",
+        "tests/v12226-paid-insertion-regression.cjs",
+        "tests/kar210-kar175-public-navigation-baseline.cjs",
+        "tests/v1234-insertion-lock-runtime.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar99-p13f2e2d2b1-token-witness.cjs",
+      "blob": "21477f4e0e18c0e5a105e5e8610b1c36e04781f9",
+      "module": "src/background/services/cross-worker-atomic-admission.js",
+      "matrix": "A08/A10/A12/A14/C03/C04",
+      "step": "S04/S06",
+      "status": "split-C",
+      "owner": "package.json",
+      "reason": "All token provenance, immutable begin/resolve and old-worker correlation assertions use excluded P8/fence/journals. Actual missing route denial, stale publish, existing lock and account gates and unresolved delete replay stay independently active. No token or journal equivalence.",
+      "retained": [
+        "tests/kar210-cp37-outcome-product-witness.cjs",
+        "tests/kar210-cp36-phase4-unknown-witness.cjs",
+        "tests/kar210-cp36-phase4-product-witness.cjs",
+        "tests/kar210-kar199-baseline-phase4.cjs",
+        "tests/kar199-phase4-no-transport-replay.cjs",
+        "tests/kar199-phase4-bounded-runtime.cjs",
+        "tests/kar199-phase4-unverified-state-runtime.cjs",
+        "tests/kar210-p13-persisted-owner-baseline.cjs",
+        "tests/kar210-p13-lock-read-uncertainty.cjs",
+        "tests/kar210-kar197-baseline-safety.cjs",
+        "tests/kar210-kar201-baseline-safety.cjs",
+        "tests/kar210-cp35-owner-product-witness.cjs",
+        "tests/v12226-paid-insertion-regression.cjs",
+        "tests/kar210-kar175-public-navigation-baseline.cjs",
+        "tests/v1234-insertion-lock-runtime.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar99-p13f2e2d2a-remote-admission-lineage.cjs",
+      "blob": "eb656dde6c6f3e0922a0e1e0ee74ffd1a2219aec",
+      "module": "src/background/services/persisted-owner-observer.js",
+      "matrix": "A08/A10/A12/A14/C02/C03/C04",
+      "step": "S03/S04/S06",
+      "status": "split-C",
+      "owner": "package.json",
+      "reason": "All historical overlap and candidate attribution tests depend on excluded census, admission and remote journal records. Keep persisted owner restart and read uncertainty, account mismatch, archive submitted lock, actual source absence and unresolved outcome witnesses; do not infer old journal authority or migration completion.",
+      "retained": [
+        "tests/kar210-cp37-outcome-product-witness.cjs",
+        "tests/kar210-cp36-phase4-unknown-witness.cjs",
+        "tests/kar210-cp36-phase4-product-witness.cjs",
+        "tests/kar210-kar199-baseline-phase4.cjs",
+        "tests/kar199-phase4-no-transport-replay.cjs",
+        "tests/kar199-phase4-bounded-runtime.cjs",
+        "tests/kar199-phase4-unverified-state-runtime.cjs",
+        "tests/kar210-p13-persisted-owner-baseline.cjs",
+        "tests/kar210-p13-lock-read-uncertainty.cjs",
+        "tests/kar210-kar197-baseline-safety.cjs",
+        "tests/kar210-kar201-baseline-safety.cjs",
+        "tests/kar210-cp35-owner-product-witness.cjs",
+        "tests/v12226-paid-insertion-regression.cjs",
+        "tests/kar210-kar175-public-navigation-baseline.cjs",
+        "tests/v1234-insertion-lock-runtime.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar99-p13f2e2d1-admission-history.cjs",
+      "blob": "47032767eb853376850f52cd491ac07a1fd72db7",
+      "module": "src/background/services/persisted-owner-observer.js",
+      "matrix": "A08/A14/C02/C03",
+      "step": "S04/S06",
+      "status": "excluded-C",
+      "owner": "package.json",
+      "reason": "Every test exercises read-only P8 admission history and census, explicitly not remote outcome or authority. Original retained; actual persisted workflow and failed read guards remain independently active; no cross-worker completion claim.",
+      "retained": [
+        "tests/kar210-cp37-outcome-product-witness.cjs",
+        "tests/kar210-cp36-phase4-unknown-witness.cjs",
+        "tests/kar210-cp36-phase4-product-witness.cjs",
+        "tests/kar210-kar199-baseline-phase4.cjs",
+        "tests/kar199-phase4-no-transport-replay.cjs",
+        "tests/kar199-phase4-bounded-runtime.cjs",
+        "tests/kar199-phase4-unverified-state-runtime.cjs",
+        "tests/kar210-p13-persisted-owner-baseline.cjs",
+        "tests/kar210-p13-lock-read-uncertainty.cjs",
+        "tests/kar210-cp35-owner-product-witness.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar99-p13f2e2c-remote-source-evidence.cjs",
+      "blob": "d18009d929cc91b5c9cc23806ff0692224a5f1d6",
+      "module": "src/background/services/persisted-owner-observer.js",
+      "matrix": "A08/A10/A12/A14/C02/C04",
+      "step": "S03/S04/S06",
+      "status": "split-C",
+      "owner": "package.json",
+      "reason": "All revision/identity readback tests require absent journal and observer. Retain actual account gates, source/candidate exact identity rejection, independent absence proof, stale submitted and persisted lock controls. Legacy journal data migration remains S03; no historical revision or closure claim.",
+      "retained": [
+        "tests/kar210-cp37-outcome-product-witness.cjs",
+        "tests/kar210-cp36-phase4-unknown-witness.cjs",
+        "tests/kar210-cp36-phase4-product-witness.cjs",
+        "tests/kar210-kar199-baseline-phase4.cjs",
+        "tests/kar199-phase4-no-transport-replay.cjs",
+        "tests/kar199-phase4-bounded-runtime.cjs",
+        "tests/kar199-phase4-unverified-state-runtime.cjs",
+        "tests/kar210-p13-persisted-owner-baseline.cjs",
+        "tests/kar210-p13-lock-read-uncertainty.cjs",
+        "tests/kar210-kar197-baseline-safety.cjs",
+        "tests/kar210-kar201-baseline-safety.cjs",
+        "tests/kar210-cp35-owner-product-witness.cjs",
+        "tests/v12226-paid-insertion-regression.cjs",
+        "tests/kar210-kar175-public-navigation-baseline.cjs",
+        "tests/v1234-insertion-lock-runtime.cjs"
+      ]
+    }
+  ],
+  "newProductWitness": "tests/kar210-cp37-outcome-product-witness.cjs",
+  "originalsUnchanged": true,
+  "activeSequenceBefore": 505,
+  "activeSequenceAfter": 498,
+  "qualification": "Eight excluded C02/C03/C04 architecture commands dispositioned; one independent product witness added and passed. No execution credit for inactive originals; no journal equivalence or runtime repair. Focused and independent D GREEN; actual gate RED.",
+  "firstFocused": {
+    "sourceCommit": "bdfe8908c96eec88133cacbd1e6b2d79dda01e0b",
+    "workflowCommit": "bcac354f95064e1ddb2402690cabdc50ca1d9701",
+    "runId": 45642143890,
+    "jobId": 139303356427,
+    "result": "8/9 commands, new witness 3/4",
+    "failure": "Positive control entered actual promoteRenewalCandidateAtomic but fixture lacked required TRASH_RETENTION_MS, causing RangeError Invalid time value at Date.toISOString before openDatabase. Inject exact historical production constant (30 * 24 * 60 * 60 * 1000), no runtime or assertion change.",
+    "diagnosticJobId": 139303357453,
+    "diagnosticState": "in_progress"
+  },
+  "firstDiagnostic": {
+    "counts": {
+      "PASS": 469,
+      "FAIL": 29,
+      "TIMEOUT": 0
+    },
+    "coverage": "2026-11-25T15:11:18.8154217Z PASS coverage no-regression: public 100% · lines 45.38% · branches 25.66%",
+    "fixtureFailure": "2026-11-25T15:10:40.3932781Z CP37_ROW {\"index\": 12, \"command\": \"node --test tests/kar210-cp37-outcome-product-witness.cjs\", \"exitCode\": 1, \"status\": \"FAIL\", \"seconds\": 0.08, \"evidence\": [\"not ok 4 - positive control: independent exact absence reaches real atomic promotion entry, not an invented successful exchange\", \"'RangeError: Invalid time value'\", \"name: 'AssertionError'\"]}",
+    "artifact": [
+      "2026-11-25T15:11:19.8221195Z SHA256 digest of uploaded artifact zip is 657bc77e75cc706638f9eb084710c21057cfd67bc394b7e84d2ea0fb9c55ab15",
+      "2026-11-25T15:11:20.1934809Z Artifact kar210-cp37-diagnostic.zip successfully finalized. Artifact ID 15036815223"
+    ]
+  },
+  "finalValidation": {
+    "sourceCommit": "8f023436f00f905dc8bd5aa3bf13ae084fed7de1",
+    "workflowCommit": "e5820f8dba88433a8cf4a159d29f52096c611217",
+    "runId": 45642387027,
+    "focusedJobId": 139304227828,
+    "diagnosticJobId": 139304228481,
+    "mandatoryGateJobId": 139304228489,
+    "counts": {
+      "PASS": 470,
+      "FAIL": 28,
+      "TIMEOUT": 0
+    },
+    "focus": "9/9; new product witness 4/4; disposition 15 negatives",
+    "coverageNoRegression": "PASS",
+    "measurement": {
+      "summary": {
+        "schemaVersion": 1,
+        "engine": "Node/V8 precise coverage + Acorn source mapping",
+        "lineDefinition": "source lines containing meaningful JavaScript tokens; covered when V8 precise coverage reports execution for at least one token on the line",
+        "branchDefinition": "AST if/conditional/logical/switch arms mapped to V8 precise block counts",
+        "runtimeModules": 103,
+        "loadedRuntimeModules": 98,
+        "publicFunctions": {
+          "covered": 811,
+          "total": 811,
+          "percent": 100
+        },
+        "lines": {
+          "covered": 11575,
+          "total": 25508,
+          "percent": 45.38
+        },
+        "branches": {
+          "covered": 6358,
+          "total": 24782,
+          "percent": 25.66
+        },
+        "areas": {
+          "app": {
+            "lines": {
+              "covered": 4330,
+              "total": 9321,
+              "percent": 46.45
+            },
+            "branches": {
+              "covered": 2397,
+              "total": 9394,
+              "percent": 25.52
+            },
+            "public": {
+              "covered": 328,
+              "total": 328,
+              "percent": 100
+            }
+          },
+          "background": {
+            "lines": {
+              "covered": 4972,
+              "total": 11125,
+              "percent": 44.69
+            },
+            "branches": {
+              "covered": 2851,
+              "total": 11014,
+              "percent": 25.89
+            },
+            "public": {
+              "covered": 383,
+              "total": 383,
+              "percent": 100
+            }
+          },
+          "content": {
+            "lines": {
+              "covered": 1845,
+              "total": 4576,
+              "percent": 40.32
+            },
+            "branches": {
+              "covered": 897,
+              "total": 4008,
+              "percent": 22.38
+            },
+            "public": {
+              "covered": 76,
+              "total": 76,
+              "percent": 100
+            }
+          },
+          "popup": {
+            "lines": {
+              "covered": 0,
+              "total": 20,
+              "percent": 0
+            },
+            "branches": {
+              "covered": 0,
+              "total": 10,
+              "percent": 0
+            },
+            "public": {
+              "covered": 0,
+              "total": 0,
+              "percent": 100
+            }
+          },
+          "shared": {
+            "lines": {
+              "covered": 428,
+              "total": 466,
+              "percent": 91.85
+            },
+            "branches": {
+              "covered": 213,
+              "total": 356,
+              "percent": 59.83
+            },
+            "public": {
+              "covered": 24,
+              "total": 24,
+              "percent": 100
+            }
+          }
+        }
+      },
+      "audit": {
+        "schemaVersion": 1,
+        "runtimeModules": 103,
+        "providers": 96,
+        "roots": [
+          "src/app/account-gate.js",
+          "src/app/actions-diagnostics-controller.js",
+          "src/app/app-activity-center.js",
+          "src/app/app-elements.js",
+          "src/app/app-layout-controller.js",
+          "src/app/app.js",
+          "src/app/archive-insertion-ui-controller.js",
+          "src/app/archive-trash-insertion-ui-controller.js",
+          "src/app/control-accordion-controller.js",
+          "src/app/diagnostic-zip.js",
+          "src/app/diagnostics-controls-controller.js",
+          "src/app/inventory-candidate-model.js",
+          "src/app/inventory-capture-controller.js",
+          "src/app/inventory-capture-view.js",
+          "src/app/inventory-card-renderer.js",
+          "src/app/inventory-export.js",
+          "src/app/inventory-formatting.js",
+          "src/app/inventory-import.js",
+          "src/app/inventory-render-controller.js",
+          "src/app/inventory-view.js",
+          "src/app/mass-renewal-ui-controller.js",
+          "src/app/native-update-check-ui.js",
+          "src/app/profile-account-ui-controller.js",
+          "src/app/profile-backup-controller.js",
+          "src/app/profile-backup-storage-service.js",
+          "src/app/profile-backup.js",
+          "src/app/record-card-view.js",
+          "src/app/renewal-dialog-controller.js",
+          "src/app/renewal-settings-controller.js",
+          "src/app/shared-ui-helpers.js",
+          "src/app/tab-page-inspection-controller.js",
+          "src/app/trash-card-renderer.js",
+          "src/app/trash-template-ui-controller.js",
+          "src/background/background.js",
+          "src/content/content.js",
+          "src/content/form-extractor.js",
+          "src/content/image-extractor.js",
+          "src/content/inventory-delete-operations.js",
+          "src/content/inventory-readiness.js",
+          "src/content/inventory-roster-parser.js",
+          "src/content/inventory-run-loop.js",
+          "src/content/inventory-runner.js",
+          "src/content/inventory-status-overlay.js",
+          "src/content/paid-insertion-guard.js",
+          "src/content/platform-guard-content.js",
+          "src/content/template-category-flow.js",
+          "src/content/template-filler.js",
+          "src/content/template-form-fields.js",
+          "src/content/template-image-upload.js",
+          "src/content/template-publish-flow.js",
+          "src/content/template-verification.js",
+          "src/popup/popup.js",
+          "src/shared/managed-navigation.js",
+          "src/shared/message-contract-registry.js",
+          "src/shared/my-ads-readiness.js",
+          "src/shared/platform-hardening.js",
+          "src/shared/renewal-policy.js",
+          "src/shared/runtime-deps.js"
+        ],
+        "reachable": 103,
+        "unreachable": [],
+        "missingDependencies": [],
+        "cycles": []
+      }
+    },
+    "mandatoryGate": "RED: closed DELETE response-port replay, missing expected rejection",
+    "builderGuards": [
+      {
+        "runId": 45642145181,
+        "jobId": 139303359969,
+        "reason": "No explicit authorized marker"
+      },
+      {
+        "runId": 45642387141,
+        "jobId": 139304229312,
+        "reason": "No explicit authorized marker"
+      }
+    ],
+    "artifact": [
+      "2026-11-25T15:12:49.4638403Z SHA256 digest of uploaded artifact zip is 1d9bfb9e9089d089dc86c662d9289eaf5cdd13f033a00d7fb762c699ae5f621e",
+      "2026-11-25T15:12:49.8082517Z Artifact kar210-cp37-diagnostic.zip successfully finalized. Artifact ID 15036500980"
+    ]
+  }
+}

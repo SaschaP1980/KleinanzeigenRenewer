@@ -1,3 +1,5 @@
+const {isRestored}=require('./kar210-historical-contract-context.cjs');
+const restored=isRestored(require('node:path').resolve(__dirname,'..'));
 const assert=require('assert'),fs=require('fs');
 const bg=fs.readFileSync('background.js','utf8');
 const svc=fs.readFileSync('archive-insertion-service.js','utf8');
@@ -16,7 +18,7 @@ pass('safe mode reopens edit form and compares managed fields',()=>{assert(has('
 pass('fast and safe post-publish paths remain distinct',()=>{assert(has('runArchiveInsertionPostPublish'));assert.match(src,/RENEWAL_MODE_FAST/);assert.match(src,/promoteArchiveTemplateToInventory/);assert.match(src,/verifyAndSaveArchiveInsertion/);});
 pass('published id confirmation updates fill and archive session',()=>{assert(has('confirmPublishedArchiveInsertion'));assert.match(src,/ARCHIVE_INSERT_NEW_ID_CONFIRMED/);assert.match(src,/new-id-confirmed/);});
 pass('service-worker recovery exists',()=>{assert(has('resumePendingArchiveInsertions'));assert(has('completeRecoveredArchiveInsertionIfAlreadyInventoried'));assert.match(src,/ARCHIVE_INSERT_RECOVERY_ALREADY_INVENTORIED/);});
-pass('archive terminal, review and unresolved-publish states remain explicit',()=>{assert.match(src,/\['complete', 'needs-review', 'error', 'cancelled', 'publish-blocked'\]/);assert.match(src,/complete-with-discrepancies/);assert.match(src,/remoteVerificationRequired/);});
+pass('archive terminal, review and unresolved-publish states remain explicit',()=>{if(restored){assert.match(recovery,/\['complete', 'needs-review', 'error', 'cancelled'\]\.includes/);assert.match(src,/session\?\.status === 'submitted'/);assert.match(src,/session\?\.newAdId/);assert.doesNotMatch(recovery,/publish-blocked/);}else{assert.match(src,/\['complete', 'needs-review', 'error', 'cancelled', 'publish-blocked'\]/);}assert.match(src,/complete-with-discrepancies/);assert.match(src,/remoteVerificationRequired/);});
 pass('archive state persistence is revisioned',()=>{assert.match(svc,/session\.revision\s*=\s*Math\.max/);assert.match(svc,/broadcastArchiveInsertionState/);});
 pass('archive cleanup removes staging images after terminalization',()=>{assert.match(src,/deleteImagesByInventoryId\(session\.stagingInventoryId\)/);});
 console.log(`${n}/12 PASS v1.23.5 pre-refactor archive characterization`);

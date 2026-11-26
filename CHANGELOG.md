@@ -4,6 +4,13 @@ This is the canonical version-specific history for Kleinanzeigen Manager. Entrie
 
 All distinct historical section bodies from the former root README and CHANGELOG are preserved with source labels and line numbers. The [KAR-170 migration ledger](docs/maintenance/KAR170_CHANGELOG_MIGRATION.json) identifies their original Git blobs and body checksums. Overlapping versions retain distinct factual notes; older references to planned builds or native/CI acceptance are **historical**, not live status.
 
+## v2.0.0.0 — KAR-210 performance-first technical baseline (Work source, validation pending)
+
+- Restore the product runtime of the owner-validated v1.23.48 source as a forward change from current Git ancestry, retaining the current UI asset layout and applicable development infrastructure. No later updater admission, owner census, persistent publish/delete journals or unrelated donor features are imported.
+- Establish four-component Chrome product versioning (MAJOR.MINOR.PATCH.HOTFIX) with valid derived npm SemVer, consistent package/archive names, explicit version-class transitions and unchanged extension identity. Historical three-component versions and correction archives retain their own identities.
+- Retain historical source, archives, tests and immutable Gold evidence. Reconcile the active test and CI contracts against the restored runtime; distinguish excluded architecture from retained product safety and later owner-approved migration outcomes.
+- This is an isolated technical source baseline, not a released or installable build. Static runtime identity was verified; full runtime, coverage, architecture, packaged Chromium and source-matching ZIP validation remain pending. No live account action or new native performance result is implied. S03 data compatibility and S04 updater removal are prerequisites for use with the owner's live profile.
+
 ## v1.25.12 — KAR-201 explicit owner-approved standalone manual posting (Work candidate, not yet released)
 
 - Following the owner's native v1.25.11 confirmation that eleven archive images and the recoverable fields were transferred and all remaining category attributes were manually entered, add an **explicit, human-only final route**. This is not automatic publication, not automatic ZIP completion and never a replacement/source-deletion workflow.

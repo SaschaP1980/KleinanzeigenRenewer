@@ -1,23 +1,22 @@
 {
-  "version": "1.25.12",
+  "version": "2.0.0.0",
   "project": "kleinanzeigen Manager / Kleinanzeigen Renewal",
-  "epic": "KAR-197-publish-intent-web-lock-and-zip-blocked-recovery",
+  "epic": "KAR-208 / KAR-210 S02 historical runtime foundation",
   "goldBaseline": "1.21.15",
-  "directBasis": "1.23.20_c1",
-  "directBasisNativeGreen": true,
-  "directBasisObservation": "v1.23.20_c1 ist RELEASE_GREEN und besitzt reale Fast-3er-Goldlinien. Zwei spätere reale Massenläufe vom 10.10.2026 zeigten jedoch einen flüchtigen Titel-Fill-/DOM-State-Fehler: Diagnose 11-22-33 (SHA-256 0ac5642d4fb6b69575c88d6e116fa2152ad0cd84c512f38198afddfa3c72a4df) mit 3/7 temporären Titel-Mismatches und Diagnose 12-03-51 (SHA-256 161cabb74e8a8eb454c91e3c35dc8158a7a782b9d0354fb4e003d12e487db641) mit 5/10. Unveränderte Titel konnten in späteren Versuchen erfolgreich sein; daher wird v1.23.22 als enger Correction-Build vor EPIC-REF-003 erstellt.",
+  "directBasis": "1.23.48",
+  "directBasisNativeGreen": false,
+  "directBasisObservation": "Historical v1.23.48 is the owner-approved semantic runtime reference; historical real-use reports are not a native acceptance run for this 2.0.0.0 checkpoint. No live data or account action authorized.",
   "scope": [
-    "KAR-197: bound retry of transient shared P8/publish-intent journal Web Lock contention only before entering a journal critical section, retaining durable intent and exact P8 pre-click admission.",
-    "On automatic or manual publish authorization denial, persist recoverable fail-closed blocked state in template fill and archive session, with truthful ZIP Manager progress and no implicit re-insertion.",
-    "Preserve unresolved remote-outcome protection across MV3 and Manager restarts; keep ZIP staging, original records, identity checks and all existing paid-insertion gates.",
-    "Synthetic RED confirmed on v1.25.4 baseline GitHub CI; GREEN, source-identical Chromium, versioned ZIP parity and native owner acceptance pending independently.",
-    "Dynamic Public Function Coverage remains 100 % and Architecture-No-Regression must remain PASS on the exact packaged source; line/branch, Windows and packaged Chromium E2E are mandatory. No hosted CI Kleinanzeigen mutation."
+    "Restore v1.23.48 historical runtime, retaining KAR-174 UI path layout and current development tooling.",
+    "Version identity 2.0.0.0, npm 2.0.0; preserve extension key, historical releases and Git ancestry.",
+    "Exclude later updater/admission/journal modules from the baseline source/package. Legacy native status hooks remain isolated; S04 final removal and S03 data compatibility required before any live profile use.",
+    "All applicable dynamic public API, line/branch/architecture, packaging and Chromium gates remain mandatory. Current full suite reconciliation and actual execution are pending; no release or native PASS claimed."
   ],
   "nextPlannedBuild": "TBD",
   "nextPlannedBuildGoal": "Determined by separately authorized open GitHub Issues.",
   "nativeSmokeRequired": true,
-  "performanceRunRequired": false,
-  "performanceRule": "No new mass-renewal performance run is required for local-only KAR-161 trash retention. Historical v1.23.20 Gold-line matrix remains the reference, without claiming a new measurement.",
+  "performanceRunRequired": true,
+  "performanceRule": "Owner-approved S12 Fast-mode mean budgets: 25 s/ad faster hardware (Fast-3 <=75 s), 45 s/ad slower hardware (Fast-3 <=135 s). Comparable fixtures and separately authorized native operations only after S03/S04/S05. Historical Goldlines retained as historical evidence; no new measurement.",
   "safety": {
     "runtimeSubmitCalls": 0,
     "runtimeRequestSubmitCalls": 0,
@@ -27,132 +26,25 @@
   },
   "coverage": {
     "schemaVersion": 1,
-    "engine": "Node/V8 precise coverage + Acorn source mapping",
-    "lineDefinition": "source lines containing meaningful JavaScript tokens; covered when V8 precise coverage reports execution for at least one token on the line",
-    "branchDefinition": "AST if/conditional/logical/switch arms mapped to V8 precise block counts",
-    "runtimeModules": 100,
-    "loadedRuntimeModules": 95,
+    "status": "pending",
     "publicFunctions": {
-      "covered": 805,
-      "total": 805,
-      "percent": 100
-    },
-    "lines": {
-      "covered": 10241,
-      "total": 24601,
-      "percent": 41.63
-    },
-    "branches": {
-      "covered": 5294,
-      "total": 23736,
-      "percent": 22.3
-    },
-    "areas": {
-      "app": {
-        "lines": {
-          "covered": 3864,
-          "total": 9095,
-          "percent": 42.48
-        },
-        "branches": {
-          "covered": 2066,
-          "total": 9128,
-          "percent": 22.63
-        },
-        "public": {
-          "covered": 328,
-          "total": 328,
-          "percent": 100
-        }
-      },
-      "background": {
-        "lines": {
-          "covered": 4544,
-          "total": 10761,
-          "percent": 42.23
-        },
-        "branches": {
-          "covered": 2431,
-          "total": 10588,
-          "percent": 22.96
-        },
-        "public": {
-          "covered": 377,
-          "total": 377,
-          "percent": 100
-        }
-      },
-      "content": {
-        "lines": {
-          "covered": 1406,
-          "total": 4260,
-          "percent": 33
-        },
-        "branches": {
-          "covered": 585,
-          "total": 3654,
-          "percent": 16.01
-        },
-        "public": {
-          "covered": 76,
-          "total": 76,
-          "percent": 100
-        }
-      },
-      "popup": {
-        "lines": {
-          "covered": 0,
-          "total": 20,
-          "percent": 0
-        },
-        "branches": {
-          "covered": 0,
-          "total": 10,
-          "percent": 0
-        },
-        "public": {
-          "covered": 0,
-          "total": 0,
-          "percent": 100
-        }
-      },
-      "shared": {
-        "lines": {
-          "covered": 427,
-          "total": 465,
-          "percent": 91.83
-        },
-        "branches": {
-          "covered": 212,
-          "total": 356,
-          "percent": 59.55
-        },
-        "public": {
-          "covered": 24,
-          "total": 24,
-          "percent": 100
-        }
-      }
+      "covered": null,
+      "total": null,
+      "percent": null
     }
   },
-  "releaseSummary": "KAR-191/KAR-193 diagnosis and reset safety forward-merged onto v1.25.1 (KAR-188/164). v1.25.2 Work patch candidate; no GitHub Release implied.",
+  "releaseSummary": "2.0.0.0 Work-only source restoration checkpoint. Test activation reconciliation, actual build and hosted CI pending. Not installable/released/accepted.",
   "architectureHighlights": [
-    "Keine neue Runtime-/IPC-Grenze; die Korrektur bleibt in den bestehenden Template-Fill-/Verification-Ownern.",
-    "Title Readback/Rewrite ist bounded und repariert nur den exakt erwarteten Template-Titel; nach drei fehlgeschlagenen Versuchen bleibt der Ablauf needs-review/fail-closed.",
-    "Finale Feldverifikation kann an das konkret aufgelöste aktive Inserierformular gebunden werden statt erneut einen globalen, potenziell stalen Knoten zu lesen.",
-    "Bestehende Template-Filler-Public-API bleibt unverändert; keine neuen Public Runtime Functions wurden eingeführt.",
-    "EPIC-REF-003 Lifecycle-Refactoring bleibt separat und beginnt erst mit v1.24.0."
+    "Historical product safeguards and runtime behavior are primary; only explicit path/layout and version metadata changes in this restore slice.",
+    "Current development gates and test files retained; reconcile later feature/updater-dependent assertions without weakening retained product behavior.",
+    "No new runtime/IPC boundary or later cross-worker admission architecture introduced."
   ],
   "nativeSmokeChecks": [
-    "Open Konfiguration and verify all seven retention stops, keyboard and focus behaviour.",
-    "Check persisted selection across Chrome restart, legacy 30-day default and infinity semantics.",
-    "Verify warning/cancel/confirm with representative local-only trash fixtures and no remote mutations.",
-    "Verify the Papierkorb deadline and restart-period wording in compact and detailed views.",
-    "Validate canonical all-profile affected-count preview and fail-closed cancellation when the active profile or trash snapshot changes.",
-    "Verify local-only atomic record-and-image deletion under exact inventory IDs, retention-reset boundaries and MV3 interruption; assert no remote Kleinanzeigen mutation."
+    "Do not install this intermediate checkpoint on live data. S03 compatibility and S04 updater removal are prerequisites.",
+    "After separately authorized native acceptance, verify Chrome identity, boot, profile/locks, actual current form compatibility and matched Fast-3 budgets."
   ],
-  "packageVersion": "1.25.12",
-  "directBasisNativePending": false,
+  "packageVersion": "2.0.0.0",
+  "directBasisNativePending": true,
   "architectureFiles": [
     {
       "key": "appElements",
@@ -398,5 +290,131 @@
       ],
       "result": "3/3 erfolgreich, 0 Warnungen, 0 Fehler"
     }
-  ]
+  ],
+  "performanceBudget": {
+    "mode": "fast",
+    "fastHardwareMeanSeconds": 25,
+    "slowHardwareMeanSeconds": 45,
+    "fastThreeSeconds": 75,
+    "slowThreeSeconds": 135,
+    "acceptanceStep": "S12",
+    "status": "pending"
+  },
+  "priorCoverageReference": {
+    "sourceVersion": "1.25.12",
+    "sourceCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd",
+    "sourcePath": "release/release-spec.json",
+    "note": "Historical values retained as prior metadata only, not measurements of 2.0.0.0.",
+    "coverage": {
+      "schemaVersion": 1,
+      "engine": "Node/V8 precise coverage + Acorn source mapping",
+      "lineDefinition": "source lines containing meaningful JavaScript tokens; covered when V8 precise coverage reports execution for at least one token on the line",
+      "branchDefinition": "AST if/conditional/logical/switch arms mapped to V8 precise block counts",
+      "runtimeModules": 100,
+      "loadedRuntimeModules": 95,
+      "publicFunctions": {
+        "covered": 805,
+        "total": 805,
+        "percent": 100
+      },
+      "lines": {
+        "covered": 10241,
+        "total": 24601,
+        "percent": 41.63
+      },
+      "branches": {
+        "covered": 5294,
+        "total": 23736,
+        "percent": 22.3
+      },
+      "areas": {
+        "app": {
+          "lines": {
+            "covered": 3864,
+            "total": 9095,
+            "percent": 42.48
+          },
+          "branches": {
+            "covered": 2066,
+            "total": 9128,
+            "percent": 22.63
+          },
+          "public": {
+            "covered": 328,
+            "total": 328,
+            "percent": 100
+          }
+        },
+        "background": {
+          "lines": {
+            "covered": 4544,
+            "total": 10761,
+            "percent": 42.23
+          },
+          "branches": {
+            "covered": 2431,
+            "total": 10588,
+            "percent": 22.96
+          },
+          "public": {
+            "covered": 377,
+            "total": 377,
+            "percent": 100
+          }
+        },
+        "content": {
+          "lines": {
+            "covered": 1406,
+            "total": 4260,
+            "percent": 33
+          },
+          "branches": {
+            "covered": 585,
+            "total": 3654,
+            "percent": 16.01
+          },
+          "public": {
+            "covered": 76,
+            "total": 76,
+            "percent": 100
+          }
+        },
+        "popup": {
+          "lines": {
+            "covered": 0,
+            "total": 20,
+            "percent": 0
+          },
+          "branches": {
+            "covered": 0,
+            "total": 10,
+            "percent": 0
+          },
+          "public": {
+            "covered": 0,
+            "total": 0,
+            "percent": 100
+          }
+        },
+        "shared": {
+          "lines": {
+            "covered": 427,
+            "total": 465,
+            "percent": 91.83
+          },
+          "branches": {
+            "covered": 212,
+            "total": 356,
+            "percent": 59.55
+          },
+          "public": {
+            "covered": 24,
+            "total": 24,
+            "percent": 100
+          }
+        }
+      }
+    }
+  },
+  "validationStatus": "SOURCE_RESTORED_GATES_PENDING"
 }
