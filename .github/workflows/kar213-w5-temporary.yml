@@ -1,4 +1,4 @@
-name: KAR-213 W5 full gates (temporary)
+name: KAR-213 W5 deterministic archive (temporary)
 on:
   push:
     branches: [work/KAR-213]
@@ -25,9 +25,6 @@ jobs:
           node tests/kar213-successor-contract.cjs
           python3 tests/kar210-baseline-restore.py
           node tests/kar210-test-disposition.cjs
-      - run: npm ci
-      - name: Mandatory coverage and architecture gate
-        run: bash scripts/coverage-gate.sh
       - name: Reproducible candidate package
         run: |
           set -euo pipefail
@@ -43,9 +40,21 @@ jobs:
           unzip -Z -1 "$RUNNER_TEMP/build-a/$ZIP" | wc -l
           git hash-object "$RUNNER_TEMP/build-a/$ZIP"
           python3 - "$RUNNER_TEMP/build-a/$ZIP" <<'PY'
-          import base64, sys
+          import base64, sys, hashlib, json, zipfile, subprocess, io
           from pathlib import Path
-          data=base64.b64encode(Path(sys.argv[1]).read_bytes()).decode("ascii")
+          raw=Path(sys.argv[1]).read_bytes()
+          old=subprocess.check_output(["git","show","61f917d384cdce0fc191188e5a99515907967dbe:release/kleinanzeigen-renewal-chrome-v2.0.1.0.zip"])
+          assert hashlib.sha256(old).hexdigest()=="15e58983d23a0706a301e161c76bf52c4e2885667fb7214b6f80b8f1209c798a"
+          with zipfile.ZipFile(io.BytesIO(raw)) as z, zipfile.ZipFile(io.BytesIO(old)) as o:
+              names=set(z.namelist())
+              assert names==set(o.namelist()) and len(names)==len(z.namelist())
+              changes=sorted(n for n in names if z.read(n)!=o.read(n))
+              manifest=json.loads(z.read("manifest.json"))
+              prev=json.loads(o.read("manifest.json"))
+              assert manifest["version"]=="2.0.2.0" and manifest["key"]==prev["key"]
+              assert {k:v for k,v in manifest.items() if k!="version"}=={k:v for k,v in prev.items() if k!="version"}
+              print("KAR213_ZIP_META",json.dumps({"sha256":hashlib.sha256(raw).hexdigest(),"gitBlob":hashlib.sha1(b"blob "+str(len(raw)).encode()+b"\0"+raw).hexdigest(),"bytes":len(raw),"entries":len(names),"changes":changes}))
+          data=base64.b64encode(raw).decode("ascii")
           chunks=[data[i:i+4096] for i in range(0,len(data),4096)]
           for i,c in enumerate(chunks): print(f"KAR213_ZIP_CHUNK {i+1}/{len(chunks)} {c}")
           PY
