@@ -138,3 +138,31 @@ test('W2 archived profile record and image restoration rejects cross-profile key
   const [img]=(await backup.snapshotProfileIndexedData(foreign.profileId)).images;
   assert.deepEqual(new Uint8Array(await img.blob.arrayBuffer()),data[0]);
 });
+
+test('W2 actual profile export must preserve raw trash deadline even when UI projection is unknown',async()=>{
+  const idb=new IDBFactory();
+  const kr=loadRegistry(['src/background/repositories/inventory-repository.js','src/background/services/trash-service.js','src/app/profile-backup-controller.js']);
+  const repo=kr.require('KRInventoryRepository').create({indexedDB:idb,IDBKeyRange});
+  const db=await repo.openDatabase();db.close();
+  const rawTrash={...trash,trash:{trashedAt:at,expiresAt:'2027-10-01T00:00:00.000Z',retentionRevision:'synthetic-old',retentionIndefinite:false}};
+  const backup=BackupStorage.create({indexedDB:idb,IDBKeyRange});
+  await backup.replaceProfileIndexedData({targetProfileId:profile.profileId,targetProfileName:profile.displayName,activeInventory:[active],trashEntries:[rawTrash],images:imageRows});
+  const trashSvc=kr.require('KRTrashService').create({inventoryRepository:repo,getRetentionPolicy:async()=>({retentionDays:360,revision:'synthetic-current'})});
+  assert.equal((await trashSvc.list(profile.profileId))[0].trash.expiresAt,null,'UI projection intentionally unknown on revision mismatch');
+  const ctrl=kr.require('KRProfileBackupController').create({crypto:globalThis.crypto,ProfileBackup,DiagnosticZip,profileBackupStorage:backup,runtimeMessage:async msg=>{
+    if(msg.type==='LIST_INVENTORIES')return [active];
+    if(msg.type==='LIST_TRASH')return trashSvc.list(profile.profileId);
+    throw Error('unexpected runtime message '+msg.type);
+  },loadLocalImageForExport:async key=>imageRows.find(r=>r.imageKey===key)});
+  const exported=await ctrl.exportProfileBackup(profile);
+  const parsed=await ProfileBackup.parseProfileArchive(exported.blob,{readZip:InventoryImport.readZip});
+  assert.deepEqual(parsed.trashEntries[0].trash,rawTrash.trash,'lossless backup must not substitute an unknown UI deadline for persisted metadata');
+});
+test('W3 aged running mass batch with unresolved item survives read',async()=>{
+  const batch={batchId:'synthetic-batch',createdAt:new Date(Date.now()-32*86400000).toISOString(),status:'running',items:[{index:0,renewalId:'synthetic-renewal',status:'running',stage:'source-delete-outcome-unverified'}],stopOnError:true};
+  const local=localStore({massRenewalBatchV1:batch});
+  const repo=require('../src/background/controllers/mass-renewal-controller.js').create({storageLocal:local});
+  const read=await repo.readMassRenewalBatch();
+  assert.deepEqual(read,batch);
+  assert.deepEqual(local.snapshot().massRenewalBatchV1,batch);
+});
