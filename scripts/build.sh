@@ -16,6 +16,8 @@ core_tests=(
   tests/kar213-cross-generation-characterization.cjs
   tests/kar213-offline-upgrade-preflight.cjs
   tests/kar213-successor-contract.cjs
+  tests/kar217-updater-removal.cjs
+  tests/kar217-updater-test-disposition.cjs
   tests/validate.mjs
   tests/identity.cjs
   tests/jpeg.cjs
