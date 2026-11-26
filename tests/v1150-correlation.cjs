@@ -4,6 +4,7 @@ const path = require('path');
 const crypto = require('crypto');
 
 const root = path.resolve(__dirname, '..');
+const restored = require('./kar210-historical-contract-context.cjs').isRestored(root);
 const bg = require('./v12215-source-surface.cjs');
 const filler = fs.readFileSync(path.join(root, 'template-filler.js'), 'utf8');
 
@@ -46,7 +47,7 @@ assert.match(filler, /parentOperationId/);
 const manifest = JSON.parse(fs.readFileSync(path.join(root, 'manifest.json'), 'utf8'));
 const digest = crypto.createHash('sha256').update(Buffer.from(manifest.key, 'base64')).digest('hex');
 assert.strictEqual(digest, '70507977688f3465a60227cd0261bd07d92fad620625cd7ebff8f0856d9c5ed3');
-assert.deepStrictEqual(manifest.permissions, require('./current-patch-policy.cjs').expectedManifestPermissions(manifest.version));
+assert.deepStrictEqual(manifest.permissions, require('./current-patch-policy.cjs').expectedManifestPermissions(restored && manifest.version !== '2.0.3.0' ? '1.23.48' : manifest.version));
 assert.deepStrictEqual(manifest.host_permissions, [
   'https://www.kleinanzeigen.de/*',
   'https://kleinanzeigen.de/*',

@@ -14,7 +14,8 @@ for(const required of ['gh api "repos/$GITHUB_REPOSITORY/releases/tags/v$VERSION
 assert.doesNotMatch(src,/gh release (create|upload|edit|delete)/);
 assert.doesNotMatch(ci,/gh release (create|upload|edit|delete)/);
 const manifest=JSON.parse(read('manifest.json')),pkg=JSON.parse(read('package.json'));
-assert.equal(manifest.version,pkg.version);
+const {isRestored,assertPendingS02Release}=require('./kar210-historical-contract-context.cjs');
+if(isRestored(root)){assertPendingS02Release(root);assert.equal(pkg.version,manifest.version.split('.').slice(0,3).join('.'));assert.equal(pkg.displayVersion,manifest.version);}else assert.equal(manifest.version,pkg.version);
 assert.match(pkg.scripts.test,/node tests\/kar-release-repo-archive-contract\.cjs/);
 const packager=read('scripts/package.py');
 assert.ok(packager.includes("p.suffix not in {'.zip','.pyc'}"),'Source archives must exclude committed ZIPs');

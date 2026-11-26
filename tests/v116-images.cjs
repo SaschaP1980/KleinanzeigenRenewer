@@ -2,6 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const assert = require('node:assert/strict');
 
+const restored = require('./kar210-historical-contract-context.cjs').isRestored(path.join(__dirname, '..'));
 const filler = fs.readFileSync(path.join(__dirname, '../template-filler.js'), 'utf8');
 let n = 0;
 const pass = name => { n += 1; console.log('PASS ' + name); };
@@ -58,8 +59,19 @@ const run = filler.slice(runStart, runEnd);
 assert.match(run, /const imageOutcome = await uploadImages\(fillId, template\)/);
 assert.match(run, /const imagesComplete = imageOutcome\.complete === true/);
 assert.match(run, /const complete = (?:!partialPrefill && )?uniqueIssues\.length === 0 && imagesComplete/);
-assert.match(run, /issues\.push\(\.\.\.schemaPreflightReport\.issues\)/,
-  'partial archive prefill must preserve all preflight errors and never publish automatically');
+if (restored) {
+  // S05/S07 own the later schema-preflight / partial archive feature.
+  // The original historical image/form safety remains mandatory.
+  assert.doesNotMatch(run, /schemaPreflightReport|partialPrefill/);
+  assert.match(run, /issues\.push\(\.\.\.imageOutcome\.issues\)/);
+  assert.match(run, /issues\.push\(\.\.\.\(session\.archiveInsertionId \? verifyArchiveTemplate\(template, verificationForm\) : verify\(template, verificationForm\)\)\)/);
+  assert.match(run, /status: complete \? 'running' : 'needs-review'/);
+  assert.match(run, /if \(complete\) \{\s*const continuation = await advanceAfterVerifiedFill/);
+  assert.equal((run.match(/advanceAfterVerifiedFill\(/g) || []).length, 1);
+} else {
+  assert.match(run, /issues\.push\(\.\.\.schemaPreflightReport\.issues\)/,
+    'partial archive prefill must preserve all preflight errors and never publish automatically');
+}
 assert.ok(run.indexOf('const imageOutcome = await uploadImages') < run.indexOf("'Vorlage vollständig übernommen'"));
 pass('final success feedback is gated by stable images as well as form verification');
 

@@ -121,12 +121,22 @@
         const operationId = acquireProfileTransferLock('export', profileId);
         try {
           setProfileManagerStatus(`Profil „${profile.displayName || 'Profil'}“ wird gesichert …`);
-          const [activeInventory, trashEntries] = await Promise.all([
-            runtimeMessage({ type: 'LIST_INVENTORIES', profileId }),
-            runtimeMessage({ type: 'LIST_TRASH', profileId })
-          ]);
-          const result = await ProfileBackup.createProfileArchive({ profile, activeInventory, trashEntries }, {
-            loadImage: loadLocalImageForExport,
+          // Backups must not use UI projections (or trigger expiry cleanup).
+          const { records, images } = await snapshotProfileIndexedData(profileId);
+          const isTrash = record => String(record?.recordKind || '') === 'trash' || Boolean(record?.trash?.trashedAt);
+          const activeInventory = records.filter(record => !isTrash(record));
+          const trashEntries = records.filter(isTrash);
+          const imagesByKey = new Map(images.map(image => [String(image.imageKey), image]));
+          const storageLocal = options.storageLocal || globalThis.chrome?.storage?.local;
+          let rawProfile = profile;
+          if (storageLocal?.get) {
+            const stored = await storageLocal.get('profilesV1');
+            const matches = (Array.isArray(stored?.profilesV1) ? stored.profilesV1 : []).filter(row => String(row?.profileId || '') === profileId);
+            if (matches.length !== 1) throw new Error('Profilidentität konnte für die Sicherung nicht eindeutig bestätigt werden.');
+            rawProfile = matches[0];
+          }
+          const result = await ProfileBackup.createProfileArchive({ profile: rawProfile, activeInventory, trashEntries }, {
+            loadImage: async key => imagesByKey.get(String(key)),
             createZip: DiagnosticZip.createZip,
             extensionVersion: options.extensionVersion?.() || null
           });

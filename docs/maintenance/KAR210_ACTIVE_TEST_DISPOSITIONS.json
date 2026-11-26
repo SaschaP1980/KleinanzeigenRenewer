@@ -1,0 +1,1571 @@
+{
+  "schema": 2,
+  "issue": 210,
+  "version": "2.0.0.0",
+  "reference": "08df4f11f9935e5d7b7551a37ce5b3f708e47497",
+  "policy": "S02 static active-suite separation; preserve original files. No skipped test command or blanket bypass. Reconcile each deferred product witness at its owning step, and explicitly review future scope before successor versions. Owner 2026-11-25 baseline-only reset: 13 post-baseline RED witnesses explicitly deferred, original evidence retained, no successful execution credit.",
+  "entries": [
+    {
+      "test": "tests/kar97-update-idle-policy.cjs",
+      "blob": "8410d1fdcbbd65ef7eb3f4f19d9846aa675ce46f",
+      "module": "lib/update-idle-policy.js",
+      "matrix": "C02",
+      "step": "S04",
+      "status": "excluded-C",
+      "owner": "package.json",
+      "reason": "Pure updater candidate-idle classifier, not baseline insertion lock/account admission; original test remains intact.",
+      "retained": [
+        "tests/v1234-insertion-lock-runtime.cjs",
+        "tests/v1238-account-session-controller-runtime.cjs",
+        "tests/v1238-profile-management-controller-runtime.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar134-schema-core.cjs",
+      "blob": "f52e8a47755362551b4f2166eb04ee0a2ab45df9",
+      "module": "src/shared/template-schema-core.js",
+      "matrix": "A03",
+      "step": "S05",
+      "status": "deferred-A",
+      "owner": "package.json",
+      "reason": "All assertions exercise the absent schema/fingerprint implementation, including its privacy and incompatibility contracts; migration belongs to S05, not current baseline.",
+      "retained": [
+        "tests/v12322-title-field-stability.cjs",
+        "tests/kar132-modern-category-modal.cjs",
+        "tests/kar132-wearables-attributes.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar195-startup-atomic-fairness.cjs",
+      "blob": "0544bbcebf2efbb6b7135c2b9b6f723808da6a17",
+      "module": "src/background/services/cross-worker-atomic-admission.js",
+      "matrix": "C03/C05",
+      "step": "S04/S07",
+      "status": "split-C",
+      "owner": "scripts/coverage-gate.sh",
+      "reason": "Eight of nine cases assert P8 scheduler, locks, receipts, reserve and P8 diagnostics. The ninth is a product-level passive recovery coalescing witness extracted verbatim and deferred to S07 after actual RED (8 reads vs 1).",
+      "retained": [
+        "tests/v12217-trash-template-ui-recovery-runtime.cjs",
+        "tests/v12218-trash-template-recovery-runtime.cjs",
+        "tests/v12219-trash-template-session-isolation-runtime.cjs",
+        "tests/v12220-trash-template-preview-recovery-runtime.cjs",
+        "tests/v12317c2-trash-template-modal-reopen.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar103-startup-owner-map.cjs",
+      "blob": "8f3fb7d3e62a4dc5a249ddc9c2b761fc177ec48f",
+      "module": "lib/update-idle-policy.js",
+      "matrix": "C02",
+      "step": "S04",
+      "status": "excluded-C",
+      "owner": "package.json",
+      "reason": "All worker startup assertions explicitly require the removed updater's autonomous admission fence and 15-owner ledger. Actual tab registry, trash and fresh-source reconciliation remain separately exercised.",
+      "retained": [
+        "tests/v1156-a1-tab-registry-runtime.cjs",
+        "tests/v1183-trash-runtime.cjs",
+        "tests/v1194-reconciliation-fresh-source-runtime.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar105-persisted-owner-observer.cjs",
+      "blob": "483f713ca4e3b64bcc375ed8acf0b0944b5e0740",
+      "module": "src/background/services/persisted-owner-observer.js",
+      "matrix": "C02",
+      "step": "S04/S06",
+      "status": "excluded-C",
+      "owner": "package.json",
+      "reason": "Read-only seven-owner snapshot, P8 receipts, in-flight tracking and phase-4 journal authority are contracts of the removed observer. Actual account/insertion/renewal/mass runtime tests remain mandatory; later unknown-outcome review belongs to S06.",
+      "retained": [
+        "tests/v1234-insertion-lock-runtime.cjs",
+        "tests/v1238-account-session-controller-runtime.cjs",
+        "tests/v1238-profile-management-controller-runtime.cjs",
+        "tests/v1231-renewal-workflow-runtime.cjs",
+        "tests/v1233-mass-renewal-workflow-runtime.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar99-atomic-mv3-admission.cjs",
+      "blob": "b31df1a0255bbf9b67837675eaf863c5eb6e1991",
+      "module": "src/background/services/cross-worker-atomic-admission.js",
+      "matrix": "C03",
+      "step": "S04/S06",
+      "status": "excluded-C",
+      "owner": "package.json",
+      "reason": "Synthetic atomic coordinator/fence/policy tests exercise durable start/finish receipts and Web Locks reserve arbitration, not real product publication or deletion. Baseline insertion/account/renewal guards remain mandatory; S06 reviews uncertain remote outcomes.",
+      "retained": [
+        "tests/v1234-insertion-lock-runtime.cjs",
+        "tests/v1238-account-session-controller-runtime.cjs",
+        "tests/v1238-profile-management-controller-runtime.cjs",
+        "tests/v1231-renewal-workflow-runtime.cjs",
+        "tests/v1233-mass-renewal-workflow-runtime.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar99-p8-adversarial-races.cjs",
+      "blob": "baa92adb86b4a15b255b1639fc3fc93ae87fe447",
+      "module": "src/background/services/cross-worker-atomic-admission.js",
+      "matrix": "C03",
+      "step": "S04/S06",
+      "status": "excluded-C",
+      "owner": "package.json",
+      "reason": "All adversarial cases exercise P8 lock-provider identity, receipts, ACK loss and updater reserve on synthetic callbacks. Do not import removed C to satisfy them. Baseline account/insertion/renewal and product safety contracts remain active; S06 reviews independent mutation outcomes.",
+      "retained": [
+        "tests/v1234-insertion-lock-runtime.cjs",
+        "tests/v1238-account-session-controller-runtime.cjs",
+        "tests/v1238-profile-management-controller-runtime.cjs",
+        "tests/v1231-renewal-workflow-runtime.cjs",
+        "tests/v1233-mass-renewal-workflow-runtime.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar99-p9-benign-start-contention.cjs",
+      "blob": "e0201d7ea36f3494bd9e863a18f16fbdaad6204a",
+      "module": "src/background/services/cross-worker-atomic-admission.js",
+      "matrix": "C03",
+      "step": "S04",
+      "status": "excluded-C",
+      "owner": "package.json",
+      "reason": "The two-worker fixture passes fake RECOGNIZE_PROFILE callbacks through P8 and checks exact start/finish receipt count. Actual recognition/account ownership and insertion locking remain covered independently.",
+      "retained": [
+        "tests/v1234-insertion-lock-runtime.cjs",
+        "tests/v1238-account-session-controller-runtime.cjs",
+        "tests/v1238-profile-management-controller-runtime.cjs",
+        "tests/v1231-renewal-workflow-runtime.cjs",
+        "tests/v1233-mass-renewal-workflow-runtime.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar197-publish-intent-contention.cjs",
+      "blob": "34cb5d7ddfc201d5090bc5a1c390aa3c3cf274b0",
+      "module": "src/background/services/auto-publish-intent-journal.js",
+      "matrix": "C04",
+      "step": "S04/S06/S07",
+      "status": "excluded-C",
+      "owner": "package.json",
+      "reason": "All four cases exercise the absent journal API's begin/observe, P8 lock retries and exact journal writes. Product guarded publish/paid/verification and archive promotion tests remain active (including any current RED); S06/S07 must review no-replay outcomes independently.",
+      "retained": [
+        "tests/v12226-paid-insertion-regression.cjs",
+        "tests/v12317c1-template-module-public-api.cjs",
+        "tests/v12315-runtime.cjs",
+        "tests/v1235-archive-insertion-controller-runtime.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar199-phase4-journal-contention.cjs",
+      "blob": "6819255533f96a9e059ccf84f32bee82f56e8212",
+      "module": "src/background/services/phase4-uncertainty-journal.js",
+      "matrix": "C04",
+      "step": "S04/S06",
+      "status": "excluded-C",
+      "owner": "package.json",
+      "reason": "All six cases exercise absent phase-4 journal begin/observe/resolveVerified, lock retries, storage failure and receipt writes. Product exact-ID deletion, independent absence verification and replacement authority tests remain active; unresolved remote outcomes remain S06 work.",
+      "retained": [
+        "tests/v12318-inventory-module-public-api.cjs",
+        "tests/v12019-phase3-edit-authority.cjs",
+        "tests/v12315-runtime.cjs",
+        "tests/v1194-reconciliation-fresh-source-runtime.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar148-article-type.cjs",
+      "blob": "944fc42545df535395354e6370a02c10818539d3",
+      "module": "src/app/inventory-card-renderer.js",
+      "matrix": "B01",
+      "step": "S08",
+      "status": "deferred-B",
+      "owner": "package.json",
+      "reason": "Later Art/Typ summary, ordered field semantics and heading are S08 UI feature. Baseline Art-only exact saved-value and no-title-guess behavior independently characterized.",
+      "retained": [
+        "tests/kar210-baseline-retained-behavior.cjs",
+        "tests/v12314-runtime.cjs"
+      ],
+      "featureAbsence": {
+        "marker": "makeInfoLine('Artikeltyp'",
+        "baselineBlob": "f3cc492f85469cc62a33f812fe5a5b2dcd2db726",
+        "donorBlob": "d4381c4aa64f8532484daa5992a25249244cf774",
+        "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
+      }
+    },
+    {
+      "test": "tests/kar150-ui-preference.cjs",
+      "blob": "bfddff42d2171eb5b22a227b7484e16679e78771",
+      "module": "src/app/mass-renewal-ui-controller.js",
+      "matrix": "B04",
+      "step": "S08",
+      "status": "deferred-B",
+      "owner": "package.json",
+      "reason": "Only new durable stop-on-error preference, tooltip and switch storage gating are under test. Baseline batch execution, account guards and paid-insertion safety remain active. Mixed workflow tests remain active for review.",
+      "retained": [
+        "tests/v1233-mass-renewal-workflow-runtime.cjs",
+        "tests/v1238-account-session-controller-runtime.cjs",
+        "tests/v12226-paid-insertion-regression.cjs"
+      ],
+      "featureAbsence": {
+        "marker": "massRenewalStopOnErrorPreferenceV1",
+        "baselineBlob": "813aedc109538d3afb387f6f47648bdfe12fe303",
+        "donorBlob": "1c22cb5bd91623337164744046fbc03622839c68",
+        "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
+      }
+    },
+    {
+      "test": "tests/kar164-trash-sort.cjs",
+      "blob": "ad8aa711a3d5e18941185c4a45f880b9bd27df14",
+      "module": "src/app/inventory-view.js",
+      "matrix": "B07",
+      "step": "S09",
+      "status": "deferred-B",
+      "owner": "package.json",
+      "reason": "New pure deadline-sort function, infinity/unknown ordering and sort UI are S09. Baseline raw trash render, no record mutation and replacement of stale rows retained by independent fixture.",
+      "retained": [
+        "tests/kar210-baseline-retained-behavior.cjs",
+        "tests/v12314-runtime.cjs",
+        "tests/v1183-trash-runtime.cjs"
+      ],
+      "featureAbsence": {
+        "marker": "deriveTrashView",
+        "baselineBlob": "da0c66d512f939c1acf5285995ca6f6057154826",
+        "donorBlob": "932da5bec1449715771a53221912e025ad001928",
+        "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
+      }
+    },
+    {
+      "test": "tests/kar165-trash-retention-warning.cjs",
+      "blob": "739dcb32f197dcdd7945fde5368620e18952abf9",
+      "module": "src/app/app.css",
+      "matrix": "B06",
+      "step": "S09",
+      "status": "deferred-B",
+      "owner": "scripts/coverage-gate.sh",
+      "reason": "Later color thresholds, countdown suffix and expired wording are S09. Independent baseline test retains exact known/unknown expiry text and stale row replacement in compact and detailed views; local trash mutation test remains active.",
+      "retained": [
+        "tests/kar210-baseline-retained-behavior.cjs",
+        "tests/v1183-trash-runtime.cjs"
+      ],
+      "featureAbsence": {
+        "marker": "trash-retention-countdown-urgent",
+        "baselineBlob": "4d69502577fd25ad94ac7a6dd80c9cc3a45afbe0",
+        "donorBlob": "39248c01f41a7a1410411c7965624e525926b2ac",
+        "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
+      }
+    },
+    {
+      "test": "tests/kar147-diagnostic-occupancy.cjs",
+      "blob": "c7ef6e1d13bf127a22d68aa435d8adfc78909645",
+      "module": "src/background/services/diagnostics-service.js",
+      "matrix": "B10",
+      "step": "S10",
+      "status": "deferred-B",
+      "owner": "package.json",
+      "reason": "Occupancy API/bar/ARIA refresh and unknown display are S10 feature. Independent actual baseline service fixture retains bounded cap, pending flush, redaction, reset blocker and retained reset marker. Existing diagnostic batching/reset/export tests remain mandatory.",
+      "retained": [
+        "tests/kar210-baseline-retained-behavior.cjs",
+        "tests/v1177-performance1-diagnostics.cjs",
+        "tests/v1200-diagnostic-reset.cjs",
+        "tests/v1237-diagnostic-export-runtime.cjs"
+      ],
+      "featureAbsence": {
+        "marker": "async function occupancy",
+        "baselineBlob": "5c7f8f8d74a9fdbb47843a69a70a32fc1e7a7d94",
+        "donorBlob": "7200c95284718a167013aabd045be4789b7c0c75",
+        "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
+      }
+    },
+    {
+      "test": "tests/kar201-legacy-options.cjs",
+      "blob": "ebef4a52b68053cc93eaa81e29aac780a006a91c",
+      "module": "src/shared/template-schema-core.js",
+      "matrix": "A04",
+      "step": "S05/S07",
+      "status": "deferred-A",
+      "owner": "package.json",
+      "reason": "All catalog and fingerprint assertions depend on absent preflight; retain exact unique technical readback, wrong/missing/duplicate field rejection and 11-image handoff independently.",
+      "retained": [
+        "tests/kar210-kar201-baseline-safety.cjs",
+        "tests/kar132-wearables-attributes.cjs",
+        "tests/v12022-optional-images.cjs",
+        "tests/v12226-paid-insertion-regression.cjs",
+        "tests/v1234-template-fill-controller-runtime.cjs",
+        "tests/v1235-archive-insertion-controller-runtime.cjs",
+        "tests/v12317c1-template-module-public-api.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar201-native-display-only.cjs",
+      "blob": "19df1c2512710c33aaedd63245d529026c9de841",
+      "module": "src/shared/template-schema-core.js",
+      "matrix": "A04",
+      "step": "S05/S07",
+      "status": "deferred-A",
+      "owner": "package.json",
+      "reason": "ARIA label-only recovery and proof of newly recovered technical IDs require later schema preflight; exact saved technical readback and mismatch rejection remain. Label-only values are a later S05 compatibility gap, not claimed as supported.",
+      "retained": [
+        "tests/kar210-kar201-baseline-safety.cjs",
+        "tests/kar132-wearables-attributes.cjs",
+        "tests/v12022-optional-images.cjs",
+        "tests/v12226-paid-insertion-regression.cjs",
+        "tests/v1234-template-fill-controller-runtime.cjs",
+        "tests/v1235-archive-insertion-controller-runtime.cjs",
+        "tests/v12317c1-template-module-public-api.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar201-partial-archive-prefill.cjs",
+      "blob": "9c86d3fc5db3e21e1b64dfdd2c8c8b03d2285007",
+      "module": "src/shared/template-schema-core.js",
+      "matrix": "B12",
+      "step": "S05/S07",
+      "status": "deferred-B",
+      "owner": "package.json",
+      "reason": "Partial optional-key skip policy, schema proof and manual standalone offer are later S07 flow. Keep actual historical runner image handoff, source integrity, failed readback/image state and zero automatic advancement.",
+      "retained": [
+        "tests/kar210-kar201-baseline-safety.cjs",
+        "tests/kar132-wearables-attributes.cjs",
+        "tests/v12022-optional-images.cjs",
+        "tests/v12226-paid-insertion-regression.cjs",
+        "tests/v1234-template-fill-controller-runtime.cjs",
+        "tests/v1235-archive-insertion-controller-runtime.cjs",
+        "tests/v12317c1-template-module-public-api.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar201-session-evidence.cjs",
+      "blob": "1c43084985261e74410f9d253caf191b3a738b38",
+      "module": "src/content/template-publish-flow.js",
+      "matrix": "A04/B12",
+      "step": "S05/S07",
+      "status": "deferred-B",
+      "owner": "package.json",
+      "reason": "Later schemaPreflight proof fields and sanitization belong to S05/S07. Actual historical session mutation tests preserve wrong-tab rejection, failed-state persistence, terminal protection and no invented archive ID.",
+      "retained": [
+        "tests/kar210-kar201-baseline-safety.cjs",
+        "tests/kar132-wearables-attributes.cjs",
+        "tests/v12022-optional-images.cjs",
+        "tests/v12226-paid-insertion-regression.cjs",
+        "tests/v1234-template-fill-controller-runtime.cjs",
+        "tests/v1235-archive-insertion-controller-runtime.cjs",
+        "tests/v12317c1-template-module-public-api.cjs"
+      ],
+      "featureAbsence": {
+        "marker": "proof?.verified === true",
+        "baselineBlob": "b4cb626bc91ca9389f9d997f9f161ef88ebdd16d",
+        "donorBlob": "4aae30251e836646e595010619f4876fb7f7f635",
+        "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
+      }
+    },
+    {
+      "test": "tests/kar201-manual-standalone.cjs",
+      "blob": "397beb2084e52af272290d4d6c53b29313571e3a",
+      "module": "src/background/controllers/template-fill-controller.js",
+      "matrix": "B12",
+      "step": "S05/S07",
+      "status": "deferred-B",
+      "owner": "package.json",
+      "reason": "Two-step owner detachment, consent token and trusted manual standalone click are absent later capability; keep existing guarded publish, template-only no-auto-publish, wrong-tab denial, paid stop and source record preservation. Full manual detachment negative cases remain S07.",
+      "retained": [
+        "tests/kar210-kar201-baseline-safety.cjs",
+        "tests/kar132-wearables-attributes.cjs",
+        "tests/v12022-optional-images.cjs",
+        "tests/v12226-paid-insertion-regression.cjs",
+        "tests/v1234-template-fill-controller-runtime.cjs",
+        "tests/v1235-archive-insertion-controller-runtime.cjs",
+        "tests/v12317c1-template-module-public-api.cjs"
+      ],
+      "featureAbsence": {
+        "marker": "async function approveManualStandaloneRelease",
+        "baselineBlob": "c01b419766420bf1ed9b0e8cccb5d4a91e867cdd",
+        "donorBlob": "d773395115da20d8ef3520b64decd20260aff2d9",
+        "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
+      }
+    },
+    {
+      "test": "tests/kar199-emergency-reset-candidate-recovery.cjs",
+      "blob": "d9b84ab970e69231e535d505814b407de7f776da",
+      "module": "src/background/services/remote-delete-replacement-service.js",
+      "matrix": "B14",
+      "step": "S06",
+      "status": "deferred-B",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-kar199-baseline-reset.cjs",
+        "tests/v12230-global-emergency-reset.cjs",
+        "tests/v12315-runtime.cjs",
+        "tests/v12019-phase3-edit-authority.cjs"
+      ],
+      "featureAbsence": {
+        "marker": "async function recoverEmergencyResetCandidateAtomic",
+        "baselineBlob": "0d89fea2632e2135f72deca3fbc03514630762c5",
+        "donorBlob": "b7bf8f08a43b46d36a85ef370c460203a168b687",
+        "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
+      },
+      "reason": "B14 is a later standalone-candidate recovery transaction explicitly assigned to S06. All seven original cases remain evidence, including collision, rollback and unknown-publication negatives. Historical reset is tested through actual controller/repository, preserves unresolved source/target IDs and terminal tombstones without claiming remote success. The baseline does not adopt the candidate as an independent record; S06 must implement and re-run the original product outcomes. Transport no-replay remains active RED, not dispositioned."
+    },
+    {
+      "test": "tests/kar199-phase4-ui-runtime.cjs",
+      "blob": "71a1c80b86df254028c8299f715f966644c83fe0",
+      "module": "src/app/inventory-formatting.js",
+      "matrix": "A14/B16/C04",
+      "step": "S06",
+      "status": "deferred-B",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-kar199-baseline-phase4.cjs",
+        "tests/v12019-phase3-edit-authority.cjs",
+        "tests/v12315-runtime.cjs"
+      ],
+      "featureAbsence": {
+        "marker": "source-delete-status-unverified",
+        "baselineBlob": "45bd6f6aa9d10ade0079719d3976f976f06d05f1",
+        "donorBlob": "7d8e5a43f6515649f9513c71ba487fc6c2c428ef",
+        "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
+      },
+      "reason": "Three cases assert later outcome states and rendering not present in the historical runtime; S06 must provide truthful blocked status and read-only recovery without journal coupling. The fourth normal handoff test is retained verbatim in an active baseline test, along with exact-ID, wrong-profile, fresh verification and interrupted transport service-boundary cases. No-replay and bounded outcome regressions remain active RED."
+    },
+    {
+      "test": "tests/kar197-blocked-archive-runtime.cjs",
+      "blob": "613753f8cb3c6a451c3b713c386a97fd185e3a8a",
+      "module": "src/app/archive-insertion-ui-controller.js",
+      "matrix": "B15/C04",
+      "step": "S06/S07",
+      "status": "split-C",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-kar197-baseline-safety.cjs",
+        "tests/kar210-kar201-baseline-safety.cjs",
+        "tests/v1234-insertion-lock-runtime.cjs",
+        "tests/v1235-archive-insertion-controller-runtime.cjs",
+        "tests/v1237-diagnostic-export-runtime.cjs"
+      ],
+      "featureAbsence": {
+        "marker": "publish-blocked",
+        "baselineBlob": "08688155593fff5fadf7ea4add280909b7724bac",
+        "donorBlob": "c8739f29bfb334a299cb3a36a800a59aa8d970e7",
+        "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
+      },
+      "reason": "The exact journal-blocked state, reason and telemetry are later C; retain ordinary historical failed ZIP presentation without invented success, persisted submitted-stage observation, competing insertion lock denial, monotonic revision rendering, Fast/Safe distinction, diagnostic redaction and guarded publication. Later B15 unknown publication handling remains S07, not accepted by baseline tests."
+    },
+    {
+      "test": "tests/kar197-blocked-fill-runtime.cjs",
+      "blob": "612afb978fe600edb58fda0635d7049c0da16d3e",
+      "module": "src/background/controllers/template-fill-controller.js",
+      "matrix": "A10/B15/C04",
+      "step": "S06/S07",
+      "status": "split-C",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-kar197-baseline-safety.cjs",
+        "tests/kar210-kar201-baseline-safety.cjs",
+        "tests/v1234-template-fill-controller-runtime.cjs",
+        "tests/v1231-renewal-workflow-runtime.cjs"
+      ],
+      "featureAbsence": {
+        "marker": "publishBlockReason",
+        "baselineBlob": "c01b419766420bf1ed9b0e8cccb5d4a91e867cdd",
+        "donorBlob": "d773395115da20d8ef3520b64decd20260aff2d9",
+        "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
+      },
+      "reason": "Original cases require absent journal publish-blocked and schemaPreflight fields. Retain actual historical submitted/new-ID stale pre-publish denial for archive and renewal, verify wrong-tab denial and terminal review in existing active tests, no automatic retry caused by stale pre-publish progress. S06/S07 must independently witness actual unknown-outcome no-replay and recovery before native use."
+    },
+    {
+      "test": "tests/kar188-loading-state.cjs",
+      "blob": "74e44faa0e2870d4149fd0245e6e50f5e8144565",
+      "module": "src/app/inventory-loading-state.js",
+      "matrix": "B08/D",
+      "step": "S08",
+      "status": "deferred-B",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-loading-retention-baseline.cjs",
+        "tests/v1192-inventory-scope-runtime.cjs",
+        "tests/v1238-profile-management-controller-runtime.cjs"
+      ],
+      "reason": "Later independent loading/error/profile-generation UI is explicitly S08. Retain real historical refresh success, read-only profile scoping, rejection without overwriting previously verified data, and exact main Chromium runner constraint. Baseline malformed response and late profile race not claimed safe; S08 original fixtures required."
+    },
+    {
+      "test": "tests/kar186-retention-hydration.cjs",
+      "blob": "648d5b29205827935236ffe9cdd5ccdc1900c424",
+      "module": "src/app/trash-retention-settings-controller.js",
+      "matrix": "B05/B09/D",
+      "step": "S09",
+      "status": "deferred-B",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-loading-retention-baseline.cjs",
+        "tests/v1183-trash-runtime.cjs",
+        "tests/kar210-baseline-retained-behavior.cjs"
+      ],
+      "reason": "Configurable policy and verified hydration absent in fixed 30-day historical runtime; no P8 retry port. Retain fixed retention, unknown deadlines, no writes on failed scoped read, no purge of undated/invalid records, and pinned Work PR Chromium runner. S03 must reconcile newer persisted policy before live use; S09 must restore original finite/infinite and confirmation contracts."
+    },
+    {
+      "test": "tests/kar191-diagnostic-recovery.cjs",
+      "blob": "cd19069c7e4032da88a22e6f8f8ef04e141c34b6",
+      "module": "src/background/background-message-router.js",
+      "matrix": "B10/B11/C03/C05",
+      "step": "S04/S10",
+      "status": "split-C",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-diagnostics-baseline.cjs",
+        "tests/kar210-baseline-retained-behavior.cjs",
+        "tests/v1237-diagnostic-export-runtime.cjs"
+      ],
+      "featureAbsence": {
+        "marker": "withWorkflowAdmission",
+        "baselineBlob": "4e016a82054d8647b7a9fc5fd24d47c394d58b46",
+        "donorBlob": "a736990f5b93c13b93b37de92fca3b6f24432f29",
+        "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
+      },
+      "reason": "Three P8 admission/owner assertions excluded; occupancy unavailable/zero/retry UI belongs S10; denied export restores button and reports failure tested against actual historical controller. Actual registered router still requires contract acceptance and platform access; no admission dependency restored."
+    },
+    {
+      "test": "tests/kar191-diagnostic-zip-integrity.cjs",
+      "blob": "35677b40163187c1a92c17a4622d218cedb2bbd4",
+      "module": "src/app/diagnostics-controls-controller.js",
+      "matrix": "B10/B11/C05",
+      "step": "S10",
+      "status": "split-C",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-diagnostic-zip-integrity.cjs",
+        "tests/kar210-diagnostics-baseline.cjs",
+        "tests/v1237-diagnostic-export-runtime.cjs"
+      ],
+      "featureAbsence": {
+        "marker": "function boundedRequest",
+        "baselineBlob": "c1bc81088780eb534d57cb939f6a211e8b52ee68",
+        "donorBlob": "555aa5b606379a25ec4fc1fe62cd284ea215ad8a",
+        "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
+      },
+      "reason": "Preserve the first independent zero/small/near-capacity ZIP test and CRC/member decoding verbatim in an active file; verify actual historical UI export with valid data and rejection. Atomic BUSY retries excluded; hung/malformed reply and retry controls remain S10 product outcomes; no claim of historical bounded UI."
+    },
+    {
+      "test": "tests/kar193-diagnostic-reset.cjs",
+      "blob": "c29810e921638dc0e4c4cb5d76d363f2f05b9e5b",
+      "module": "src/app/diagnostics-controls-controller.js",
+      "matrix": "B11/C03/C05",
+      "step": "S04/S10",
+      "status": "split-C",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-diagnostics-baseline.cjs",
+        "tests/v1200-diagnostic-reset.cjs",
+        "tests/kar210-baseline-retained-behavior.cjs"
+      ],
+      "featureAbsence": {
+        "marker": "resetTimeoutMs",
+        "baselineBlob": "c1bc81088780eb534d57cb939f6a211e8b52ee68",
+        "donorBlob": "555aa5b606379a25ec4fc1fe62cd284ea215ad8a",
+        "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
+      },
+      "reason": "P8 admission and retry/occupancy-specific tests excluded or later S10. Independent actual reset success, blocked reset and failed request single dispatch remain active; original malformed acknowledgement and hung-reset tests copied verbatim into active RED witness, not waived. S10 must reconcile truthful reset outcomes without P8."
+    },
+    {
+      "test": "tests/kar185-startup-inventory-regression.cjs",
+      "blob": "c30d621217d8545e3e91f9e10aaa9f380fc77159",
+      "module": "src/app/inventory-loading-state.js",
+      "matrix": "B08",
+      "step": "S08",
+      "status": "deferred-B",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-loading-retention-baseline.cjs",
+        "tests/v1238-profile-management-controller-runtime.cjs"
+      ],
+      "reason": "Later independent load-state provider is absent. CP12 already executes actual historical refresh and preserves 61/90 counts on failed read. Execute actual historical startup orchestration separately, retaining product RED for optional configuration failure blocking local reads and inspection failure mislabeled as inventory failure; no P8-specific retry or future retention route assumed."
+    },
+    {
+      "test": "tests/kar161-trash-retention.cjs",
+      "blob": "395eb82be82115aded1d42267d71e27a2f153d7b",
+      "module": "src/background/services/trash-service.js",
+      "matrix": "B05/B09/D",
+      "step": "S03/S09",
+      "status": "deferred-B",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-bootstrap-schema-boundaries.cjs",
+        "tests/kar210-loading-retention-baseline.cjs",
+        "tests/v1183-trash-runtime.cjs"
+      ],
+      "featureAbsence": {
+        "marker": "async function previewRetentionChange",
+        "baselineBlob": "a5cb8f0b7fbca13b27b7eba6f3cd0303d56bedf9",
+        "donorBlob": "123b7e2c89b3ce101a23c1e29c819a480574a254",
+        "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
+      },
+      "reason": "Configurable seven-position policy and preview/commit API intentionally absent in S02. Original consent, changed-candidate, stale-time, profile and indefinite-policy cases remain required for S03/S09, before any live upgrade. Preserve three original independent database/diagnostic-bootstrap assertions verbatim and CP12 fixed-retention behavior. No destructive configurable-policy behavior claimed implemented."
+    },
+    {
+      "test": "tests/kar134-l15-automatic-schema.cjs",
+      "blob": "f0e6d1216379598f2aea4e77a3a727442af38654",
+      "module": "src/shared/template-schema-core.js",
+      "matrix": "A03/A04/D05",
+      "step": "S05/S07/S11",
+      "status": "deferred-A",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-bootstrap-schema-boundaries.cjs",
+        "tests/kar210-kar201-baseline-safety.cjs",
+        "tests/v12317c1-template-module-public-api.cjs",
+        "tests/v12226-paid-insertion-regression.cjs"
+      ],
+      "reason": "Later automatic schema capture/preflight/adoption not in frozen historical runtime. Keep independent no standalone category-check UI/session creation and local-details boundary assertions verbatim; retain actual historical guarded publish and form checks. Later persisted obsolete scenario rejection and F3 authority must be reconciled at S05/S07, not claimed by absence of module."
+    },
+    {
+      "test": "tests/kar175-inventory-capture.cjs",
+      "blob": "a863f7f897740ad9044772e52b0d2d62d7c69028",
+      "module": "src/background/services/inventory-capture-service.js",
+      "matrix": "A03/D05",
+      "step": "S05/S11",
+      "status": "deferred-D",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-inventory-save-refresh-baseline.cjs",
+        "tests/jpeg.cjs",
+        "tests/v1160-inventory-capture-runtime.cjs",
+        "tests/v12313-inventory-capture-runtime.cjs"
+      ],
+      "reason": "Later in-process extraction not a baseline owner. Execute actual historical saveInventory at its current owner with synthetic image/download/commit ports, checking absent ID, no-image capture, preserved identity/order, failed download no partial commit, and single-flight recovery. Schema provenance remains S05; real download/transaction independent coverage still needed. No architectural extraction or size-credit claim."
+    },
+    {
+      "test": "tests/kar175-inventory-refresh.cjs",
+      "blob": "904a0e30afe129282474fc8f6062b938faec7083",
+      "module": "src/background/services/inventory-refresh-service.js",
+      "matrix": "A01/A13/D05",
+      "step": "S06/S11",
+      "status": "deferred-D",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-inventory-save-refresh-baseline.cjs",
+        "tests/v12019-phase3-edit-authority.cjs",
+        "tests/v12315-runtime.cjs",
+        "tests/v1238-account-session-controller-runtime.cjs"
+      ],
+      "reason": "Later extracted service absent. Execute actual historical checkInventoryOnlineStatus and refreshInventoryRecord with synthetic ports: missing/invalid IDs, account mismatch, bulk/renewal lock, confirmed/pending read-only evidence, correct record/profile and worker cleanup on ordinary failure. Any additional later recovery behaviors remain S06/S11. No new remote actions or owner extraction."
+    },
+    {
+      "test": "tests/kar175-renewal-public-evidence.cjs",
+      "blob": "bd567cf0937e24cb3041d2ac765e1e373e6b5e40",
+      "module": "src/background/services/renewal-public-evidence-coordinator.js",
+      "matrix": "A11/D05",
+      "step": "S06/S11",
+      "status": "deferred-D",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-kar175-public-navigation-baseline.cjs",
+        "tests/v12010-managed-navigation-runtime.cjs",
+        "tests/v1236-public-listing-evidence-runtime.cjs"
+      ],
+      "reason": "Later coordinator absent. Execute actual historical public probe, worker creation/close, My Ads fallback and failure classification with synthetic tab/metadata ports and real ManagedNavigation/public URL policy. Retain exact-ID, inert registered workers, account mismatch, unknown outcome and platform-stop cleanup; no extraction or new navigation probes."
+    },
+    {
+      "test": "tests/kar175-renewal-phase1-retry.cjs",
+      "blob": "93dc4ede9640c8b3c71638737b16b6c941d0ece6",
+      "module": "src/background/services/renewal-phase1-retry-service.js",
+      "matrix": "A10/D05",
+      "step": "S06/S11",
+      "status": "deferred-D",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-kar175-phase1-retry-baseline.cjs",
+        "tests/kar210-kar199-baseline-reset.cjs",
+        "tests/kar210-kar197-baseline-safety.cjs"
+      ],
+      "reason": "Later service owner absent. Execute actual historical boundary and retry orchestration with synthetic persisted sessions and tabs: attempt eligibility, new ID/submitted prohibition, in-flight duplicate, wrong fill, fresh inert tab and session handoff, failure cleanup. Historical shared emergency reset in-flight contract remains active."
+    },
+    {
+      "test": "tests/kar175-manual-navigation.cjs",
+      "blob": "82b8aa0d4d695dc6283a23a8ffd0ab335dfd1867",
+      "module": "src/background/controllers/manual-listing-navigation-controller.js",
+      "matrix": "D05",
+      "step": "S11",
+      "status": "deferred-D",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-kar175-public-navigation-baseline.cjs",
+        "tests/v1236-public-listing-evidence-runtime.cjs"
+      ],
+      "reason": "Later controller absent; historical openEditAd and openReadOnlyAd tested at actual owner with actual URL normalization, exact ID, saved URL preference, rejected foreign origin, direct fallback, pending result and window focus. Synthetic navigation only."
+    },
+    {
+      "test": "tests/kar175-diagnostic-correlation.cjs",
+      "blob": "5e1b3286d996f45d5cfca6a38384bdb8cedb3f12",
+      "module": "src/background/services/diagnostic-correlation-service.js",
+      "matrix": "D05",
+      "step": "S11",
+      "status": "deferred-D",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-kar175-correlation-url-baseline.cjs",
+        "tests/v1150-correlation-runtime.cjs",
+        "tests/v1153-correlation-propagation.cjs"
+      ],
+      "reason": "Later diagnostic owner absent. Actual historical correlation functions and context fields exercised; known operation bypasses storage, fill/renewal/bulk/mass binding resolves with one read, rejection returns safe existing context. No P8 or new diagnostics in hot path."
+    },
+    {
+      "test": "tests/kar175-listing-url-evidence.cjs",
+      "blob": "dc65c8094065ad31af01560749a0dbffc2a7c657",
+      "module": "src/background/services/listing-url-evidence-service.js",
+      "matrix": "A11/D05",
+      "step": "S06/S11",
+      "status": "deferred-D",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-kar175-correlation-url-baseline.cjs",
+        "tests/v12010-managed-navigation-runtime.cjs",
+        "tests/v1236-public-listing-evidence-runtime.cjs"
+      ],
+      "reason": "Later pure URL owner absent; original independent URL behavior assertion body retained byte-for-byte at actual historical owner. HTTPS checks of inventory source and published candidate, foreign origin and exact source-ID exclusion remain active. No broader URL trust or new publish authority claimed."
+    },
+    {
+      "test": "tests/kar175-publish-intent-authorization.cjs",
+      "blob": "8b3415dca7de0ec06cff0e422f106af3c1957f16",
+      "module": "src/background/services/publish-intent-authorization-service.js",
+      "matrix": "A08/A09/A10/A11/C04/D05",
+      "step": "S04/S06/S11",
+      "status": "excluded-C",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-kar201-baseline-safety.cjs",
+        "tests/kar210-kar197-baseline-safety.cjs",
+        "tests/kar210-kar175-phase1-retry-baseline.cjs",
+        "tests/kar210-kar175-public-navigation-baseline.cjs",
+        "tests/v1234-insertion-lock-runtime.cjs",
+        "tests/v1238-account-session-controller-runtime.cjs",
+        "tests/v12226-paid-insertion-regression.cjs"
+      ],
+      "reason": "Original cases operate on absent P8 admission, journal receipt and intent-resolution authority, including its new post-receipt account recheck and independent three-message presence probe. Do not claim those mechanisms implemented. Existing content guarded publish, wrong-tab session updates, insertion lock, submitted boundary, fresh public proof/account mismatch and phase-4 independent safety remain active. S06 must assess real uncertain outcomes, sender/page/account continuity and exact-ID product proof without the excluded architecture; no new runtime or journal authorized."
+    },
+    {
+      "test": "tests/kar175-background-budget.cjs",
+      "blob": "751a6f4fe96a0c4d5ca9b477069abd95f097fbff",
+      "module": "src/background/services/inventory-capture-service.js",
+      "matrix": "C04/D05",
+      "step": "S11",
+      "status": "deferred-D",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-kar175-budget-schema-baseline.cjs",
+        "tests/kar210-kar175-public-navigation-baseline.cjs",
+        "tests/kar210-inventory-save-refresh-baseline.cjs"
+      ],
+      "reason": "Original 30 percent donor entrypoint target and nine-owner presence contract cannot hold for deliberately restored historical source. Preserve full original and all nine absent paths as explicit evidence, measure historical characters/UTF8 bytes/lines and guard against S02 growth. Do not count donor budget as passed or relax D03 public coverage/architecture gate. S11 must reconcile cohesive ownership and budgets with actual retained modules, excluding C04 authorization."
+    },
+    {
+      "test": "tests/kar175-trash-template-publish-detection.cjs",
+      "blob": "80a766b922761e75c56cf5796e68c3103192b240",
+      "module": "src/background/services/trash-template-publish-detection-service.js",
+      "matrix": "A15/D05",
+      "step": "S07/S11",
+      "status": "deferred-D",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-kar175-trash-template-baseline.cjs",
+        "tests/v12217-trash-template-recovery-runtime.cjs",
+        "tests/v12219-trash-template-session-isolation-runtime.cjs",
+        "tests/kar210-kar175-correlation-url-baseline.cjs"
+      ],
+      "reason": "Later extraction absent; execute historical exact production detector and actual URL candidate parser with synthetic sessions and tabs. Check foreign URL, wrong tab, ownership, mismatching page ID, same source, duplicate/new ID, mutation-time ownership, actual local handoff and failure lock cleanup. Does not prove live account binding or native Chrome behavior; preserve S07 verification/recovery obligations."
+    },
+    {
+      "test": "tests/kar134-runtime-cleanup.cjs",
+      "blob": "0b7d6ce19a8e4377c490bbb258b1910de5da5637",
+      "module": "src/shared/template-schema-core.js",
+      "matrix": "A03/A06/D05",
+      "step": "S03/S05/S11",
+      "status": "deferred-A",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-kar175-budget-schema-baseline.cjs",
+        "tests/kar210-bootstrap-schema-boundaries.cjs",
+        "tests/kar210-kar201-baseline-safety.cjs"
+      ],
+      "reason": "Historical source lacks later F3 authority and schema preflight by deliberate baseline choice. Retain original independent absence assertions and message boundary verbatim; preserve retired persisted test-session rejection as genuine independent RED, not hidden with absent schema runtime. S03 must address legacy session data before live upgrade; S05 reconciles structural review, adoption and fail-closed product outcomes."
+    },
+    {
+      "test": "tests/kar134-schema-preflight.cjs",
+      "blob": "9f3471a9eaa5649251d39973882e792c82cf653e",
+      "module": "src/content/template-schema-preflight.js",
+      "matrix": "A02/A03/A04/A05/A06",
+      "step": "S03/S05/S07",
+      "status": "deferred-A",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-kar175-budget-schema-baseline.cjs",
+        "tests/kar210-kar201-baseline-safety.cjs",
+        "tests/v12317-template-filler-runtime.cjs",
+        "tests/v12317c1-template-module-public-api.cjs"
+      ],
+      "reason": "57 original cases retained intact for future meaningful compatibility and review adaptation. Most exercise absent schema fingerprint, option probing, F1/F2/F3 monitor and adoption; independent normal saved-field transport and retired-session rejection copied to active tests with actual historical service, alongside existing exact technical readback, image/order and guarded publish tests. Legacy session denial remains active RED; display-only options, empty required/optional distinction, unknown/corrupt schema and consent obligations not declared satisfied."
+    },
+    {
+      "test": "tests/kar99-p13-persisted-owner-callback-closure.cjs",
+      "blob": "7978fe014c298a57973ffbf5861415dae890fcca",
+      "module": "src/background/services/persisted-owner-observer.js",
+      "matrix": "A08/A14/C02/C03",
+      "step": "S04/S06",
+      "status": "excluded-C",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-p13-persisted-owner-baseline.cjs",
+        "tests/v1236-bulk-controller-runtime.cjs",
+        "tests/v12313c1-bulk-reentry-rehydration-regression.cjs",
+        "tests/v1231-renewal-workflow-runtime.cjs",
+        "tests/v1233-mass-renewal-workflow-runtime.cjs",
+        "tests/v1235-archive-insertion-controller-runtime.cjs",
+        "tests/kar210-kar199-baseline-reset.cjs"
+      ],
+      "reason": "All original seven-owner closure cases call the absent P13 observer and assert P8 receipt attribution, no trusted update lease, repeated census or unknown-source verdicts. Preserve exact originals and do not claim callback closure. Historical persisted renewal/archive/fill and mass insertion lock recovery and rejected owner read witnesses remain active at actual owners, plus bulk/reconciliation and reset behavior. S03/S06 must reconcile uncertain persisted outcomes before live use; no new observer or P8 admission."
+    },
+    {
+      "test": "tests/kar99-p13-native-transaction-closure.cjs",
+      "blob": "6ff163b24d363458ecd969cb270dee69a4d43898",
+      "module": "src/background/services/additional-owner-observer.js",
+      "matrix": "C01/C02",
+      "step": "S04",
+      "status": "excluded-C",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-p13-persisted-owner-baseline.cjs",
+        "tests/kar210-kar175-budget-schema-baseline.cjs"
+      ],
+      "reason": "All original cases inspect absent additional-owner native transaction closure and later update-workflow fence. Locally released/unknown reservations never prove native host completion. Exclude updater lease contract; explicitly verify absence of later observer/fence/admission from frozen package, not positive host acceptance. Legacy updater hook removal remains S04; no native operation or update state certified."
+    },
+    {
+      "test": "tests/kar99-p13-managed-tabs-closure.cjs",
+      "blob": "fc72df8615003bd3da0f9c2386f8a381be447194",
+      "module": "src/background/services/additional-owner-observer.js",
+      "matrix": "A08/A14/C02/C03",
+      "step": "S04/S06",
+      "status": "excluded-C",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-p13-persisted-owner-baseline.cjs",
+        "tests/v1156-a1-tab-registry-runtime.cjs",
+        "tests/kar210-kar175-public-navigation-baseline.cjs",
+        "tests/kar210-kar199-baseline-reset.cjs"
+      ],
+      "reason": "All original assertions are through additional-owner observer historical P8 receipts and independent double census, not actual historical tab lifecycle owner. Retain actual historical tab registry/restart, exact worker close, ownership release refusal and transport failures, including existing RED P9 stale GONE monotonicity. No updater census, prior generation closure or detached remote work asserted."
+    },
+    {
+      "test": "tests/kar99-p13-emergency-recovery-closure.cjs",
+      "blob": "56c1d4f2e96f4322dc9cf1cbde48434fe3c6483c",
+      "module": "src/background/services/additional-owner-observer.js",
+      "matrix": "A14/C02/C03/C05",
+      "step": "S04/S06",
+      "status": "excluded-C",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-kar199-baseline-reset.cjs",
+        "tests/v12223c2-reset-recovery-archive-regression.cjs",
+        "tests/v12230-global-emergency-reset.cjs",
+        "tests/v12213-bulk-deadlock-runtime.cjs"
+      ],
+      "reason": "Original cases exclusively inspect P8 autonomous callback provenance/receipt state and never verify actual product recovery. Retain existing actual emergency reset/controller and bulk recovery tests, genuine independent no-replay RED and lock-read uncertainty; callback finish does not prove remote outcome. S06 remains responsible for bounded recovery, no new updater watchdog or census."
+    },
+    {
+      "test": "tests/kar99-p13-profile-account-closure.cjs",
+      "blob": "11bab67d8139f90876132779b3165619649e82da",
+      "module": "src/background/services/additional-owner-observer.js",
+      "matrix": "A08/A16/C02/C03",
+      "step": "S03/S04/S06",
+      "status": "excluded-C",
+      "owner": "package.json",
+      "retained": [
+        "tests/v1238-profile-management-controller-runtime.cjs",
+        "tests/v1238-account-session-controller-runtime.cjs",
+        "tests/v12010-account-gate-runtime.cjs",
+        "tests/v1181-profile-backup-zip-runtime.cjs",
+        "tests/kar210-kar175-public-navigation-baseline.cjs",
+        "tests/kar210-p13-persisted-owner-baseline.cjs"
+      ],
+      "reason": "All original cases exercise P8 callback attribution for profile and account transition through absent observer; none proves real profile commit or live account. Keep actual historical profile controller, account gate with mismatched/unknown live identity rejection, backup and scoped public fallback tests. Persisted local selection or receipt is not authentication. S03 data and S06 account continuity obligations remain; no native upgrade or census."
+    },
+    {
+      "test": "tests/kar158-compact-category.cjs",
+      "blob": "f33119d51c3f1fe9a9266aace26e4438a4509620",
+      "module": "src/app/record-card-view.js",
+      "matrix": "B01/B02",
+      "step": "S08",
+      "status": "deferred-B",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-kar158-compact-baseline.cjs",
+        "tests/kar210-baseline-retained-behavior.cjs",
+        "tests/v12314-runtime.cjs"
+      ],
+      "reason": "Later full category + saved Art/Typ and tooltip presentation absent; retain exact independent compact hierarchy, price/title, inventory/trash and immutable record assertions, baseline leaf-only saved category and neutral/legacy fallback, CSS one-line safety. Original full-path/type ambiguity requirements remain S08.",
+      "featureAbsence": {
+        "marker": "categoryLine.title = categoryLine.textContent",
+        "baselineBlob": "6e9974cedd71c092df0a09b3b49f6502073e18a5",
+        "donorBlob": "2e9c7bce7209eefd9ed7efb568f5e331a8817ada",
+        "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
+      }
+    },
+    {
+      "test": "tests/kar151-mass-title-search.cjs",
+      "blob": "e68cc83e385e1198a868a367fcdf438694db57e0",
+      "module": "src/app/mass-renewal-ui-controller.js",
+      "matrix": "B03",
+      "step": "S08",
+      "status": "deferred-B",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-kar151-selection-baseline.cjs",
+        "tests/v1233-mass-renewal-workflow-runtime.cjs",
+        "tests/v1238-account-session-controller-runtime.cjs"
+      ],
+      "reason": "Search controls, normalization and hidden selections absent; preserve actual historical DOM order, exact selected IDs, keyboard and max-ten cap, stale profile selection purge, account gate and explicit ordered batch request, without claiming hidden-selection/search or later persisted stop-on-error. Original suite intact for S08.",
+      "featureAbsence": {
+        "marker": "massRenewalSearchInput",
+        "baselineBlob": "813aedc109538d3afb387f6f47648bdfe12fe303",
+        "donorBlob": "1c22cb5bd91623337164744046fbc03622839c68",
+        "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
+      }
+    },
+    {
+      "test": "tests/kar150-stop-on-error.cjs",
+      "blob": "b92f5f024dce5ff0664f8ea7ee6aca5467ab2a31",
+      "module": "src/app/mass-renewal-ui-controller.js",
+      "matrix": "A07/A09/A14/B04/C05",
+      "step": "S06/S08",
+      "status": "deferred-B",
+      "owner": "package.json",
+      "retained": [
+        "tests/kar210-kar150-mass-baseline.cjs",
+        "tests/v1233-mass-renewal-workflow-runtime.cjs",
+        "tests/v12226-paid-insertion-regression.cjs",
+        "tests/v12227-paid-insertion-lock-reset-regression.cjs"
+      ],
+      "reason": "Later frozen preference and automatic ordinary-error stop intentionally deferred, not baseline default. Preserve historical ordinary continuation, explicit user stop, paid checkout mandatory stop before next start, stable ordering/deduplication and terminal no-restart; retain independent restart missing-session no-replay RED from original as active witness. Later uncertain Phase4 stop policy, preference corruption/migration/watchdog obligations remain S06/S08; no C05 backport.",
+      "featureAbsence": {
+        "marker": "massRenewalStopOnErrorPreferenceV1",
+        "baselineBlob": "813aedc109538d3afb387f6f47648bdfe12fe303",
+        "donorBlob": "1c22cb5bd91623337164744046fbc03622839c68",
+        "donorCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd"
+      }
+    },
+    {
+      "test": "tests/kar99-workflow-fence.cjs",
+      "blob": "a6e228ba5d611d6e60bbda1a0ad5a1617b673ab8",
+      "module": "src/background/services/update-workflow-fence.js",
+      "matrix": "C02/C03",
+      "step": "S04/S06",
+      "status": "excluded-C",
+      "owner": "package.json",
+      "reason": "Every reservation, lease, cancellation, recovery and router assertion depends on the later updater fence and idle classifier. The no-native-mutation and product route/lock controls remain active independently.",
+      "retained": [
+        "tests/kar210-cp35-owner-product-witness.cjs",
+        "tests/kar210-p13-persisted-owner-baseline.cjs",
+        "tests/v1234-insertion-lock-runtime.cjs",
+        "tests/v1238-account-session-controller-runtime.cjs",
+        "tests/kar68-native-status-gateway.cjs",
+        "tests/kar69-native-check.cjs",
+        "tests/v12312-background-message-router-runtime.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar101-autonomous-admission.cjs",
+      "blob": "1ca3a6a901e7778c2f53569366b5529c1015e0df",
+      "module": "src/background/services/update-workflow-fence.js",
+      "matrix": "A08/A14/C03",
+      "step": "S04/S06",
+      "status": "split-C",
+      "owner": "package.json",
+      "reason": "Retain original boot, lifecycle, queued retry and watchdog callback reachability at historical owners, plus actual renewal/mass/phase-one and uncertain-start tests. Exclude only the shared updater admission wrapper and its binding requirements.",
+      "retained": [
+        "tests/kar210-cp35-owner-product-witness.cjs",
+        "tests/kar210-p13-persisted-owner-baseline.cjs",
+        "tests/v1234-insertion-lock-runtime.cjs",
+        "tests/v1238-account-session-controller-runtime.cjs",
+        "tests/v1231-renewal-workflow-runtime.cjs",
+        "tests/v1233-mass-renewal-workflow-runtime.cjs",
+        "tests/kar210-kar175-phase1-retry-baseline.cjs",
+        "tests/kar210-kar199-baseline-reset.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar107-autonomous-owner-coverage.cjs",
+      "blob": "8cb96c001d5f8f98730fa462553c9d29f3926f23",
+      "module": "src/background/services/persisted-owner-observer.js",
+      "matrix": "A08/A14/C02/C03",
+      "step": "S04/S06",
+      "status": "split-C",
+      "owner": "package.json",
+      "reason": "Original lifecycle persistence, publish detection and terminalization checks retained at historical owners; counters and positive observer lifetime snapshots depend on excluded census. Real restart/unknown ownership and independent tab lifecycle witnesses remain active.",
+      "retained": [
+        "tests/kar210-cp35-owner-product-witness.cjs",
+        "tests/kar210-p13-persisted-owner-baseline.cjs",
+        "tests/v1234-insertion-lock-runtime.cjs",
+        "tests/v1238-account-session-controller-runtime.cjs",
+        "tests/kar210-kar175-public-navigation-baseline.cjs",
+        "tests/kar210-kar199-baseline-reset.cjs",
+        "tests/v1233-mass-renewal-workflow-runtime.cjs",
+        "tests/v1235-archive-insertion-controller-runtime.cjs",
+        "tests/v1236-bulk-controller-runtime.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar109-routed-owner-inflight.cjs",
+      "blob": "d51422240234aa3bcd540126a15b9246154c6662",
+      "module": "src/background/services/persisted-owner-observer.js",
+      "matrix": "A08/C02/C03",
+      "step": "S04/S06",
+      "status": "split-C",
+      "owner": "package.json",
+      "reason": "All seven/eight-owner counter and update lease tests rely on absent observer/fence; actual eight original route names independently exercise real registry/router platform denial before handler and original async completion/rejection. Existing product lock and owner tests remain active.",
+      "retained": [
+        "tests/kar210-cp35-owner-product-witness.cjs",
+        "tests/kar210-p13-persisted-owner-baseline.cjs",
+        "tests/v1234-insertion-lock-runtime.cjs",
+        "tests/v1238-account-session-controller-runtime.cjs",
+        "tests/v12312-background-message-router-runtime.cjs",
+        "tests/v12225-message-contract-enforcement-runtime.cjs",
+        "tests/kar210-kar199-baseline-phase4.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar111-identity-uncertainty.cjs",
+      "blob": "1a30f24522230bc1ac7632f6fa6a66f1c86a9a98",
+      "module": "src/background/services/persisted-owner-observer.js",
+      "matrix": "A08/A16/C02/C03",
+      "step": "S03/S04/S06",
+      "status": "split-C",
+      "owner": "package.json",
+      "reason": "Lease attestation, torn census and shared updater worker generation are excluded. Independently execute historical account authority with mismatched/missing/unknown/read-failure evidence and matching live positive control; retain actual persisted lock read uncertainty and profile/restart safety tests. No claim of torn-read or cross-worker product closure.",
+      "retained": [
+        "tests/kar210-cp35-owner-product-witness.cjs",
+        "tests/kar210-p13-persisted-owner-baseline.cjs",
+        "tests/v1234-insertion-lock-runtime.cjs",
+        "tests/v1238-account-session-controller-runtime.cjs",
+        "tests/v1238-profile-management-controller-runtime.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar113-renewal-detached-admission.cjs",
+      "blob": "f8f0d42840c8008147bdc5b540dcce325f5d0374",
+      "module": "src/background/services/update-workflow-fence.js",
+      "matrix": "A07/A08/A14/C03",
+      "step": "S04/S06",
+      "status": "split-C",
+      "owner": "package.json",
+      "reason": "Original strict dependency and worker construction checks retained; verify six actual historical detached Fast/Safe/retry launch sites. P8 receipts, fence delegation and owner mapping are excluded, not proof of product safety.",
+      "retained": [
+        "tests/kar210-cp36-phase4-product-witness.cjs",
+        "tests/kar210-kar199-baseline-phase4.cjs",
+        "tests/kar210-kar199-baseline-reset.cjs",
+        "tests/v1231-renewal-workflow-runtime.cjs",
+        "tests/kar210-kar175-phase1-retry-baseline.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar115-automatic-phase4-admission.cjs",
+      "blob": "652b6a8dc961d74242c4817bba650c38a08f1dd3",
+      "module": "src/background/services/update-workflow-fence.js",
+      "matrix": "A07/A12/A14/C03",
+      "step": "S04/S06",
+      "status": "split-C",
+      "owner": "package.json",
+      "reason": "The updater admission refusal and callback ownership API are excluded. Independent actual scheduler checks preserve in-process duplicate prevention, one scheduled call, guard release after settlement and no synthetic outcome writes; actual Phase4 product negatives remain active.",
+      "retained": [
+        "tests/kar210-cp36-phase4-product-witness.cjs",
+        "tests/kar210-kar199-baseline-phase4.cjs",
+        "tests/kar210-kar199-baseline-reset.cjs",
+        "tests/v1231-renewal-workflow-runtime.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar117-uncertain-phase4-journal.cjs",
+      "blob": "f3391aac4d7c58a02455d654f61d47c944f40ea6",
+      "module": "src/background/services/phase4-uncertainty-journal.js",
+      "matrix": "A12/A14/C04",
+      "step": "S04/S06",
+      "status": "split-C",
+      "owner": "package.json",
+      "reason": "Immutable journal implementation, keys, tokens, cross-worker identity and write-readback schema belong to explicitly excluded C04. Preserve exact originals, actual pre-dispatch persistence failure denial, persisted uncertainty no-replay RED, bounded status/transport/intent tests and existing reset/identity gates; no claim of durable journal equivalence.",
+      "retained": [
+        "tests/kar210-cp36-phase4-product-witness.cjs",
+        "tests/kar210-kar199-baseline-phase4.cjs",
+        "tests/kar210-kar199-baseline-reset.cjs",
+        "tests/kar210-p13-persisted-owner-baseline.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar124-phase4-journal-owner-observer.cjs",
+      "blob": "343d2f5dbec4badee9448443592b12cad5ac9f66",
+      "module": "src/background/services/persisted-owner-observer.js",
+      "matrix": "A08/A14/C02/C04",
+      "step": "S04/S06",
+      "status": "split-C",
+      "owner": "package.json",
+      "reason": "All census outputs use the absent journal and owner observer. Existing independent actual persisted-owner restart and failed-read tests, Phase4 uncertainty and reset tests remain active. No idle authority or equivalent journal observation claimed.",
+      "retained": [
+        "tests/kar210-cp36-phase4-product-witness.cjs",
+        "tests/kar210-kar199-baseline-phase4.cjs",
+        "tests/kar210-kar199-baseline-reset.cjs",
+        "tests/kar210-p13-persisted-owner-baseline.cjs",
+        "tests/v1234-insertion-lock-runtime.cjs",
+        "tests/v1238-account-session-controller-runtime.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar128-manual-phase4-journal-boundary.cjs",
+      "blob": "3054b5ed97a300c503929033f5a90d3eaf7c3ab9",
+      "module": "src/background/services/phase4-uncertainty-journal.js",
+      "matrix": "A08/A12/A14/C04",
+      "step": "S04/S06",
+      "status": "split-C",
+      "owner": "package.json",
+      "reason": "Journal schema, storage port and receipt timings excluded. Retain independent same-profile wrong-account negatives, late asynchronous diagnostic account-switch RED at actual remote owner, pre-dispatch persistence refusal and no-repeat unknown outcome RED. Existing transport/timeouts/independent absence tests mandatory; no claim that the journal boundary was reproduced.",
+      "retained": [
+        "tests/kar210-cp36-phase4-product-witness.cjs",
+        "tests/kar210-kar199-baseline-phase4.cjs",
+        "tests/kar210-kar199-baseline-reset.cjs",
+        "tests/v1238-account-session-controller-runtime.cjs",
+        "tests/kar210-p13-persisted-owner-baseline.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar99-phase4-resolution-observer.cjs",
+      "blob": "0562f041dffb746cf4395370e8cc4afedae731fd",
+      "module": "src/background/services/phase4-uncertainty-journal.js",
+      "matrix": "A12/A14/C02/C04",
+      "step": "S04/S06",
+      "status": "split-C",
+      "owner": "package.json",
+      "reason": "Original immutable dual-ID receipt and owner-census classifications are excluded C02/C04. Actual persisted lock/read-failure and restart unknown-outcome tests remain. Added whole product finish boundary rejects unverified independent absence and account change; no claim of journal equivalence.",
+      "retained": [
+        "tests/kar210-cp37-outcome-product-witness.cjs",
+        "tests/kar210-cp36-phase4-product-witness.cjs",
+        "tests/kar210-kar199-baseline-phase4.cjs",
+        "tests/kar210-p13-persisted-owner-baseline.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar99-phase4-journal-atomic.cjs",
+      "blob": "d409641aa82fcd61f94eced95f0ba4bac7173002",
+      "module": "src/background/services/phase4-uncertainty-journal.js",
+      "matrix": "A08/A12/A14/C03/C04",
+      "step": "S04/S06",
+      "status": "split-C",
+      "owner": "package.json",
+      "reason": "Shared P8 Web Lock, immutable journal and resolution tokens belong to excluded C03/C04. Existing insertion lock and in-process duplicate scheduling remain active; direct persisted unknown DELETE replay remains RED. No proof of cross-worker atomicity.",
+      "retained": [
+        "tests/kar210-cp37-outcome-product-witness.cjs",
+        "tests/kar210-cp36-phase4-product-witness.cjs",
+        "tests/kar210-kar199-baseline-phase4.cjs",
+        "tests/kar210-p13-persisted-owner-baseline.cjs",
+        "tests/v1234-insertion-lock-runtime.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar99-phase4-outcome-reconciliation.cjs",
+      "blob": "0dbbc154d6ba7baa4bc43ce65ecdaa993e4d8334",
+      "module": "src/background/services/phase4-uncertainty-journal.js",
+      "matrix": "A11/A12/A13/A14/C04",
+      "step": "S04/S06",
+      "status": "split-C",
+      "owner": "package.json",
+      "reason": "Immutable resolution API and its additional dual fresh roster scan mechanism excluded. Actual historical finish path must reject missing or mismatched local source/candidate, source still present, unavailable scan or wrong account before promotion; verified exact source absence positive control reaches atomic promotion only. Prior target verification, exact source deletion and unknown replay remain active. No claim of new target readback or journal proof.",
+      "retained": [
+        "tests/kar210-cp37-outcome-product-witness.cjs",
+        "tests/kar210-cp36-phase4-product-witness.cjs",
+        "tests/kar210-kar199-baseline-phase4.cjs",
+        "tests/kar210-p13-persisted-owner-baseline.cjs",
+        "tests/v1177-performance4-phase4.cjs",
+        "tests/kar210-kar175-public-navigation-baseline.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar99-p13f2e2d2b2a-real-publish-route.cjs",
+      "blob": "110a6bf09c5389d4246ce67bb5dd4a5a9033e513",
+      "module": "src/background/services/cross-worker-atomic-admission.js",
+      "matrix": "A08/A09/A10/C03/C04",
+      "step": "S04/S06",
+      "status": "split-C",
+      "owner": "package.json",
+      "reason": "Private AUTHORIZE_AUTOMATIC_PUBLISH route and P8 callback tokens belong to excluded C03/C04. Actual historical registry and router must reject this absent route even with forged receipt; unknown/wrong-target denial, read-only epoch positive control, paid and stale-stage product guards retained.",
+      "retained": [
+        "tests/kar210-cp37-outcome-product-witness.cjs",
+        "tests/kar210-cp36-phase4-product-witness.cjs",
+        "tests/kar210-kar199-baseline-phase4.cjs",
+        "tests/kar210-p13-persisted-owner-baseline.cjs",
+        "tests/kar210-kar197-baseline-safety.cjs",
+        "tests/kar210-kar201-baseline-safety.cjs",
+        "tests/kar210-cp35-owner-product-witness.cjs",
+        "tests/v12226-paid-insertion-regression.cjs",
+        "tests/kar210-kar175-public-navigation-baseline.cjs",
+        "tests/v1234-insertion-lock-runtime.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar99-p13f2e2d2b1-token-witness.cjs",
+      "blob": "21477f4e0e18c0e5a105e5e8610b1c36e04781f9",
+      "module": "src/background/services/cross-worker-atomic-admission.js",
+      "matrix": "A08/A10/A12/A14/C03/C04",
+      "step": "S04/S06",
+      "status": "split-C",
+      "owner": "package.json",
+      "reason": "All token provenance, immutable begin/resolve and old-worker correlation assertions use excluded P8/fence/journals. Actual missing route denial, stale publish, existing lock and account gates and unresolved delete replay stay independently active. No token or journal equivalence.",
+      "retained": [
+        "tests/kar210-cp37-outcome-product-witness.cjs",
+        "tests/kar210-cp36-phase4-product-witness.cjs",
+        "tests/kar210-kar199-baseline-phase4.cjs",
+        "tests/kar210-p13-persisted-owner-baseline.cjs",
+        "tests/kar210-kar197-baseline-safety.cjs",
+        "tests/kar210-kar201-baseline-safety.cjs",
+        "tests/kar210-cp35-owner-product-witness.cjs",
+        "tests/v12226-paid-insertion-regression.cjs",
+        "tests/kar210-kar175-public-navigation-baseline.cjs",
+        "tests/v1234-insertion-lock-runtime.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar99-p13f2e2d2a-remote-admission-lineage.cjs",
+      "blob": "eb656dde6c6f3e0922a0e1e0ee74ffd1a2219aec",
+      "module": "src/background/services/persisted-owner-observer.js",
+      "matrix": "A08/A10/A12/A14/C02/C03/C04",
+      "step": "S03/S04/S06",
+      "status": "split-C",
+      "owner": "package.json",
+      "reason": "All historical overlap and candidate attribution tests depend on excluded census, admission and remote journal records. Keep persisted owner restart and read uncertainty, account mismatch, archive submitted lock, actual source absence and unresolved outcome witnesses; do not infer old journal authority or migration completion.",
+      "retained": [
+        "tests/kar210-cp37-outcome-product-witness.cjs",
+        "tests/kar210-cp36-phase4-product-witness.cjs",
+        "tests/kar210-kar199-baseline-phase4.cjs",
+        "tests/kar210-p13-persisted-owner-baseline.cjs",
+        "tests/kar210-kar197-baseline-safety.cjs",
+        "tests/kar210-kar201-baseline-safety.cjs",
+        "tests/kar210-cp35-owner-product-witness.cjs",
+        "tests/v12226-paid-insertion-regression.cjs",
+        "tests/kar210-kar175-public-navigation-baseline.cjs",
+        "tests/v1234-insertion-lock-runtime.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar99-p13f2e2d1-admission-history.cjs",
+      "blob": "47032767eb853376850f52cd491ac07a1fd72db7",
+      "module": "src/background/services/persisted-owner-observer.js",
+      "matrix": "A08/A14/C02/C03",
+      "step": "S04/S06",
+      "status": "excluded-C",
+      "owner": "package.json",
+      "reason": "Every test exercises read-only P8 admission history and census, explicitly not remote outcome or authority. Original retained; actual persisted workflow and failed read guards remain independently active; no cross-worker completion claim.",
+      "retained": [
+        "tests/kar210-cp37-outcome-product-witness.cjs",
+        "tests/kar210-cp36-phase4-product-witness.cjs",
+        "tests/kar210-kar199-baseline-phase4.cjs",
+        "tests/kar210-p13-persisted-owner-baseline.cjs",
+        "tests/kar210-cp35-owner-product-witness.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar99-p13f2e2c-remote-source-evidence.cjs",
+      "blob": "d18009d929cc91b5c9cc23806ff0692224a5f1d6",
+      "module": "src/background/services/persisted-owner-observer.js",
+      "matrix": "A08/A10/A12/A14/C02/C04",
+      "step": "S03/S04/S06",
+      "status": "split-C",
+      "owner": "package.json",
+      "reason": "All revision/identity readback tests require absent journal and observer. Retain actual account gates, source/candidate exact identity rejection, independent absence proof, stale submitted and persisted lock controls. Legacy journal data migration remains S03; no historical revision or closure claim.",
+      "retained": [
+        "tests/kar210-cp37-outcome-product-witness.cjs",
+        "tests/kar210-cp36-phase4-product-witness.cjs",
+        "tests/kar210-kar199-baseline-phase4.cjs",
+        "tests/kar210-p13-persisted-owner-baseline.cjs",
+        "tests/kar210-kar197-baseline-safety.cjs",
+        "tests/kar210-kar201-baseline-safety.cjs",
+        "tests/kar210-cp35-owner-product-witness.cjs",
+        "tests/v12226-paid-insertion-regression.cjs",
+        "tests/kar210-kar175-public-navigation-baseline.cjs",
+        "tests/v1234-insertion-lock-runtime.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar99-auto-publish-intent.cjs",
+      "blob": "67b688a24af9a29f9aae960e2f92b7c49c2b7ed7",
+      "module": "src/background/services/auto-publish-intent-journal.js",
+      "matrix": "A08/A09/A10/C03/C04",
+      "step": "S04/S06",
+      "status": "split-C",
+      "owner": "package.json",
+      "reason": "P8 before-click receipt, immutable keys and shared origin lock excluded. Real verified form, paid/ambiguous/template-only/submitted and missing private route guards remain; actual capture duplicate prevention independent of journal.",
+      "retained": [
+        "tests/kar210-cp38-ingress-product-witness.cjs",
+        "tests/kar210-kar197-baseline-safety.cjs",
+        "tests/kar210-kar201-baseline-safety.cjs",
+        "tests/kar210-cp37-outcome-product-witness.cjs",
+        "tests/kar210-cp35-owner-product-witness.cjs",
+        "tests/v12226-paid-insertion-regression.cjs",
+        "tests/kar210-p13-persisted-owner-baseline.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar99-publish-outcome.cjs",
+      "blob": "a6ecc6a537e11d2e4c67c7910f56317721ffb143",
+      "module": "src/background/services/auto-publish-intent-journal.js",
+      "matrix": "A08/A10/A11/A14/C04",
+      "step": "S04/S06",
+      "status": "split-C",
+      "owner": "package.json",
+      "reason": "Retain manual second click/submit and null submitter negatives at actual capture listener, same-account exact target evidence and failed scan witnesses. Journal resolution, replay tokens and private approval callback excluded; no journal-equivalence claim.",
+      "retained": [
+        "tests/kar210-cp38-ingress-product-witness.cjs",
+        "tests/kar210-kar197-baseline-safety.cjs",
+        "tests/kar210-kar201-baseline-safety.cjs",
+        "tests/kar210-cp37-outcome-product-witness.cjs",
+        "tests/kar210-cp35-owner-product-witness.cjs",
+        "tests/v12226-paid-insertion-regression.cjs",
+        "tests/kar210-p13-persisted-owner-baseline.cjs",
+        "tests/kar210-kar175-public-navigation-baseline.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar99-p6-adversarial.cjs",
+      "blob": "3627a0031f11366c0c53c05ad6eb7bd4008978b1",
+      "module": "src/background/services/auto-publish-intent-journal.js",
+      "matrix": "A08/A09/A10/A11/A14/C03/C04",
+      "step": "S03/S04/S06",
+      "status": "split-C",
+      "owner": "package.json",
+      "reason": "Preserve actual duplicate/implicit-submit negatives, ambiguous/paid automatic pause, exact target/account and interrupted roster read tests. Immutable receipt crash cases and P8 auth API excluded; legacy journal migration S03. No crash-durable equivalent claimed.",
+      "retained": [
+        "tests/kar210-cp38-ingress-product-witness.cjs",
+        "tests/kar210-kar197-baseline-safety.cjs",
+        "tests/kar210-kar201-baseline-safety.cjs",
+        "tests/kar210-cp37-outcome-product-witness.cjs",
+        "tests/kar210-cp35-owner-product-witness.cjs",
+        "tests/v12226-paid-insertion-regression.cjs",
+        "tests/kar210-p13-persisted-owner-baseline.cjs",
+        "tests/kar210-kar175-public-navigation-baseline.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar99-p6-ingress-closure.cjs",
+      "blob": "5669630f9659bd7d6aae5400c0fa2e6ee0cc0bb8",
+      "module": "src/background/services/auto-publish-intent-journal.js",
+      "matrix": "A09/A10/A11/A12/A14/C03/C04",
+      "step": "S04/S06",
+      "status": "split-C",
+      "owner": "package.json",
+      "reason": "Exact original delete-control, no direct submit/requestSubmit and read-only archive continuation assertions extracted; actual initial/reentry branches and user-owned template. Early managed capture and duplicate submit safety RED retained; private journal ordering and P8 bindings excluded.",
+      "retained": [
+        "tests/kar210-cp38-ingress-product-witness.cjs",
+        "tests/kar210-kar197-baseline-safety.cjs",
+        "tests/kar210-kar201-baseline-safety.cjs",
+        "tests/kar210-cp37-outcome-product-witness.cjs",
+        "tests/kar210-cp35-owner-product-witness.cjs",
+        "tests/v12226-paid-insertion-regression.cjs",
+        "tests/kar210-p13-persisted-owner-baseline.cjs",
+        "tests/v1177-performance4-phase4.cjs",
+        "tests/kar210-cp36-phase4-product-witness.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar99-additional-owner-producers.cjs",
+      "blob": "e7d5841d71ef5dc6af3c1d6fa61e981620fa155c",
+      "module": "src/background/services/additional-owner-observer.js",
+      "matrix": "A08/A14/C01/C02/C03",
+      "step": "S04/S06",
+      "status": "split-C",
+      "owner": "package.json",
+      "reason": "Eight supplemental census, native apply and double-probe attestation excluded. Exact PAGE_STATUS fixture and seller-link/logged-out negatives preserved; actual account and tab registry unknown/gone/read-failure tests remain. No idle or torn census authority claim.",
+      "retained": [
+        "tests/kar210-cp38-ingress-product-witness.cjs",
+        "tests/kar210-kar197-baseline-safety.cjs",
+        "tests/kar210-kar201-baseline-safety.cjs",
+        "tests/kar210-cp37-outcome-product-witness.cjs",
+        "tests/kar210-cp35-owner-product-witness.cjs",
+        "tests/v12226-paid-insertion-regression.cjs",
+        "tests/kar210-p13-persisted-owner-baseline.cjs",
+        "tests/v1238-account-session-controller-runtime.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar99-p7-integrated-owner-authority.cjs",
+      "blob": "b065253e970b0d2881a42a8184f26758faac155e",
+      "module": "src/background/services/additional-owner-observer.js",
+      "matrix": "A08/A14/C02/C03",
+      "step": "S04/S06",
+      "status": "excluded-C",
+      "owner": "package.json",
+      "reason": "Fifteen-owner taxonomy, operation mappings, native transaction and lease classifications target excluded updater authority. Actual lifecycle, persisted lock, uncertain read and account safety remain active. No fabricated all-idle claim.",
+      "retained": [
+        "tests/kar210-cp38-ingress-product-witness.cjs",
+        "tests/kar210-kar197-baseline-safety.cjs",
+        "tests/kar210-kar201-baseline-safety.cjs",
+        "tests/kar210-cp37-outcome-product-witness.cjs",
+        "tests/kar210-cp35-owner-product-witness.cjs",
+        "tests/v12226-paid-insertion-regression.cjs",
+        "tests/kar210-p13-persisted-owner-baseline.cjs",
+        "tests/v1234-insertion-lock-runtime.cjs"
+      ]
+    },
+    {
+      "test": "tests/kar130-archive-detached-admission.cjs",
+      "blob": "bb241dcf2751205f8d034af408d8ae1df391fa06",
+      "module": "src/background/services/update-workflow-fence.js",
+      "matrix": "A07/A08/A14/C03",
+      "step": "S04/S06/S07",
+      "status": "split-C",
+      "owner": "package.json",
+      "reason": "P8 dependency and owner mapping excluded. Two recovery paths and one confirmation continuation preserve postpublish-only behavior; exercise known published/legacy and terminal/unknown-ID cases. Submitted recovery missing detection binding retained as direct RED; broader B15 recovery deferred.",
+      "retained": [
+        "tests/kar210-cp38-ingress-product-witness.cjs",
+        "tests/kar210-kar197-baseline-safety.cjs",
+        "tests/kar210-kar201-baseline-safety.cjs",
+        "tests/kar210-cp37-outcome-product-witness.cjs",
+        "tests/kar210-cp35-owner-product-witness.cjs",
+        "tests/v12226-paid-insertion-regression.cjs",
+        "tests/kar210-p13-persisted-owner-baseline.cjs",
+        "tests/v1235-archive-insertion-controller-runtime.cjs",
+        "tests/v12223c2-reset-recovery-archive-regression.cjs"
+      ]
+    }
+  ],
+  "deferredWitnesses": [
+    {
+      "test": "tests/kar210-trash-template-recovery-coalescing.cjs",
+      "blob": "bc450dc54cbf828ca5d86b3022d935046c208f18",
+      "sourceTest": "tests/kar195-startup-atomic-fairness.cjs",
+      "status": "deferred-product",
+      "step": "S07",
+      "redRun": 45499893107,
+      "redJob": 138820077250,
+      "expected": 1,
+      "actual": 8,
+      "reason": "Independent optimization of passive trash-template recovery reads, not part of historical baseline. Original assertion body unchanged; keep RED evidence and revisit in S07."
+    }
+  ],
+  "scopeResetDeferred": [
+    {
+      "test": "tests/kar199-phase4-no-transport-replay.cjs",
+      "blob": "c5a2fe989cd5777d18bf4c79aa3930cd87da9b94",
+      "status": "deferred-post-baseline",
+      "owner": "package.json",
+      "step": "S06",
+      "redRun": 45709808541,
+      "redCommandIndex": 6,
+      "reason": "Absent from original v1.23.48 test suite and tree; owner scope reset retains historical safeguards unchanged. Original later RED and source preserved; no PASS credit or future implementation approval."
+    },
+    {
+      "test": "tests/kar199-phase4-bounded-runtime.cjs",
+      "blob": "706b7e9495c5e8ffaaf8f92b74ede2afd09f3fe7",
+      "status": "deferred-post-baseline",
+      "owner": "package.json",
+      "step": "S06",
+      "redRun": 45709808541,
+      "redCommandIndex": 7,
+      "reason": "Absent from original v1.23.48 test suite and tree; owner scope reset retains historical safeguards unchanged. Original later RED and source preserved; no PASS credit or future implementation approval."
+    },
+    {
+      "test": "tests/kar199-phase4-unverified-state-runtime.cjs",
+      "blob": "6ad7e4d1351fe3d71f3f62b8bbaeaad489cf47aa",
+      "status": "deferred-post-baseline",
+      "owner": "package.json",
+      "step": "S06",
+      "redRun": 45709808541,
+      "redCommandIndex": 8,
+      "reason": "Absent from original v1.23.48 test suite and tree; owner scope reset retains historical safeguards unchanged. Original later RED and source preserved; no PASS credit or future implementation approval."
+    },
+    {
+      "test": "tests/kar210-cp36-phase4-unknown-witness.cjs",
+      "blob": "70d3c91e46d114e6111340c8d32f97b65b76faec",
+      "status": "deferred-post-baseline",
+      "owner": "package.json",
+      "step": "S06",
+      "redRun": 45709808541,
+      "redCommandIndex": 11,
+      "reason": "Absent from original v1.23.48 test suite and tree; owner scope reset retains historical safeguards unchanged. Original later RED and source preserved; no PASS credit or future implementation approval."
+    },
+    {
+      "test": "tests/kar210-cp38-publish-uncertainty-witness.cjs",
+      "blob": "40c5fec6b7f45fc2367118d9669be3dad65f4d3a",
+      "status": "deferred-post-baseline",
+      "owner": "package.json",
+      "step": "S06/S07",
+      "redRun": 45709808541,
+      "redCommandIndex": 14,
+      "reason": "Absent from original v1.23.48 test suite and tree; owner scope reset retains historical safeguards unchanged. Original later RED and source preserved; no PASS credit or future implementation approval."
+    },
+    {
+      "test": "tests/kar210-diagnostic-reset-unknown.cjs",
+      "blob": "a6f9f3c726f979add3531ae9d34c55a7d876ffe1",
+      "status": "deferred-post-baseline",
+      "owner": "package.json",
+      "step": "S10",
+      "redRun": 45709808541,
+      "redCommandIndex": 19,
+      "reason": "Absent from original v1.23.48 test suite and tree; owner scope reset retains historical safeguards unchanged. Original later RED and source preserved; no PASS credit or future implementation approval."
+    },
+    {
+      "test": "tests/kar210-startup-isolation-witness.cjs",
+      "blob": "b31f4079d028c4691395986e70269e73e6ef0717",
+      "status": "deferred-post-baseline",
+      "owner": "package.json",
+      "step": "S08",
+      "redRun": 45709808541,
+      "redCommandIndex": 20,
+      "reason": "Absent from original v1.23.48 test suite and tree; owner scope reset retains historical safeguards unchanged. Original later RED and source preserved; no PASS credit or future implementation approval."
+    },
+    {
+      "test": "tests/kar210-kar134-legacy-session-witness.cjs",
+      "blob": "3a9cfca5c9561f7d729fdf1de8cc60352b888d0b",
+      "status": "deferred-post-baseline",
+      "owner": "package.json",
+      "step": "S03/S05",
+      "redRun": 45709808541,
+      "redCommandIndex": 28,
+      "reason": "Absent from original v1.23.48 test suite and tree; owner scope reset retains historical safeguards unchanged. Original later RED and source preserved; no PASS credit or future implementation approval."
+    },
+    {
+      "test": "tests/kar210-p13-lock-read-uncertainty.cjs",
+      "blob": "02cefe5a571a6258a21affade7c9f341e5732677",
+      "status": "deferred-post-baseline",
+      "owner": "package.json",
+      "step": "S06",
+      "redRun": 45709808541,
+      "redCommandIndex": 31,
+      "reason": "Absent from original v1.23.48 test suite and tree; owner scope reset retains historical safeguards unchanged. Original later RED and source preserved; no PASS credit or future implementation approval."
+    },
+    {
+      "test": "tests/kar210-kar150-uncertain-start-witness.cjs",
+      "blob": "e2ec86af500c9df5450d198b64d747f9569be090",
+      "status": "deferred-post-baseline",
+      "owner": "package.json",
+      "step": "S06/S08",
+      "redRun": 45709808541,
+      "redCommandIndex": 35,
+      "reason": "Absent from original v1.23.48 test suite and tree; owner scope reset retains historical safeguards unchanged. Original later RED and source preserved; no PASS credit or future implementation approval."
+    },
+    {
+      "test": "tests/kar99-p9-tab-gone-monotonic.cjs",
+      "blob": "ae811891b93f36b57ec3dc47dafc4a7029fe46aa",
+      "status": "deferred-post-baseline",
+      "owner": "package.json",
+      "step": "S06",
+      "redRun": 45709808541,
+      "redCommandIndex": 39,
+      "reason": "Absent from original v1.23.48 test suite and tree; owner scope reset retains historical safeguards unchanged. Original later RED and source preserved; no PASS credit or future implementation approval."
+    },
+    {
+      "test": "tests/kar210-p9-independent-tab-lifecycle.cjs",
+      "blob": "3062c31fc4ec9b69a831216012982a8c9ccdff18",
+      "status": "deferred-post-baseline",
+      "owner": "package.json",
+      "step": "S06",
+      "redRun": 45709808541,
+      "redCommandIndex": 40,
+      "reason": "Absent from original v1.23.48 test suite and tree; owner scope reset retains historical safeguards unchanged. Original later RED and source preserved; no PASS credit or future implementation approval."
+    },
+    {
+      "test": "tests/kar210-kar132-independent-modal.cjs",
+      "blob": "e7abd647a48c4755ccd1b23d670bfea7d75b1d1b",
+      "status": "deferred-post-baseline",
+      "owner": "package.json",
+      "step": "S05",
+      "redRun": 45709808541,
+      "redCommandIndex": 43,
+      "reason": "Absent from original v1.23.48 test suite and tree; owner scope reset retains historical safeguards unchanged. Original later RED and source preserved; no PASS credit or future implementation approval."
+    }
+  ]
+}

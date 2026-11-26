@@ -14,9 +14,20 @@ assert.match(app, /startKnownSingleInventoryCapture\(/); pass('known published t
 assert.match(bg, /GET_TRASH_TEMPLATE_FILL_STATUS/); pass('background exposes trash-template status');
 assert.match(bg, /maybeDetectTrashTemplatePublishedAd\(/); pass('background passively detects manual publication');
 assert.match(bg, /chrome\.tabs(?:\?\.|\.)onUpdated(?:\?\.|\.)addListener[\s\S]*maybeDetectTrashTemplatePublishedAd/); pass('manual publication detection is wired to tab lifecycle');
-const trashDetectionOwner = fs.readFileSync('src/background/services/trash-template-publish-detection-service.js','utf8');
-assert.match(bg,/requireTrashTemplatePublishDetectionService\(\)\.maybeDetectTrashTemplatePublishedAd\(/,
+const root = require('node:path').resolve(__dirname, '..');
+const historical = require('./kar210-historical-contract-context.cjs');
+const restored = historical.isRestored(root);
+const trashDetectionOwner = fs.readFileSync(require('node:path').join(root, historical.historicalBackgroundOwner(root, 'src/background/services/trash-template-publish-detection-service.js')),'utf8');
+if (!restored) assert.match(bg,/requireTrashTemplatePublishDetectionService\(\)\.maybeDetectTrashTemplatePublishedAd\(/,
   'background still delegates passive detection to exact-ID account-bound service');
-assert.match(trashDetectionOwner, /TRASH_TEMPLATE_PUBLISHED_DETECTED/); pass('publication detection is diagnosed');
+if (restored) {
+  const detector = trashDetectionOwner.match(/async function maybeDetectTrashTemplatePublishedAd\(tabId, changeInfo = \{\}, tabHint = null\) \{[\s\S]*?\n\}/)?.[0];
+  assert.ok(detector);
+  assert.match(detector, /item\?\.templateOnly === true && Number\(item\?\.targetTabId/);
+  assert.match(detector, /adId === String\(session\.sourceAdId/);
+  assert.match(detector, /if \(!owned \|\| \(pageAdId && pageAdId !== adId\)\) return false/);
+  assert.match(detector, /withTemplateFillMutation/);
+  assert.match(detector, /TRASH_TEMPLATE_PUBLISHED_DETECTED/);
+} else assert.match(trashDetectionOwner, /TRASH_TEMPLATE_PUBLISHED_DETECTED/); pass('publication detection is diagnosed');
 assert.match(css, /\.trash-template-dialog/); pass('guided template modal has dedicated styling hook');
 console.log(`${n} v1.17.6 guided trash-template contract groups passed`);
