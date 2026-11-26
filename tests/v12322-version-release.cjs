@@ -21,7 +21,7 @@ const reviewedAutoPublishIntent = fs.existsSync('src/background/services/auto-pu
 const reviewedTrustedOwner = fs.existsSync('src/background/services/trusted-owner-authority.js') && fs.readFileSync('src/background/background.js','utf8').includes('"services/trusted-owner-authority.js"') && fs.readFileSync('src/background/background.js','utf8').includes("KRDeps.require('KRTrustedOwnerAuthority')") && fs.readFileSync('scripts/package.py','utf8').includes("'src/background/services/trusted-owner-authority.js'");
 const { assertCompatibleCurrentPatch, assertRestoredBaselineVersion } = require('./current-patch-policy.cjs');
 
-const restoredBaseline = manifest.version === '2.0.0.0';
+const restoredBaseline = require('./current-patch-policy.cjs').isReviewedRestoreVersion(manifest.version);
 if (restoredBaseline) {
   assertRestoredBaselineVersion();
   // Exact 122 historical blobs, 124 package entries, active JS closure and 22 absences.

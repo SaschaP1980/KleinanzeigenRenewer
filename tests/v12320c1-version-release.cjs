@@ -9,7 +9,7 @@ const arch = JSON.parse(fs.readFileSync('docs/history/architecture/architecture-
 function pass(name, fn) { fn(); console.log(`PASS ${name}`); }
 pass('v1.23.20_c1 release evidence remains explicit under later correction builds',()=>{
   assert.equal(arch.packageVersion,'1.23.20_c1');
-  if (manifest.version === '2.0.0.0') {
+  if (require('./current-patch-policy.cjs').isReviewedRestoreVersion(manifest.version)) {
     assertRestoredBaselineVersion();
     assert.equal(spec.directBasis,'1.23.48');
   } else if (manifest.version === '1.23.20') {

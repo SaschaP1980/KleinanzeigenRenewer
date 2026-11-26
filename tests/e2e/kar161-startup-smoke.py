@@ -56,7 +56,7 @@ def main():
                 report["checks"]["appTitle"] = page.title()
                 # KAR-210: 2.0.0.0 restores the fixed-retention v1.23.48 runtime.
                 # Keep the later KAR-161 configuration smoke unchanged for other versions.
-                if VERSION == "2.0.0.0":
+                if VERSION in ("2.0.0.0", "2.0.0.1"):
                     spec = json.loads((ROOT / "release/release-spec.json").read_text())
                     assert spec["directBasis"] == "1.23.48", "unexpected historical baseline"
                     assert extension_id == "hafahjhhgiipdegfkgacchmnacgblnah"
