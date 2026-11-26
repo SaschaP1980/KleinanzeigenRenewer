@@ -53,7 +53,7 @@ def check_identity(manifest: dict, app_id: str):
     if parts[0] >= 2:
         # S02 retains the historical permission contract until S04 explicitly
         # removes nativeMessaging; never infer permission changes from a bump.
-        expected_permissions = PERMISSIONS | {"nativeMessaging"}
+        expected_permissions = PERMISSIONS if version == "2.0.3.0" else PERMISSIONS | {"nativeMessaging"}
     else:
         expected_permissions = PERMISSIONS | ({"nativeMessaging"} if parts >= (1, 23, 30, 0) else set())
     require(set(manifest.get("permissions") or []) == expected_permissions

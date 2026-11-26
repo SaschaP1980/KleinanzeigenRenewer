@@ -59,7 +59,8 @@ for (const r of registry.tests) {
       assert.ok(referencedByOwner.has(owner), 'Unrecognized owner: ' + owner);
       const disposition=inactive.get(r.path);
       if(disposition) {
-        assert.equal(disposition.owner,ownerPaths[owner],'Historical invocation owner not covered by reviewed disposition');
+        if(disposition.status==='retired-updater-S04') assert.ok(disposition.owners.includes(ownerPaths[owner]),'Historical updater invocation owner not covered by reviewed S04 disposition');
+        else assert.equal(disposition.owner,ownerPaths[owner],'Historical invocation owner not covered by reviewed disposition');
         assert.ok(!referencedByOwner.get(owner).has(r.path),'Inactive path still referenced');
         continue;
       }

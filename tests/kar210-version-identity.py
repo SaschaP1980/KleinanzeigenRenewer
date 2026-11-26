@@ -27,7 +27,16 @@ class VersionIdentity(unittest.TestCase):
         # permission changes inferred from the version alone.
         for version in ("2.0.0.0", "2.0.0.1", "2.0.0.65535"):
             with self.subTest(version=version):
-                verifier.check_identity({**manifest, "version": version}, app_id)
+                verifier.check_identity({**manifest, "version": version,
+                                         "permissions": sorted(set(verifier.PERMISSIONS) | {"nativeMessaging"})}, app_id)
+
+    def test_exact_s04_permission_contract(self):
+        s04 = {**manifest, "version": "2.0.3.0", "permissions": sorted(verifier.PERMISSIONS)}
+        verifier.check_identity(s04, app_id)
+        with self.assertRaises(ValueError):
+            verifier.check_identity({**s04, "permissions": sorted(set(verifier.PERMISSIONS) | {"nativeMessaging"})}, app_id)
+        with self.assertRaises(ValueError):
+            verifier.check_identity({**s04, "version": "2.0.2.0"}, app_id)
 
     def test_invalid_four_component_identity(self):
         for version in ("2.0.0", "2.0.0.01", "2.0.0.65536",

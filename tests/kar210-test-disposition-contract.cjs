@@ -8,7 +8,9 @@ const { spawnSync } = require('node:child_process');
 const root=path.resolve(__dirname,'..');
 const {validateDispositions}=require('./kar210-test-disposition.cjs');
 const LEDGER='docs/maintenance/KAR210_ACTIVE_TEST_DISPOSITIONS.json';
-const {isS09Version,S09_SCOPE}=require('./current-patch-policy.cjs');
+const {isS09Version,S09_SCOPE,isS04Version}=require('./current-patch-policy.cjs');
+const s04=isS04Version(JSON.parse(fs.readFileSync(path.join(root,'manifest.json'),'utf8')).version);
+const S04_LEDGER='docs/maintenance/KAR217_UPDATER_TEST_DISPOSITIONS.json';
 const s09=isS09Version(JSON.parse(fs.readFileSync(path.join(root,'manifest.json'),'utf8')).version);
 const OWNERS=["package.json","scripts/build.sh","scripts/coverage-gate.sh",".github/workflows/kar-work-pr.yml",".github/workflows/kar-ci.yml",".github/workflows/kar-release.yml"];
 for(const owner of OWNERS) for(const test of ["tests/kar148-article-type.cjs","tests/kar150-ui-preference.cjs","tests/kar164-trash-sort.cjs","tests/kar165-trash-retention-warning.cjs","tests/kar147-diagnostic-occupancy.cjs"]) {
@@ -18,7 +20,7 @@ for(const owner of OWNERS) for(const test of ["tests/kar148-article-type.cjs","t
 for(const owner of OWNERS) for(const test of ["tests/kar201-legacy-options.cjs","tests/kar201-session-evidence.cjs","tests/kar201-native-display-only.cjs","tests/kar201-partial-archive-prefill.cjs","tests/kar201-manual-standalone.cjs"]) assert.ok(!fs.readFileSync(path.join(root,owner),'utf8').includes(test),'KAR-201 later feature still active: '+test+' in '+owner);
 const data=JSON.parse(fs.readFileSync(path.join(root,LEDGER),'utf8'));
 const inactive=validateDispositions(root);
-assert.equal(inactive.size,s09?87:91);
+assert.equal(inactive.size,(s09?87:91)+(s04?12:0));
 if(s09) for(const test of S09_SCOPE.reactivatedTests) assert.ok(!inactive.has(test));
 const read=p=>fs.readFileSync(path.join(root,p));
 for(const owner of OWNERS) for(const test of inactive.keys())
@@ -57,8 +59,9 @@ const put=(p,v)=>{const dst=path.join(fixture,p);fs.mkdirSync(path.dirname(dst),
 let negatives=0;
 const deny=()=>{assert.throws(()=>validateDispositions(fixture));negatives++;};
 try {
-  for(const p of new Set([...OWNERS,'manifest.json','package-lock.json','release/release-spec.json','scripts/product_version.py','scripts/package.py','coverage/safety-critical-public-apis.json','docs/maintenance/KAR210_BASELINE_RESTORE_LEDGER.json','docs/maintenance/KAR210_BASELINE_TARGET.json',LEDGER,...inactive.keys(),...data.entries.map(e=>e.test),...data.entries.flatMap(e=>e.retained),...data.entries.filter(e=>e.featureAbsence||(s09&&S09_SCOPE.reactivatedTests.includes(e.test))).map(e=>e.module)])) copy(p);
+  for(const p of new Set([...OWNERS,'manifest.json','package-lock.json','release/release-spec.json','scripts/product_version.py','scripts/package.py','coverage/safety-critical-public-apis.json','docs/maintenance/KAR210_BASELINE_RESTORE_LEDGER.json','docs/maintenance/KAR210_BASELINE_TARGET.json',LEDGER,...(s04?[S04_LEDGER]:[]),...inactive.keys(),...data.entries.map(e=>e.test),...data.entries.flatMap(e=>e.retained),...data.entries.filter(e=>e.featureAbsence||(s09&&S09_SCOPE.reactivatedTests.includes(e.test))).map(e=>e.module)])) copy(p);
   assert.equal(validateDispositions(fixture).size,inactive.size);
+  if(s04){const l=JSON.parse(read(S04_LEDGER));l.entries.pop();put(S04_LEDGER,l);deny();copy(S04_LEDGER);}
   const entry=data.entries[0];
   put(entry.module,'// unexpectedly restored');deny();fs.unlinkSync(path.join(fixture,entry.module));
   put(entry.test,'// altered historical evidence');deny();copy(entry.test);
