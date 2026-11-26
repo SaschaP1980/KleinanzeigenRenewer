@@ -1,12 +1,12 @@
-name: KAR-220 full diagnostic (temporary)
+name: KAR-220 W3 coverage and deterministic candidate (temporary)
 on:
   push:
     branches: [work/KAR-220]
 permissions:
   contents: read
 jobs:
-  diagnostic:
-    runs-on: ubuntu-latest
+  full-diagnostic:
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
@@ -17,18 +17,56 @@ jobs:
         with:
           node-version: '22'
       - run: npm ci
-      - name: Independent active test diagnostics (no full-gate credit)
+      - name: Run actual coverage gate against prospective sealed source tree (diagnostic only)
+        shell: bash
         run: |
-          node <<'NODE'
-          const {spawnSync}=require('node:child_process'),fs=require('node:fs');
-          const script=require('./package.json').scripts.test;
-          const commands=script.split(' && ');
-          let failed=[];
-          for (let i=0;i<commands.length;i++){
-            const command=commands[i];
-            const r=spawnSync('bash',['-lc',command],{encoding:'utf8',timeout:120000,maxBuffer:16*1024*1024,env:{...process.env,NODE_OPTIONS:'--require ./tests/v12222-vm-legacy-bridge.cjs'}});
-            if(r.status!==0){failed.push([i,command,r.status]);console.log('FAIL_COMMAND',i,command,r.status);console.log((r.stdout||'').slice(-4000));console.log((r.stderr||'').slice(-4000));}
-          }
-          console.log('DIAGNOSTIC_SUMMARY',JSON.stringify({total:commands.length,failed}));
-          process.exitCode=failed.length?1:0;
-          NODE
+          set -euo pipefail
+          git rev-parse HEAD
+          V="$(python3 scripts/product_version.py)"
+          test "$V" = 2.0.4.0
+          test ! -e "release/kleinanzeigen-renewal-chrome-v$V.zip"
+          python3 scripts/package.py "$RUNNER_TEMP/diagnostic-build"
+          cp "$RUNNER_TEMP/diagnostic-build/kleinanzeigen-renewal-chrome-v$V.zip" release/
+          # Prospective final tree excludes this temporary diagnostic workflow.
+          # Canonical mandatory acceptance still runs on actual sealed PR HEAD.
+          rm .github/workflows/kar220-focused-temporary.yml
+          bash scripts/coverage-gate.sh
+  deterministic-candidate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Build twice, compare and emit exact candidate bytes (Work only)
+        run: |
+          set -euo pipefail
+          V="$(python3 scripts/product_version.py)"
+          test "$V" = 2.0.4.0
+          python3 scripts/package.py "$RUNNER_TEMP/build-a"
+          python3 scripts/package.py "$RUNNER_TEMP/build-b"
+          ZIP="kleinanzeigen-renewal-chrome-v$V.zip"
+          cmp "$RUNNER_TEMP/build-a/$ZIP" "$RUNNER_TEMP/build-b/$ZIP"
+          unzip -t "$RUNNER_TEMP/build-a/$ZIP" >/dev/null
+          python3 - "$RUNNER_TEMP/build-a/$ZIP" <<'PY'
+          import base64, hashlib, json, pathlib, sys, zipfile
+          p=pathlib.Path(sys.argv[1])
+          data=p.read_bytes()
+          with zipfile.ZipFile(p) as z:
+              assert len(z.namelist()) == len(set(z.namelist())) == 122
+              assert not any(n.startswith("docs/history/") or "native-update" in n or "native-status-bridge" in n for n in z.namelist())
+              manifest=json.loads(z.read("manifest.json"))
+              assert manifest["version"] == "2.0.4.0"
+              assert sorted(manifest["permissions"]) == ["activeTab","scripting","storage","unlimitedStorage"]
+              assert "icons/action-update.svg" in z.namelist()
+          print("KAR220_CANDIDATE_META "+json.dumps({"bytes":len(data),"sha256":hashlib.sha256(data).hexdigest(),"gitBlob":hashlib.sha1(b"blob "+str(len(data)).encode()+b"\x00"+data).hexdigest(),"entries":122}),flush=True)
+          encoded=base64.b64encode(data).decode()
+          chunks=[encoded[i:i+4096] for i in range(0,len(encoded),4096)]
+          for i,chunk in enumerate(chunks):
+              print(f"KAR220_CHUNK {i:04d} {len(chunks):04d} {chunk}",flush=True)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kar220-diagnostic-candidate
+          path: ${{ runner.temp }}/build-a/kleinanzeigen-renewal-chrome-v2.0.4.0.zip
+          if-no-files-found: error
