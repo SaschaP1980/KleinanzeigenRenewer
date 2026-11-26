@@ -57,6 +57,7 @@ async function resumePendingArchiveInsertions() {
   const sessions = await readArchiveInsertionSessions().catch(() => ({}));
   const fills = await readFillSessions().catch(() => ({}));
   for (const session of Object.values(sessions)) {
+    if ((row => ['source-delete-outcome-unverified', 'source-delete-status-unverified', 'publish-intent-blocked'].includes(String(row?.stage || '')) || String(row?.status || '') === 'publish-blocked')(session)) continue;
     try {
       if (/^\d+$/.test(String(session?.newAdId || '')) && ['error', 'published', 'finding', 'checking', 'saving'].includes(String(session?.status || ''))) {
         const alreadyInventoried = await completeRecoveredArchiveInsertionIfAlreadyInventoried(session);
