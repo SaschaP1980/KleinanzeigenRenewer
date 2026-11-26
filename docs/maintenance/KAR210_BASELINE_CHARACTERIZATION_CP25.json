@@ -1,0 +1,4466 @@
+{
+  "schemaVersion": 1,
+  "issue": 210,
+  "checkpoint": 25,
+  "sourceCommit": "39d3e6ca0de34a0aa9c4f5fc10e7fb75838e9036",
+  "workflowCommit": "0434b5bba35afc1690a8ba9838798caaa4f0c50d",
+  "runId": 45591823065,
+  "diagnosticJobId": 139127698481,
+  "mandatoryGateJobId": 139127699206,
+  "packageJsonBlob": "17a3dca92b8a0774e95dbb5bddd1090f31f19afe",
+  "commandCount": 512,
+  "counts": {
+    "PASS": 396,
+    "FAIL": 116,
+    "TIMEOUT": 0
+  },
+  "priorEvidence": {
+    "path": "docs/maintenance/KAR210_BASELINE_CHARACTERIZATION_CP24.json",
+    "blob": "1f25b9bf35efcaa174b040db4762a5361585231c",
+    "counts": {
+      "PASS": 387,
+      "FAIL": 125,
+      "TIMEOUT": 0
+    }
+  },
+  "delta": {
+    "new": [],
+    "reviewedInactive": [],
+    "previousPassRegressed": [],
+    "previousFailNowPass": [
+      "node tests/v1160-inventory-capture-modal.cjs",
+      "node tests/v1161-single-inventory-edit-worker.cjs",
+      "node tests/v1161-single-inventory-edit-worker-runtime.cjs",
+      "node tests/v1163-single-inventory-result.cjs",
+      "node tests/v1164-gallery-root-img.cjs",
+      "node tests/v1165-inventory-microcopy.cjs",
+      "node tests/v1167-inventory-capture-reentry.cjs",
+      "node tests/v1168-single-reentry-direct-action.cjs",
+      "node tests/v1169-modal-discard-ux.cjs"
+    ]
+  },
+  "mandatoryGate": {
+    "status": "FAIL",
+    "firstFailingCommand": "node --test tests/kar199-phase4-no-transport-replay.cjs",
+    "evidence": "Missing expected rejection; independent RED witnesses remain active."
+  },
+  "focusedReview": {
+    "sourceCommit": "16c3da93b5000aafe4e1d7a640b31f2d5877d481",
+    "runId": 45591662049,
+    "reviewJobId": 139127141025,
+    "reviewStatus": "PASS",
+    "commands": {
+      "pass": 12,
+      "fail": 0
+    },
+    "historicalContractGroups": 45,
+    "legacyPatchNegatives": 27,
+    "exactBaselineVersionNegatives": 17,
+    "scopeNegatives": 15
+  },
+  "builderGuards": [
+    {
+      "runId": 45591661994,
+      "jobId": 139127141467,
+      "status": "FAIL",
+      "reason": "No explicit authorized marker; no build executed."
+    },
+    {
+      "runId": 45591822931,
+      "jobId": 139127698599,
+      "status": "FAIL",
+      "reason": "No explicit authorized marker; no build executed."
+    }
+  ],
+  "contractRebindings": "docs/maintenance/KAR210_CP25_CONTRACT_REBINDINGS.json",
+  "contractRebindingsBlob": "0c9807613ec836bc3d6ba998ec8ebffe391f22b9",
+  "qualification": "Independent command characterization only; nine existing historical contracts now pass after exact S02 metadata, applicable historical feature-era and actual hash-checked historical source router adaptation. Original behavioral cases retained. Independent lifecycle and destructive-replay REDs remain active. No added/removed active command, prior PASS regression, production defect fixed or runtime changed. No full coverage or native acceptance, build, PR, merge, release or live operation. Mandatory gate remains RED.",
+  "rows": [
+    {
+      "index": 1,
+      "command": "node tests/kar210-test-disposition-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 1.154,
+      "evidence": [
+        "ValueError: KAR210_VERSION: product metadata mismatch"
+      ]
+    },
+    {
+      "index": 2,
+      "command": "node tests/kar210-baseline-retained-behavior.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.439,
+      "evidence": []
+    },
+    {
+      "index": 3,
+      "command": "node tests/kar210-kar201-baseline-safety.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.212,
+      "evidence": []
+    },
+    {
+      "index": 4,
+      "command": "node tests/kar210-baseline-version-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 1.116,
+      "evidence": [
+        "ValueError: KAR210_VERSION: wrong component count for product generation",
+        "ValueError: KAR210_VERSION: npm metadata mismatch",
+        "ValueError: KAR210_VERSION: product metadata mismatch"
+      ]
+    },
+    {
+      "index": 5,
+      "command": "node --test tests/kar210-kar199-baseline-reset.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.137,
+      "evidence": []
+    },
+    {
+      "index": 6,
+      "command": "node --test tests/kar199-phase4-no-transport-replay.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.125,
+      "evidence": [
+        "not ok 1 - KAR-199 a closed DELETE response port remains unknown, not replayed",
+        "name: 'AssertionError'"
+      ]
+    },
+    {
+      "index": 7,
+      "command": "node --test tests/kar199-phase4-bounded-runtime.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 1.919,
+      "evidence": [
+        "not ok 1 - KAR-199 first MY_ADS_STATUS never answers: bounded recovery, no phase-4 intent or DELETE",
+        "Error: TEST_UNBOUNDED_AWAIT",
+        "name: 'AssertionError'"
+      ]
+    },
+    {
+      "index": 8,
+      "command": "node --test tests/kar199-phase4-unverified-state-runtime.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 1.317,
+      "evidence": [
+        "not ok 1 - KAR-199 pre-intent status timeout creates recoverable user notice, no automatic retry",
+        "Error: TEST_UNBOUNDED_PHASE4_RECOVERY",
+        "name: 'AssertionError'"
+      ]
+    },
+    {
+      "index": 9,
+      "command": "node --test tests/kar210-kar199-baseline-phase4.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.116,
+      "evidence": []
+    },
+    {
+      "index": 10,
+      "command": "node --test tests/kar210-kar197-baseline-safety.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.142,
+      "evidence": []
+    },
+    {
+      "index": 11,
+      "command": "node --test tests/kar210-loading-retention-baseline.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.142,
+      "evidence": []
+    },
+    {
+      "index": 12,
+      "command": "node --test tests/kar210-diagnostics-baseline.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.241,
+      "evidence": []
+    },
+    {
+      "index": 13,
+      "command": "node --test tests/kar210-diagnostic-zip-integrity.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.253,
+      "evidence": []
+    },
+    {
+      "index": 14,
+      "command": "node --test tests/kar210-diagnostic-reset-unknown.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.262,
+      "evidence": [
+        "not ok 1 - KAR-193 a response without an authenticated reset boundary is never reported as success",
+        "name: 'AssertionError'",
+        "not ok 2 - KAR-193 a hung reset request times out without repeating an uncertain side effect"
+      ]
+    },
+    {
+      "index": 15,
+      "command": "node --test tests/kar210-startup-isolation-witness.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.132,
+      "evidence": [
+        "not ok 2 - KAR-185 independent product witness: failed optional configuration must not prevent local inventory read",
+        "name: 'AssertionError'",
+        "not ok 3 - KAR-185 independent product witness: inspection failure must not be reported as inventory failure"
+      ]
+    },
+    {
+      "index": 16,
+      "command": "node --test tests/kar210-bootstrap-schema-boundaries.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.112,
+      "evidence": []
+    },
+    {
+      "index": 17,
+      "command": "node --test tests/kar210-inventory-save-refresh-baseline.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.137,
+      "evidence": []
+    },
+    {
+      "index": 18,
+      "command": "node --test tests/kar210-kar175-public-navigation-baseline.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.142,
+      "evidence": []
+    },
+    {
+      "index": 19,
+      "command": "node --test tests/kar210-kar175-phase1-retry-baseline.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.127,
+      "evidence": []
+    },
+    {
+      "index": 20,
+      "command": "node --test tests/kar210-kar175-correlation-url-baseline.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.128,
+      "evidence": []
+    },
+    {
+      "index": 21,
+      "command": "node --test tests/kar210-kar175-budget-schema-baseline.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.124,
+      "evidence": []
+    },
+    {
+      "index": 22,
+      "command": "node --test tests/kar210-kar175-trash-template-baseline.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.135,
+      "evidence": []
+    },
+    {
+      "index": 23,
+      "command": "node --test tests/kar210-kar134-legacy-session-witness.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.115,
+      "evidence": [
+        "not ok 2 - KAR-134 independent persisted retired schema-test session must be refused before form payload",
+        "name: 'AssertionError'"
+      ]
+    },
+    {
+      "index": 24,
+      "command": "node --test tests/kar210-p13-persisted-owner-baseline.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.133,
+      "evidence": []
+    },
+    {
+      "index": 25,
+      "command": "node --test tests/kar210-p13-lock-read-uncertainty.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.12,
+      "evidence": [
+        "not ok 1 - unknown renewal owner read must not authorize competing insertion",
+        "name: 'AssertionError'",
+        "not ok 2 - unknown archive owner read must not authorize competing insertion"
+      ]
+    },
+    {
+      "index": 26,
+      "command": "node --test tests/kar210-kar158-compact-baseline.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.114,
+      "evidence": []
+    },
+    {
+      "index": 27,
+      "command": "node --test tests/kar210-kar151-selection-baseline.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.119,
+      "evidence": []
+    },
+    {
+      "index": 28,
+      "command": "node --test tests/kar210-kar150-mass-baseline.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.122,
+      "evidence": []
+    },
+    {
+      "index": 29,
+      "command": "node --test tests/kar210-kar150-uncertain-start-witness.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.118,
+      "evidence": [
+        "not ok 1 - uncertain restart without persisted renewal session must not re-admit the starting item",
+        "name: 'AssertionError'"
+      ]
+    },
+    {
+      "index": 30,
+      "command": "node tests/kar-issue-title.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.042,
+      "evidence": []
+    },
+    {
+      "index": 31,
+      "command": "node tests/kar-work-pr-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.052,
+      "evidence": []
+    },
+    {
+      "index": 32,
+      "command": "node tests/kar99-p9-large-rolling-sync.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.048,
+      "evidence": []
+    },
+    {
+      "index": 33,
+      "command": "node tests/kar99-p9-tab-gone-monotonic.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.045,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: delayed onUpdated observation cannot revive GONE with inherited goneReason"
+      ]
+    },
+    {
+      "index": 34,
+      "command": "node --test tests/kar210-p9-independent-tab-lifecycle.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.116,
+      "evidence": [
+        "not ok 1 - independent original P9 delayed onUpdated cannot revive GONE",
+        "name: 'AssertionError'",
+        "not ok 2 - independent original P9 late registration cannot resurrect GONE"
+      ]
+    },
+    {
+      "index": 35,
+      "command": "node tests/kar141-m2-package-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.102,
+      "evidence": []
+    },
+    {
+      "index": 36,
+      "command": "node tests/kar132-modern-category-modal.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.159,
+      "evidence": [
+        "Error: Kategorie „Mode & Beauty“ ist nicht eindeutig (0 Treffer)."
+      ]
+    },
+    {
+      "index": 37,
+      "command": "node tests/kar210-kar132-independent-modal.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.384,
+      "evidence": [
+        "KAR-132 independent: 40 PASS / 5 FAIL / 45 executed",
+        "FAIL late-root-159: Kategorie „Mode & Beauty“ ist nicht eindeutig (0 Treffer).",
+        "FAIL late-root-22: Kategorie „Familie, Kind & Baby“ ist nicht eindeutig (0 Treffer)."
+      ]
+    },
+    {
+      "index": 38,
+      "command": "node tests/kar132-wearables-attributes.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.158,
+      "evidence": []
+    },
+    {
+      "index": 39,
+      "command": "node tests/validate.mjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.185,
+      "evidence": []
+    },
+    {
+      "index": 40,
+      "command": "node tests/identity.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.059,
+      "evidence": []
+    },
+    {
+      "index": 41,
+      "command": "node tests/jpeg.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.07,
+      "evidence": []
+    },
+    {
+      "index": 42,
+      "command": "node tests/v015-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.097,
+      "evidence": []
+    },
+    {
+      "index": 43,
+      "command": "node tests/v016-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.183,
+      "evidence": []
+    },
+    {
+      "index": 44,
+      "command": "node tests/v017-structured.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.06,
+      "evidence": []
+    },
+    {
+      "index": 45,
+      "command": "node tests/v017-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.131,
+      "evidence": []
+    },
+    {
+      "index": 46,
+      "command": "node tests/v110-template.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.059,
+      "evidence": []
+    },
+    {
+      "index": 47,
+      "command": "node tests/v110-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.143,
+      "evidence": []
+    },
+    {
+      "index": 48,
+      "command": "node tests/v111-category.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.059,
+      "evidence": []
+    },
+    {
+      "index": 49,
+      "command": "node tests/v111-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.093,
+      "evidence": []
+    },
+    {
+      "index": 50,
+      "command": "node tests/v112-category.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.058,
+      "evidence": []
+    },
+    {
+      "index": 51,
+      "command": "node tests/v112-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.089,
+      "evidence": []
+    },
+    {
+      "index": 52,
+      "command": "node tests/v113-category.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.058,
+      "evidence": []
+    },
+    {
+      "index": 53,
+      "command": "node tests/v113-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.09,
+      "evidence": []
+    },
+    {
+      "index": 54,
+      "command": "node tests/v114-selection.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.038,
+      "evidence": []
+    },
+    {
+      "index": 55,
+      "command": "node tests/v114-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.094,
+      "evidence": []
+    },
+    {
+      "index": 56,
+      "command": "node tests/v115-selection.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.04,
+      "evidence": []
+    },
+    {
+      "index": 57,
+      "command": "node tests/v115-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.091,
+      "evidence": []
+    },
+    {
+      "index": 58,
+      "command": "node tests/v116-images.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.088,
+      "evidence": []
+    },
+    {
+      "index": 59,
+      "command": "node tests/v116-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.094,
+      "evidence": []
+    },
+    {
+      "index": 60,
+      "command": "node tests/v120-logic.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.059,
+      "evidence": []
+    },
+    {
+      "index": 61,
+      "command": "node tests/v120-runner.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.089,
+      "evidence": []
+    },
+    {
+      "index": 62,
+      "command": "node tests/v120-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.147,
+      "evidence": []
+    },
+    {
+      "index": 63,
+      "command": "node tests/v130-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.098,
+      "evidence": []
+    },
+    {
+      "index": 64,
+      "command": "node tests/v130-retry.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.111,
+      "evidence": []
+    },
+    {
+      "index": 65,
+      "command": "node tests/v140-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.164,
+      "evidence": []
+    },
+    {
+      "index": 66,
+      "command": "node tests/v140-zip.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.102,
+      "evidence": []
+    },
+    {
+      "index": 67,
+      "command": "node tests/v150-connection.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.126,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:"
+      ]
+    },
+    {
+      "index": 68,
+      "command": "node tests/v150-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.156,
+      "evidence": []
+    },
+    {
+      "index": 69,
+      "command": "node tests/v151-category.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.039,
+      "evidence": []
+    },
+    {
+      "index": 70,
+      "command": "node tests/v160-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.151,
+      "evidence": []
+    },
+    {
+      "index": 71,
+      "command": "node tests/v160-readonly.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.055,
+      "evidence": []
+    },
+    {
+      "index": 72,
+      "command": "node tests/v160-profile.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.057,
+      "evidence": []
+    },
+    {
+      "index": 73,
+      "command": "node tests/v161-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.088,
+      "evidence": []
+    },
+    {
+      "index": 74,
+      "command": "node tests/v162-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.089,
+      "evidence": []
+    },
+    {
+      "index": 75,
+      "command": "node tests/v170-view.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.05,
+      "evidence": []
+    },
+    {
+      "index": 76,
+      "command": "node tests/v170-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.095,
+      "evidence": []
+    },
+    {
+      "index": 77,
+      "command": "node tests/v171-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.138,
+      "evidence": []
+    },
+    {
+      "index": 78,
+      "command": "node tests/v171-runner.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.056,
+      "evidence": []
+    },
+    {
+      "index": 79,
+      "command": "node tests/v180-renewal.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.157,
+      "evidence": []
+    },
+    {
+      "index": 80,
+      "command": "node tests/v181-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.092,
+      "evidence": []
+    },
+    {
+      "index": 81,
+      "command": "node tests/v182-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.158,
+      "evidence": []
+    },
+    {
+      "index": 82,
+      "command": "node tests/v183-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.097,
+      "evidence": []
+    },
+    {
+      "index": 83,
+      "command": "node tests/v184-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.159,
+      "evidence": []
+    },
+    {
+      "index": 84,
+      "command": "node tests/v185-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.141,
+      "evidence": []
+    },
+    {
+      "index": 85,
+      "command": "node tests/v186-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.15,
+      "evidence": []
+    },
+    {
+      "index": 86,
+      "command": "node tests/v187-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.093,
+      "evidence": []
+    },
+    {
+      "index": 87,
+      "command": "node tests/v188-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.136,
+      "evidence": []
+    },
+    {
+      "index": 88,
+      "command": "node tests/v189-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.161,
+      "evidence": []
+    },
+    {
+      "index": 89,
+      "command": "node tests/v1810-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.234,
+      "evidence": []
+    },
+    {
+      "index": 90,
+      "command": "node tests/v1811-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.136,
+      "evidence": []
+    },
+    {
+      "index": 91,
+      "command": "node tests/v1812-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.155,
+      "evidence": []
+    },
+    {
+      "index": 92,
+      "command": "node tests/v1813-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.147,
+      "evidence": []
+    },
+    {
+      "index": 93,
+      "command": "node tests/v1814-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.177,
+      "evidence": []
+    },
+    {
+      "index": 94,
+      "command": "node tests/v190-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.145,
+      "evidence": []
+    },
+    {
+      "index": 95,
+      "command": "node tests/v1100-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.096,
+      "evidence": []
+    },
+    {
+      "index": 96,
+      "command": "node tests/v1101-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.094,
+      "evidence": []
+    },
+    {
+      "index": 97,
+      "command": "node tests/v1102-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.089,
+      "evidence": []
+    },
+    {
+      "index": 98,
+      "command": "node tests/v1103-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.102,
+      "evidence": []
+    },
+    {
+      "index": 99,
+      "command": "node tests/v1104-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.089,
+      "evidence": []
+    },
+    {
+      "index": 100,
+      "command": "node tests/v1110-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.156,
+      "evidence": []
+    },
+    {
+      "index": 101,
+      "command": "node tests/v1111-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.097,
+      "evidence": []
+    },
+    {
+      "index": 102,
+      "command": "node tests/v1112-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.238,
+      "evidence": []
+    },
+    {
+      "index": 103,
+      "command": "node tests/v1113-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.174,
+      "evidence": []
+    },
+    {
+      "index": 104,
+      "command": "node tests/v1114-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.226,
+      "evidence": []
+    },
+    {
+      "index": 105,
+      "command": "node tests/v1115-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.149,
+      "evidence": []
+    },
+    {
+      "index": 106,
+      "command": "node tests/v1120-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.168,
+      "evidence": []
+    },
+    {
+      "index": 107,
+      "command": "node tests/v1121-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.165,
+      "evidence": []
+    },
+    {
+      "index": 108,
+      "command": "node tests/v1130-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.098,
+      "evidence": []
+    },
+    {
+      "index": 109,
+      "command": "node tests/v1131-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.213,
+      "evidence": []
+    },
+    {
+      "index": 110,
+      "command": "node tests/v1132-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.193,
+      "evidence": []
+    },
+    {
+      "index": 111,
+      "command": "node tests/v1133-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.107,
+      "evidence": []
+    },
+    {
+      "index": 112,
+      "command": "node tests/v1134-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.107,
+      "evidence": []
+    },
+    {
+      "index": 113,
+      "command": "node tests/v1135-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.09,
+      "evidence": []
+    },
+    {
+      "index": 114,
+      "command": "node tests/v1136-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.106,
+      "evidence": []
+    },
+    {
+      "index": 115,
+      "command": "node tests/v1137-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.111,
+      "evidence": []
+    },
+    {
+      "index": 116,
+      "command": "node tests/v1138-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.186,
+      "evidence": []
+    },
+    {
+      "index": 117,
+      "command": "node tests/v1140-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.171,
+      "evidence": []
+    },
+    {
+      "index": 118,
+      "command": "node tests/v1141-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.094,
+      "evidence": []
+    },
+    {
+      "index": 119,
+      "command": "node tests/v1142-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.156,
+      "evidence": []
+    },
+    {
+      "index": 120,
+      "command": "node tests/v1143-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.157,
+      "evidence": []
+    },
+    {
+      "index": 121,
+      "command": "node tests/v1144-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.153,
+      "evidence": []
+    },
+    {
+      "index": 122,
+      "command": "node tests/v1145-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.158,
+      "evidence": []
+    },
+    {
+      "index": 123,
+      "command": "node tests/v1150-correlation.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.152,
+      "evidence": []
+    },
+    {
+      "index": 124,
+      "command": "node tests/v1150-correlation-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.056,
+      "evidence": []
+    },
+    {
+      "index": 125,
+      "command": "node tests/v1151-online-count.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.059,
+      "evidence": []
+    },
+    {
+      "index": 126,
+      "command": "node tests/v1152-bulk-freshness.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.113,
+      "evidence": []
+    },
+    {
+      "index": 127,
+      "command": "node tests/v1152-bulk-freshness-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.062,
+      "evidence": []
+    },
+    {
+      "index": 128,
+      "command": "node tests/v1153-correlation-propagation.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.113,
+      "evidence": []
+    },
+    {
+      "index": 129,
+      "command": "node tests/v1153-correlation-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.18,
+      "evidence": []
+    },
+    {
+      "index": 130,
+      "command": "node tests/v1154-a2-closeout.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.11,
+      "evidence": []
+    },
+    {
+      "index": 131,
+      "command": "node tests/v1154-a2-closeout-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.057,
+      "evidence": []
+    },
+    {
+      "index": 132,
+      "command": "node tests/v1154-message-ui.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.039,
+      "evidence": []
+    },
+    {
+      "index": 133,
+      "command": "node tests/v1155-ui-polish.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.045,
+      "evidence": []
+    },
+    {
+      "index": 134,
+      "command": "node tests/v1155-ui-polish-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.057,
+      "evidence": []
+    },
+    {
+      "index": 135,
+      "command": "node tests/v1156-a1-tab-registry.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.142,
+      "evidence": []
+    },
+    {
+      "index": 136,
+      "command": "node tests/v1156-a1-tab-registry-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.048,
+      "evidence": []
+    },
+    {
+      "index": 137,
+      "command": "node tests/v1157-a1b-gone-worker.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.154,
+      "evidence": []
+    },
+    {
+      "index": 138,
+      "command": "node tests/v1157-ui-polish.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.04,
+      "evidence": []
+    },
+    {
+      "index": 139,
+      "command": "node tests/v1157-a1b-gone-worker-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.059,
+      "evidence": []
+    },
+    {
+      "index": 140,
+      "command": "node tests/v1160-inventory-capture-modal.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.091,
+      "evidence": []
+    },
+    {
+      "index": 141,
+      "command": "node tests/v1160-inventory-capture-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.054,
+      "evidence": []
+    },
+    {
+      "index": 142,
+      "command": "node tests/v1161-single-inventory-edit-worker.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.157,
+      "evidence": []
+    },
+    {
+      "index": 143,
+      "command": "node tests/v1161-single-inventory-edit-worker-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.181,
+      "evidence": []
+    },
+    {
+      "index": 144,
+      "command": "node tests/v1161-single-inventory-edit-page-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.057,
+      "evidence": []
+    },
+    {
+      "index": 145,
+      "command": "node tests/v1162-single-inventory-candidates.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.043,
+      "evidence": []
+    },
+    {
+      "index": 146,
+      "command": "node tests/v1162-single-inventory-candidates-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.041,
+      "evidence": []
+    },
+    {
+      "index": 147,
+      "command": "node tests/v1163-single-inventory-result.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.092,
+      "evidence": []
+    },
+    {
+      "index": 148,
+      "command": "node tests/v1163-single-inventory-result-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.055,
+      "evidence": []
+    },
+    {
+      "index": 149,
+      "command": "node tests/v1164-gallery-root-img.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.088,
+      "evidence": []
+    },
+    {
+      "index": 150,
+      "command": "node tests/v1164-gallery-root-img-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.059,
+      "evidence": []
+    },
+    {
+      "index": 151,
+      "command": "node tests/v1165-inventory-microcopy.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.092,
+      "evidence": []
+    },
+    {
+      "index": 152,
+      "command": "node tests/v1166-bulk-current-card.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.107,
+      "evidence": []
+    },
+    {
+      "index": 153,
+      "command": "node tests/v1167-inventory-capture-reentry.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.094,
+      "evidence": []
+    },
+    {
+      "index": 154,
+      "command": "node tests/v1168-single-reentry-direct-action.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.094,
+      "evidence": []
+    },
+    {
+      "index": 155,
+      "command": "node tests/v1168-single-reentry-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.056,
+      "evidence": []
+    },
+    {
+      "index": 156,
+      "command": "node tests/v1169-modal-discard-ux.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.09,
+      "evidence": []
+    },
+    {
+      "index": 157,
+      "command": "node tests/v1169-modal-discard-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.058,
+      "evidence": []
+    },
+    {
+      "index": 158,
+      "command": "node tests/v1170-a1b-authority.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.122,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:"
+      ]
+    },
+    {
+      "index": 159,
+      "command": "node tests/v1170-a1b-authority-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.046,
+      "evidence": []
+    },
+    {
+      "index": 160,
+      "command": "node tests/v1171-phase-retries.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.1,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:"
+      ]
+    },
+    {
+      "index": 161,
+      "command": "node tests/v1171-phase-retry-policy-runtime.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.045,
+      "evidence": [
+        "Error: ENOENT: no such file or directory, open 'src/background/services/renewal-phase1-retry-service.js'"
+      ]
+    },
+    {
+      "index": 162,
+      "command": "node tests/v1172-account-modal-ux.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.055,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:"
+      ]
+    },
+    {
+      "index": 163,
+      "command": "node tests/v1172-account-gate-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.043,
+      "evidence": []
+    },
+    {
+      "index": 164,
+      "command": "node tests/v1173-profile-status-ux.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.097,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:"
+      ]
+    },
+    {
+      "index": 165,
+      "command": "node tests/v1173-progress-control-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.055,
+      "evidence": []
+    },
+    {
+      "index": 166,
+      "command": "node tests/v1174-sidebar-header-ux.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.047,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: The input did not match the regular expression /<details[^>]+id=\"actionsAccordion\"/. Input:"
+      ]
+    },
+    {
+      "index": 167,
+      "command": "node tests/v1174-sidebar-header-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.054,
+      "evidence": []
+    },
+    {
+      "index": 168,
+      "command": "node tests/v1175-ui-layout.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.041,
+      "evidence": []
+    },
+    {
+      "index": 169,
+      "command": "node tests/v1175-account-status-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.054,
+      "evidence": []
+    },
+    {
+      "index": 170,
+      "command": "node tests/v1176-guided-trash-template.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.043,
+      "evidence": [
+        "Error: ENOENT: no such file or directory, open 'src/background/services/trash-template-publish-detection-service.js'"
+      ]
+    },
+    {
+      "index": 171,
+      "command": "node tests/v1176-trash-template-publish-runtime.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.036,
+      "evidence": [
+        "Error: ENOENT: no such file or directory, open 'src/background/services/listing-url-evidence-service.js'"
+      ]
+    },
+    {
+      "index": 172,
+      "command": "node tests/v1176-accordion-motion.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.041,
+      "evidence": []
+    },
+    {
+      "index": 173,
+      "command": "node tests/v1177-performance1-diagnostics.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.056,
+      "evidence": []
+    },
+    {
+      "index": 174,
+      "command": "node tests/v1177-performance2-progress.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.109,
+      "evidence": []
+    },
+    {
+      "index": 175,
+      "command": "node tests/v1177-performance3-bootstrap.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.056,
+      "evidence": []
+    },
+    {
+      "index": 176,
+      "command": "node tests/v1177-performance4-phase4.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.089,
+      "evidence": []
+    },
+    {
+      "index": 177,
+      "command": "node tests/v1178-phase3-public-url.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.04,
+      "evidence": [
+        "Error: ENOENT: no such file or directory, open 'src/background/services/renewal-public-evidence-coordinator.js'"
+      ]
+    },
+    {
+      "index": 178,
+      "command": "node tests/v1178-local-attribute-retry.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.057,
+      "evidence": []
+    },
+    {
+      "index": 179,
+      "command": "node tests/v1179-refresh-account-gate.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.043,
+      "evidence": []
+    },
+    {
+      "index": 180,
+      "command": "node tests/v1179-copy-icon-spacing.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.039,
+      "evidence": []
+    },
+    {
+      "index": 181,
+      "command": "node tests/v1179-expected-tab-close.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.057,
+      "evidence": []
+    },
+    {
+      "index": 182,
+      "command": "node tests/v11710-taskbar-icon-title.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.047,
+      "evidence": []
+    },
+    {
+      "index": 183,
+      "command": "node tests/v1180-ui-workflow.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.058,
+      "evidence": [
+        "FAIL v1.18.0 version and existing taskbar identity are preserved: The expression evaluated to a falsy value:"
+      ]
+    },
+    {
+      "index": 184,
+      "command": "node tests/v1181-reconciliation-profile-backup.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.062,
+      "evidence": [
+        "FAIL v1.18.1 version is declared: The expression evaluated to a falsy value:"
+      ]
+    },
+    {
+      "index": 185,
+      "command": "node tests/v1181-reconciliation-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.042,
+      "evidence": []
+    },
+    {
+      "index": 186,
+      "command": "node tests/v1181-profile-backup-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.049,
+      "evidence": []
+    },
+    {
+      "index": 187,
+      "command": "node tests/v1181-profile-backup-zip-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.116,
+      "evidence": []
+    },
+    {
+      "index": 188,
+      "command": "node tests/v1182-fast-derived-trash-retention.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.05,
+      "evidence": [
+        "Error: ENOENT: no such file or directory, open 'src/background/controllers/trash-management-controller.js'"
+      ]
+    },
+    {
+      "index": 189,
+      "command": "node tests/v1182-derived-date-runtime.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.054,
+      "evidence": [
+        "Error: ENOENT: no such file or directory, open 'src/background/services/inventory-refresh-service.js'"
+      ]
+    },
+    {
+      "index": 190,
+      "command": "node tests/v1183-trash-modal-order.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.05,
+      "evidence": [
+        "FAIL bulk inventory modal exposes the active verification mode throughout the dialog: The input did not match the regular expression /id=\"inventoryCaptureModeBadge\"/. Input:"
+      ]
+    },
+    {
+      "index": 191,
+      "command": "node tests/v1183-trash-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.041,
+      "evidence": []
+    },
+    {
+      "index": 192,
+      "command": "node tests/v1184-ux-copy.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.055,
+      "evidence": []
+    },
+    {
+      "index": 193,
+      "command": "node tests/v1190-performance5-image-overlap.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.041,
+      "evidence": []
+    },
+    {
+      "index": 194,
+      "command": "node tests/v1190-performance5-image-overlap-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.043,
+      "evidence": []
+    },
+    {
+      "index": 195,
+      "command": "node tests/v1191-hardening-h1-h2.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.107,
+      "evidence": []
+    },
+    {
+      "index": 196,
+      "command": "node tests/v1191-hardening-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.053,
+      "evidence": []
+    },
+    {
+      "index": 197,
+      "command": "node tests/v1191-bulk-controlled-stop.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.11,
+      "evidence": []
+    },
+    {
+      "index": 198,
+      "command": "node tests/v1192-inventory-scope.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.109,
+      "evidence": []
+    },
+    {
+      "index": 199,
+      "command": "node tests/v1192-inventory-scope-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.04,
+      "evidence": []
+    },
+    {
+      "index": 200,
+      "command": "node tests/v1193-inventory-ux-copy.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.048,
+      "evidence": []
+    },
+    {
+      "index": 201,
+      "command": "node tests/v1194-reconciliation-fresh-source.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.056,
+      "evidence": [
+        "FAIL v1.19.4 reconciliation contract remains active: The expression evaluated to a falsy value:"
+      ]
+    },
+    {
+      "index": 202,
+      "command": "node tests/v1194-reconciliation-source-policy-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.039,
+      "evidence": []
+    },
+    {
+      "index": 203,
+      "command": "node tests/kar136-roster-assessment.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.043,
+      "evidence": []
+    },
+    {
+      "index": 204,
+      "command": "node tests/kar138-complete-roster-integration.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.046,
+      "evidence": []
+    },
+    {
+      "index": 205,
+      "command": "node tests/v1194-reconciliation-fresh-source-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.042,
+      "evidence": []
+    },
+    {
+      "index": 206,
+      "command": "node tests/v1195-fresh-inventory-source.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.057,
+      "evidence": [
+        "FAIL v1.19.5 fresh-source contract remains active: The expression evaluated to a falsy value:",
+        "FAIL every new bulk capture creates a fresh source instead of reusing fullInventoryTabId: The input did not match the regular expression /START_BULK_INVENTORY_OPERATION/. Input:"
+      ]
+    },
+    {
+      "index": 207,
+      "command": "node tests/v1195-fresh-inventory-source-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.041,
+      "evidence": []
+    },
+    {
+      "index": 208,
+      "command": "node tests/v1196-activity-center.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.04,
+      "evidence": []
+    },
+    {
+      "index": 209,
+      "command": "node tests/v1196-inventory-summary-window.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.042,
+      "evidence": []
+    },
+    {
+      "index": 210,
+      "command": "node tests/v1197-accordion-dynamic-height.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.042,
+      "evidence": []
+    },
+    {
+      "index": 211,
+      "command": "node tests/v1197-activity-history-retention.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.057,
+      "evidence": []
+    },
+    {
+      "index": 212,
+      "command": "node tests/v1198-profile-backup-dedupe.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.047,
+      "evidence": []
+    },
+    {
+      "index": 213,
+      "command": "node tests/v1198-profile-transfer-ux.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.045,
+      "evidence": []
+    },
+    {
+      "index": 214,
+      "command": "node tests/v1198-renewal-interaction-settling.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.041,
+      "evidence": []
+    },
+    {
+      "index": 215,
+      "command": "node tests/v1200-diagnostic-reset.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.043,
+      "evidence": []
+    },
+    {
+      "index": 216,
+      "command": "node tests/v1201-a6-event-driven.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.045,
+      "evidence": []
+    },
+    {
+      "index": 217,
+      "command": "node tests/v1201-a6-event-driven-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.054,
+      "evidence": []
+    },
+    {
+      "index": 218,
+      "command": "node tests/v1202-expected-close-race.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.048,
+      "evidence": []
+    },
+    {
+      "index": 219,
+      "command": "node tests/v1202-a7-indexeddb.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.109,
+      "evidence": [
+        "Error: ENOENT: no such file or directory, open 'src/background/controllers/trash-management-controller.js'"
+      ]
+    },
+    {
+      "index": 220,
+      "command": "node tests/v1203-hot-path.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.11,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: The input did not match the regular expression /requireTrashManagementController\\(\\)\\.purgeExpiredTrash\\(\\)/. Input:"
+      ]
+    },
+    {
+      "index": 221,
+      "command": "node tests/v1203-hot-path-runtime.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.044,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:"
+      ]
+    },
+    {
+      "index": 222,
+      "command": "node tests/v1204-p6a-readiness.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.041,
+      "evidence": []
+    },
+    {
+      "index": 223,
+      "command": "node tests/v1204-image-ipc.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.043,
+      "evidence": []
+    },
+    {
+      "index": 224,
+      "command": "node tests/v1204-phase2-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.069,
+      "evidence": []
+    },
+    {
+      "index": 225,
+      "command": "node tests/v1205-controlled-close-bootstrap-race.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.059,
+      "evidence": []
+    },
+    {
+      "index": 226,
+      "command": "node tests/v1207-reconciliation-readiness-race.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.043,
+      "evidence": []
+    },
+    {
+      "index": 227,
+      "command": "node tests/v1208-worker-tab-create-retry.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.047,
+      "evidence": []
+    },
+    {
+      "index": 228,
+      "command": "node tests/v1209-myads-readiness-architecture.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.045,
+      "evidence": []
+    },
+    {
+      "index": 229,
+      "command": "node tests/v1209-myads-readiness-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.062,
+      "evidence": []
+    },
+    {
+      "index": 230,
+      "command": "node tests/v12010-actions-account-architecture.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.043,
+      "evidence": []
+    },
+    {
+      "index": 231,
+      "command": "node tests/v12010-account-gate-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.041,
+      "evidence": []
+    },
+    {
+      "index": 232,
+      "command": "node tests/v12010-managed-navigation-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.043,
+      "evidence": []
+    },
+    {
+      "index": 233,
+      "command": "node tests/v12011-archive-progress-architecture.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.045,
+      "evidence": []
+    },
+    {
+      "index": 234,
+      "command": "node tests/v12011-archive-progress-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.058,
+      "evidence": []
+    },
+    {
+      "index": 235,
+      "command": "node tests/v12012-archive-ui-polish.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.043,
+      "evidence": []
+    },
+    {
+      "index": 236,
+      "command": "node tests/v12013-phase3-public-verification.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.106,
+      "evidence": [
+        "Error: ENOENT: no such file or directory, open 'src/background/services/renewal-public-evidence-coordinator.js'"
+      ]
+    },
+    {
+      "index": 237,
+      "command": "node tests/v12013-mass-gold-line.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.042,
+      "evidence": []
+    },
+    {
+      "index": 238,
+      "command": "node tests/v12014-public-id-parser.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.042,
+      "evidence": []
+    },
+    {
+      "index": 239,
+      "command": "node tests/v12014-mass-count-normalization.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.041,
+      "evidence": []
+    },
+    {
+      "index": 240,
+      "command": "node tests/v12014-renewal-copy.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.044,
+      "evidence": []
+    },
+    {
+      "index": 241,
+      "command": "node tests/v12016-phase3-public-readiness.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.041,
+      "evidence": [
+        "Error: ENOENT: no such file or directory, open 'src/background/services/renewal-public-evidence-coordinator.js'"
+      ]
+    },
+    {
+      "index": 242,
+      "command": "node tests/v12016-mass-status-normalization.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.105,
+      "evidence": []
+    },
+    {
+      "index": 243,
+      "command": "node tests/v12016-header-tab-continuity.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.04,
+      "evidence": []
+    },
+    {
+      "index": 244,
+      "command": "node tests/v12017-actions-card-dismiss.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.04,
+      "evidence": []
+    },
+    {
+      "index": 245,
+      "command": "node tests/v12017-myads-inconsistency.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.044,
+      "evidence": []
+    },
+    {
+      "index": 246,
+      "command": "node tests/v12018-sticky-geometry.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.039,
+      "evidence": []
+    },
+    {
+      "index": 247,
+      "command": "node tests/v12018-header-refresh.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.04,
+      "evidence": []
+    },
+    {
+      "index": 248,
+      "command": "node tests/v12018-activity-history-bootstrap.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.047,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:"
+      ]
+    },
+    {
+      "index": 249,
+      "command": "node tests/v12019-phase3-edit-authority.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.114,
+      "evidence": []
+    },
+    {
+      "index": 250,
+      "command": "node tests/v12019-bald-online.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.045,
+      "evidence": [
+        "Error: ENOENT: no such file or directory, open 'src/background/services/inventory-refresh-service.js'"
+      ]
+    },
+    {
+      "index": 251,
+      "command": "node tests/v12019-retry-ui.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.041,
+      "evidence": []
+    },
+    {
+      "index": 252,
+      "command": "node tests/v12019-ui-polish.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.039,
+      "evidence": []
+    },
+    {
+      "index": 253,
+      "command": "node tests/v12020-bald-online-normal-card.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.045,
+      "evidence": []
+    },
+    {
+      "index": 254,
+      "command": "node tests/v12021-mass-summary-bald-online.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.112,
+      "evidence": []
+    },
+    {
+      "index": 255,
+      "command": "node tests/v12022-optional-images.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.122,
+      "evidence": []
+    },
+    {
+      "index": 256,
+      "command": "node tests/v1210-compact-views-message-history.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.052,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:"
+      ]
+    },
+    {
+      "index": 257,
+      "command": "node tests/v1211-message-gold-line.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.053,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:"
+      ]
+    },
+    {
+      "index": 258,
+      "command": "node tests/optional-dom-indexeddb.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.12,
+      "evidence": [
+        "Error: ENOENT: no such file or directory, open '/home/runner/work/KleinanzeigenRenewer/KleinanzeigenRenewer/src/background/services/inventory-capture-service.js'"
+      ]
+    },
+    {
+      "index": 259,
+      "command": "node tests/v1212-compact-layout-icons.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.053,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:"
+      ]
+    },
+    {
+      "index": 260,
+      "command": "node tests/v1213-sticky-retention-interaction.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.06,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: The input did not match the regular expression /if \\(trash\\) appendTrashRetentionCountdown\\(end, trashRetentionPresentation\\(record\\)\\)/. Input:"
+      ]
+    },
+    {
+      "index": 261,
+      "command": "node tests/v1214-sticky-goldline.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.047,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: The input did not match the regular expression /class=\"trash-intro-full\">Die gespeicherte Papierkorb-Aufbewahrung wird ermittelt\\./. Input:"
+      ]
+    },
+    {
+      "index": 262,
+      "command": "node tests/v1215-sticky-scroll-hardening.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.044,
+      "evidence": []
+    },
+    {
+      "index": 263,
+      "command": "node tests/v1216-fixed-slot-diagnostics.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.044,
+      "evidence": []
+    },
+    {
+      "index": 264,
+      "command": "node tests/v1217-sticky-target-geometry.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.052,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:"
+      ]
+    },
+    {
+      "index": 265,
+      "command": "node tests/v1218-occlusion-actions-diagnostics.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.041,
+      "evidence": []
+    },
+    {
+      "index": 266,
+      "command": "node tests/v1219-ui-consolidation.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.052,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:"
+      ]
+    },
+    {
+      "index": 267,
+      "command": "node tests/v12110-ui-polish.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.051,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:"
+      ]
+    },
+    {
+      "index": 268,
+      "command": "node tests/v12111-global-view-sidebar-bottom-diagnostics.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.055,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:"
+      ]
+    },
+    {
+      "index": 269,
+      "command": "node tests/v12112-sidebar-refresh-capture-polish.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.05,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:"
+      ]
+    },
+    {
+      "index": 270,
+      "command": "node tests/v12113-compact-trash-actions.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.042,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: compact trash reset must reuse update icon"
+      ]
+    },
+    {
+      "index": 271,
+      "command": "node tests/v12114-ui-copy-consistency.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.048,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: The input did not match the regular expression /Die gespeicherte Papierkorb-Aufbewahrung wird ermittelt\\./. Input:"
+      ]
+    },
+    {
+      "index": 272,
+      "command": "node tests/v12115-actions-accordion-recovery.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.057,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:"
+      ]
+    },
+    {
+      "index": 273,
+      "command": "node tests/v12115-accordion-recovery-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.043,
+      "evidence": []
+    },
+    {
+      "index": 274,
+      "command": "node tests/v1220-browser-e2e-contract.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.05,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:"
+      ]
+    },
+    {
+      "index": 275,
+      "command": "node tests/v1221-actions-controlled-accordion.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.05,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:"
+      ]
+    },
+    {
+      "index": 276,
+      "command": "node tests/v1222-focus-safety-docs.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.042,
+      "evidence": []
+    },
+    {
+      "index": 277,
+      "command": "node tests/v1223-action-focus-modality.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.044,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: Version liegt nicht im retained v1.22.3+ Bereich."
+      ]
+    },
+    {
+      "index": 278,
+      "command": "node tests/v1224-runtime-dependency-boundary.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.05,
+      "evidence": []
+    },
+    {
+      "index": 279,
+      "command": "node tests/v1224-runtime-deps-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.043,
+      "evidence": []
+    },
+    {
+      "index": 280,
+      "command": "node tests/v1225-modularization.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.043,
+      "evidence": []
+    },
+    {
+      "index": 281,
+      "command": "node tests/v1225-modularization-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.077,
+      "evidence": []
+    },
+    {
+      "index": 282,
+      "command": "node tests/v1226-diagnostics-actions-modularization.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.043,
+      "evidence": []
+    },
+    {
+      "index": 283,
+      "command": "node tests/v1226-diagnostics-actions-runtime.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.072,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: routine state snapshots must not be persisted"
+      ]
+    },
+    {
+      "index": 284,
+      "command": "node tests/v1227-pre-refactor-characterization.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.043,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: The input was expected to not match the regular expression /UI_SIDEBAR_SCROLL_SAMPLE/. Input:"
+      ]
+    },
+    {
+      "index": 285,
+      "command": "node tests/v1227-pre-refactor-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.06,
+      "evidence": []
+    },
+    {
+      "index": 286,
+      "command": "node tests/v1227-modularization.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.042,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: The input did not match the regular expression /let lastBottomTop/. Input:"
+      ]
+    },
+    {
+      "index": 287,
+      "command": "node tests/v1227-modularization-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.042,
+      "evidence": []
+    },
+    {
+      "index": 288,
+      "command": "node tests/v1228-pre-refactor-characterization.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.043,
+      "evidence": []
+    },
+    {
+      "index": 289,
+      "command": "node tests/v1228-pre-refactor-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.064,
+      "evidence": []
+    },
+    {
+      "index": 290,
+      "command": "node tests/v1228-modularization.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.042,
+      "evidence": []
+    },
+    {
+      "index": 291,
+      "command": "node tests/v1228-modularization-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.049,
+      "evidence": []
+    },
+    {
+      "index": 292,
+      "command": "node tests/v1229-pre-refactor-characterization.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.043,
+      "evidence": []
+    },
+    {
+      "index": 293,
+      "command": "node tests/v1229-pre-refactor-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.06,
+      "evidence": []
+    },
+    {
+      "index": 294,
+      "command": "node tests/v1229-modularization.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.044,
+      "evidence": []
+    },
+    {
+      "index": 295,
+      "command": "node tests/v1229-modularization-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.046,
+      "evidence": []
+    },
+    {
+      "index": 296,
+      "command": "node tests/v12210-pre-refactor-characterization.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.045,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: The input did not match the regular expression /Frist neu starten/. Input:"
+      ]
+    },
+    {
+      "index": 297,
+      "command": "node tests/v12210-pre-refactor-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.056,
+      "evidence": []
+    },
+    {
+      "index": 298,
+      "command": "node tests/v12210-modularization.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.048,
+      "evidence": []
+    },
+    {
+      "index": 299,
+      "command": "node tests/v12210-modularization-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.045,
+      "evidence": []
+    },
+    {
+      "index": 300,
+      "command": "node tests/v12211-pre-refactor-characterization.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.097,
+      "evidence": []
+    },
+    {
+      "index": 301,
+      "command": "node tests/v12211-pre-refactor-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.122,
+      "evidence": []
+    },
+    {
+      "index": 302,
+      "command": "node tests/v12211-modularization.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.046,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: The input did not match the regular expression /^importScripts\\(\"\\.\\.\\/shared\\/runtime-deps\\.js\", \"\\.\\.\\/shared\\/message-contract-registry\\.js\", (?:\"\\.\\.\\/shared\\/renewal-policy\\.js\", \"background-message-router\\.js\", )?(?:\"services\\/native-update-status-gateway\\.js\", \"services\\/native-status-bridge\\.js\", (?:\"services\\/update-workflow-fence\\.js\", )?)?\"repositories\\/profile-repository\\.js\", \"repositories\\/inventory-r"
+      ]
+    },
+    {
+      "index": 303,
+      "command": "node tests/v12211-modularization-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.05,
+      "evidence": []
+    },
+    {
+      "index": 304,
+      "command": "node tests/v12212-pre-refactor-characterization.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.092,
+      "evidence": []
+    },
+    {
+      "index": 305,
+      "command": "node tests/v12212-pre-refactor-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.113,
+      "evidence": []
+    },
+    {
+      "index": 306,
+      "command": "node tests/v12212-modularization.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.046,
+      "evidence": []
+    },
+    {
+      "index": 307,
+      "command": "node tests/v12212-modularization-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.049,
+      "evidence": []
+    },
+    {
+      "index": 308,
+      "command": "node tests/v12213-bulk-deadlock-regression.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.044,
+      "evidence": []
+    },
+    {
+      "index": 309,
+      "command": "node tests/v12213-bulk-deadlock-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.046,
+      "evidence": []
+    },
+    {
+      "index": 310,
+      "command": "node tests/v12213-lifecycle-race-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.044,
+      "evidence": []
+    },
+    {
+      "index": 311,
+      "command": "node tests/v12214-pre-refactor-characterization.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.103,
+      "evidence": []
+    },
+    {
+      "index": 312,
+      "command": "node tests/v12214-pre-refactor-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.043,
+      "evidence": []
+    },
+    {
+      "index": 313,
+      "command": "node tests/v12214-emergency-reset-ui.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.04,
+      "evidence": []
+    },
+    {
+      "index": 314,
+      "command": "node tests/v12214-post-recovery-benign.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.038,
+      "evidence": []
+    },
+    {
+      "index": 315,
+      "command": "node tests/v12214-modularization.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.044,
+      "evidence": []
+    },
+    {
+      "index": 316,
+      "command": "node tests/v12214-modularization-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.05,
+      "evidence": []
+    },
+    {
+      "index": 317,
+      "command": "node tests/v12215-pre-refactor-characterization.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.107,
+      "evidence": []
+    },
+    {
+      "index": 318,
+      "command": "node tests/v12215-pre-refactor-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.041,
+      "evidence": []
+    },
+    {
+      "index": 319,
+      "command": "node tests/v12215-single-inventory-result-regression.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.043,
+      "evidence": []
+    },
+    {
+      "index": 320,
+      "command": "node tests/v12215-modularization.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.044,
+      "evidence": []
+    },
+    {
+      "index": 321,
+      "command": "node tests/v12215-modularization-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.06,
+      "evidence": []
+    },
+    {
+      "index": 322,
+      "command": "node tests/v12216-pre-refactor-characterization.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.09,
+      "evidence": []
+    },
+    {
+      "index": 323,
+      "command": "node tests/v12216-pre-refactor-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.112,
+      "evidence": []
+    },
+    {
+      "index": 324,
+      "command": "node tests/v12216-modularization.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.042,
+      "evidence": []
+    },
+    {
+      "index": 325,
+      "command": "node tests/v12216-modularization-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.102,
+      "evidence": []
+    },
+    {
+      "index": 326,
+      "command": "node tests/v12217-trash-template-recovery.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.04,
+      "evidence": []
+    },
+    {
+      "index": 327,
+      "command": "node tests/v12217-trash-template-recovery-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.057,
+      "evidence": []
+    },
+    {
+      "index": 328,
+      "command": "node tests/v12217-trash-template-ui-recovery-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.06,
+      "evidence": []
+    },
+    {
+      "index": 329,
+      "command": "node tests/v12218-trash-template-recovery-ui.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.041,
+      "evidence": []
+    },
+    {
+      "index": 330,
+      "command": "node tests/v12218-trash-template-recovery-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.045,
+      "evidence": []
+    },
+    {
+      "index": 331,
+      "command": "node tests/v12219-trash-template-session-isolation.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.038,
+      "evidence": []
+    },
+    {
+      "index": 332,
+      "command": "node tests/v12219-trash-template-session-isolation-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.046,
+      "evidence": []
+    },
+    {
+      "index": 333,
+      "command": "node tests/v12220-trash-template-preview-recovery-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.047,
+      "evidence": []
+    },
+    {
+      "index": 334,
+      "command": "node tests/v12221-pre-refactor-characterization.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.041,
+      "evidence": []
+    },
+    {
+      "index": 335,
+      "command": "node tests/v12221-pre-refactor-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.064,
+      "evidence": []
+    },
+    {
+      "index": 336,
+      "command": "node tests/v12221-modularization.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.043,
+      "evidence": [
+        "FAIL background retains thin compatibility facades only",
+        "let p=0;const ok=(n,f)=>{try{f();p++;console.log('PASS '+n)}catch(e){console.error('FAIL '+n);throw e}};",
+        "AssertionError [ERR_ASSERTION]: The input did not match the regular expression /async function finishRenewalReplacement\\(message, admissionReceipt\\) \\{ return requireRemoteDeleteReplacementService\\(\\)\\.finishRenewalReplacement\\(message, admissionReceipt\\); \\}/. Input:"
+      ]
+    },
+    {
+      "index": 337,
+      "command": "node tests/v12221-modularization-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.043,
+      "evidence": []
+    },
+    {
+      "index": 338,
+      "command": "node tests/v12222-pre-refactor-characterization.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.043,
+      "evidence": []
+    },
+    {
+      "index": 339,
+      "command": "node tests/v12222-pre-refactor-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.045,
+      "evidence": []
+    },
+    {
+      "index": 340,
+      "command": "node tests/v12222-emergency-reset-regression.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.039,
+      "evidence": []
+    },
+    {
+      "index": 341,
+      "command": "node tests/v12222-legacy-global-cleanup.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.042,
+      "evidence": []
+    },
+    {
+      "index": 342,
+      "command": "node tests/v12222-cleanup-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.13,
+      "evidence": []
+    },
+    {
+      "index": 343,
+      "command": "node tests/v12223-emergency-reset-activity-regression.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.045,
+      "evidence": []
+    },
+    {
+      "index": 344,
+      "command": "node tests/v12223c1-terminal-activity-replay-regression.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.044,
+      "evidence": []
+    },
+    {
+      "index": 345,
+      "command": "node tests/v12223c2-reset-recovery-archive-regression.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.042,
+      "evidence": []
+    },
+    {
+      "index": 346,
+      "command": "node tests/v12224-pre-refactor-characterization.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.043,
+      "evidence": []
+    },
+    {
+      "index": 347,
+      "command": "node tests/v12224-message-contract-registry.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.044,
+      "evidence": []
+    },
+    {
+      "index": 348,
+      "command": "node tests/v12224-message-contract-registry-runtime.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.039,
+      "evidence": [
+        "throw new AssertionError(obj);",
+        "AssertionError [ERR_ASSERTION]: all three configurable trash retention contracts must be registered"
+      ]
+    },
+    {
+      "index": 349,
+      "command": "node tests/v12224-message-contract-registry-packaging.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.041,
+      "evidence": []
+    },
+    {
+      "index": 350,
+      "command": "node tests/v12225-pre-enforcement-characterization.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.044,
+      "evidence": []
+    },
+    {
+      "index": 351,
+      "command": "node tests/v12225-message-contract-enforcement.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.046,
+      "evidence": []
+    },
+    {
+      "index": 352,
+      "command": "node tests/v12225-message-contract-enforcement-runtime.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.039,
+      "evidence": [
+        "throw new AssertionError(obj);",
+        "AssertionError [ERR_ASSERTION]: all three configurable trash retention contracts must be registered"
+      ]
+    },
+    {
+      "index": 353,
+      "command": "node tests/v12225c1-content-bootstrap-regression.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.04,
+      "evidence": []
+    },
+    {
+      "index": 354,
+      "command": "node tests/v12226-pre-stabilization-characterization.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.042,
+      "evidence": []
+    },
+    {
+      "index": 355,
+      "command": "node tests/v12226-action-state-sync-regression.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.042,
+      "evidence": []
+    },
+    {
+      "index": 356,
+      "command": "node tests/v12226-paid-insertion-regression.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.058,
+      "evidence": []
+    },
+    {
+      "index": 357,
+      "command": "node tests/v12226-paid-insertion-diagnostic-placement.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.039,
+      "evidence": []
+    },
+    {
+      "index": 358,
+      "command": "node tests/v12227-pre-stabilization-characterization.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.041,
+      "evidence": []
+    },
+    {
+      "index": 359,
+      "command": "node tests/v12227-paid-insertion-lock-reset-regression.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.091,
+      "evidence": []
+    },
+    {
+      "index": 360,
+      "command": "node tests/v12227-e2e-supervisor-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.537,
+      "evidence": []
+    },
+    {
+      "index": 361,
+      "command": "node tests/v12228-pre-patch-characterization.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.048,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:"
+      ]
+    },
+    {
+      "index": 362,
+      "command": "node tests/v12228-legacy-emergency-reset-regression.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.046,
+      "evidence": []
+    },
+    {
+      "index": 363,
+      "command": "node tests/v12229-pre-patch-characterization.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.042,
+      "evidence": []
+    },
+    {
+      "index": 364,
+      "command": "node tests/v12229-checkout-recovery-regression.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.045,
+      "evidence": []
+    },
+    {
+      "index": 365,
+      "command": "node tests/v12230-global-emergency-reset.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.045,
+      "evidence": []
+    },
+    {
+      "index": 366,
+      "command": "node tests/v1230-pre-refactor-characterization.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.078,
+      "evidence": []
+    },
+    {
+      "index": 367,
+      "command": "node tests/v1230-epic-ref-002-contract.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.052,
+      "evidence": [
+        "FAIL release remains within the planned v1.23.x EPIC-REF-002 wave",
+        "const ok = (name, fn) => { try { fn(); passed++; console.log('PASS ' + name); } catch (error) { console.error('FAIL ' + name); throw error; } };",
+        "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:"
+      ]
+    },
+    {
+      "index": 368,
+      "command": "node tests/v1230-packaging-hygiene.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.04,
+      "evidence": []
+    },
+    {
+      "index": 369,
+      "command": "node tests/v1231-pre-refactor-characterization.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.062,
+      "evidence": []
+    },
+    {
+      "index": 370,
+      "command": "node tests/v1231-renewal-workflow-modularization.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.046,
+      "evidence": []
+    },
+    {
+      "index": 371,
+      "command": "node tests/v1231-renewal-workflow-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.047,
+      "evidence": []
+    },
+    {
+      "index": 372,
+      "command": "node tests/v1231-version-architecture.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.086,
+      "evidence": []
+    },
+    {
+      "index": 373,
+      "command": "node tests/v1232-packaging-runtime-closure.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.071,
+      "evidence": []
+    },
+    {
+      "index": 374,
+      "command": "node tests/v1232-packaged-e2e-root.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.038,
+      "evidence": []
+    },
+    {
+      "index": 375,
+      "command": "node tests/v1232-version-correction.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.048,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:"
+      ]
+    },
+    {
+      "index": 376,
+      "command": "node tests/v1233-pre-refactor-characterization.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.046,
+      "evidence": []
+    },
+    {
+      "index": 377,
+      "command": "node tests/v1233-mass-renewal-workflow-modularization.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.043,
+      "evidence": []
+    },
+    {
+      "index": 378,
+      "command": "node tests/v1233-mass-renewal-workflow-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.045,
+      "evidence": []
+    },
+    {
+      "index": 379,
+      "command": "node tests/v1233-version-architecture.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.088,
+      "evidence": []
+    },
+    {
+      "index": 380,
+      "command": "node tests/v1234-pre-refactor-characterization.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.048,
+      "evidence": []
+    },
+    {
+      "index": 381,
+      "command": "node tests/v1234-template-lock-modularization.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.045,
+      "evidence": []
+    },
+    {
+      "index": 382,
+      "command": "node tests/v1234-insertion-lock-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.044,
+      "evidence": []
+    },
+    {
+      "index": 383,
+      "command": "node tests/v1234-template-fill-controller-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.047,
+      "evidence": []
+    },
+    {
+      "index": 384,
+      "command": "node tests/v1234-version-architecture.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.087,
+      "evidence": []
+    },
+    {
+      "index": 385,
+      "command": "node tests/v1235-pre-refactor-characterization.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.046,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: The input did not match the regular expression /\\['complete', 'needs-review', 'error', 'cancelled', 'publish-blocked'\\]/. Input:"
+      ]
+    },
+    {
+      "index": 386,
+      "command": "node tests/v1235-archive-insertion-modularization.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.039,
+      "evidence": []
+    },
+    {
+      "index": 387,
+      "command": "node tests/v1235-archive-insertion-controller-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.052,
+      "evidence": []
+    },
+    {
+      "index": 388,
+      "command": "node tests/v1235-terminal-template-emergency-reset.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.04,
+      "evidence": []
+    },
+    {
+      "index": 389,
+      "command": "node tests/v1235-version-architecture.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.112,
+      "evidence": []
+    },
+    {
+      "index": 390,
+      "command": "node tests/v1236-pre-refactor-characterization.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.045,
+      "evidence": []
+    },
+    {
+      "index": 391,
+      "command": "node tests/v1236-bulk-public-modularization.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.044,
+      "evidence": []
+    },
+    {
+      "index": 392,
+      "command": "node tests/v1236-public-listing-evidence-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.047,
+      "evidence": []
+    },
+    {
+      "index": 393,
+      "command": "node tests/v1236-bulk-controller-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.051,
+      "evidence": []
+    },
+    {
+      "index": 394,
+      "command": "node tests/v1236-trash-template-action-ux.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.041,
+      "evidence": []
+    },
+    {
+      "index": 395,
+      "command": "node tests/v1236-version-architecture.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.116,
+      "evidence": []
+    },
+    {
+      "index": 396,
+      "command": "node tests/v1237-pre-refactor-characterization.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.053,
+      "evidence": []
+    },
+    {
+      "index": 397,
+      "command": "node tests/v1237-ownership-layout.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.053,
+      "evidence": []
+    },
+    {
+      "index": 398,
+      "command": "node tests/v1237-diagnostic-export-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.042,
+      "evidence": []
+    },
+    {
+      "index": 399,
+      "command": "node tests/v1237-path-closure.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.064,
+      "evidence": []
+    },
+    {
+      "index": 400,
+      "command": "node tests/v1237-version-architecture.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.121,
+      "evidence": []
+    },
+    {
+      "index": 401,
+      "command": "node tests/v1237-release-finalize-gate.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.162,
+      "evidence": []
+    },
+    {
+      "index": 402,
+      "command": "node tests/v1238-pre-refactor-characterization.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.046,
+      "evidence": []
+    },
+    {
+      "index": 403,
+      "command": "node tests/v1238-controller-ownership.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.045,
+      "evidence": []
+    },
+    {
+      "index": 404,
+      "command": "node tests/v1238-profile-management-controller-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.049,
+      "evidence": []
+    },
+    {
+      "index": 405,
+      "command": "node tests/v1238-account-session-controller-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.044,
+      "evidence": []
+    },
+    {
+      "index": 406,
+      "command": "node tests/v1238-path-closure.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.077,
+      "evidence": []
+    },
+    {
+      "index": 407,
+      "command": "node tests/v1238-version-architecture.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.042,
+      "evidence": [
+        "throw new AssertionError(obj);",
+        "AssertionError [ERR_ASSERTION]: '2.0.0' == '2.0.0.0'"
+      ]
+    },
+    {
+      "index": 408,
+      "command": "node tests/v1239-pre-refactor-characterization.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.045,
+      "evidence": []
+    },
+    {
+      "index": 409,
+      "command": "node tests/v1239-controller-ownership.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.042,
+      "evidence": []
+    },
+    {
+      "index": 410,
+      "command": "node tests/v1239-controllers-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.049,
+      "evidence": []
+    },
+    {
+      "index": 411,
+      "command": "node tests/v1239-version-architecture.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.048,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:"
+      ]
+    },
+    {
+      "index": 412,
+      "command": "node tests/v12310-inventory-capture-characterization.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.04,
+      "evidence": []
+    },
+    {
+      "index": 413,
+      "command": "node tests/v12310-inventory-capture-ownership.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.039,
+      "evidence": []
+    },
+    {
+      "index": 414,
+      "command": "node tests/v12310-version-architecture.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.048,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:"
+      ]
+    },
+    {
+      "index": 415,
+      "command": "node tests/v1239-app-boot-reduced-motion-regression.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.042,
+      "evidence": []
+    },
+    {
+      "index": 416,
+      "command": "node tests/v12311-pre-cleanup-characterization.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.046,
+      "evidence": []
+    },
+    {
+      "index": 417,
+      "command": "node tests/v12311-dead-code-cleanup.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.052,
+      "evidence": []
+    },
+    {
+      "index": 418,
+      "command": "node tests/v12311-version-architecture.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.089,
+      "evidence": []
+    },
+    {
+      "index": 419,
+      "command": "node tests/v12312-composition-routing-characterization.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.045,
+      "evidence": [
+        "throw new AssertionError(obj);",
+        "AssertionError [ERR_ASSERTION]: all seven-stop retention slider DOM bindings exist"
+      ]
+    },
+    {
+      "index": 420,
+      "command": "node tests/v12312-composition-routing-ownership.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.044,
+      "evidence": []
+    },
+    {
+      "index": 421,
+      "command": "node tests/v12312-app-elements-runtime.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.045,
+      "evidence": [
+        "throw new AssertionError(obj);",
+        "AssertionError [ERR_ASSERTION]: seven-stop slider has three typed DOM bindings"
+      ]
+    },
+    {
+      "index": 422,
+      "command": "node tests/v12312-profile-account-ui-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.052,
+      "evidence": []
+    },
+    {
+      "index": 423,
+      "command": "node tests/v12312-background-message-router-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.042,
+      "evidence": []
+    },
+    {
+      "index": 424,
+      "command": "node tests/v12312-renewal-policy-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.042,
+      "evidence": []
+    },
+    {
+      "index": 425,
+      "command": "node tests/v12312-version-architecture.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.042,
+      "evidence": [
+        "throw new AssertionError(obj);",
+        "AssertionError [ERR_ASSERTION]: '2.0.0' == '2.0.0.0'"
+      ]
+    },
+    {
+      "index": 426,
+      "command": "node tests/v12312c1-bulk-composition-root-regression.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.058,
+      "evidence": []
+    },
+    {
+      "index": 427,
+      "command": "node tests/v12312c1-version-release.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.048,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:"
+      ]
+    },
+    {
+      "index": 428,
+      "command": "node tests/v12313-inventory-capture-characterization.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.044,
+      "evidence": []
+    },
+    {
+      "index": 429,
+      "command": "node tests/v12313-inventory-capture-ownership.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.043,
+      "evidence": []
+    },
+    {
+      "index": 430,
+      "command": "node tests/v12313-inventory-capture-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.044,
+      "evidence": []
+    },
+    {
+      "index": 431,
+      "command": "node tests/v12313-version-architecture.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.044,
+      "evidence": [
+        "throw new AssertionError(obj);",
+        "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:"
+      ]
+    },
+    {
+      "index": 432,
+      "command": "node tests/v12313c1-bulk-reentry-rehydration-regression.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.041,
+      "evidence": []
+    },
+    {
+      "index": 433,
+      "command": "node tests/v12313c1-version-release.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.044,
+      "evidence": [
+        "throw new AssertionError(obj);",
+        "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:"
+      ]
+    },
+    {
+      "index": 434,
+      "command": "node tests/v12313c2-inventory-reentry-activity-arbitration-regression.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.041,
+      "evidence": []
+    },
+    {
+      "index": 435,
+      "command": "node tests/v12313c2-version-release.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.05,
+      "evidence": [
+        "throw new AssertionError(obj);",
+        "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:"
+      ]
+    },
+    {
+      "index": 436,
+      "command": "node tests/v12313c2-release-status-heartbeat-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.129,
+      "evidence": []
+    },
+    {
+      "index": 437,
+      "command": "node tests/v12313c2-bulk-e2e-restart-barrier.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.044,
+      "evidence": []
+    },
+    {
+      "index": 438,
+      "command": "node tests/v12313c2-e2e-startup-barrier.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.047,
+      "evidence": []
+    },
+    {
+      "index": 439,
+      "command": "node tests/v12314-characterization.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.054,
+      "evidence": []
+    },
+    {
+      "index": 440,
+      "command": "node tests/v12314-ownership.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.043,
+      "evidence": []
+    },
+    {
+      "index": 441,
+      "command": "node tests/v12314-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.055,
+      "evidence": []
+    },
+    {
+      "index": 442,
+      "command": "node tests/v12314-version-architecture.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.049,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:"
+      ]
+    },
+    {
+      "index": 443,
+      "command": "node tests/v12315-characterization.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.076,
+      "evidence": []
+    },
+    {
+      "index": 444,
+      "command": "node tests/v12315-ownership.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.043,
+      "evidence": []
+    },
+    {
+      "index": 445,
+      "command": "node tests/v12315-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.049,
+      "evidence": []
+    },
+    {
+      "index": 446,
+      "command": "node tests/v12315-version-architecture.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.053,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:"
+      ]
+    },
+    {
+      "index": 447,
+      "command": "node tests/v12316-characterization.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.079,
+      "evidence": []
+    },
+    {
+      "index": 448,
+      "command": "node tests/v12316-ownership.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.045,
+      "evidence": []
+    },
+    {
+      "index": 449,
+      "command": "node tests/v12316-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.05,
+      "evidence": []
+    },
+    {
+      "index": 450,
+      "command": "node tests/v12316-version-architecture.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.052,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:"
+      ]
+    },
+    {
+      "index": 451,
+      "command": "node tests/v12316c1-trash-template-target-loss.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.054,
+      "evidence": []
+    },
+    {
+      "index": 452,
+      "command": "node tests/v12316c1-wiring-version.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.054,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:"
+      ]
+    },
+    {
+      "index": 453,
+      "command": "node tests/v12316c2-live-target-loss.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.047,
+      "evidence": []
+    },
+    {
+      "index": 454,
+      "command": "node tests/v12316c2-wiring-version.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.051,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:"
+      ]
+    },
+    {
+      "index": 455,
+      "command": "node tests/v12317-template-filler-modularization.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.044,
+      "evidence": []
+    },
+    {
+      "index": 456,
+      "command": "node tests/v12317-template-filler-runtime.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.048,
+      "evidence": []
+    },
+    {
+      "index": 457,
+      "command": "node tests/v12317-version-architecture.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.05,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:"
+      ]
+    },
+    {
+      "index": 458,
+      "command": "node tests/v12317c1-template-module-public-api.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.059,
+      "evidence": []
+    },
+    {
+      "index": 459,
+      "command": "node tests/v12317c1-version-architecture.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.052,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:"
+      ]
+    },
+    {
+      "index": 460,
+      "command": "node tests/v12317c2-trash-template-modal-reopen.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.046,
+      "evidence": []
+    },
+    {
+      "index": 461,
+      "command": "node tests/v12317c2-version-architecture.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.053,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:"
+      ]
+    },
+    {
+      "index": 462,
+      "command": "node tests/v12317c3-content-rebootstrap.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.047,
+      "evidence": []
+    },
+    {
+      "index": 463,
+      "command": "node tests/v12317c3-version-architecture.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.053,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:"
+      ]
+    },
+    {
+      "index": 464,
+      "command": "node tests/v12318-inventory-runner-modularization.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.046,
+      "evidence": []
+    },
+    {
+      "index": 465,
+      "command": "node tests/v12318-inventory-module-public-api.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.055,
+      "evidence": []
+    },
+    {
+      "index": 466,
+      "command": "node tests/v12318-version-architecture.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.05,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:"
+      ]
+    },
+    {
+      "index": 467,
+      "command": "node tests/v12319-public-api-execution-closure.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 4.11,
+      "evidence": []
+    },
+    {
+      "index": 468,
+      "command": "node tests/v12319-safety-public-api-closure.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.053,
+      "evidence": []
+    },
+    {
+      "index": 469,
+      "command": "node tests/v12320-performance-plan.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.049,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:"
+      ]
+    },
+    {
+      "index": 470,
+      "command": "node tests/v12320c1-stale-terminal-mass-resync.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.045,
+      "evidence": []
+    },
+    {
+      "index": 471,
+      "command": "node tests/v12322-title-field-stability.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.047,
+      "evidence": []
+    },
+    {
+      "index": 472,
+      "command": "node tests/v12322-legacy-content-startup.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.058,
+      "evidence": []
+    },
+    {
+      "index": 473,
+      "command": "node tests/kar68-native-status-gateway.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.044,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: new host truthful read-only capabilities"
+      ]
+    },
+    {
+      "index": 474,
+      "command": "node tests/kar99-workflow-fence.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.037,
+      "evidence": [
+        "Error: Cannot find module '../src/background/services/update-workflow-fence.js'",
+        "code: 'MODULE_NOT_FOUND',"
+      ]
+    },
+    {
+      "index": 475,
+      "command": "node tests/kar101-autonomous-admission.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.04,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: mass renewal controller schedules future batches through out-of-router microtasks"
+      ]
+    },
+    {
+      "index": 476,
+      "command": "node tests/kar107-autonomous-owner-coverage.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.037,
+      "evidence": [
+        "Error: Cannot find module '../src/background/services/persisted-owner-observer.js'",
+        "code: 'MODULE_NOT_FOUND',"
+      ]
+    },
+    {
+      "index": 477,
+      "command": "node tests/kar109-routed-owner-inflight.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.039,
+      "evidence": [
+        "Error: Cannot find module '../src/background/services/persisted-owner-observer.js'",
+        "code: 'MODULE_NOT_FOUND',"
+      ]
+    },
+    {
+      "index": 478,
+      "command": "node tests/kar111-identity-uncertainty.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.035,
+      "evidence": [
+        "Error: Cannot find module '../src/background/services/persisted-owner-observer.js'",
+        "code: 'MODULE_NOT_FOUND',"
+      ]
+    },
+    {
+      "index": 479,
+      "command": "node tests/kar113-renewal-detached-admission.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.041,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: renewal controller receives fail-closed admission dependency"
+      ]
+    },
+    {
+      "index": 480,
+      "command": "node tests/kar115-automatic-phase4-admission.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.041,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: Phase 4 controller requires shared autonomous admission dependency"
+      ]
+    },
+    {
+      "index": 481,
+      "command": "node tests/kar117-uncertain-phase4-journal.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.035,
+      "evidence": [
+        "Error: Cannot find module '../src/background/services/phase4-uncertainty-journal.js'",
+        "code: 'MODULE_NOT_FOUND',"
+      ]
+    },
+    {
+      "index": 482,
+      "command": "node tests/kar124-phase4-journal-owner-observer.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.036,
+      "evidence": [
+        "Error: Cannot find module '../src/background/services/persisted-owner-observer.js'",
+        "code: 'MODULE_NOT_FOUND',"
+      ]
+    },
+    {
+      "index": 483,
+      "command": "node tests/kar99-p13f2e2d2b2a-real-publish-route.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.048,
+      "evidence": [
+        "Error: Cannot find module '../src/background/services/cross-worker-atomic-admission.js'",
+        "code: 'MODULE_NOT_FOUND',"
+      ]
+    },
+    {
+      "index": 484,
+      "command": "node tests/kar99-p13f2e2d2b1-token-witness.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.045,
+      "evidence": [
+        "Error: Cannot find module '../src/background/services/cross-worker-atomic-admission.js'",
+        "code: 'MODULE_NOT_FOUND',"
+      ]
+    },
+    {
+      "index": 485,
+      "command": "node tests/kar99-p13f2e2d2a-remote-admission-lineage.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.043,
+      "evidence": [
+        "Error: Cannot find module '../src/background/services/persisted-owner-observer.js'",
+        "code: 'MODULE_NOT_FOUND',"
+      ]
+    },
+    {
+      "index": 486,
+      "command": "node tests/kar99-p13f2e2d1-admission-history.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.042,
+      "evidence": [
+        "Error: Cannot find module '../src/background/services/persisted-owner-observer.js'",
+        "code: 'MODULE_NOT_FOUND',"
+      ]
+    },
+    {
+      "index": 487,
+      "command": "node tests/kar99-p13f2e2c-remote-source-evidence.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.041,
+      "evidence": [
+        "Error: Cannot find module '../src/background/services/persisted-owner-observer.js'",
+        "code: 'MODULE_NOT_FOUND',"
+      ]
+    },
+    {
+      "index": 488,
+      "command": "node tests/kar99-phase4-resolution-observer.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.037,
+      "evidence": [
+        "Error: Cannot find module '../src/background/services/phase4-uncertainty-journal.js'",
+        "code: 'MODULE_NOT_FOUND',"
+      ]
+    },
+    {
+      "index": 489,
+      "command": "node tests/kar99-phase4-journal-atomic.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.039,
+      "evidence": [
+        "Error: Cannot find module '../src/background/services/phase4-uncertainty-journal.js'",
+        "code: 'MODULE_NOT_FOUND',"
+      ]
+    },
+    {
+      "index": 490,
+      "command": "node tests/kar99-auto-publish-intent.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.039,
+      "evidence": [
+        "Error: Cannot find module '../src/background/services/cross-worker-atomic-admission.js'",
+        "code: 'MODULE_NOT_FOUND',"
+      ]
+    },
+    {
+      "index": 491,
+      "command": "node tests/kar99-publish-outcome.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.036,
+      "evidence": [
+        "Error: Cannot find module '../src/background/services/cross-worker-atomic-admission.js'",
+        "code: 'MODULE_NOT_FOUND',"
+      ]
+    },
+    {
+      "index": 492,
+      "command": "node tests/kar99-p6-adversarial.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.037,
+      "evidence": [
+        "Error: Cannot find module '../src/background/services/auto-publish-intent-journal.js'",
+        "code: 'MODULE_NOT_FOUND',"
+      ]
+    },
+    {
+      "index": 493,
+      "command": "node tests/kar128-manual-phase4-journal-boundary.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.038,
+      "evidence": [
+        "Error: Cannot find module '../src/background/services/phase4-uncertainty-journal.js'",
+        "code: 'MODULE_NOT_FOUND',"
+      ]
+    },
+    {
+      "index": 494,
+      "command": "node tests/kar99-p6-ingress-closure.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.037,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: managed session installs before-click guard at initial fill/reentry BEFORE any workflow branch"
+      ]
+    },
+    {
+      "index": 495,
+      "command": "node tests/kar99-phase4-outcome-reconciliation.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.036,
+      "evidence": [
+        "Error: Cannot find module '../src/background/services/phase4-uncertainty-journal.js'",
+        "code: 'MODULE_NOT_FOUND',"
+      ]
+    },
+    {
+      "index": 496,
+      "command": "node tests/kar99-additional-owner-producers.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.039,
+      "evidence": [
+        "Error: Cannot find module '../src/background/services/additional-owner-observer.js'",
+        "code: 'MODULE_NOT_FOUND',"
+      ]
+    },
+    {
+      "index": 497,
+      "command": "node tests/kar99-p7-integrated-owner-authority.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.036,
+      "evidence": [
+        "Error: Cannot find module '../lib/update-idle-policy.js'",
+        "code: 'MODULE_NOT_FOUND',"
+      ]
+    },
+    {
+      "index": 498,
+      "command": "node tests/kar130-archive-detached-admission.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.043,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: detached archive tasks map conservatively to archive/template/insertion owners"
+      ]
+    },
+    {
+      "index": 499,
+      "command": "node tests/kar69-native-check.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.042,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: reviewed Chrome ZIP 1.23.30+ or approved 1.24.x feature series"
+      ]
+    },
+    {
+      "index": 500,
+      "command": "node tests/kar85-updater-modal.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.14,
+      "evidence": []
+    },
+    {
+      "index": 501,
+      "command": "node tests/kar86-approved-channel.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.614,
+      "evidence": []
+    },
+    {
+      "index": 502,
+      "command": "node tests/kar90-updater-ux.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.041,
+      "evidence": []
+    },
+    {
+      "index": 503,
+      "command": "node tests/kar91-english-console.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.041,
+      "evidence": []
+    },
+    {
+      "index": 504,
+      "command": "node tests/kar94-setup-package.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.087,
+      "evidence": []
+    },
+    {
+      "index": 505,
+      "command": "node scripts/v12319-coverage-report.cjs coverage/raw coverage",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 5.998,
+      "evidence": []
+    },
+    {
+      "index": 506,
+      "command": "node scripts/v12319-architecture-audit.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.087,
+      "evidence": []
+    },
+    {
+      "index": 507,
+      "command": "node tests/v12319-version-architecture.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.065,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:"
+      ]
+    },
+    {
+      "index": 508,
+      "command": "node tests/v12320-final-closure.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.066,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:"
+      ]
+    },
+    {
+      "index": 509,
+      "command": "node tests/v12320c1-version-release.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.096,
+      "evidence": []
+    },
+    {
+      "index": 510,
+      "command": "node tests/v12322-version-release.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.219,
+      "evidence": []
+    },
+    {
+      "index": 511,
+      "command": "node tests/kar-release-notes-contract.cjs",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.066,
+      "evidence": []
+    },
+    {
+      "index": 512,
+      "command": "node tests/kar-release-repo-archive-contract.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.046,
+      "evidence": [
+        "throw new AssertionError(obj);",
+        "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:"
+      ]
+    }
+  ]
+}

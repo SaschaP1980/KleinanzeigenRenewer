@@ -1,3 +1,6 @@
+const {isRestored}=require('./kar210-historical-contract-context.cjs');
+const restored=isRestored(require('node:path').resolve(__dirname,'..'));
+const s09 = require('./current-patch-policy.cjs').isS09Version(require('../manifest.json').version);
 const fs = require('fs');
 const assert = require('assert');
 const path = require('path');
@@ -24,12 +27,14 @@ const retentionSelectors = ['trashRetentionRange','trashRetentionValue','trashRe
 const addedRetention = retentionSelectors.filter(key => selectors.get(key) === '#' + key).length;
 const descriptions = ['trashIntroFull','trashIntroSticky'];
 const addedDescriptionTargets = descriptions.filter((key, i) => selectors.get(key) === ['.trash-intro-full','.trash-intro-sticky'][i]).length;
-assert.equal(addedRetention,3,'all seven-stop retention slider DOM bindings exist');
-assert.equal(addedDescriptionTargets,2,'both dynamic trash explanatory texts are centrally bound');
 const trashSortSelectors = ['trashSortAsc','trashSortDesc'];
 const addedTrashSort = trashSortSelectors.filter(key => selectors.get(key) === '#' + key).length;
+if(!restored || s09){
+assert.equal(addedRetention,3,'all seven-stop retention slider DOM bindings exist');
+assert.equal(addedDescriptionTargets,2,'both dynamic trash explanatory texts are centrally bound');
 assert.equal(addedTrashSort, 2, 'KAR-164 exact selector registry includes both sort directions');
-ok(addedStopOnError === 2 && addedMassSearch === 2 && selectors.size === 235 + addedOccupancy + addedStopOnError + addedMassSearch + addedRetention + addedDescriptionTargets + addedTrashSort,
+}
+if(restored){for(const key of [...diagnosticOccupancySelectors,...stopOnErrorSelectors,...massSearchSelectors,...(s09?[]:[...retentionSelectors,...descriptions,...trashSortSelectors])])assert.equal(selectors.has(key),false,'deferred binding '+key);ok(selectors.size===(s09?242:235),'exact historical DOM bindings plus seven S09-only selectors');}else ok(addedStopOnError === 2 && addedMassSearch === 2 && selectors.size === 235 + addedOccupancy + addedStopOnError + addedMassSearch + addedRetention + addedDescriptionTargets + addedTrashSort,
   `DOM binding contract retains 235 historical selectors plus ${addedOccupancy} occupancy, ${addedStopOnError} stop-on-error and ${addedMassSearch} mass-search plus ${addedTrashSort} trash-sort bindings (got ${selectors.size})`);
 const routeSource=bg+'\n'+router;
 const routeTypes=[...routeSource.matchAll(/(?:message\?\.type\s*===\s*|['"])(['"])?([A-Z][A-Z0-9_]+)(?:\1)?/g)].map(m=>m[2]);

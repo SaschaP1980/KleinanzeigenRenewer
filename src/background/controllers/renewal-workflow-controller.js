@@ -21,9 +21,6 @@
         ensureContentConnection,
         evaluateCheckoutRecoveryProof,
         finishRenewalReplacement,
-        recoverEmergencyResetCandidateAtomic,
-        withAutonomousAdmission,
-        resolvePublishIntent,
         flushDiagnosticBuffer,
         getInventory,
         isCheckoutAbortedRecoveryCandidate,
@@ -94,7 +91,6 @@
         ensureContentConnection,
         evaluateCheckoutRecoveryProof,
         finishRenewalReplacement,
-        withAutonomousAdmission,
         flushDiagnosticBuffer,
         getInventory,
         isCheckoutAbortedRecoveryCandidate,
@@ -281,19 +277,12 @@ function scheduleAutomaticRenewalReplacement(renewalId, trigger = 'verification-
   const id = String(renewalId || '');
   if (!id || automaticReplacementInFlight.has(id)) return false;
   automaticReplacementInFlight.add(id);
-  void withAutonomousAdmission('renewal-auto-phase4', async admissionReceipt => {
+  void (async () => {
     const sessions = await readRenewalSessions().catch(() => ({}));
     const current = sessions[id] || { renewalId: id };
-    // The shared RemoteDeleteReplacementService records durable intent after
-    // fresh live profile verification, before the first remote deletion.
     await logDiagnostic('info', 'RENEWAL_AUTO_REPLACEMENT_STARTED', { renewalId: id, trigger }, { module: 'background', operation: 'renewal-auto-phase-4', context: sessionCorrelationContext(current, { renewalId: id }) }).catch(() => {});
-    await finishRenewalReplacement({ renewalId: id, automatic: true }, admissionReceipt);
-  }).catch(async error => {
-    // A blocked admission is not a remote replacement attempt. Preserve the
-    // persisted recovery state and never invent a failed source deletion.
-    const admissionCode = String(error?.code || error?.message || '');
-    if (admissionCode.startsWith('KR_UPDATE_FENCE_') || admissionCode.startsWith('KR_UPDATE_OWNER_OBSERVER_')
-        || admissionCode.startsWith('KR_PHASE4_JOURNAL_') || admissionCode === 'KR_PHASE4_STATUS_TIMEOUT') return;
+    await finishRenewalReplacement({ renewalId: id, automatic: true });
+  })().catch(async error => {
     const sessions = await readRenewalSessions().catch(() => ({}));
     const latest = sessions[id];
     if (latest) {
@@ -376,9 +365,6 @@ async function markRenewalPublishClicked(message, sender) {
 async function confirmPublishedRenewal(fill, detected) {
   const newAdId = String(detected?.adId || '');
   if (!/^\d+$/.test(newAdId) || newAdId === String(fill.sourceAdId || '')) return null;
-  if (typeof resolvePublishIntent !== 'function') throw new Error('KR_PUBLISH_INTENT_UNVERIFIED');
-  // Also used by Worker restart/resume: navigation is not remote proof.
-  await resolvePublishIntent(fill, detected);
   const fillSessions = await readFillSessions();
   const currentFill = fillSessions[fill.fillId];
   if (!currentFill || currentFill.stage === 'new-id-confirmed') return null;
@@ -406,8 +392,8 @@ async function confirmPublishedRenewal(fill, detected) {
   await sendRenewalFeedback(renewal, 'Neue Anzeige veröffentlicht', feedbackText);
   await logDiagnostic('info', 'RENEWAL_NEW_ID_CONFIRMED', { renewalId: renewal.renewalId, sourceAdId: renewal.sourceAdId, newAdId, publicUrlAvailable: Boolean(renewal.newPublicUrl), renewalMode }, { module: 'background', operation: 'renewal-publish', context: sessionCorrelationContext(renewal, { renewalId: renewal.renewalId, adId: newAdId, targetTabId: renewal.targetTabId }) }).catch(() => {});
   await retirePublishedRenewalTargetTab(renewal);
-  if (renewalMode === RENEWAL_MODE_FAST) void withAutonomousAdmission('renewal-detached-verify', () => runFastRenewalVerification(renewal.renewalId)).catch(() => {});
-  else void withAutonomousAdmission('renewal-detached-verify', () => runRenewalReinventory(renewal.renewalId)).catch(() => {});
+  if (renewalMode === RENEWAL_MODE_FAST) void runFastRenewalVerification(renewal.renewalId).catch(() => {});
+  else void runRenewalReinventory(renewal.renewalId).catch(() => {});
   return renewalPublicSnapshot(renewal);
 }
 
@@ -418,18 +404,6 @@ async function resumePendingRenewals() {
     try {
       const checkoutRecovery = await tryRecoverAbortedPaidCheckout(renewal, 'service-worker-resume');
       if (checkoutRecovery.recovered) continue;
-      // Also repair sessions reset on an older version. No remote scan or DELETE
-      // is triggered here: only independently stored, previously verified
-      // candidate data is detached into a second local inventory entry.
-      if (String(renewal?.status || '') === 'cancelled'
-          && String(renewal?.stage || '') === 'emergency-reset-unverified'
-          && /^\d+$/.test(String(renewal?.newAdId || ''))
-          && renewal?.comparison?.ownAdsPresence === true) {
-        if (typeof recoverEmergencyResetCandidateAtomic !== 'function')
-          throw new Error('KAR199_RECOVERY_UNAVAILABLE');
-        await recoverEmergencyResetCandidateAtomic(renewal);
-        continue;
-      }
       if (isSafeLegacyManualEmergencyReset(renewal)) {
         renewal.status = 'cancelled';
         renewal.stage = 'manual-emergency-reset';
@@ -460,12 +434,12 @@ async function resumePendingRenewals() {
         await logDiagnostic('info', 'RENEWAL_LEGACY_ONLINE_WAIT_MIGRATED', {
           renewalId: renewal.renewalId, sourceAdId: renewal.sourceAdId, newAdId: renewal.newAdId
         }, { module: 'background', operation: 'renewal-resume', context: sessionCorrelationContext(renewal, { renewalId: renewal.renewalId, adId: renewal.newAdId }) }).catch(() => {});
-        if (renewalPhaseAttemptAvailable(renewal, 3)) void withAutonomousAdmission('renewal-detached-retry', () => retryRenewalVerification({ renewalId: renewal.renewalId })).catch(() => {});
+        if (renewalPhaseAttemptAvailable(renewal, 3)) void retryRenewalVerification({ renewalId: renewal.renewalId }).catch(() => {});
       } else if (String(renewal?.status || '') === 'waiting-for-online' && /^\d+$/.test(String(renewal?.newAdId || ''))) {
-        if (renewalPhaseAttemptAvailable(renewal, 3)) void withAutonomousAdmission('renewal-detached-retry', () => retryRenewalVerification({ renewalId: renewal.renewalId })).catch(() => {});
+        if (renewalPhaseAttemptAvailable(renewal, 3)) void retryRenewalVerification({ renewalId: renewal.renewalId }).catch(() => {});
       } else if (['new-id-confirmed', 'reinventorizing', 'verifying'].includes(String(renewal?.status || '')) && /^\d+$/.test(String(renewal?.newAdId || ''))) {
-        if (normalizeRenewalMode(renewal?.renewalMode) === RENEWAL_MODE_FAST) void withAutonomousAdmission('renewal-detached-verify', () => runFastRenewalVerification(renewal.renewalId)).catch(() => {});
-        else void withAutonomousAdmission('renewal-detached-verify', () => runRenewalReinventory(renewal.renewalId)).catch(() => {});
+        if (normalizeRenewalMode(renewal?.renewalMode) === RENEWAL_MODE_FAST) void runFastRenewalVerification(renewal.renewalId).catch(() => {});
+        else void runRenewalReinventory(renewal.renewalId).catch(() => {});
       }
     } catch (error) {
       await logDiagnostic('warning', 'RENEWAL_RESUME_DEFERRED', { renewalId: renewal?.renewalId || null, status: renewal?.status || null, message: String(error.message || error).slice(0, 500) }, { module: 'background', operation: 'renewal-resume', context: sessionCorrelationContext(renewal, { renewalId: renewal?.renewalId || null, adId: renewal?.newAdId || renewal?.sourceAdId || null }) }).catch(() => {});

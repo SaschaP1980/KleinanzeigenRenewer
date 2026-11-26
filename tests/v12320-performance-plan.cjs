@@ -1,8 +1,11 @@
 'use strict';
+const {isRestored,assertPendingS02Release}=require('./kar210-historical-contract-context.cjs');
+const s02Root=require('node:path').resolve(__dirname,'..');
+const restored=isRestored(s02Root);
 const { includesActivePatch } = require('./current-patch-policy.cjs');
 const fs=require('node:fs'),assert=require('node:assert/strict');
 const spec=JSON.parse(fs.readFileSync('release/release-spec.json','utf8'));
-if (/^1\.(?:24|25)\.(?:0|[1-9]\d*)$/.test(spec.version)) {
+if(restored){assertPendingS02Release(s02Root);assert.deepEqual(spec.performanceCases.map(x=>[x.name,x.images]),[['IKEA Tischleuchte',5],['Weihnachtsfiguren',11],['Hartan Kinderwagen',20]]);const arch=JSON.parse(fs.readFileSync('docs/history/architecture/architecture-progress-v1.23.20.json','utf8'));assert.equal(arch.nativeFinalClosure.diagnosticsResetBeforePerformance,true);assert.equal(arch.nativeFinalClosure.diagnosticsExportImmediatelyAfterPerformance,true);} else if (/^1\.(?:24|25)\.(?:0|[1-9]\d*)$/.test(spec.version)) {
   assert.equal(spec.performanceRunRequired,false);
   assert.equal(spec.nativeSmokeRequired,true);
   assert.ok(spec.nativeSmokeChecks.some(x=>/retention|Aufbewahrung/i.test(x)));

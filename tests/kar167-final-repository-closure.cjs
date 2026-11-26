@@ -5,6 +5,7 @@
 const assert = require('node:assert/strict');
 const crypto = require('node:crypto');
 const fs = require('node:fs');
+const { execFileSync } = require('node:child_process');
 const path = require('node:path');
 const ROOT = path.resolve(__dirname,'..');
 const abs = p => path.join(ROOT,p);
@@ -31,8 +32,26 @@ assert.equal(inv.stats.runtimeModules,103);
 assert.equal(inv.stats.windowsTools,7);
 assert.equal(inv.stats.libFiles,1);
 // #174: original KAR-167 Git records remain immutable historical provenance.
-// Only these four proven UI entrypoints intentionally moved; all other 794 historical paths stay guarded.
+// Four UI moves and one explicitly evidenced KAR-210 C-policy retirement.
+// Every other historical path remains guarded by its original disposition.
 const uiMoves=new Map([['app.html','src/app/app.html'],['app.css','src/app/app.css'],['popup.html','src/popup/popup.html'],['popup.css','src/popup/popup.css']]);
+const manifest=JSON.parse(read('manifest.json'));
+const generationTwo=typeof manifest.version==='string' && Number(manifest.version.split('.')[0])>=2;
+const retiredPolicy='lib/update-idle-policy.js';
+let approvedRetirement=null;
+if(generationTwo) {
+  assert.equal(execFileSync('python3',[abs('scripts/product_version.py'),'--root',ROOT],{encoding:'utf8'}).trim(),
+    manifest.version,'Canonical product/npm/lock/release metadata must agree');
+  const target=JSON.parse(read('docs/maintenance/KAR210_BASELINE_TARGET.json'));
+  const ledger=JSON.parse(read('docs/maintenance/KAR210_BASELINE_RESTORE_LEDGER.json'));
+  assert.equal(target.issue,210);
+  assert.equal(target.version,'2.0.0.0');
+  assert.equal(ledger.issue,210);
+  assert.ok(target.absent.includes(retiredPolicy),'KAR-210 baseline exclusion evidence missing');
+  approvedRetirement=ledger.laterPackageEntries.find(entry=>entry.path===retiredPolicy);
+  assert.equal(approvedRetirement?.action,'exclude-later-C-from-baseline');
+  assert.equal(approvedRetirement?.step,'S04');
+}
 const current=new Map(),groups={};
 for(const file of inv.files) {
   assert.match(file.path,/^[A-Za-z0-9_.\/-]+$/,'Invalid tracked path');
@@ -47,6 +66,10 @@ for(const file of inv.files) {
     const relocated=uiMoves.get(file.path);
     assert.ok(fs.existsSync(abs(relocated)) && fs.statSync(abs(relocated)).isFile(),
       'KAR-174 proven UI relocation missing: '+file.path+' -> '+relocated);
+  } else if(generationTwo && file.path===retiredPolicy) {
+    assert.equal(file.disposition,'KEEP_TEST_POLICY','Historic KAR-167 record must remain unchanged');
+    assert.equal(file.blobSha,approvedRetirement.workBlob,'Exact retired policy blob provenance must agree');
+    assert.ok(!fs.existsSync(abs(file.path)),'Excluded C policy unexpectedly present in generation two');
   } else {
     assert.ok(fs.existsSync(abs(file.path)) && fs.statSync(abs(file.path)).isFile(),
       'Previously tracked path disappeared without independently verified retirement: '+file.path);
@@ -92,7 +115,7 @@ const packageSource=[...new Set([...packager.matchAll(/'(src\/[A-Za-z0-9_./-]+\.
   .map(x=>x[1]))].sort();
 assert.deepEqual(packageSource,srcPaths,
   'Chrome packager must contain exactly every tracked source module; no orphan JS');
-const manifest=JSON.parse(read('manifest.json'));
+if(generationTwo) assert.ok(!packager.includes("'lib/update-idle-policy.js'"),'Excluded C policy must not be packaged');
 const packageSet=new Set(packageSource);
 assert.ok(packageSet.has(manifest.background.service_worker),'Chrome SW source absent from package');
 for(const cs of manifest.content_scripts||[])for(const p of cs.js||[]) {
@@ -146,7 +169,8 @@ const spec=JSON.parse(read('release/release-spec.json'));
 const pkg=JSON.parse(read('package.json'));
 assert.equal(spec.version,manifest.version,'Release-spec and current extension version drift');
 assert.equal(spec.packageVersion,manifest.version_name||manifest.version,'Release package name contract drift');
-assert.equal(pkg.version,manifest.version,'Package manifest current version drift');
+// Generation two has already passed the shared numeric-product/npm validator.
+if(!generationTwo) assert.equal(pkg.version,manifest.version,'Package manifest current version drift');
 // KAR-46's separately isolated future-PATCH test deliberately prepares the
 // next manifest/package/spec version without adding a future release ZIP.
 // That is legitimate test-first RED evidence, never an authorization to

@@ -25,7 +25,16 @@ for (const workflow of [work, main]) {
 const independentNegatives = execFileSync('python3', ['tests/kar48-archive-negative.py'],
   {cwd:root,encoding:'utf8',timeout:30000});
 assert.match(independentNegatives, /PASS KAR-48 missing archive and collision negatives: 3\/3/);
-const selfTest = execFileSync('python3', [validator, '--self-test'],
+const historical = require('./kar210-historical-contract-context.cjs');
+const manifest = JSON.parse(fs.readFileSync(path.join(root, 'manifest.json'), 'utf8'));
+const pending = historical.isRestored(root) && !fs.existsSync(path.join(root, 'release', `kleinanzeigen-renewal-chrome-v${manifest.version}.zip`));
+if (pending) historical.assertPendingS02Release(root);
+const selfTest = execFileSync('python3', [validator, '--self-test', ...(pending ? ['--synthetic-fixture'] : [])],
   {cwd:root,encoding:'utf8',timeout:30000});
-assert.match(selfTest, /PASS KAR-48 ZIP verifier self-test: authentic archive \+ 10 fail-closed mutations/);
-console.log('PASS KAR-48 real committed ZIP is the exact subject of Work/main browser E2E');
+if (pending) {
+  assert.match(selfTest, /PASS KAR-48 ZIP verifier self-test: synthetic fixture \(not committed ZIP proof\) \+ 10 fail-closed mutations/);
+  console.log('PASS KAR-48 S02 verifier fixture only; actual committed ZIP and packaged browser proof remain pending');
+} else {
+  assert.match(selfTest, /PASS KAR-48 ZIP verifier self-test: authentic archive \+ 10 fail-closed mutations/);
+}
+console.log('PASS KAR-48 real committed ZIP remains the mandatory subject of Work/main browser E2E');

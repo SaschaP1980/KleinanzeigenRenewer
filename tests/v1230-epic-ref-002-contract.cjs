@@ -1,3 +1,5 @@
+const {isRestored}=require('./kar210-historical-contract-context.cjs');
+const restored=isRestored(require('node:path').resolve(__dirname,'..'));
 const assert = require('assert');
 const fs = require('fs');
 const crypto = require('crypto');
@@ -9,9 +11,11 @@ const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
 const baselinePath = 'docs/history/architecture/architecture-baseline-v1.23.0.json';
 
 ok('release remains within the planned v1.23.x EPIC-REF-002 wave', () => {
+  if(restored){assert.equal(pkg.version,manifest.version==='2.0.1.0'?'2.0.1':'2.0.0');assert.equal(pkg.displayVersion,manifest.version);}else{
   assert.ok(/^1\.23\.\d+$/.test(manifest.version) || /^1\.(?:24|25)\.(?:0|[1-9]\d*)$/.test(manifest.version));
   assert.equal(pkg.version, manifest.version);
   assert.equal(pkg.displayVersion, manifest.version);
+  }
 });
 ok('EPIC-REF-002 architecture baseline is shipped in source', () => assert.ok(fs.existsSync(baselinePath)));
 

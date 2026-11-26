@@ -118,7 +118,6 @@ function makeInventoryExportActionButton(record) {
   return exportButton;
 }
 
-
 function makeCompactInventoryExportButton(record) {
   const exportButton = makeCompactIconButton({
     icon: 'zip-export',
@@ -217,8 +216,8 @@ function renderCompactInventoryRow(record) {
       const renewalId = String(record.renewal.renewalId || '');
       if (!requireVerifiedTrashRetention()) return;
       if (!await confirmAction({ title: 'In Papierkorb verschieben?', text: `„${record.title || record.adId}“ wird nur lokal in den Papierkorb verschoben.`, detail: 'Bei Kleinanzeigen wird weder die neue noch die bisherige Anzeige gelöscht oder verändert.', confirmLabel: 'In Papierkorb', danger: true })) return;
-      if (!requireVerifiedTrashRetention()) return;
-      setCompactButtonsBusy(peers, true);
+
+      if (!requireVerifiedTrashRetention()) return;      setCompactButtonsBusy(peers, true);
       try {
         await runtimeMessage({ type: 'REMOVE_REPLACEMENT_READY_LOCAL', renewalId });
         setStatus('ready', 'In Papierkorb verschoben', 'Der neue lokale Eintrag wurde ' + trashRetentionPhrase() + ' gesichert. Bei Kleinanzeigen wurde nichts gelöscht oder verändert.');
@@ -337,8 +336,8 @@ function renderCompactInventoryRow(record) {
   deleteButton.addEventListener('click', async () => {
     if (!requireVerifiedTrashRetention()) return;
     if (!await confirmAction({ title: 'In Papierkorb verschieben?', text: `„${record.title || record.adId}“ wird ${trashRetentionPhrase()} im Papierkorb aufbewahrt.`, detail: 'Die Anzeige bei Kleinanzeigen bleibt unverändert.', confirmLabel: 'In Papierkorb', danger: true })) return;
-    if (!requireVerifiedTrashRetention()) return;
-    setCompactButtonsBusy(peers, true);
+
+    if (!requireVerifiedTrashRetention()) return;    setCompactButtonsBusy(peers, true);
     try {
       await runtimeMessage({ type: 'DELETE_INVENTORY', inventoryId: record.inventoryId });
       setStatus('ready', 'In Papierkorb verschoben', 'Der Eintrag bleibt ' + trashRetentionPhrase() + ' als Vorlage erhalten. Die Anzeige bei Kleinanzeigen wurde nicht verändert.');
@@ -438,7 +437,7 @@ function renderInventories(records = currentRecords) {
     facts.className = 'summary-facts';
     const factRows = [
       makeInfoLine('Kategorie', categoryLabel(record)),
-      makeInfoLine('Artikeltyp', artLabel(record)),
+      makeInfoLine('Art', artLabel(record)),
       makeInfoLine('Preis', displayPriceWithType(record)),
       makeInfoLine('Endet am', endDateWithRelativeLabel(record)),
       makeListingDateInfoLine(record)

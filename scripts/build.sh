@@ -8,6 +8,11 @@ find "$project_dir" -type f \( -name '*.js' -o -name '*.mjs' -o -name '*.cjs' \)
   xargs -0 -P "${KR_BUILD_JOBS:-8}" -n 1 node --check
 
 core_tests=(
+  tests/kar161-trash-retention.cjs
+  tests/kar164-trash-sort.cjs
+  tests/kar165-trash-retention-warning.cjs
+  tests/kar186-retention-hydration.cjs
+  tests/kar214-retention-startup.cjs
   tests/validate.mjs
   tests/identity.cjs
   tests/jpeg.cjs

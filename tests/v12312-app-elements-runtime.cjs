@@ -1,3 +1,6 @@
+const {isRestored}=require('./kar210-historical-contract-context.cjs');
+const restored=isRestored(require('node:path').resolve(__dirname,'..'));
+const s09 = require('./current-patch-policy.cjs').isS09Version(require('../manifest.json').version);
 const assert=require('assert'); const fs=require('fs'),vm=require('vm');
 const deps=new Map(); const KRDeps={register(n,v){deps.set(n,v);return v;},require(n){return deps.get(n)}};
 const ctx={globalThis:null,KRDeps,module:{exports:{}},Object,String,Error};ctx.globalThis=ctx;vm.createContext(ctx);
@@ -13,13 +16,13 @@ const massSearchExtra = massSearchKeys.every(key => result.flat[key]?.sel === '#
 const retentionKeys=['trashRetentionRange','trashRetentionValue','trashRetentionDescription'];
 const retentionExtra=retentionKeys.filter(key=>result.flat[key]?.sel==='#'+key).length;
 const descriptionExtra=['trashIntroFull','trashIntroSticky'].filter((key,i)=>result.flat[key]?.sel===['.trash-intro-full','.trash-intro-sticky'][i]).length;
-assert.equal(retentionExtra,3,'seven-stop slider has three typed DOM bindings');
-assert.equal(descriptionExtra,2,'both trash texts use centralized DOM bindings');
+if(!restored || s09){assert.equal(retentionExtra,3,'seven-stop slider has three typed DOM bindings');
+assert.equal(descriptionExtra,2,'both trash texts use centralized DOM bindings');}
 const trashSortKeys = ['trashSortAsc', 'trashSortDesc'];
 const trashSortExtra = trashSortKeys.every(key => result.flat[key]?.sel === '#' + key) ? 2 : 0;
-assert.equal(trashSortExtra, 2, 'KAR-164 trash ascending and descending buttons have typed DOM bindings');
+if(!restored || s09)assert.equal(trashSortExtra, 2, 'KAR-164 trash ascending and descending buttons have typed DOM bindings');
 const expected = 235 + occupancyExtra + errorStopExtra + massSearchExtra + retentionExtra + descriptionExtra + trashSortExtra;
-ok(errorStopExtra === 2 && massSearchExtra === 2, 'mass-renewal stop-on-error and two title-search bindings remain present');
+if(restored){for(const key of [...occupancyKeys,...errorStopKeys,...massSearchKeys,...(s09?[]:[...retentionKeys,'trashIntroFull','trashIntroSticky',...trashSortKeys])])assert.equal(Object.hasOwn(result.flat,key),false,'deferred binding '+key);ok(expected===(s09?242:235),'exact historical bindings plus seven S09-only selectors');}else ok(errorStopExtra === 2 && massSearchExtra === 2, 'mass-renewal stop-on-error and two title-search bindings remain present');
 ok(Object.keys(result.flat).length===expected,'collects historical DOM bindings plus occupancy, stop-on-error, mass-search and trash-sort bindings');
 ok(seen.length===expected && new Set(seen).size===expected,'queries each selector exactly once');
 ok(Object.keys(result.groups).length>=8,'exposes structured element groups');

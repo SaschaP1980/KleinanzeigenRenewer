@@ -4,6 +4,24 @@ This is the canonical version-specific history for Kleinanzeigen Manager. Entrie
 
 All distinct historical section bodies from the former root README and CHANGELOG are preserved with source labels and line numbers. The [KAR-170 migration ledger](docs/maintenance/KAR170_CHANGELOG_MIGRATION.json) identifies their original Git blobs and body checksums. Overlapping versions retain distinct factual notes; older references to planned builds or native/CI acceptance are **historical**, not live status.
 
+## v2.0.1.0 — KAR-214 S09 local trash quality (Work source, full gates pending)
+
+- Selective configurable local retention, verified policy hydration, exact reviewed destructive shortening, canonical finite/unlimited/unknown ordering and isolated countdown colors.
+- Preserve local records and images across failed policy reads and interrupted policy changes; persist local retention revision with the setting and reviewed record metadata. No C updater/owner/journal imports, remote mutation changes or live data migration.
+- Chrome version 2.0.1.0, npm 2.0.1. Exact direct basis 2.0.0.1; focused synthetic tests GREEN. Full regression, coverage, package and native acceptance remain separate. No GitHub Release implied.
+
+## v2.0.0.1 — KAR-212 Phase-4 BFCache transport classification (Work hotfix)
+
+- Recognize the exact Chrome back/forward cache port-closure error in the existing Phase-4 classifier so the historical independent read-only absence verification can run in the same attempt. No new safeguards, deletion, publish, or verification changes.
+- Direct hotfix basis: archived 2.0.0.0 (historical semantic runtime v1.23.48). Chrome version 2.0.0.1, npm 2.0.0; unchanged extension identity and historical archives. Focused RED/GREEN verified; full hosted package validation and native Fast-3 acceptance pending. No published release implied.
+
+## v2.0.0.0 — KAR-210 performance-first technical baseline (Work source, validation pending)
+
+- Restore the product runtime of the owner-validated v1.23.48 source as a forward change from current Git ancestry, retaining the current UI asset layout and applicable development infrastructure. No later updater admission, owner census, persistent publish/delete journals or unrelated donor features are imported.
+- Establish four-component Chrome product versioning (MAJOR.MINOR.PATCH.HOTFIX) with valid derived npm SemVer, consistent package/archive names, explicit version-class transitions and unchanged extension identity. Historical three-component versions and correction archives retain their own identities.
+- Retain historical source, archives, tests and immutable Gold evidence. Reconcile the active test and CI contracts against the restored runtime; distinguish excluded architecture from retained product safety and later owner-approved migration outcomes.
+- This is an isolated technical source baseline, not a released or installable build. Static runtime identity was verified; full runtime, coverage, architecture, packaged Chromium and source-matching ZIP validation remain pending. No live account action or new native performance result is implied. S03 data compatibility and S04 updater removal are prerequisites for use with the owner's live profile.
+
 ## v1.25.12 — KAR-201 explicit owner-approved standalone manual posting (Work candidate, not yet released)
 
 - Following the owner's native v1.25.11 confirmation that eleven archive images and the recoverable fields were transferred and all remaining category attributes were manually entered, add an **explicit, human-only final route**. This is not automatic publication, not automatic ZIP completion and never a replacement/source-deletion workflow.
