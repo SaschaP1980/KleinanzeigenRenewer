@@ -200,8 +200,8 @@ jobs:
           python3 tests/e2e/kar161-startup-smoke.py
           python3 tests/e2e/run_browser_e2e_supervisor.py --report "$EVIDENCE_DIR/browser-e2e-report.json"
           python3 tests/e2e/verify_pr_e2e_report.py --report "$EVIDENCE_DIR/browser-e2e-report.json" --zip "$E2E_CHROME_ZIP" --expected-head "$EXPECTED_WORK_HEAD" --out "$EVIDENCE_DIR/e2e-attestation.json"
-          # S03 requires a separate real cold-upgrade/rollback proof using the exact committed ZIP.
-          if [[ "$GITHUB_HEAD_REF" == "work/KAR-213" ]]; then
+          # S03/S04 require a separate real cold-upgrade/rollback proof using the exact committed ZIP.
+          if [[ "$GITHUB_HEAD_REF" == "work/KAR-213" || "$GITHUB_HEAD_REF" == "work/KAR-217" ]]; then
             for source in 1.23.48 1.25.36; do
               timeout --kill-after=15s 180s python3 tests/e2e/kar213-cold-upgrade-recovery.py --source "$source" --candidate-zip "$E2E_CHROME_ZIP" | tee "$EVIDENCE_DIR/kar213-cold-recovery-$source.log"
             done

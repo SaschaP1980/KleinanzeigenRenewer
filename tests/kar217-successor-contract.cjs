@@ -33,4 +33,8 @@ assert.equal(policy.assertRestoredBaselineVersion(root),'2.0.3.0');
 const pack=read('scripts/package.py').toString().split('\n').find(l=>l.startsWith('runtime='));
 assert.deepEqual([...pack.matchAll(/'([^']+)'/g)].map(m=>m[1]),policy.expectedRestoredPackage('2.0.3.0',target));
 assert.equal(policy.expectedRestoredPackage('2.0.3.0',target).length,122);
+const workflow=read('.github/workflows/kar-work-pr.yml').toString();
+assert.ok(workflow.includes('if [[ "$GITHUB_HEAD_REF" == "work/KAR-213" || "$GITHUB_HEAD_REF" == "work/KAR-217" ]]; then'));
+assert.ok(workflow.includes('for source in 1.23.48 1.25.36; do'));
+assert.ok(workflow.includes('timeout --kill-after=15s 180s python3 tests/e2e/kar213-cold-upgrade-recovery.py --source "$source" --candidate-zip "$E2E_CHROME_ZIP"'));
 console.log('PASS KAR-217 exact S04 successor, unchanged S03/S09 lineage and archived source blobs');

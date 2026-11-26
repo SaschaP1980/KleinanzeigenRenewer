@@ -38,6 +38,8 @@ const uiMoves=new Map([['app.html','src/app/app.html'],['app.css','src/app/app.c
 const manifest=JSON.parse(read('manifest.json'));
 const generationTwo=typeof manifest.version==='string' && Number(manifest.version.split('.')[0])>=2;
 const retiredPolicy='lib/update-idle-policy.js';
+const policy=require('./current-patch-policy.cjs');
+const retiredS04=new Map(policy.isS04Version(manifest.version)?policy.S04_SCOPE.removedRuntime.map(r=>[r.path,r]):[]);
 let approvedRetirement=null;
 if(generationTwo) {
   assert.equal(execFileSync('python3',[abs('scripts/product_version.py'),'--root',ROOT],{encoding:'utf8'}).trim(),
@@ -70,6 +72,12 @@ for(const file of inv.files) {
     assert.equal(file.disposition,'KEEP_TEST_POLICY','Historic KAR-167 record must remain unchanged');
     assert.equal(file.blobSha,approvedRetirement.workBlob,'Exact retired policy blob provenance must agree');
     assert.ok(!fs.existsSync(abs(file.path)),'Excluded C policy unexpectedly present in generation two');
+  } else if(retiredS04.has(file.path)) {
+    const r=retiredS04.get(file.path);
+    assert.equal(file.disposition,'KEEP_PACKAGED_RUNTIME');
+    assert.equal(file.blobSha,r.before,'historical archived updater blob identity');
+    assert.ok(!fs.existsSync(abs(file.path)));
+    assert.equal(sha1blob(r.archive),file.blobSha);
   } else {
     assert.ok(fs.existsSync(abs(file.path)) && fs.statSync(abs(file.path)).isFile(),
       'Previously tracked path disappeared without independently verified retirement: '+file.path);
@@ -106,9 +114,10 @@ function listJs(dir) {
   });
 }
 const srcPaths=listJs('src').sort();
-assert.ok(srcPaths.length>=baselineSrcPaths.length,
+assert.ok(srcPaths.length>=baselineSrcPaths.length-retiredS04.size,
   'A previously proven packaged source module was removed without evidence');
 assert.ok(baselineSrcPaths.every(p=>current.get(p).disposition==='KEEP_PACKAGED_RUNTIME'));
+for(const p of baselineSrcPaths)assert.equal(srcPaths.includes(p),!retiredS04.has(p),'historical runtime presence: '+p);
 const packager=read('scripts/package.py');
 // Only quoted literal runtime source paths count; each is an explicit ZIP member.
 const packageSource=[...new Set([...packager.matchAll(/'(src\/[A-Za-z0-9_./-]+\.js)'/g)]
