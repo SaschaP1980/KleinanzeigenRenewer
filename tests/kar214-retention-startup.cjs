@@ -65,3 +65,61 @@ test('KAR-214 invalid actual trash timestamp is not normalized into deletion eli
   assert.equal((await f.service.purgeExpired()).purged,0);
   assert.equal(f.rows().length,1);
 });
+
+const { indexedDB, IDBKeyRange } = require('fake-indexeddb');
+let repoFactory;
+vm.runInNewContext(readFileSync(path.resolve(__dirname,'../src/background/repositories/inventory-repository.js'),'utf8'),{globalThis:{KRDeps:{register(name,api){if(name==='KRInventoryRepository')repoFactory=api}}},Date,Number,String,Object,Math,Array,Map,Promise,Error});
+let fixtureCount=0;
+async function indexedFixture() {
+  const repository=repoFactory.create({indexedDB, IDBKeyRange, dbName:'kar214-fixture-'+(++fixtureCount)});
+  const aged={inventoryId:'aged',profileId:'profile-A',recordKind:'trash',trash:{trashedAt:new Date(now-60*day).toISOString(),expiresAt:new Date(now-30*day).toISOString()}};
+  const active={inventoryId:'active',profileId:'profile-B',recordKind:'inventory'};
+  const db=await repository.openDatabase();
+  try {
+    await new Promise((resolve,reject)=>{
+      const tx=db.transaction(['inventories','images'],'readwrite');
+      tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error);
+      tx.objectStore('inventories').put(aged);tx.objectStore('inventories').put(active);
+      tx.objectStore('images').put({imageKey:'img-aged',inventoryId:'aged',data:'aged fixture bytes'});
+      tx.objectStore('images').put({imageKey:'img-active',inventoryId:'active',data:'active fixture bytes'});
+    });
+  } finally {db.close()}
+  const images=async()=>{
+    const db=await repository.openDatabase();
+    try{return await new Promise((resolve,reject)=>{const req=db.transaction('images').objectStore('images').getAll();req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)})}
+    finally{db.close()}
+  };
+  const expected={profileId:aged.profileId,trashedAt:aged.trash.trashedAt,expiresAt:aged.trash.expiresAt,retentionResetAt:undefined,retentionIndefinite:false};
+  return {repository,aged,active,images,expected};
+}
+test('KAR-214 repository verifies identity and metadata inside the real IndexedDB transaction',async()=>{
+  const f=await indexedFixture();
+  assert.equal(await f.repository.deleteTrashIfEligible('aged',{...f.expected,profileId:'profile-B'},30,now),false);
+  assert.equal(await f.repository.deleteTrashIfEligible('aged',{...f.expected,expiresAt:new Date(now+day).toISOString()},30,now),false);
+  assert.equal(await f.repository.deleteTrashIfEligible('active',f.expected,30,now),false);
+  assert.equal((await f.images()).length,2);
+  assert.equal(await f.repository.deleteTrashIfEligible('aged',f.expected,30,now),true);
+  assert.deepEqual((await f.repository.readAll()).map(r=>r.inventoryId),['active']);
+  assert.deepEqual((await f.images()).map(r=>r.imageKey),['img-active']);
+});
+test('KAR-214 IndexedDB restart with persisted unlimited or failed hydration preserves records and images',async()=>{
+  const f=await indexedFixture();
+  let readPolicy=async()=> 'infinite';
+  const create=()=>factory.create({inventoryRepository:f.repository,getRetentionDays:()=>readPolicy(),now:()=>now});
+  assert.equal((await create().purgeExpired()).purged,0);
+  readPolicy=async()=>{throw Error('unavailable')};
+  assert.equal((await create().purgeExpired()).purged,0);
+  assert.equal((await f.repository.readAll()).length,2);
+  assert.equal((await f.images()).length,2);
+});
+test('KAR-214 stale IndexedDB preview cannot authorize deletion or setting change',async()=>{
+  const f=await indexedFixture();let policy='infinite';
+  const service=factory.create({inventoryRepository:f.repository,getRetentionDays:async()=>policy,setRetentionDays:async v=>{policy=v},getSelectedProfileId:async()=> 'profile-A',now:()=>now,tokenFactory:()=> 'transaction-fixture'});
+  const preview=await service.previewRetentionChange(10,'profile-A');
+  assert.equal(preview.affectedCount,1);
+  await f.repository.mutate('aged',r=>({...r,trash:{...r.trash,retentionResetAt:new Date(now).toISOString()}}));
+  await assert.rejects(()=>service.commitRetentionChange({token:preview.token,retentionDays:10,selectedProfileId:'profile-A',confirmed:true}),/zwischenzeitlich/);
+  assert.equal(policy,'infinite');
+  assert.equal((await f.repository.readAll()).length,2);
+  assert.equal((await f.images()).length,2);
+});
