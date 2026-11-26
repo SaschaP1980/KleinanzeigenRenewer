@@ -186,7 +186,8 @@
       if (!isMyAdsProjectsUrl()) throw new Error('Phase 4 hat die Ansicht „Meine Anzeigen“ / PROJECTS verlassen; Abbruch aus Sicherheitsgründen.');
       const listings = await waitForListings();
       const page = currentPageNumber();
-      const fingerprint = pageFingerprint();
+      // Fingerprint the same nonempty roster snapshot; page-change polling still reads fresh DOM.
+      const fingerprint = listings.length ? listings.map(item => item.adId).sort().join(',') : pageFingerprint();
       const stateKey = `${page}|${location.href}|${fingerprint}`;
       if (seenPageStates.has(stateKey)) throw new Error('Seitennavigation in „Meine Anzeigen“ wiederholt sich; Abbruch aus Sicherheitsgründen.');
       seenPageStates.add(stateKey);
