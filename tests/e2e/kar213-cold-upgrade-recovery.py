@@ -74,7 +74,10 @@ def launch(p,profile,ext):
         page=ctx.new_page()
         errors=[]
         page.on("pageerror",lambda error:errors.append(str(error)))
-        page.goto(f"chrome-extension://{EXTENSION_ID}/src/app/app.html",wait_until="domcontentloaded",timeout=20000)
+        # Historical 1.23.48 uses the root app.html; later packages relocated it.
+        app_path=next((name for name in ["src/app/app.html","app.html"] if (ext/name).is_file()),None)
+        assert app_path,"Missing actual packaged app entry"
+        page.goto(f"chrome-extension://{EXTENSION_ID}/{app_path}",wait_until="domcontentloaded",timeout=20000)
         page.wait_for_timeout(1200)
         workers=[w for w in ctx.service_workers if w.url.startswith(f"chrome-extension://{EXTENSION_ID}/")]
         assert len(workers)==1,"Expected exact extension service worker"
@@ -150,7 +153,11 @@ def check(worker,expected,version):
     assert worker.evaluate("chrome.runtime.getManifest().version")==version
     actual=worker.evaluate(READ,list(expected["storage"]))
     assert actual["dbVersion"]==2
-    assert actual["storage"]==expected["storage"],"Local storage keys changed"
+    changed_keys=sorted(k for k in expected["storage"] if k not in actual["storage"] or actual["storage"][k]!=expected["storage"][k])
+    if changed_keys:
+        # All compared payloads are generated synthetic fixtures, never user data.
+        print("KAR213_SYNTHETIC_STORAGE_DELTA "+json.dumps({k:{"expected":expected["storage"][k],"actual":actual["storage"].get(k)} for k in changed_keys}),flush=True)
+    assert not changed_keys,"Local storage keys changed: "+", ".join(changed_keys)
     assert actual["records"]==expected["records"],"Inventory/trash rows changed"
     assert actual["images"]==expected["images"],"Image metadata/bytes changed"
 
@@ -166,7 +173,7 @@ def main(version):
             try:
                 worker.evaluate(SEED,expected)
                 check(worker,expected,version)
-                snapshot=worker.evaluate("""async()=>({schema:1,sourceVersion:chrome.runtime.getManifest().version,capturedAt:new Date().toISOString(),storageLocal:await chrome.storage.local.get(null)})""")
+                snapshot=worker.evaluate("""async()=>({schema:1,sourceVersion:chrome.runtime.getManifest().version,storageLocal:await chrome.storage.local.get(null),capturedAt:new Date().toISOString()})""")
                 path=tmp/"synthetic-snapshot.json"
                 path.write_text(json.dumps(snapshot))
                 preflight=subprocess.run(["node",str(ROOT/"scripts/kar213-upgrade-preflight.cjs"),str(path)],capture_output=True,text=True,timeout=10)
