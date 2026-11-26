@@ -4,6 +4,12 @@ This is the canonical version-specific history for Kleinanzeigen Manager. Entrie
 
 All distinct historical section bodies from the former root README and CHANGELOG are preserved with source labels and line numbers. The [KAR-170 migration ledger](docs/maintenance/KAR170_CHANGELOG_MIGRATION.json) identifies their original Git blobs and body checksums. Overlapping versions retain distinct factual notes; older references to planned builds or native/CI acceptance are **historical**, not live status.
 
+## v2.0.1.0 — KAR-214 S09 local trash quality (Work source, full gates pending)
+
+- Selective configurable local retention, verified policy hydration, exact reviewed destructive shortening, canonical finite/unlimited/unknown ordering and isolated countdown colors.
+- Preserve local records and images across failed policy reads and interrupted policy changes; persist local retention revision with the setting and reviewed record metadata. No C updater/owner/journal imports, remote mutation changes or live data migration.
+- Chrome version 2.0.1.0, npm 2.0.1. Exact direct basis 2.0.0.1; focused synthetic tests GREEN. Full regression, coverage, package and native acceptance remain separate. No GitHub Release implied.
+
 ## v2.0.0.1 — KAR-212 Phase-4 BFCache transport classification (Work hotfix)
 
 - Recognize the exact Chrome back/forward cache port-closure error in the existing Phase-4 classifier so the historical independent read-only absence verification can run in the same attempt. No new safeguards, deletion, publish, or verification changes.

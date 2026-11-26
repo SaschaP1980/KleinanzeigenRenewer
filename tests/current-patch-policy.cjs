@@ -99,9 +99,44 @@ function includesActivePatch(knownVersions, version) {
 
 // KAR-210 exact baseline and KAR-212 explicitly authorized one-line successor.
 const REVIEWED_HOTFIX = Object.freeze({"issue":212,"directBasis":"2.0.0.0","sourceCommit":"f659c85d704d641f07cdd5b1cb89de685c5f0a5d","archiveSha256":"cc9ec37d0e9bf3c7688438ad04e9df0983a71d54b0802833906d8580d5902839","runtimeBlob":"f75e6e9dfb1bb2491c8a7d9bd5932c53baf99998","manifestBlob":"a7376f5782888fac78d51c567cd7699e82705a2c"});
-function isReviewedRestoreVersion(version) { return version === '2.0.0.0' || version === '2.0.0.1'; }
+const S09_VERSION = '2.0.1.0';
+const S09_SCOPE = require('../docs/maintenance/KAR214_SUCCESSOR_SCOPE.json');
+const S09_ALLOWED = Object.freeze(["manifest.json","src/app/app-elements.js","src/app/app.css","src/app/app.html","src/app/app.js","src/app/inventory-card-renderer.js","src/app/inventory-formatting.js","src/app/inventory-view.js","src/app/record-card-view.js","src/app/renewal-dialog-controller.js","src/app/trash-card-renderer.js","src/app/trash-retention-settings-controller.js","src/background/background-message-router.js","src/background/background.js","src/background/repositories/inventory-repository.js","src/background/services/bulk-reconciliation-service.js","src/background/services/remote-delete-replacement-service.js","src/background/services/trash-service.js","src/shared/message-contract-registry.js"]);
+const S09_ADDED = 'src/app/trash-retention-settings-controller.js';
+assert.equal(S09_SCOPE.schemaVersion,1);
+assert.equal(S09_SCOPE.version,S09_VERSION);
+assert.equal(S09_SCOPE.issue,214);
+assert.equal(S09_SCOPE.step,'S09');
+assert.equal(S09_SCOPE.directBasis,'2.0.0.1');
+assert.equal(S09_SCOPE.sourceCommit,'3457cc52fbd90515d47fa4a4c180fde6361b1f27');
+assert.equal(S09_SCOPE.archiveSha256,'e4ec9da3cb6604e807b640169dd2df849a9a444eb95f268c627e835f8dfe1383');
+assert.deepEqual(S09_SCOPE.runtimeChanges.map(r=>r.path).sort(),S09_ALLOWED);
+assert.deepEqual(S09_SCOPE.addedRuntime,[S09_ADDED]);
+const S09_METADATA=Object.freeze({"issue":214,"step":"S09","directBasis":"2.0.0.1","sourceCommit":"3457cc52fbd90515d47fa4a4c180fde6361b1f27","archiveSha256":"e4ec9da3cb6604e807b640169dd2df849a9a444eb95f268c627e835f8dfe1383"});
+function isS09Version(version) { return version === S09_VERSION; }
+function isReviewedRestoreVersion(version) { return version === '2.0.0.0' || version === '2.0.0.1' || isS09Version(version); }
+function expectedRestoredPackage(version,target) {
+  if(!isS09Version(version)) return target.packaged;
+  assert.ok(target.absent.includes(S09_ADDED));
+  const paths=[...target.packaged], index=paths.indexOf('src/app/renewal-settings-controller.js');
+  assert.ok(index>=0&&!paths.includes(S09_ADDED));
+  paths.splice(index+1,0,S09_ADDED);
+  return paths;
+}
+function expectedRestoredAbsent(version,target) {
+  return isS09Version(version)?target.absent.filter(p=>p!==S09_ADDED):target.absent;
+}
 function expectedRestoredBlob(version, file, historicalBlob) {
   assert.ok(isReviewedRestoreVersion(version), 'unreviewed restored runtime');
+  if(isS09Version(version)) {
+    const entry=S09_SCOPE.runtimeChanges.find(row=>row.path===file);
+    if(entry) {
+      assert.equal(historicalBlob,entry.historicalBlob ?? undefined,'historical source pin changed: '+file);
+      assert.match(entry.after,/^[a-f0-9]{40}$/);
+      return entry.after;
+    }
+    return historicalBlob;
+  }
   if(version==='2.0.0.1' && file==='src/background/background.js') {
     assert.equal(historicalBlob,'bbdeee5b2c6125545b22de209c4d52fd1bdeb9ad');
     return REVIEWED_HOTFIX.runtimeBlob;
@@ -120,13 +155,15 @@ function assertRestoredBaselineVersion(root = require('node:path').resolve(__dir
   const actual=execFileSync('python3',[path.join(root,'scripts/product_version.py'),'--root',root],{encoding:'utf8'}).trim();
   assert.ok(isReviewedRestoreVersion(actual),'Only exact KAR-210 baseline or KAR-212 reviewed hotfix qualifies');
   if(actual==='2.0.0.1') assert.deepEqual(spec.hotfix,REVIEWED_HOTFIX);
-  else assert.equal(spec.hotfix,undefined,'baseline must not carry successor metadata');
+  else assert.equal(spec.hotfix,undefined,'baseline must not carry active hotfix metadata');
+  if(isS09Version(actual)) assert.deepEqual(spec.s09,S09_METADATA);
+  else assert.equal(spec.s09,undefined,'baseline must not carry S09 successor metadata');
   assert.equal(manifest.version,actual);
   assert.equal(manifest.manifest_version,3);
   assert.equal(manifest.version_name,undefined);
-  assert.equal(pkg.version,'2.0.0');
+  assert.equal(pkg.version,isS09Version(actual)?'2.0.1':'2.0.0');
   assert.equal(pkg.displayVersion,actual);
-  assert.equal(spec.directBasis,'1.23.48');
+  assert.equal(spec.directBasis,isS09Version(actual)?'2.0.0.1':'1.23.48');
   assert.equal(spec.goldBaseline,'1.21.15');
   assert.equal(spec.performanceRunRequired,true);
   assert.deepEqual([...manifest.permissions].sort(),[...PERMISSIONS,'nativeMessaging'].sort());
@@ -141,4 +178,4 @@ function assertRestoredBaselineVersion(root = require('node:path').resolve(__dir
   return actual;
 }
 
-module.exports = { isReviewedRestoreVersion, expectedRestoredBlob, assertRestoredBaselineVersion, isCurrentPatchVersion, assertCompatibleCurrentPatch, includesActivePatch, includesSupportedRelease, expectedManifestPermissions };
+module.exports = { S09_SCOPE, isS09Version, expectedRestoredPackage, expectedRestoredAbsent, isReviewedRestoreVersion, expectedRestoredBlob, assertRestoredBaselineVersion, isCurrentPatchVersion, assertCompatibleCurrentPatch, includesActivePatch, includesSupportedRelease, expectedManifestPermissions };

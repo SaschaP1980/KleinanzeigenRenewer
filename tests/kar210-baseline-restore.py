@@ -14,6 +14,12 @@ HOTFIX = {'manifest.json': ('d0d3038800b5ebc01ed1e39ea4533beed6fc8089', 'a7376f5
 
 
 
+S09 = json.loads((ROOT / 'docs/maintenance/KAR214_SUCCESSOR_SCOPE.json').read_text(encoding='utf-8'))
+S09_CHANGES = {row['path']: row for row in S09['runtimeChanges']}
+S09_ADDED = 'src/app/trash-retention-settings-controller.js'
+S09_PATHS = ["manifest.json","src/app/app-elements.js","src/app/app.css","src/app/app.html","src/app/app.js","src/app/inventory-card-renderer.js","src/app/inventory-formatting.js","src/app/inventory-view.js","src/app/record-card-view.js","src/app/renewal-dialog-controller.js","src/app/trash-card-renderer.js","src/app/trash-retention-settings-controller.js","src/background/background-message-router.js","src/background/background.js","src/background/repositories/inventory-repository.js","src/background/services/bulk-reconciliation-service.js","src/background/services/remote-delete-replacement-service.js","src/background/services/trash-service.js","src/shared/message-contract-registry.js"]
+
+
 def blob(path):
     data = path.read_bytes()
     return hashlib.sha1(b'blob ' + str(len(data)).encode('ascii') + b'\0' + data).hexdigest()
@@ -25,13 +31,23 @@ class BaselineRestore(unittest.TestCase):
             with self.subTest(path=row['path']):
                 path = ROOT / row['path']
                 self.assertTrue(path.is_file())
-                self.assertIn(VERSION, ('2.0.0.0', '2.0.0.1'))
+                self.assertIn(VERSION, ('2.0.0.0', '2.0.0.1', '2.0.1.0'))
                 expected = row['sha']
                 if VERSION == '2.0.0.1' and row['path'] in HOTFIX:
                     before, after = HOTFIX[row['path']]
                     self.assertEqual(expected, before)
                     expected = after
+                if VERSION == '2.0.1.0' and row['path'] in S09_CHANGES:
+                    entry = S09_CHANGES[row['path']]
+                    self.assertEqual(entry['historicalBlob'], expected)
+                    expected = entry['after']
                 self.assertEqual(blob(path), expected)
+        if VERSION == '2.0.1.0':
+            self.assertEqual(S09['version'], VERSION)
+            self.assertEqual(S09['issue'], 214)
+            self.assertEqual(sorted(S09_CHANGES), S09_PATHS)
+            self.assertEqual(S09['addedRuntime'], [S09_ADDED])
+            self.assertEqual(blob(ROOT / S09_ADDED), S09_CHANGES[S09_ADDED]['after'])
 
     def test_exact_package_and_active_js_scope(self):
         tree = ast.parse((ROOT / 'scripts/package.py').read_text(encoding='utf-8'))
@@ -39,14 +55,20 @@ class BaselineRestore(unittest.TestCase):
                        and any(isinstance(t, ast.Name) and t.id == 'runtime' for t in node.targets))
         paths = ast.literal_eval(runtime.value)
         self.assertEqual(len(paths), len(set(paths)))
-        self.assertEqual(paths, TARGET['packaged'])
+        expected = list(TARGET['packaged'])
+        if VERSION == '2.0.1.0':
+            expected.insert(expected.index('src/app/renewal-settings-controller.js') + 1, S09_ADDED)
+        self.assertEqual(paths, expected)
         for path in paths:
             self.assertTrue((ROOT / path).is_file(), path)
         active = {p.relative_to(ROOT).as_posix() for folder in ('src', 'lib')
                   for p in (ROOT / folder).rglob('*.js')}
         self.assertEqual(active, {p for p in paths if p.endswith('.js')})
         for path in TARGET['absent']:
-            self.assertFalse((ROOT / path).exists(), path)
+            if VERSION == '2.0.1.0' and path == S09_ADDED:
+                self.assertTrue((ROOT / path).is_file(), path)
+            else:
+                self.assertFalse((ROOT / path).exists(), path)
 
     def test_product_version_and_metadata(self):
         import sys
@@ -54,13 +76,17 @@ class BaselineRestore(unittest.TestCase):
         import product_version
         documents = {p: json.loads((ROOT / p).read_text(encoding='utf-8')) for p in product_version.META}
         self.assertEqual(TARGET['version'], '2.0.0.0')
-        self.assertIn(VERSION, ('2.0.0.0', '2.0.0.1'))
+        self.assertIn(VERSION, ('2.0.0.0', '2.0.0.1', '2.0.1.0'))
         self.assertEqual(product_version.validate_metadata(documents), VERSION)
         if VERSION == '2.0.0.1':
             self.assertEqual(documents['release/release-spec.json']['hotfix'], {"issue":212,"directBasis":"2.0.0.0","sourceCommit":"f659c85d704d641f07cdd5b1cb89de685c5f0a5d","archiveSha256":"cc9ec37d0e9bf3c7688438ad04e9df0983a71d54b0802833906d8580d5902839","runtimeBlob":"f75e6e9dfb1bb2491c8a7d9bd5932c53baf99998","manifestBlob":"a7376f5782888fac78d51c567cd7699e82705a2c"})
         else:
             self.assertNotIn('hotfix', documents['release/release-spec.json'])
-        self.assertEqual(documents['release/release-spec.json']['directBasis'], '1.23.48')
+        if VERSION == '2.0.1.0':
+            self.assertEqual(documents['release/release-spec.json']['s09'], {"issue":214,"step":"S09","directBasis":"2.0.0.1","sourceCommit":"3457cc52fbd90515d47fa4a4c180fde6361b1f27","archiveSha256":"e4ec9da3cb6604e807b640169dd2df849a9a444eb95f268c627e835f8dfe1383"})
+            self.assertEqual(documents['release/release-spec.json']['directBasis'], '2.0.0.1')
+        else:
+            self.assertEqual(documents['release/release-spec.json']['directBasis'], '1.23.48')
 
 
 if __name__ == '__main__':

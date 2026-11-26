@@ -1,17 +1,18 @@
 {
-  "version": "2.0.0.1",
+  "version": "2.0.1.0",
   "project": "kleinanzeigen Manager / Kleinanzeigen Renewal",
-  "epic": "KAR-208 / KAR-210 S02 historical runtime foundation",
+  "epic": "KAR-208 / KAR-214 S09 local trash quality",
   "goldBaseline": "1.21.15",
-  "directBasis": "1.23.48",
-  "directBasisNativeGreen": false,
-  "directBasisObservation": "Historical v1.23.48 is the owner-approved semantic runtime reference; historical real-use reports are not a native acceptance run for this 2.0.0.0 checkpoint. No live data or account action authorized.",
+  "directBasis": "2.0.0.1",
+  "directBasisNativeGreen": true,
+  "directBasisObservation": "KAR-212 bounded native defect acceptance recorded in closed Issue #212; no native acceptance of this successor or live data migration implied.",
   "scope": [
     "Restore v1.23.48 historical runtime, retaining KAR-174 UI path layout and current development tooling.",
     "Version identity 2.0.0.0, npm 2.0.0; preserve extension key, historical releases and Git ancestry.",
     "Exclude later updater/admission/journal modules from the baseline source/package. Legacy native status hooks remain isolated; S04 final removal and S03 data compatibility required before any live profile use.",
     "All applicable dynamic public API, line/branch/architecture, packaging and Chromium gates remain mandatory. Current full suite reconciliation and actual execution are pending; no release or native PASS claimed.",
-    "KAR-212: recognize the exact Chrome BFCache port-closure message in the existing Phase-4 transport classifier. No other product behavior or historical safeguards changed."
+    "KAR-212: recognize the exact Chrome BFCache port-closure message in the existing Phase-4 transport classifier. No other product behavior or historical safeguards changed.",
+    "KAR-214 S09: verified local retention, exact destructive consent, per-record revision/expiry, read-only canonical sort and countdown presentation. Preserve historical runtime outside the pinned successor scope; no updater C import."
   ],
   "nextPlannedBuild": "TBD",
   "nextPlannedBuildGoal": "Determined by separately authorized open GitHub Issues.",
@@ -34,7 +35,7 @@
       "percent": null
     }
   },
-  "releaseSummary": "2.0.0.1 Work-only BFCache transport-classifier hotfix on exact archived 2.0.0.0. Full technical gates and native Fast-3 acceptance pending; no merge or release.",
+  "releaseSummary": "2.0.1.0 Work-only S09 local trash successor on exact accepted 2.0.0.1. Full technical gates pending; no merge, release or real-profile installation.",
   "architectureHighlights": [
     "Historical product safeguards and runtime behavior are primary; only explicit path/layout and version metadata changes in this restore slice.",
     "Current development gates and test files retained; reconcile later feature/updater-dependent assertions without weakening retained product behavior.",
@@ -43,10 +44,11 @@
   "nativeSmokeChecks": [
     "Do not install this intermediate checkpoint on live data. S03 compatibility and S04 updater removal are prerequisites.",
     "After separately authorized native acceptance, verify Chrome identity, boot, profile/locks, actual current form compatibility and matched Fast-3 budgets.",
-    "KAR-212: repeat native Fast-3 after explicit authorization; no Phase-4 failed attempt due to exact BFCache error, independent absence evidence still required."
+    "KAR-212: repeat native Fast-3 after explicit authorization; no Phase-4 failed attempt due to exact BFCache error, independent absence evidence still required.",
+    "S09: synthetic-only retention and IndexedDB fixtures until S03 data compatibility and S04 updater removal are accepted."
   ],
-  "packageVersion": "2.0.0.1",
-  "directBasisNativePending": true,
+  "packageVersion": "2.0.1.0",
+  "directBasisNativePending": false,
   "architectureFiles": [
     {
       "key": "appElements",
@@ -418,13 +420,12 @@
       }
     }
   },
-  "validationStatus": "HOTFIX_GATES_PENDING",
-  "hotfix": {
-    "issue": 212,
-    "directBasis": "2.0.0.0",
-    "sourceCommit": "f659c85d704d641f07cdd5b1cb89de685c5f0a5d",
-    "archiveSha256": "cc9ec37d0e9bf3c7688438ad04e9df0983a71d54b0802833906d8580d5902839",
-    "runtimeBlob": "f75e6e9dfb1bb2491c8a7d9bd5932c53baf99998",
-    "manifestBlob": "a7376f5782888fac78d51c567cd7699e82705a2c"
+  "validationStatus": "S09_GATES_PENDING",
+  "s09": {
+    "issue": 214,
+    "step": "S09",
+    "directBasis": "2.0.0.1",
+    "sourceCommit": "3457cc52fbd90515d47fa4a4c180fde6361b1f27",
+    "archiveSha256": "e4ec9da3cb6604e807b640169dd2df849a9a444eb95f268c627e835f8dfe1383"
   }
 }
