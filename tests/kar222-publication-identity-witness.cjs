@@ -9,14 +9,14 @@ function actualFunction(path,name,context){
  return vm.runInNewContext('('+found[0]+')',{Date,structuredClone,...context});
 }
 function captureFixture({stale=false}={}){
- const listeners={},messages=[],timers=[];let clicks=0,submits=0;
+ const listeners={},messages=[],timers=[];let clicks=0,submits=0,visibleReads=0;
  class Button{constructor(){this.textContent='Anzeige aufgeben';this.disabled=false;this.isConnected=true;}closest(){return this;}scrollIntoView(){}click(){clicks++;const e=dispatch('click');if(!e.defaultPrevented){const s=dispatch('submit');if(!s.defaultPrevented)submits++;}}}
  const button=new Button();
- function dispatch(type,submitter=button){const event={target:button,submitter,defaultPrevented:false,preventDefault(){this.defaultPrevented=true;},stopImmediatePropagation(){}};listeners[type]?.(event);return event;}
+ function dispatch(type,submitter=button,target=button){const event={target,submitter,defaultPrevented:false,preventDefault(){this.defaultPrevented=true;},stopImmediatePropagation(){}};listeners[type]?.(event);return event;}
  const ctx=vm.createContext({console,Element:Button,HTMLInputElement:class extends Button{},document:{addEventListener:(type,fn)=>listeners[type]=fn,querySelectorAll:()=>[button]},location:{pathname:'/p-anzeige-aufgeben-schritt2.html'},setTimeout:fn=>{timers.push(fn);return 1;},KRDeps:{register(_n,api){ctx.Flow=api;}}});
  vm.runInContext(read('src/content/template-publish-flow.js'),ctx);
- const api=ctx.Flow.create({clean:String,visible:()=>true,visibleText:b=>b.textContent,sleep:async()=>{},diagnostic:()=>{},updatePanel:()=>{},runtimeMessage:async m=>{messages.push(structuredClone(m));if(stale&&m.type==='UPDATE_TEMPLATE_FILL_SESSION')return {status:'running',stage:'publish-submitted',staleUpdateIgnored:true};return {accepted:true,status:'running',stage:m.stage};}});
- return {api,button,dispatch,messages,timers,clicks:()=>clicks,submits:()=>submits};
+ const api=ctx.Flow.create({clean:String,visible:()=>{visibleReads++;return true;},visibleText:b=>b.textContent,sleep:async()=>{},diagnostic:()=>{},updatePanel:()=>{},runtimeMessage:async m=>{messages.push(structuredClone(m));if(stale&&m.type==='UPDATE_TEMPLATE_FILL_SESSION')return {status:'running',stage:'publish-submitted',staleUpdateIgnored:true};return {accepted:true,status:'running',stage:m.stage};}});
+ return {api,button,dispatch,messages,timers,clicks:()=>clicks,submits:()=>submits,visibleReads:()=>visibleReads};
 }
 const managed={fillId:'f',renewalId:'r',stage:'form-verified',result:{complete:true,issues:[]}};
 test('S06 managed auto publish accepts one normal verified click and native submit',async()=>{
@@ -152,4 +152,15 @@ test('S06 C direct repeated notification is idempotent and preserves timestamp',
 test('S06 D1 missing returned absence ID must not be accepted as proof',async()=>{
  const api=Remote.create({createManagedWorkerTab:async()=>({id:42}),waitForTabComplete:async()=>{},ensureContentConnection:async()=>{},closeManagedWorkerTab:async()=>{},correlationContext:()=>({}),sessionCorrelationContext:()=>({}),normalizeProfileName:String,renewalMaxPhaseAttempts:()=>1,logDiagnostic:async()=>{},sendTabRequestWithBootstrap:async(_id,m)=>m.type==='MY_ADS_STATUS'?{isMyAdsPage:true,isProjectsTab:true,profileName:'Owner'}:{verified:true,pagesScanned:1}});
  await assert.rejects(api.verifyRenewalSourceAbsenceFresh({renewalId:'r',sourceAdId:'100',newAdId:'200'},'Owner',null,{attempt:1}),/exakte ID/);
+});
+
+
+test('S06 C early capture must not perform visibility/layout reads for unrelated buttons',()=>{
+ const h=captureFixture();h.api.armPublishDetection('f');h.button.textContent='Weiter';assert.equal(h.dispatch('click').defaultPrevented,false);assert.equal(h.visibleReads(),0);assert.equal(h.messages.length,0);
+});
+test('S06 C first native submit may follow a click that disables its original submitter, but duplicate is blocked',()=>{
+ const h=captureFixture();h.api.armPublishDetection('f');assert.equal(h.dispatch('click').defaultPrevented,false);h.button.disabled=true;assert.equal(h.dispatch('submit').defaultPrevented,false);assert.equal(h.dispatch('submit').defaultPrevented,true);assert.equal(h.messages.filter(m=>m.type==='RENEWAL_PUBLISH_CLICKED').length,1);
+});
+test('S06 C first implicit submit with exact form-owned publish control signals once and cannot replay',()=>{
+ const h=captureFixture();const form={querySelectorAll:()=>[h.button]};h.button.form=form;h.api.armPublishDetection('f');assert.equal(h.dispatch('submit',null,form).defaultPrevented,false);assert.equal(h.dispatch('submit',null,form).defaultPrevented,true);assert.equal(h.messages.filter(m=>m.type==='RENEWAL_PUBLISH_CLICKED').length,1);
 });
