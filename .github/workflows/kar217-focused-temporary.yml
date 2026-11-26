@@ -27,6 +27,7 @@ jobs:
           git grep -nEi 'GET_NATIVE_UPDATE_STATUS|sendNativeMessage|connectNative|nativeMessaging|native[-_]?update|native[-_]?status[-_]?bridge|windows-updater-channel|de\.kleinanzeigenrenewer\.updater|oneclick' -- src manifest.json scripts/package.py .github/workflows README.md || true
           git grep -lEi 'GET_NATIVE_UPDATE_STATUS|sendNativeMessage|connectNative|nativeMessaging|native[-_]?update|native[-_]?status[-_]?bridge|windows-updater-channel|de\.kleinanzeigenrenewer\.updater|oneclick' -- tests scripts .github/workflows | sort
           git grep -lE '2\.0\.2\.0|2\.0\.3\.0|isS03Version|isS09Version' -- tests scripts .github/workflows | sort
+          git grep -nE '\(([^)]*/)?(native-update-check-ui|native-update-status-gateway|native-status-bridge)\.js([#)]|$)' -- '*.md' || true
   dispositions:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -144,3 +145,22 @@ jobs:
           name: kar217-diagnostic-candidate
           path: ${{ runner.temp }}/build-a/kleinanzeigen-renewal-chrome-v2.0.3.0.zip
           if-no-files-found: error
+  repository-tail:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: |
+          set -euo pipefail
+          V="$(python3 scripts/product_version.py)"
+          python3 scripts/package.py "$RUNNER_TEMP/diagnostic-build"
+          cp "$RUNNER_TEMP/diagnostic-build/kleinanzeigen-renewal-chrome-v$V.zip" release/
+          failed=0
+          for p in kar167-file-layout kar167-script-closure kar167-icons-closure kar167-test-coverage-closure kar167-final-repository-closure kar174-ui-asset-relocation kar170-documentation-contract; do
+            echo "TAIL $p"
+            if node "tests/$p.cjs"; then echo "TAIL PASS $p"; else failed=1; echo "TAIL FAIL $p"; fi
+          done
+          exit "$failed"
