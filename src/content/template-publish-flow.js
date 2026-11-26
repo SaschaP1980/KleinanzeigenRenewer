@@ -22,8 +22,9 @@
     if (globalThis[key]) return;
     const state = { clicked: false, submitted: false, signalled: false, autoPending: false, autoAttempted: false, button: null, form: null };
     globalThis[key] = state;
-    const isPublish = button => Boolean(button && !button.disabled && visible(button)
-      && /^anzeige aufgeben$/i.test(clean(button instanceof HTMLInputElement ? button.value : button.textContent)));
+    const isPublish = button => Boolean(button
+      && /^anzeige aufgeben$/i.test(clean(button instanceof HTMLInputElement ? button.value : button.textContent))
+      && !button.disabled && visible(button));
     const block = event => {
       event.preventDefault();
       event.stopImmediatePropagation();
@@ -49,7 +50,7 @@
     document.addEventListener('submit', event => {
       const submitter = event.submitter;
       if (submitter) {
-        if (!isPublish(submitter)) return;
+        if (submitter !== state.button && !isPublish(submitter)) return;
       } else {
         const sameForm = state.form && event.target === state.form;
         if (!sameForm && event.target !== state.button) {
