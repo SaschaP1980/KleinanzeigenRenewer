@@ -489,6 +489,7 @@ async function updateTemplateFillSession(message, sender) {
   const sessions = await readFillSessions();
   const session = sessions[message.fillId];
   if (!session || session.targetTabId !== tabId) throw new Error("Vorlagen-Sitzung gehört nicht zu diesem Tab.");
+  if ((row => ['source-delete-outcome-unverified', 'source-delete-status-unverified', 'publish-intent-blocked'].includes(String(row?.stage || '')) || String(row?.status || '') === 'publish-blocked')(session)) throw Object.assign(new Error('Die frühere Veröffentlichung ist ungeklärt.'), { code: 'KR_LEGACY_OUTCOME_UNRESOLVED' });
   const previousStatus = session.status;
   const previousStage = session.stage;
   const requestedStage = typeof message.stage === 'string' ? message.stage.slice(0, 80) : '';
