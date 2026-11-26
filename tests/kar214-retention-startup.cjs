@@ -123,3 +123,24 @@ test('KAR-214 stale IndexedDB preview cannot authorize deletion or setting chang
   assert.equal((await f.repository.readAll()).length,2);
   assert.equal((await f.images()).length,2);
 });
+
+test('KAR-214 an unreviewed legacy row arriving during a policy write is not deleted on restart',async()=>{
+  const f=await indexedFixture();let policy='infinite';
+  const incoming={inventoryId:'unreviewed',profileId:'profile-B',recordKind:'trash',trash:{trashedAt:new Date(now-100*day).toISOString(),expiresAt:null,retentionIndefinite:true}};
+  const service=factory.create({inventoryRepository:f.repository,getRetentionDays:async()=>policy,setRetentionDays:async v=>{policy=v;await f.repository.putMany([incoming]);},getSelectedProfileId:async()=> 'profile-A',now:()=>now,tokenFactory:()=> 'restart-consent'});
+  const preview=await service.previewRetentionChange(10,'profile-A');
+  assert.equal(preview.affectedCount,1);
+  await service.commitRetentionChange({token:preview.token,retentionDays:10,selectedProfileId:'profile-A',confirmed:true});
+  assert.ok(await f.repository.get('unreviewed'),'commit must not delete unseen row');
+  const restarted=factory.create({inventoryRepository:f.repository,getRetentionDays:async()=>policy,now:()=>now});
+  await restarted.purgeExpired();
+  assert.ok(await f.repository.get('unreviewed'),'restart must not silently broaden explicit destructive consent');
+});
+test('KAR-214 a verified infinite trash move persists its unlimited marker',async()=>{
+  const f=await indexedFixture();
+  const service=factory.create({inventoryRepository:f.repository,getRetentionDays:async()=> 'infinite',now:()=>now});
+  await service.moveToTrash('active');
+  const stored=await f.repository.get('active');
+  assert.equal(stored.trash.expiresAt,null);
+  assert.equal(stored.trash.retentionIndefinite,true);
+});
