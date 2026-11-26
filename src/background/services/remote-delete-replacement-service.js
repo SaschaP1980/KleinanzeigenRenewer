@@ -1,5 +1,6 @@
 (() => {
   'use strict';
+  const legacyOutcomeBlocked = row => ['source-delete-outcome-unverified', 'source-delete-status-unverified', 'publish-intent-blocked'].includes(String(row?.stage || '')) || String(row?.status || '') === 'publish-blocked';
   const API = Object.freeze({
     create(options = {}) {
       const {
@@ -32,6 +33,7 @@ async function removeReplacementReadyLocal(message) {
   const renewals = await readRenewalSessions();
   const renewal = renewals[renewalId];
   if (!renewal) throw new Error('Renewal-Vorgang wurde nicht gefunden.');
+  if (legacyOutcomeBlocked(renewal)) throw Object.assign(new Error('Der frühere Löschvorgang ist ungeklärt.'), { code: 'KR_LEGACY_OUTCOME_UNRESOLVED' });
   if (String(renewal.status || '') !== 'verified' && String(renewal.stage || '') !== 'replacement-ready') {
     throw new Error('Nur ein verifizierter, austauschbereiter Renewal-Kandidat kann so aus dem Inventar entfernt werden.');
   }
@@ -396,6 +398,7 @@ async function finishRenewalReplacement(message) {
   const renewals = await readRenewalSessions();
   const session = renewals[renewalId];
   if (!session) throw new Error('Renewal-Vorgang wurde nicht gefunden.');
+  if (legacyOutcomeBlocked(session)) throw Object.assign(new Error('Der frühere Löschvorgang ist ungeklärt. Bitte beide Anzeigen unabhängig prüfen; keine erneute Löschung.'), { code: 'KR_LEGACY_OUTCOME_UNRESOLVED' });
   const explicitPhase4Retry = message?.type === 'FINISH_RENEWAL_REPLACEMENT' || message?.massBatchRetry === true;
   if (explicitPhase4Retry && session.phase4AttemptsExhaustedAt && !renewalPhaseAttemptAvailable(session, 4)) {
     resetRenewalPhaseAttempts(session, [4]);
