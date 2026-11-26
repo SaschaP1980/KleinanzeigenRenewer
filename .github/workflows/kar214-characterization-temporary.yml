@@ -14,7 +14,14 @@ jobs:
         with:
           node-version: '22'
       - run: npm ci
-      - run: node --test tests/kar214-retention-startup.cjs
+      - name: All S09 targeted suites
+        shell: bash
+        run: |
+          rc=0
+          for t in tests/kar214-retention-startup.cjs tests/kar161-trash-retention.cjs tests/kar164-trash-sort.cjs tests/kar165-trash-retention-warning.cjs tests/kar186-retention-hydration.cjs; do
+            node "$t" || rc=1
+          done
+          exit "$rc"
   characterize:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
