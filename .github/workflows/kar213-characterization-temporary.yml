@@ -1,0 +1,21 @@
+name: KAR-213 offline preflight (temporary)
+on:
+  push:
+    branches: [work/KAR-213]
+    paths: ['.github/workflows/kar213-characterization-temporary.yml']
+permissions:
+  contents: read
+jobs:
+  offline-preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ad2ed2e64257708b56a2d488075c7b0ee0cf3b4b
+          persist-credentials: false
+      - run: test "$(git rev-parse HEAD)" = "ad2ed2e64257708b56a2d488075c7b0ee0cf3b4b"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test tests/kar213-offline-upgrade-preflight.cjs
