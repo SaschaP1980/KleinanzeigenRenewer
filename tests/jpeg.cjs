@@ -1,23 +1,18 @@
-// KAR-175: exercise the original private JPEG helpers in the actual in-process
-// inventory owner. Only the isolated VM fixture exposes them; production API
-// deliberately remains saveInventory-only.
+// KAR-210 S02: execute unchanged JPEG assertions against the historical actual owner.
+// Expose private declarations only in the synthetic VM, never in production.
 const vm=require('node:vm'),fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
-let provider=null;
-const ctx={URL,Blob,AbortSignal,crypto:require('node:crypto').webcrypto,
-  KRDeps:{register(name,api){assert.equal(name,'KRInventoryCaptureService');provider=api;}}};
-const original=fs.readFileSync(path.join(__dirname,'../src/background/services/inventory-capture-service.js'),'utf8');
-const privateApi='return Object.freeze({ saveInventory });';
-assert.equal(original.split(privateApi).length,2,'single production private-API return contract');
-vm.runInNewContext(original.replace(privateApi,
-  'return Object.freeze({ saveInventory, jpegCandidates, downloadInventoryImage });'),ctx);
-assert.equal(typeof provider?.create,'function');
-const capture=provider.create({
-  templateSchemaCore:{buildSchema:()=>({}),fingerprint:async()=>''},
-  logDiagnostic:async()=>{},getInventory:async()=>null,
-  commitInventory:async()=>{},broadcastInventoryChanged:()=>{}
+const ctx={URL,Blob,AbortSignal,crypto:require('node:crypto').webcrypto};
+const original=fs.readFileSync(path.join(__dirname,'../src/background/background.js'),'utf8');
+const names=['sourceUrlsForImage','isTrustedProdAdImageUrl','jpegCandidates','detectImageMime','largeEnough','downloadInventoryImage'];
+const declarations=names.map(name=>{
+ const re=new RegExp('(?:^|\\n)((?:async )?function '+name+'\\()','g');
+ const matches=[...original.matchAll(re)];assert.equal(matches.length,1,'single actual owner of '+name);
+ const start=matches[0].index+matches[0][0].indexOf(matches[0][1]);
+ const end=original.indexOf('\n}',start);assert.ok(end>start,name);
+ return original.slice(start,end+2);
 });
-ctx.jpegCandidates=capture.jpegCandidates;
-ctx.downloadInventoryImage=capture.downloadInventoryImage;
+vm.runInNewContext(declarations.join('\n'),ctx);
+assert.equal(typeof ctx.jpegCandidates,'function');assert.equal(typeof ctx.downloadInventoryImage,'function');
 const uuid='6b7cd8ea-f4ec-43c0-ad14-1da4e76ef391';
 const signed=`https://img.kleinanzeigen.de/api/v1/prod-ads/images/6b/${uuid}?AccessKeyId=x&jwt=y`;
 const ruled='https://img.kleinanzeigen.de/api/v1/prod-ads/images/a?rule=$_2.AUTO';

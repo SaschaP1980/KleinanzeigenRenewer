@@ -1,15 +1,15 @@
 (() => {
   'use strict';
+  const legacyOutcomeBlocked = row => ['source-delete-outcome-unverified', 'source-delete-status-unverified', 'publish-intent-blocked'].includes(String(row?.stage || '')) || String(row?.status || '') === 'publish-blocked';
+  const legacyBatchBlocked = batch => legacyOutcomeBlocked(batch) || (Array.isArray(batch?.items) ? batch.items : []).some(legacyOutcomeBlocked);
   const API=Object.freeze({
     create(options={}) {
       const {readMassRenewalBatch,readRenewalSessions,readFillSessions,findMassRenewalSessionForItem,startNextMassRenewalItem,
         classifyKleinanzeigenInsertionErrorUrl,terminalizeTemplateFillOnPlatformError,terminalizeTemplateFillForWatchdog,persistRenewalSession,
         mutateMassRenewalBatch,touchMassRenewalItemProgress,logDiagnostic,sessionCorrelationContext,chromeApi,queueMicrotaskFn,setTimeoutFn,clearTimeoutFn,
-        withAutonomousAdmission = () => Promise.reject(Object.assign(new Error('KR_UPDATE_FENCE_UNAVAILABLE'), { code: 'KR_UPDATE_FENCE_UNAVAILABLE' })),
         MASS_RENEWAL_WATCHDOG_STALE_MS,MASS_RENEWAL_WATCHDOG_TICK_MS}=options;
-      const required={readMassRenewalBatch,readRenewalSessions,readFillSessions,findMassRenewalSessionForItem,startNextMassRenewalItem,classifyKleinanzeigenInsertionErrorUrl,terminalizeTemplateFillOnPlatformError,terminalizeTemplateFillForWatchdog,persistRenewalSession,mutateMassRenewalBatch,touchMassRenewalItemProgress,logDiagnostic,sessionCorrelationContext,chromeApi,queueMicrotaskFn,setTimeoutFn,clearTimeoutFn,withAutonomousAdmission};
+      const required={readMassRenewalBatch,readRenewalSessions,readFillSessions,findMassRenewalSessionForItem,startNextMassRenewalItem,classifyKleinanzeigenInsertionErrorUrl,terminalizeTemplateFillOnPlatformError,terminalizeTemplateFillForWatchdog,persistRenewalSession,mutateMassRenewalBatch,touchMassRenewalItemProgress,logDiagnostic,sessionCorrelationContext,chromeApi,queueMicrotaskFn,setTimeoutFn,clearTimeoutFn};
       for(const [name,value] of Object.entries(required)) if(value==null) throw new Error(`mass renewal watchdog dependency missing: ${name}`);
-      const applyTerminalFailureStop = options.applyTerminalFailureStop || (() => false);
       let massRenewalWatchdogTimer=null;
       let massRenewalWatchdogInFlight=false;
       function resetRuntimeState() {
@@ -28,9 +28,9 @@ function armMassRenewalWatchdog() {
   if (massRenewalWatchdogTimer) return;
   massRenewalWatchdogTimer = setTimeoutFn(async () => {
     massRenewalWatchdogTimer = null;
-    try { await withAutonomousAdmission('mass-renewal-watchdog-timer', () => runMassRenewalWatchdog({ trigger: 'background-timer' })); } catch { /* admission denied or diagnostic inside */ }
+    try { await runMassRenewalWatchdog({ trigger: 'background-timer' }); } catch { /* diagnostic inside */ }
     const batch = await readMassRenewalBatch().catch(() => null);
-    if (batch?.status === 'running') armMassRenewalWatchdog();
+    if (batch?.status === 'running' && !legacyBatchBlocked(batch)) armMassRenewalWatchdog();
   }, MASS_RENEWAL_WATCHDOG_TICK_MS);
 }
 
@@ -40,13 +40,14 @@ async function runMassRenewalWatchdog({ trigger = 'manual', fillId = null } = {}
   massRenewalWatchdogInFlight = true;
   try {
     const batch = await readMassRenewalBatch();
-    if (!batch || batch.status !== 'running') return false;
+    if (!batch || batch.status !== 'running' || legacyBatchBlocked(batch)) return false;
     const item = (batch.items || []).find(entry => ['running', 'retrying'].includes(String(entry.status || '')));
     if (!item) return false;
     const renewals = await readRenewalSessions().catch(() => ({}));
     const renewal = item.renewalId ? renewals[item.renewalId] : await findMassRenewalSessionForItem(batch.batchId, item.index);
     const fills = await readFillSessions().catch(() => ({}));
     const fill = renewal?.fillId ? fills[renewal.fillId] : Object.values(fills).find(entry => String(entry?.massBatchId || '') === String(batch.batchId) && Number(entry?.massBatchItemIndex) === Number(item.index));
+    if (legacyOutcomeBlocked(renewal) || legacyOutcomeBlocked(fill)) return false;
     if (fillId && String(fill?.fillId || '') !== String(fillId)) return false;
     const lastProgressMs = latestMassRenewalProgressMs(item, renewal, fill);
     if (!lastProgressMs || Date.now() - lastProgressMs < MASS_RENEWAL_WATCHDOG_STALE_MS) return false;
@@ -80,10 +81,9 @@ async function runMassRenewalWatchdog({ trigger = 'manual', fillId = null } = {}
         const currentItem = current.items?.find(entry => Number(entry.index) === Number(item.index));
         if (!currentItem || !['running', 'retrying'].includes(String(currentItem.status || ''))) return { changed: false };
         currentItem.status = 'needs-review'; currentItem.stage = 'progress-watchdog-timeout'; currentItem.lastError = issue; currentItem.completedAt = new Date().toISOString(); touchMassRenewalItemProgress(currentItem, currentItem.completedAt); current.currentIndex = null;
-        applyTerminalFailureStop(current, currentItem);
         return { changed: true };
       });
-      queueMicrotaskFn(() => { void withAutonomousAdmission('mass-renewal-next-item', () => startNextMassRenewalItem(batch.batchId)).catch(() => {}); });
+      queueMicrotaskFn(() => { void startNextMassRenewalItem(batch.batchId).catch(() => {}); });
       return true;
     }
     return false;

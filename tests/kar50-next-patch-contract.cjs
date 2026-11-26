@@ -5,9 +5,18 @@ const path = require('node:path');
 const { nextPatch } = require('./kar50-next-patch.cjs');
 const root = path.resolve(__dirname, '..');
 const current = JSON.parse(fs.readFileSync(path.join(root, 'manifest.json'), 'utf8')).version;
+const historical = require('./kar210-historical-contract-context.cjs');
+const restored = historical.isRestored(root);
 // Historical PATCH successor logic is exercised against a synthetic historical
 // version after KAR-161 advances the active release to the approved 1.24 MINOR.
-const patchSeriesFixture = (current === '1.24.0' || current.startsWith('1.25.')) ? '1.23.92' : current;
+const patchSeriesFixture = (restored || current === '1.24.0' || current.startsWith('1.25.')) ? '1.23.92' : current;
+if (restored) {
+  // Legacy helper must remain narrow; generation-two metadata is validated
+  // by the exact restored version contract, not by pretending it is 1.x.
+  assert.throws(() => nextPatch(current), /PATCH|regular/);
+  const meta = historical.legacyPatchMetadata(root);
+  assert.equal(meta.manifest.version, '1.25.12');
+}
 const next = nextPatch(patchSeriesFixture);
 assert.equal(nextPatch('1.23.24'), '1.23.25');
 assert.equal(nextPatch('1.23.25'), '1.23.26');
@@ -26,6 +35,10 @@ assert.doesNotMatch(runner, /const next = ['"]1\.23\.25['"]/);
 assert.doesNotMatch(runner, /assert\.equal\(manifest\.version, ['"]1\.23\.24['"]/);
 for (const [f,key] of [['manifest.json','version'],['package.json','version'],
  ['package-lock.json','version'],['release/release-spec.json','version']]) {
- assert.equal(JSON.parse(fs.readFileSync(path.join(root,f),'utf8'))[key],current);
+ const value = JSON.parse(fs.readFileSync(path.join(root,f),'utf8'));
+ assert.equal(value[key], restored && (f === 'package.json' || f === 'package-lock.json') ? (current.split('.').slice(0,3).join('.')) : current);
+ if (restored && f === 'package.json') assert.equal(value.displayVersion,current);
+ if (restored && f === 'package-lock.json') assert.equal(value.packages[''].version,current.split('.').slice(0,3).join('.'));
+ if (restored && f === 'release/release-spec.json') assert.equal(value.packageVersion,current);
 }
 console.log('PASS KAR-50 dynamic PATCH fixture: '+patchSeriesFixture+' -> '+next+' (active '+current+')');

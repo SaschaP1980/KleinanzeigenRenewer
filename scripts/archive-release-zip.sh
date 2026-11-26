@@ -4,7 +4,7 @@ set -Eeuo pipefail
 if [ "$#" -ne 5 ]; then echo 'Usage: archive-release-zip.sh ZIP VERSION SHA256 BYTES TAG_SHA' >&2; exit 2; fi
 ZIP="$1"; VERSION="$2"; EXPECTED_DIGEST="$3"; EXPECTED_BYTES="$4"; TAG_SOURCE_SHA="$5"
 : "$GITHUB_REPOSITORY"; : "$GITHUB_SHA"; : "$GH_TOKEN"
-[[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+python3 "$(dirname "${BASH_SOURCE[0]}")/product_version.py" --version "$VERSION" >/dev/null
 [[ "$EXPECTED_DIGEST" =~ ^[a-f0-9]{64}$ ]]
 [[ "$EXPECTED_BYTES" =~ ^[1-9][0-9]*$ ]]
 [[ "$TAG_SOURCE_SHA" =~ ^[a-f0-9]{40}$ ]]

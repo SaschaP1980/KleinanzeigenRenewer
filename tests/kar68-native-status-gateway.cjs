@@ -1,6 +1,8 @@
 // KAR-68 independent strict read-only extension-side Native Messaging security checks.
 'use strict';
 const assert = require('node:assert/strict');
+const {isRestored}=require('./kar210-historical-contract-context.cjs');
+const restored=isRestored(require('node:path').resolve(__dirname,'..'));
 const gateway = require('../src/background/services/native-update-status-gateway.js');
 const sha = 'a'.repeat(64), commit = 'b'.repeat(40);
 const goodId = '0123456789abcdef0123456789abcdef';
@@ -21,7 +23,10 @@ async function run() {
   const okHealthWithInspection = id => ({...okHealth(id),
     capabilities:['health','check','inspect_transaction']});
   const modern=await create((_,p)=>okHealthWithInspection(p.requestId)).request('health');
-  check(modern.ok===true && modern.capabilities.length===3
+  if(restored){
+    check(modern.ok===false&&modern.error==='INVALID_RESPONSE','historical two-capability gateway refuses later inspection capability');
+    check((await create((_,p)=>({...okCheck(p.requestId),installed:'2.0.0.0'})).request('check')).error==='INVALID_RESPONSE','historical updater cannot accept S02 four-component version; no native compatibility claimed');
+  }else check(modern.ok===true && modern.capabilities.length===3
     && modern.capabilities.includes('inspect_transaction'),'new host truthful read-only capabilities');
   check((await create(()=>{throw Error('forbidden host transport')}).request('inspect_transaction')).error==='OPERATION_DENIED',
     'native inspector stays unavailable through extension-side gateway');

@@ -3,16 +3,26 @@ const path = require('node:path');
 const assert = require('node:assert/strict');
 const vm = require('node:vm');
 const bg = fs.readFileSync(path.join(__dirname, '..', 'background.js'), 'utf8');
-const ownerSource = fs.readFileSync(path.join(__dirname, '..','src/background/services/listing-url-evidence-service.js'),'utf8');
-assert.match(bg,/requireListingUrlEvidenceService\(\)\.singleInventorySourceFromUrl\(rawUrl\)/);
-let owner=null;
-const context = { URL, KRDeps:{register(name,api){
-  assert.equal(name,'KRListingUrlEvidenceService');owner=api;
-}}};
-vm.createContext(context);
-vm.runInContext(ownerSource, context);
-assert.equal(typeof owner?.create,'function');
-const parse = owner.create({URL}).singleInventorySourceFromUrl;
+const root = path.join(__dirname, '..');
+const historical = require('./kar210-historical-contract-context.cjs');
+let parse;
+if (historical.isRestored(root)) {
+  const ownerSource = fs.readFileSync(path.join(root, historical.historicalBackgroundOwner(root, 'src/background/services/listing-url-evidence-service.js')), 'utf8');
+  const method = ownerSource.match(/function singleInventorySourceFromUrl\(rawUrl\) \{[\s\S]*?\n\}/)?.[0];
+  assert.ok(method, 'actual historical source router required');
+  parse = vm.runInNewContext(method + '\nsingleInventorySourceFromUrl;', {URL});
+} else {
+  const ownerSource = fs.readFileSync(path.join(__dirname, '..','src/background/services/listing-url-evidence-service.js'),'utf8');
+  assert.match(bg,/requireListingUrlEvidenceService\(\)\.singleInventorySourceFromUrl\(rawUrl\)/);
+  let owner=null;
+  const context = { URL, KRDeps:{register(name,api){
+    assert.equal(name,'KRListingUrlEvidenceService');owner=api;
+  }}};
+  vm.createContext(context);
+  vm.runInContext(ownerSource, context);
+  assert.equal(typeof owner?.create,'function');
+  parse = owner.create({URL}).singleInventorySourceFromUrl;
+}
 
 const pub = parse('https://www.kleinanzeigen.de/s-anzeige/kulturtasche/3514237118-156-1759');
 assert.equal(pub.adId, '3514237118');

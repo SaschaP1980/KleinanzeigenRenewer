@@ -3,6 +3,8 @@
 All script filenames in this directory are **public developer/CI command paths**. They are intentionally kept flat when invoked by workflows, package scripts, tests or release orchestration; moving files solely for visual tidiness would break those contracts.
 
 - **Safety/coverage and architecture:** `coverage-gate.sh`, `coverage-no-regression.cjs`, `runtime-api-inventory.cjs`, `js-ast-loader.cjs`, `v12319-coverage-report.cjs`, `v12319-architecture-audit.cjs`, `public-api-probe-child.cjs`. These remain active regardless of historical version prefixes.
+- **Product version contract:** `product_version.py` validates Chrome product versions, derived npm metadata, archive labels and numeric release transitions for packaging and hosted CI (KAR-210).
+- **S03 offline migration preflight:** `kar213-upgrade-preflight.cjs` checks a local exported storage snapshot without accessing Chrome or changing data. See [KAR-213 procedure](../docs/maintenance/KAR213_UPGRADE_PREFLIGHT.md). It never authorizes activation.
 - **Exact Chrome ZIP:** `package.py`, `verify_committed_chrome_zip.py`, `build.sh`.
 - **GitHub Work/Fast path:** `kar-atomic-patch.py`, `kar-fast-patch.py`, `kar-issue-title.cjs`, `kar-work-pr-contract.cjs`, `kar-work-pr-preflight.cjs`.
 - **Release and recovery:** `release_finalize.py`, `release-finalize-gate.sh`, `release-pipeline.sh`, `release-supervisor.sh`, `release-status-heartbeat.py`, `release-notes.sh`, `archive-release-zip.sh`.

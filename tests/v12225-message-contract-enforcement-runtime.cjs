@@ -1,15 +1,27 @@
+const root = require('node:path').resolve(__dirname, '..');
+const restored = require('./kar210-historical-contract-context.cjs').isRestored(root);
+const policy = require('./current-patch-policy.cjs');
+const version = JSON.parse(require('node:fs').readFileSync('manifest.json','utf8')).version;
+const s09=policy.isS09Version(version);
 const assert=require('assert'),fs=require('fs'),vm=require('vm');
 const deps=new Map();
 const KRDeps={register(n,v){deps.set(n,v);return v;},require(n){if(!deps.has(n))throw new Error('missing '+n);return deps.get(n);}};
 const ctx={globalThis:null,KRDeps,module:{exports:{}},Object,Map,Set,String,Error};ctx.globalThis=ctx;
 vm.runInNewContext(fs.readFileSync('message-contract-registry.js','utf8'),ctx,{filename:'message-contract-registry.js'});
 const r=deps.get('KRMessageContractRegistry');
+if (restored) {
+  const crypto=require('node:crypto');
+  const bytes=fs.readFileSync(require('node:path').join(root,'src/shared/message-contract-registry.js'));
+  assert.equal(crypto.createHash('sha1').update('blob '+bytes.length+'\0').update(bytes).digest('hex'),policy.expectedRestoredBlob(version,'src/shared/message-contract-registry.js','cc5a72fd6614034b73f2547550aa9b3cc93e1f88'));
+  for (const type of ['AUTHORIZE_AUTOMATIC_PUBLISH','GET_DIAGNOSTIC_OCCUPANCY','GET_TRASH_RETENTION_CONFIGURATION','PREVIEW_TRASH_RETENTION_CHANGE','COMMIT_TRASH_RETENTION_CHANGE']) assert.equal(r.has(type,'background'),s09 && ['GET_TRASH_RETENTION_CONFIGURATION','PREVIEW_TRASH_RETENTION_CHANGE','COMMIT_TRASH_RETENTION_CHANGE'].includes(type),type);
+  assert.equal(r.has('GET_NATIVE_UPDATE_STATUS','background'),true);
+}
 let n=0; const ok=(name,fn)=>{fn();n++;console.log('PASS',name)};
 const nextVersion=JSON.parse(fs.readFileSync('manifest.json','utf8')).version;
-const reviewedNative=/^1\.23\.(?:3\d|[4-9]\d|[1-9]\d{2,})$/.test(nextVersion) || /^1\.(?:24|25)\.(?:0|[1-9]\d*)$/.test(nextVersion);
+const reviewedNative=restored || /^1\.23\.(?:3\d|[4-9]\d|[1-9]\d{2,})$/.test(nextVersion) || /^1\.(?:24|25)\.(?:0|[1-9]\d*)$/.test(nextVersion);
 const newlyRegistered=reviewedNative?1:0;
 const publishIntent=r.has('AUTHORIZE_AUTOMATIC_PUBLISH','background')?1:0;
-const occupancyAdded=r.has('GET_DIAGNOSTIC_OCCUPANCY','background')?1:0;const retentionMessages=['GET_TRASH_RETENTION_CONFIGURATION','PREVIEW_TRASH_RETENTION_CHANGE','COMMIT_TRASH_RETENTION_CHANGE'];const retentionAdded=retentionMessages.filter(type=>r.has(type,'background')).length;assert.equal(retentionAdded,3,'all three configurable trash retention contracts must be registered');
+const occupancyAdded=r.has('GET_DIAGNOSTIC_OCCUPANCY','background')?1:0;const retentionMessages=['GET_TRASH_RETENTION_CONFIGURATION','PREVIEW_TRASH_RETENTION_CHANGE','COMMIT_TRASH_RETENTION_CHANGE'];const retentionAdded=retentionMessages.filter(type=>r.has(type,'background')).length;assert.equal(retentionAdded,restored && !s09 ? 0 : 3,'exact scope-specific configurable retention contract inventory');
 ok('snapshot reports enforcement enabled with exact versioned contract inventory',()=>{assert.deepStrictEqual(JSON.parse(JSON.stringify(r.snapshot())),{schemaVersion:1,mode:'enforced',enforcement:true,totalTypes:102+newlyRegistered+publishIntent+occupancyAdded+retentionAdded,byTarget:{background:82+newlyRegistered+publishIntent+occupancyAdded+retentionAdded,content:10,'my-ads-content':7,app:3}});if(reviewedNative)assert.equal(r.has('GET_NATIVE_UPDATE_STATUS','background'),true);if(publishIntent){assert.equal(r.route('AUTHORIZE_AUTOMATIC_PUBLISH','background').action,'accept');assert.equal(r.route('AUTHORIZE_AUTOMATIC_PUBLISH','content').action,'ignore');}});
 ok('known intended background request is accepted',()=>{const d=r.route('RESET_ACTIVE_WORKFLOWS','background');assert.equal(d.action,'accept');assert.equal(d.errorCode,null)});
 ok('known contract for co-resident other router is ignored',()=>{const d=r.route('MY_ADS_STATUS','content');assert.equal(d.action,'ignore');assert.equal(d.registered,true);assert.equal(d.targetRegistered,false)});

@@ -553,7 +553,12 @@ def scenario_bottom_clamp_four_views(pw, browser_path, headless):
             env.app.locator(view_sel).click()
             env.app.locator(mode_sel).click()
             env.app.wait_for_timeout(180)
-            if name.startswith("trash-"):
+            if name.startswith("trash-") and EXPECTED_VERSION in ("2.0.0.0", "2.0.0.1"):
+                # KAR-210: exact historical v1.23.48 four-view geometry remains mandatory.
+                # The later KAR-165 countdown styling is outside this baseline.
+                require(env.app.locator("#trashList .trash-retention-countdown").count() == 0,
+                        f"{name}: later countdown UI unexpectedly present")
+            elif name.startswith("trash-"):
                 # KAR-165: real Chromium computed CSS, not merely a DOM-class assertion.
                 env.app.wait_for_function("() => !!document.querySelector('#trashList .trash-retention-countdown')")
                 styles = env.app.evaluate("""(viewName) => {

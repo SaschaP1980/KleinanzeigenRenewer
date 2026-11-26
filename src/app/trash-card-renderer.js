@@ -64,7 +64,7 @@ function renderCompactTrashRow(record) {
   const resetButton = makeCompactIconButton({
     icon: 'update',
     label: 'Frist neu starten',
-    title: 'Startet die konfigurierte lokale Aufbewahrungsfrist dieses Papierkorb-Eintrags ab jetzt erneut.'
+    title: 'Setzt die lokale Aufbewahrungsfrist dieses Papierkorb-Eintrags ab jetzt entsprechend der konfigurierten Aufbewahrungsdauer.'
   });
   rememberCompactButtonDisabled(resetButton);
   const exportButton = makeCompactIconButton({
@@ -90,7 +90,7 @@ function renderCompactTrashRow(record) {
     try {
       const result = await runtimeMessage({ type: 'RESET_TRASH_RETENTION', inventoryId: record.inventoryId });
       void logAppEvent('USER_TRASH_RETENTION_RESET_SUCCEEDED', { inventoryId: record.inventoryId, adId: record.adId || '', expiresAt: result?.expiresAt || null, view: 'compact' });
-      setStatus('ready', 'Aufbewahrung neu gestartet', 'Die konfigurierte Aufbewahrungsfrist beginnt für diesen Eintrag erneut.');
+      setStatus('ready', 'Aufbewahrung neu gestartet', 'Der Papierkorb-Eintrag bleibt ab jetzt entsprechend der konfigurierten Dauer erhalten.');
       await refreshInventories();
     } catch (error) {
       setCompactButtonsBusy(peers, false);
@@ -240,7 +240,7 @@ function renderTrash(records = currentTrashRecords) {
     resetButton.type = 'button';
     resetButton.className = 'secondary compact-action';
     resetButton.textContent = 'Frist neu starten';
-    resetButton.title = 'Startet die konfigurierte lokale Aufbewahrungsfrist dieses Papierkorb-Eintrags ab jetzt erneut.';
+    resetButton.title = 'Setzt die lokale Aufbewahrungsfrist dieses Papierkorb-Eintrags ab jetzt entsprechend der konfigurierten Aufbewahrungsdauer.';
     resetButton.addEventListener('click', async () => {
       if (!requireVerifiedRetention()) return;
       void logAppEvent('USER_TRASH_RETENTION_RESET_CLICK', { inventoryId: record.inventoryId, adId: record.adId || '' });
@@ -250,7 +250,7 @@ function renderTrash(records = currentTrashRecords) {
       try {
         const result = await runtimeMessage({ type: 'RESET_TRASH_RETENTION', inventoryId: record.inventoryId });
         void logAppEvent('USER_TRASH_RETENTION_RESET_SUCCEEDED', { inventoryId: record.inventoryId, adId: record.adId || '', expiresAt: result?.expiresAt || null });
-        setStatus('ready', 'Aufbewahrung neu gestartet', 'Die konfigurierte Aufbewahrungsfrist beginnt für diesen Eintrag erneut.');
+        setStatus('ready', 'Aufbewahrung neu gestartet', 'Der Papierkorb-Eintrag bleibt ab jetzt entsprechend der konfigurierten Dauer erhalten.');
         await refreshInventories();
       } catch (error) {
         resetButton.disabled = false;

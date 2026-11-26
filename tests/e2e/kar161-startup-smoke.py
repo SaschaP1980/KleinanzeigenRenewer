@@ -54,6 +54,35 @@ def main():
                 page.wait_for_timeout(2500)
                 report["checks"]["extensionId"] = extension_id
                 report["checks"]["appTitle"] = page.title()
+                # KAR-210: 2.0.0.0 restores the fixed-retention v1.23.48 runtime.
+                # Keep the later KAR-161 configuration smoke unchanged for other versions.
+                if VERSION in ("2.0.0.0", "2.0.0.1"):
+                    spec = json.loads((ROOT / "release/release-spec.json").read_text())
+                    assert spec["directBasis"] == "1.23.48", "unexpected historical baseline"
+                    assert extension_id == "hafahjhhgiipdegfkgacchmnacgblnah"
+                    assert manifest["version"] == VERSION
+                    assert page.title() == "kleinanzeigen Manager"
+                    assert not report["pageErrors"], "browser reported JS startup error"
+                    assert page.locator(".app-shell").is_visible(), "historical app did not load"
+                    assert page.locator("#trashRetentionRange").count() == 0, "later configuration UI unexpectedly restored"
+                    assert context.service_workers, "historical MV3 worker missing"
+                    worker = context.service_workers[0]
+                    report["checks"]["fixedRetentionMs"] = worker.evaluate("TRASH_RETENTION_MS")
+                    assert report["checks"]["fixedRetentionMs"] == 30 * 24 * 60 * 60 * 1000
+                    report["checks"]["otherRoutes"] = page.evaluate("""async () => {
+                      async function send(type) { return Promise.race([
+                        new Promise(resolve => chrome.runtime.sendMessage({type}, reply =>
+                          resolve({reply, lastError:chrome.runtime.lastError?.message || null}))),
+                        new Promise(resolve => setTimeout(() => resolve({timeout:true}), 3500))
+                      ]); }
+                      return {epoch:await send('GET_BACKGROUND_EPOCH'), renewal:await send('GET_RENEWAL_CONFIGURATION')};
+                    }""")
+                    for route in ("epoch", "renewal"):
+                        assert report["checks"]["otherRoutes"][route].get("reply",{}).get("ok") is True, "historical startup route failed: " + route
+                    assert not report["pageErrors"], "browser reported JS startup error"
+                    print(json.dumps(report, indent=2, ensure_ascii=False))
+                    print("KAR-210 historical Chromium install-and-open smoke: PASS")
+                    return
                 report["checks"]["sliderFound"] = page.locator("#trashRetentionRange").count() == 1
                 report["checks"]["startupController"] = page.evaluate("typeof globalThis.KRDeps?.require?.('KRTrashRetentionSettingsController')?.create")
                 report["checks"]["backgroundWorkers"] = [worker.url for worker in context.service_workers]

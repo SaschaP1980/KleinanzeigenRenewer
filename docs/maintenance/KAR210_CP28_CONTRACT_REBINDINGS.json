@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "issue": 210,
+  "checkpoint": 28,
+  "sourceCommit": "813a49a825e3ca37c9bc01b744df9bdec7b7619d",
+  "originalsRetainedInGit": true,
+  "policy": "Historical minimal baseline first; preserve actual safety RED including stale expiry race and startup isolation; no production or command changes. Validation pending.",
+  "review": [
+    {
+      "path": "tests/v1202-a7-indexeddb.cjs",
+      "originalBlob": "ff565d88407586cf67bef786f4d80d1f0bd3265d",
+      "originalCommit": "813a49a825e3ca37c9bc01b744df9bdec7b7619d",
+      "changes": [
+        "Retain schema, profile and image-index assertions; actual fixed stored expiry index and atomic image/record removal. Later current-policy atomic eligibility guard retained outside S02; independent historical eligibility-race witness in v1203 runtime remains RED."
+      ]
+    },
+    {
+      "path": "tests/v1203-hot-path.cjs",
+      "originalBlob": "67538c4d695c2232bb129f9587ad6a0994f43687",
+      "originalCommit": "813a49a825e3ca37c9bc01b744df9bdec7b7619d",
+      "changes": [
+        "Keep transient progress, DB reuse, diagnostic batching and cache assertions. Retain later policy branch outside S02, historical expiry eligibility race separately remains RED."
+      ]
+    },
+    {
+      "path": "tests/v1203-hot-path-runtime.cjs",
+      "originalBlob": "89513ad0186656804c1a349ea09ca98abae712d5",
+      "originalCommit": "813a49a825e3ca37c9bc01b744df9bdec7b7619d",
+      "changes": [
+        "Execute real historical fixed expiry cache with deterministic clock and indexed repository port; retain original later policy/infinite cases outside S02 (S03/S09). Add genuine synthetic RED for stale expiry selection after retention reset, not a native reproduction."
+      ]
+    },
+    {
+      "path": "tests/v12013-phase3-public-verification.cjs",
+      "originalBlob": "2d7c7f4bd7b92fada54382349abfc7f1832c840a",
+      "originalCommit": "813a49a825e3ca37c9bc01b744df9bdec7b7619d",
+      "changes": [
+        "Actual hash-checked historical resolver/fresh worker methods; retain target-bound routes, cleanup and original later delegation outside S02."
+      ]
+    },
+    {
+      "path": "tests/v12016-phase3-public-readiness.cjs",
+      "originalBlob": "27fc1a6269ca5e984927047ba9515112ed8e7f43",
+      "originalCommit": "813a49a825e3ca37c9bc01b744df9bdec7b7619d",
+      "changes": [
+        "Actual hash-checked historical same-tab readiness/probe bodies; preserve timeout, diagnostics and no new tab assertions."
+      ]
+    },
+    {
+      "path": "tests/v12019-bald-online.cjs",
+      "originalBlob": "632224029f9c07ca200ca2a9c1513f115ef54261",
+      "originalCommit": "813a49a825e3ca37c9bc01b744df9bdec7b7619d",
+      "changes": [
+        "Actual hash-checked historical online check; original pending/online gates retained; later service wiring outside S02."
+      ]
+    },
+    {
+      "path": "tests/v12018-activity-history-bootstrap.cjs",
+      "originalBlob": "9b89a8a6c123bb4ec5a934426f63bd5e803134f4",
+      "originalCommit": "813a49a825e3ca37c9bc01b744df9bdec7b7619d",
+      "changes": [
+        "Unchanged genuine RED: historical startup waits for optional configuration/history before inventory, independent kar210-startup-isolation-witness remains active. No future loading-state feature restored."
+      ]
+    }
+  ],
+  "focusedValidation": {
+    "runId": 45602661410,
+    "jobId": 139165296241,
+    "head": "fb11df2e10c36054a5c1278bd399c90ff0f530d9",
+    "passed": 10,
+    "failed": 3,
+    "completeHistoricalContracts": 5,
+    "completeContractGroups": 69,
+    "partialHistoricalGroups": 11,
+    "retainedRuntimeCommandsPassed": 2,
+    "negativeFixtures": 59,
+    "expectedRed": [
+      "v1203-hot-path-runtime: stale expiry selection deletes a record whose retention was reset after read",
+      "v12018-activity-history-bootstrap: optional startup prerequisites gate inventory",
+      "kar210-startup-isolation-witness: optional configuration blocks inventory; inspection failure mislabeled"
+    ]
+  },
+  "builderGuard": {
+    "runId": 45602661308,
+    "jobId": 139165296353,
+    "result": "failure",
+    "reason": "No explicit authorized marker; no build executed."
+  }
+}
