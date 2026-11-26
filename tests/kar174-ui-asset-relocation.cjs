@@ -21,7 +21,10 @@ assert.equal(manifest.action.default_popup,undefined,'KAR-174 must not introduce
 const background=read('src/background/background.js');
 assert.match(background,/const APP_PAGE = "src\/app\/app\.html";/);
 assert.match(background,/url: chrome\.runtime\.getURL\(APP_PAGE\)/);
-assert.match(background,/getAppUrl: \(\) => chrome\.runtime\.getURL\(APP_PAGE\)/);
+if(require('./current-patch-policy.cjs').isS04Version(manifest.version)){
+  assert.doesNotMatch(background,/requireNativeStatusBridge|sendNativeMessage/);
+  assert.ok(!zipped.has('src/background/services/native-status-bridge.js'));
+} else assert.match(background,/getAppUrl: \(\) => chrome\.runtime\.getURL\(APP_PAGE\)/);
 const asset=(owner,ref)=>{
   assert.ok(!/^(?:https?:|data:|chrome-extension:)/.test(ref),'unexpected remote resource: '+owner+' -> '+ref);
   const rel=path.posix.normalize(path.posix.join(path.posix.dirname(owner),ref));
