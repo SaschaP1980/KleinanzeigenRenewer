@@ -61,7 +61,7 @@ assert.strictEqual(normalize('https://evil.example/s-anzeige/x/3513336145-246-17
 
 const digest = crypto.createHash('sha256').update(Buffer.from(manifest.key, 'base64')).digest('hex');
 assert.strictEqual(digest, '70507977688f3465a60227cd0261bd07d92fad620625cd7ebff8f0856d9c5ed3');
-assert.deepStrictEqual(manifest.permissions, require('./current-patch-policy.cjs').expectedManifestPermissions(restored && manifest.version !== '2.0.3.0' ? '1.23.48' : manifest.version));
+assert.deepStrictEqual(manifest.permissions, require('./current-patch-policy.cjs').expectedManifestPermissions(restored && !require('./current-patch-policy.cjs').isS04Version(manifest.version) ? '1.23.48' : manifest.version));
 assert.deepStrictEqual(manifest.host_permissions, [
   'https://www.kleinanzeigen.de/*',
   'https://kleinanzeigen.de/*',
