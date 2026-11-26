@@ -1,0 +1,34 @@
+name: KAR-222 roster scan cost and deferred witnesses
+on:
+  push:
+    branches: [work/KAR-222]
+    paths: ['.github/workflows/kar222-roster-temp.yml','tests/kar222-roster-scan-cost.cjs','src/content/inventory-roster-parser.js','src/content/inventory-delete-operations.js']
+permissions:
+  contents: read
+jobs:
+  focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Scope and syntax
+        run: |
+          git diff --name-status 4a0ef68e3def4b83eb99d43e460ea237ee35c4b3 HEAD
+          git diff --exit-code 4a0ef68e3def4b83eb99d43e460ea237ee35c4b3 HEAD -- manifest.json lib icons
+          node --check tests/kar222-roster-scan-cost.cjs
+          node --check src/content/inventory-roster-parser.js
+          node --check src/content/inventory-delete-operations.js
+      - name: Exact production parser and scan cost
+        run: node --test --test-reporter=tap tests/kar222-roster-scan-cost.cjs
+      - name: Remaining independent witnesses
+        if: always()
+        run: |
+          export NODE_OPTIONS='--require ./tests/v12222-vm-legacy-bridge.cjs'
+          node --test --test-reporter=tap tests/kar210-p9-independent-tab-lifecycle.cjs tests/kar210-cp35-owner-product-witness.cjs tests/kar210-cp38-ingress-product-witness.cjs
