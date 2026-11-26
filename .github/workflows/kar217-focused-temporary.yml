@@ -1,0 +1,28 @@
+name: KAR-217 focused removal and inventory (temporary)
+on:
+  push:
+    branches: [work/KAR-217]
+permissions:
+  contents: read
+jobs:
+  focused:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: |
+          git rev-parse HEAD
+          node --test tests/kar217-updater-removal.cjs
+  inventory:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Runtime and active contract inventory
+        run: |
+          git rev-parse HEAD
+          git grep -nEi 'GET_NATIVE_UPDATE_STATUS|sendNativeMessage|connectNative|nativeMessaging|native[-_]?update|native[-_]?status[-_]?bridge|windows-updater-channel|de\.kleinanzeigenrenewer\.updater|oneclick' -- src manifest.json scripts/package.py .github/workflows README.md || true
+          git grep -lEi 'GET_NATIVE_UPDATE_STATUS|sendNativeMessage|connectNative|nativeMessaging|native[-_]?update|native[-_]?status[-_]?bridge|windows-updater-channel|de\.kleinanzeigenrenewer\.updater|oneclick' -- tests scripts .github/workflows | sort
