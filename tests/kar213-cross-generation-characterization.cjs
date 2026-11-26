@@ -149,13 +149,14 @@ test('W2 actual profile export must preserve raw trash deadline even when UI pro
   await backup.replaceProfileIndexedData({targetProfileId:profile.profileId,targetProfileName:profile.displayName,activeInventory:[active],trashEntries:[rawTrash],images:imageRows});
   const trashSvc=kr.require('KRTrashService').create({inventoryRepository:repo,getRetentionPolicy:async()=>({retentionDays:360,revision:'synthetic-current'})});
   assert.equal((await trashSvc.list(profile.profileId))[0].trash.expiresAt,null,'UI projection intentionally unknown on revision mismatch');
-  const ctrl=kr.require('KRProfileBackupController').create({crypto:globalThis.crypto,ProfileBackup,DiagnosticZip,profileBackupStorage:backup,runtimeMessage:async msg=>{
+  const ctrl=kr.require('KRProfileBackupController').create({crypto:globalThis.crypto,ProfileBackup,DiagnosticZip,profileBackupStorage:backup,storageLocal:localStore({profilesV1:[profile]}),runtimeMessage:async msg=>{
     if(msg.type==='LIST_INVENTORIES')return [active];
     if(msg.type==='LIST_TRASH')return trashSvc.list(profile.profileId);
     throw Error('unexpected runtime message '+msg.type);
   },loadLocalImageForExport:async key=>imageRows.find(r=>r.imageKey===key)});
-  const exported=await ctrl.exportProfileBackup(profile);
+  const exported=await ctrl.exportProfileBackup({profileId:profile.profileId,displayName:profile.displayName});
   const parsed=await ProfileBackup.parseProfileArchive(exported.blob,{readZip:InventoryImport.readZip});
+  assert.deepEqual(parsed.profile.donorExtension,profile.donorExtension);
   assert.deepEqual(parsed.trashEntries[0].trash,rawTrash.trash,'lossless backup must not substitute an unknown UI deadline for persisted metadata');
 });
 test('W3 aged running mass batch with unresolved item survives read',async()=>{
@@ -182,4 +183,57 @@ test('W2 synchronous IndexedDB write failure must abort entire restore transacti
     const idx=imageRows.findIndex(r=>r.imageKey===row.imageKey);
     assert.deepEqual(new Uint8Array(await row.blob.arrayBuffer()),data[idx]);
   }
+});
+
+test('W3 direct Phase-4 entry refuses persisted donor uncertainty before local writes or remote work',async()=>{
+  const Remote=require('../src/background/services/remote-delete-replacement-service.js');
+  for(const stage of ['source-delete-outcome-unverified','source-delete-status-unverified']){
+    const row={renewalId:'r',status:'verified',stage,sourceAdId:'100',newAdId:'200'};
+    let reads=0,writes=0,workers=0;
+    const api=Remote.create({readRenewalSessions:async()=>({r:row}),assertMassRenewalManualActionAllowed:async()=>{},getInventory:async()=>{reads++;throw Error('unexpected inventory lookup');},persistRenewalSession:async()=>{writes++;},createManagedWorkerTab:async()=>{workers++;}});
+    for(const message of [{renewalId:'r',automatic:true},{renewalId:'r',type:'FINISH_RENEWAL_REPLACEMENT'}]){
+      await assert.rejects(api.finishRenewalReplacement(message),e=>e.code==='KR_LEGACY_OUTCOME_UNRESOLVED');
+    }
+    assert.equal(reads,0);assert.equal(writes,0);assert.equal(workers,0);
+  }
+});
+test('W3 unresolved mass batch does not arm watchdog, reconcile, or advance automatically',async()=>{
+  const p='src/background/controllers/mass-renewal-workflow-controller.js';
+  const source=fs.readFileSync(p,'utf8');
+  const block=source.match(/const required = \{([\s\S]*?)\n      \};/);
+  assert.ok(block);
+  const batch={batchId:'old-batch',status:'running',items:[{index:0,status:'running',stage:'source-delete-outcome-unverified',renewalId:'r'}]};
+  const counts={armed:0,mutations:0,queued:0,watchdog:0};
+  const deps=Object.fromEntries(block[1].split(',').map(x=>x.trim()).filter(Boolean).map(n=>[n,async()=>{}]));
+  Object.assign(deps,{readMassRenewalBatch:async()=>structuredClone(batch),readRenewalSessions:async()=>({r:{renewalId:'r',massBatchId:'old-batch',stage:'source-delete-outcome-unverified',status:'verified'}}),massRenewalPublicSnapshot:x=>x,
+    mutateMassRenewalBatch:async(_id,mutator)=>{counts.mutations++;const copy=structuredClone(batch);mutator(copy);return {batch:copy};},
+    queueMicrotaskFn:()=>{counts.queued++;},massRenewalWatchdogServiceApi:{create:()=>({armMassRenewalWatchdog:()=>{counts.armed++;},runMassRenewalWatchdog:async()=>{counts.watchdog++;return false;}})}});
+  const api=loadRegistry([p]).require('KRMassRenewalWorkflowController').create(deps);
+  assert.deepEqual(await api.resumeMassRenewalBatch(),batch);
+  assert.deepEqual(counts,{armed:0,mutations:0,queued:0,watchdog:0});
+});
+test('W3 blocked archive publication is not detected or continued from legacy tab ID',async()=>{
+  const p='src/background/services/archive-insertion-recovery-service.js';
+  const row={archiveInsertionId:'a',status:'submitted',stage:'publish-intent-blocked',targetTabId:42,sourceAdId:'100'};
+  let detected=0,continued=0,writes=0;
+  const deps={readArchiveInsertionSessions:async()=>({a:row}),readFillSessions:async()=>({f:{archiveInsertionId:'a',targetTabId:42}}),getInventory:async()=>null,isTrashRecord:()=>false,persistArchiveInsertionSession:async()=>{writes++;},deleteImagesByInventoryId:async()=>{},logDiagnostic:async()=>{},setAppNotice:async()=>{},broadcastInventoryChanged:()=>{},normalizeRenewalMode:x=>x,cryptoApi:globalThis.crypto,compareArchiveInsertionRecords:async()=>({}),runArchiveInsertionPostPublish:async()=>{continued++;},confirmPublishedArchiveInsertion:async()=>{continued++;},detectPublishedAdForFill:async()=>{detected++;return {adId:'200'};}};
+  const api=loadRegistry([p]).require('KRArchiveInsertionRecoveryService').create(deps);
+  await api.resumePendingArchiveInsertions();
+  assert.deepEqual([detected,continued,writes],[0,0,0]);
+});
+test('W3 settled historical records keep ordinary TTL cleanup',async()=>{
+  for(const [path,key,method,idField,status] of [
+    ['../src/background/repositories/renewal-state-repository.js','renewalSessionsV1','readRenewalSessions','renewalId','replaced'],
+    ['../src/background/services/archive-insertion-service.js','archiveInsertionSessionsV1','readArchiveInsertionSessions','archiveInsertionId','complete'],
+    ['../src/background/services/template-fill-service.js','templateFillSessions','readFillSessions','fillId','complete'],
+  ]){
+    const local=localStore({[key]:{old:{[idField]:'old',status,stage:'complete',createdAt:new Date(Date.now()-40*86400000).toISOString()}}});
+    const svc=require(path).create({storageLocal:local});
+    assert.deepEqual(await svc[method](),{});
+    assert.deepEqual(local.snapshot()[key],{});
+  }
+  const local=localStore({massRenewalBatchV1:{batchId:'old',status:'complete',createdAt:new Date(Date.now()-40*86400000).toISOString(),items:[{status:'success',stage:'complete'}]}});
+  const svc=require('../src/background/controllers/mass-renewal-controller.js').create({storageLocal:local});
+  assert.equal(await svc.readMassRenewalBatch(),null);
+  assert.equal(local.snapshot().massRenewalBatchV1,undefined);
 });
