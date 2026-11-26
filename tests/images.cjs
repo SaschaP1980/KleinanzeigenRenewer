@@ -23,10 +23,17 @@ result=extract(structured([url('a')]));assert.equal(result.images[0].sourceForma
 // KAR-175: run MIME-signature and fetch-contract checks against their actual
 // extracted service. This VM makes private methods observable ONLY for tests;
 // the shipped production service still exports saveInventory alone.
+const {isRestored,captureOwner}=require('./kar210-historical-contract-context.cjs');
+const root=path.resolve(__dirname,'..');const restored=isRestored(root);
 let captureProvider=null;
 const ctx={URL,Blob,AbortSignal,crypto:require('node:crypto').webcrypto,
   KRDeps:{register(name,api){assert.equal(name,'KRInventoryCaptureService');captureProvider=api;}}};
-const originalCapture=fs.readFileSync(path.join(__dirname,'../src/background/services/inventory-capture-service.js'),'utf8');
+const originalCapture=fs.readFileSync(path.join(root,captureOwner(root)),'utf8');
+if(restored){
+  const begin=originalCapture.indexOf('function isTrustedProdAdImageUrl('),end=originalCapture.indexOf('// Both stores commit together;',begin);
+  assert.ok(begin>=0&&end>begin,'exact historical image functions');
+  vm.runInNewContext(originalCapture.slice(begin,end),ctx);
+}else{
 const privateReturn='return Object.freeze({ saveInventory });';
 assert.equal(originalCapture.split(privateReturn).length,2);
 vm.runInNewContext(originalCapture.replace(privateReturn,
@@ -38,6 +45,7 @@ const capture=captureProvider.create({
 });
 ctx.detectImageMime=capture.detectImageMime;
 ctx.downloadInventoryImage=capture.downloadInventoryImage;
+}
 assert.equal(ctx.detectImageMime(Uint8Array.from([255,216,255])),'image/jpeg');assert.equal(ctx.detectImageMime(Uint8Array.from([137,80,78,71,13,10,26,10])),'image/png');assert.equal(ctx.detectImageMime(Buffer.from('GIF89a')),'image/gif');assert.equal(ctx.detectImageMime(Buffer.from('RIFF0000WEBP')),'image/webp');assert.equal(ctx.detectImageMime(Buffer.from([0,0,0,20,...Buffer.from('ftypavif0000avif')])),'image/avif');assert.equal(ctx.detectImageMime(Buffer.from('<html>error</html>')),null);pass('JPEG PNG GIF WebP AVIF signatures recognized; HTML rejected');
 (async()=>{
  ctx.fetch=async()=>({ok:true,blob:async()=>new Blob([Uint8Array.from([255,216,255,0])],{type:'image/avif'})});

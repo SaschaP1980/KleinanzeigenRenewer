@@ -2,6 +2,8 @@
   'use strict';
   const KRDeps = globalThis.KRDeps;
   if (!KRDeps) throw new Error('runtime-deps.js must load before mass-renewal-workflow-controller.js');
+  const legacyOutcomeBlocked = row => ['source-delete-outcome-unverified', 'source-delete-status-unverified', 'publish-intent-blocked'].includes(String(row?.stage || '')) || String(row?.status || '') === 'publish-blocked';
+  const legacyBatchBlocked = batch => legacyOutcomeBlocked(batch) || (Array.isArray(batch?.items) ? batch.items : []).some(legacyOutcomeBlocked);
   const API = Object.freeze({
     create(options = {}) {
       const {
@@ -17,7 +19,6 @@
         publicAvailabilityPending, readFillSessions, classifyKleinanzeigenInsertionErrorUrl,
         terminalizeTemplateFillOnPlatformError, terminalizeTemplateFillForWatchdog, persistRenewalSession,
         cryptoApi, chromeApi, queueMicrotaskFn, setTimeoutFn, clearTimeoutFn,
-        withAutonomousAdmission = () => Promise.reject(Object.assign(new Error('KR_UPDATE_FENCE_UNAVAILABLE'), { code: 'KR_UPDATE_FENCE_UNAVAILABLE' })),
         MASS_RENEWAL_MAX_ITEMS, MASS_RENEWAL_WATCHDOG_STALE_MS, MASS_RENEWAL_WATCHDOG_TICK_MS,
         UNASSIGNED_PROFILE_ID
       } = options;
@@ -31,7 +32,7 @@
         getRenewalConfiguration, normalizeRenewalMode, finishRenewalReplacement, retryRenewalVerification,
         discardRenewalDraft, publicAvailabilityPending, readFillSessions, classifyKleinanzeigenInsertionErrorUrl,
         terminalizeTemplateFillOnPlatformError, terminalizeTemplateFillForWatchdog, persistRenewalSession,
-        cryptoApi, chromeApi, queueMicrotaskFn, setTimeoutFn, clearTimeoutFn, withAutonomousAdmission
+        cryptoApi, chromeApi, queueMicrotaskFn, setTimeoutFn, clearTimeoutFn
       };
       for (const [name, value] of Object.entries(required)) {
         if (value == null) throw new Error(`Mass renewal workflow dependency missing: ${name}`);
@@ -53,23 +54,6 @@ async function findMassRenewalSessionForItem(batchId, itemIndex) {
   return matches[0] || null;
 }
 
-function applyTerminalFailureStop(batch, item) {
-  if (!batch || !item || !['error', 'needs-review'].includes(String(item.status || ''))) return false;
-  if (batch.stopOnError === true) {
-    batch.stopOnErrorTriggered = true;
-    if (!Number.isInteger(batch.stopOnErrorFailureIndex)) {
-      batch.stopOnErrorFailureIndex = item.index;
-      batch.stopOnErrorReason = String(item.lastError || 'Ergebnis muss geprüft werden.').slice(0, 800);
-      batch.stopOnErrorAt = item.completedAt || new Date().toISOString();
-    }
-  }
-  if (batch.stopAfterCurrentRequested || batch.stopOnErrorTriggered || batch.retryOnlyIndex != null) {
-    applyMassRenewalStopState(batch);
-    return true;
-  }
-  return false;
-}
-
 async function startNextMassRenewalItem(batchId) {
   const id = String(batchId || '');
   if (!id || massRenewalAdvanceInFlight.has(id)) return null;
@@ -78,16 +62,13 @@ async function startNextMassRenewalItem(batchId) {
     let selected = null;
     let terminalDecision = null;
     const mutation = await mutateMassRenewalBatch(id, batch => {
-      if (batch.status !== 'running') return { changed: false };
+      if (batch.status !== 'running' || legacyBatchBlocked(batch)) return { changed: false };
       if ((batch.items || []).some(item => ['running', 'retrying'].includes(String(item.status || '')))) return { changed: false };
-      // Stop decision and next-item admission share one serialized storage mutation.
-      const failure = (batch.items || []).find(entry => ['error', 'needs-review'].includes(String(entry.status || '')));
-      if (batch.stopOnError === true && failure) applyTerminalFailureStop(batch, failure);
-      if (batch.stopAfterCurrentRequested || batch.stopOnErrorTriggered || typeof batch.stopOnError !== 'boolean') {
+      if (batch.stopAfterCurrentRequested) {
         terminalDecision = applyMassRenewalStopState(batch);
         return { changed: terminalDecision.stopped };
       }
-      const item = (batch.items || []).find(entry => entry.status === 'queued' && (batch.retryOnlyIndex == null || Number(entry.index) === Number(batch.retryOnlyIndex)));
+      const item = (batch.items || []).find(entry => entry.status === 'queued');
       if (!item) {
         terminalDecision = applyMassRenewalFinalState(batch);
         return { changed: Boolean(terminalDecision.completed || terminalDecision.stopped) };
@@ -161,7 +142,6 @@ async function startNextMassRenewalItem(batchId) {
         item.completedAt = new Date().toISOString();
         touchMassRenewalItemProgress(item, item.completedAt);
         current.currentIndex = null;
-        applyTerminalFailureStop(current, item);
         failed = { ...item };
         return { changed: true };
       });
@@ -170,7 +150,7 @@ async function startNextMassRenewalItem(batchId) {
           batchId: id, index: selected.index, inventoryId: selected.inventoryId, status: 'error', stage: failed.stage, message: failed.lastError
         }, { module: 'background', operation: 'mass-renewal', context: sessionCorrelationContext(batch, { massBatchId: id, adId: selected.sourceAdId || null }) }).catch(() => {});
       }
-      queueMicrotaskFn(() => { void withAutonomousAdmission('mass-renewal-next-item', () => startNextMassRenewalItem(id)).catch(() => {}); });
+      queueMicrotaskFn(() => { void startNextMassRenewalItem(id).catch(() => {}); });
     }
     return massRenewalPublicSnapshot(await readMassRenewalBatch());
   } finally {
@@ -180,10 +160,11 @@ async function startNextMassRenewalItem(batchId) {
 
 async function reconcileMassRenewalBatchSession(session, options = {}) {
   const batchId = String(session?.massBatchId || '');
-  if (!batchId) return false;
+  if (!batchId || legacyOutcomeBlocked(session)) return false;
   let terminalized = false;
   let snapshot = null;
   const mutation = await mutateMassRenewalBatch(batchId, batch => {
+    if (legacyBatchBlocked(batch)) return { changed: false };
     const item = (batch.items || []).find(entry => String(entry.renewalId || '') === String(session.renewalId || '') || Number(entry.index) === Number(session.massBatchItemIndex));
     if (!item) return { changed: false };
     if (options.progressOnly === true && !['running', 'retrying'].includes(String(item.status || ''))) return { changed: false };
@@ -207,7 +188,6 @@ async function reconcileMassRenewalBatchSession(session, options = {}) {
         batch.stopAfterCurrentRequested = true;
         batch.stopRequestedAt = batch.stopRequestedAt || item.completedAt;
       }
-      applyTerminalFailureStop(batch, item);
       terminalized = true;
     }
     snapshot = { ...item };
@@ -232,13 +212,13 @@ async function reconcileMassRenewalBatchSession(session, options = {}) {
     batchId, index: snapshot.index, inventoryId: snapshot.inventoryId, renewalId: session.renewalId,
     status: snapshot.status, stage: snapshot.stage, newAdId: snapshot.newAdId || null, message: snapshot.lastError
   }, { module: 'background', operation: 'mass-renewal', context: sessionCorrelationContext(session, { massBatchId: batchId, renewalId: session.renewalId, adId: snapshot.newAdId || snapshot.sourceAdId || null }) }).catch(() => {});
-  queueMicrotaskFn(() => { void withAutonomousAdmission('mass-renewal-next-item', () => startNextMassRenewalItem(batchId)).catch(() => {}); });
+  queueMicrotaskFn(() => { void startNextMassRenewalItem(batchId).catch(() => {}); });
   return true;
 }
 
 async function markMassRenewalItemSucceeded(session, result = {}) {
   const batchId = String(session?.massBatchId || '');
-  if (!batchId) return false;
+  if (!batchId || legacyOutcomeBlocked(session)) return false;
   dropMassRenewalProgress(session);
   let snapshot = null;
   let finalState = null;
@@ -246,6 +226,7 @@ async function markMassRenewalItemSucceeded(session, result = {}) {
   let batchStatusBefore = null;
   let batchStatusAfter = null;
   const mutation = await mutateMassRenewalBatch(batchId, batch => {
+    if (legacyBatchBlocked(batch)) return { changed: false };
     const item = (batch.items || []).find(entry => String(entry.renewalId || '') === String(session.renewalId || '') || Number(entry.index) === Number(session.massBatchItemIndex));
     if (!item) return { changed: false };
     const previousBatchStatus = String(batch.status || '');
@@ -289,7 +270,7 @@ async function markMassRenewalItemSucceeded(session, result = {}) {
       success: finalState.counts.success, attention: finalState.counts.attention, cancelled: finalState.counts.cancelled
     }, { module: 'background', operation: 'mass-renewal', context: sessionCorrelationContext(mutation.batch, { massBatchId: batchId }) }).catch(() => {});
   } else {
-    queueMicrotaskFn(() => { void withAutonomousAdmission('mass-renewal-next-item', () => startNextMassRenewalItem(batchId)).catch(() => {}); });
+    queueMicrotaskFn(() => { void startNextMassRenewalItem(batchId).catch(() => {}); });
   }
   return true;
 }
@@ -297,6 +278,7 @@ async function markMassRenewalItemSucceeded(session, result = {}) {
 async function startMassRenewalBatch(message) {
   return withInsertionStartGate(async () => {
     await assertInsertionStartAvailable({ kind: 'mass-renewal' });
+    if (legacyBatchBlocked(await readMassRenewalBatch())) throw Object.assign(new Error('Ein früherer Massen-Vorgang ist ungeklärt.'), { code: 'KR_LEGACY_OUTCOME_UNRESOLVED' });
     const ids = [...new Set((Array.isArray(message?.inventoryIds) ? message.inventoryIds : []).map(value => String(value || '')).filter(Boolean))];
     if (!ids.length) throw new Error('Wähle mindestens eine Anzeige aus.');
     if (ids.length > MASS_RENEWAL_MAX_ITEMS) throw new Error(`Pro Durchlauf können maximal ${MASS_RENEWAL_MAX_ITEMS} Anzeigen ausgewählt werden.`);
@@ -316,17 +298,6 @@ async function startMassRenewalBatch(message) {
       records.push(record);
     }
     const configuration = await getRenewalConfiguration();
-    // A verified durable preference is authoritative at Start; malformed or failed
-    // storage reads and stale UI choices must fail closed.
-    const preferenceKey = 'massRenewalStopOnErrorPreferenceV1';
-    if (!chromeApi?.storage?.local?.get) throw new Error('Die Einstellung „Bei Fehler anhalten“ konnte nicht gelesen werden.');
-    const preferences = await chromeApi.storage.local.get(preferenceKey);
-    const savedPreference = preferences?.[preferenceKey];
-    if (savedPreference !== undefined && typeof savedPreference !== 'boolean') throw new Error('Die gespeicherte Einstellung „Bei Fehler anhalten“ ist ungültig.');
-    const stopOnError = savedPreference === undefined ? true : savedPreference;
-    if (message?.stopOnError !== undefined && message.stopOnError !== stopOnError) {
-      throw new Error('Die Einstellung wurde zwischenzeitlich geändert. Bitte öffne den Vorgang erneut.');
-    }
     const now = new Date().toISOString();
     const batch = {
       operationId: cryptoApi.randomUUID(), parentOperationId: null,
@@ -334,7 +305,6 @@ async function startMassRenewalBatch(message) {
       renewalMode: normalizeRenewalMode(configuration.renewalMode), maxPhaseAttempts: normalizeRenewalPhaseAttempts(configuration.maxPhaseAttempts), status: 'running', currentIndex: null,
       createdAt: now, startedAt: now, updatedAt: now, completedAt: null,
       stopAfterCurrentRequested: false, stopRequestedAt: null, stoppedAt: null,
-      stopOnError, stopOnErrorTriggered: false, stopOnErrorFailureIndex: null, stopOnErrorReason: null, stopOnErrorAt: null, retryOnlyIndex: null,
       items: records.map((record, index) => ({
         index, inventoryId: String(record.inventoryId), sourceAdId: String(record.adId || ''),
         title: String(record.title || `Anzeige ${record.adId || ''}`).slice(0, 220),
@@ -349,7 +319,7 @@ async function startMassRenewalBatch(message) {
       operationId: batch.operationId, batchId: batch.batchId, profileId, profileName: batch.profileName, renewalMode: batch.renewalMode, maxPhaseAttempts: batch.maxPhaseAttempts, itemCount: batch.items.length
     }, { module: 'background', operation: 'mass-renewal', context: sessionCorrelationContext(batch, { massBatchId: batch.batchId }) }).catch(() => {});
     armMassRenewalWatchdog();
-    queueMicrotaskFn(() => { void withAutonomousAdmission('mass-renewal-next-item', () => startNextMassRenewalItem(batch.batchId)).catch(() => {}); });
+    queueMicrotaskFn(() => { void startNextMassRenewalItem(batch.batchId).catch(() => {}); });
     return massRenewalPublicSnapshot(batch);
   });
 }
@@ -388,6 +358,7 @@ async function normalizeMassRenewalBatchTopLevelStatus(batchId = '', trigger = '
   let normalizedStatus = null;
   let finalState = null;
   const mutation = await mutateMassRenewalBatch(requestedId, batch => {
+    if (legacyBatchBlocked(batch)) return { changed: false };
     const counts = massRenewalBatchCounts(batch);
     if (counts.queued || counts.running) return { changed: false };
     previousStatus = String(batch.status || '');
@@ -423,11 +394,11 @@ async function retryMassRenewalItem(message) {
   const index = Number(message?.index);
   let snapshot = null;
   const initial = await mutateMassRenewalBatch(batchId, batch => {
+    if (legacyBatchBlocked(batch)) throw Object.assign(new Error('Ein früherer Massen-Vorgang ist ungeklärt.'), { code: 'KR_LEGACY_OUTCOME_UNRESOLVED' });
     if (batch.status === 'running') throw new Error('Das Neu-Inserieren verarbeitet noch weitere Anzeigen. Wiederholungen sind erst in der Übersicht möglich.');
     const item = (batch.items || []).find(entry => Number(entry.index) === index);
     if (!item || !['needs-review', 'error'].includes(String(item.status || ''))) throw new Error('Diese Anzeige benötigt aktuell keine Wiederholung.');
     batch.status = 'running'; batch.completedAt = null; batch.stopAfterCurrentRequested = false; batch.stopRequestedAt = null; batch.stoppedAt = null; batch.currentIndex = index;
-    batch.stopOnErrorTriggered = false; batch.retryOnlyIndex = index;
     item.status = 'retrying'; item.lastError = null; item.completedAt = null; touchMassRenewalItemProgress(item); snapshot = { ...item };
     return { changed: true };
   });
@@ -449,13 +420,13 @@ async function retryMassRenewalItem(message) {
         item.operationId = null; item.parentOperationId = batch.operationId || null; item.renewalId = null; item.renewalStatus = null; item.newAdId = null; item.publicAvailabilityPending = false; item.stage = 'queued'; item.status = 'queued'; item.startAttemptId = null; batch.currentIndex = null; touchMassRenewalItemProgress(item);
         return { changed: true };
       });
-      await withAutonomousAdmission('mass-renewal-next-item', () => startNextMassRenewalItem(batchId));
+      await startNextMassRenewalItem(batchId);
     }
   } catch (error) {
     await mutateMassRenewalBatch(batchId, batch => {
       const item = batch.items?.find(entry => Number(entry.index) === index);
       if (!item || !['retrying', 'running'].includes(String(item.status || ''))) return { changed: false };
-      item.status = 'needs-review'; item.stage = 'retry-failed'; item.lastError = String(error.message || error).slice(0, 800); item.completedAt = new Date().toISOString(); touchMassRenewalItemProgress(item, item.completedAt); batch.currentIndex = null; applyTerminalFailureStop(batch, item); applyMassRenewalFinalState(batch);
+      item.status = 'needs-review'; item.stage = 'retry-failed'; item.lastError = String(error.message || error).slice(0, 800); item.completedAt = new Date().toISOString(); touchMassRenewalItemProgress(item, item.completedAt); batch.currentIndex = null; applyMassRenewalFinalState(batch);
       return { changed: true };
     });
     const latest = await readMassRenewalBatch().catch(() => null);
@@ -470,7 +441,7 @@ async function retryMassRenewalItem(message) {
 
 async function resumeMassRenewalBatch() {
   const batch = await readMassRenewalBatch();
-  if (!batch || batch.status !== 'running') return massRenewalPublicSnapshot(batch);
+  if (!batch || batch.status !== 'running' || legacyBatchBlocked(batch)) return massRenewalPublicSnapshot(batch);
   armMassRenewalWatchdog();
   const running = (batch.items || []).find(item => ['running', 'retrying'].includes(String(item.status || '')));
   if (running) {
@@ -489,6 +460,7 @@ async function resumeMassRenewalBatch() {
         await logDiagnostic('info', 'MASS_RENEWAL_RECOVERY_RENEWAL_REBOUND', { batchId: batch.batchId, index: running.index, renewalId: session.renewalId }, { module: 'background', operation: 'mass-renewal-recovery', context: sessionCorrelationContext(session, { massBatchId: batch.batchId, renewalId: session.renewalId }) }).catch(() => {});
       }
     }
+    if (legacyOutcomeBlocked(session)) return massRenewalPublicSnapshot(batch);
     if (session) { await reconcileMassRenewalBatchSession(session); return getMassRenewalBatchStatus(); }
 
     if (!running.renewalId && String(running.stage || '') === 'starting') {
@@ -496,16 +468,12 @@ async function resumeMassRenewalBatch() {
       await mutateMassRenewalBatch(batch.batchId, current => {
         const item = current.items?.find(entry => Number(entry.index) === Number(running.index));
         if (!item || !['running', 'retrying'].includes(String(item.status || '')) || item.renewalId) return { changed: false };
-        if (current.stopOnError !== false) {
-          item.status = 'needs-review'; item.stage = 'recovery-start-uncertain'; item.lastError = 'Der Startzustand ist nach dem Neustart nicht eindeutig. Eine erneute Veröffentlichung muss manuell geprüft werden.'; item.completedAt = new Date().toISOString(); current.currentIndex = null; touchMassRenewalItemProgress(item, item.completedAt); applyTerminalFailureStop(current, item);
-        } else {
-          item.status = 'queued'; item.stage = 'recovery-starting-requeued'; item.startedAt = null; item.completedAt = null; item.startAttemptId = null; item.lastError = null; touchMassRenewalItemProgress(item); current.currentIndex = null; requeued = true;
-        }
+        item.status = 'queued'; item.stage = 'recovery-starting-requeued'; item.startedAt = null; item.completedAt = null; item.startAttemptId = null; item.lastError = null; touchMassRenewalItemProgress(item); current.currentIndex = null; requeued = true;
         return { changed: true };
       });
       if (requeued) {
         await logDiagnostic('warning', 'MASS_RENEWAL_RECOVERY_STARTING_REQUEUED', { batchId: batch.batchId, index: running.index, inventoryId: running.inventoryId, reason: 'running-without-renewal-id-and-no-matching-session' }, { module: 'background', operation: 'mass-renewal-recovery', context: sessionCorrelationContext(running, { parentOperationId: running.parentOperationId || batch.operationId || null, massBatchId: batch.batchId, adId: running.sourceAdId || null }) }).catch(() => {});
-        queueMicrotaskFn(() => { void withAutonomousAdmission('mass-renewal-next-item', () => startNextMassRenewalItem(batch.batchId)).catch(() => {}); });
+        queueMicrotaskFn(() => { void startNextMassRenewalItem(batch.batchId).catch(() => {}); });
         return getMassRenewalBatchStatus();
       }
     }
@@ -519,7 +487,7 @@ async function resumeMassRenewalBatch() {
           item.status = 'success'; item.stage = 'complete'; item.newInventoryId = String(existing.inventoryId || running.newAdId); item.publicAvailabilityPending = publicAvailabilityPending(existing); item.completedAt = new Date().toISOString(); touchMassRenewalItemProgress(item, item.completedAt); current.currentIndex = null;
           return { changed: true };
         });
-        queueMicrotaskFn(() => { void withAutonomousAdmission('mass-renewal-next-item', () => startNextMassRenewalItem(batch.batchId)).catch(() => {}); });
+        queueMicrotaskFn(() => { void startNextMassRenewalItem(batch.batchId).catch(() => {}); });
         return getMassRenewalBatchStatus();
       }
     }
@@ -527,11 +495,11 @@ async function resumeMassRenewalBatch() {
     await mutateMassRenewalBatch(batch.batchId, current => {
       const item = current.items?.find(entry => Number(entry.index) === Number(running.index));
       if (!item || !['running', 'retrying'].includes(String(item.status || ''))) return { changed: false };
-      item.status = 'needs-review'; item.stage = 'recovery-session-missing'; item.lastError = 'Der Einzelvorgang konnte nach dem Neustart nicht eindeutig fortgesetzt werden.'; item.completedAt = new Date().toISOString(); touchMassRenewalItemProgress(item, item.completedAt); current.currentIndex = null; applyTerminalFailureStop(current, item);
+      item.status = 'needs-review'; item.stage = 'recovery-session-missing'; item.lastError = 'Der Einzelvorgang konnte nach dem Neustart nicht eindeutig fortgesetzt werden.'; item.completedAt = new Date().toISOString(); touchMassRenewalItemProgress(item, item.completedAt); current.currentIndex = null;
       return { changed: true };
     });
   }
-  queueMicrotaskFn(() => { void withAutonomousAdmission('mass-renewal-next-item', () => startNextMassRenewalItem(batch.batchId)).catch(() => {}); });
+  queueMicrotaskFn(() => { void startNextMassRenewalItem(batch.batchId).catch(() => {}); });
   return getMassRenewalBatchStatus();
 }
 
@@ -551,8 +519,7 @@ async function massRenewalWatchdogTick(message, sender) { return requireMassRene
           massRenewalWatchdogService = serviceApi.create({
             ...options,
             findMassRenewalSessionForItem: (...args) => findMassRenewalSessionForItem(...args),
-            startNextMassRenewalItem: (...args) => startNextMassRenewalItem(...args),
-            applyTerminalFailureStop
+            startNextMassRenewalItem: (...args) => startNextMassRenewalItem(...args)
           });
         }
         return massRenewalWatchdogService;

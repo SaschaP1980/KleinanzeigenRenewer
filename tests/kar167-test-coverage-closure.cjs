@@ -32,6 +32,8 @@ const ownerPaths = {
   'KAR main CI': '.github/workflows/kar-ci.yml',
   'KAR Release hosted CI': '.github/workflows/kar-release.yml'
 };
+// S02 only: reviewed inactive paths are still immutable historical evidence.
+const inactive = require('./kar210-test-disposition.cjs').validateDispositions(root);
 const referencedByOwner = new Map();
 const pattern = /tests\/[A-Za-z0-9_.\/-]+\.(?:cjs|mjs|js|py|ps1|json|sh|txt)/g;
 for (const [owner, file] of Object.entries(ownerPaths)) {
@@ -55,6 +57,13 @@ for (const r of registry.tests) {
     assert.ok(r.entrypoints.length > 0, 'Active test has no entrypoint evidence: ' + r.path);
     for (const owner of r.entrypoints) {
       assert.ok(referencedByOwner.has(owner), 'Unrecognized owner: ' + owner);
+      const disposition=inactive.get(r.path);
+      if(disposition) {
+        if(disposition.status==='retired-updater-S04') assert.ok(disposition.owners.includes(ownerPaths[owner]),'Historical updater invocation owner not covered by reviewed S04 disposition');
+        else assert.equal(disposition.owner,ownerPaths[owner],'Historical invocation owner not covered by reviewed disposition');
+        assert.ok(!referencedByOwner.get(owner).has(r.path),'Inactive path still referenced');
+        continue;
+      }
       assert.ok(referencedByOwner.get(owner).has(r.path),
         'Baseline invocation vanished from ' + owner + ': ' + r.path);
     }
@@ -88,9 +97,31 @@ for (const addition of additions) {
   ];
   const verifiedPhase4Helper = addition === 'tests/helpers/phase4-locks.cjs' &&
     phase4HelperOwners.every(testPath =>
-      [...referencedByOwner.values()].some(set => set.has(testPath)) &&
+      ([...referencedByOwner.values()].some(set => set.has(testPath)) ||
+       inactive.get(testPath)?.status === 'split-C') &&
       read(testPath).includes("require('./helpers/phase4-locks.cjs')"));
-  assert.ok(directlyInvoked || verifiedPhase4Helper,
+  // KAR-210: retain the exact historical helper for the two audited, deferred C04 owners.
+  if (verifiedPhase4Helper && phase4HelperOwners.some(testPath => inactive.has(testPath))) {
+    assert.ok(phase4HelperOwners.every(testPath => inactive.get(testPath)?.status === 'split-C'),
+      'Mixed active/deferred Phase-4 helper ownership must be reviewed');
+    assert.equal(gitBlobSha(addition),'a5bb96c9fdad2fce4d13c74b4b2394c1bb59ca4d',
+      'Deferred historical Phase-4 helper changed');
+  }
+  // These three KAR-210 test-only helpers have individually reviewed imports.
+  // No arbitrary orphan helper or inactive test is granted execution credit.
+  const historicalHelperOwners = {
+    'tests/kar210-historical-contract-context.cjs': [
+      'tests/v12111-global-view-sidebar-bottom-diagnostics.cjs',
+      'tests/v12112-sidebar-refresh-capture-polish.cjs'
+    ],
+    'tests/kar210-kar150-mass-fixture.cjs': ['tests/kar210-kar150-mass-baseline.cjs'],
+    'tests/kar210-p13-owner-fixture.cjs': ['tests/kar210-p13-persisted-owner-baseline.cjs']
+  };
+  const reviewedOwners = historicalHelperOwners[addition];
+  const verifiedHistoricalHelper = Boolean(reviewedOwners && reviewedOwners.every(testPath =>
+    [...referencedByOwner.values()].some(set => set.has(testPath)) &&
+    read(testPath).includes("require('./"+path.basename(addition)+"')")));
+  assert.ok(directlyInvoked || verifiedPhase4Helper || verifiedHistoricalHelper || inactive.has(addition),
     'Unregistered new executable test/fixture with no top-level invocation: ' + addition);
 }
 for (const paths of referencedByOwner.values()) for (const p of paths) {
@@ -138,6 +169,7 @@ for (const api of safety.apis) {
   assert.ok(api.tests?.length, 'Safety critical method missing negative test: ' + api.method);
   for (const p of api.tests) {
     criticalRefs++;
+    assert.ok(!inactive.has(p),'Safety-critical negative cannot be inactive: '+p);
     assert.ok(records.has(p) && fs.existsSync(full(p)),
       'Safety-critical negative/fail-closed test missing: ' + p);
   }
@@ -161,6 +193,6 @@ assert.ok(fs.existsSync(full('tests/e2e/run_browser_e2e_supervisor.py')),
   'Nine-scenario isolated Chromium supervisor missing');
 console.log('PASS KAR-167 T1 test/coverage closure: '+records.size+
   ' historical test/fixture paths preserved, '+registry.counts.byRole['direct-or-hosted']+
-  ' top-level referenced, '+additions.length+' registered new source additions, 2 durable coverage contracts,'+
+  ' original direct-or-hosted records (reviewed inactive paths explicitly separated), '+additions.length+' registered new source additions, 2 durable coverage contracts,'+
   ' 1 unchanged E2E Gold, '+safety.apis.length+' safety-critical APIs / '+criticalRefs+
   ' explicit negative test references; runtime/Gold/100%-public no-regression contracts intact');

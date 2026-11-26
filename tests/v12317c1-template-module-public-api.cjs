@@ -133,9 +133,16 @@ global.document = {
     runtimeMessage: async message => { messages.push(message); return {}; }, diagnostic: noop, visible: () => true,
     visibleText: element => clean(element?.textContent), waitFor: async fn => fn(), updatePanel: noop
   });
-  assert.deepEqual(Object.keys(publish).sort(), ['advanceAfterVerifiedFill','armPublishDetection','autoPublishVerifiedRenewal','offerManualStandaloneRelease','paidInsertionDetection','scrollToPublishButton','stopForPaidInsertion'].sort());
+  const manifest=require('../manifest.json');
+  const baseline=require('./kar210-historical-contract-context.cjs').isRestored(require('node:path').resolve(__dirname,'..'));
+  if(baseline) {
+    const fs=require('node:fs'),crypto=require('node:crypto');
+    const bytes=fs.readFileSync(require.resolve('../src/content/template-publish-flow.js'));
+    assert.equal(crypto.createHash('sha1').update('blob '+bytes.length+'\0').update(bytes).digest('hex'),'b4cb626bc91ca9389f9d997f9f161ef88ebdd16d','Only the reviewed restored publish module has six methods');
+    assert.deepEqual(Object.keys(publish).sort(), ['advanceAfterVerifiedFill','armPublishDetection','autoPublishVerifiedRenewal','paidInsertionDetection','scrollToPublishButton','stopForPaidInsertion'].sort());
+  } else assert.deepEqual(Object.keys(publish).sort(), ['advanceAfterVerifiedFill','armPublishDetection','autoPublishVerifiedRenewal','offerManualStandaloneRelease','paidInsertionDetection','scrollToPublishButton','stopForPaidInsertion'].sort());
   publish.armPublishDetection('fill-contract');
-  assert.equal(publish.offerManualStandaloneRelease({ fillId: 'fill-contract', expectedCategoryId: '246', expectedTitle: 'Synthetic listing', imageCount: 11 }), false,
+  if(!baseline) assert.equal(publish.offerManualStandaloneRelease({ fillId: 'fill-contract', expectedCategoryId: '246', expectedTitle: 'Synthetic listing', imageCount: 11 }), false,
     'manual offer fails closed without a persisted review panel and owner consent');
   assert.equal(publish.scrollToPublishButton(), false);
   assert.equal(publish.paidInsertionDetection().required, true);
@@ -148,7 +155,7 @@ global.document = {
   const manual = await publish.advanceAfterVerifiedFill({ fillId: 'fill-manual', templateOnly: true });
   assert.equal(manual.manualContinue, true);
   assert.equal(messages.at(-1).stage, 'awaiting-manual-continue');
-  pass('all seven publish-flow public methods execute including manual-only, paid and template-only fail-closed paths');
+  pass(baseline?'all six baseline publish-flow methods execute including paid and template-only paths':'all seven publish-flow public methods execute including manual-only, paid and template-only fail-closed paths');
 
   console.log(`${passed}/5 PASS v1.23.17_c1 template-module public API closure`);
 })().catch(error => { console.error(error); process.exitCode = 1; });

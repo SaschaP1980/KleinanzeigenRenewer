@@ -15,6 +15,7 @@
         const cutoff = Date.now() - maxAgeMs;
         let changed = false;
         for (const [id, session] of Object.entries(sessions)) {
+          if ((row => ['source-delete-outcome-unverified', 'source-delete-status-unverified', 'publish-intent-blocked'].includes(String(row?.stage || '')) || String(row?.status || '') === 'publish-blocked')(session) || session?.remoteVerificationRequired === true) continue;
           if (!session?.createdAt || Date.parse(session.createdAt) < cutoff) {
             delete sessions[id];
             changed = true;

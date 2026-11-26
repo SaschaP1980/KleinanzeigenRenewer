@@ -22,8 +22,8 @@
         </div>
         <nav class="content-view-navigation" aria-label="Inhaltsansicht">
           <div class="content-view-tabs" role="group" aria-label="Bereich auswählen">
-            <button id="inventoryViewButton" class="secondary view-switch-button active" type="button" aria-pressed="true">Inventar <span id="inventoryHeaderCount">…</span></button>
-            <button id="trashViewButton" class="secondary view-switch-button" type="button" aria-pressed="false">Papierkorb <span id="trashHeaderCount">…</span></button>
+            <button id="inventoryViewButton" class="secondary view-switch-button active" type="button" aria-pressed="true">Inventar <span id="inventoryHeaderCount">0</span></button>
+            <button id="trashViewButton" class="secondary view-switch-button" type="button" aria-pressed="false">Papierkorb <span id="trashHeaderCount">0</span></button>
           </div>
           <div class="global-view-controls" role="group" aria-label="Darstellung und Aktualisierung">
             <button id="globalViewDetailed" class="global-view-option active" type="button" aria-pressed="true" aria-label="Kachelansicht" title="Kachelansicht"><span class="list-view-mode-icon view-mode-detailed" aria-hidden="true"></span></button>
@@ -102,11 +102,6 @@
                 <div class="configuration-range-scale trash-retention-range-scale" aria-hidden="true"><span>10</span><span>30</span><span>60</span><span>90</span><span>180</span><span>360</span><span>∞</span></div>
                 <p id="trashRetentionDescription" class="configuration-description">Die gespeicherte Aufbewahrungsdauer wird geprüft. Bis dahin kann sie nicht geändert werden.</p>
               </section>
-              <div class="configuration-subsection native-update-check" aria-label="Windows-Updater">
-                <div class="configuration-label">Windows-Updater</div>
-                <p id="nativeUpdateSummaryStatus" class="configuration-description" role="status" aria-live="polite">Update-Status derzeit nicht verfügbar.</p>
-                <button id="nativeUpdateOpenButton" class="secondary" type="button" aria-haspopup="dialog" aria-controls="nativeUpdateDialog">Updater öffnen</button>
-              </div>
 
             </div>
           </div>
@@ -117,14 +112,6 @@
           <summary><span class="control-accordion-title">Diagnose</span></summary>
           <div class="control-accordion-panel">
           <div class="control-accordion-body diagnostics-body">
-          <div id="diagnosticOccupancy" class="diagnostic-occupancy" role="progressbar" aria-label="Diagnosespeicher belegt" aria-valuemin="0" aria-valuetext="Diagnosespeicher nicht verfügbar">
-            <div id="diagnosticOccupancyFill" class="diagnostic-occupancy-fill" aria-hidden="true"></div>
-            <span id="diagnosticOccupancyText" class="diagnostic-occupancy-text">— / — Einträge</span>
-          </div>
-          <div class="diagnostic-occupancy-recovery">
-            <p id="diagnosticOccupancyStatus" role="status" aria-live="polite"></p>
-            <button id="diagnosticOccupancyRetry" type="button" class="secondary" hidden>Belegung erneut prüfen</button>
-          </div>
           <div class="diagnostic-actions">
             <button id="diagnosticZipButton" type="button" class="secondary diagnostic-primary">Diagnosedaten herunterladen</button>
             <button id="diagnosticResetButton" type="button" class="secondary diagnostic-reset">Diagnose zurücksetzen</button>
@@ -199,10 +186,10 @@
           <div class="section-title">
             <div>
               <h2>Gespeicherte Anzeigen</h2>
-              <p id="inventoryCount">Wird geladen …</p>
+              <p id="inventoryCount">0 Einträge</p>
             </div>
             <div class="section-actions">
-              <button id="clearInventoryButton" class="danger-button" type="button" disabled>Alle in Papierkorb</button>
+              <button id="clearInventoryButton" class="danger-button" type="button">Alle in Papierkorb</button>
             </div>
           </div>
         <div class="inventory-toolbar" aria-label="Inventarliste filtern und sortieren">
@@ -226,7 +213,7 @@
         </div>
           </div>
           </div>
-        <div id="inventoryList" class="inventory-list"><div class="list-load-state is-loading" role="status" aria-live="polite"><span class="list-load-spinner" aria-hidden="true"></span><strong>Inventar wird geladen …</strong></div></div>
+        <div id="inventoryList" class="inventory-list"></div>
       </section>
 
       <section id="trashSection" class="inventory-section hidden">
@@ -237,7 +224,7 @@
         <div class="section-title">
           <div>
             <h2>Papierkorb</h2>
-            <p id="trashCount">Wird geladen …</p>
+            <p id="trashCount">0 Einträge</p>
           </div>
           <div class="section-actions">
           </div>
@@ -253,7 +240,7 @@
         </div>
         </div>
         </div>
-        <div id="trashList" class="inventory-list"><div class="list-load-state is-loading" role="status" aria-live="polite"><span class="list-load-spinner" aria-hidden="true"></span><strong>Papierkorb wird geladen …</strong></div></div>
+        <div id="trashList" class="inventory-list"></div>
       </section>
       </div>
     </main>
@@ -281,7 +268,7 @@
 
         <div id="renewalStartSafety" class="renewal-start-safety">
           <strong id="renewalStartSafetyTitle">Die bisherige Anzeige wird erst gelöscht, wenn die neue Anzeige vollständig geprüft wurde.</strong>
-          <p id="renewalStartSafetyText">Die bisherige Anzeige bleibt danach 30 Tage als Sicherheitskopie im Papierkorb und kann dort über <b>Als Vorlage neu inserieren</b> erneut als Vorlage verwendet werden.</p>
+          <p id="renewalStartSafetyText">Die bisherige Anzeige bleibt danach entsprechend der gespeicherten Aufbewahrungsdauer als Sicherheitskopie im Papierkorb und kann dort über <b>Als Vorlage neu inserieren</b> erneut als Vorlage verwendet werden.</p>
         </div>
 
         <ol id="renewalStartSteps" class="renewal-start-steps" aria-label="Automatischer Ablauf">
@@ -443,10 +430,6 @@
 
         <section id="massRenewalSelectPanel" class="mass-renewal-panel">
           <div class="mass-renewal-selection-meta"><strong id="massRenewalSelectionCount">0 von 10 ausgewählt</strong><span>Sortiert nach frühestem Ende</span></div>
-          <div class="mass-renewal-search">
-            <input id="massRenewalSearchInput" type="search" aria-label="Anzeigen nach Titel suchen" placeholder="Anzeigen nach Titel suchen …" autocomplete="off" spellcheck="false">
-            <button id="massRenewalSearchClear" type="button" aria-label="Titelsuche zurücksetzen" title="Suche löschen" hidden>×</button>
-          </div>
           <div class="mass-renewal-table-wrap">
             <table class="mass-renewal-table">
               <thead><tr><th class="mass-check-col"><span class="sr-only">Auswahl</span></th><th>Titelbild</th><th>Anzeige</th><th>Preis</th><th>Endet am</th></tr></thead>
@@ -460,13 +443,6 @@
           <div class="mass-renewal-selection-meta"><strong>Reihenfolge</strong><span>Per Drag-and-drop oder mit den Pfeilen anpassen</span></div>
           <div id="massRenewalOrderList" class="mass-renewal-order-list" aria-label="Reihenfolge der ausgewählten Anzeigen"></div>
           <p class="mass-renewal-hint">Die Anzeigen werden von oben nach unten neu inseriert.</p>
-          <div class="mass-renewal-stop-policy">
-            <label class="mass-renewal-stop-policy-label" for="massRenewalStopOnError">
-              <span>Bei Fehler anhalten</span>
-              <input id="massRenewalStopOnError" type="checkbox" role="switch" disabled>
-            </label>
-            <small id="massRenewalStopOnErrorStatus" role="status" aria-live="polite"></small>
-          </div>
         </section>
 
         <section id="massRenewalProgressPanel" class="mass-renewal-panel hidden" aria-live="polite">
@@ -646,56 +622,6 @@
       </div>
     </dialog>
 
-    <dialog id="nativeUpdateDialog" class="profile-manager-dialog native-update-dialog" aria-labelledby="nativeUpdateDialogTitle" aria-describedby="nativeUpdateDialogIntro">
-      <div class="profile-manager-modal native-update-modal">
-        <header class="profile-manager-header">
-          <div><span class="profile-manager-kicker">UPDATES</span><h2 id="nativeUpdateDialogTitle">Windows-Updater</h2></div>
-          <button id="nativeUpdateClose" type="button" class="modal-close" aria-label="Windows-Updater schließen"><svg class="modal-close-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 6L18 18M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
-        </header>
-        <p id="nativeUpdateDialogIntro" class="profile-manager-intro">Hier siehst du, ob eine neue Version des kleinanzeigen Managers verfügbar ist.</p>
-        <div class="native-update-modal-scroll">
-          <section class="native-update-summary-card" aria-label="Ergebnis der Updateprüfung">
-            <p id="nativeUpdateFriendlyStatus" class="native-update-friendly-status" role="status" aria-live="polite">Die Verfügbarkeit konnte gerade nicht geprüft werden.</p>
-            <div class="native-update-versions">
-              <div><span>Version in Chrome</span><strong id="nativeUpdateActiveVersion">Wird ermittelt</strong></div>
-              <div><span>Freigegebene Version</span><strong id="nativeUpdateApprovedVersion">Noch nicht geprüft</strong></div>
-            </div>
-            <p id="nativeUpdateLastChecked" class="native-update-last-checked"></p>
-          </section>
-          <section class="native-update-onboarding" aria-labelledby="nativeUpdateSetupTitle">
-            <h3 id="nativeUpdateSetupTitle">Zum ersten Mal hier?</h3>
-            <p>Für spätere Updates brauchst du zunächst eine Windows-Verknüpfung auf deinem Desktop.</p>
-            <a class="native-update-setup-link" href="https://github.com/SaschaP1980/KleinanzeigenRenewer/blob/main/docs/user-manuals/windows-updater-einrichten.md" target="_blank" rel="noopener noreferrer">Einrichtungsanleitung öffnen <span aria-hidden="true">↗</span></a>
-            <p class="native-update-help-note">Die Versionsprüfung zeigt nicht, ob die Desktop-Verknüpfung eingerichtet ist.</p>
-          </section>
-          <section class="native-update-help" aria-labelledby="nativeUpdateExistingTitle">
-            <h3 id="nativeUpdateExistingTitle">Verknüpfung bereits vorhanden?</h3>
-            <button id="nativeUpdateGuideToggle" class="secondary" type="button" aria-controls="nativeUpdateGuide" aria-expanded="false">Update-Schritte anzeigen</button>
-            <div id="nativeUpdateGuide" class="native-update-guide" hidden>
-              <p>Für die Aktualisierung verwendest du die Verknüpfung „Kleinanzeigen Manager aktualisieren“ auf deinem Windows-Desktop.</p>
-              <ol>
-                <li>Speichere deine Arbeit und schließe Chrome vollständig.</li>
-                <li>Öffne auf dem Desktop „Kleinanzeigen Manager aktualisieren“.</li>
-                <li>Prüfe die angebotene Version und bestätige die Aktualisierung nur, wenn du sie durchführen möchtest.</li>
-                <li>Starte Chrome anschließend mit demselben Profil und lade die vorhandene Erweiterung unter chrome://extensions/ neu.</li>
-              </ol>
-              <details class="native-update-technical-details">
-                <summary>Technische Details</summary>
-                <p id="nativeUpdateFallbackStatus" class="native-update-help-note">Die Desktop-Verknüpfung funktioniert auch ohne NativeHost.</p>
-                <p id="nativeUpdateCheckStatus" class="native-update-detail-status" role="status" aria-live="polite">Noch nicht geprüft.</p>
-                <p>Windows-Installationsversion: <span id="nativeUpdateManagedVersion">nicht verifiziert</span></p>
-                <p id="nativeUpdateCheckEvidence" class="native-update-evidence"></p>
-              </details>
-            </div>
-          </section>
-        </div>
-        <footer class="profile-manager-actions native-update-modal-footer">
-          <button id="nativeUpdateCheckButton" class="secondary" type="button">Erneut prüfen</button>
-          <button id="nativeUpdateDone" type="button" class="secondary">Schließen</button>
-        </footer>
-      </div>
-    </dialog>
-
     <script src="../shared/runtime-deps.js"></script>
     <script src="../shared/message-contract-registry.js"></script>
     <script src="../shared/renewal-policy.js"></script>
@@ -723,7 +649,6 @@
     <script src="inventory-card-renderer.js"></script>
     <script src="trash-card-renderer.js"></script>
     <script src="inventory-render-controller.js"></script>
-    <script src="inventory-loading-state.js"></script>
     <script src="renewal-dialog-controller.js"></script>
     <script src="inventory-candidate-model.js"></script>
     <script src="inventory-capture-view.js"></script>
@@ -733,6 +658,5 @@
     <script src="trash-template-ui-controller.js"></script>
     <script src="archive-trash-insertion-ui-controller.js"></script>
     <script src="app.js"></script>
-    <script src="native-update-check-ui.js"></script>
   </body>
 </html>

@@ -1,4 +1,4 @@
-const { includesSupportedRelease } = require('./current-patch-policy.cjs');
+const { includesSupportedRelease, assertRestoredBaselineVersion } = require('./current-patch-policy.cjs');
 const assert = require('assert');
 const fs = require('fs');
 const manifest = JSON.parse(fs.readFileSync('manifest.json','utf8'));
@@ -9,7 +9,10 @@ const arch = JSON.parse(fs.readFileSync('docs/history/architecture/architecture-
 function pass(name, fn) { fn(); console.log(`PASS ${name}`); }
 pass('v1.23.20_c1 release evidence remains explicit under later correction builds',()=>{
   assert.equal(arch.packageVersion,'1.23.20_c1');
-  if (manifest.version === '1.23.20') {
+  if (require('./current-patch-policy.cjs').isReviewedRestoreVersion(manifest.version)) {
+    assertRestoredBaselineVersion();
+    assert.equal(spec.directBasis,manifest.version==='2.0.4.0'?'2.0.3.0':manifest.version==='2.0.3.0'?'2.0.2.0':manifest.version==='2.0.2.0'?'2.0.1.0':manifest.version==='2.0.1.0'?'2.0.0.1':'1.23.48');
+  } else if (manifest.version === '1.23.20') {
     assert.equal(manifest.version_name,'1.23.20_c1');
     assert.equal(pkg.version,'1.23.20');
     assert.equal(pkg.displayVersion,'1.23.20');

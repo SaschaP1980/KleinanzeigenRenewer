@@ -7,10 +7,13 @@ assert.equal(nav.publicAdIdFromUrl(canonical),'3515421759'); pass('canonical pub
 assert.equal(nav.publicAdIdFromUrl(direct),'3515421759'); pass('id-direct public URL is accepted as the same public ad identity');
 assert.equal(nav.assessPublicAd({url:canonical,status:'complete'},'3515421759').state,nav.STATES.READY); pass('canonical URL can provide target-bound public evidence');
 assert.equal(nav.assessPublicAd({url:direct,status:'complete'},'3515421759').state,nav.STATES.READY); pass('id-direct URL can provide target-bound public evidence');
-const owner=fs.readFileSync('src/background/services/renewal-public-evidence-coordinator.js','utf8');
-assert.match(bg,/requireRenewalPublicEvidenceCoordinator\(\)\.resolveRenewalPublicEvidence\(newAdId, expectedProfileName, correlation\)/);
+const root = require('node:path').resolve(__dirname, '..');
+const historical = require('./kar210-historical-contract-context.cjs');
+const restored = historical.isRestored(root);
+const owner=fs.readFileSync(require('node:path').join(root,historical.historicalBackgroundOwner(root,'src/background/services/renewal-public-evidence-coordinator.js')),'utf8');
+if (!restored) assert.match(bg,/requireRenewalPublicEvidenceCoordinator\(\)\.resolveRenewalPublicEvidence\(newAdId, expectedProfileName, correlation\)/);
 const r0=owner.indexOf('async function resolveRenewalPublicEvidence');
-const r1=owner.indexOf('\n      return Object.freeze({',r0);
+const r1=restored ? owner.indexOf('\n}',r0)+2 : owner.indexOf('\n      return Object.freeze({',r0);
 const block=owner.slice(r0,r1);
 assert.ok(r0>=0&&r1>r0,'resolved public evidence must exist at its registered in-process owner');
 assert.match(block,/normalizeKnownPublicAdUrl\(knownPublicUrl, newAdId\)/); pass('resolver prefers a known canonical public URL when available');

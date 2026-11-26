@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "issue": 217,
+  "step": "S04",
+  "directBasis": "2.0.2.0",
+  "sourceCommit": "a88a3446560cb36c87a3ace599a0bbd0549c6f41",
+  "policy": "Historical tests remain byte-identical; retire only exact listed entrypoints, never claim PASS. All 15 product safety-critical APIs and 13 deferred RED witnesses remain unchanged.",
+  "entries": [
+    {
+      "test": "tests/kar68-native-status-gateway.cjs",
+      "blob": "a463f234b851a51f84efe53e57c08815845151bd",
+      "owners": [
+        "package.json",
+        ".github/workflows/kar-work-pr.yml",
+        ".github/workflows/kar-ci.yml"
+      ],
+      "reason": "NativeHost request/response transport security; removed gateway only.",
+      "status": "retired-updater-S04"
+    },
+    {
+      "test": "tests/kar69-native-check.cjs",
+      "blob": "9a7f636e779a5016662d1be68955de3cff1983d3",
+      "owners": [
+        "package.json"
+      ],
+      "reason": "Removed app-to-worker-to-native read-only status check and permission.",
+      "status": "retired-updater-S04"
+    },
+    {
+      "test": "tests/kar81-native-fallback.cjs",
+      "blob": "efce0fc42de53f7b5f94e47dcb72a0a57b6e1d9a",
+      "owners": [
+        ".github/workflows/kar-work-pr.yml"
+      ],
+      "reason": "Removed Windows fallback setup guide and native status UI.",
+      "status": "retired-updater-S04"
+    },
+    {
+      "test": "tests/kar85-updater-modal.cjs",
+      "blob": "78c151cf773a4c0269559cab0c87047cb68dd422",
+      "owners": [
+        "package.json"
+      ],
+      "reason": "Removed Windows updater modal and focus lifecycle only.",
+      "status": "retired-updater-S04"
+    },
+    {
+      "test": "tests/kar86-approved-channel.cjs",
+      "blob": "a2ff1af4458152f407a1e292c282da850a1dff5d",
+      "owners": [
+        "package.json"
+      ],
+      "reason": "Removed GitHub approved-channel read and updater status UI.",
+      "status": "retired-updater-S04"
+    },
+    {
+      "test": "tests/kar90-updater-ux.cjs",
+      "blob": "db16d4ed81dda231ab4b225e0089a7815e3c29db",
+      "owners": [
+        "package.json"
+      ],
+      "reason": "Removed updater-specific modal presentation and setup guide.",
+      "status": "retired-updater-S04"
+    },
+    {
+      "test": "tests/kar91-english-console.cjs",
+      "blob": "4cd364da2a22e84556709ec8c122b25259dc5fa2",
+      "owners": [
+        "package.json"
+      ],
+      "reason": "Legacy OneClick Windows console and updater consent; no product workflow.",
+      "status": "retired-updater-S04"
+    },
+    {
+      "test": "tests/kar94-setup-package.cjs",
+      "blob": "9b676f8deebaf9754c2ed43bb5cfeda016e811ab",
+      "owners": [
+        "package.json"
+      ],
+      "reason": "Historical Windows setup kit reproducibility; not the Chrome ZIP.",
+      "status": "retired-updater-S04"
+    },
+    {
+      "test": "tests/windows-updater-phase1.ps1",
+      "blob": "e862741815bcfaaad8f92c39c402723bf578bbfa",
+      "owners": [
+        ".github/workflows/kar-work-pr.yml",
+        ".github/workflows/kar-ci.yml"
+      ],
+      "reason": "Disposable Windows updater installation, receipt and rollback only.",
+      "status": "retired-updater-S04"
+    },
+    {
+      "test": "tests/windows-native-host-wave1.ps1",
+      "blob": "7f1b60fecf0509a9a971e7bc56962d6b6f379472",
+      "owners": [
+        ".github/workflows/kar-work-pr.yml",
+        ".github/workflows/kar-ci.yml"
+      ],
+      "reason": "Disposable Windows NativeHost registration and binary IPC security.",
+      "status": "retired-updater-S04"
+    },
+    {
+      "test": "tests/windows-oneclick-shortcut.ps1",
+      "blob": "4ef485ee2c44521c0f773a2668f7333382c90249",
+      "owners": [
+        ".github/workflows/kar-work-pr.yml",
+        ".github/workflows/kar-ci.yml"
+      ],
+      "reason": "Disposable desktop shortcut and historical Windows setup lifecycle.",
+      "status": "retired-updater-S04"
+    },
+    {
+      "test": "tests/kar99-p13-windows-journal-inspection.ps1",
+      "blob": "64f2675eeee6326b05dec7c42c56e8daf3434779",
+      "owners": [
+        ".github/workflows/kar-work-pr.yml"
+      ],
+      "reason": "Historical Windows update-transaction journal observation, no product renewal evidence.",
+      "status": "retired-updater-S04"
+    }
+  ]
+}

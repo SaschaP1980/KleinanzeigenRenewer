@@ -1,0 +1,155 @@
+{
+  "schemaVersion": 1,
+  "issue": 210,
+  "checkpoint": 22,
+  "sourceCommit": "041c76aba868d102d5a009d56a70be0458fc6866",
+  "originalsRetainedInGit": true,
+  "policy": "Exact S02 identity only; no runtime changes; all commands active and genuine RED preserved. Validation pending.",
+  "review": [
+    {
+      "path": "tests/v1120-contract.cjs",
+      "originalBlob": "3c2fc29cf37510806f655d3bfabfdbec8bb2008e",
+      "originalCommit": "041c76aba868d102d5a009d56a70be0458fc6866",
+      "versionPredicates": 4,
+      "changes": [
+        "Exact S02 identity before historical feature-era selection; legacy lists unchanged; historical permissions explicit. All behavior assertions unchanged; remaining mismatches require individual review."
+      ]
+    },
+    {
+      "path": "tests/v1121-contract.cjs",
+      "originalBlob": "114fa5600bf3293a2c2855ea3e220bea30852287",
+      "originalCommit": "041c76aba868d102d5a009d56a70be0458fc6866",
+      "versionPredicates": 12,
+      "changes": [
+        "Exact S02 identity before historical feature-era selection; legacy lists unchanged; historical permissions explicit. All behavior assertions unchanged; remaining mismatches require individual review."
+      ]
+    },
+    {
+      "path": "tests/v1130-contract.cjs",
+      "originalBlob": "ee84829825a5b4f5514d6762ad27a796c305feb7",
+      "originalCommit": "041c76aba868d102d5a009d56a70be0458fc6866",
+      "versionPredicates": 3,
+      "changes": [
+        "Exact S02 identity before historical feature-era selection; legacy lists unchanged; historical permissions explicit. All behavior assertions unchanged; remaining mismatches require individual review."
+      ]
+    },
+    {
+      "path": "tests/v1131-contract.cjs",
+      "originalBlob": "db3a5cd24fb1cea3772f3956089d4d6fd4429db5",
+      "originalCommit": "041c76aba868d102d5a009d56a70be0458fc6866",
+      "versionPredicates": 9,
+      "changes": [
+        "Exact S02 identity before historical feature-era selection; legacy lists unchanged; historical permissions explicit. All behavior assertions unchanged; remaining mismatches require individual review."
+      ]
+    },
+    {
+      "path": "tests/v1132-contract.cjs",
+      "originalBlob": "53893c1a76d9ed9c713adf682922f8c593f50de7",
+      "originalCommit": "041c76aba868d102d5a009d56a70be0458fc6866",
+      "versionPredicates": 2,
+      "changes": [
+        "Exact S02 identity before historical feature-era selection; legacy lists unchanged; historical permissions explicit. All behavior assertions unchanged; remaining mismatches require individual review."
+      ]
+    },
+    {
+      "path": "tests/v1133-contract.cjs",
+      "originalBlob": "e4198159bd111e455555dd824ae5f04cd29a1c67",
+      "originalCommit": "041c76aba868d102d5a009d56a70be0458fc6866",
+      "versionPredicates": 2,
+      "changes": [
+        "Exact S02 identity before historical feature-era selection; legacy lists unchanged; historical permissions explicit. All behavior assertions unchanged; remaining mismatches require individual review."
+      ]
+    },
+    {
+      "path": "tests/v1134-contract.cjs",
+      "originalBlob": "d77563e093dd4f05fb450a6e29a009383492879d",
+      "originalCommit": "041c76aba868d102d5a009d56a70be0458fc6866",
+      "versionPredicates": 2,
+      "changes": [
+        "Exact S02 identity before historical feature-era selection; legacy lists unchanged; historical permissions explicit. All behavior assertions unchanged; remaining mismatches require individual review."
+      ]
+    },
+    {
+      "path": "tests/v1135-contract.cjs",
+      "originalBlob": "902fa07a0f3215031612c6f676630a60d593fcce",
+      "originalCommit": "041c76aba868d102d5a009d56a70be0458fc6866",
+      "versionPredicates": 5,
+      "changes": [
+        "Exact S02 identity before historical feature-era selection; legacy lists unchanged; historical permissions explicit. All behavior assertions unchanged; remaining mismatches require individual review."
+      ]
+    },
+    {
+      "path": "tests/v1136-contract.cjs",
+      "originalBlob": "a68cbbe364858fd3c185aa7d84d622901ac5a514",
+      "originalCommit": "041c76aba868d102d5a009d56a70be0458fc6866",
+      "versionPredicates": 2,
+      "changes": [
+        "Exact S02 identity before historical feature-era selection; legacy lists unchanged; historical permissions explicit. All behavior assertions unchanged; remaining mismatches require individual review."
+      ]
+    },
+    {
+      "path": "tests/v1137-contract.cjs",
+      "originalBlob": "e8489a6cf22d4fc3274076fe8b1335f4ac26759e",
+      "originalCommit": "041c76aba868d102d5a009d56a70be0458fc6866",
+      "versionPredicates": 4,
+      "changes": [
+        "Exact S02 identity before historical feature-era selection; legacy lists unchanged; historical permissions explicit. All behavior assertions unchanged; remaining mismatches require individual review."
+      ]
+    },
+    {
+      "path": "tests/v1138-contract.cjs",
+      "originalBlob": "5b40a198b35ea78b31f9d059e230216d8e553513",
+      "originalCommit": "041c76aba868d102d5a009d56a70be0458fc6866",
+      "versionPredicates": 3,
+      "changes": [
+        "Exact S02 identity before historical feature-era selection; legacy lists unchanged; historical permissions explicit. All behavior assertions unchanged; remaining mismatches require individual review."
+      ]
+    }
+  ],
+  "firstFocusedValidation": {
+    "runId": 45581102256,
+    "jobId": 139091079664,
+    "head": "443cd641bdb3946bde9e1ba9e2f043eca5e9dc11",
+    "passed": 11,
+    "failed": 3,
+    "failures": [
+      "v1131 later display-only recovery",
+      "v1132 later URL evidence owner",
+      "v1138 later navigation owner"
+    ]
+  },
+  "followup": [
+    {
+      "test": "v1131",
+      "change": "Historical exact verification, image completeness, needs-review and sole complete-gated advance; later display-only recovery assertions unchanged outside S02; S05/S07 obligations retained.",
+      "retainedRuntimeTests": [
+        "tests/kar210-kar201-baseline-safety.cjs"
+      ]
+    },
+    {
+      "test": "v1132",
+      "change": "Execute actual hash-checked historical URL detector, retain confirmation/source-ID rejection and add foreign host and adId fallback tests. Later service registration/delegation remains outside S02."
+    },
+    {
+      "test": "v1138",
+      "change": "Use exact historical background navigation owner and scope assertions to actual openReadOnlyAd. Retain canonical URL tests, later delegation assertion outside S02."
+    }
+  ],
+  "secondFocusedValidation": {
+    "runId": 45581237786,
+    "jobId": 139091546729,
+    "head": "08c35ebe8fefa5987687cb016fbcb8005474f130",
+    "passed": 16,
+    "failed": 0,
+    "completeHistoricalContracts": 11,
+    "completeContractGroups": 31,
+    "runtimeCases": 6,
+    "negativeFixtures": 59
+  },
+  "builderGuard": {
+    "runId": 45581102126,
+    "jobId": 139091079589,
+    "result": "failure",
+    "reason": "No explicit authorized marker; no build executed."
+  }
+}

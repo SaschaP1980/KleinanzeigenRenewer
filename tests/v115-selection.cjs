@@ -2,6 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const assert = require('node:assert/strict');
 
+const s05 = require('./current-patch-policy.cjs').isS05Version(JSON.parse(fs.readFileSync(path.join(__dirname, '../manifest.json'), 'utf8')).version);
 const filler = fs.readFileSync(path.join(__dirname, '../template-filler.js'), 'utf8');
 let n = 0;
 const pass = name => { n += 1; console.log('PASS ' + name); };
@@ -24,7 +25,11 @@ const chooseEnd = filler.indexOf('\n  function findAttributeControl', chooseStar
 assert.ok(chooseStart >= 0 && chooseEnd > chooseStart);
 const choose = filler.slice(chooseStart, chooseEnd);
 assert.match(choose, /await typeSearchableValue\(control, displayValue\)/);
-assert.match(choose, /findExactSelectionOption\(control, displayValue\)/);
+// S05 passes the known technical ID through every exact-option lookup.
+if (s05) {
+  assert.equal((choose.match(/findExactSelectionOption\(control, displayValue, technicalValue\)/g) || []).length, 3);
+  assert.doesNotMatch(choose, /findExactSelectionOption\(control, displayValue\)/);
+} else assert.match(choose, /findExactSelectionOption\(control, displayValue\)/);
 assert.match(choose, /ArrowDown/);
 assert.match(choose, /option\.click\(\)/);
 assert.ok(choose.indexOf('typeSearchableValue(control, displayValue)') < choose.indexOf('option.click()'));

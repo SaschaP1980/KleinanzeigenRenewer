@@ -6,9 +6,12 @@ const Policy = require('../src/shared/renewal-policy.js');
 const source = fs.readFileSync('background.js', 'utf8');
 const mutStart = source.indexOf('function beginRenewalPhaseAttempt');
 const mutEnd = source.indexOf('async function logRenewalPhaseAttemptStarted', mutStart);
-const phase1Source = fs.readFileSync('src/background/services/renewal-phase1-retry-service.js','utf8');
+const root = require('node:path').resolve(__dirname, '..');
+const historical = require('./kar210-historical-contract-context.cjs');
+const restored = historical.isRestored(root);
+const phase1Source = fs.readFileSync(require('node:path').join(root, historical.historicalBackgroundOwner(root, 'src/background/services/renewal-phase1-retry-service.js')),'utf8');
 assert.ok(mutStart >= 0 && mutEnd > mutStart);
-assert.match(source,/requireRenewalPhase1RetryService\(\)\.canRetryRenewalPhase1\(renewal, fill\)/);
+if (!restored) assert.match(source,/requireRenewalPhase1RetryService\(\)\.canRetryRenewalPhase1\(renewal, fill\)/);
 assert.match(phase1Source,/function phase1PublishBoundaryReached\(renewal, fill/);
 assert.match(phase1Source,/function canRetryRenewalPhase1\(renewal, fill/);
 
@@ -26,26 +29,33 @@ const context = {
 };
 vm.createContext(context);
 vm.runInContext(source.slice(mutStart, mutEnd), context);
-let retryOwner = null;
-context.KRDeps = {register(name,api){
-  assert.equal(name,'KRRenewalPhase1RetryService'); retryOwner=api;
-}};
-vm.runInContext(phase1Source, context);
-assert.equal(typeof retryOwner?.create,'function');
-const inert = async () => {};
-const service = retryOwner.create({
-  sessionPort:{readRenewalSessions:inert,readFillSessions:inert,writeFillSessions:inert,persistRenewalSession:inert},
-  policyPort:{renewalPhaseAttemptAvailable:Policy.renewalPhaseAttemptAvailable,
-    renewalAttemptState:Policy.renewalAttemptState,
-    beginRenewalPhaseAttempt:context.beginRenewalPhaseAttempt,
-    normalizeRenewalMode:Policy.normalizeRenewalMode,
-    renewalMaxPhaseAttempts:Policy.renewalMaxPhaseAttempts},
-  tabPort:{createAutomationTab:inert,registerShadowTab:inert,closeRegistryTab:inert,updateAutomationTab:inert},
-  diagnosticsPort:{correlationContext:()=>({}),sessionCorrelationContext:()=>({}),logDiagnostic:inert},
-  configPort:{crypto:context.crypto,TEMPLATE_TARGET_URL:'https://www.kleinanzeigen.de/p-anzeige-aufgeben.html',TAB_ROLES:{}},
-  statePort:{renewalPhase1RetryInFlight:new Set()}
-});
-context.canRetryRenewalPhase1 = service.canRetryRenewalPhase1;
+if (restored) {
+  const boundary = phase1Source.match(/function phase1PublishBoundaryReached\(renewal, fill = null\) \{[\s\S]*?\n\}/)?.[0];
+  const retry = phase1Source.match(/function canRetryRenewalPhase1\(renewal, fill = null\) \{[\s\S]*?\n\}/)?.[0];
+  assert.ok(boundary && retry, 'actual historical phase-1 boundary and retry functions required');
+  vm.runInContext(boundary + '\n' + retry, context);
+} else {
+  let retryOwner = null;
+  context.KRDeps = {register(name,api){
+    assert.equal(name,'KRRenewalPhase1RetryService'); retryOwner=api;
+  }};
+  vm.runInContext(phase1Source, context);
+  assert.equal(typeof retryOwner?.create,'function');
+  const inert = async () => {};
+  const service = retryOwner.create({
+    sessionPort:{readRenewalSessions:inert,readFillSessions:inert,writeFillSessions:inert,persistRenewalSession:inert},
+    policyPort:{renewalPhaseAttemptAvailable:Policy.renewalPhaseAttemptAvailable,
+      renewalAttemptState:Policy.renewalAttemptState,
+      beginRenewalPhaseAttempt:context.beginRenewalPhaseAttempt,
+      normalizeRenewalMode:Policy.normalizeRenewalMode,
+      renewalMaxPhaseAttempts:Policy.renewalMaxPhaseAttempts},
+    tabPort:{createAutomationTab:inert,registerShadowTab:inert,closeRegistryTab:inert,updateAutomationTab:inert},
+    diagnosticsPort:{correlationContext:()=>({}),sessionCorrelationContext:()=>({}),logDiagnostic:inert},
+    configPort:{crypto:context.crypto,TEMPLATE_TARGET_URL:'https://www.kleinanzeigen.de/p-anzeige-aufgeben.html',TAB_ROLES:{}},
+    statePort:{renewalPhase1RetryInFlight:new Set()}
+  });
+  context.canRetryRenewalPhase1 = service.canRetryRenewalPhase1;
+}
 
 let n = 0;
 const pass = label => { n += 1; console.log(`PASS ${label}`); };

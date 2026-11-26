@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "version": "2.0.2.0",
+  "issue": 213,
+  "step": "S03",
+  "directBasis": "2.0.1.0",
+  "sourceCommit": "61f917d384cdce0fc191188e5a99515907967dbe",
+  "archiveSha256": "15e58983d23a0706a301e161c76bf52c4e2885667fb7214b6f80b8f1209c798a",
+  "sourceCheckpoint": "89d225a48c5c863687fecbabc910693b5e1a1fd1",
+  "runtimeChanges": [
+    {
+      "path": "manifest.json",
+      "before": "4e3d6b1118ec0eac78d95a10b67223de648af78e",
+      "after": "fef15b401559e71d6a5fb96af868060b25f52c03"
+    },
+    {
+      "path": "src/app/profile-backup-controller.js",
+      "before": "9857e2e7f6cea12774ae3a3579e8dab6ab4caaee",
+      "after": "e024019da9c321bcd778756ef4bfb842939d587d"
+    },
+    {
+      "path": "src/app/profile-backup-storage-service.js",
+      "before": "a59f152d31fa15ff2620b54d902e1d873a124cb8",
+      "after": "422a9dd271ee83be8fb817740a0746549872a1c0"
+    },
+    {
+      "path": "src/background/controllers/mass-renewal-controller.js",
+      "before": "f6f5bfd1a52d21a079dc15980a9425f439338dbd",
+      "after": "19ba2b3d40285066466090ecf55b5d840679529a"
+    },
+    {
+      "path": "src/background/controllers/mass-renewal-workflow-controller.js",
+      "before": "8705bde46aa2953f457289feb4d31857b48c8ac0",
+      "after": "3811c1a4906d0c482b5a37e5f7498ecedadd398d"
+    },
+    {
+      "path": "src/background/controllers/profile-management-controller.js",
+      "before": "b708d8e2eca3ee19455d5bd0dd5b4fdfc99d8236",
+      "after": "e78f6d83f98a6cd16a2fda7088a09ed1c025b962"
+    },
+    {
+      "path": "src/background/controllers/renewal-workflow-controller.js",
+      "before": "739a1977e53eadaa34fd980e709b35dc82d50138",
+      "after": "b890ad56216cbb1cae1def4df6f9be3ea4811740"
+    },
+    {
+      "path": "src/background/controllers/template-fill-controller.js",
+      "before": "c01b419766420bf1ed9b0e8cccb5d4a91e867cdd",
+      "after": "cea111834e279b8a3cd6b6e1bfbcc65975a2d97e"
+    },
+    {
+      "path": "src/background/repositories/profile-repository.js",
+      "before": "38a9c60839530b82c49ac31117bd99183fecdf43",
+      "after": "279258045b7e2c9fb4eee507663ad90b5e775652"
+    },
+    {
+      "path": "src/background/repositories/renewal-state-repository.js",
+      "before": "855c5f7f5b299987ef35d93928cf537f86a1d99f",
+      "after": "8fefbe58c306c32341e924bb9500a6af44ed1c5e"
+    },
+    {
+      "path": "src/background/services/archive-insertion-recovery-service.js",
+      "before": "78ea5071c275dd81d732a3c830a37c21e34498e1",
+      "after": "5b1e64993f0039465d05da8bdfae44844903ac30"
+    },
+    {
+      "path": "src/background/services/archive-insertion-service.js",
+      "before": "18213280900016321f83e1e3557d2dc6082c92d5",
+      "after": "722ca752ed71870a44ad6ff99a7d8820fc51c885"
+    },
+    {
+      "path": "src/background/services/mass-renewal-watchdog-service.js",
+      "before": "78b5d6289af78ef365c3f3da65b88abe992e288f",
+      "after": "6bd805450fad994a4610ff176f3cd173696b2b31"
+    },
+    {
+      "path": "src/background/services/remote-delete-replacement-service.js",
+      "before": "cd9809fd51a16405fde919cd28c5350d5091a493",
+      "after": "40af31d0adad44867a855a7273f148a16776ba83"
+    },
+    {
+      "path": "src/background/services/template-fill-service.js",
+      "before": "b89f740985c4a3e2dc4dddb290b5172b78763f53",
+      "after": "ba7157d56acc86e6374c186074dd501301504e08"
+    }
+  ],
+  "addedRuntime": [],
+  "reactivatedTests": [],
+  "retainedDeferredCapabilityChecks": [
+    {
+      "test": "tests/kar201-manual-standalone.cjs",
+      "module": "src/background/controllers/template-fill-controller.js",
+      "marker": "async function approveManualStandaloneRelease"
+    },
+    {
+      "test": "tests/kar197-blocked-fill-runtime.cjs",
+      "module": "src/background/controllers/template-fill-controller.js",
+      "marker": "publishBlockReason"
+    },
+    {
+      "test": "tests/kar199-emergency-reset-candidate-recovery.cjs",
+      "module": "src/background/services/remote-delete-replacement-service.js",
+      "marker": "async function recoverEmergencyResetCandidateAtomic"
+    }
+  ],
+  "reason": "S03 profile backup/restore fidelity and fail-closed legacy outcome handling. Exact successor blobs, no later deferred feature restored, all historical tests and absence markers retained. No new runtime module or admission/journal architecture."
+}

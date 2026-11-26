@@ -45,7 +45,10 @@ assert json.dumps(original, sort_keys=True) == snap
 assert new["manifest.json"]["key"] == original["manifest.json"]["key"]
 assert new["manifest.json"]["permissions"] == original["manifest.json"]["permissions"]
 assert new["manifest.json"]["host_permissions"] == original["manifest.json"]["host_permissions"]
-assert new["package-lock.json"]["packages"][""]["version"] == nxt
+expected_npm = ".".join(nxt.split(".")[:3])
+assert new["package.json"]["version"] == expected_npm
+assert new["package-lock.json"]["version"] == expected_npm
+assert new["package-lock.json"]["packages"][""]["version"] == expected_npm
 assert new["package.json"]["displayVersion"] == nxt
 assert new["release/release-spec.json"]["packageVersion"] == nxt
 for p in m.META:

@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "version": "2.0.4.0",
+  "issue": 220,
+  "step": "S05",
+  "directBasis": "2.0.3.0",
+  "sourceCommit": "514c3dcdaae09b7e583326089316ada59c229e9f",
+  "archiveSha256": "36041055ed9c9aec30edda9605bc229251f25bd1e47f796476ff59881460ee43",
+  "sourceCheckpoint": "3ddfe8aa513a899c38b6e3768ca1f710ec33496d",
+  "runtimeChanges": [
+    {
+      "path": "manifest.json",
+      "before": "df24bd73e846f7341f292263ba962b9e740767b0",
+      "after": "716f5fb5b24814f71e1e7d1715bdb720a34dd7ae"
+    },
+    {
+      "path": "src/background/services/template-fill-service.js",
+      "before": "ba7157d56acc86e6374c186074dd501301504e08",
+      "after": "50425d9923131ff17ddfb5075c1cab87cb1c8e37"
+    },
+    {
+      "path": "src/content/template-filler.js",
+      "before": "902706f9afbb7407a5fcf9968bd0e0c431ad1660",
+      "after": "80f0beccfde71f28caa5fdccb89c9a0760f8ebfd"
+    },
+    {
+      "path": "src/content/template-form-fields.js",
+      "before": "4ca1cc83328096d7498f0480d3174be5054bf42c",
+      "after": "97b704f7c33cd9cd74832032f595230e4cc29bce"
+    },
+    {
+      "path": "src/content/template-verification.js",
+      "before": "645ec67da2344c2ffdb195c0403584ed46f6c816",
+      "after": "cbbf86baac5d0e202b0c38b50d323f20a5d2b9e7"
+    }
+  ],
+  "addedRuntime": [],
+  "removedRuntime": [],
+  "reactivatedTests": [],
+  "excluded": [
+    "automatic form-version/change detection",
+    "F1/F2/F3 fingerprint monitoring",
+    "persistent schema-reference management",
+    "reference adoption dialogs",
+    "additional schema scans"
+  ],
+  "focusedRuns": [
+    45874206686,
+    45874567657,
+    45874845319,
+    45875068903
+  ]
+}

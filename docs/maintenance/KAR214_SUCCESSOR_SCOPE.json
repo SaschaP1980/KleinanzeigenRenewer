@@ -1,0 +1,145 @@
+{
+  "schemaVersion": 1,
+  "version": "2.0.1.0",
+  "issue": 214,
+  "step": "S09",
+  "directBasis": "2.0.0.1",
+  "sourceCommit": "3457cc52fbd90515d47fa4a4c180fde6361b1f27",
+  "archiveSha256": "e4ec9da3cb6604e807b640169dd2df849a9a444eb95f268c627e835f8dfe1383",
+  "sourceCheckpoint": "227160626182348f945ba00171e6d8da1f3f92ad",
+  "reactivatedTests": [
+    "tests/kar161-trash-retention.cjs",
+    "tests/kar164-trash-sort.cjs",
+    "tests/kar165-trash-retention-warning.cjs",
+    "tests/kar186-retention-hydration.cjs"
+  ],
+  "addedRuntime": [
+    "src/app/trash-retention-settings-controller.js"
+  ],
+  "runtimeChanges": [
+    {
+      "path": "manifest.json",
+      "historicalBlob": "d0d3038800b5ebc01ed1e39ea4533beed6fc8089",
+      "before": "a7376f5782888fac78d51c567cd7699e82705a2c",
+      "after": "4e3d6b1118ec0eac78d95a10b67223de648af78e"
+    },
+    {
+      "path": "src/app/app-elements.js",
+      "historicalBlob": "63a3e08c954ab7815c9a7d45b837cc8ca91b3566",
+      "before": "63a3e08c954ab7815c9a7d45b837cc8ca91b3566",
+      "after": "2d121279ba96050effd9e213756d7cc86429b108"
+    },
+    {
+      "path": "src/app/app.css",
+      "historicalBlob": "4d69502577fd25ad94ac7a6dd80c9cc3a45afbe0",
+      "before": "4d69502577fd25ad94ac7a6dd80c9cc3a45afbe0",
+      "after": "8d06c5d541cbbf2624a5ce6dbd37df5c5e466b21"
+    },
+    {
+      "path": "src/app/app.html",
+      "historicalBlob": "ea61937e56291905fa6bfc6827e948d700f21877",
+      "before": "ea61937e56291905fa6bfc6827e948d700f21877",
+      "after": "50cff88857a2627b8dfdad523c5b9e952ead8df2"
+    },
+    {
+      "path": "src/app/app.js",
+      "historicalBlob": "35e1209dc3c38863b4479afdbb1311aae6b185ae",
+      "before": "35e1209dc3c38863b4479afdbb1311aae6b185ae",
+      "after": "6d278931f63b0b952eb0fa7f89cad67c26a79beb"
+    },
+    {
+      "path": "src/app/inventory-card-renderer.js",
+      "historicalBlob": "f3cc492f85469cc62a33f812fe5a5b2dcd2db726",
+      "before": "f3cc492f85469cc62a33f812fe5a5b2dcd2db726",
+      "after": "c428ea277d5d5767d29aee77211e33f5722eeedf"
+    },
+    {
+      "path": "src/app/inventory-formatting.js",
+      "historicalBlob": "45bd6f6aa9d10ade0079719d3976f976f06d05f1",
+      "before": "45bd6f6aa9d10ade0079719d3976f976f06d05f1",
+      "after": "c56f7fe00d497fe45ac9d197c54f776b07667b61"
+    },
+    {
+      "path": "src/app/inventory-view.js",
+      "historicalBlob": "da0c66d512f939c1acf5285995ca6f6057154826",
+      "before": "da0c66d512f939c1acf5285995ca6f6057154826",
+      "after": "932da5bec1449715771a53221912e025ad001928"
+    },
+    {
+      "path": "src/app/record-card-view.js",
+      "historicalBlob": "6e9974cedd71c092df0a09b3b49f6502073e18a5",
+      "before": "6e9974cedd71c092df0a09b3b49f6502073e18a5",
+      "after": "cae0474b517b39354c9d3b3375019861b03a64aa"
+    },
+    {
+      "path": "src/app/renewal-dialog-controller.js",
+      "historicalBlob": "fefb589bf390c443d7205e24c553ebf27676654e",
+      "before": "fefb589bf390c443d7205e24c553ebf27676654e",
+      "after": "e0cc09de1f31f5319abda6b1e98b8f4f82b6b25d"
+    },
+    {
+      "path": "src/app/trash-card-renderer.js",
+      "historicalBlob": "19f53e01867e48af39e5db5f00fc6cf34ccf68e8",
+      "before": "19f53e01867e48af39e5db5f00fc6cf34ccf68e8",
+      "after": "40edf09ad56a9928334c5d31f5e2df2ff432b492"
+    },
+    {
+      "path": "src/app/trash-retention-settings-controller.js",
+      "historicalBlob": null,
+      "before": null,
+      "after": "5cdb53c1fc402ff761c2f86bf2ed16336b1a7b81"
+    },
+    {
+      "path": "src/background/background-message-router.js",
+      "historicalBlob": "4e016a82054d8647b7a9fc5fd24d47c394d58b46",
+      "before": "4e016a82054d8647b7a9fc5fd24d47c394d58b46",
+      "after": "ca2037b44db92220be06d125f96f4c5477f5147e"
+    },
+    {
+      "path": "src/background/background.js",
+      "historicalBlob": "bbdeee5b2c6125545b22de209c4d52fd1bdeb9ad",
+      "before": "f75e6e9dfb1bb2491c8a7d9bd5932c53baf99998",
+      "after": "b490057889909bbcf696cff06831773435d66beb"
+    },
+    {
+      "path": "src/background/repositories/inventory-repository.js",
+      "historicalBlob": "40a339ea5955c49bbc72c3b07f8e0cf0f1f8ed8b",
+      "before": "40a339ea5955c49bbc72c3b07f8e0cf0f1f8ed8b",
+      "after": "f8e7a11c15fc268b80ebf84481a24be822235f8a"
+    },
+    {
+      "path": "src/background/services/bulk-reconciliation-service.js",
+      "historicalBlob": "27383d7760cfbcaded42790534c288a5864d1397",
+      "before": "27383d7760cfbcaded42790534c288a5864d1397",
+      "after": "ac8d89df11c7b2df397a042c10b59784c04a3078"
+    },
+    {
+      "path": "src/background/services/remote-delete-replacement-service.js",
+      "historicalBlob": "0d89fea2632e2135f72deca3fbc03514630762c5",
+      "before": "0d89fea2632e2135f72deca3fbc03514630762c5",
+      "after": "cd9809fd51a16405fde919cd28c5350d5091a493"
+    },
+    {
+      "path": "src/background/services/trash-service.js",
+      "historicalBlob": "a5cb8f0b7fbca13b27b7eba6f3cd0303d56bedf9",
+      "before": "a5cb8f0b7fbca13b27b7eba6f3cd0303d56bedf9",
+      "after": "da9066b38325e1553104c84a502d77ec7e149ebc"
+    },
+    {
+      "path": "src/shared/message-contract-registry.js",
+      "historicalBlob": "cc5a72fd6614034b73f2547550aa9b3cc93e1f88",
+      "before": "cc5a72fd6614034b73f2547550aa9b3cc93e1f88",
+      "after": "719c8d01a9b3b540b73a77b80cc9c08d68002e3d"
+    }
+  ],
+  "backgroundBudget": {
+    "chars": 197666,
+    "bytes": 197791,
+    "lines": 3349
+  },
+  "appBudget": {
+    "chars": 178654,
+    "bytes": 179048,
+    "lines": 3426
+  }
+}
