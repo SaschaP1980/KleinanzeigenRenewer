@@ -78,3 +78,8 @@ test('invalid envelope or unverified version blocks and output does not leak rec
  const out=JSON.stringify(blocked({[P+'fill1_attempt1']:intent},'PUBLISH_UNRESOLVED'));
  for(const value of ['fill1','profile1','workflow1','attempt1','worker1']) assert.ok(!out.includes(value));
 });
+
+test('unrecognized persisted view mode blocks instead of silently normalizing the setting',()=>{
+ blocked({globalListViewModeV1:'list'},'VIEW_MODE_UNKNOWN');
+ for(const value of ['compact','detailed']) assert.equal(inspect(envelope({globalListViewModeV1:value})).status,'READY_FOR_OFFLINE_REVIEW');
+});
