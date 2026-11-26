@@ -217,7 +217,7 @@ test('W3 blocked archive publication is not detected or continued from legacy ta
   const row={archiveInsertionId:'a',status:'submitted',stage:'publish-intent-blocked',targetTabId:42,sourceAdId:'100'};
   let detected=0,continued=0,writes=0;
   const deps={readArchiveInsertionSessions:async()=>({a:row}),readFillSessions:async()=>({f:{archiveInsertionId:'a',targetTabId:42}}),getInventory:async()=>null,isTrashRecord:()=>false,persistArchiveInsertionSession:async()=>{writes++;},deleteImagesByInventoryId:async()=>{},logDiagnostic:async()=>{},setAppNotice:async()=>{},broadcastInventoryChanged:()=>{},normalizeRenewalMode:x=>x,cryptoApi:globalThis.crypto,compareArchiveInsertionRecords:async()=>({}),runArchiveInsertionPostPublish:async()=>{continued++;},confirmPublishedArchiveInsertion:async()=>{continued++;},detectPublishedAdForFill:async()=>{detected++;return {adId:'200'};}};
-  const api=loadRegistry([p]).require('KRArchiveInsertionRecoveryService').create(deps);
+  const api=loadRegistry([p],{detectPublishedAdForFill:deps.detectPublishedAdForFill}).require('KRArchiveInsertionRecoveryService').create(deps);
   await api.resumePendingArchiveInsertions();
   assert.deepEqual([detected,continued,writes],[0,0,0]);
 });
