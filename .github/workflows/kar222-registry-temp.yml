@@ -1,0 +1,34 @@
+name: KAR-222 registry local metadata correctness
+on:
+  push:
+    branches: [work/KAR-222]
+    paths: ['.github/workflows/kar222-registry-temp.yml','tests/kar222-tab-registry-cost.cjs','src/background/services/tab-registry.js']
+permissions:
+  contents: read
+jobs:
+  focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Syntax and scope
+        run: |
+          git diff --name-status 025b99b6bfba03666c52f057cd45c26b26b2b386 HEAD
+          git diff --exit-code 025b99b6bfba03666c52f057cd45c26b26b2b386 HEAD -- manifest.json lib icons
+          node --check src/background/services/tab-registry.js
+          node --check tests/kar222-tab-registry-cost.cjs
+      - name: Registry behavior and costs
+        run: node --test --test-reporter=tap tests/kar210-p9-independent-tab-lifecycle.cjs tests/kar222-tab-registry-cost.cjs
+      - name: Adjacent retained registry commands
+        if: always()
+        run: |
+          export NODE_OPTIONS='--require ./tests/v12222-vm-legacy-bridge.cjs'
+          node tests/v1156-a1-tab-registry-runtime.cjs
+          node tests/v1156-a1-tab-registry.cjs
