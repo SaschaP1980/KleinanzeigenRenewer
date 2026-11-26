@@ -12,9 +12,9 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          ref: c339afd7271a6d1588540ad482b469aa4d180c25
+          ref: ea582254786811597a268bbf81937b3f90f8ce32
           persist-credentials: false
-      - run: test "$(git rev-parse HEAD)" = "c339afd7271a6d1588540ad482b469aa4d180c25"
+      - run: test "$(git rev-parse HEAD)" = "ea582254786811597a268bbf81937b3f90f8ce32"
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
