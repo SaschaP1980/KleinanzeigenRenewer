@@ -21,7 +21,9 @@ node tests/kar210-test-disposition.cjs
 # Generate the authoritative public API inventory before running execution-closure tests.
 node scripts/runtime-api-inventory.cjs --json > "$project_dir/coverage/public-api-manifest.json"
 NODE_V8_COVERAGE="$raw" npm test
-# S02: retained trash and diagnostic behavior is measured in npm test; later QoL tests are inventoried separately.
+# KAR-214: restore the original mandatory countdown witness in addition to npm/build.
+# The frozen KAR-167 inventory records this exact direct coverage-gate invocation.
+node tests/kar165-trash-retention-warning.cjs
 # KAR-167: independent path/link/immutable architecture-evidence closure after the normal suite.
 node tests/kar167-file-layout.cjs
 node tests/kar167-script-closure.cjs
