@@ -1,0 +1,30 @@
+name: KAR-222 mass recovery characterization
+on:
+  push:
+    branches: [work/KAR-222]
+    paths: ['.github/workflows/kar222-mass-recovery-temp.yml','tests/kar222-mass-recovery-witness.cjs']
+permissions:
+  contents: read
+jobs:
+  focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Exact test-only change
+        run: |
+          git diff --name-status 4cb3abb3842bb1396fab1529dbefc43f26ce5619 HEAD
+          git diff --exit-code 4cb3abb3842bb1396fab1529dbefc43f26ce5619 HEAD -- src manifest.json lib icons
+          node --check tests/kar222-mass-recovery-witness.cjs
+      - name: Retained GREEN controls and independent mass recovery witnesses
+        shell: bash
+        run: |
+          export NODE_OPTIONS='--require ./tests/v12222-vm-legacy-bridge.cjs'
+          node --test --test-reporter=tap tests/kar199-phase4-ui-runtime.cjs tests/kar222-b16-recovery-ui.cjs tests/kar199-emergency-reset-candidate-recovery.cjs tests/kar222-b14-recovery.cjs tests/kar210-kar199-baseline-reset.cjs tests/kar222-delete-no-replay.cjs tests/kar199-phase4-no-transport-replay.cjs tests/kar210-kar199-baseline-phase4.cjs tests/kar210-cp36-phase4-product-witness.cjs tests/kar210-kar150-mass-baseline.cjs tests/kar210-kar150-uncertain-start-witness.cjs tests/kar222-mass-recovery-witness.cjs
