@@ -1,5 +1,6 @@
 (() => {
   'use strict';
+  const legacyOutcomeBlocked = row => ['source-delete-outcome-unverified', 'source-delete-status-unverified', 'publish-intent-blocked'].includes(String(row?.stage || '')) || String(row?.status || '') === 'publish-blocked';
   const API = Object.freeze({
     create(options = {}) {
       const storageLocal = options.storageLocal;
@@ -24,6 +25,7 @@
         const cutoff = Date.now() - maxAgeMs;
         let changed = false;
         for (const [fillId, session] of Object.entries(sessions)) {
+          if (legacyOutcomeBlocked(session) || session?.remoteVerificationRequired === true) continue;
           if (!session?.createdAt || Date.parse(session.createdAt) < cutoff) {
             delete sessions[fillId]; changed = true;
           }
@@ -64,7 +66,7 @@
         return withTemplateFillMutation(async () => {
           const sessions = await readFillSessions();
           const session = sessions[String(fillId || '')];
-          if (!session || terminalStatuses.has(String(session.status || ''))) return false;
+          if (!session || legacyOutcomeBlocked(session) || terminalStatuses.has(String(session.status || ''))) return false;
           session.status = 'error';
           session.stage = 'progress-watchdog-timeout';
           session.result = { complete: false, issues: [String(issue || 'Der Vorgang hat keinen Fortschritt mehr gemeldet.').slice(0, 300)] };
@@ -128,7 +130,7 @@
         if (!tabId) return null;
         const sessions = await readFillSessions();
         const session = Object.values(sessions).find(item => item?.targetTabId === tabId && ['waiting', 'running'].includes(item.status));
-        if (!session) return null;
+        if (!session || legacyOutcomeBlocked(session)) return null;
         const record = session.archiveInsertionId && session.archiveTemplate ? session.archiveTemplate : await getInventory(session.inventoryId);
         if (!record) throw new Error('Vorlageninventar wurde nach dem Öffnen des Tabs nicht gefunden.');
         session.status = 'running';
