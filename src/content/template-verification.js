@@ -27,8 +27,14 @@
     for (const attribute of template.dynamicAttributes || []) {
       // The capture extractor records empty optional fields too; absence of a
       // saved selection must not become a false blocking mismatch.
-      if (!attribute?.key || attribute.technicalValue === null ||
-          attribute.technicalValue === undefined || attribute.technicalValue === '') continue;
+      if (!attribute?.key) continue;
+      if (attribute.technicalValue === null || attribute.technicalValue === undefined || attribute.technicalValue === '') {
+        const label = String(attribute.displayValue ?? '').replace(/\s+/g, ' ').trim();
+        if (attribute.required || ['captured', 'technical-only'].includes(attribute.status) ||
+            (label && !/^(bitte wählen|auswählen|select)$/i.test(label)))
+          issues.push('Merkmal „' + (attribute.label || attribute.key) + '“ besitzt keinen bestätigten Auswahlwert.');
+        continue;
+      }
       const desired = attribute.technicalValue;
       const target = 'attributeMap[' + attribute.key + ']';
       const all = [...queryAllRoot.querySelectorAll('input[name^="attributeMap["]')]
@@ -51,6 +57,14 @@
         matches = wantedChecked !== null && matching[0].checked === wantedChecked;
       } else if (matching.length === 1 && matching[0].type === 'hidden') {
         matches = String(matching[0].value) === String(desired);
+      }
+      if (matches && attribute.recoveredDisplayValue) {
+        const key = matching[0].name.slice('attributeMap['.length, -1);
+        const owner = queryRoot.ownerDocument || queryRoot;
+        const control = owner.getElementById(key);
+        const shown = owner.getElementById(key + '-selected-option');
+        matches = Boolean(control && shown && queryRoot.contains(control) && control.contains(shown) &&
+          String(shown.textContent ?? '').replace(/\s+/g, ' ').trim() === attribute.recoveredDisplayValue);
       }
       if (!matches) issues.push(`Merkmal „${attribute.label || attribute.key}“ stimmt nicht mit der Vorlage überein.`);
     }

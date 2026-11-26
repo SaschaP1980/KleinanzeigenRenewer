@@ -81,7 +81,7 @@
         return {
           inventoryId: record.inventoryId, sourceAdId: record.adId, title: record.title || '', description: record.description || '',
           categoryId: record.category?.id ?? record.categoryIdFromUrl ?? null, categoryPath: record.category?.path || record.categoryPath || [],
-          dynamicAttributes: (record.dynamicAttributes || []).map(attribute => ({ key: attribute.key, label: attribute.label, technicalValue: attribute.technicalValue, displayValue: attribute.displayValue, controlType: attribute.controlType, controlId: attribute.controlId, required: Boolean(attribute.required) })),
+          dynamicAttributes: (record.dynamicAttributes || []).map(attribute => ({ key: attribute.key, label: attribute.label, technicalValue: attribute.technicalValue, displayValue: attribute.displayValue, controlType: attribute.controlType, controlId: attribute.controlId, required: Boolean(attribute.required), status: attribute.status })),
           adType: record.adType ? { value: record.adType.value, displayValue: record.adType.displayValue } : null,
           shipping: record.shipping ? { value: record.shipping.value, displayValue: record.shipping.displayValue, methods: (record.shipping.methods || []).map(method => ({ id: method.id, label: method.label || '' })) } : null,
           price: record.price ? { value: record.price.value, type: record.price.type, typeDisplay: record.price.typeDisplay, currency: record.price.currency || 'EUR' } : null,

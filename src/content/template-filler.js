@@ -319,6 +319,7 @@
   async function runFillSession(session) {
     const { fillId, template } = session;
     const issues = [];
+    const recoveredDisplayOnly = new Map();
     updatePanel('Anzeige wird ausgefüllt', 'Die gespeicherten Angaben werden in die neue Anzeige übernommen …');
     void diagnostic(fillId, 'TEMPLATE_FILL_EXECUTION_STARTED', { sourceAdId: template.sourceAdId || null, inventoryId: template.inventoryId || null });
     await runtimeMessage({ type: 'UPDATE_TEMPLATE_FILL_SESSION', fillId, status: 'running', stage: 'form-ready' });
@@ -342,7 +343,11 @@
     if (paidAfterCategory.required) return await stopForPaidInsertion(session, paidAfterCategory, 'after-category');
 
     if (String(form.querySelector('input[name="categoryId"]')?.value || '') === String(template.categoryId || '')) {
-      const attributeIssues = await fillDynamicAttributes(template, fillId);
+      const attributeIssues = await fillDynamicAttributes(template, fillId, proof => {
+        if (!proof?.key || !proof.technicalValue || !proof.displayValue || recoveredDisplayOnly.has(proof.key))
+          throw new Error('Nicht eindeutiger wiederhergestellter Auswahlwert.');
+        recoveredDisplayOnly.set(proof.key, proof);
+      });
       issues.push(...attributeIssues);
       void diagnostic(fillId, 'TEMPLATE_DYNAMIC_ATTRIBUTES_FINISHED', { configured: (template.dynamicAttributes || []).length, issueCount: attributeIssues.length }, attributeIssues.length ? 'warning' : 'info');
       const shippingIssues = await fillShipping(template);
@@ -377,7 +382,14 @@
         ...titleReadbackEvidence(template.title || '', actual, verificationForm)
       }, 'error');
     }
-    issues.push(...(session.archiveInsertionId ? verifyArchiveTemplate(template, verificationForm) : verify(template, verificationForm)));
+    // Only the current fill's native readback may resolve a historical visible-only value.
+    // The saved record is never modified.
+    const verificationTemplate = recoveredDisplayOnly.size ? { ...template, dynamicAttributes:
+      (template.dynamicAttributes || []).map(attribute => {
+        const proof = recoveredDisplayOnly.get(attribute.key);
+        return proof ? { ...attribute, technicalValue: proof.technicalValue, recoveredDisplayValue: proof.displayValue } : attribute;
+      }) } : template;
+    issues.push(...(session.archiveInsertionId ? verifyArchiveTemplate(verificationTemplate, verificationForm) : verify(verificationTemplate, verificationForm)));
 
     const uniqueIssues = [...new Set(issues)];
     const imagesComplete = imageOutcome.complete === true;

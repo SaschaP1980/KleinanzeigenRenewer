@@ -463,11 +463,69 @@
     throw lastError || new Error('Merkmal „' + (attribute.label || attribute.key) + '“ konnte nicht gesetzt werden.');
   }
 
-  async function fillDynamicAttributes(template, fillId) {
+  // Legacy visible-only selections have no saved technical ID. Recover only
+  // through the actual uniquely linked dropdown, never from a guessed label/index.
+  async function recoverExactDisplayOnlyOption(attribute) {
+    const name = resolvedAttributeName(attribute);
+    const key = name.slice('attributeMap['.length, -1);
+    const label = clean(attribute.displayValue);
+    const input = exactDynamicInput(name);
+    const control = document.getElementById(key);
+    const labelNode = document.getElementById(key + '-selected-option');
+    if (!input || input.type !== 'hidden' || !control || control.tagName !== 'BUTTON' ||
+        control.getAttribute('role') !== 'combobox' || !visible(control) || control.disabled ||
+        control.getAttribute('aria-disabled') === 'true' || !labelNode || !control.contains(labelNode))
+      throw new Error('Eindeutiges Dropdown für die gespeicherte Auswahl fehlt.');
+    const before = String(input.value || '');
+    const beforeLabel = clean(labelNode.textContent);
+    control.focus?.();
+    if (control.getAttribute('aria-expanded') !== 'true') control.click();
+    const menu = await waitFor(() => {
+      const linked = String(control.getAttribute('aria-controls') || '').trim();
+      if (!linked || /\s/.test(linked)) return null;
+      const root = document.getElementById(linked);
+      return root && visible(root) && root.getAttribute('role') === 'listbox' &&
+        root.getAttribute('aria-labelledby') === key && control.getAttribute('aria-expanded') === 'true'
+        ? root : null;
+    }, { timeout: 1800, interval: 70, description: 'Eindeutige Auswahlliste „' + key + '“' });
+    const choices = [...menu.querySelectorAll('[role="option"]')]
+      .filter(option => visible(option) && !option.disabled && option.getAttribute('aria-disabled') !== 'true' &&
+        clean(visibleText(option)) === label);
+    if (choices.length !== 1)
+      throw new Error('Auswahl „' + label + '“ ist nicht genau einmal im zugehörigen Dropdown vorhanden.');
+    choices[0].click();
+    const recovered = await waitFor(() => {
+      const refreshed = exactDynamicInput(name);
+      const active = document.getElementById(key);
+      const shown = document.getElementById(key + '-selected-option');
+      const value = String(refreshed?.value || '');
+      return refreshed?.type === 'hidden' && value && active?.contains(shown) &&
+        clean(shown.textContent) === label && active.getAttribute('aria-expanded') !== 'true' &&
+        (value !== before || beforeLabel === label) ? value : null;
+    }, { timeout: 1800, interval: 70, description: 'Sichtbarer und technischer Auswahlwert „' + key + '“' });
+    return { key: attribute.key, technicalValue: recovered, displayValue: label };
+  }
+
+  async function fillDynamicAttributes(template, fillId, onRecoveredDisplayOnly = null) {
     const issues = [];
     for (const attribute of template.dynamicAttributes || []) {
-      if (!attribute?.key || attribute.technicalValue === null || attribute.technicalValue === undefined || attribute.technicalValue === '') continue;
+      if (!attribute?.key) continue;
+      const hasTechnical = attribute.technicalValue !== null && attribute.technicalValue !== undefined && attribute.technicalValue !== '';
       try {
+        if (!hasTechnical) {
+          const label = clean(attribute.displayValue);
+          if (!label || /^(bitte wählen|auswählen|select)$/i.test(label)) {
+            if (attribute.required || ['captured', 'technical-only'].includes(attribute.status))
+              throw new Error('Gespeicherter Auswahlwert fehlt.');
+            continue;
+          }
+          if (attribute.status === 'empty') throw new Error('Gespeicherter Leerstatus widerspricht dem Auswahlwert.');
+          if (typeof onRecoveredDisplayOnly !== 'function') throw new Error('Auswahlwert kann nicht abschließend verifiziert werden.');
+          const proof = await recoverExactDisplayOnlyOption(attribute);
+          onRecoveredDisplayOnly(proof);
+          void diagnostic(fillId, 'TEMPLATE_ATTRIBUTE_SET', { key: attribute.key, displayOnlyRecovered: true, attempt: 1 });
+          continue;
+        }
         const result = await fillDynamicAttributeWithRetries(attribute, fillId);
         void diagnostic(fillId, 'TEMPLATE_ATTRIBUTE_SET', {
           key: attribute.key,
