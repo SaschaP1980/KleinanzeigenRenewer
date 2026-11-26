@@ -12,9 +12,9 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          ref: 8c83395f58e8bc941ec4653571432d5499eb5fbf
+          ref: 371aac9b0b8805197d2eb69dc2aec2a37b3b1650
           persist-credentials: false
-      - run: test "$(git rev-parse HEAD)" = "8c83395f58e8bc941ec4653571432d5499eb5fbf"
+      - run: test "$(git rev-parse HEAD)" = "371aac9b0b8805197d2eb69dc2aec2a37b3b1650"
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -29,10 +29,10 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          ref: 8c83395f58e8bc941ec4653571432d5499eb5fbf
+          ref: 371aac9b0b8805197d2eb69dc2aec2a37b3b1650
           fetch-depth: 0
           persist-credentials: false
-      - run: test "$(git rev-parse HEAD)" = "8c83395f58e8bc941ec4653571432d5499eb5fbf"
+      - run: test "$(git rev-parse HEAD)" = "371aac9b0b8805197d2eb69dc2aec2a37b3b1650"
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
