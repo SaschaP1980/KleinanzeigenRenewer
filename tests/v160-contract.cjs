@@ -17,7 +17,7 @@ if (!restored) assert.ok((includesActivePatch(['1.6.0','1.6.1','1.6.2','1.7.0','
 assert.equal(pkg.version, restored ? (manifest.version.split('.').slice(0,3).join('.')) : manifest.version);
 assert.equal(lock.version, restored ? (manifest.version.split('.').slice(0,3).join('.')) : manifest.version);
 assert.equal(lock.packages[''].version, restored ? (manifest.version.split('.').slice(0,3).join('.')) : manifest.version);
-assert.deepEqual([...manifest.permissions].sort(), require('./current-patch-policy.cjs').expectedManifestPermissions(restored && manifest.version !== '2.0.3.0' ? '1.23.48' : manifest.version).sort());
+assert.deepEqual([...manifest.permissions].sort(), require('./current-patch-policy.cjs').expectedManifestPermissions(restored && !require('./current-patch-policy.cjs').isS04Version(manifest.version) ? '1.23.48' : manifest.version).sort());
 pass('v1.6.0 keeps the established manifest permissions and fixed extension architecture');
 
 assert.match(content, /EXTRACT_READONLY_METADATA/);

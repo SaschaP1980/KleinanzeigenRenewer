@@ -1,13 +1,13 @@
-name: KAR-220 successor diagnostics (temporary)
+name: KAR-220 full diagnostic (temporary)
 on:
   push:
     branches: [work/KAR-220]
 permissions:
   contents: read
 jobs:
-  diagnostics:
+  diagnostic:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
         with:
@@ -17,14 +17,18 @@ jobs:
         with:
           node-version: '22'
       - run: npm ci
-      - name: Inventory exact prior-version references
-        run: git grep -n -F '2.0.3.0' -- tests scripts .github ':!tests/fixtures/*' || true
-      - name: Verify successor and retained tests
+      - name: Independent active test diagnostics (no full-gate credit)
         run: |
-          git rev-parse HEAD
-          python3 tests/kar210-baseline-restore.py
-          node tests/kar220-successor-contract.cjs
-          node tests/kar217-successor-contract.cjs
-          node tests/kar210-baseline-version-contract.cjs
-          python3 tests/kar210-version-identity.py
-          node tests/kar220-field-transfer.cjs
+          node <<'NODE'
+          const {spawnSync}=require('node:child_process'),fs=require('node:fs');
+          const script=require('./package.json').scripts.test;
+          const commands=script.split(' && ');
+          let failed=[];
+          for (let i=0;i<commands.length;i++){
+            const command=commands[i];
+            const r=spawnSync('bash',['-lc',command],{encoding:'utf8',timeout:120000,maxBuffer:16*1024*1024,env:{...process.env,NODE_OPTIONS:'--require ./tests/v12222-vm-legacy-bridge.cjs'}});
+            if(r.status!==0){failed.push([i,command,r.status]);console.log('FAIL_COMMAND',i,command,r.status);console.log((r.stdout||'').slice(-4000));console.log((r.stderr||'').slice(-4000));}
+          }
+          console.log('DIAGNOSTIC_SUMMARY',JSON.stringify({total:commands.length,failed}));
+          process.exitCode=failed.length?1:0;
+          NODE
