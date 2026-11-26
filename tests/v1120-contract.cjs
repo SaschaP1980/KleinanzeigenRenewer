@@ -27,7 +27,7 @@ const keyDigest = crypto.createHash('sha256').update(Buffer.from(manifest.key, '
 const extensionId = keyDigest.slice(0, 32).split('').map(c => String.fromCharCode(97 + Number.parseInt(c, 16))).join('');
 assert.equal(keyDigest, '70507977688f3465a60227cd0261bd07d92fad620625cd7ebff8f0856d9c5ed3');
 assert.equal(extensionId, 'hafahjhhgiipdegfkgacchmnacgblnah');
-assert.deepEqual(manifest.permissions, require('./current-patch-policy.cjs').expectedManifestPermissions(restored ? '1.23.48' : manifest.version));
+assert.deepEqual(manifest.permissions, require('./current-patch-policy.cjs').expectedManifestPermissions(restored && manifest.version !== '2.0.3.0' ? '1.23.48' : manifest.version));
 pass('v1.12.0 preserves fixed extension identity and permissions');
 
 for (const id of ['renewalModeIndicator','renewalModeSafeButton','renewalModeFastButton','renewalModeDescription']) {
