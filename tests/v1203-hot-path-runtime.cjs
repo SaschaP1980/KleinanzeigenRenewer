@@ -20,13 +20,17 @@ class FakeDate extends Date {
   constructor(...args) { super(...(args.length ? args : [clock])); }
   static now() { return clock; }
 }
+const s09 = require('./current-patch-policy.cjs').isS09Version(require('../manifest.json').version);
 let expiryReads = 0;
+const dayMs=86400000;
+let rows=[{inventoryId:'t1',profileId:'p',recordKind:'trash',trash:{trashedAt:new Date(5000-30*dayMs).toISOString(),expiresAt:new Date(5000).toISOString()}}];
 const repository = {
   readForProfile: async () => [],
   get: async () => null,
   mutate: async () => null,
   deleteWithImages: async () => {},
-  readAll: async () => [],
+  readAll: async () => {if(!s09)return [];expiryReads++;return structuredClone(rows);},
+  deleteTrashIfEligible: async (id,expected,days,at)=>{const row=rows.find(r=>r.inventoryId===id);assert.ok(row&&row.profileId===expected.profileId&&row.trash.trashedAt===expected.trashedAt&&row.trash.expiresAt===expected.expiresAt);assert.equal(days,30);assert.equal(expected.respectStoredDeadline,true);assert.ok(Date.parse(row.trash.expiresAt)<=at);rows=rows.filter(r=>r.inventoryId!==id);return true;},
   readTrashExpiryState: async () => { expiryReads += 1; return { expired: [], nextDueAt: 5000 }; }
 };
 const trashCtx = { console, Date: FakeDate, Promise, globalThis: null };
@@ -38,12 +42,12 @@ vm.runInContext(trashSource, trashCtx);
 (async () => {
   const service = trashCtx.KRTrashService.create({ inventoryRepository: repository, retentionMs: 30 * 24 * 60 * 60 * 1000 });
   await service.purgeExpired();
-  assert.equal(expiryReads, 1); pass('unknown purge schedule performs one indexed expiry check');
+  assert.equal(expiryReads, 1); pass('unknown purge schedule performs one expiry check');
   const skipped = await service.purgeExpired();
   assert.equal(skipped.skipped, true); assert.equal(expiryReads, 1); pass('future expiry suppresses redundant purge query through public purgeExpired');
   clock = 5000;
   await service.purgeExpired();
-  assert.equal(expiryReads, 2); pass('due expiry re-enables indexed purge query through public purgeExpired');
+  assert.equal(expiryReads, 2); pass('due expiry re-enables expiry query through public purgeExpired');
   repository.readTrashExpiryState = async () => { expiryReads += 1; return { expired: [], nextDueAt: null }; };
   await service.purgeExpired();
   const readsAfterNoFuture = expiryReads;

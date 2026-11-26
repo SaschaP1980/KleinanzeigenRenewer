@@ -1,6 +1,7 @@
 'use strict';
 // Historical refresh and local retention only; no later loading-generation/policy implementation.
 const assert=require('node:assert/strict'),test=require('node:test'),vm=require('node:vm'),fs=require('node:fs');
+const s09=require('./current-patch-policy.cjs').isS09Version(require('../manifest.json').version);
 let Trash;
 vm.runInNewContext(fs.readFileSync('src/background/services/trash-service.js','utf8'),{KRDeps:{register(name,api){if(name==='KRTrashService')Trash=api;}}});
 assert.equal(typeof Trash?.create,'function');
@@ -23,9 +24,10 @@ test('actual historical profile-scoped refresh renders persisted 61/90 and retai
 });
 test('actual historical trash service preserves fixed retention and never mutates on scoped listing or failed read',async()=>{
  const day=86400000,now=Date.now(),future=new Date(now+day).toISOString(),past=new Date(now-day).toISOString();
- const rows=[{inventoryId:'live',profileId:'p',recordKind:'inventory',images:[{imageKey:'live:0'}]},{inventoryId:'known',profileId:'p',recordKind:'trash',trash:{trashedAt:past,expiresAt:future}},{inventoryId:'unknown',profileId:'p',recordKind:'trash',trash:{trashedAt:past,expiresAt:null}},{inventoryId:'invalid',profileId:'p',recordKind:'trash',trash:{trashedAt:past,expiresAt:'invalid'}},{inventoryId:'foreign',profileId:'q',recordKind:'trash',trash:{trashedAt:past,expiresAt:future}},{inventoryId:'expired',profileId:'p',recordKind:'trash',trash:{trashedAt:past,expiresAt:past}}];
+ const rows=[{inventoryId:'live',profileId:'p',recordKind:'inventory',images:[{imageKey:'live:0'}]},{inventoryId:'known',profileId:'p',recordKind:'trash',trash:{trashedAt:past,expiresAt:future}},{inventoryId:'unknown',profileId:'p',recordKind:'trash',trash:{trashedAt:past,expiresAt:null}},{inventoryId:'invalid',profileId:'p',recordKind:'trash',trash:{trashedAt:past,expiresAt:'invalid'}},{inventoryId:'foreign',profileId:'q',recordKind:'trash',trash:{trashedAt:past,expiresAt:future}},{inventoryId:'expired',profileId:'p',recordKind:'trash',trash:{trashedAt:s09?new Date(now-31*day).toISOString():past,expiresAt:past}}];
  let fail=false,mutations=0,deletes=[];
  const repository={readForProfile:async p=>{if(fail)throw Error('read failed');return copy(rows.filter(r=>r.profileId===p));},readAll:async()=>copy(rows),get:async id=>copy(rows.find(r=>r.inventoryId===id)),mutate:async(id,fn)=>{mutations++;const i=rows.findIndex(r=>r.inventoryId===id);rows[i]=fn(copy(rows[i]));return copy(rows[i]);},deleteWithImages:async id=>{deletes.push(id);rows.splice(rows.findIndex(r=>r.inventoryId===id),1);}};
+ if(s09) repository.deleteTrashIfEligible=async(id,expected,days,nowMs)=>{const row=rows.find(r=>r.inventoryId===id);assert.equal(days,30);assert.ok(row&&row.recordKind==='trash'&&row.profileId===expected.profileId&&row.trash.trashedAt===expected.trashedAt&&row.trash.expiresAt===expected.expiresAt&&Date.parse(row.trash.expiresAt)<=nowMs);assert.equal(expected.respectStoredDeadline,true);await repository.deleteWithImages(id);return true;};
  const service=Trash.create({inventoryRepository:repository});
  const before=copy(rows);assert.deepEqual((await service.list('p')).map(x=>x.inventoryId).sort(),['expired','invalid','known','unknown']);
  fail=true;await assert.rejects(service.list('p'),/read failed/);assert.deepEqual(rows,before);assert.equal(mutations,0);assert.deepEqual(deletes,[]);

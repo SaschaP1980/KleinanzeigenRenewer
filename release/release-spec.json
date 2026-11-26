@@ -5,7 +5,7 @@
   "goldBaseline": "1.21.15",
   "directBasis": "2.0.0.1",
   "directBasisNativeGreen": true,
-  "directBasisObservation": "KAR-212 bounded native defect acceptance recorded in closed Issue #212; no native acceptance of this successor or live data migration implied.",
+  "directBasisObservation": "2.0.0.1: KAR-212 bounded native defect acceptance recorded in closed Issue #212; no native acceptance of this successor or live data migration implied.",
   "scope": [
     "Restore v1.23.48 historical runtime, retaining KAR-174 UI path layout and current development tooling.",
     "Version identity 2.0.0.0, npm 2.0.0; preserve extension key, historical releases and Git ancestry.",

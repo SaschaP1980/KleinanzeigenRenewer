@@ -36,7 +36,7 @@ if (restoredBaseline) {
 } else assert.equal(assertCompatibleCurrentPatch({ manifest, pkg, lock, spec }), manifest.version);
 assert.equal(manifest.version_name, undefined);
 
-assert.equal(spec.directBasis, restoredBaseline ? '1.23.48' : '1.23.20_c1');
+assert.equal(spec.directBasis, restoredBaseline ? (manifest.version==='2.0.1.0'?'2.0.0.1':'1.23.48') : '1.23.20_c1');
 assert.equal(spec.nextPlannedBuild, restoredBaseline || isFeature24 ? 'TBD' : '1.24.0');
 assert.equal(arch.packageVersion, '1.23.22');
 assert.equal(arch.fix.newRuntimeBoundary, false);
@@ -132,7 +132,7 @@ const kar175InventoryOwners = [
 ].filter(([file, provider]) => files.includes(file) &&
   fs.readFileSync('src/background/background.js','utf8').includes("KRDeps.require('"+provider+"')") &&
   fs.readFileSync('scripts/package.py','utf8').includes("'"+file+"'")).length;
-if(restoredBaseline) assert.equal(files.length,103);
+if(restoredBaseline) assert.equal(files.length,manifest.version==='2.0.1.0'?104:103);
 else assert.equal(files.length, (reviewedAutoPublishIntent ? 109 : reviewedAtomicArbiter ? 108 : reviewedAdditionalOwners ? 107 : reviewedPhase4Journal ? 106 : reviewedPersistedObserver ? 105 : reviewedFence ? 104 : reviewedNative ? 103 : 100) + (reviewedTrustedOwner ? 1 : 0) + kar134SchemaRuntime + kar175InventoryOwners + (isFeature24 ? 2 : 0) + (files.includes('src/app/inventory-loading-state.js') ? 1 : 0));
 if(reviewedNative || restoredBaseline) {
   if(reviewedFence){ assert.ok(files.includes('src/background/services/update-workflow-fence.js')); assert.match(fs.readFileSync('src/background/background.js','utf8'), /KRDeps\.require\('KRUpdateWorkflowFence'\)/); }
