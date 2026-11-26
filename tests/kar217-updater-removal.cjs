@@ -4,15 +4,18 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path');
 const root=path.resolve(__dirname,'..'),read=p=>fs.readFileSync(path.join(root,p),'utf8');
 const removed=['src/app/native-update-check-ui.js','src/background/services/native-update-status-gateway.js','src/background/services/native-status-bridge.js'];
+test('S04 retains exact extension identity and host scopes',()=>{
+ const m=JSON.parse(read('manifest.json'));
+ assert.deepEqual([...m.host_permissions].sort(),['https://img.kleinanzeigen.de/*','https://kleinanzeigen.de/*','https://www.kleinanzeigen.de/*']);
+ assert.equal(require('node:crypto').createHash('sha256').update(Buffer.from(m.key,'base64')).digest('hex'),'70507977688f3465a60227cd0261bd07d92fad620625cd7ebff8f0856d9c5ed3');
+});
 test('S04 manifest removes only native messaging permission',()=>{
  const m=JSON.parse(read('manifest.json'));
  assert.deepEqual([...m.permissions].sort(),['activeTab','scripting','storage','unlimitedStorage']);
- assert.deepEqual([...m.host_permissions].sort(),['https://img.kleinanzeigen.de/*','https://kleinanzeigen.de/*','https://www.kleinanzeigen.de/*']);
- assert.equal(require('node:crypto').createHash('sha256').update(Buffer.from(m.key,'base64')).digest('hex'),'70507977688f3465a60227cd0261bd07d92fad620625cd7ebff8f0856d9c5ed');
 });
 test('S04 no updater controls or script in Manager HTML or CSS',()=>{
- assert.doesNotMatch(read('src/app/app.html'),/nativeUpdate|native-update|Windows-Updater|NativeHost|windows-updater-einrichten/i);
- assert.doesNotMatch(read('src/app/app.css'),/native-update/i);
+ assert.equal(/nativeUpdate|native-update|Windows-Updater|NativeHost|windows-updater-einrichten/i.test(read('src/app/app.html')),false,'updater HTML surface');
+ assert.equal(/native-update/i.test(read('src/app/app.css')),false,'updater stylesheet surface');
  assert.match(read('src/app/app.css'),/compact-action-icon\.action-update/);
  assert.ok(fs.existsSync(path.join(root,'icons/action-update.svg')));
 });
@@ -25,7 +28,8 @@ test('S04 former updater request is rejected by the actual message contract',()=
  assert.equal(registry.route('VERIFY_OWN_AD_ABSENT_BY_ID','my-ads-content').action,'accept');
 });
 test('S04 background has no native updater imports, calls or routes',()=>{
- assert.doesNotMatch(read('src/background/background.js'),/NativeUpdateStatusGateway|NativeStatusBridge|nativeStatusBridge|GET_NATIVE_UPDATE_STATUS|sendNativeMessage|connectNative|native-update-status-gateway|native-status-bridge/);
+ assert.equal(/NativeUpdateStatusGateway|NativeStatusBridge|nativeStatusBridge|GET_NATIVE_UPDATE_STATUS|sendNativeMessage|connectNative|native-update-status-gateway|native-status-bridge/.test(read('src/background/background.js')),false,'native background surface');
+ assert.equal(/GET_NATIVE_UPDATE_STATUS/.test(read('src/background/background-message-router.js')),false,'former router handler');
 });
 test('S04 no updater modules in active source or Chrome packaging list',()=>{
  const pack=read('scripts/package.py');
