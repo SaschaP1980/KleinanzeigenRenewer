@@ -26,3 +26,13 @@ jobs:
           git rev-parse HEAD
           git grep -nEi 'GET_NATIVE_UPDATE_STATUS|sendNativeMessage|connectNative|nativeMessaging|native[-_]?update|native[-_]?status[-_]?bridge|windows-updater-channel|de\.kleinanzeigenrenewer\.updater|oneclick' -- src manifest.json scripts/package.py .github/workflows README.md || true
           git grep -lEi 'GET_NATIVE_UPDATE_STATUS|sendNativeMessage|connectNative|nativeMessaging|native[-_]?update|native[-_]?status[-_]?bridge|windows-updater-channel|de\.kleinanzeigenrenewer\.updater|oneclick' -- tests scripts .github/workflows | sort
+          git grep -lE '2\.0\.2\.0|2\.0\.3\.0|isS03Version|isS09Version' -- tests scripts .github/workflows | sort
+  dispositions:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node tests/kar217-updater-test-disposition.cjs
