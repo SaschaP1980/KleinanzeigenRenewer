@@ -1,5 +1,5 @@
 {
-  "version": "2.0.0.0",
+  "version": "2.0.0.1",
   "project": "kleinanzeigen Manager / Kleinanzeigen Renewal",
   "epic": "KAR-208 / KAR-210 S02 historical runtime foundation",
   "goldBaseline": "1.21.15",
@@ -10,7 +10,8 @@
     "Restore v1.23.48 historical runtime, retaining KAR-174 UI path layout and current development tooling.",
     "Version identity 2.0.0.0, npm 2.0.0; preserve extension key, historical releases and Git ancestry.",
     "Exclude later updater/admission/journal modules from the baseline source/package. Legacy native status hooks remain isolated; S04 final removal and S03 data compatibility required before any live profile use.",
-    "All applicable dynamic public API, line/branch/architecture, packaging and Chromium gates remain mandatory. Current full suite reconciliation and actual execution are pending; no release or native PASS claimed."
+    "All applicable dynamic public API, line/branch/architecture, packaging and Chromium gates remain mandatory. Current full suite reconciliation and actual execution are pending; no release or native PASS claimed.",
+    "KAR-212: recognize the exact Chrome BFCache port-closure message in the existing Phase-4 transport classifier. No other product behavior or historical safeguards changed."
   ],
   "nextPlannedBuild": "TBD",
   "nextPlannedBuildGoal": "Determined by separately authorized open GitHub Issues.",
@@ -33,7 +34,7 @@
       "percent": null
     }
   },
-  "releaseSummary": "2.0.0.0 Work-only source restoration checkpoint. Test activation reconciliation, actual build and hosted CI pending. Not installable/released/accepted.",
+  "releaseSummary": "2.0.0.1 Work-only BFCache transport-classifier hotfix on exact archived 2.0.0.0. Full technical gates and native Fast-3 acceptance pending; no merge or release.",
   "architectureHighlights": [
     "Historical product safeguards and runtime behavior are primary; only explicit path/layout and version metadata changes in this restore slice.",
     "Current development gates and test files retained; reconcile later feature/updater-dependent assertions without weakening retained product behavior.",
@@ -41,9 +42,10 @@
   ],
   "nativeSmokeChecks": [
     "Do not install this intermediate checkpoint on live data. S03 compatibility and S04 updater removal are prerequisites.",
-    "After separately authorized native acceptance, verify Chrome identity, boot, profile/locks, actual current form compatibility and matched Fast-3 budgets."
+    "After separately authorized native acceptance, verify Chrome identity, boot, profile/locks, actual current form compatibility and matched Fast-3 budgets.",
+    "KAR-212: repeat native Fast-3 after explicit authorization; no Phase-4 failed attempt due to exact BFCache error, independent absence evidence still required."
   ],
-  "packageVersion": "2.0.0.0",
+  "packageVersion": "2.0.0.1",
   "directBasisNativePending": true,
   "architectureFiles": [
     {
@@ -416,5 +418,13 @@
       }
     }
   },
-  "validationStatus": "SOURCE_RESTORED_GATES_PENDING"
+  "validationStatus": "HOTFIX_GATES_PENDING",
+  "hotfix": {
+    "issue": 212,
+    "directBasis": "2.0.0.0",
+    "sourceCommit": "f659c85d704d641f07cdd5b1cb89de685c5f0a5d",
+    "archiveSha256": "cc9ec37d0e9bf3c7688438ad04e9df0983a71d54b0802833906d8580d5902839",
+    "runtimeBlob": "f75e6e9dfb1bb2491c8a7d9bd5932c53baf99998",
+    "manifestBlob": "a7376f5782888fac78d51c567cd7699e82705a2c"
+  }
 }
