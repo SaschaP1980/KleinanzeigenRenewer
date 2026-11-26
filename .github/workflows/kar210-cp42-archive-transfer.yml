@@ -1,0 +1,41 @@
+name: KAR-210 CP42 candidate archive transfer
+on:
+  push:
+    branches: [work/KAR-210]
+    paths: ['.github/workflows/kar210-cp42-archive-transfer.yml']
+permissions:
+  contents: read
+jobs:
+  transfer:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: c9de2513cf5f79c9cdf28d0ebb5d3cd10a567295
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify exact source and rebuild matching candidate for binary transport
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = 'c9de2513cf5f79c9cdf28d0ebb5d3cd10a567295'
+          test -z "$(git status --porcelain)"
+          test "$(python3 scripts/product_version.py)" = 2.0.0.0
+          python3 scripts/package.py "$RUNNER_TEMP/cp42"
+          python3 - <<'PY'
+          import base64, hashlib, json, os, pathlib, zipfile
+          p=pathlib.Path(os.environ['RUNNER_TEMP'])/'cp42/kleinanzeigen-renewal-chrome-v2.0.0.0.zip'
+          data=p.read_bytes()
+          assert len(data)==778024
+          assert hashlib.sha256(data).hexdigest()=='cc9ec37d0e9bf3c7688438ad04e9df0983a71d54b0802833906d8580d5902839'
+          assert hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest()=='5d5f2cebfcba04dd34e63c92b819a2fd956c6116'
+          with zipfile.ZipFile(p) as z:
+              assert z.testzip() is None
+              assert len(z.namelist())==124
+              assert json.loads(z.read('manifest.json'))['version']=='2.0.0.0'
+          encoded=base64.b64encode(data).decode('ascii')
+          chunks=[encoded[i:i+4096] for i in range(0,len(encoded),4096)]
+          print('CP42_BINARY_META '+json.dumps(dict(chunks=len(chunks),length=len(encoded),sha256=hashlib.sha256(data).hexdigest())),flush=True)
+          for n,chunk in enumerate(chunks):
+              print(f'CP42_BINARY {n:04d} {chunk}',flush=True)
+          PY
