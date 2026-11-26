@@ -11,7 +11,7 @@ const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
 const baselinePath = 'docs/history/architecture/architecture-baseline-v1.23.0.json';
 
 ok('release remains within the planned v1.23.x EPIC-REF-002 wave', () => {
-  if(restored){assert.equal(pkg.version,'2.0.0');assert.equal(pkg.displayVersion,manifest.version);}else{
+  if(restored){assert.equal(pkg.version,manifest.version==='2.0.1.0'?'2.0.1':'2.0.0');assert.equal(pkg.displayVersion,manifest.version);}else{
   assert.ok(/^1\.23\.\d+$/.test(manifest.version) || /^1\.(?:24|25)\.(?:0|[1-9]\d*)$/.test(manifest.version));
   assert.equal(pkg.version, manifest.version);
   assert.equal(pkg.displayVersion, manifest.version);
