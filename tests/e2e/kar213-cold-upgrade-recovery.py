@@ -129,8 +129,9 @@ def launch(p,profile,ext):
         assert not errors,errors
         # The real packaged launcher is passive unless clicked; use its stable
         # extension document origin for raw Chrome storage and IndexedDB.
-        launcher=manifest["action"]["default_popup"]
-        assert (ext/launcher).is_file(),"Missing packaged launcher"
+        launchers=[name for name in ("popup.html","src/popup/popup.html") if (ext/name).is_file()]
+        assert len(launchers)==1,"Expected one exact packaged launcher"
+        launcher=launchers[0]
         probe=ctx.new_page()
         probe.on("pageerror",lambda error:errors.append(str(error)))
         traced("probe-navigation",probe.goto,f"chrome-extension://{EXTENSION_ID}/{launcher}",wait_until="domcontentloaded",timeout=20000)
