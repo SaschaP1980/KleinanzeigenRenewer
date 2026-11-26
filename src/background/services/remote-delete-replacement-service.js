@@ -306,7 +306,7 @@ async function verifyRenewalSourceAbsenceFresh(session, expectedProfile, windowI
   }
 }
 
-async function preverifyAndTriggerRenewalSourceDeleteAttempt(session, expectedProfile, windowId, attemptState, resetGeneration) {
+async function preverifyAndTriggerRenewalSourceDeleteAttempt(session, expectedProfile, windowId, attemptState, resetGeneration, onDispatch) {
   let deleteTabId = null;
   let deletion = null;
   let transportInterrupted = false;
@@ -359,6 +359,7 @@ async function preverifyAndTriggerRenewalSourceDeleteAttempt(session, expectedPr
 
     try {
       assertResetGeneration(resetGeneration, 'renewal-phase4-before-delete');
+      if (typeof onDispatch === 'function') onDispatch();
       deletion = await sendTabRequestWithBootstrap(deleteTabId, {
         type: 'DELETE_OWN_AD_BY_ID',
         adId: String(session.sourceAdId),
@@ -429,9 +430,16 @@ async function finishRenewalReplacement(message) {
   const expectedProfile = normalizeProfileName(source?.profileName || candidate?.profileName || '');
   if (!expectedProfile) throw new Error('Die Quellanzeige besitzt keinen bestätigten Profilbezug; Phase 4 wird aus Sicherheitsgründen nicht ausgeführt.');
 
+  // A prior dispatch may have succeeded even without a reply or persisted result.
+  // Persist the existing pending marker together with the existing pre-dispatch write:
+  // a worker restart (or the generic failure handler resetting the stage) cannot erase it.
+  let readOnlyResolutionRequired = String(session.stage || '').startsWith('source-delete')
+    || Boolean(session.sourceDeleteTransportInterrupted || session.sourceDeleteAction
+      || session.sourceDeleteVerificationPendingAt || session.sourceDeletedAt);
   session.status = 'verified';
   session.stage = 'source-delete-started';
   session.lastError = null;
+  session.sourceDeleteVerificationPendingAt ||= new Date().toISOString();
   await persistRenewalSession(session);
 
   const windowId = await normalBrowserWindowId();
@@ -448,49 +456,66 @@ async function finishRenewalReplacement(message) {
     });
 
     try {
-      // DELETE_OWN_AD_BY_ID already performs a fresh full-pagination scan in this
-      // worker before it can resolve a delete control. If the source is already
-      // absent, it performs no delete action. This makes preverify + delete atomic
-      // in one fresh worker while preserving the independent post-delete full scan.
-      const result = await preverifyAndTriggerRenewalSourceDeleteAttempt(session, expectedProfile, windowId, attemptState, resetGeneration);
-      assertResetGeneration(resetGeneration, 'renewal-phase4-after-delete');
-      deletion = result.deletion || deletion || null;
-      deleteTransportInterrupted = deleteTransportInterrupted || Boolean(result.transportInterrupted);
+      if (!readOnlyResolutionRequired) {
+        // DELETE_OWN_AD_BY_ID already performs a fresh full-pagination scan in this
+        // worker before it can resolve a delete control. If the source is already
+        // absent, it performs no delete action. This makes preverify + delete atomic
+        // in one fresh worker while preserving the independent post-delete full scan.
+        const result = await preverifyAndTriggerRenewalSourceDeleteAttempt(session, expectedProfile, windowId, attemptState, resetGeneration, () => {
+          // Only a failure proven to precede dispatch may retry the destructive path.
+          readOnlyResolutionRequired = true;
+        });
+        assertResetGeneration(resetGeneration, 'renewal-phase4-after-delete');
+        deletion = result.deletion || deletion || null;
+        deleteTransportInterrupted = deleteTransportInterrupted || Boolean(result.transportInterrupted);
 
-      session.stage = 'source-delete-verification-pending';
-      session.sourceDeleteAction = deletion || null;
-      session.sourceDeleteTransportInterrupted = deleteTransportInterrupted;
-      session.sourceDeleteVerificationPendingAt = new Date().toISOString();
-      await persistRenewalSession(session);
+        session.stage = 'source-delete-verification-pending';
+        session.sourceDeleteAction = deletion || null;
+        session.sourceDeleteTransportInterrupted = deleteTransportInterrupted;
+        session.sourceDeleteVerificationPendingAt = new Date().toISOString();
+        await persistRenewalSession(session);
 
-      await logDiagnostic('info', 'RENEWAL_SOURCE_DELETE_VERIFICATION_PENDING', {
-        renewalId,
-        sourceAdId: session.sourceAdId,
-        newAdId: session.newAdId,
-        attempt: attemptState.attempt,
-        maxAttempts: renewalMaxPhaseAttempts(session),
-        attemptId: attemptState.attemptId,
-        actionTriggered: result.deletion?.actionTriggered ?? null,
-        alreadyAbsentCandidate: result.deletion?.alreadyAbsentCandidate ?? null,
-        transportInterrupted: Boolean(result.transportInterrupted),
-        page: result.deletion?.page ?? null,
-        pagesScanned: result.deletion?.pagesScanned ?? null,
-        localEvidence: result.deletion?.localEvidence || null,
-        feedbackType: result.deletion?.feedback?.type || null,
-        feedbackMethod: result.deletion?.feedback?.method || null
-      }, {
-        module: 'background',
-        operation: 'renewal-phase-4',
-        context: sessionCorrelationContext(session, { renewalId, adId: session.sourceAdId })
-      }).catch(() => {});
+        await logDiagnostic('info', 'RENEWAL_SOURCE_DELETE_VERIFICATION_PENDING', {
+          renewalId,
+          sourceAdId: session.sourceAdId,
+          newAdId: session.newAdId,
+          attempt: attemptState.attempt,
+          maxAttempts: renewalMaxPhaseAttempts(session),
+          attemptId: attemptState.attemptId,
+          actionTriggered: result.deletion?.actionTriggered ?? null,
+          alreadyAbsentCandidate: result.deletion?.alreadyAbsentCandidate ?? null,
+          transportInterrupted: Boolean(result.transportInterrupted),
+          page: result.deletion?.page ?? null,
+          pagesScanned: result.deletion?.pagesScanned ?? null,
+          localEvidence: result.deletion?.localEvidence || null,
+          feedbackType: result.deletion?.feedback?.type || null,
+          feedbackMethod: result.deletion?.feedback?.method || null
+        }, {
+          module: 'background',
+          operation: 'renewal-phase-4',
+          context: sessionCorrelationContext(session, { renewalId, adId: session.sourceAdId })
+        }).catch(() => {});
 
-      verification = await verifyRenewalSourceAbsenceFresh(session, expectedProfile, windowId, attemptState, 'post-delete');
+      } else {
+        await logDiagnostic('info', 'RENEWAL_SOURCE_DELETE_READONLY_RECOVERY', {
+          renewalId, sourceAdId: session.sourceAdId, newAdId: session.newAdId,
+          attempt: attemptState.attempt, transportInterrupted: deleteTransportInterrupted,
+          interpretation: 'prior-dispatch-possible-verify-only'
+        }, {
+          module: 'background', operation: 'renewal-phase-4',
+          context: sessionCorrelationContext(session, { renewalId, adId: session.sourceAdId })
+        }).catch(() => {});
+      }
+
+      const proof = await verifyRenewalSourceAbsenceFresh(session, expectedProfile, windowId, attemptState, 'post-delete');
       assertResetGeneration(resetGeneration, 'renewal-phase4-before-promotion');
+      verification = proof;
 
       if (verification?.verified) break;
       const pageText = verification?.foundPage ? ` (gefunden auf Seite ${verification.foundPage})` : '';
-      throw new Error(`Quellanzeige ist nach der Löschaktion weiterhin in „Meine Anzeigen“ vorhanden${pageText}.`);
+      throw new Error(`Quellanzeige ist nach der Löschaktion weiterhin in „Meine Anzeigen“ vorhanden${pageText}. Keine erneute automatische Löschung; bitte beide Anzeigen prüfen.`);
     } catch (error) {
+      verification = null;
       lastError = error;
       session.stage = 'source-delete-retry-pending';
       session.lastError = String(error.message || error).slice(0, 800);
@@ -509,6 +534,8 @@ async function finishRenewalReplacement(message) {
     session.sourceDeleteVerificationFailedAt = new Date().toISOString();
     session.phase4AttemptsExhaustedAt = new Date().toISOString();
     session.sourceDeleteTransportInterrupted = deleteTransportInterrupted;
+    // A live attempt that failed strictly before dispatch has no uncertain mutation.
+    if (!readOnlyResolutionRequired) delete session.sourceDeleteVerificationPendingAt;
     await persistRenewalSession(session).catch(() => {});
     await logDiagnostic('error', 'RENEWAL_REPLACEMENT_FAILED', {
       renewalId,

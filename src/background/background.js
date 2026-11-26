@@ -1419,6 +1419,9 @@ async function sendTabRequestWithBootstrap(tabId, message) {
   try {
     return await sendTabRequest(tabId, message);
   } catch (error) {
+    // A destructive request can already have reached the page despite a lost reply.
+    // Never bootstrap and replay it; Phase 4 owns independent outcome verification.
+    if (message?.type === 'DELETE_OWN_AD_BY_ID') throw error;
     const text = String(error?.message || error || '');
     if (!/Receiving end does not exist|Could not establish connection|message port closed/i.test(text)) throw error;
     await ensureContentConnection({ tabId });
