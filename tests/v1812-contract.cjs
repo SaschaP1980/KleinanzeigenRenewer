@@ -6,6 +6,7 @@ let n = 0;
 const pass = name => { n += 1; console.log(`PASS ${n}: ${name}`); };
 const root = path.join(__dirname, '..');
 const restored = require('./kar210-historical-contract-context.cjs').isRestored(root);
+const s09 = require('./current-patch-policy.cjs').isS09Version(require('../manifest.json').version);
 const manifest = JSON.parse(fs.readFileSync(path.join(root, 'manifest.json'), 'utf8'));
 const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
 const background = require('./v12211-background-source-surface.cjs');
@@ -20,7 +21,7 @@ pass('v1.8.12 version aligned');
 assert.match(background, /const TRASH_RETENTION_MS = 30 \* 24 \* 60 \* 60 \* 1000/);
 assert.match(background, /recordKind: 'trash'/);
 assert.match(background, /expiresAt/);
-if (restored) {
+if (restored && !s09) {
   // Configurable retention belongs to S03/S09. Check the actual fixed-policy owner.
   const trash = fs.readFileSync(path.join(root, 'src/background/services/trash-service.js'), 'utf8');
   assert.match(background, /retentionMs: TRASH_RETENTION_MS/);
@@ -29,11 +30,16 @@ if (restored) {
   assert.match(trash, /if \(!Number.isFinite\(expires\)\) continue/);
   assert.match(trash, /if \(expires <= nowMs\) expired.push\(record\)/);
   assert.match(trash, /repository.deleteWithImages\(record.inventoryId\)/);
+} else if (s09) {
+  const trash = fs.readFileSync(path.join(root, 'src/background/services/trash-service.js'), 'utf8');
+  assert.match(background, /getRetentionPolicy/);
+  assert.match(trash, /repository\.deleteTrashIfEligible/);
+  assert.match(trash, /respectStoredDeadline: true, currentRevision: revision/);
 } else {
   assert.match(background, /getRetentionDays/);
   assert.match(background, /deleteTrashIfEligible/);
 }
-pass(restored ? 'historical fixed 30-day retention, trash-only deletion and valid expiry safeguards' : 'legacy 30-day fallback and configurable finite/indefinite local trash retention are preserved');
+pass(restored && !s09 ? 'historical fixed 30-day retention, trash-only deletion and valid expiry safeguards' : 'legacy 30-day fallback and configurable finite/indefinite local trash retention are preserved');
 
 const deleteInventory = background.match(/async function deleteInventory\(inventoryId\) \{[\s\S]*?\n\}/)?.[0] || '';
 assert.match(deleteInventory, /moveInventoryToTrash/);

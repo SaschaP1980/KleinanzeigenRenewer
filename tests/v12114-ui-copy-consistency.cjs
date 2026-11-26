@@ -4,6 +4,7 @@ const path = require('path');
 
 const root = path.resolve(__dirname, '..');
 const restored = require('./kar210-historical-contract-context.cjs').isRestored(root);
+const s09 = require('./current-patch-policy.cjs').isS09Version(require('../manifest.json').version);
 const html = fs.readFileSync(path.join(root, 'app.html'), 'utf8');
 const app = require('./v12210-source-surface.cjs') + '\n' + fs.readFileSync(path.join(root, 'inventory-capture-controller.js'), 'utf8') + '\n' + fs.readFileSync(path.join(root, 'src/app/inventory-capture-view.js'), 'utf8') + '\n' + fs.readFileSync(path.join(root, 'mass-renewal-ui-controller.js'), 'utf8') + '\n' + fs.readFileSync(path.join(root, 'archive-trash-insertion-ui-controller.js'), 'utf8');
 const css = fs.readFileSync(path.join(root, 'app.css'), 'utf8');
@@ -19,7 +20,7 @@ assert.match(app, /inventoryCaptureStart\.textContent = 'Erfassung starten'/);
 
 // Trash wording must describe the local state, not imply a Kleinanzeigen deletion.
 // KAR-186: initial HTML is not a verified 30-day preference until storage read succeeds.
-if (restored) {
+if (restored && !s09) {
   assert.match(html, /Einträge im Papierkorb werden 30 Tage lokal aufbewahrt\./);
   assert.match(html, /Die Anzeige bei Kleinanzeigen bleibt unverändert\./);
 } else {

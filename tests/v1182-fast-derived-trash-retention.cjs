@@ -1,4 +1,5 @@
 const restored = require('./kar210-historical-contract-context.cjs').isRestored(require('node:path').resolve(__dirname, '..'));
+const s09 = require('./current-patch-policy.cjs').isS09Version(require('../manifest.json').version);
 const { includesSupportedRelease } = require('./current-patch-policy.cjs');
 const fs = require('node:fs');
 const assert = require('node:assert/strict');
@@ -57,22 +58,27 @@ check('trash entries restart the configured retention before a separate permanen
     const ownerPath = 'src/app/trash-card-renderer.js';
     const owner = fs.readFileSync(require('node:path').join(root,ownerPath));
     const blob = require('node:crypto').createHash('sha1').update('blob '+owner.length+'\0').update(owner).digest('hex');
-    assert.equal(blob, target.expected.find(x=>x.path===ownerPath)?.sha);
+    assert.equal(blob, require('./current-patch-policy.cjs').expectedRestoredBlob(manifest.version, ownerPath, target.expected.find(x=>x.path===ownerPath)?.sha));
     assert.ok(target.packaged.includes(ownerPath));
     const renderer = owner.toString('utf8');
-    assert.match(renderer, /label: '30 Tage neu starten'/);
-    assert.match(renderer, /resetButton\.textContent = '30 Tage neu starten'/);
+    assert.match(renderer, (s09 ? /label: 'Frist neu starten'/ : /label: '30 Tage neu starten'/));
+    assert.match(renderer, (s09 ? /resetButton\.textContent = 'Frist neu starten'/ : /resetButton\.textContent = '30 Tage neu starten'/));
     assert.match(renderer, /deleteButton\.textContent = 'Endgültig löschen'/);
     assert.equal((renderer.match(/actions\.append\(templateButton, resetButton, exportButton, deleteButton\)/g)||[]).length,2);
     assert.equal((renderer.match(/type: 'RESET_TRASH_RETENTION', inventoryId: record\.inventoryId/g)||[]).length,2);
     assert.equal((renderer.match(/type: 'DELETE_TRASH_ENTRY', inventoryId: record\.inventoryId/g)||[]).length,2);
-    assert.equal((renderer.match(/confirmLabel: '30 Tage neu starten'/g)||[]).length,2);
+    assert.equal((renderer.match(s09 ? /confirmLabel: 'Frist neu starten'/g : /confirmLabel: '30 Tage neu starten'/g)||[]).length,2);
     assert.equal((renderer.match(/confirmLabel: 'Endgültig löschen', danger: true/g)||[]).length,2);
     assert.match(bg, /resetTrashRetention/);
     assert.match(bg, /TRASH_RETENTION_RESET/);
     const service = fs.readFileSync(require('node:path').join(root,'src/background/services/trash-service.js'),'utf8');
+    if (s09) {
+      assert.match(service, /async function resetRetention[\s\S]*?getRetentionPolicy|async function resetRetention[\s\S]*?retentionIndefinite: days === 'infinite'/);
+      assert.match(service, /expiresAt: days === 'infinite' \? null : new Date\(Date.parse\(at\) \+ days \* DAY_MS\)/);
+    } else {
     assert.match(service, /options\.retentionMs \|\| 30 \* 24 \* 60 \* 60 \* 1000/);
     assert.match(service, /async function resetRetention[\s\S]*?repository\.mutate\(id, record => \{[\s\S]*?if \(!isTrashRecord\(record\)\) throw[\s\S]*?expiresAt: new Date\(now\.getTime\(\) \+ retentionMs\)/);
+    }
   } else {
     assert.match(js, /Frist neu starten/);
     assert.match(js, /RESET_TRASH_RETENTION/);

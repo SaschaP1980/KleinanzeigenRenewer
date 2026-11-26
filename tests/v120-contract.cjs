@@ -4,6 +4,7 @@ const path = require('node:path');
 const assert = require('node:assert/strict');
 const root = path.join(__dirname, '..');
 const restored = require('./kar210-historical-contract-context.cjs').isRestored(root);
+const s09 = require('./current-patch-policy.cjs').isS09Version(require('../manifest.json').version);
 const manifest = JSON.parse(fs.readFileSync(path.join(root, 'manifest.json'), 'utf8'));
 const background = require('./v12212-source-surface.cjs');
 const popup = require('./v12210-source-surface.cjs');
@@ -33,7 +34,7 @@ assert.match(popup, /Neu inserieren/);
 // KAR-186 supersedes the historic fixed-30-day copy: deletion wording now
 // depends on a verified persisted policy and blocks unknown-policy actions.
 const inventoryCard = fs.readFileSync(path.join(root, 'src/app/inventory-card-renderer.js'), 'utf8');
-if (restored) {
+if (restored && !s09) {
   // S03/S09 retain the configurable policy and verified hydration obligations.
   // For the historical fixed policy, verify local-only action and confirmation.
   assert.doesNotMatch(inventoryCard, /trashRetentionPhrase|requireVerifiedTrashRetention/);

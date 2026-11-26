@@ -6,6 +6,7 @@ let n = 0;
 const pass = name => { n += 1; console.log(`PASS ${n}: ${name}`); };
 const root = path.join(__dirname, '..');
 const restored = require('./kar210-historical-contract-context.cjs').isRestored(root);
+const s09 = require('./current-patch-policy.cjs').isS09Version(require('../manifest.json').version);
 const manifest = JSON.parse(fs.readFileSync(path.join(root, 'manifest.json'), 'utf8'));
 const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
 const renewalWorkflow = fs.readFileSync(path.join(root, 'renewal-workflow-controller.js'), 'utf8');
@@ -35,7 +36,7 @@ assert.match(appHtml, /(?:Prüfen|Neue Anzeige prüfen|Neue Anzeige finden)/);
 assert.match(appHtml, /Bisherige Anzeige löschen/);
 // KAR-186: initial trash copy is neutral until an authorized read establishes
 // the persisted duration. An unverified 30-day message is no longer correct.
-if (restored) {
+if (restored && !s09) {
   assert.match(appHtml, /Einträge im Papierkorb werden 30 Tage lokal aufbewahrt/);
   assert.match(appHtml, /Die Anzeige bei Kleinanzeigen bleibt unverändert\. Eine neue Anzeige wird nur vorbereitet und niemals automatisch veröffentlicht/);
   assert.match(appHtml, /Die bisherige Anzeige bleibt danach 30 Tage als Sicherheitskopie im Papierkorb/);
