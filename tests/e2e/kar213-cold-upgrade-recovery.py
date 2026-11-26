@@ -93,11 +93,13 @@ def launch(p,profile,ext):
         # Historical 1.23.48 uses the root app.html; later packages relocated it.
         app_path=next((name for name in ["src/app/app.html","app.html"] if (ext/name).is_file()),None)
         assert app_path,"Missing actual packaged app entry"
+        print("KAR213_PHASE app-navigation "+app_path,flush=True)
         page.goto(f"chrome-extension://{EXTENSION_ID}/{app_path}",wait_until="domcontentloaded",timeout=20000)
         page.wait_for_timeout(1200)
         workers=[w for w in ctx.service_workers if w.url.startswith(f"chrome-extension://{EXTENSION_ID}/")]
         assert len(workers)==1,"Expected exact extension service worker"
         worker=workers[0]
+        print("KAR213_PHASE worker-bootstrap",flush=True)
         assert worker.evaluate("typeof openDatabase")== "function","Runtime bootstrap missing"
         assert not errors,errors
         # Avoid ongoing manager reads while seeding and comparing raw state.
@@ -184,6 +186,7 @@ def main(version,candidate_zip=None):
         ext=tmp/"extension";profile=tmp/"working-profile";backup=tmp/"cold-backup";restored=tmp/"restored-profile"
         expected=fixture(version)
         extract(ref,version,blob,ext,tmp)
+        print("KAR213_PHASE seed-source "+version,flush=True)
         with sync_playwright() as p:
             ctx,worker=launch(p,profile,ext)
             try:
@@ -197,20 +200,20 @@ def main(version,candidate_zip=None):
                 assert preflight.returncode==0,"Synthetic source not settled according to offline preflight"
             finally:
                 ctx.close()
-            # Entire isolated user-data directory, not only profile ZIP.
-            before=files(profile)
-            assert before and any("IndexedDB" in name for name in before) and any("Local Extension Settings" in name for name in before)
-            shutil.copytree(profile,backup)
-            assert files(backup)==before,"Cold backup bytes differ"
-            # Use same unpacked path / fixed ID, replace only after browser shutdown.
-            candidate_version=candidate(ext,tmp,candidate_zip)
-            for cycle in range(2):
+        # Each browser launch has a separate Playwright driver lifecycle.
+        print("KAR213_PHASE cold-copy "+version,flush=True)
+        before=files(profile)
+        assert before and any("IndexedDB" in name for name in before) and any("Local Extension Settings" in name for name in before)
+        shutil.copytree(profile,backup)
+        assert files(backup)==before,"Cold backup bytes differ"
+        candidate_version=candidate(ext,tmp,candidate_zip)
+        for cycle in range(2):
+            print(f"KAR213_PHASE candidate-boot {version} {cycle+1}",flush=True)
+            with sync_playwright() as p:
                 ctx,worker=launch(p,profile,ext)
                 try:
                     check(worker,expected,candidate_version)
                     if cycle==1:
-                        # Simulated bad candidate write in disposable profile only;
-                        # recovery must come from untouched raw backup, not the altered state.
                         changed=json.loads(json.dumps(expected))
                         changed["records"][0]["title"]="Synthetic deliberate corruption"
                         changed["storage"]["unknownSyntheticFutureV1"]={"changed":True}
@@ -218,17 +221,22 @@ def main(version,candidate_zip=None):
                         check(worker,changed,candidate_version)
                 finally:
                     ctx.close()
-                print(f"KAR213_UPGRADE_CYCLE {version} {cycle+1} PASS",flush=True)
-            assert files(backup)==before,"Pristine backup mutated"
-            shutil.copytree(backup,restored)
-            assert files(restored)==before,"Restored raw profile bytes differ"
-            extract(ref,version,blob,ext,tmp)
+            print(f"KAR213_UPGRADE_CYCLE {version} {cycle+1} PASS",flush=True)
+        print("KAR213_PHASE verify-restore-copy "+version,flush=True)
+        assert files(backup)==before,"Pristine backup mutated"
+        shutil.copytree(backup,restored)
+        assert files(restored)==before,"Restored raw profile bytes differ"
+        extract(ref,version,blob,ext,tmp)
+        print("KAR213_PHASE original-boot "+version,flush=True)
+        with sync_playwright() as p:
             ctx,worker=launch(p,restored,ext)
             try:
+                print("KAR213_PHASE original-readback "+version,flush=True)
                 check(worker,expected,version)
+                print("KAR213_PHASE original-close "+version,flush=True)
             finally:
                 ctx.close()
-            assert files(backup)==before,"Rollback mutated backup"
+        assert files(backup)==before,"Rollback mutated backup"
         print("KAR213_COLD_RECOVERY "+json.dumps({"sourceVersion":version,"candidateVersion":candidate_version,"records":len(expected["records"]),"images":len(expected["images"]),"storageKeys":len(expected["storage"]),"coldFiles":len(before),"upgradeCycles":2,"rollback":"PASS","status":"PASS"}),flush=True)
 
 if __name__=="__main__":
