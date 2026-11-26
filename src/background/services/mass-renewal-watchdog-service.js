@@ -1,5 +1,7 @@
 (() => {
   'use strict';
+  const legacyOutcomeBlocked = row => ['source-delete-outcome-unverified', 'source-delete-status-unverified', 'publish-intent-blocked'].includes(String(row?.stage || '')) || String(row?.status || '') === 'publish-blocked';
+  const legacyBatchBlocked = batch => legacyOutcomeBlocked(batch) || (Array.isArray(batch?.items) ? batch.items : []).some(legacyOutcomeBlocked);
   const API=Object.freeze({
     create(options={}) {
       const {readMassRenewalBatch,readRenewalSessions,readFillSessions,findMassRenewalSessionForItem,startNextMassRenewalItem,
@@ -28,7 +30,7 @@ function armMassRenewalWatchdog() {
     massRenewalWatchdogTimer = null;
     try { await runMassRenewalWatchdog({ trigger: 'background-timer' }); } catch { /* diagnostic inside */ }
     const batch = await readMassRenewalBatch().catch(() => null);
-    if (batch?.status === 'running') armMassRenewalWatchdog();
+    if (batch?.status === 'running' && !legacyBatchBlocked(batch)) armMassRenewalWatchdog();
   }, MASS_RENEWAL_WATCHDOG_TICK_MS);
 }
 
@@ -38,13 +40,14 @@ async function runMassRenewalWatchdog({ trigger = 'manual', fillId = null } = {}
   massRenewalWatchdogInFlight = true;
   try {
     const batch = await readMassRenewalBatch();
-    if (!batch || batch.status !== 'running') return false;
+    if (!batch || batch.status !== 'running' || legacyBatchBlocked(batch)) return false;
     const item = (batch.items || []).find(entry => ['running', 'retrying'].includes(String(entry.status || '')));
     if (!item) return false;
     const renewals = await readRenewalSessions().catch(() => ({}));
     const renewal = item.renewalId ? renewals[item.renewalId] : await findMassRenewalSessionForItem(batch.batchId, item.index);
     const fills = await readFillSessions().catch(() => ({}));
     const fill = renewal?.fillId ? fills[renewal.fillId] : Object.values(fills).find(entry => String(entry?.massBatchId || '') === String(batch.batchId) && Number(entry?.massBatchItemIndex) === Number(item.index));
+    if (legacyOutcomeBlocked(renewal) || legacyOutcomeBlocked(fill)) return false;
     if (fillId && String(fill?.fillId || '') !== String(fillId)) return false;
     const lastProgressMs = latestMassRenewalProgressMs(item, renewal, fill);
     if (!lastProgressMs || Date.now() - lastProgressMs < MASS_RENEWAL_WATCHDOG_STALE_MS) return false;
