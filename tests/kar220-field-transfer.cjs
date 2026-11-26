@@ -63,3 +63,71 @@ test('template payload preserves explicit empty versus captured status',()=>{
   assert.deepEqual(t.dynamicAttributes.map(a=>a.status),['empty','captured']);
   assert.equal(JSON.stringify(source),before);
 });
+
+test('required missing selection and contradictory empty status report concrete errors',()=>withFixture({},async f=>{
+  for(const a of [attr({technicalValue:'',displayValue:'Bitte wählen',status:'empty',required:true}),attr({status:'empty'})]){
+    const t={categoryId:'246',dynamicAttributes:[a]};
+    assert.ok((await f.fields.fillDynamicAttributes(t,'fixture',()=>assert.fail('no proof allowed'))).some(i=>i.includes('Stil')));
+    assert.ok(f.verifier.verify(t,f.form).some(i=>i.includes('Stil')));
+  }
+  assert.equal(f.clicks(),0);
+}));
+test('known technical choice must not click a duplicate label without unique technical option proof',()=>withFixture({duplicate:true},async f=>{
+  const t={categoryId:'246',dynamicAttributes:[attr({technicalValue:'synthetic-style'})]};
+  const issues=await f.fields.fillDynamicAttributes(t,'fixture');
+  assert.ok(issues.some(i=>i.includes('Stil')),'ambiguous actual dropdown must be reported');
+  assert.equal(f.clicks(),0,'do not choose first of duplicate labels');
+}));
+test('linked dropdown exact technical option ID resolves equal labels',()=>withFixture({duplicate:true},async f=>{
+  const options=[...f.form.querySelectorAll('[role="option"]')];
+  for(const [i,opt] of options.entries()){
+    const id=i?'synthetic-style':'synthetic-other';
+    opt.setAttribute('data-value',id);
+    opt.addEventListener('click',()=>{f.input.value=id;});
+  }
+  const t={categoryId:'246',dynamicAttributes:[attr({technicalValue:'synthetic-style'})]};
+  assert.deepEqual(await f.fields.fillDynamicAttributes(t,'fixture'),[]);
+  assert.equal(f.input.value,'synthetic-style');assert.equal(f.clicks(),1);
+  assert.deepEqual(f.verifier.verify(t,f.form),[]);
+}));
+test('linked dropdown exact technical option ID survives a changed visible label',()=>withFixture({missing:true},async f=>{
+  const opt=f.form.querySelector('[role="option"]');
+  opt.setAttribute('data-value','synthetic-style');
+  opt.addEventListener('click',()=>{f.input.value='synthetic-style';});
+  const t={categoryId:'246',dynamicAttributes:[attr({technicalValue:'synthetic-style'})]};
+  assert.deepEqual(await f.fields.fillDynamicAttributes(t,'fixture'),[]);
+  assert.equal(f.input.value,'synthetic-style');assert.equal(f.clicks(),1);
+  assert.deepEqual(f.verifier.verify(t,f.form),[]);
+}));
+const fs=require('node:fs'),vm=require('node:vm');
+const source=fs.readFileSync(require.resolve('../src/content/template-filler.js'),'utf8');
+const start=source.indexOf('async function runFillSession('),end=source.indexOf('  async function runPendingFill(',start);
+assert.ok(start>=0&&end>start,'actual fill-runner boundary');
+for(const [name,opts,mutation,expected] of [
+  ['normal renewal',{},null,true],['archive insertion',{},null,true],
+  ['missing legacy value',{missing:true},null,false],['technical value changed after upload',{},'technical',false],
+  ['visible label changed after upload',{},'label',false]
+]){
+  test('actual fill runner: '+name,()=>withFixture(opts,async f=>{
+    const t={categoryId:'246',dynamicAttributes:[attr()],images:[{imageKey:'1'},{imageKey:'2'},{imageKey:'3'}]};
+    const before=JSON.stringify(t),uploads=[],advances=[],messages=[];
+    const context={document:f.form.ownerDocument,updatePanel(){},diagnostic(){},runtimeMessage:async m=>{messages.push(m)},
+      waitFor:async fn=>fn(),ensureStableTitleValue:async()=>f.form,setCategory:async()=>({confirmed:true}),
+      resolveActivePostingForm:()=>f.form,paidInsertionDetection:()=>({required:false}),chooseRadio:()=>true,
+      fillDynamicAttributes:f.fields.fillDynamicAttributes,fillShipping:async()=>[],fillBuyNow:async()=>[],
+      setTextField(){},settleAfterInteraction:async()=>{},fillPriceType:async()=>[],fillLocation:async()=>[],
+      uploadImages:async(_id,template)=>{uploads.push(template.images.map(x=>x.imageKey));
+        for(const [i,image] of template.images.entries()){const e=f.form.ownerDocument.createElement('input');e.type='hidden';e.name='adImages['+i+'].url';e.value=image.imageKey;f.form.appendChild(e)}
+        if(mutation==='technical')f.input.value='wrong-after-upload';
+        if(mutation==='label')f.shown.textContent='wrong-after-upload';
+        return {complete:true,issues:[],states:[]};},
+      verifyArchiveTemplate:f.verifier.verifyArchiveTemplate,verify:f.verifier.verify,
+      advanceAfterVerifiedFill:async s=>{advances.push(s);return {}}
+    };
+    const run=vm.runInNewContext(source.slice(start,end)+'\nrunFillSession;',context);
+    const result=await run({fillId:'fixture',renewalId:'renewal',archiveInsertionId:name==='archive insertion'?'archive':null,template:t});
+    assert.equal(result.complete,expected);assert.equal(advances.length,expected?1:0);
+    assert.equal(messages.at(-1).status,expected?'running':'needs-review');
+    assert.deepEqual(uploads,[['1','2','3']]);assert.equal(JSON.stringify(t),before);
+  }));
+}
