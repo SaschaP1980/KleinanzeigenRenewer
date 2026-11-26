@@ -1,0 +1,27 @@
+name: KAR-212 BFCache regression
+on:
+  push:
+    branches: [work/KAR-212]
+    paths:
+      - 'tests/kar210-kar199-baseline-phase4.cjs'
+      - 'src/background/background.js'
+      - '.github/workflows/kar212-bfcache-regression.yml'
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Exact-head runtime classifier and Phase-4 fixtures
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --check src/background/background.js
+          node --test tests/kar210-kar199-baseline-phase4.cjs
