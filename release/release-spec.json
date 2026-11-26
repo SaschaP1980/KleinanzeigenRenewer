@@ -5,7 +5,7 @@
   "goldBaseline": "1.21.15",
   "directBasis": "2.0.2.0",
   "directBasisNativeGreen": true,
-  "directBasisObservation": "Accepted S03 2.0.2.0 exact Work CI 4/4 GREEN and owner-reported isolated synthetic smoke 8/8 PASS; no productive data migration or real-account acceptance implied.",
+  "directBasisObservation": "Historical v1.23.48 is the owner-approved semantic runtime reference. Accepted S03 2.0.2.0 exact Work CI 4/4 GREEN and owner-reported isolated synthetic smoke 8/8 PASS; no productive data migration or real-account acceptance implied.",
   "scope": [
     "Restore v1.23.48 historical runtime, retaining KAR-174 UI path layout and current development tooling.",
     "Version identity 2.0.0.0, npm 2.0.0; preserve extension key, historical releases and Git ancestry.",

@@ -1371,6 +1371,7 @@ function validateDispositions(root) {
     const affected=ledger.entries.filter(e=>changed.has(e.module)&&e.featureAbsence).map(e=>({test:e.test,module:e.module,marker:e.featureAbsence.marker,state:reactivated.has(e.test)?'retained-active':'retained-deferred'})).sort((a,b)=>a.test.localeCompare(b.test));
     assert.deepEqual(affected,[...S04_SCOPE.affectedHistoricalCapabilityChecks].sort((a,b)=>a.test.localeCompare(b.test)),'S04 review of every affected historical capability check');
   }
+  const retiredS04=isS04Version(version)?require('./kar217-updater-test-disposition.cjs').validateS04Dispositions(root):new Map();
   const inactive=new Map();
   for(const e of ledger.entries) {
     const expected=RULES[e.test];
@@ -1409,7 +1410,11 @@ function validateDispositions(root) {
     for(const [owner,refs] of ownerRefs) assert.ok(!refs.has(e.test),'Inactive test still referenced by '+owner+': '+e.test);
     for(const retained of e.retained) {
       assert.ok(fs.statSync(file(retained)).isFile(),'Retained baseline test absent: '+retained);
-      assert.ok(commands.includes('node '+retained)||commands.includes('node --test '+retained),'Retained baseline test not invoked: '+retained);
+      if(retiredS04.has(retained)) {
+        assert.equal(e.test,'tests/kar99-workflow-fence.cjs');
+        assert.ok(['tests/kar68-native-status-gateway.cjs','tests/kar69-native-check.cjs'].includes(retained));
+        assert.ok(commands.includes('node tests/kar217-updater-removal.cjs'));
+      } else assert.ok(commands.includes('node '+retained)||commands.includes('node --test '+retained),'Retained baseline test not invoked: '+retained);
     }
     inactive.set(e.test,e);
   }
@@ -1437,7 +1442,7 @@ function validateDispositions(root) {
     for(const [owner,refs] of ownerRefs) assert.ok(!refs.has(e.test),'Deferred witness still active: '+owner+' '+e.test);
     inactive.set(e.test,e);
   }
-  if(isS04Version(version)) for(const [test,e] of require('./kar217-updater-test-disposition.cjs').validateS04Dispositions(root)){
+  if(isS04Version(version)) for(const [test,e] of retiredS04){
     assert.ok(!inactive.has(test),'S04 disposition overlaps historical inactive entry: '+test);
     inactive.set(test,e);
   }

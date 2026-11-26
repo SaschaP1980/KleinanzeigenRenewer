@@ -70,7 +70,7 @@ def metadata_plan(meta, change_class="patch"):
         next_version = successor(current)
     spec = meta["release/release-spec.json"]
     expected_next_minor = "1.24.0" if current.startswith("1.23.") else "TBD"
-    expected_basis = "2.0.1.0" if current == "2.0.2.0" else "2.0.0.1" if current == "2.0.1.0" else ("1.23.48" if current.startswith("2.") else "1.23.20_c1")
+    expected_basis = "2.0.2.0" if current == "2.0.3.0" else "2.0.1.0" if current == "2.0.2.0" else "2.0.0.1" if current == "2.0.1.0" else ("1.23.48" if current.startswith("2.") else "1.23.20_c1")
     require(spec.get("directBasis") == expected_basis and
             spec.get("nextPlannedBuild") == expected_next_minor,
             "basis/next-minor policy drift")

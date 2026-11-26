@@ -86,6 +86,7 @@ function includesSupportedRelease(knownVersions, version) {
 
 function expectedManifestPermissions(version) {
   const historic = ['activeTab', 'storage', 'unlimitedStorage', 'scripting'];
+  if(isS04Version(version)) return historic;
   return (version === '1.24.0' || version === '1.25.0' || (isCurrentPatchVersion(version) &&
     (Number(version.split('.')[1]) >= 24 || Number(version.split('.')[2]) >= 30)))
     ? [...historic, 'nativeMessaging'] : historic;
