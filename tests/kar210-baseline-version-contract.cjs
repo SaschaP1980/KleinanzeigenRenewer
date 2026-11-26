@@ -6,6 +6,7 @@ const {assertPendingS02Release}=require('./kar210-historical-contract-context.cj
 const root=path.resolve(__dirname,'..');
 const metadata=['manifest.json','package.json','package-lock.json','release/release-spec.json'];
 const active=JSON.parse(fs.readFileSync(path.join(root,'manifest.json'),'utf8')).version;
+const s09=active==='2.0.1.0';
 assert.equal(assertRestoredBaselineVersion(root),active);
 for(const v of ['2.0.0.0','2.0.0.1','2.0.0','2.00.0.0']) {
   assert.equal(isCurrentPatchVersion(v),false);
@@ -24,8 +25,8 @@ try {
     ['manifest.json',m=>m.version='2.0.0'],
     ['package.json',p=>p.version='2.0.0.0'],
     ['package.json',p=>p.displayVersion='2.0.0'],
-    ['package-lock.json',l=>l.packages[''].version='2.0.1'],
-    ['release/release-spec.json',s=>s.packageVersion='2.0.1.0'],
+    ['package-lock.json',l=>l.packages[''].version=s09?'2.0.2':'2.0.1'],
+    ['release/release-spec.json',s=>s.packageVersion=s09?'2.0.1.1':'2.0.1.0'],
     ['manifest.json',m=>m.key='ZmFrZQ=='],
     ['manifest.json',m=>m.permissions.push('tabs')],
     ['manifest.json',m=>m.host_permissions.push('https://example.invalid/*')],
@@ -42,8 +43,8 @@ try {
   assertPendingS02Release(fixture);
   const releaseMutations=[
     s=>s.validationStatus='RELEASE_GREEN',
-    s=>s.directBasisNativeGreen=true,
-    s=>s.directBasisNativePending=false,
+    s=>s.directBasisNativeGreen=!s09,
+    s=>s.directBasisNativePending=s09,
     s=>s.nativeSmokeRequired=false,
     s=>s.nextPlannedBuild='2.0.0.1',
     s=>s.nextPlannedBuildGoal='Automatically start next step',
@@ -68,6 +69,11 @@ try {
   // A coherent successor still needs explicit review, not merely metadata parity.
   for(const f of metadata){const x=read(f);if(f==='manifest.json')x.version='2.0.0.1';if(f==='package.json')x.displayVersion='2.0.0.1';if(f.startsWith('release/')){x.version=x.packageVersion='2.0.0.1';delete x.hotfix;}write(f,x);}
   assert.throws(()=>assertRestoredBaselineVersion(fixture));n++;
+  if(s09) {
+    for(const f of metadata)fs.copyFileSync(path.join(root,f),path.join(fixture,f));
+    const spec=read('release/release-spec.json');spec.s09.sourceCommit='0'.repeat(40);write('release/release-spec.json',spec);
+    assert.throws(()=>assertRestoredBaselineVersion(fixture));n++;
+  }
   if(active==='2.0.0.1') {
     for(const f of metadata)fs.copyFileSync(path.join(root,f),path.join(fixture,f));
     const spec=read('release/release-spec.json');spec.hotfix.runtimeBlob='0'.repeat(40);write('release/release-spec.json',spec);

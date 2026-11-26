@@ -36,9 +36,10 @@ if (generationTwo) {
   assert.equal(target.version, '2.0.0.0');
   if (require('./current-patch-policy.cjs').isReviewedRestoreVersion(manifest.version)) {
     require('./current-patch-policy.cjs').assertRestoredBaselineVersion();
-    assert.deepEqual(members, target.packaged, 'exact KAR-210 baseline package scope');
+    const policy=require('./current-patch-policy.cjs');
+    assert.deepEqual(members, policy.expectedRestoredPackage(manifest.version,target), 'exact reviewed baseline/successor package scope');
     assert.equal(target.absent.length, 22, 'explicit baseline exclusions must remain complete');
-    for (const filename of target.absent) {
+    for (const filename of policy.expectedRestoredAbsent(manifest.version,target)) {
       assert.ok(!members.includes(filename) && !fs.existsSync(filename), 'baseline-excluded source present: ' + filename);
     }
   }

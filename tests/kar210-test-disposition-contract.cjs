@@ -8,12 +8,18 @@ const { spawnSync } = require('node:child_process');
 const root=path.resolve(__dirname,'..');
 const {validateDispositions}=require('./kar210-test-disposition.cjs');
 const LEDGER='docs/maintenance/KAR210_ACTIVE_TEST_DISPOSITIONS.json';
+const {isS09Version,S09_SCOPE}=require('./current-patch-policy.cjs');
+const s09=isS09Version(JSON.parse(fs.readFileSync(path.join(root,'manifest.json'),'utf8')).version);
 const OWNERS=["package.json","scripts/build.sh","scripts/coverage-gate.sh",".github/workflows/kar-work-pr.yml",".github/workflows/kar-ci.yml",".github/workflows/kar-release.yml"];
-for(const owner of OWNERS) for(const test of ["tests/kar148-article-type.cjs","tests/kar150-ui-preference.cjs","tests/kar164-trash-sort.cjs","tests/kar165-trash-retention-warning.cjs","tests/kar147-diagnostic-occupancy.cjs"]) assert.ok(!fs.readFileSync(path.join(root,owner),'utf8').includes(test),'Later feature still active: '+test+' in '+owner);
+for(const owner of OWNERS) for(const test of ["tests/kar148-article-type.cjs","tests/kar150-ui-preference.cjs","tests/kar164-trash-sort.cjs","tests/kar165-trash-retention-warning.cjs","tests/kar147-diagnostic-occupancy.cjs"]) {
+  if(s09&&S09_SCOPE.reactivatedTests.includes(test)) continue;
+  assert.ok(!fs.readFileSync(path.join(root,owner),'utf8').includes(test),'Later feature still active: '+test+' in '+owner);
+}
 for(const owner of OWNERS) for(const test of ["tests/kar201-legacy-options.cjs","tests/kar201-session-evidence.cjs","tests/kar201-native-display-only.cjs","tests/kar201-partial-archive-prefill.cjs","tests/kar201-manual-standalone.cjs"]) assert.ok(!fs.readFileSync(path.join(root,owner),'utf8').includes(test),'KAR-201 later feature still active: '+test+' in '+owner);
 const data=JSON.parse(fs.readFileSync(path.join(root,LEDGER),'utf8'));
 const inactive=validateDispositions(root);
-assert.equal(inactive.size,91);
+assert.equal(inactive.size,s09?87:91);
+if(s09) for(const test of S09_SCOPE.reactivatedTests) assert.ok(!inactive.has(test));
 const read=p=>fs.readFileSync(path.join(root,p));
 for(const owner of OWNERS) for(const test of inactive.keys())
   assert.ok(!read(owner).toString().replace(/\\/g,'/').includes(test),'Inactive path in active owner');
@@ -51,7 +57,7 @@ const put=(p,v)=>{const dst=path.join(fixture,p);fs.mkdirSync(path.dirname(dst),
 let negatives=0;
 const deny=()=>{assert.throws(()=>validateDispositions(fixture));negatives++;};
 try {
-  for(const p of new Set([...OWNERS,'manifest.json','package-lock.json','release/release-spec.json','scripts/product_version.py','scripts/package.py','coverage/safety-critical-public-apis.json','docs/maintenance/KAR210_BASELINE_RESTORE_LEDGER.json','docs/maintenance/KAR210_BASELINE_TARGET.json',LEDGER,...inactive.keys(),...data.entries.flatMap(e=>e.retained),...data.entries.filter(e=>e.featureAbsence).map(e=>e.module)])) copy(p);
+  for(const p of new Set([...OWNERS,'manifest.json','package-lock.json','release/release-spec.json','scripts/product_version.py','scripts/package.py','coverage/safety-critical-public-apis.json','docs/maintenance/KAR210_BASELINE_RESTORE_LEDGER.json','docs/maintenance/KAR210_BASELINE_TARGET.json',LEDGER,...inactive.keys(),...data.entries.map(e=>e.test),...data.entries.flatMap(e=>e.retained),...data.entries.filter(e=>e.featureAbsence||(s09&&S09_SCOPE.reactivatedTests.includes(e.test))).map(e=>e.module)])) copy(p);
   assert.equal(validateDispositions(fixture).size,inactive.size);
   const entry=data.entries[0];
   put(entry.module,'// unexpectedly restored');deny();fs.unlinkSync(path.join(fixture,entry.module));
@@ -77,6 +83,13 @@ try {
   const reset=structuredClone(data);reset.scopeResetDeferred.pop();put(LEDGER,reset);deny();copy(LEDGER);
   const post=data.scopeResetDeferred[0];put(post.test,'// altered later RED evidence');deny();copy(post.test);
   const manifest=JSON.parse(read('manifest.json'));manifest.version=manifest.version==='2.0.0.1'?'2.0.0.2':'2.0.0.1';put('manifest.json',manifest);deny();copy('manifest.json');
+  if(s09) {
+    const active=S09_SCOPE.reactivatedTests[0];
+    const pkg=JSON.parse(read('package.json'));pkg.scripts.test=pkg.scripts.test.replace('node '+active+' && ','');
+    put('package.json',pkg);deny();copy('package.json');
+    const restored=data.entries.find(e=>e.test===active);
+    put(restored.module,'// altered exact successor module');deny();copy(restored.module);
+  }
   assert.equal(validateDispositions(fixture).size,inactive.size);
 } finally {fs.rmSync(fixture,{recursive:true,force:true});}
 console.log('PASS KAR-210 active suite separation: '+negatives+' fail-closed negatives, original evidence and inactive product witness preserved');

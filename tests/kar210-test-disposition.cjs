@@ -1339,7 +1339,7 @@ function validateDispositions(root) {
   const read = rel => fs.readFileSync(file(rel));
   const json = rel => JSON.parse(read(rel));
   const version = execFileSync('python3',[file('scripts/product_version.py'),'--root',root],{encoding:'utf8'}).trim();
-  const {assertRestoredBaselineVersion,expectedRestoredBlob}=require('./current-patch-policy.cjs');
+  const {assertRestoredBaselineVersion,expectedRestoredBlob,expectedRestoredPackage,isS09Version,S09_SCOPE}=require('./current-patch-policy.cjs');
   assert.equal(assertRestoredBaselineVersion(root),version,'Only reviewed restored baseline or exact hotfix');
   const ledger=json(LEDGER);
   assert.equal(ledger.schema,2);
@@ -1358,7 +1358,9 @@ function validateDispositions(root) {
   const allowlist=read('scripts/package.py').toString().split(/\r?\n/).find(s=>s.startsWith('runtime='));
   assert.ok(allowlist,'Missing explicit runtime packaging array');
   const packaged=[...allowlist.matchAll(/'([^']+)'/g)].map(m=>m[1]);
-  assert.deepEqual(packaged,target.packaged,'Baseline package scope drift');
+  assert.deepEqual(packaged,expectedRestoredPackage(version,target),'Reviewed package scope drift');
+  const reactivated = new Set(isS09Version(version) ? S09_SCOPE.reactivatedTests : []);
+  if (isS09Version(version)) assert.deepEqual([...reactivated].sort(), ["tests/kar161-trash-retention.cjs","tests/kar164-trash-sort.cjs","tests/kar165-trash-retention-warning.cjs","tests/kar186-retention-hydration.cjs"]);
   const inactive=new Map();
   for(const e of ledger.entries) {
     const expected=RULES[e.test];
@@ -1370,6 +1372,16 @@ function validateDispositions(root) {
     assert.match(e.blob,/^[a-f0-9]{40}$/);
     assert.equal(gitBlob(read(e.test)),e.blob,'Historical test source changed');
     assert.deepEqual(e.featureAbsence,expected.featureAbsence,'Unreviewed feature absence evidence');
+    if (reactivated.has(e.test)) {
+      assert.ok(packaged.includes(e.module),'Reactivated S09 module must be packaged');
+      const historical = target.expected.find(r=>r.path===e.module)?.sha;
+      assert.equal(gitBlob(read(e.module)),expectedRestoredBlob(version,e.module,historical),'Exact S09 reactivation source changed');
+      if(e.featureAbsence) assert.ok(read(e.module).toString().includes(e.featureAbsence.marker),'Reactivated capability absent');
+      assert.ok(commands.includes('node '+e.test),'Reactivated S09 test must run in mandatory npm test');
+      assert.ok(ownerRefs.get('scripts/build.sh').has(e.test),'Reactivated S09 test must run in build');
+      for(const retained of e.retained) assert.ok(commands.includes('node '+retained)||commands.includes('node --test '+retained),'Retained baseline test not invoked: '+retained);
+      continue;
+    }
     if(e.featureAbsence) {
       const proof=e.featureAbsence;
       assert.ok(['deferred-B','split-C'].includes(e.status),'Unexpected disposition for a packaged module');
