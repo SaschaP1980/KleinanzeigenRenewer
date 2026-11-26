@@ -1,0 +1,30 @@
+name: KAR-222 focused DELETE no-replay
+on:
+  push:
+    branches: [work/KAR-222]
+    paths: ['.github/workflows/kar222-delete-focused-temp.yml','src/background/background.js','src/background/services/remote-delete-replacement-service.js','tests/kar222-delete-no-replay.cjs']
+permissions:
+  contents: read
+jobs:
+  focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Source and test diff
+        run: |
+          git diff --name-status 9aefcabde9fcb1e03ae99a1f10e97a4d79c9255c HEAD
+          node --check src/background/background.js
+          node --check src/background/services/remote-delete-replacement-service.js
+          node --check tests/kar222-delete-no-replay.cjs
+      - name: Focused actual-source tests and retained Phase4 controls
+        run: |
+          export NODE_OPTIONS='--require ./tests/v12222-vm-legacy-bridge.cjs'
+          node --test --test-reporter=tap tests/kar222-delete-no-replay.cjs tests/kar199-phase4-no-transport-replay.cjs tests/kar210-kar199-baseline-phase4.cjs tests/kar210-cp36-phase4-product-witness.cjs tests/kar210-kar199-baseline-reset.cjs
