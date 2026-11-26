@@ -527,8 +527,9 @@ async function resumeMassRenewalBatch() {
     if (legacyOutcomeBlocked(session)) return massRenewalPublicSnapshot(batch);
     if (session && !['cancelled', 'replaced'].includes(String(session.status || ''))) { await reconcileMassRenewalBatchSession(session); return getMassRenewalBatchStatus(); }
 
-    if (!resolved.conflict && (!session || session.status === 'replaced') && /^\d+$/.test(String(running.newAdId || ''))) {
-      const existing = await massCompletedExchangeEvidence(batch, running);
+    if (/^\d+$/.test(String(running.newAdId || ''))) {
+      const existing = !resolved.conflict && (!session || session.status === 'replaced')
+        ? await massCompletedExchangeEvidence(batch, running) : null;
       if (existing) {
         await mutateMassRenewalBatch(batch.batchId, current => {
           const item = current.items?.find(entry => Number(entry.index) === Number(running.index));
