@@ -178,7 +178,39 @@
     return exact.closest('[role="option"],[role="menuitem"],button,a,li,label,[tabindex]:not([tabindex="-1"])') || exact;
   }
 
-  function findExactSelectionOption(control, displayValue) {
+  function findExactSelectionOption(control, displayValue, technicalValue) {
+    // When the real control explicitly links a listbox/menu, constrain the
+    // choice to that menu. Prefer a unique explicit option ID over a label.
+    // No schema enumeration or additional form scan is involved.
+    const linkedIds = new Set(['aria-controls', 'aria-owns'].flatMap(attr =>
+      String(control?.getAttribute?.(attr) || '').split(/\s+/).filter(Boolean)));
+    const linkedMenus = [...linkedIds].map(id => document.getElementById(id))
+      .filter(root => root && ['listbox', 'menu'].includes(root.getAttribute('role')));
+    if (linkedMenus.length) {
+      const shown = linkedMenus.filter(root => visible(root));
+      if (!shown.length) return null;
+      const ambiguous = { selectionIssue: 'Auswahl „' + displayValue + '“ ist im zugehörigen Dropdown nicht eindeutig.' };
+      if (shown.length !== 1) return ambiguous;
+      const options = [...shown[0].querySelectorAll('[role="option"],[role="menuitem"]')]
+        .filter(option => visible(option) && !option.disabled && option.getAttribute('aria-disabled') !== 'true');
+      if (options.length) {
+        const optionId = option => option.getAttribute('data-value') ?? option.getAttribute('value');
+        const idMatches = technicalValue === null || technicalValue === undefined || technicalValue === '' ? []
+          : options.filter(option => optionId(option) === String(technicalValue));
+        if (idMatches.length > 1) return ambiguous;
+        if (idMatches.length === 1) return idMatches[0];
+        const wanted = clean(displayValue).toLocaleLowerCase('de-DE');
+        const matches = options.filter(option => wanted && clean(visibleText(option)).toLocaleLowerCase('de-DE') === wanted);
+        if (matches.length > 1) return ambiguous;
+        if (matches.length === 1) {
+          const id = optionId(matches[0]);
+          if (id !== null && id !== '' && technicalValue !== null && technicalValue !== undefined &&
+              technicalValue !== '' && id !== String(technicalValue)) return ambiguous;
+          return matches[0];
+        }
+        return null;
+      }
+    }
     for (const root of associatedChoiceRoots(control)) {
       const exact = findExactInteractive(displayValue, root, control);
       if (exact) return exact;
@@ -243,7 +275,7 @@
     if (!control) throw new Error(`Auswahlfeld für „${displayValue}“ nicht gefunden.`);
 
     const searchableInput = control instanceof HTMLInputElement && control.type !== 'hidden';
-    let option = findExactSelectionOption(control, displayValue);
+    let option = findExactSelectionOption(control, displayValue, technicalValue);
     if (!option) {
       if (searchableInput) {
         // Kleinanzeigen' brand combobox is controlled and may only open/filter its
@@ -255,7 +287,7 @@
         control.click();
       }
 
-      option = await waitFor(() => findExactSelectionOption(control, displayValue), {
+      option = await waitFor(() => findExactSelectionOption(control, displayValue, technicalValue), {
         timeout: searchableInput ? 3500 : 8000,
         interval: 80,
         description: `Auswahl „${displayValue}“`
@@ -268,13 +300,18 @@
       // the popup and never chooses a suggestion by position.
       dispatchKeyboardEvent(control, 'keydown', 'ArrowDown');
       dispatchKeyboardEvent(control, 'keyup', 'ArrowDown');
-      option = await waitFor(() => findExactSelectionOption(control, displayValue), {
+      option = await waitFor(() => findExactSelectionOption(control, displayValue, technicalValue), {
         timeout: 5000,
         interval: 80,
         description: `Auswahl „${displayValue}“`
       }).catch(() => null);
     }
 
+    if (option?.selectionIssue) {
+      const error = new Error(option.selectionIssue);
+      error.code = 'KR_ATTRIBUTE_OPTION_AMBIGUOUS';
+      throw error;
+    }
     if (!option) throw new Error(`Auswahl „${displayValue}“ wurde nicht eindeutig angeboten.`);
     option.click();
 
@@ -446,6 +483,7 @@
             throw new Error('Technischer Wert „' + technicalValue + '“ wurde nicht bestätigt.');
           return { attempt, alreadySet: false, controlType: 'hidden', technicalName: name };
         } catch (error) {
+          if (error?.code === 'KR_ATTRIBUTE_OPTION_AMBIGUOUS') throw error;
           lastError = error;
         }
       }

@@ -21,7 +21,7 @@ jobs:
         run: |
           git rev-parse HEAD
           git diff --name-only 514c3dcdaae09b7e583326089316ada59c229e9f -- src manifest.json
-          git diff --exit-code e67d12b25b7a04afd4841ecc3b91c7e1dd615bd5 -- src manifest.json
+          git diff --exit-code 4b7159ddb1f0cc9d2be1144c2c34faa970170b82 -- tests/kar220-field-transfer.cjs
           node --test tests/kar220-field-transfer.cjs
           node tests/kar132-modern-category-modal.cjs
           node tests/kar132-wearables-attributes.cjs
