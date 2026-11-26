@@ -9,8 +9,7 @@
     "activeTab",
     "storage",
     "unlimitedStorage",
-    "scripting",
-    "nativeMessaging"
+    "scripting"
   ],
   "host_permissions": [
     "https://www.kleinanzeigen.de/*",

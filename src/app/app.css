@@ -877,56 +877,6 @@ select:not([multiple]) { appearance:none; -webkit-appearance:none; background-im
 .global-view-option .list-view-mode-icon { width:17px; height:17px; }
 .content-view-tabs .view-switch-button span { font-variant-numeric:tabular-nums; }
 
-/* KAR-69 read-only Windows updater check */
-.native-update-check { display:flex; flex-direction:column; align-items:stretch; gap:6px; }
-.native-update-check > button { align-self:flex-start; }
-.native-update-check > button:disabled { opacity:.65; cursor:wait; }
-.native-update-evidence { overflow-wrap:anywhere; font-size:11px; }
-/* KAR-81: safe NativeHost-independent manual Windows update path */
-.native-update-fallback { display:flex; flex-direction:column; gap:6px; margin-top:7px; padding:10px; border:1px solid rgba(120,154,144,.26); border-radius:9px; background:rgba(10,32,27,.2); }
-.native-update-fallback .configuration-description { margin:0; line-height:1.45; overflow-wrap:anywhere; }
-.native-update-setup-link { align-self:flex-start; font-size:12px; line-height:1.35; overflow-wrap:anywhere; color:#a3f2d9; text-underline-offset:2px; }
-.native-update-setup-link:focus-visible { outline:2px solid #4de0b7; outline-offset:2px; }
-
-/* KAR-90: Profile Management is the canonical updater dialog reference. */
-.native-update-check { gap:5px; padding-bottom:14px; }
-.native-update-check > .configuration-description { min-height:13px; }
-.native-update-dialog { width:min(720px,calc(100vw - 28px)); max-width:720px; max-height:calc(100dvh - 28px); padding:0; overflow:hidden; overscroll-behavior:contain; border:1px solid #43534f; border-radius:16px; background:#141b1d; color:#edf3f2; box-shadow:0 28px 90px rgba(0,0,0,.62); }
-.native-update-dialog::backdrop { background:rgba(2,7,8,.78); backdrop-filter:blur(3px); }
-.native-update-modal { min-height:0; max-height:calc(100dvh - 30px); padding:20px; overflow:hidden; }
-.native-update-modal-scroll { overflow-y:auto; overscroll-behavior:contain; min-height:0; padding-right:2px; display:grid; align-content:start; gap:12px; }
-.native-update-summary-card { padding:13px; border:1px solid #344044; border-radius:11px; background:#111719; display:grid; gap:11px; }
-.native-update-friendly-status { margin:0; color:#edf4f2; font-size:13px; font-weight:750; line-height:1.45; }
-.native-update-versions { display:grid; gap:8px; }
-.native-update-versions > div { display:flex; justify-content:space-between; gap:14px; flex-wrap:wrap; font-size:12px; line-height:1.4; }
-.native-update-versions span { color:#a7b9b5; }
-.native-update-versions strong { color:#dcefe9; overflow-wrap:anywhere; }
-.native-update-last-checked { margin:0; font-size:10px; color:#839693; line-height:1.45; }
-.native-update-last-checked:empty { display:none; }
-.native-update-onboarding, .native-update-help { width:100%; box-sizing:border-box; display:grid; align-content:start; justify-items:start; gap:9px; padding:13px; border:1px solid #344044; border-radius:11px; background:#111719; }
-.native-update-onboarding h3, .native-update-help h3 { margin:0; color:#edf4f2; font-size:13px; line-height:1.4; }
-.native-update-onboarding p { margin:0; color:#c3cfcb; font-size:12px; line-height:1.5; }
-.native-update-onboarding .native-update-help-note { font-size:11px; color:#a1b7af; }
-.native-update-guide[hidden] { display:none; }
-.native-update-guide { width:100%; box-sizing:border-box; border:1px solid #344044; border-radius:11px; background:#111719; padding:13px; display:grid; gap:12px; font-size:12px; line-height:1.55; }
-.native-update-guide p { margin:0; color:#c3cfcb; }
-.native-update-guide ol { margin:0; padding-left:19px; display:grid; gap:9px; color:#c8d7d2; }
-.native-update-guide li { padding-left:3px; }
-.native-update-help-note { font-size:11px; color:#a1b7af; }
-.native-update-setup-link { display:inline-block; font-size:12px; color:#a3f2d9; text-underline-offset:2px; overflow-wrap:anywhere; }
-.native-update-technical-details { width:100%; box-sizing:border-box; border-top:1px solid #2d373a; padding-top:10px; color:#9bafaa; font-size:10px; overflow-wrap:anywhere; }
-.native-update-technical-details summary { cursor:pointer; font-weight:650; }
-.native-update-technical-details p { margin:9px 0 0; font-size:10px; }
-.native-update-modal-footer { flex:none; margin-top:14px; padding-top:13px; display:flex; align-items:center; justify-content:space-between; flex-wrap:nowrap; gap:8px; }
-.native-update-modal-footer button { min-width:110px; flex:0 1 auto; }
-.native-update-dialog button:focus-visible { outline:2px solid #4de0b7; outline-offset:2px; }
-@media (max-width:560px) {
-  .native-update-dialog { width:calc(100vw - 16px); max-height:calc(100dvh - 16px); }
-  .native-update-modal { max-height:calc(100dvh - 16px); padding:14px; }
-  .native-update-versions > div { gap:4px; }
-  .native-update-modal-footer button { min-width:0; flex:1 1 0; }
-}
-
 /* KAR-214: trash-only presentation */
 .inventory-toolbar.trash-sort-toolbar { grid-template-columns:minmax(180px,1fr) auto; align-items:end; }
 .trash-sort-field { display:grid; gap:5px; min-width:0; }
