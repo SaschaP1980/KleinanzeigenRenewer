@@ -38,6 +38,7 @@ async function readMassRenewalBatch() {
   const stored = await chrome.storage.local.get(MASS_RENEWAL_BATCH_KEY);
   const batch = stored?.[MASS_RENEWAL_BATCH_KEY];
   if (!batch || typeof batch !== 'object') return null;
+  if ((Array.isArray(batch.items) ? batch.items : []).some(row => ['source-delete-outcome-unverified', 'source-delete-status-unverified', 'publish-intent-blocked'].includes(String(row?.stage || '')) || String(row?.status || '') === 'publish-blocked') || (row => ['source-delete-outcome-unverified', 'source-delete-status-unverified', 'publish-intent-blocked'].includes(String(row?.stage || '')) || String(row?.status || '') === 'publish-blocked')(batch)) return batch;
   if (batch.createdAt && Date.now() - Date.parse(batch.createdAt) > MASS_RENEWAL_BATCH_MAX_AGE_MS) {
     await chrome.storage.local.remove(MASS_RENEWAL_BATCH_KEY);
     return null;
