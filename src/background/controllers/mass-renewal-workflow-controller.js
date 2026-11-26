@@ -404,9 +404,11 @@ async function retryMassRenewalItem(message) {
   });
   if (!initial.batch) throw new Error('Der Vorgang zum Neu-Inserieren wurde nicht gefunden.');
   armMassRenewalWatchdog();
-  const renewals = await readRenewalSessions();
-  const session = snapshot?.renewalId ? renewals[snapshot.renewalId] : null;
+  let sessionReadCompleted = false;
   try {
+    const renewals = await readRenewalSessions();
+    sessionReadCompleted = true;
+    const session = snapshot?.renewalId ? renewals[snapshot.renewalId] : null;
     if (session && /^\d+$/.test(String(session.newAdId || ''))) {
       session.massBatchTerminal = false;
       const all = await readRenewalSessions(); all[session.renewalId] = session; await writeRenewalSessions(all);
@@ -426,7 +428,7 @@ async function retryMassRenewalItem(message) {
     await mutateMassRenewalBatch(batchId, batch => {
       const item = batch.items?.find(entry => Number(entry.index) === index);
       if (!item || !['retrying', 'running'].includes(String(item.status || ''))) return { changed: false };
-      item.status = 'needs-review'; item.stage = 'retry-failed'; item.lastError = String(error.message || error).slice(0, 800); item.completedAt = new Date().toISOString(); touchMassRenewalItemProgress(item, item.completedAt); batch.currentIndex = null; applyMassRenewalFinalState(batch);
+      item.status = 'needs-review'; item.stage = sessionReadCompleted ? 'retry-failed' : snapshot.stage || 'retry-failed'; item.lastError = String(error.message || error).slice(0, 800); item.completedAt = new Date().toISOString(); touchMassRenewalItemProgress(item, item.completedAt); batch.currentIndex = null; applyMassRenewalFinalState(batch);
       return { changed: true };
     });
     const latest = await readMassRenewalBatch().catch(() => null);

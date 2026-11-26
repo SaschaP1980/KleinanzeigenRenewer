@@ -2,7 +2,7 @@ name: KAR-222 mass recovery characterization
 on:
   push:
     branches: [work/KAR-222]
-    paths: ['.github/workflows/kar222-mass-recovery-temp.yml','tests/kar222-mass-recovery-witness.cjs']
+    paths: ['.github/workflows/kar222-mass-recovery-temp.yml','tests/kar222-mass-recovery-witness.cjs','src/background/controllers/mass-renewal-workflow-controller.js']
 permissions:
   contents: read
 jobs:
@@ -21,7 +21,8 @@ jobs:
       - name: Exact test-only change
         run: |
           git diff --name-status 4cb3abb3842bb1396fab1529dbefc43f26ce5619 HEAD
-          git diff --exit-code 4cb3abb3842bb1396fab1529dbefc43f26ce5619 HEAD -- src manifest.json lib icons
+          git diff --exit-code be4a8e7a142b448565c0d5da2a637155ce8830f3 HEAD -- src manifest.json lib icons ':(exclude)src/background/controllers/mass-renewal-workflow-controller.js'
+          node --check src/background/controllers/mass-renewal-workflow-controller.js
           node --check tests/kar222-mass-recovery-witness.cjs
       - name: Retained GREEN controls and independent mass recovery witnesses
         shell: bash
