@@ -1,0 +1,23 @@
+name: KAR-220 focused field transfer (temporary)
+on:
+  push:
+    branches: [work/KAR-220]
+permissions:
+  contents: read
+jobs:
+  focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci
+      - name: Pin unchanged runtime and execute actual source
+        run: |
+          git rev-parse HEAD
+          git diff --exit-code 514c3dcdaae09b7e583326089316ada59c229e9f -- src manifest.json
+          node --test tests/kar220-field-transfer.cjs
