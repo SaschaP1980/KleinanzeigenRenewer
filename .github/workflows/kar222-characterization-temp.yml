@@ -22,11 +22,12 @@ jobs:
       - name: Execute retained product witnesses without changing dispositions
         shell: bash
         run: |
+          set +e
           set -uo pipefail
           failures=0
           for name in kar210-kar199-baseline-phase4 kar210-cp36-phase4-product-witness kar199-phase4-no-transport-replay kar199-phase4-bounded-runtime kar199-phase4-unverified-state-runtime kar210-cp36-phase4-unknown-witness kar210-cp38-publish-uncertainty-witness kar210-p13-lock-read-uncertainty kar210-kar150-uncertain-start-witness kar99-p9-tab-gone-monotonic kar210-p9-independent-tab-lifecycle v1231-renewal-workflow-runtime v1233-mass-renewal-workflow-runtime v12230-global-emergency-reset v1235-terminal-template-emergency-reset; do
             echo "KAR222_BEGIN $name"
-            timeout 30s node --test "tests/$name.cjs"
+            timeout 30s node --test --test-reporter=tap "tests/$name.cjs"
             rc=$?
             echo "KAR222_END $name rc=$rc"
             if [ "$rc" -ne 0 ]; then failures=$((failures+1)); fi
