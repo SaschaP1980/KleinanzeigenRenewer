@@ -36,9 +36,9 @@ assert.doesNotMatch(runner, /assert\.equal\(manifest\.version, ['"]1\.23\.24['"]
 for (const [f,key] of [['manifest.json','version'],['package.json','version'],
  ['package-lock.json','version'],['release/release-spec.json','version']]) {
  const value = JSON.parse(fs.readFileSync(path.join(root,f),'utf8'));
- assert.equal(value[key], restored && (f === 'package.json' || f === 'package-lock.json') ? '2.0.0' : current);
+ assert.equal(value[key], restored && (f === 'package.json' || f === 'package-lock.json') ? (current==='2.0.1.0'?'2.0.1':'2.0.0') : current);
  if (restored && f === 'package.json') assert.equal(value.displayVersion,current);
- if (restored && f === 'package-lock.json') assert.equal(value.packages[''].version,'2.0.0');
+ if (restored && f === 'package-lock.json') assert.equal(value.packages[''].version,current==='2.0.1.0'?'2.0.1':'2.0.0');
  if (restored && f === 'release/release-spec.json') assert.equal(value.packageVersion,current);
 }
 console.log('PASS KAR-50 dynamic PATCH fixture: '+patchSeriesFixture+' -> '+next+' (active '+current+')');
