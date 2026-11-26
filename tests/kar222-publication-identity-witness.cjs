@@ -147,3 +147,9 @@ test('S06 D1 existing profile probe follows awaited diagnostic and refuses chang
 test('S06 C direct repeated notification is idempotent and preserves timestamp',async()=>{
  const h=publishFixture();await h.run(42);const before=structuredClone([h.fills(),h.sessions()]);await h.run(42);assert.deepEqual([h.fills(),h.sessions()],before);assert.deepEqual(h.writes,['fill','renewal']);
 });
+
+
+test('S06 D1 missing returned absence ID must not be accepted as proof',async()=>{
+ const api=Remote.create({createManagedWorkerTab:async()=>({id:42}),waitForTabComplete:async()=>{},ensureContentConnection:async()=>{},closeManagedWorkerTab:async()=>{},correlationContext:()=>({}),sessionCorrelationContext:()=>({}),normalizeProfileName:String,renewalMaxPhaseAttempts:()=>1,logDiagnostic:async()=>{},sendTabRequestWithBootstrap:async(_id,m)=>m.type==='MY_ADS_STATUS'?{isMyAdsPage:true,isProjectsTab:true,profileName:'Owner'}:{verified:true,pagesScanned:1}});
+ await assert.rejects(api.verifyRenewalSourceAbsenceFresh({renewalId:'r',sourceAdId:'100',newAdId:'200'},'Owner',null,{attempt:1}),/exakte ID/);
+});

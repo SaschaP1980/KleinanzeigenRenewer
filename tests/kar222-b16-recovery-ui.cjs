@@ -105,7 +105,7 @@ function serviceFixture({prior={},proof=true}={}){
  delay:async()=>{},renewalPhaseRetryDelayMs:()=>0,renewalAttemptDetails:()=>({}),logRenewalPhaseAttemptFailed:async()=>{},isNonRetryableRenewalSafetyError:()=>false,logDiagnostic:async()=>{},sessionCorrelationContext:()=>({}),correlationContext:()=>({}),
  createManagedWorkerTab:async(_o,kind)=>{const id=1000+workers.length;workers.push({id,kind});return{id};},waitForTabComplete:async()=>{},ensureContentConnection:async()=>{},closeManagedWorkerTab:async id=>closed.push(id),
  isPhase4DeleteTransportInterruption:()=>false,
- sendTabRequestWithBootstrap:async(id,m)=>{sent.push({id,type:m.type,adId:m.adId});if(m.type==='MY_ADS_STATUS')return {isMyAdsPage:true,isProjectsTab:true,profileName:'Owner'};if(m.type==='VERIFY_OWN_AD_ABSENT_BY_ID')return {verified:proof,foundPage:proof?null:1,pagesScanned:1};if(m.type==='DELETE_OWN_AD_BY_ID')return{actionTriggered:true};throw Error('unexpected command');},
+ sendTabRequestWithBootstrap:async(id,m)=>{sent.push({id,type:m.type,adId:m.adId});if(m.type==='MY_ADS_STATUS')return {isMyAdsPage:true,isProjectsTab:true,profileName:'Owner'};if(m.type==='VERIFY_OWN_AD_ABSENT_BY_ID')return {verified:proof,adId:m.adId,foundPage:proof?null:1,pagesScanned:1};if(m.type==='DELETE_OWN_AD_BY_ID')return{actionTriggered:true};throw Error('unexpected command');},
  openDatabase:async()=>{promotions++;throw stop;}
  });return {api,row,sent,writes,workers,closed,stop,promotions:()=>promotions};
 }

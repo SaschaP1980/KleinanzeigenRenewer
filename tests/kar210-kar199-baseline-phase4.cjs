@@ -20,7 +20,7 @@ function fixture({profile='Owner',validPage=true,interrupted=false,reset=false,v
       sent.push({id,type:m.type,adId:m.adId});
       if(m.type==='MY_ADS_STATUS')return {isMyAdsPage:validPage,isProjectsTab:validPage,profileName:id===73?profile:verifyProfile};
       if(m.type==='DELETE_OWN_AD_BY_ID'){if(interrupted)throw Error('fixture response port closed');return {actionTriggered:true};}
-      if(m.type==='VERIFY_OWN_AD_ABSENT_BY_ID')return {verified,foundPage:verified?null:1};
+      if(m.type==='VERIFY_OWN_AD_ABSENT_BY_ID')return {verified,adId:m.adId,foundPage:verified?null:1};
       throw Error('Unexpected command');
     }
   });
@@ -118,7 +118,7 @@ function finishFixture212({mode='bfcache',absent=true,max=3,verifyProfile='Owner
       }
       if(m.type==='VERIFY_OWN_AD_ABSENT_BY_ID'){
         assert.equal(kind,'renewal-phase4-verify');assert.equal(m.adId,'100');
-        proven=absent;return {verified:absent,pagesScanned:1,foundPage:absent?null:1};
+        proven=absent;return {verified:absent,adId:m.adId,pagesScanned:1,foundPage:absent?null:1};
       }
       throw Error('unexpected request '+m.type);
     },
