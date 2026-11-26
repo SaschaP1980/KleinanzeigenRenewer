@@ -20,3 +20,18 @@ jobs:
           node-version: '22'
       - run: npm ci --ignore-scripts
       - run: node --test tests/kar213-cross-generation-characterization.cjs
+  regression:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: f08bb1b863ae66d1d1636edd250a490d44d9279c
+          persist-credentials: false
+      - run: test "$(git rev-parse HEAD)" = "f08bb1b863ae66d1d1636edd250a490d44d9279c"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --ignore-scripts
+      - name: Existing coverage and architecture gate (pre-release diagnostic)
+        run: bash scripts/coverage-gate.sh
