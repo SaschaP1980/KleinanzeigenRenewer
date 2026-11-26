@@ -2,6 +2,7 @@
 """S03 isolated real Chromium cold upgrade + rollback; never a real browser profile."""
 from __future__ import annotations
 import argparse
+import faulthandler
 import hashlib
 import json
 import os
@@ -78,6 +79,18 @@ def files(root):
             raise AssertionError("Unexpected special file in closed synthetic browser profile")
     return out
 
+def traced(label, operation, *args, **kwargs):
+    # Diagnostic only: exceptions and all original return values propagate.
+    print("KAR213_TRACE_ENTER "+label,flush=True)
+    started=time.monotonic()
+    try:
+        result=operation(*args,**kwargs)
+    except BaseException as exc:
+        print(f"KAR213_TRACE_EXCEPTION {label} {type(exc).__name__}",flush=True)
+        raise
+    print(f"KAR213_TRACE_EXIT {label} {time.monotonic()-started:.3f}s",flush=True)
+    return result
+
 def launch(p,profile,ext):
     binary=os.environ["KR_CHROME_BINARY"]
     ctx=p.chromium.launch_persistent_context(str(profile),headless=True,channel="chromium",executable_path=binary,
@@ -100,13 +113,13 @@ def launch(p,profile,ext):
         assert len(workers)==1,"Expected exact extension service worker"
         worker=workers[0]
         print("KAR213_PHASE worker-bootstrap",flush=True)
-        assert worker.evaluate("typeof openDatabase")== "function","Runtime bootstrap missing"
+        assert traced("worker-bootstrap-evaluate",worker.evaluate,"typeof openDatabase")== "function","Runtime bootstrap missing"
         assert not errors,errors
         # Avoid ongoing manager reads while seeding and comparing raw state.
-        page.close()
+        traced("manager-page-close",page.close)
         return ctx,worker
     except BaseException:
-        ctx.close()
+        traced("failed-launch-context-close",ctx.close)
         raise
 
 def fixture(version):
@@ -168,8 +181,8 @@ READ="""async keys=>{
 }"""
 
 def check(worker,expected,version):
-    assert worker.evaluate("chrome.runtime.getManifest().version")==version
-    actual=worker.evaluate(READ,list(expected["storage"]))
+    assert traced("manifest-version-evaluate",worker.evaluate,"chrome.runtime.getManifest().version")==version
+    actual=traced("raw-storage-and-idb-read",worker.evaluate,READ,list(expected["storage"]))
     assert actual["dbVersion"]==2
     changed_keys=sorted(k for k in expected["storage"] if k not in actual["storage"] or actual["storage"][k]!=expected["storage"][k])
     if changed_keys:
@@ -190,16 +203,16 @@ def main(version,candidate_zip=None):
         with sync_playwright() as p:
             ctx,worker=launch(p,profile,ext)
             try:
-                worker.evaluate(SEED,expected)
+                traced("historical-seed",worker.evaluate,SEED,expected)
                 check(worker,expected,version)
-                snapshot=worker.evaluate("""async()=>({schema:1,sourceVersion:chrome.runtime.getManifest().version,storageLocal:await chrome.storage.local.get(null),capturedAt:new Date().toISOString()})""")
+                snapshot=traced("historical-snapshot",worker.evaluate,"""async()=>({schema:1,sourceVersion:chrome.runtime.getManifest().version,storageLocal:await chrome.storage.local.get(null),capturedAt:new Date().toISOString()})""")
                 path=tmp/"synthetic-snapshot.json"
                 path.write_text(json.dumps(snapshot))
                 preflight=subprocess.run(["node",str(ROOT/"scripts/kar213-upgrade-preflight.cjs"),str(path)],capture_output=True,text=True,timeout=10)
                 print("KAR213_PREFLIGHT "+preflight.stdout.strip(),flush=True)
                 assert preflight.returncode==0,"Synthetic source not settled according to offline preflight"
             finally:
-                ctx.close()
+                traced("phase-context-close",ctx.close)
         # Each browser launch has a separate Playwright driver lifecycle.
         print("KAR213_PHASE cold-copy "+version,flush=True)
         before=files(profile)
@@ -217,10 +230,10 @@ def main(version,candidate_zip=None):
                         changed=json.loads(json.dumps(expected))
                         changed["records"][0]["title"]="Synthetic deliberate corruption"
                         changed["storage"]["unknownSyntheticFutureV1"]={"changed":True}
-                        worker.evaluate(SEED,changed)
+                        traced("synthetic-corruption-seed",worker.evaluate,SEED,changed)
                         check(worker,changed,candidate_version)
                 finally:
-                    ctx.close()
+                    traced("phase-context-close",ctx.close)
             print(f"KAR213_UPGRADE_CYCLE {version} {cycle+1} PASS",flush=True)
         print("KAR213_PHASE verify-restore-copy "+version,flush=True)
         assert files(backup)==before,"Pristine backup mutated"
@@ -235,7 +248,7 @@ def main(version,candidate_zip=None):
                 check(worker,expected,version)
                 print("KAR213_PHASE original-close "+version,flush=True)
             finally:
-                ctx.close()
+                traced("phase-context-close",ctx.close)
         assert files(backup)==before,"Rollback mutated backup"
         print("KAR213_COLD_RECOVERY "+json.dumps({"sourceVersion":version,"candidateVersion":candidate_version,"records":len(expected["records"]),"images":len(expected["images"]),"storageKeys":len(expected["storage"]),"coldFiles":len(before),"upgradeCycles":2,"rollback":"PASS","status":"PASS"}),flush=True)
 
@@ -244,4 +257,10 @@ if __name__=="__main__":
     parser.add_argument("--source",choices=SOURCE,required=True)
     parser.add_argument("--candidate-zip",type=Path,help="Exact committed candidate package; omit for source-overlay diagnostic")
     args=parser.parse_args()
-    main(args.source,args.candidate_zip)
+    # A worker evaluation or driver close has no Playwright evaluation deadline.
+    # The outer CI hard timeout remains authoritative; capture the waiting stack.
+    faulthandler.dump_traceback_later(20,repeat=True)
+    try:
+        main(args.source,args.candidate_zip)
+    finally:
+        faulthandler.cancel_dump_traceback_later()
