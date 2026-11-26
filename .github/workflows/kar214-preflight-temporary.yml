@@ -1,0 +1,47 @@
+name: KAR-214 sealed Work PR preflight (temporary)
+on:
+  push:
+    branches: [work/KAR-214]
+    paths: ['.github/workflows/kar214-preflight-temporary.yml']
+permissions:
+  contents: read
+  issues: read
+jobs:
+  preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: a2e7bb67673f70e85e9273af3aa7977a1baf1582
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Exact sealed tree and final branch readback
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected_tree=13ac55d49a98d4ba94266e4402c138ee2052e96b
+          expected_main=4d7ae5130730776927748e2517fdf9aadaf098cd
+          trigger="$GITHUB_SHA"
+          test "$(git rev-parse HEAD^{tree})" = "$expected_tree"
+          ready=0
+          for attempt in $(seq 1 18); do
+            head="$(git ls-remote origin refs/heads/work/KAR-214 | cut -f1)"
+            if [ "$head" = "$trigger" ]; then sleep 5; continue; fi
+            git fetch --no-tags origin "$head"
+            test "$(git rev-parse FETCH_HEAD^{tree})" = "$expected_tree"
+            test "$(git rev-parse FETCH_HEAD^)" = "$trigger"
+            test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$expected_main"
+            git checkout --detach "$head"
+            if node scripts/kar-work-pr-preflight.cjs --issue 214 --head-sha "$head"; then ready=1; break; fi
+            sleep 5
+          done
+          test "$ready" = 1
+          python3 scripts/verify_committed_chrome_zip.py --base-sha "$expected_main" --report "$RUNNER_TEMP/kar214-sealed-parity.json"
+          echo "KAR214_PREFLIGHT_EXACT_HEAD $head"
+          sha256sum release/kleinanzeigen-renewal-chrome-v2.0.1.0.zip
