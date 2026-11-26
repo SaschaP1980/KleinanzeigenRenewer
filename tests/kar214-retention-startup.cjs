@@ -9,8 +9,8 @@ let factory;
 vm.runInNewContext(source,{globalThis:{KRDeps:{register(name,api){if(name==='KRTrashService')factory=api}},crypto:{randomUUID:()=> 'kar214-token'}},Date,Number,String,Object,Math,Array,Map,Promise});
 const day = 86400000;
 const now = Date.now();
-function fixture(readPolicy) {
-  let rows = [{inventoryId:'trash-A',profileId:'profile-A',recordKind:'trash',trash:{trashedAt:new Date(now-60*day).toISOString(),expiresAt:new Date(now-30*day).toISOString()}}];
+function fixture(readPolicy, trashOverride = {}) {
+  let rows = [{inventoryId:'trash-A',profileId:'profile-A',recordKind:'trash',trash:{trashedAt:new Date(now-60*day).toISOString(),expiresAt:new Date(now-30*day).toISOString(),...trashOverride}}];
   const deleted = [];
   const repository = {
     readAll:async()=>rows.slice(),readForProfile:async p=>rows.filter(r=>r.profileId===p),get:async id=>rows.find(r=>r.inventoryId===id),
@@ -43,4 +43,25 @@ test('KAR-214 verified finite policy still permits eligible expiry',async()=>{
   const result=await f.service.purgeExpired();
   assert.equal(result.purged,1);
   assert.deepEqual(f.deleted,['trash-A']);
+});
+
+test('KAR-214 confirmed missing policy preserves longer or unknown legacy expiry',async()=>{
+  for (const preference of [undefined,'malformed']) {
+    for (const metadata of [{expiresAt:null},{expiresAt:new Date(now+100*day).toISOString()},{retentionIndefinite:true}]) {
+      const f=fixture(async()=>preference,metadata);
+      assert.equal((await f.service.getConfiguration()).retentionDays,30);
+      assert.equal((await f.service.purgeExpired()).purged,0);
+      assert.equal(f.rows().length,1);
+    }
+  }
+});
+test('KAR-214 valid historical default expiry is retained',async()=>{
+  const f=fixture(async()=>undefined);
+  assert.equal((await f.service.getConfiguration()).retentionDays,30);
+  assert.equal((await f.service.purgeExpired()).purged,1);
+});
+test('KAR-214 invalid actual trash timestamp is not normalized into deletion eligibility',async()=>{
+  const f=fixture(async()=>30,{trashedAt:'2026-02-30T00:00:00.000Z'});
+  assert.equal((await f.service.purgeExpired()).purged,0);
+  assert.equal(f.rows().length,1);
 });
