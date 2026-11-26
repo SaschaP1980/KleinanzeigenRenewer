@@ -1339,7 +1339,7 @@ function validateDispositions(root) {
   const read = rel => fs.readFileSync(file(rel));
   const json = rel => JSON.parse(read(rel));
   const version = execFileSync('python3',[file('scripts/product_version.py'),'--root',root],{encoding:'utf8'}).trim();
-  const {assertRestoredBaselineVersion,expectedRestoredBlob,expectedRestoredPackage,isS09Version,S09_SCOPE}=require('./current-patch-policy.cjs');
+  const {assertRestoredBaselineVersion,expectedRestoredBlob,expectedRestoredPackage,isS09Version,S09_SCOPE,isS03Version,S03_SCOPE}=require('./current-patch-policy.cjs');
   assert.equal(assertRestoredBaselineVersion(root),version,'Only reviewed restored baseline or exact hotfix');
   const ledger=json(LEDGER);
   assert.equal(ledger.schema,2);
@@ -1360,6 +1360,11 @@ function validateDispositions(root) {
   const packaged=[...allowlist.matchAll(/'([^']+)'/g)].map(m=>m[1]);
   assert.deepEqual(packaged,expectedRestoredPackage(version,target),'Reviewed package scope drift');
   const reactivated = new Set(isS09Version(version) ? S09_SCOPE.reactivatedTests : []);
+  if(isS03Version(version)) {
+    const changed = new Set(S03_SCOPE.runtimeChanges.map(r=>r.path));
+    const affected=ledger.entries.filter(e=>changed.has(e.module)&&e.featureAbsence).map(e=>({test:e.test,module:e.module,marker:e.featureAbsence.marker})).sort((a,b)=>a.test.localeCompare(b.test));
+    assert.deepEqual(affected,[...S03_SCOPE.retainedDeferredCapabilityChecks].sort((a,b)=>a.test.localeCompare(b.test)),'S03 must review every affected historical absence check');
+  }
   if (isS09Version(version)) assert.deepEqual([...reactivated].sort(), ["tests/kar161-trash-retention.cjs","tests/kar164-trash-sort.cjs","tests/kar165-trash-retention-warning.cjs","tests/kar186-retention-hydration.cjs"]);
   const inactive=new Map();
   for(const e of ledger.entries) {
