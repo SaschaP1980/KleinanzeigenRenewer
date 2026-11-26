@@ -1,0 +1,30 @@
+name: KAR-212 sealed archive parity
+on:
+  push:
+    branches: [work/KAR-212]
+    paths: ['.github/workflows/kar212-sealed-parity.yml']
+permissions:
+  contents: read
+jobs:
+  parity:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: 8729ec658ad57acc65992236f23359914d23e1df
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Validate exact committed archive against rebuilt source
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = '8729ec658ad57acc65992236f23359914d23e1df'
+          test -z "$(git status --porcelain)"
+          echo 'e4ec9da3cb6604e807b640169dd2df849a9a444eb95f268c627e835f8dfe1383  release/kleinanzeigen-renewal-chrome-v2.0.0.1.zip' | sha256sum -c
+          echo 'cc9ec37d0e9bf3c7688438ad04e9df0983a71d54b0802833906d8580d5902839  release/kleinanzeigen-renewal-chrome-v2.0.0.0.zip' | sha256sum -c
+          python3 scripts/verify_committed_chrome_zip.py --base-sha f659c85d704d641f07cdd5b1cb89de685c5f0a5d --report "$RUNNER_TEMP/committed-zip-parity.json"
+          cat "$RUNNER_TEMP/committed-zip-parity.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kar212-committed-zip-parity
+          path: ${{ runner.temp }}/committed-zip-parity.json
+          if-no-files-found: error
