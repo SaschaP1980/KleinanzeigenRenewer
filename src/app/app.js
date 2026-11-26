@@ -1582,7 +1582,14 @@ function renewalProgressModel(record) {
   if (safePhase2Done) states[2] = 'success';
   if (phase3Done) states[3] = 'success';
 
-  if (renewal.autoReplacementFailedAt && phase3Done) {
+  if (stage === 'source-delete-status-unverified' || stage === 'source-delete-outcome-unverified'
+      || renewal.sourceDeleteVerificationOnly === true) {
+    states[4] = 'error'; title = 'Austausch ungeklärt';
+    text = 'Neue Anzeige bestätigt; alte Anzeige noch nicht nachweislich gelöscht oder lokaler Austausch nicht abgeschlossen. Kein erneuter Löschbefehl. ' + (renewal.sourceDeleteVerificationOnly === true ? 'Löschung im Inventar prüfen.' : 'Bitte beide Anzeigen unabhängig prüfen.');
+    kind = 'error';
+    return { states, title, text, kind, mode, newAdId: String(record?.adId || renewal.newAdId || '') };
+  }
+  if ((renewal.autoReplacementFailedAt || renewal.phase4AttemptsExhaustedAt) && phase3Done) {
     states[4] = 'error';
     title = 'Austausch nicht abgeschlossen';
     text = 'Die neue Anzeige ist bestätigt, aber der Austausch konnte noch nicht abgeschlossen werden. Die bisherige Anzeige bleibt geschützt.';
@@ -1616,7 +1623,7 @@ function renewalProgressModel(record) {
   if (stage.startsWith('source-delete')) {
     states[4] = 'active';
     title = stage === 'source-delete-verification-pending' ? 'Löschung der bisherigen Anzeige wird geprüft …' : 'Bisherige Anzeige wird ersetzt …';
-    text = 'Die neue Anzeige wurde gemäß dem gewählten Modus bestätigt. Die bisherige Anzeige wird gelöscht und ihre Abwesenheit anschließend unabhängig geprüft.';
+    text = 'Die neue Anzeige wurde gemäß dem gewählten Modus bestätigt. Der Status der bisherigen Anzeige wird geprüft; der lokale Austausch erfolgt erst nach unabhängig bestätigter Abwesenheit.';
     return { states, title, text, kind, mode, newAdId: String(record?.adId || renewal.newAdId || '') };
   }
 

@@ -10,7 +10,7 @@
         closeRegistryTab, createManagedWorkerTab, correlationContext, waitForTabComplete, ensureContentConnection,
         sendTabRequestWithBootstrap, normalizeProfileName, closeManagedWorkerTab, renewalMaxPhaseAttempts,
         isPhase4DeleteTransportInterruption, assertMassRenewalManualActionAllowed, getInventory, normalBrowserWindowId,
-        renewalPhaseAttemptAvailable, renewalAttemptState, delay, renewalPhaseRetryDelayMs, logRenewalPhaseAttemptStarted,
+        renewalPhaseAttemptAvailable, renewalAttemptState, delay, renewalPhaseRetryDelayMs, resetRenewalPhaseAttempts, logRenewalPhaseAttemptStarted,
         logRenewalPhaseAttemptFailed, isNonRetryableRenewalSafetyError, renewalAttemptDetails, setAppNotice,
         markMassRenewalItemSucceeded, captureEmergencyResetGeneration, assertEmergencyResetGeneration
       } = options;
@@ -560,6 +560,13 @@ async function finishRenewalReplacement(message) {
   const session = renewals[renewalId];
   if (!session) throw new Error('Renewal-Vorgang wurde nicht gefunden.');
   if (legacyOutcomeBlocked(session)) throw Object.assign(new Error('Der frühere Löschvorgang ist ungeklärt. Bitte beide Anzeigen unabhängig prüfen; keine erneute Löschung.'), { code: 'KR_LEGACY_OUTCOME_UNRESOLVED' });
+  let readOnlyResolutionRequired = String(session.stage || '').startsWith('source-delete')
+    || Boolean(session.sourceDeleteTransportInterrupted || session.sourceDeleteAction
+      || session.sourceDeleteVerificationPendingAt || session.sourceDeletedAt);
+  // A read-only recovery consent must never be widened by a stale UI snapshot.
+  if (message?.verificationOnly === true && !readOnlyResolutionRequired) {
+    throw new Error('Der Status der Anzeige hat sich geändert. Bitte das Inventar aktualisieren und die Aktion erneut prüfen.');
+  }
   const explicitPhase4Retry = message?.type === 'FINISH_RENEWAL_REPLACEMENT' || message?.massBatchRetry === true;
   if (explicitPhase4Retry && session.phase4AttemptsExhaustedAt && !renewalPhaseAttemptAvailable(session, 4)) {
     resetRenewalPhaseAttempts(session, [4]);
@@ -593,12 +600,10 @@ async function finishRenewalReplacement(message) {
   // A prior dispatch may have succeeded even without a reply or persisted result.
   // Persist the existing pending marker together with the existing pre-dispatch write:
   // a worker restart (or the generic failure handler resetting the stage) cannot erase it.
-  let readOnlyResolutionRequired = String(session.stage || '').startsWith('source-delete')
-    || Boolean(session.sourceDeleteTransportInterrupted || session.sourceDeleteAction
-      || session.sourceDeleteVerificationPendingAt || session.sourceDeletedAt);
   session.status = 'verified';
   session.stage = 'source-delete-started';
   session.lastError = null;
+  session.autoReplacementFailedAt = null;
   session.sourceDeleteVerificationPendingAt ||= new Date().toISOString();
   await persistRenewalSession(session);
 

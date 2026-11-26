@@ -67,6 +67,11 @@
       let currentTrashRecords = [];
       let selectedProfileId = '';
       let globalListViewMode = 'detailed'; let inventoryViewState={query:'',sortKey:'endDate',direction:'asc'};
+      function replacementConfirmation(verificationOnly) {
+        return verificationOnly
+          ? { title: 'Löschung prüfen?', text: 'Der aktuelle Löschstatus wird unabhängig geprüft. Es wird kein erneuter Löschbefehl gesendet.', detail: 'Nur nach bestätigter Abwesenheit wird der lokale Austausch abgeschlossen und die bisherige Vorlage im Papierkorb gesichert.', confirmLabel: 'Löschung prüfen', danger: false }
+          : { title: 'Austausch abschließen?', text: 'Die bisherige Anzeige wird bei Kleinanzeigen gelöscht. Die neue Anzeige bleibt erhalten.', detail: 'Die bisherige Anzeige wird erst nach bestätigter Löschung ' + trashRetentionPhrase() + ' im Papierkorb gesichert.', confirmLabel: 'Austausch abschließen', danger: true };
+      }
       function updateContext(context={}) {
         if (Array.isArray(context.records)) currentRecords=context.records;
         if (Array.isArray(context.trashRecords)) currentTrashRecords=context.trashRecords;
@@ -152,10 +157,11 @@ function renderCompactInventoryRow(record) {
     const gate = accountGateModel();
     const profileMatches = Boolean(selectedConcreteProfile() && String(record?.profileId || '') === String(selectedProfileId || ''));
     const autoCompleting = renewalAutoCompletionPending(record);
+    const verificationOnly = record.renewal.sourceDeleteVerificationOnly === true;
     const finishButton = rememberCompactButtonDisabled(makeCompactIconButton({
-      icon: 'finish-renewal',
-      label: 'Austausch abschließen',
-      title: autoCompleting ? 'Der bestätigte Austausch läuft bereits.' : 'Austausch abschließen'
+      icon: verificationOnly ? 'retry' : 'finish-renewal',
+      label: verificationOnly ? 'Löschung prüfen' : 'Austausch abschließen',
+      title: autoCompleting ? 'Der bestätigte Austausch läuft bereits.' : verificationOnly ? 'Prüft die Abwesenheit der bisherigen Anzeige, ohne erneut zu löschen.' : 'Austausch abschließen'
     }));
     finishButton.disabled = autoCompleting || !gate.allowed || !profileMatches;
     rememberCompactButtonDisabled(finishButton);
@@ -178,16 +184,17 @@ function renderCompactInventoryRow(record) {
     finishButton.addEventListener('click', async () => {
       if (!requireAccountBoundAction()) return;
       const renewalId = String(record.renewal.renewalId || '');
-      if (!await confirmAction({ title: 'Austausch abschließen?', text: 'Die bisherige Anzeige wird bei Kleinanzeigen gelöscht. Die neue Anzeige bleibt erhalten.', detail: 'Die bisherige Anzeige wird erst nach bestätigter Löschung ' + trashRetentionPhrase() + ' im Papierkorb gesichert.', confirmLabel: 'Austausch abschließen', danger: true })) return;
+      if (!await confirmAction(replacementConfirmation(verificationOnly))) return;
       setCompactButtonsBusy(peers, true);
       try {
-        const result = await runtimeMessage({ type: 'FINISH_RENEWAL_REPLACEMENT', renewalId });
+        const result = await runtimeMessage({ type: 'FINISH_RENEWAL_REPLACEMENT', renewalId, ...(verificationOnly ? { verificationOnly: true } : {}) });
         renderAppNotice(result?.notice || { kind: 'success', title: 'Neu inseriert', text: 'Die bisherige Anzeige wurde gelöscht und bleibt ' + trashRetentionPhrase() + ' im Papierkorb.' });
         setStatus('ready', 'Austausch abgeschlossen', 'Die bisherige Anzeige wurde gelöscht, ' + trashRetentionPhrase() + ' im Papierkorb gesichert und die neue Anzeige im Inventar übernommen.');
         await refreshInventories();
       } catch (error) {
         setCompactButtonsBusy(peers, false);
         setStatus('error', 'Austausch nicht abgeschlossen', `${friendlyErrorMessage(error)} Der aktuelle Stand bleibt erhalten.`);
+        await refreshInventories().catch(() => {});
       }
     });
 
@@ -235,7 +242,7 @@ function renderCompactInventoryRow(record) {
     const gate = accountGateModel();
     const profileMatches = Boolean(selectedConcreteProfile() && String(record?.profileId || '') === String(selectedProfileId || ''));
     const exportButton = makeCompactInventoryExportButton(record);
-    const retryable = ['waiting-for-online', 'verification-failed'].includes(String(record.renewal.status || '')) && /^\d+$/.test(String(record.adId || record.renewal.newAdId || ''));
+    const retryable = !['source-delete-status-unverified', 'source-delete-outcome-unverified'].includes(String(record.renewal.stage || '')) && ['waiting-for-online', 'verification-failed'].includes(String(record.renewal.status || '')) && /^\d+$/.test(String(record.adId || record.renewal.newAdId || ''));
     if (retryable) {
       const retryButton = makeCompactIconButton({ icon: 'retry', label: 'Erneut prüfen', title: 'Prüft die neue Anzeige erneut.' });
       retryButton.disabled = !gate.allowed || !profileMatches;
@@ -460,8 +467,9 @@ function renderInventories(records = currentRecords) {
         finishButton.type = 'button';
         finishButton.className = 'secondary compact-action renewal-state-button';
         const autoCompleting = renewalAutoCompletionPending(record);
-        finishButton.textContent = autoCompleting ? renewalStatusText(record) : 'Austausch abschließen';
-        finishButton.title = autoCompleting ? 'Der bestätigte Austausch läuft bereits.' : 'Löscht die bisherige Anzeige bei Kleinanzeigen erst nach eindeutiger Prüfung und behält die neue Anzeige im Inventar.';
+        const verificationOnly = record.renewal.sourceDeleteVerificationOnly === true;
+        finishButton.textContent = autoCompleting ? renewalStatusText(record) : verificationOnly ? 'Löschung prüfen' : 'Austausch abschließen';
+        finishButton.title = autoCompleting ? 'Der bestätigte Austausch läuft bereits.' : verificationOnly ? 'Prüft die Abwesenheit der bisherigen Anzeige, ohne erneut zu löschen.' : 'Löscht die bisherige Anzeige bei Kleinanzeigen erst nach eindeutiger Prüfung und behält die neue Anzeige im Inventar.';
         finishButton.disabled = autoCompleting || !renewalAccountGate.allowed || !renewalProfileMatches;
         if (!renewalAccountGate.allowed) finishButton.title = renewalAccountGate.tooltip;
         else if (!renewalProfileMatches) finishButton.title = 'Nicht verfügbar: Die Anzeige gehört nicht zum ausgewählten Inventarprofil.';
@@ -494,7 +502,7 @@ function renderInventories(records = currentRecords) {
           const sourceAdId = String(record.renewal.sourceAdId || '');
           const newAdId = String(record.adId || record.renewal.newAdId || '');
           void logAppEvent('USER_RENEWAL_REPLACEMENT_FINISH_CLICK', { renewalId, sourceAdId, newAdId, inventoryId: record.inventoryId });
-          if (!await confirmAction({ title: 'Austausch abschließen?', text: 'Die bisherige Anzeige wird bei Kleinanzeigen gelöscht. Die neue Anzeige bleibt erhalten.', detail: 'Die bisherige Anzeige wird erst nach bestätigter Löschung ' + trashRetentionPhrase() + ' im Papierkorb gesichert.', confirmLabel: 'Austausch abschließen', danger: true })) {
+          if (!await confirmAction(replacementConfirmation(verificationOnly))) {
             void logAppEvent('USER_RENEWAL_REPLACEMENT_FINISH_CANCELLED', { renewalId, sourceAdId, newAdId });
             return;
           }
@@ -502,9 +510,9 @@ function renderInventories(records = currentRecords) {
           updateButton.disabled = true;
           removeButton.disabled = true;
           const originalText = finishButton.textContent;
-          finishButton.textContent = 'Austausch läuft …';
+          finishButton.textContent = verificationOnly ? 'Löschung wird geprüft …' : 'Austausch läuft …';
           try {
-            const result = await runtimeMessage({ type: 'FINISH_RENEWAL_REPLACEMENT', renewalId });
+            const result = await runtimeMessage({ type: 'FINISH_RENEWAL_REPLACEMENT', renewalId, ...(verificationOnly ? { verificationOnly: true } : {}) });
             void logAppEvent('USER_RENEWAL_REPLACEMENT_FINISH_SUCCEEDED', { renewalId, sourceAdId, newAdId, inventoryId: result?.inventoryId || '' });
             renderAppNotice(result?.notice || { kind: 'success', title: 'Neu inseriert', text: 'Die bisherige Anzeige wurde gelöscht und bleibt ' + trashRetentionPhrase() + ' im Papierkorb. Die neue Anzeige ist jetzt im Inventar gespeichert.' });
             setStatus('ready', 'Austausch abgeschlossen', 'Die bisherige Anzeige wurde gelöscht, ' + trashRetentionPhrase() + ' im Papierkorb gesichert und die neue Anzeige im Inventar übernommen.');
@@ -516,6 +524,7 @@ function renderInventories(records = currentRecords) {
             updateButton.disabled = false;
             removeButton.disabled = false;
             setStatus('error', 'Austausch nicht abgeschlossen', `${friendlyErrorMessage(error)} Der aktuelle Stand bleibt erhalten.`);
+            await refreshInventories().catch(() => {});
           }
         });
 
@@ -588,7 +597,7 @@ function renderInventories(records = currentRecords) {
         renewalButton.type = 'button';
         renewalButton.className = 'secondary compact-action renewal-state-button';
         renewalButton.textContent = renewalStatusText(record);
-        const retryableRenewal = ['waiting-for-online', 'verification-failed'].includes(String(record.renewal.status || '')) && /^\d+$/.test(String(record.adId || record.renewal.newAdId || ''));
+        const retryableRenewal = !['source-delete-status-unverified', 'source-delete-outcome-unverified'].includes(String(record.renewal.stage || '')) && ['waiting-for-online', 'verification-failed'].includes(String(record.renewal.status || '')) && /^\d+$/.test(String(record.adId || record.renewal.newAdId || ''));
         renewalButton.disabled = !retryableRenewal || !renewalAccountGate.allowed || !renewalProfileMatches;
         if (retryableRenewal) {
           renewalButton.title = !renewalAccountGate.allowed

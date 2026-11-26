@@ -197,6 +197,10 @@
           remoteVerificationRequired: session.remoteVerificationRequired === true,
           autoReplacementFailedAt: session.autoReplacementFailedAt || null,
           phase4AttemptsExhaustedAt: session.phase4AttemptsExhaustedAt || null,
+          // Presentation of the existing Phase-4 no-replay boundary; no new persisted session state.
+          sourceDeleteVerificationOnly: session.stage === 'replacement-ready'
+            && Boolean(session.sourceDeleteTransportInterrupted || session.sourceDeleteAction
+              || session.sourceDeleteVerificationPendingAt || session.sourceDeletedAt),
           massBatchId: session.massBatchId || null,
           massBatchItemIndex: session.massBatchItemIndex ?? null,
           massBatchTerminal: session.massBatchTerminal === true

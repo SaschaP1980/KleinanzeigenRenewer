@@ -192,7 +192,7 @@ function requireRemoteDeleteReplacementService() {
     closeRegistryTab, TabRegistry, createManagedWorkerTab, correlationContext, MY_ADS_PROJECTS_URL, waitForTabComplete,
     TAB_LOAD_TIMEOUT_PHASE4_MS, ensureContentConnection, sendTabRequestWithBootstrap, normalizeProfileName, closeManagedWorkerTab,
     renewalMaxPhaseAttempts, isPhase4DeleteTransportInterruption, assertMassRenewalManualActionAllowed, getInventory, normalBrowserWindowId,
-    renewalPhaseAttemptAvailable, renewalAttemptState, delay, renewalPhaseRetryDelayMs, logRenewalPhaseAttemptStarted,
+    renewalPhaseAttemptAvailable, renewalAttemptState, delay, renewalPhaseRetryDelayMs, resetRenewalPhaseAttempts, logRenewalPhaseAttemptStarted,
     logRenewalPhaseAttemptFailed, isNonRetryableRenewalSafetyError, renewalAttemptDetails, setAppNotice, markMassRenewalItemSucceeded,
     IDBKeyRangeCtor: globalThis.IDBKeyRange, captureEmergencyResetGeneration, assertEmergencyResetGeneration
   });

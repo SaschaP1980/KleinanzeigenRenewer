@@ -100,7 +100,14 @@
         if (phase1Done) states[1] = 'success';
         if (safePhase2Done) states[2] = 'success';
         if (phase3Done) states[3] = 'success';
-        if (renewal.autoReplacementFailedAt && phase3Done) {
+        if (stage === 'source-delete-status-unverified' || stage === 'source-delete-outcome-unverified'
+            || renewal.sourceDeleteVerificationOnly === true) {
+          states[4] = 'error'; title = 'Austausch ungeklärt';
+          text = 'Neue Anzeige bestätigt; alte Anzeige noch nicht nachweislich gelöscht oder lokaler Austausch nicht abgeschlossen. Kein erneuter Löschbefehl. ' + (renewal.sourceDeleteVerificationOnly === true ? 'Löschung im Inventar prüfen.' : 'Bitte beide Anzeigen unabhängig prüfen.');
+          kind = 'error';
+          return { states, title, text, kind, mode, newAdId: String(record?.adId || renewal.newAdId || '') };
+        }
+        if ((renewal.autoReplacementFailedAt || renewal.phase4AttemptsExhaustedAt) && phase3Done) {
           states[4] = 'error'; title = 'Austausch nicht abgeschlossen'; text = 'Die neue Anzeige ist bestätigt, aber der Austausch konnte noch nicht abgeschlossen werden. Die bisherige Anzeige bleibt geschützt.'; kind = 'error';
           return { states, title, text, kind, mode, newAdId: String(record?.adId || renewal.newAdId || '') };
         }
@@ -113,7 +120,7 @@
           return { states, title, text, kind, mode, newAdId: String(record?.adId || renewal.newAdId || '') };
         }
         if (!fast && status === 'waiting-for-online') { states[3] = 'waiting'; title = 'Noch nicht online'; text = 'Der bisherige Status bleibt unverändert.'; kind = 'waiting'; return { states, title, text, kind, mode, newAdId: String(record?.adId || renewal.newAdId || '') }; }
-        if (stage.startsWith('source-delete')) { states[4] = 'active'; title = stage === 'source-delete-verification-pending' ? 'Löschung der bisherigen Anzeige wird geprüft …' : 'Bisherige Anzeige wird ersetzt …'; text = 'Die neue Anzeige wurde gemäß dem gewählten Modus bestätigt. Die bisherige Anzeige wird gelöscht und ihre Abwesenheit anschließend unabhängig geprüft.'; return { states, title, text, kind, mode, newAdId: String(record?.adId || renewal.newAdId || '') }; }
+        if (stage.startsWith('source-delete')) { states[4] = 'active'; title = stage === 'source-delete-verification-pending' ? 'Löschung der bisherigen Anzeige wird geprüft …' : 'Bisherige Anzeige wird ersetzt …'; text = 'Die neue Anzeige wurde gemäß dem gewählten Modus bestätigt. Der Status der bisherigen Anzeige wird geprüft; der lokale Austausch erfolgt erst nach unabhängig bestätigter Abwesenheit.'; return { states, title, text, kind, mode, newAdId: String(record?.adId || renewal.newAdId || '') }; }
         if (stage === 'replacement-ready' || status === 'verified') { states[4] = 'active'; title = 'Austausch wird abgeschlossen …'; text = fast ? 'Die neue Anzeige wurde im richtigen Profil unter „Meine Anzeigen“ gefunden. Jetzt wird die bisherige Anzeige sicher gelöscht.' : 'Die neue Anzeige wurde vollständig kontrolliert. Jetzt wird die bisherige Anzeige sicher gelöscht.'; return { states, title, text, kind, mode, newAdId: String(record?.adId || renewal.newAdId || '') }; }
         if (fast && (status === 'verifying' || ['fast-my-ads-opening', 'fast-my-ads-checking'].includes(stage))) { states[3] = 'active'; title = 'Neue Anzeige wird unter „Meine Anzeigen“ gesucht …'; text = 'Schnellprüfung: Es wird bestätigt, dass die neue Anzeige im richtigen Profil unter „Meine Anzeigen“ vorhanden ist.'; return { states, title, text, kind, mode, newAdId: String(record?.adId || renewal.newAdId || '') }; }
         if (!fast && (status === 'reinventorizing' || ['edit-worker-opening', 'edit-worker-opened', 'saving-candidate'].includes(stage))) { states[2] = 'active'; title = 'Neue Anzeige wird kontrolliert …'; text = 'Die gespeicherten Angaben und Bilder werden noch einmal geprüft.'; return { states, title, text, kind, mode, newAdId: String(record?.adId || renewal.newAdId || '') }; }
