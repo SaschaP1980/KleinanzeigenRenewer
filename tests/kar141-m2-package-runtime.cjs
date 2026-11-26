@@ -34,7 +34,8 @@ if (generationTwo) {
   const target = JSON.parse(fs.readFileSync('docs/maintenance/KAR210_BASELINE_TARGET.json', 'utf8'));
   assert.equal(target.issue, 210);
   assert.equal(target.version, '2.0.0.0');
-  if (manifest.version === target.version) {
+  if (require('./current-patch-policy.cjs').isReviewedRestoreVersion(manifest.version)) {
+    require('./current-patch-policy.cjs').assertRestoredBaselineVersion();
     assert.deepEqual(members, target.packaged, 'exact KAR-210 baseline package scope');
     assert.equal(target.absent.length, 22, 'explicit baseline exclusions must remain complete');
     for (const filename of target.absent) {

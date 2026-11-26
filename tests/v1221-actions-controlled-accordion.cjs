@@ -28,7 +28,7 @@ if (restored) {
   for (const item of target.expected) {
     const bytes=fs.readFileSync(path.join(root,item.path));
     const blob=crypto.createHash('sha1').update('blob '+bytes.length+'\0').update(bytes).digest('hex');
-    assert.equal(blob,item.sha,'exact historical baseline runtime: '+item.path);
+    assert.equal(blob,require('./current-patch-policy.cjs').expectedRestoredBlob(manifest.version,item.path,item.sha),'exact reviewed baseline/hotfix runtime: '+item.path);
   }
   pass('S02 exact historical runtime parity (122 recorded files), not v1.21.15 patch parity');
 } else {

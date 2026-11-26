@@ -97,13 +97,30 @@ function includesActivePatch(knownVersions, version) {
     (knownVersions.includes('1.23.24') && isCurrentPatchVersion(version));
 }
 
-// KAR-210: explicit S02 major baseline, never an alias for legacy PATCH.
+// KAR-210 exact baseline and KAR-212 explicitly authorized one-line successor.
+const REVIEWED_HOTFIX = Object.freeze({"issue":212,"directBasis":"2.0.0.0","sourceCommit":"f659c85d704d641f07cdd5b1cb89de685c5f0a5d","archiveSha256":"cc9ec37d0e9bf3c7688438ad04e9df0983a71d54b0802833906d8580d5902839","runtimeBlob":"f75e6e9dfb1bb2491c8a7d9bd5932c53baf99998","manifestBlob":"a7376f5782888fac78d51c567cd7699e82705a2c"});
+function isReviewedRestoreVersion(version) { return version === '2.0.0.0' || version === '2.0.0.1'; }
+function expectedRestoredBlob(version, file, historicalBlob) {
+  assert.ok(isReviewedRestoreVersion(version), 'unreviewed restored runtime');
+  if(version==='2.0.0.1' && file==='src/background/background.js') {
+    assert.equal(historicalBlob,'bbdeee5b2c6125545b22de209c4d52fd1bdeb9ad');
+    return REVIEWED_HOTFIX.runtimeBlob;
+  }
+  if(version==='2.0.0.1' && file==='manifest.json') {
+    assert.equal(historicalBlob,'d0d3038800b5ebc01ed1e39ea4533beed6fc8089');
+    return REVIEWED_HOTFIX.manifestBlob;
+  }
+  return historicalBlob;
+}
+// Never alias to legacy PATCH or authorize arbitrary successors.
 function assertRestoredBaselineVersion(root = require('node:path').resolve(__dirname,'..')) {
   const fs=require('node:fs'),path=require('node:path'),{execFileSync}=require('node:child_process');
   const read=p=>JSON.parse(fs.readFileSync(path.join(root,p),'utf8'));
   const manifest=read('manifest.json'), pkg=read('package.json'), spec=read('release/release-spec.json');
   const actual=execFileSync('python3',[path.join(root,'scripts/product_version.py'),'--root',root],{encoding:'utf8'}).trim();
-  assert.equal(actual,'2.0.0.0','Only exact KAR-210 S02 target is reviewed');
+  assert.ok(isReviewedRestoreVersion(actual),'Only exact KAR-210 baseline or KAR-212 reviewed hotfix qualifies');
+  if(actual==='2.0.0.1') assert.deepEqual(spec.hotfix,REVIEWED_HOTFIX);
+  else assert.equal(spec.hotfix,undefined,'baseline must not carry successor metadata');
   assert.equal(manifest.version,actual);
   assert.equal(manifest.manifest_version,3);
   assert.equal(manifest.version_name,undefined);
@@ -124,4 +141,4 @@ function assertRestoredBaselineVersion(root = require('node:path').resolve(__dir
   return actual;
 }
 
-module.exports = { assertRestoredBaselineVersion, isCurrentPatchVersion, assertCompatibleCurrentPatch, includesActivePatch, includesSupportedRelease, expectedManifestPermissions };
+module.exports = { isReviewedRestoreVersion, expectedRestoredBlob, assertRestoredBaselineVersion, isCurrentPatchVersion, assertCompatibleCurrentPatch, includesActivePatch, includesSupportedRelease, expectedManifestPermissions };

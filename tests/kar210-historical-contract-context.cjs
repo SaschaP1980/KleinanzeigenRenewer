@@ -2,11 +2,11 @@
 // Narrow, test-only S02 context. Never change legacy version predicates or alias
 // an absent module globally. Existing non-S02 tests execute their original path.
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict'),crypto=require('node:crypto');
-const {assertRestoredBaselineVersion}=require('./current-patch-policy.cjs');
+const {assertRestoredBaselineVersion,isReviewedRestoreVersion,expectedRestoredBlob}=require('./current-patch-policy.cjs');
 function isRestored(root) {
   const manifest=JSON.parse(fs.readFileSync(path.join(root,'manifest.json'),'utf8'));
-  if(manifest.version!=='2.0.0.0') return false;
-  assert.equal(assertRestoredBaselineVersion(root),'2.0.0.0');
+  if(!isReviewedRestoreVersion(manifest.version)) return false;
+  assert.equal(assertRestoredBaselineVersion(root),manifest.version);
   return true;
 }
 function captureOwner(root) {
@@ -18,7 +18,7 @@ function captureOwner(root) {
   assert.ok(target.absent.includes(extracted));assert.ok(!target.packaged.includes(extracted));
   assert.equal(fs.existsSync(path.join(root,extracted)),false,'later owner must remain absent');
   const buf=fs.readFileSync(path.join(root,actual)),blob=crypto.createHash('sha1').update('blob '+buf.length+'\0').update(buf).digest('hex');
-  assert.equal(blob,target.expected.find(x=>x.path===actual)?.sha,'actual historical capture owner must remain exact');
+  assert.equal(blob,expectedRestoredBlob(assertRestoredBaselineVersion(root),actual,target.expected.find(x=>x.path===actual)?.sha),'actual historical capture owner must remain exact');
   assert.ok(target.packaged.includes(actual));
   return actual;
 }
@@ -54,8 +54,9 @@ function historicalBackgroundOwner(root, extracted) {
 function assertPendingS02Release(root) {
   assert.equal(isRestored(root),true,'only the exact restored S02 baseline qualifies');
   const spec=JSON.parse(fs.readFileSync(path.join(root,'release/release-spec.json'),'utf8'));
-  assert.equal(spec.validationStatus,'SOURCE_RESTORED_GATES_PENDING');
-  assert.equal(spec.version,'2.0.0.0');assert.equal(spec.packageVersion,'2.0.0.0');
+  const version=assertRestoredBaselineVersion(root);
+  assert.equal(spec.validationStatus,version==='2.0.0.1'?'HOTFIX_GATES_PENDING':'SOURCE_RESTORED_GATES_PENDING');
+  assert.equal(spec.version,version);assert.equal(spec.packageVersion,version);
   assert.equal(spec.directBasis,'1.23.48');assert.equal(spec.directBasisNativeGreen,false);
   assert.equal(spec.directBasisNativePending,true);
   assert.equal(spec.nativeSmokeRequired,true);

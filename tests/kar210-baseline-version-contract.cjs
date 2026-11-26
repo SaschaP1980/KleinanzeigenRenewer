@@ -5,7 +5,8 @@ const {assertRestoredBaselineVersion,isCurrentPatchVersion,includesSupportedRele
 const {assertPendingS02Release}=require('./kar210-historical-contract-context.cjs');
 const root=path.resolve(__dirname,'..');
 const metadata=['manifest.json','package.json','package-lock.json','release/release-spec.json'];
-assert.equal(assertRestoredBaselineVersion(root),'2.0.0.0');
+const active=JSON.parse(fs.readFileSync(path.join(root,'manifest.json'),'utf8')).version;
+assert.equal(assertRestoredBaselineVersion(root),active);
 for(const v of ['2.0.0.0','2.0.0.1','2.0.0','2.00.0.0']) {
   assert.equal(isCurrentPatchVersion(v),false);
   assert.equal(includesActivePatch(['1.23.24'],v),false);
@@ -18,7 +19,7 @@ try {
   for(const f of [...metadata,'scripts/product_version.py']){const dst=path.join(fixture,f);fs.mkdirSync(path.dirname(dst),{recursive:true});fs.copyFileSync(path.join(root,f),dst);}
   const read=p=>JSON.parse(fs.readFileSync(path.join(fixture,p),'utf8'));
   const write=(p,x)=>fs.writeFileSync(path.join(fixture,p),JSON.stringify(x));
-  assert.equal(assertRestoredBaselineVersion(fixture),'2.0.0.0');
+  assert.equal(assertRestoredBaselineVersion(fixture),active);
   const mutations=[
     ['manifest.json',m=>m.version='2.0.0'],
     ['package.json',p=>p.version='2.0.0.0'],
@@ -65,8 +66,13 @@ try {
   }
   assertPendingS02Release(fixture);
   // A coherent successor still needs explicit review, not merely metadata parity.
-  for(const f of metadata){const x=read(f);if(f==='manifest.json')x.version='2.0.0.1';if(f==='package.json')x.displayVersion='2.0.0.1';if(f.startsWith('release/'))x.version=x.packageVersion='2.0.0.1';write(f,x);}
+  for(const f of metadata){const x=read(f);if(f==='manifest.json')x.version='2.0.0.1';if(f==='package.json')x.displayVersion='2.0.0.1';if(f.startsWith('release/')){x.version=x.packageVersion='2.0.0.1';delete x.hotfix;}write(f,x);}
   assert.throws(()=>assertRestoredBaselineVersion(fixture));n++;
+  if(active==='2.0.0.1') {
+    for(const f of metadata)fs.copyFileSync(path.join(root,f),path.join(fixture,f));
+    const spec=read('release/release-spec.json');spec.hotfix.runtimeBlob='0'.repeat(40);write('release/release-spec.json',spec);
+    assert.throws(()=>assertRestoredBaselineVersion(fixture));n++;
+  }
 }finally{fs.rmSync(fixture,{recursive:true,force:true});}
 console.log('PASS KAR-210 explicit baseline version: '+n+' negative fixtures, legacy predicates unchanged');
 console.log('PASS KAR-210 pending release policy: '+releaseNegatives+' negative fixtures, no premature native/coverage/performance acceptance');

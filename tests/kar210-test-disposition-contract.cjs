@@ -76,7 +76,7 @@ try {
   put(LEDGER,tampered);deny();copy(LEDGER);
   const reset=structuredClone(data);reset.scopeResetDeferred.pop();put(LEDGER,reset);deny();copy(LEDGER);
   const post=data.scopeResetDeferred[0];put(post.test,'// altered later RED evidence');deny();copy(post.test);
-  const manifest=JSON.parse(read('manifest.json'));manifest.version='2.0.0.1';put('manifest.json',manifest);deny();copy('manifest.json');
+  const manifest=JSON.parse(read('manifest.json'));manifest.version=manifest.version==='2.0.0.1'?'2.0.0.2':'2.0.0.1';put('manifest.json',manifest);deny();copy('manifest.json');
   assert.equal(validateDispositions(fixture).size,inactive.size);
 } finally {fs.rmSync(fixture,{recursive:true,force:true});}
 console.log('PASS KAR-210 active suite separation: '+negatives+' fail-closed negatives, original evidence and inactive product witness preserved');

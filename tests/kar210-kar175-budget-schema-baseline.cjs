@@ -6,8 +6,11 @@ test('historical S02 source budget is measured and frozen; later nine-owner 30 p
  const chars=src.length,bytes=Buffer.byteLength(src,'utf8'),lines=src.split('\n').length;
  const target=JSON.parse(source('docs/maintenance/KAR210_BASELINE_TARGET.json'));
  const blob=crypto.createHash('sha1').update('blob '+bytes+'\0').update(src).digest('hex');
- assert.equal(blob,target.expected.find(r=>r.path===path).sha);
- assert.deepEqual({chars,bytes,lines},{chars:195459,bytes:195584,lines:3323});
+ const {assertRestoredBaselineVersion,expectedRestoredBlob}=require('./current-patch-policy.cjs');
+ const version=assertRestoredBaselineVersion();
+ assert.equal(blob,expectedRestoredBlob(version,path,target.expected.find(r=>r.path===path).sha));
+ const delta=version==='2.0.0.1'?106:0;
+ assert.deepEqual({chars,bytes,lines},{chars:195459+delta,bytes:195584+delta,lines:3323});
  const modules=[
  'src/background/services/inventory-capture-service.js',
  'src/background/services/inventory-refresh-service.js',
