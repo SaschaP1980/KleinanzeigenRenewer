@@ -2,6 +2,8 @@
   'use strict';
   const KRDeps = globalThis.KRDeps;
   if (!KRDeps) throw new Error('runtime-deps.js must load before mass-renewal-workflow-controller.js');
+  const legacyOutcomeBlocked = row => ['source-delete-outcome-unverified', 'source-delete-status-unverified', 'publish-intent-blocked'].includes(String(row?.stage || '')) || String(row?.status || '') === 'publish-blocked';
+  const legacyBatchBlocked = batch => legacyOutcomeBlocked(batch) || (Array.isArray(batch?.items) ? batch.items : []).some(legacyOutcomeBlocked);
   const API = Object.freeze({
     create(options = {}) {
       const {
@@ -60,7 +62,7 @@ async function startNextMassRenewalItem(batchId) {
     let selected = null;
     let terminalDecision = null;
     const mutation = await mutateMassRenewalBatch(id, batch => {
-      if (batch.status !== 'running') return { changed: false };
+      if (batch.status !== 'running' || legacyBatchBlocked(batch)) return { changed: false };
       if ((batch.items || []).some(item => ['running', 'retrying'].includes(String(item.status || '')))) return { changed: false };
       if (batch.stopAfterCurrentRequested) {
         terminalDecision = applyMassRenewalStopState(batch);
@@ -158,10 +160,11 @@ async function startNextMassRenewalItem(batchId) {
 
 async function reconcileMassRenewalBatchSession(session, options = {}) {
   const batchId = String(session?.massBatchId || '');
-  if (!batchId) return false;
+  if (!batchId || legacyOutcomeBlocked(session)) return false;
   let terminalized = false;
   let snapshot = null;
   const mutation = await mutateMassRenewalBatch(batchId, batch => {
+    if (legacyBatchBlocked(batch)) return { changed: false };
     const item = (batch.items || []).find(entry => String(entry.renewalId || '') === String(session.renewalId || '') || Number(entry.index) === Number(session.massBatchItemIndex));
     if (!item) return { changed: false };
     if (options.progressOnly === true && !['running', 'retrying'].includes(String(item.status || ''))) return { changed: false };
@@ -215,7 +218,7 @@ async function reconcileMassRenewalBatchSession(session, options = {}) {
 
 async function markMassRenewalItemSucceeded(session, result = {}) {
   const batchId = String(session?.massBatchId || '');
-  if (!batchId) return false;
+  if (!batchId || legacyOutcomeBlocked(session)) return false;
   dropMassRenewalProgress(session);
   let snapshot = null;
   let finalState = null;
@@ -223,6 +226,7 @@ async function markMassRenewalItemSucceeded(session, result = {}) {
   let batchStatusBefore = null;
   let batchStatusAfter = null;
   const mutation = await mutateMassRenewalBatch(batchId, batch => {
+    if (legacyBatchBlocked(batch)) return { changed: false };
     const item = (batch.items || []).find(entry => String(entry.renewalId || '') === String(session.renewalId || '') || Number(entry.index) === Number(session.massBatchItemIndex));
     if (!item) return { changed: false };
     const previousBatchStatus = String(batch.status || '');
@@ -274,6 +278,7 @@ async function markMassRenewalItemSucceeded(session, result = {}) {
 async function startMassRenewalBatch(message) {
   return withInsertionStartGate(async () => {
     await assertInsertionStartAvailable({ kind: 'mass-renewal' });
+    if (legacyBatchBlocked(await readMassRenewalBatch())) throw Object.assign(new Error('Ein früherer Massen-Vorgang ist ungeklärt.'), { code: 'KR_LEGACY_OUTCOME_UNRESOLVED' });
     const ids = [...new Set((Array.isArray(message?.inventoryIds) ? message.inventoryIds : []).map(value => String(value || '')).filter(Boolean))];
     if (!ids.length) throw new Error('Wähle mindestens eine Anzeige aus.');
     if (ids.length > MASS_RENEWAL_MAX_ITEMS) throw new Error(`Pro Durchlauf können maximal ${MASS_RENEWAL_MAX_ITEMS} Anzeigen ausgewählt werden.`);
@@ -353,6 +358,7 @@ async function normalizeMassRenewalBatchTopLevelStatus(batchId = '', trigger = '
   let normalizedStatus = null;
   let finalState = null;
   const mutation = await mutateMassRenewalBatch(requestedId, batch => {
+    if (legacyBatchBlocked(batch)) return { changed: false };
     const counts = massRenewalBatchCounts(batch);
     if (counts.queued || counts.running) return { changed: false };
     previousStatus = String(batch.status || '');
@@ -388,6 +394,7 @@ async function retryMassRenewalItem(message) {
   const index = Number(message?.index);
   let snapshot = null;
   const initial = await mutateMassRenewalBatch(batchId, batch => {
+    if (legacyBatchBlocked(batch)) throw Object.assign(new Error('Ein früherer Massen-Vorgang ist ungeklärt.'), { code: 'KR_LEGACY_OUTCOME_UNRESOLVED' });
     if (batch.status === 'running') throw new Error('Das Neu-Inserieren verarbeitet noch weitere Anzeigen. Wiederholungen sind erst in der Übersicht möglich.');
     const item = (batch.items || []).find(entry => Number(entry.index) === index);
     if (!item || !['needs-review', 'error'].includes(String(item.status || ''))) throw new Error('Diese Anzeige benötigt aktuell keine Wiederholung.');
@@ -434,7 +441,7 @@ async function retryMassRenewalItem(message) {
 
 async function resumeMassRenewalBatch() {
   const batch = await readMassRenewalBatch();
-  if (!batch || batch.status !== 'running') return massRenewalPublicSnapshot(batch);
+  if (!batch || batch.status !== 'running' || legacyBatchBlocked(batch)) return massRenewalPublicSnapshot(batch);
   armMassRenewalWatchdog();
   const running = (batch.items || []).find(item => ['running', 'retrying'].includes(String(item.status || '')));
   if (running) {
@@ -453,6 +460,7 @@ async function resumeMassRenewalBatch() {
         await logDiagnostic('info', 'MASS_RENEWAL_RECOVERY_RENEWAL_REBOUND', { batchId: batch.batchId, index: running.index, renewalId: session.renewalId }, { module: 'background', operation: 'mass-renewal-recovery', context: sessionCorrelationContext(session, { massBatchId: batch.batchId, renewalId: session.renewalId }) }).catch(() => {});
       }
     }
+    if (legacyOutcomeBlocked(session)) return massRenewalPublicSnapshot(batch);
     if (session) { await reconcileMassRenewalBatchSession(session); return getMassRenewalBatchStatus(); }
 
     if (!running.renewalId && String(running.stage || '') === 'starting') {
