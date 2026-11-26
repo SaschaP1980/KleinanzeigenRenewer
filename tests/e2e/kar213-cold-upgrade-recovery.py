@@ -109,15 +109,36 @@ def launch(p,profile,ext):
         print("KAR213_PHASE app-navigation "+app_path,flush=True)
         page.goto(f"chrome-extension://{EXTENSION_ID}/{app_path}",wait_until="domcontentloaded",timeout=20000)
         page.wait_for_timeout(1200)
-        workers=[w for w in ctx.service_workers if w.url.startswith(f"chrome-extension://{EXTENSION_ID}/")]
-        assert len(workers)==1,"Expected exact extension service worker"
-        worker=workers[0]
+        # Exercise the actual background via its existing read-only runtime route,
+        # not direct DevTools evaluation on a transient MV3 worker target.
         print("KAR213_PHASE worker-bootstrap",flush=True)
-        assert traced("worker-bootstrap-evaluate",worker.evaluate,"typeof openDatabase")== "function","Runtime bootstrap missing"
+        reply=traced("worker-bootstrap-message",page.evaluate, """async () => {
+          let timer;
+          try {
+            return await Promise.race([
+              chrome.runtime.sendMessage({type:'GET_BACKGROUND_EPOCH'}),
+              new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('Background epoch deadline')),5000);})
+            ]);
+          } finally {clearTimeout(timer);}
+        }""")
+        assert reply.get("ok") is True and isinstance(reply.get("result",{}).get("epoch"),str) and len(reply["result"]["epoch"])>=20, "Runtime bootstrap missing"
+        manifest=json.loads((ext/"manifest.json").read_text())
+        worker_path=manifest["background"]["service_worker"]
+        workers=[w for w in ctx.service_workers if w.url.startswith(f"chrome-extension://{EXTENSION_ID}/")]
+        assert len(workers)==1 and workers[0].url==f"chrome-extension://{EXTENSION_ID}/{worker_path}", "Expected exact extension service worker"
+        assert not errors,errors
+        # The real packaged launcher is passive unless clicked; use its stable
+        # extension document origin for raw Chrome storage and IndexedDB.
+        launcher=manifest["action"]["default_popup"]
+        assert (ext/launcher).is_file(),"Missing packaged launcher"
+        probe=ctx.new_page()
+        probe.on("pageerror",lambda error:errors.append(str(error)))
+        traced("probe-navigation",probe.goto,f"chrome-extension://{EXTENSION_ID}/{launcher}",wait_until="domcontentloaded",timeout=20000)
+        assert traced("probe-identity",probe.evaluate,"chrome.runtime.id")==EXTENSION_ID
         assert not errors,errors
         # Avoid ongoing manager reads while seeding and comparing raw state.
         traced("manager-page-close",page.close)
-        return ctx,worker
+        return ctx,probe
     except BaseException:
         traced("failed-launch-context-close",ctx.close)
         raise
@@ -157,9 +178,25 @@ def fixture(version):
         })
     return {"storage":storage,"records":rows,"images":images}
 
+# Open only the existing DB established by real application startup. Never
+# create or upgrade a schema inside the probe: that could hide a migration bug.
+OPEN_EXISTING_DB="""const openExistingDatabase=()=>new Promise((resolve,reject)=>{
+  const req=indexedDB.open('kleinanzeigen-renewal');
+  req.onupgradeneeded=()=>{req.transaction.abort();reject(new Error('Existing inventory database missing'));};
+  req.onerror=()=>reject(req.error);
+  req.onblocked=()=>reject(new Error('Inventory database open blocked'));
+  req.onsuccess=()=>{
+    const db=req.result;
+    if(db.version!==2 || !db.objectStoreNames.contains('inventories') || !db.objectStoreNames.contains('images')){
+      db.close();reject(new Error('Unexpected inventory database schema'));return;
+    }
+    resolve(db);
+  };
+});"""
 SEED="""async fixture=>{
+  """+OPEN_EXISTING_DB+"""
+  const db=await openExistingDatabase();
   await chrome.storage.local.set(fixture.storage);
-  const db=await openDatabase();
   try{
     await new Promise((resolve,reject)=>{
       const tx=db.transaction(['inventories','images'],'readwrite');
@@ -170,8 +207,9 @@ SEED="""async fixture=>{
   }finally{db.close();}
 }"""
 READ="""async keys=>{
+  """+OPEN_EXISTING_DB+"""
   const storage=await chrome.storage.local.get(keys);
-  const db=await openDatabase();
+  const db=await openExistingDatabase();
   try{
     const tx=db.transaction(['inventories','images'],'readonly');
     const request=req=>new Promise((resolve,reject)=>{req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});
@@ -180,9 +218,9 @@ READ="""async keys=>{
   }finally{db.close();}
 }"""
 
-def check(worker,expected,version):
-    assert traced("manifest-version-evaluate",worker.evaluate,"chrome.runtime.getManifest().version")==version
-    actual=traced("raw-storage-and-idb-read",worker.evaluate,READ,list(expected["storage"]))
+def check(probe,expected,version):
+    assert traced("manifest-version-evaluate",probe.evaluate,"chrome.runtime.getManifest().version")==version
+    actual=traced("raw-storage-and-idb-read",probe.evaluate,READ,list(expected["storage"]))
     assert actual["dbVersion"]==2
     changed_keys=sorted(k for k in expected["storage"] if k not in actual["storage"] or actual["storage"][k]!=expected["storage"][k])
     if changed_keys:
@@ -201,11 +239,11 @@ def main(version,candidate_zip=None):
         extract(ref,version,blob,ext,tmp)
         print("KAR213_PHASE seed-source "+version,flush=True)
         with sync_playwright() as p:
-            ctx,worker=launch(p,profile,ext)
+            ctx,probe=launch(p,profile,ext)
             try:
-                traced("historical-seed",worker.evaluate,SEED,expected)
-                check(worker,expected,version)
-                snapshot=traced("historical-snapshot",worker.evaluate,"""async()=>({schema:1,sourceVersion:chrome.runtime.getManifest().version,storageLocal:await chrome.storage.local.get(null),capturedAt:new Date().toISOString()})""")
+                traced("historical-seed",probe.evaluate,SEED,expected)
+                check(probe,expected,version)
+                snapshot=traced("historical-snapshot",probe.evaluate,"""async()=>({schema:1,sourceVersion:chrome.runtime.getManifest().version,storageLocal:await chrome.storage.local.get(null),capturedAt:new Date().toISOString()})""")
                 path=tmp/"synthetic-snapshot.json"
                 path.write_text(json.dumps(snapshot))
                 preflight=subprocess.run(["node",str(ROOT/"scripts/kar213-upgrade-preflight.cjs"),str(path)],capture_output=True,text=True,timeout=10)
@@ -223,15 +261,15 @@ def main(version,candidate_zip=None):
         for cycle in range(2):
             print(f"KAR213_PHASE candidate-boot {version} {cycle+1}",flush=True)
             with sync_playwright() as p:
-                ctx,worker=launch(p,profile,ext)
+                ctx,probe=launch(p,profile,ext)
                 try:
-                    check(worker,expected,candidate_version)
+                    check(probe,expected,candidate_version)
                     if cycle==1:
                         changed=json.loads(json.dumps(expected))
                         changed["records"][0]["title"]="Synthetic deliberate corruption"
                         changed["storage"]["unknownSyntheticFutureV1"]={"changed":True}
-                        traced("synthetic-corruption-seed",worker.evaluate,SEED,changed)
-                        check(worker,changed,candidate_version)
+                        traced("synthetic-corruption-seed",probe.evaluate,SEED,changed)
+                        check(probe,changed,candidate_version)
                 finally:
                     traced("phase-context-close",ctx.close)
             print(f"KAR213_UPGRADE_CYCLE {version} {cycle+1} PASS",flush=True)
@@ -242,10 +280,10 @@ def main(version,candidate_zip=None):
         extract(ref,version,blob,ext,tmp)
         print("KAR213_PHASE original-boot "+version,flush=True)
         with sync_playwright() as p:
-            ctx,worker=launch(p,restored,ext)
+            ctx,probe=launch(p,restored,ext)
             try:
                 print("KAR213_PHASE original-readback "+version,flush=True)
-                check(worker,expected,version)
+                check(probe,expected,version)
                 print("KAR213_PHASE original-close "+version,flush=True)
             finally:
                 traced("phase-context-close",ctx.close)
