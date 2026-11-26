@@ -11,6 +11,7 @@ const lock = j('package-lock.json');
 const spec = j('release/release-spec.json');
 const arch = j('docs/history/architecture/architecture-progress-v1.23.22.json');
 const isFeature24 = /^1\.(?:24|25)\.(?:0|[1-9]\d*)$/.test(manifest.version);
+const s05 = require('./current-patch-policy.cjs').isS05Version(manifest.version);
 const s04 = require('./current-patch-policy.cjs').isS04Version(manifest.version);
 const reviewedNative = /^1\.23\.(?:3\d|[4-9]\d|[1-9]\d{2,})$/.test(manifest.version) || isFeature24;
 const reviewedFence = fs.existsSync('src/background/services/update-workflow-fence.js') && fs.readFileSync('src/background/background.js','utf8').includes('"services/update-workflow-fence.js"');
@@ -37,7 +38,7 @@ if (restoredBaseline) {
 } else assert.equal(assertCompatibleCurrentPatch({ manifest, pkg, lock, spec }), manifest.version);
 assert.equal(manifest.version_name, undefined);
 
-assert.equal(spec.directBasis, restoredBaseline ? (s04?'2.0.2.0':manifest.version==='2.0.2.0'?'2.0.1.0':manifest.version==='2.0.1.0'?'2.0.0.1':'1.23.48') : '1.23.20_c1');
+assert.equal(spec.directBasis, restoredBaseline ? (s05?'2.0.3.0':s04?'2.0.2.0':manifest.version==='2.0.2.0'?'2.0.1.0':manifest.version==='2.0.1.0'?'2.0.0.1':'1.23.48') : '1.23.20_c1');
 assert.equal(spec.nextPlannedBuild, restoredBaseline || isFeature24 ? 'TBD' : '1.24.0');
 assert.equal(arch.packageVersion, '1.23.22');
 assert.equal(arch.fix.newRuntimeBoundary, false);
@@ -104,7 +105,13 @@ if (verifier.includes("matching[0].type === 'checkbox'")) {
   assert.match(verifier, /matching\.length === 1 && matching\[0\]\.type === 'checkbox'/);
   assert.match(verifier, /matching\[0\]\.checked === wantedChecked/);
   assert.match(verifier, /wantedChecked !== null/);
-  assert.match(verifier, /attribute\.technicalValue === ''\) continue/);
+  if (s05) {
+    assert.match(verifier, /attribute\.technicalValue === null \|\| attribute\.technicalValue === undefined \|\| attribute\.technicalValue === ''/);
+    assert.match(verifier, /attribute\.required \|\| \['captured', 'technical-only'\]\.includes\(attribute\.status\)/);
+    assert.match(verifier, /if \(matches && attribute\.recoveredDisplayValue\)/);
+    assert.match(verifier, /=== attribute\.recoveredDisplayValue/);
+    assert.match(pkg.scripts.test, /kar220-field-transfer\.cjs/);
+  } else assert.match(verifier, /attribute\.technicalValue === ''\) continue/);
   assert.match(verifier, /if \(!matches\) issues\.push/);
   assert.match(fs.readFileSync('src/content/template-form-fields.js', 'utf8'),
     /input\.click\(\); \/\/ React-owned native change/);

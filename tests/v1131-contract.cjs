@@ -1,4 +1,4 @@
-const { includesSupportedRelease } = require('./current-patch-policy.cjs');
+const { includesSupportedRelease, isS05Version } = require('./current-patch-policy.cjs');
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
@@ -81,11 +81,18 @@ function loadZipWriter() {
   assert.ok(filler.includes('archiveInsertionId: session.archiveInsertionId || null'));
   // KAR-201 keeps ZIP-specific extended verification while using an immutable
   // transient model for independently recovered display-only technical IDs.
-  assert.match(filler, /session\.archiveInsertionId\s*\?\s*verifyArchiveTemplate\((?:template|finalTemplate)(?:,\s*verificationForm)?\)\s*:\s*verify\((?:template|finalTemplate)(?:,\s*verificationForm)?\)/);
+  const s05 = isS05Version(manifest.version);
+  if (s05) {
+    assert.match(filler, /session\.archiveInsertionId\s*\?\s*verifyArchiveTemplate\(verificationTemplate,\s*verificationForm\)\s*:\s*verify\(verificationTemplate,\s*verificationForm\)/);
+  } else assert.match(filler, /session\.archiveInsertionId\s*\?\s*verifyArchiveTemplate\((?:template|finalTemplate)(?:,\s*verificationForm)?\)\s*:\s*verify\((?:template|finalTemplate)(?:,\s*verificationForm)?\)/);
   if (restored) {
     // S05/S07 own later display-only recovery. Historical form verification remains mandatory.
     const run = filler.slice(filler.indexOf('async function runFillSession('), filler.indexOf('async function runPendingFill('));
-    assert.match(run, /issues\.push\(\.\.\.\(session\.archiveInsertionId \? verifyArchiveTemplate\(template, verificationForm\) : verify\(template, verificationForm\)\)\)/);
+    if (s05) {
+      assert.match(run, /const verificationTemplate = recoveredDisplayOnly\.size \? \{ \.\.\.template, dynamicAttributes:/);
+      assert.match(run, /return proof \? \{ \.\.\.attribute, technicalValue: proof\.technicalValue, recoveredDisplayValue: proof\.displayValue \} : attribute/);
+      assert.match(run, /issues\.push\(\.\.\.\(session\.archiveInsertionId \? verifyArchiveTemplate\(verificationTemplate, verificationForm\) : verify\(verificationTemplate, verificationForm\)\)\)/);
+    } else assert.match(run, /issues\.push\(\.\.\.\(session\.archiveInsertionId \? verifyArchiveTemplate\(template, verificationForm\) : verify\(template, verificationForm\)\)\)/);
     assert.match(run, /const complete = uniqueIssues\.length === 0 && imagesComplete/);
     assert.match(run, /status: complete \? 'running' : 'needs-review'/);
     assert.match(run, /if \(complete\) \{\s*const continuation = await advanceAfterVerifiedFill/);

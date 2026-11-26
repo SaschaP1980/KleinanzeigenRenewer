@@ -2,6 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const assert = require('node:assert/strict');
 
+const s05 = require('./current-patch-policy.cjs').isS05Version(JSON.parse(fs.readFileSync(path.join(__dirname, '../manifest.json'), 'utf8')).version);
 const restored = require('./kar210-historical-contract-context.cjs').isRestored(path.join(__dirname, '..'));
 const filler = fs.readFileSync(path.join(__dirname, '../template-filler.js'), 'utf8');
 let n = 0;
@@ -64,7 +65,11 @@ if (restored) {
   // The original historical image/form safety remains mandatory.
   assert.doesNotMatch(run, /schemaPreflightReport|partialPrefill/);
   assert.match(run, /issues\.push\(\.\.\.imageOutcome\.issues\)/);
-  assert.match(run, /issues\.push\(\.\.\.\(session\.archiveInsertionId \? verifyArchiveTemplate\(template, verificationForm\) : verify\(template, verificationForm\)\)\)/);
+  if (s05) {
+    assert.match(run, /const verificationTemplate = recoveredDisplayOnly\.size \? \{ \.\.\.template, dynamicAttributes:/);
+    assert.match(run, /issues\.push\(\.\.\.\(session\.archiveInsertionId \? verifyArchiveTemplate\(verificationTemplate, verificationForm\) : verify\(verificationTemplate, verificationForm\)\)\)/);
+    assert.ok(run.indexOf('const imageOutcome = await uploadImages') < run.indexOf('const verificationTemplate = recoveredDisplayOnly.size'));
+  } else assert.match(run, /issues\.push\(\.\.\.\(session\.archiveInsertionId \? verifyArchiveTemplate\(template, verificationForm\) : verify\(template, verificationForm\)\)\)/);
   assert.match(run, /status: complete \? 'running' : 'needs-review'/);
   assert.match(run, /if \(complete\) \{\s*const continuation = await advanceAfterVerifiedFill/);
   assert.equal((run.match(/advanceAfterVerifiedFill\(/g) || []).length, 1);
