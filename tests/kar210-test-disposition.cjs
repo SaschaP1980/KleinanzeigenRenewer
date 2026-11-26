@@ -1339,7 +1339,7 @@ function validateDispositions(root) {
   const read = rel => fs.readFileSync(file(rel));
   const json = rel => JSON.parse(read(rel));
   const version = execFileSync('python3',[file('scripts/product_version.py'),'--root',root],{encoding:'utf8'}).trim();
-  const {assertRestoredBaselineVersion,expectedRestoredBlob,expectedRestoredPackage,isS09Version,S09_SCOPE,isS03Version,S03_SCOPE}=require('./current-patch-policy.cjs');
+  const {assertRestoredBaselineVersion,expectedRestoredBlob,expectedRestoredPackage,isS09Version,S09_SCOPE,isS03Version,S03_SCOPE,isS04Version,S04_SCOPE}=require('./current-patch-policy.cjs');
   assert.equal(assertRestoredBaselineVersion(root),version,'Only reviewed restored baseline or exact hotfix');
   const ledger=json(LEDGER);
   assert.equal(ledger.schema,2);
@@ -1366,6 +1366,11 @@ function validateDispositions(root) {
     assert.deepEqual(affected,[...S03_SCOPE.retainedDeferredCapabilityChecks].sort((a,b)=>a.test.localeCompare(b.test)),'S03 must review every affected historical absence check');
   }
   if (isS09Version(version)) assert.deepEqual([...reactivated].sort(), ["tests/kar161-trash-retention.cjs","tests/kar164-trash-sort.cjs","tests/kar165-trash-retention-warning.cjs","tests/kar186-retention-hydration.cjs"]);
+  if(isS04Version(version)) {
+    const changed=new Set(S04_SCOPE.runtimeChanges.map(r=>r.path));
+    const affected=ledger.entries.filter(e=>changed.has(e.module)&&e.featureAbsence).map(e=>({test:e.test,module:e.module,marker:e.featureAbsence.marker,state:reactivated.has(e.test)?'retained-active':'retained-deferred'})).sort((a,b)=>a.test.localeCompare(b.test));
+    assert.deepEqual(affected,[...S04_SCOPE.affectedHistoricalCapabilityChecks].sort((a,b)=>a.test.localeCompare(b.test)),'S04 review of every affected historical capability check');
+  }
   const inactive=new Map();
   for(const e of ledger.entries) {
     const expected=RULES[e.test];
@@ -1432,11 +1437,16 @@ function validateDispositions(root) {
     for(const [owner,refs] of ownerRefs) assert.ok(!refs.has(e.test),'Deferred witness still active: '+owner+' '+e.test);
     inactive.set(e.test,e);
   }
+  if(isS04Version(version)) for(const [test,e] of require('./kar217-updater-test-disposition.cjs').validateS04Dispositions(root)){
+    assert.ok(!inactive.has(test),'S04 disposition overlaps historical inactive entry: '+test);
+    inactive.set(test,e);
+  }
   return inactive;
 }
 if(require.main===module) {
   assert.equal(process.argv.length,2,'Scope validator does not run or skip product tests');
   const inactive=validateDispositions(path.resolve(__dirname,'..'));
-  console.log('PASS KAR-210 inactive suite scope: '+(inactive.size-14)+' reviewed historical suites, 1 earlier and 13 post-baseline deferred witnesses; no product execution credit');
+  const retired=[...inactive.values()].filter(e=>e.status==='retired-updater-S04').length;
+  console.log('PASS KAR-210 inactive suite scope: '+(inactive.size-14-retired)+' reviewed historical suites, 1 earlier and 13 post-baseline deferred witnesses, '+retired+' S04 retired updater tests; no product execution credit');
 }
 module.exports={validateDispositions};

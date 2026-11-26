@@ -63,5 +63,19 @@
     "lines": 3311
   },
   "reactivatedTests": [],
-  "reason": "Exact S04 removal of historical updater UI/native transport/permission, no new runtime, no product safety or data migration behavior changes. Historical modules preserved byte-identically outside shipped runtime."
+  "reason": "Exact S04 removal of historical updater UI/native transport/permission, no new runtime, no product safety or data migration behavior changes. Historical modules preserved byte-identically outside shipped runtime.",
+  "affectedHistoricalCapabilityChecks": [
+    {
+      "test": "tests/kar165-trash-retention-warning.cjs",
+      "module": "src/app/app.css",
+      "marker": "trash-retention-countdown-urgent",
+      "state": "retained-active"
+    },
+    {
+      "test": "tests/kar191-diagnostic-recovery.cjs",
+      "module": "src/background/background-message-router.js",
+      "marker": "withWorkflowAdmission",
+      "state": "retained-deferred"
+    }
+  ]
 }
