@@ -36,3 +36,12 @@ jobs:
         with:
           node-version: '22'
       - run: node tests/kar217-updater-test-disposition.cjs
+  successor:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node tests/kar217-successor-contract.cjs

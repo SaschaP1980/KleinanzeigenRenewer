@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "version": "2.0.3.0",
+  "issue": 217,
+  "step": "S04",
+  "directBasis": "2.0.2.0",
+  "sourceCommit": "a88a3446560cb36c87a3ace599a0bbd0549c6f41",
+  "archiveSha256": "46cb5860015965fee5323dcedd290862672cc97e03e880180afc464ff3bf89ee",
+  "sourceCheckpoint": "2a59e9c670845760e4df3ac71b01fde48ecb206f",
+  "runtimeChanges": [
+    {
+      "path": "manifest.json",
+      "before": "fef15b401559e71d6a5fb96af868060b25f52c03",
+      "after": "df24bd73e846f7341f292263ba962b9e740767b0"
+    },
+    {
+      "path": "src/app/app.css",
+      "before": "8d06c5d541cbbf2624a5ce6dbd37df5c5e466b21",
+      "after": "4c73057b298a8df3b10aba834882d899c66446c5"
+    },
+    {
+      "path": "src/app/app.html",
+      "before": "50cff88857a2627b8dfdad523c5b9e952ead8df2",
+      "after": "52948a6b9aa7a19ce24bdb8361df8ef7159ba67b"
+    },
+    {
+      "path": "src/background/background-message-router.js",
+      "before": "ca2037b44db92220be06d125f96f4c5477f5147e",
+      "after": "a64a1efb5fbbfd643e7241a137579eb360dcf1b3"
+    },
+    {
+      "path": "src/background/background.js",
+      "before": "b490057889909bbcf696cff06831773435d66beb",
+      "after": "f348db1d51907d349535f9ce1db2801f47826e80"
+    },
+    {
+      "path": "src/shared/message-contract-registry.js",
+      "before": "719c8d01a9b3b540b73a77b80cc9c08d68002e3d",
+      "after": "c895efeeaaa7d7c918c7c1367d5a62eed7d861f4"
+    }
+  ],
+  "removedRuntime": [
+    {
+      "path": "src/app/native-update-check-ui.js",
+      "before": "ac9721adc25af5d335f6d767c269101e666f986c",
+      "archive": "docs/history/updater-runtime/2.0.2.0/src/app/native-update-check-ui.js"
+    },
+    {
+      "path": "src/background/services/native-status-bridge.js",
+      "before": "6f3137fbfdba6ddd080e8e10f37dfea3a67f6708",
+      "archive": "docs/history/updater-runtime/2.0.2.0/src/background/services/native-status-bridge.js"
+    },
+    {
+      "path": "src/background/services/native-update-status-gateway.js",
+      "before": "e1a0ebbd7955afc37066fa1d63de8f47b0ee9c6b",
+      "archive": "docs/history/updater-runtime/2.0.2.0/src/background/services/native-update-status-gateway.js"
+    }
+  ],
+  "addedRuntime": [],
+  "backgroundBudget": {
+    "chars": 195872,
+    "bytes": 195997,
+    "lines": 3311
+  },
+  "reactivatedTests": [],
+  "reason": "Exact S04 removal of historical updater UI/native transport/permission, no new runtime, no product safety or data migration behavior changes. Historical modules preserved byte-identically outside shipped runtime."
+}
