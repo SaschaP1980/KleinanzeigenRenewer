@@ -481,6 +481,8 @@ function massRenewalRetryActionLabel(item) {
   const renewalStatus = String(item?.renewalStatus || '');
   const hasRenewal = Boolean(item?.renewalId);
   const hasNewId = /^\d+$/.test(String(item?.newAdId || ''));
+  if (stage === 'recovery-session-missing') return 'Status prüfen';
+  if (item?.sourceDeleteVerificationOnly === true) return 'Löschung prüfen';
   if (stage === 'paid-insertion-required') return 'Später erneut versuchen';
   if (hasRenewal && hasNewId && (stage === 'replacement-ready' || stage.startsWith('source-delete') || renewalStatus === 'verified')) return 'Austausch abschließen';
   if (hasRenewal && hasNewId) return 'Erneut prüfen';
@@ -569,7 +571,7 @@ function renderMassRenewalItems(container, batch, { summary = false } = {}) {
         retry.disabled = true;
         retry.textContent = 'Prüfung läuft …';
         try {
-          currentMassRenewalBatch = await runtimeMessage({ type: 'RETRY_MASS_RENEWAL_ITEM', batchId: batch.batchId, index: item.index });
+          currentMassRenewalBatch = await runtimeMessage({ type: 'RETRY_MASS_RENEWAL_ITEM', batchId: batch.batchId, index: item.index, ...(item.sourceDeleteVerificationOnly === true ? { verificationOnly: true } : {}) });
           massRenewalRetryInFlight.delete(retryKey);
           setMassRenewalStep(3);
           renderMassRenewalBatch(currentMassRenewalBatch);

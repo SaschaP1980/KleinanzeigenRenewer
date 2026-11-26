@@ -50,8 +50,55 @@ async function findMassRenewalSessionForItem(batchId, itemIndex) {
     String(session?.massBatchId || '') === String(batchId || '') &&
     Number(session?.massBatchItemIndex) === Number(itemIndex)
   );
-  matches.sort((a, b) => Date.parse(b?.updatedAt || b?.createdAt || '') - Date.parse(a?.updatedAt || a?.createdAt || ''));
-  return matches[0] || null;
+  return matches.length === 1 ? matches[0] : null;
+}
+
+// Recovery uses the existing stored identities, never a newest-session guess.
+function massRecoverySession(renewals, batch, item) {
+  const values = Object.values(renewals || {});
+  const matches = values.filter(row => String(row?.massBatchId || '') === String(batch.batchId || '')
+    && row?.massBatchItemIndex != null && Number(row.massBatchItemIndex) === Number(item.index));
+  const named = item.renewalId ? renewals?.[item.renewalId] : null;
+  if (!matches.length && !named) return { session: null, conflict: false };
+  const row = matches.length === 1 ? matches[0] : null;
+  const valid = row && row.renewalId && String(row.massBatchId) === String(batch.batchId)
+    && String(row.profileId || '') === String(batch.profileId || '') && Boolean(batch.profileId)
+    && String(row.sourceInventoryId || '') === String(item.inventoryId || '')
+    && String(row.sourceAdId || '') === String(item.sourceAdId || '')
+    && Boolean(item.inventoryId) && /^\d+$/.test(String(item.sourceAdId || ''))
+    && (!item.renewalId || (named && String(row.renewalId) === String(item.renewalId)))
+    && (!item.newAdId || String(row.newAdId || '') === String(item.newAdId));
+  return valid ? { session: row, conflict: false } : { session: null, conflict: true };
+}
+
+function massDeleteVerificationOnly(session) {
+  return String(session?.stage || '').startsWith('source-delete')
+    || Boolean(session?.sourceDeleteTransportInterrupted || session?.sourceDeleteAction
+      || session?.sourceDeleteVerificationPendingAt || session?.sourceDeletedAt);
+}
+
+function massCanRestartWithoutSession(item) {
+  return item?.stage === 'start-failed' && !item.renewalId && !item.newAdId
+    && !item.renewalStatus && !item.operationId;
+}
+
+async function massCompletedExchangeEvidence(batch, item) {
+  const newId = String(item.newAdId || '');
+  if (!/^\d+$/.test(newId) || !item.renewalId || !item.inventoryId || !batch.profileId
+      || !/^\d+$/.test(String(item.sourceAdId || '')) || newId === String(item.sourceAdId)) return null;
+  const target = await getInventory(newId).catch(() => null);
+  if (!target || isTrashRecord(target) || target.recordKind !== 'inventory' || target.renewal
+      || target.recovery?.kind === 'emergency-reset-candidate'
+      || String(target.inventoryId || '') !== newId || String(target.adId || '') !== newId
+      || String(target.profileId || '') !== String(batch.profileId)) return null;
+  const source = await getInventory(String(item.inventoryId)).catch(() => null);
+  const proof = source?.trash?.context;
+  return source && isTrashRecord(source) && String(source.inventoryId || '') === String(item.inventoryId)
+    && String(source.adId || '') === String(item.sourceAdId) && String(source.profileId || '') === String(batch.profileId)
+    && source.trash?.reason === 'renewal-replaced'
+    && String(proof?.renewalId || '') === String(item.renewalId)
+    && String(proof?.sourceAdId || '') === String(item.sourceAdId)
+    && String(proof?.replacementAdId || '') === newId ? target : null;
 }
 
 async function startNextMassRenewalItem(batchId) {
@@ -168,14 +215,15 @@ async function reconcileMassRenewalBatchSession(session, options = {}) {
     const item = (batch.items || []).find(entry => String(entry.renewalId || '') === String(session.renewalId || '') || Number(entry.index) === Number(session.massBatchItemIndex));
     if (!item) return { changed: false };
     if (options.progressOnly === true && !['running', 'retrying'].includes(String(item.status || ''))) return { changed: false };
-    const before = JSON.stringify([item.renewalId, item.renewalStatus, item.stage, item.newAdId, item.publicAvailabilityPending, item.lastError]);
+    const before = JSON.stringify([item.renewalId, item.renewalStatus, item.stage, item.newAdId, item.publicAvailabilityPending, item.lastError, item.sourceDeleteVerificationOnly]);
     item.renewalId = session.renewalId || item.renewalId || null;
     item.renewalStatus = session.status || null;
     item.stage = session.stage || item.stage || null;
     item.newAdId = session.newAdId || item.newAdId || null;
     item.publicAvailabilityPending = session.publicAvailabilityPending === true;
     if (session.lastError) item.lastError = session.lastError;
-    const after = JSON.stringify([item.renewalId, item.renewalStatus, item.stage, item.newAdId, item.publicAvailabilityPending, item.lastError]);
+    item.sourceDeleteVerificationOnly = session.stage === 'replacement-ready' && massDeleteVerificationOnly(session);
+    const after = JSON.stringify([item.renewalId, item.renewalStatus, item.stage, item.newAdId, item.publicAvailabilityPending, item.lastError, item.sourceDeleteVerificationOnly]);
     if (before !== after) touchMassRenewalItemProgress(item);
     const terminal = massRenewalTerminalOutcome(session);
     if (terminal && ['running', 'retrying'].includes(String(item.status || ''))) {
@@ -405,21 +453,33 @@ async function retryMassRenewalItem(message) {
   if (!initial.batch) throw new Error('Der Vorgang zum Neu-Inserieren wurde nicht gefunden.');
   armMassRenewalWatchdog();
   let sessionReadCompleted = false;
+  let admittedSessionId = null;
+  let admissionRejected = false;
   try {
     const renewals = await readRenewalSessions();
     sessionReadCompleted = true;
-    const session = snapshot?.renewalId ? renewals[snapshot.renewalId] : null;
+    const resolved = massRecoverySession(renewals, initial.batch, snapshot);
+    const session = resolved.session;
+    const verificationOnly = message?.verificationOnly === true;
+    if (resolved.conflict || (session && (legacyOutcomeBlocked(session) || ['cancelled', 'replaced'].includes(String(session.status || ''))))
+        || (!session && !massCanRestartWithoutSession(snapshot))
+        || (verificationOnly && (!session || !/^\d+$/.test(String(session.newAdId || '')) || !massDeleteVerificationOnly(session)))) {
+      admissionRejected = true;
+      throw new Error('Der Einzelvorgang ist nicht eindeutig fortsetzbar. Bitte vorhandene Anzeigen und den Status prüfen; kein erneutes Neu-Inserieren.');
+    }
+    admittedSessionId = session?.renewalId || null;
     if (session && /^\d+$/.test(String(session.newAdId || ''))) {
       session.massBatchTerminal = false;
       const all = await readRenewalSessions(); all[session.renewalId] = session; await writeRenewalSessions(all);
-      if ((String(session.status || '') === 'verified' || String(session.stage || '') === 'replacement-ready') && session.lastError) await finishRenewalReplacement({ renewalId: session.renewalId, automatic: false, massBatchRetry: true });
+      const readOnly = massDeleteVerificationOnly(session);
+      if (readOnly || ((String(session.status || '') === 'verified' || String(session.stage || '') === 'replacement-ready') && session.lastError)) await finishRenewalReplacement({ renewalId: session.renewalId, automatic: false, massBatchRetry: true, ...(readOnly ? { verificationOnly: true } : {}) });
       else await retryRenewalVerification({ renewalId: session.renewalId, massBatchRetry: true });
     } else {
       if (session?.renewalId) await discardRenewalDraft({ renewalId: session.renewalId });
       await mutateMassRenewalBatch(batchId, batch => {
         const item = batch.items?.find(entry => Number(entry.index) === index);
         if (!item) return { changed: false };
-        item.operationId = null; item.parentOperationId = batch.operationId || null; item.renewalId = null; item.renewalStatus = null; item.newAdId = null; item.publicAvailabilityPending = false; item.stage = 'queued'; item.status = 'queued'; item.startAttemptId = null; batch.currentIndex = null; touchMassRenewalItemProgress(item);
+        item.operationId = null; item.parentOperationId = batch.operationId || null; item.renewalId = null; item.renewalStatus = null; item.newAdId = null; item.publicAvailabilityPending = false; item.sourceDeleteVerificationOnly = false; item.stage = 'queued'; item.status = 'queued'; item.startAttemptId = null; batch.currentIndex = null; touchMassRenewalItemProgress(item);
         return { changed: true };
       });
       await startNextMassRenewalItem(batchId);
@@ -428,14 +488,14 @@ async function retryMassRenewalItem(message) {
     await mutateMassRenewalBatch(batchId, batch => {
       const item = batch.items?.find(entry => Number(entry.index) === index);
       if (!item || !['retrying', 'running'].includes(String(item.status || ''))) return { changed: false };
-      item.status = 'needs-review'; item.stage = sessionReadCompleted ? 'retry-failed' : snapshot.stage || 'retry-failed'; item.lastError = String(error.message || error).slice(0, 800); item.completedAt = new Date().toISOString(); touchMassRenewalItemProgress(item, item.completedAt); batch.currentIndex = null; applyMassRenewalFinalState(batch);
+      item.status = 'needs-review'; item.stage = admissionRejected ? 'recovery-session-missing' : sessionReadCompleted ? 'retry-failed' : snapshot.stage || 'retry-failed'; item.lastError = String(error.message || error).slice(0, 800); item.completedAt = new Date().toISOString(); touchMassRenewalItemProgress(item, item.completedAt); batch.currentIndex = null; applyMassRenewalFinalState(batch);
       return { changed: true };
     });
     const latest = await readMassRenewalBatch().catch(() => null);
     const latestItem = latest?.items?.find(entry => Number(entry.index) === index);
     const latestRenewals = await readRenewalSessions().catch(() => ({}));
     const retrySession = latestItem?.renewalId ? latestRenewals[latestItem.renewalId] : null;
-    if (retrySession) { retrySession.massBatchTerminal = true; latestRenewals[retrySession.renewalId] = retrySession; await writeRenewalSessions(latestRenewals).catch(() => {}); }
+    if (retrySession && admittedSessionId && String(retrySession.renewalId) === String(admittedSessionId) && !massRecoverySession(latestRenewals, latest, latestItem).conflict) { retrySession.massBatchTerminal = true; latestRenewals[retrySession.renewalId] = retrySession; await writeRenewalSessions(latestRenewals).catch(() => {}); }
     throw error;
   }
   return getMassRenewalBatchStatus();
@@ -447,42 +507,29 @@ async function resumeMassRenewalBatch() {
   armMassRenewalWatchdog();
   const running = (batch.items || []).find(item => ['running', 'retrying'].includes(String(item.status || '')));
   if (running) {
-    let session = null;
-    if (running.renewalId) {
-      const renewals = await readRenewalSessions(); session = renewals[running.renewalId] || null;
-    } else {
-      session = await findMassRenewalSessionForItem(batch.batchId, running.index);
-      if (session?.renewalId) {
-        await mutateMassRenewalBatch(batch.batchId, current => {
-          const item = current.items?.find(entry => Number(entry.index) === Number(running.index));
-          if (!item || !['running', 'retrying'].includes(String(item.status || '')) || item.renewalId) return { changed: false };
-          item.operationId = session.operationId || item.operationId || null; item.parentOperationId = session.parentOperationId || batch.operationId || item.parentOperationId || null; item.renewalId = session.renewalId; item.renewalStatus = session.status || item.renewalStatus || null; item.stage = session.stage || item.stage; touchMassRenewalItemProgress(item, session.updatedAt || new Date().toISOString());
-          return { changed: true };
-        });
-        await logDiagnostic('info', 'MASS_RENEWAL_RECOVERY_RENEWAL_REBOUND', { batchId: batch.batchId, index: running.index, renewalId: session.renewalId }, { module: 'background', operation: 'mass-renewal-recovery', context: sessionCorrelationContext(session, { massBatchId: batch.batchId, renewalId: session.renewalId }) }).catch(() => {});
-      }
+    let resolved;
+    try {
+      resolved = massRecoverySession(await readRenewalSessions(), batch, running);
+    } catch (error) {
+      // A failed read is not proof of an absent session.
+      resolved = { session: null, conflict: true };
     }
-    if (legacyOutcomeBlocked(session)) return massRenewalPublicSnapshot(batch);
-    if (session) { await reconcileMassRenewalBatchSession(session); return getMassRenewalBatchStatus(); }
-
-    if (!running.renewalId && String(running.stage || '') === 'starting') {
-      let requeued = false;
+    const session = resolved.session;
+    if (session && !running.renewalId) {
       await mutateMassRenewalBatch(batch.batchId, current => {
         const item = current.items?.find(entry => Number(entry.index) === Number(running.index));
         if (!item || !['running', 'retrying'].includes(String(item.status || '')) || item.renewalId) return { changed: false };
-        item.status = 'queued'; item.stage = 'recovery-starting-requeued'; item.startedAt = null; item.completedAt = null; item.startAttemptId = null; item.lastError = null; touchMassRenewalItemProgress(item); current.currentIndex = null; requeued = true;
+        item.operationId = session.operationId || item.operationId || null; item.parentOperationId = session.parentOperationId || batch.operationId || item.parentOperationId || null; item.renewalId = session.renewalId; item.renewalStatus = session.status || item.renewalStatus || null; item.stage = session.stage || item.stage; touchMassRenewalItemProgress(item, session.updatedAt || new Date().toISOString());
         return { changed: true };
       });
-      if (requeued) {
-        await logDiagnostic('warning', 'MASS_RENEWAL_RECOVERY_STARTING_REQUEUED', { batchId: batch.batchId, index: running.index, inventoryId: running.inventoryId, reason: 'running-without-renewal-id-and-no-matching-session' }, { module: 'background', operation: 'mass-renewal-recovery', context: sessionCorrelationContext(running, { parentOperationId: running.parentOperationId || batch.operationId || null, massBatchId: batch.batchId, adId: running.sourceAdId || null }) }).catch(() => {});
-        queueMicrotaskFn(() => { void startNextMassRenewalItem(batch.batchId).catch(() => {}); });
-        return getMassRenewalBatchStatus();
-      }
+      await logDiagnostic('info', 'MASS_RENEWAL_RECOVERY_RENEWAL_REBOUND', { batchId: batch.batchId, index: running.index, renewalId: session.renewalId }, { module: 'background', operation: 'mass-renewal-recovery', context: sessionCorrelationContext(session, { massBatchId: batch.batchId, renewalId: session.renewalId }) }).catch(() => {});
     }
+    if (legacyOutcomeBlocked(session)) return massRenewalPublicSnapshot(batch);
+    if (session && !['cancelled', 'replaced'].includes(String(session.status || ''))) { await reconcileMassRenewalBatchSession(session); return getMassRenewalBatchStatus(); }
 
-    if (/^\d+$/.test(String(running.newAdId || ''))) {
-      const existing = await getInventory(String(running.newAdId)).catch(() => null);
-      if (existing && !isTrashRecord(existing)) {
+    if (!resolved.conflict && (!session || session.status === 'replaced') && /^\d+$/.test(String(running.newAdId || ''))) {
+      const existing = await massCompletedExchangeEvidence(batch, running);
+      if (existing) {
         await mutateMassRenewalBatch(batch.batchId, current => {
           const item = current.items?.find(entry => Number(entry.index) === Number(running.index));
           if (!item || !['running', 'retrying'].includes(String(item.status || ''))) return { changed: false };
@@ -497,7 +544,7 @@ async function resumeMassRenewalBatch() {
     await mutateMassRenewalBatch(batch.batchId, current => {
       const item = current.items?.find(entry => Number(entry.index) === Number(running.index));
       if (!item || !['running', 'retrying'].includes(String(item.status || ''))) return { changed: false };
-      item.status = 'needs-review'; item.stage = 'recovery-session-missing'; item.lastError = 'Der Einzelvorgang konnte nach dem Neustart nicht eindeutig fortgesetzt werden.'; item.completedAt = new Date().toISOString(); touchMassRenewalItemProgress(item, item.completedAt); current.currentIndex = null;
+      item.status = 'needs-review'; item.stage = 'recovery-session-missing'; item.lastError = 'Der Einzelvorgang konnte nach dem Neustart nicht eindeutig fortgesetzt werden. Kein erneutes Neu-Inserieren ohne eindeutige Zuordnung.'; item.completedAt = new Date().toISOString(); touchMassRenewalItemProgress(item, item.completedAt); current.currentIndex = null;
       return { changed: true };
     });
   }
