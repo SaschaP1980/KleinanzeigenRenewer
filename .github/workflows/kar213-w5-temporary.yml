@@ -1,0 +1,56 @@
+name: KAR-213 W5 full gates (temporary)
+on:
+  push:
+    branches: [work/KAR-213]
+    paths: ['.github/workflows/kar213-w5-temporary.yml']
+permissions:
+  contents: read
+jobs:
+  validation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: cc16c37309587bdf8a149eab119f0f79f6ccd5d2
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Exact lineage and source identity
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "cc16c37309587bdf8a149eab119f0f79f6ccd5d2"
+          node tests/kar213-successor-contract.cjs
+          python3 tests/kar210-baseline-restore.py
+          node tests/kar210-test-disposition.cjs
+      - run: npm ci
+      - name: Mandatory coverage and architecture gate
+        run: bash scripts/coverage-gate.sh
+      - name: Reproducible candidate package
+        run: |
+          set -euo pipefail
+          V="$(python3 scripts/product_version.py)"
+          test "$V" = 2.0.2.0
+          python3 scripts/package.py "$RUNNER_TEMP/build-a"
+          python3 scripts/package.py "$RUNNER_TEMP/build-b"
+          ZIP="kleinanzeigen-renewal-chrome-v$V.zip"
+          cmp "$RUNNER_TEMP/build-a/$ZIP" "$RUNNER_TEMP/build-b/$ZIP"
+          unzip -t "$RUNNER_TEMP/build-a/$ZIP" >/dev/null
+          sha256sum "$RUNNER_TEMP/build-a/$ZIP"
+          wc -c "$RUNNER_TEMP/build-a/$ZIP"
+          unzip -Z -1 "$RUNNER_TEMP/build-a/$ZIP" | wc -l
+          git hash-object "$RUNNER_TEMP/build-a/$ZIP"
+          python3 - "$RUNNER_TEMP/build-a/$ZIP" <<'PY'
+          import base64, sys
+          from pathlib import Path
+          data=base64.b64encode(Path(sys.argv[1]).read_bytes()).decode("ascii")
+          chunks=[data[i:i+4096] for i in range(0,len(data),4096)]
+          for i,c in enumerate(chunks): print(f"KAR213_ZIP_CHUNK {i+1}/{len(chunks)} {c}")
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kar213-candidate-cc16c37309587bdf8a149eab119f0f79f6ccd5d2
+          path: ${{ runner.temp }}/build-a/kleinanzeigen-renewal-chrome-v2.0.2.0.zip
+          if-no-files-found: error
