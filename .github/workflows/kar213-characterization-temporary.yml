@@ -12,10 +12,10 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          ref: 07abae821b8c6153236fe96df2ff8a72b71119a2
+          ref: 4b87f816481ace61075fec1d012decc49eadcb76
           persist-credentials: false
       - name: Verify exact test-only source
-        run: test "$(git rev-parse HEAD)" = "07abae821b8c6153236fe96df2ff8a72b71119a2"
+        run: test "$(git rev-parse HEAD)" = "4b87f816481ace61075fec1d012decc49eadcb76"
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -23,44 +23,3 @@ jobs:
       - run: npm ci --ignore-scripts
       - name: Run mixed data / uncertain state characterization
         run: node --test tests/kar213-cross-generation-characterization.cjs
-  persistence-inventory:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          ref: 07abae821b8c6153236fe96df2ff8a72b71119a2
-          fetch-depth: 0
-          persist-credentials: false
-      - name: Read three pinned runtime trees and inventory persistence call sites
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          import subprocess, re, json
-          refs={'old':'f2225155e403d89d07a674c9e20f397a4f86694d','accepted':'61f917d384cdce0fc191188e5a99515907967dbe','donor':'5ffd5eccce564154dca0f51b9229283a9d2dae85'}
-          def git(*args): return subprocess.check_output(['git',*args],text=True)
-          calls=re.compile(r'(?:chrome\s*\.\s*storage\s*\.\s*(?:local|session)|storageLocal|storageSession|localStorage|sessionStorage|(?:globalThis\.)?indexedDB)\s*(?:\?\.)?\s*\.?(?:get|set|remove|clear|getItem|setItem|removeItem|open|deleteDatabase)\s*\(')
-          literal=re.compile(r"""['"]([A-Za-z][A-Za-z0-9_.:-]*(?:V[0-9]+_?|Sessions|InventoryRun|WindowId))['"]""")
-          report={}
-          for label,ref in refs.items():
-              paths=[p for p in git('ls-tree','-r','--name-only',ref,'src','lib').splitlines() if p.endswith(('.js','.cjs','.mjs'))]
-              sites={}; keys={}
-              for path in paths:
-                  src=git('show',ref+':'+path)
-                  for n,line in enumerate(src.splitlines(),1):
-                      for key in literal.findall(line):
-                          keys.setdefault(key,[]).append(f'{path}:{n}')
-                      if calls.search(line):
-                          sites.setdefault(path,[]).append(n)
-              report[label]={'ref':ref,'files_scanned':len(paths),'candidate_keys':keys,'persistence_call_sites':sites}
-              print('KAR213_SUMMARY '+json.dumps({'ref':label,'files':len(paths),'literal_candidates':len(keys),'direct_site_files':len(sites),'direct_sites':sum(map(len,sites.values()))},sort_keys=True))
-          allkeys=set().union(*(set(row['candidate_keys']) for row in report.values()))
-          for key in sorted(allkeys):
-              owners={label:row['candidate_keys'][key] for label,row in report.items() if key in row['candidate_keys']}
-              print('KAR213_KEY '+json.dumps({'key':key,'refs':owners},sort_keys=True))
-          for label,row in report.items():
-              for path,lines in row['persistence_call_sites'].items():
-                  print('KAR213_SITE '+json.dumps({'ref':label,'path':path,'lines':lines},sort_keys=True))
-          print('KAR213_NOTE lexical inventory only; dynamic/computed keys and injected adapters require semantic review; no live storage data read')
-          PY
