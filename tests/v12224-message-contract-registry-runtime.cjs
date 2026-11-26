@@ -13,7 +13,7 @@ if (restored) {
   const crypto=require('node:crypto');
   const bytes=fs.readFileSync(require('node:path').join(root,'src/shared/message-contract-registry.js'));
   assert.equal(crypto.createHash('sha1').update('blob '+bytes.length+'\0').update(bytes).digest('hex'),policy.expectedRestoredBlob(version,'src/shared/message-contract-registry.js','cc5a72fd6614034b73f2547550aa9b3cc93e1f88'));
-  for (const type of ['AUTHORIZE_AUTOMATIC_PUBLISH','GET_DIAGNOSTIC_OCCUPANCY','GET_TRASH_RETENTION_CONFIGURATION','PREVIEW_TRASH_RETENTION_CHANGE','COMMIT_TRASH_RETENTION_CHANGE']) assert.equal(r.has(type,'background'),false,type);
+  for (const type of ['AUTHORIZE_AUTOMATIC_PUBLISH','GET_DIAGNOSTIC_OCCUPANCY','GET_TRASH_RETENTION_CONFIGURATION','PREVIEW_TRASH_RETENTION_CHANGE','COMMIT_TRASH_RETENTION_CHANGE']) assert.equal(r.has(type,'background'),s09 && ['GET_TRASH_RETENTION_CONFIGURATION','PREVIEW_TRASH_RETENTION_CHANGE','COMMIT_TRASH_RETENTION_CHANGE'].includes(type),type);
   assert.equal(r.has('GET_NATIVE_UPDATE_STATUS','background'),true);
 }
 let n=0; const ok=(name,fn)=>{fn();n++;console.log('PASS',name)};

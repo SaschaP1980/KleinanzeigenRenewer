@@ -1,5 +1,6 @@
 const root = require('node:path').resolve(__dirname, '..');
 const restored = require('./kar210-historical-contract-context.cjs').isRestored(root);
+const s09 = require('./current-patch-policy.cjs').isS09Version(require('../manifest.json').version);
 const { isCurrentPatchVersion } = require('./current-patch-policy.cjs');
 const fs = require('node:fs');
 const assert = require('node:assert/strict');
@@ -74,8 +75,8 @@ assert.doesNotMatch(bg, /let trashPurgeNextDueAt = null/);
 assert.match(trash, /let nextPurgeDueAt = null/);
 assert.match(trash, /async function moveToTrash/);
 assert.match(trash, /async function resetRetention/);
-assert.match(trash, /async function purgeExpired/);
-if (restored) {
+assert.match(trash, s09 ? /function purgeExpired\(\)[\s\S]*?withLocalPolicyMutation\(runExpirySweep\)/ : /async function purgeExpired/);
+if (restored && !s09) {
   assert.match(trash, /repository\.readTrashExpiryState\(nowMs\)/);
   assert.match(inventory, /async function readTrashExpiryState/);
   assert.match(inventory, /async function deleteWithImages/);

@@ -1,6 +1,7 @@
 const root = require('node:path').resolve(__dirname, '..');
 const historical = require('./kar210-historical-contract-context.cjs');
 const restored = historical.isRestored(root);
+const s09 = require('./current-patch-policy.cjs').isS09Version(require('../manifest.json').version);
 const fs = require('fs');
 const assert = require('assert');
 let n = 0; const pass = m => { n += 1; console.log(`PASS ${n}: ${m}`); };
@@ -28,7 +29,15 @@ const purgeEnd = bg.indexOf('\nasync function listInventories', purgeStart);
 // policy must be evaluated for each persisted trash item; exact-ID revalidation
 // and attached image removal occur atomically in IndexedDB, not by trusting
 // the legacy trashExpiresAt index as an authority to permanently delete.
-if (restored) {
+if (s09) {
+  assert.match(bg.slice(purgeStart, purgeEnd), /await requireTrashService\(\)\.purgeExpired\(\)/);
+  assert.match(trash, /shouldSkipPurge\(nowMs\)/);
+  assert.match(trash, /await repository\.readAll\(\)/);
+  assert.match(trash, /repository\.deleteTrashIfEligible\(/);
+  assert.match(repo, /async function deleteTrashIfEligible\(/);
+  assert.match(repo, /transaction\(\[inventoryStoreName, imageStoreName\], 'readwrite'\)/);
+  pass('S09 policy-aware expiry retains cached scheduling and atomic local deletion');
+} else if (restored) {
   assert.match(bg.slice(purgeStart, purgeEnd), /await requireTrashService\(\)\.purgeExpired\(\)/);
   assert.match(trash, /repository\.readTrashExpiryState\(nowMs\)/);
   assert.match(repo, /async function readTrashExpiryState\(nowMs = Date\.now\(\)\)/);

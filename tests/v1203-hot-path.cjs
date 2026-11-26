@@ -1,6 +1,7 @@
 const root = require('node:path').resolve(__dirname, '..');
 const historical = require('./kar210-historical-contract-context.cjs');
 const restored = historical.isRestored(root);
+const s09 = require('./current-patch-policy.cjs').isS09Version(require('../manifest.json').version);
 const fs = require('node:fs');
 const assert = require('node:assert/strict');
 const bg = require('./v12215-source-surface.cjs');
@@ -34,7 +35,15 @@ assert.match(bg, /function invalidateTrashPurgeSchedule\(/); assert.match(trash,
 const purgeStart = bg.indexOf('async function purgeExpiredTrash');
 const purgeEnd = bg.indexOf('\nasync function listInventories', purgeStart);
 const purgeBlock = bg.slice(purgeStart, purgeEnd);
-if (restored) {
+if (s09) {
+  assert.match(purgeBlock, /await requireTrashService\(\)\.purgeExpired\(\)/);
+  assert.match(trash, /shouldSkipPurge\(nowMs\)/);
+  assert.match(trash, /await repository\.readAll\(\)/);
+  assert.match(trash, /repository\.deleteTrashIfEligible\(/);
+  assert.match(repo, /async function deleteTrashIfEligible\(/);
+  assert.match(repo, /transaction\(\[inventoryStoreName, imageStoreName\], 'readwrite'\)/);
+  pass('S09 policy-aware expiry retains cached scheduling and atomic local deletion');
+} else if (restored) {
   assert.match(purgeBlock, /await requireTrashService\(\)\.purgeExpired\(\)/);
   assert.match(trash, /shouldSkipPurge\(nowMs\)/);
   pass('historical purge skips redundant scans until the next stored expiry');
