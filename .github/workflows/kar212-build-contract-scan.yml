@@ -1,0 +1,20 @@
+name: KAR-212 build contract inventory
+on:
+  push:
+    branches: [work/KAR-212]
+    paths: ['.github/workflows/kar212-build-contract-scan.yml']
+permissions:
+  contents: read
+jobs:
+  inventory:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: 0ea2cf85aed17f5279f29e61fed2ad3d6e716d8f
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Inventory exact historical version bindings
+        run: |
+          set -euo pipefail
+          git grep -nE '2\\.0\\.0\\.0|assertRestoredBaselineVersion|KAR210_BASELINE_TARGET|assertPendingS02Release' -- tests scripts coverage .github/workflows | grep -vE 'tests/fixtures/|coverage/raw/' || true
