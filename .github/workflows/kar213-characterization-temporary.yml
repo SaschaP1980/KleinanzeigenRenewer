@@ -1,0 +1,22 @@
+name: KAR-213 focused compatibility (temporary)
+on:
+  push:
+    branches: [work/KAR-213]
+    paths: ['.github/workflows/kar213-characterization-temporary.yml']
+permissions:
+  contents: read
+jobs:
+  focused:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: 80d5c5ba3b5b96c53b4ebfda55b4c11eb2add697
+          persist-credentials: false
+      - run: test "$(git rev-parse HEAD)" = "80d5c5ba3b5b96c53b4ebfda55b4c11eb2add697"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --ignore-scripts
+      - run: node --test tests/kar213-cross-generation-characterization.cjs
