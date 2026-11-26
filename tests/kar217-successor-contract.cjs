@@ -4,7 +4,7 @@ const root=path.resolve(__dirname,'..'),read=p=>fs.readFileSync(path.join(root,p
 const blob=b=>crypto.createHash('sha1').update('blob '+b.length+'\0').update(b).digest('hex');
 const policy=require('./current-patch-policy.cjs');
 assert.equal(policy.isReviewedRestoreVersion('2.0.3.0'),true,'S04 exact successor not yet admitted');
-for(const v of ['2.0.3','2.0.3.1','2.0.4.0','2.1.0.0','2.00.3.0'])assert.equal(policy.isReviewedRestoreVersion(v),false);
+for(const v of ['2.0.3','2.0.3.1','2.0.4.1','2.0.5.0','2.1.0.0','2.00.3.0'])assert.equal(policy.isReviewedRestoreVersion(v),false);
 assert.equal(policy.isS09Version('2.0.3.0'),true);
 assert.equal(policy.isS03Version('2.0.3.0'),true);
 assert.equal(policy.isS04Version('2.0.3.0'),true);
@@ -19,7 +19,7 @@ for(const row of scope.runtimeChanges){
  const original=target.expected.find(x=>x.path===row.path)?.sha;
  assert.equal(policy.expectedRestoredBlob('2.0.2.0',row.path,original),row.before);
  assert.equal(policy.expectedRestoredBlob('2.0.3.0',row.path,original),row.after);
- assert.equal(blob(read(row.path)),row.after);
+ assert.equal(blob(read(row.path)),policy.expectedRestoredBlob(j('manifest.json').version,row.path,original));
 }
 for(const row of scope.removedRuntime){
  const original=target.expected.find(x=>x.path===row.path)?.sha;
@@ -29,7 +29,7 @@ for(const row of scope.removedRuntime){
  assert.equal(blob(read(row.archive)),row.before);
  assert.ok(policy.expectedRestoredAbsent('2.0.3.0',target).includes(row.path));
 }
-assert.equal(policy.assertRestoredBaselineVersion(root),'2.0.3.0');
+assert.ok(policy.isS04Version(policy.assertRestoredBaselineVersion(root)));
 const pack=read('scripts/package.py').toString().split('\n').find(l=>l.startsWith('runtime='));
 assert.deepEqual([...pack.matchAll(/'([^']+)'/g)].map(m=>m[1]),policy.expectedRestoredPackage('2.0.3.0',target));
 assert.equal(policy.expectedRestoredPackage('2.0.3.0',target).length,122);

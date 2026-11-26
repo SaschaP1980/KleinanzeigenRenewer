@@ -1,13 +1,13 @@
-name: KAR-220 focused field transfer (temporary)
+name: KAR-220 successor diagnostics (temporary)
 on:
   push:
     branches: [work/KAR-220]
 permissions:
   contents: read
 jobs:
-  focused:
+  diagnostics:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
         with:
@@ -17,13 +17,14 @@ jobs:
         with:
           node-version: '22'
       - run: npm ci
-      - name: Execute actual-source focused and preserved form behavior
+      - name: Inventory exact prior-version references
+        run: git grep -n -F '2.0.3.0' -- tests scripts .github ':!tests/fixtures/*' || true
+      - name: Verify successor and retained tests
         run: |
           git rev-parse HEAD
-          git diff --name-only 514c3dcdaae09b7e583326089316ada59c229e9f -- src manifest.json
-          git diff --exit-code 4b7159ddb1f0cc9d2be1144c2c34faa970170b82 -- tests/kar220-field-transfer.cjs
-          node --test tests/kar220-field-transfer.cjs
-          node tests/kar132-modern-category-modal.cjs
-          node tests/kar132-wearables-attributes.cjs
-          node tests/kar210-kar201-baseline-safety.cjs
-          node tests/kar217-updater-removal.cjs
+          python3 tests/kar210-baseline-restore.py
+          node tests/kar220-successor-contract.cjs
+          node tests/kar217-successor-contract.cjs
+          node tests/kar210-baseline-version-contract.cjs
+          python3 tests/kar210-version-identity.py
+          node tests/kar220-field-transfer.cjs

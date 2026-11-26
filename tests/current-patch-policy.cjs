@@ -139,7 +139,21 @@ assert.deepEqual(S04_SCOPE.runtimeChanges.map(r=>r.path).sort(),S04_CHANGED);
 assert.deepEqual(S04_SCOPE.removedRuntime.map(r=>r.path).sort(),S04_REMOVED);
 assert.deepEqual(S04_SCOPE.addedRuntime,[]);
 assert.deepEqual(S04_SCOPE.reactivatedTests,[]);
-function isS04Version(version) { return version === S04_VERSION; }
+// Exact reviewed S05 successor; no generic future version admission.
+const S05_VERSION = '2.0.4.0';
+const S05_SCOPE = require('../docs/maintenance/KAR220_SUCCESSOR_SCOPE.json');
+const S05_METADATA=Object.freeze({"issue":220,"step":"S05","directBasis":"2.0.3.0","sourceCommit":"514c3dcdaae09b7e583326089316ada59c229e9f","archiveSha256":"36041055ed9c9aec30edda9605bc229251f25bd1e47f796476ff59881460ee43"});
+const S05_CHANGED=Object.freeze(["manifest.json","src/background/services/template-fill-service.js","src/content/template-filler.js","src/content/template-form-fields.js","src/content/template-verification.js"]);
+assert.equal(S05_SCOPE.schemaVersion,1);
+assert.equal(S05_SCOPE.version,S05_VERSION);
+for(const [key,value] of Object.entries(S05_METADATA))assert.equal(S05_SCOPE[key],value);
+assert.equal(S05_SCOPE.sourceCheckpoint,'3ddfe8aa513a899c38b6e3768ca1f710ec33496d');
+assert.deepEqual(S05_SCOPE.runtimeChanges.map(r=>r.path).sort(),S05_CHANGED);
+assert.deepEqual(S05_SCOPE.addedRuntime,[]);
+assert.deepEqual(S05_SCOPE.removedRuntime,[]);
+assert.deepEqual(S05_SCOPE.reactivatedTests,[]);
+function isS05Version(version) { return version === S05_VERSION; }
+function isS04Version(version) { return version === S04_VERSION || isS05Version(version); }
 // These predicates denote reviewed capability lineage, never arbitrary future versions.
 function isS03Version(version) { return version === S03_VERSION || isS04Version(version); }
 function isS09Version(version) { return version === S09_VERSION || isS03Version(version); }
@@ -158,6 +172,14 @@ function expectedRestoredAbsent(version,target) {
 }
 function expectedRestoredBlob(version, file, historicalBlob) {
   assert.ok(isReviewedRestoreVersion(version), 'unreviewed restored runtime');
+  if(isS05Version(version)) {
+    const before=expectedRestoredBlob(S04_VERSION,file,historicalBlob);
+    const entry=S05_SCOPE.runtimeChanges.find(row=>row.path===file);
+    if(!entry)return before;
+    assert.equal(entry.before,before,'S05 exact predecessor blob changed: '+file);
+    assert.match(entry.after,/^[a-f0-9]{40}$/);
+    return entry.after;
+  }
   if(isS04Version(version)) {
     const before=expectedRestoredBlob(S03_VERSION,file,historicalBlob);
     const removed=S04_SCOPE.removedRuntime.find(row=>row.path===file);
@@ -210,12 +232,14 @@ function assertRestoredBaselineVersion(root = require('node:path').resolve(__dir
   else assert.equal(spec.s03,undefined,'older baseline must not carry S03 successor metadata');
   if(isS04Version(actual)) assert.deepEqual(spec.s04,S04_METADATA);
   else assert.equal(spec.s04,undefined,'older baseline must not carry S04 successor metadata');
+  if(isS05Version(actual)) assert.deepEqual(spec.s05,S05_METADATA);
+  else assert.equal(spec.s05,undefined,'older baseline must not carry S05 successor metadata');
   assert.equal(manifest.version,actual);
   assert.equal(manifest.manifest_version,3);
   assert.equal(manifest.version_name,undefined);
-  assert.equal(pkg.version,isS04Version(actual)?'2.0.3':isS03Version(actual)?'2.0.2':isS09Version(actual)?'2.0.1':'2.0.0');
+  assert.equal(pkg.version,isS05Version(actual)?'2.0.4':isS04Version(actual)?'2.0.3':isS03Version(actual)?'2.0.2':isS09Version(actual)?'2.0.1':'2.0.0');
   assert.equal(pkg.displayVersion,actual);
-  assert.equal(spec.directBasis,isS04Version(actual)?'2.0.2.0':isS03Version(actual)?'2.0.1.0':isS09Version(actual)?'2.0.0.1':'1.23.48');
+  assert.equal(spec.directBasis,isS05Version(actual)?'2.0.3.0':isS04Version(actual)?'2.0.2.0':isS03Version(actual)?'2.0.1.0':isS09Version(actual)?'2.0.0.1':'1.23.48');
   assert.equal(spec.goldBaseline,'1.21.15');
   assert.equal(spec.performanceRunRequired,true);
   assert.deepEqual([...manifest.permissions].sort(),(isS04Version(actual)?[...PERMISSIONS]:[...PERMISSIONS,'nativeMessaging']).sort());
@@ -230,4 +254,4 @@ function assertRestoredBaselineVersion(root = require('node:path').resolve(__dir
   return actual;
 }
 
-module.exports = { S04_SCOPE, isS04Version, S03_SCOPE, isS03Version, S09_SCOPE, isS09Version, expectedRestoredPackage, expectedRestoredAbsent, isReviewedRestoreVersion, expectedRestoredBlob, assertRestoredBaselineVersion, isCurrentPatchVersion, assertCompatibleCurrentPatch, includesActivePatch, includesSupportedRelease, expectedManifestPermissions };
+module.exports = { S05_SCOPE, isS05Version, S04_SCOPE, isS04Version, S03_SCOPE, isS03Version, S09_SCOPE, isS09Version, expectedRestoredPackage, expectedRestoredAbsent, isReviewedRestoreVersion, expectedRestoredBlob, assertRestoredBaselineVersion, isCurrentPatchVersion, assertCompatibleCurrentPatch, includesActivePatch, includesSupportedRelease, expectedManifestPermissions };

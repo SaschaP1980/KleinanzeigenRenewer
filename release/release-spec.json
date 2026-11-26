@@ -1,11 +1,11 @@
 {
-  "version": "2.0.3.0",
+  "version": "2.0.4.0",
   "project": "kleinanzeigen Manager / Kleinanzeigen Renewal",
-  "epic": "KAR-208 / KAR-217 S04 updater removal",
+  "epic": "KAR-208 / KAR-220 S05 attribute transfer",
   "goldBaseline": "1.21.15",
-  "directBasis": "2.0.2.0",
+  "directBasis": "2.0.3.0",
   "directBasisNativeGreen": true,
-  "directBasisObservation": "Historical v1.23.48 is the owner-approved semantic runtime reference. Accepted S03 2.0.2.0 exact Work CI 4/4 GREEN and owner-reported isolated synthetic smoke 8/8 PASS; no productive data migration or real-account acceptance implied. This is not a native acceptance run. No live data or account action authorized.",
+  "directBasisObservation": "Accepted S04 2.0.3.0 exact Work CI 3/3 GREEN and owner-reported isolated synthetic smoke 8/8 PASS; no productive data migration or real-account acceptance implied. Current website compatibility and S05 native acceptance remain pending.",
   "scope": [
     "Restore v1.23.48 historical runtime, retaining KAR-174 UI path layout and current development tooling.",
     "Version identity 2.0.0.0, npm 2.0.0; preserve extension key, historical releases and Git ancestry.",
@@ -14,7 +14,8 @@
     "KAR-212: recognize the exact Chrome BFCache port-closure message in the existing Phase-4 transport classifier. No other product behavior or historical safeguards changed.",
     "KAR-214 S09: verified local retention, exact destructive consent, per-record revision/expiry, read-only canonical sort and countdown presentation. Preserve historical runtime outside the pinned successor scope; no updater C import.",
     "KAR-213 S03: preserve opaque profile/record/image metadata, raw trash deadlines, atomic restore, fail closed on known unresolved legacy workflows. Offline preflight and isolated cold recovery; no imported C architecture.",
-    "KAR-217 S04: remove inherited updater UI, native messaging permission, runtime modules, message route and online update channel read; preserve historical blobs and retire only reviewed updater-specific tests; retain S03/S09, all applicable quality and safety gates."
+    "KAR-217 S04: remove inherited updater UI, native messaging permission, runtime modules, message route and online update channel read; preserve historical blobs and retire only reviewed updater-specific tests; retain S03/S09, all applicable quality and safety gates.",
+    "KAR-220 S05: retain existing category and form handling. Recover substantive display-only attributes only through unique associated actual controls and exact native readback; use uniquely exposed linked technical option IDs; preserve empty status and report real ambiguity. No schema monitoring/reference management or extra scans."
   ],
   "nextPlannedBuild": "TBD",
   "nextPlannedBuildGoal": "Determined by separately authorized open GitHub Issues.",
@@ -37,7 +38,7 @@
       "percent": null
     }
   },
-  "releaseSummary": "2.0.3.0 Work-only S04 updater removal on exact accepted S03 2.0.2.0. Full gates pending; no merge, release or productive profile migration.",
+  "releaseSummary": "2.0.4.0 Work-only S05 focused attribute transfer corrections on accepted S04 2.0.3.0. Full gates pending; no merge, release or productive profile migration.",
   "architectureHighlights": [
     "Historical product safeguards and runtime behavior are primary; only explicit path/layout and version metadata changes in this restore slice.",
     "Current development gates and test files retained; reconcile later feature/updater-dependent assertions without weakening retained product behavior.",
@@ -50,7 +51,7 @@
     "S09: synthetic-only retention and IndexedDB fixtures until S03 data compatibility and S04 updater removal are accepted.",
     "S03: isolated migration and rollback using exact committed package; real migration requires S04 and separate owner authorization."
   ],
-  "packageVersion": "2.0.3.0",
+  "packageVersion": "2.0.4.0",
   "directBasisNativePending": false,
   "architectureFiles": [
     {
@@ -423,7 +424,7 @@
       }
     }
   },
-  "validationStatus": "S04_GATES_PENDING",
+  "validationStatus": "S05_GATES_PENDING",
   "s09": {
     "issue": 214,
     "step": "S09",
@@ -444,5 +445,12 @@
     "directBasis": "2.0.2.0",
     "sourceCommit": "a88a3446560cb36c87a3ace599a0bbd0549c6f41",
     "archiveSha256": "46cb5860015965fee5323dcedd290862672cc97e03e880180afc464ff3bf89ee"
+  },
+  "s05": {
+    "issue": 220,
+    "step": "S05",
+    "directBasis": "2.0.3.0",
+    "sourceCommit": "514c3dcdaae09b7e583326089316ada59c229e9f",
+    "archiveSha256": "36041055ed9c9aec30edda9605bc229251f25bd1e47f796476ff59881460ee43"
   }
 }

@@ -19,6 +19,8 @@ core_tests=(
   tests/kar217-updater-removal.cjs
   tests/kar217-updater-test-disposition.cjs
   tests/kar217-successor-contract.cjs
+  tests/kar220-successor-contract.cjs
+  tests/kar220-field-transfer.cjs
   tests/validate.mjs
   tests/identity.cjs
   tests/jpeg.cjs

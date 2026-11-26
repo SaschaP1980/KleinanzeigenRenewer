@@ -33,6 +33,11 @@ class VersionIdentity(unittest.TestCase):
     def test_exact_s04_permission_contract(self):
         s04 = {**manifest, "version": "2.0.3.0", "permissions": sorted(verifier.PERMISSIONS)}
         verifier.check_identity(s04, app_id)
+        verifier.check_identity({**s04, "version": "2.0.4.0"}, app_id)
+        with self.assertRaises(ValueError):
+            verifier.check_identity({**s04, "version": "2.0.4.0", "permissions": sorted(set(verifier.PERMISSIONS) | {"nativeMessaging"})}, app_id)
+        with self.assertRaises(ValueError):
+            verifier.check_identity({**s04, "version": "2.0.5.0"}, app_id)
         with self.assertRaises(ValueError):
             verifier.check_identity({**s04, "permissions": sorted(set(verifier.PERMISSIONS) | {"nativeMessaging"})}, app_id)
         with self.assertRaises(ValueError):
