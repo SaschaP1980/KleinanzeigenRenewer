@@ -166,6 +166,12 @@ def main(version):
             try:
                 worker.evaluate(SEED,expected)
                 check(worker,expected,version)
+                snapshot=worker.evaluate("""async()=>({schema:1,sourceVersion:chrome.runtime.getManifest().version,capturedAt:new Date().toISOString(),storageLocal:await chrome.storage.local.get(null)})""")
+                path=tmp/"synthetic-snapshot.json"
+                path.write_text(json.dumps(snapshot))
+                preflight=subprocess.run(["node",str(ROOT/"scripts/kar213-upgrade-preflight.cjs"),str(path)],capture_output=True,text=True,timeout=10)
+                print("KAR213_PREFLIGHT "+preflight.stdout.strip(),flush=True)
+                assert preflight.returncode==0,"Synthetic source not settled according to offline preflight"
             finally:
                 ctx.close()
             # Entire isolated user-data directory, not only profile ZIP.
