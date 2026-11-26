@@ -93,3 +93,43 @@ test('S06 independent absence proof cannot certify a different returned source I
  const proof=await api.verifyRenewalSourceAbsenceFresh({renewalId:'r',sourceAdId:'100',newAdId:'200'},'Owner',null,{attempt:1}).catch(()=>null);
  assert.notEqual(proof?.verified,true);assert.deepEqual(closed,[42]);
 });
+
+
+test('S06 fill-only publish acknowledgement must survive local draft discard',async()=>{
+ const h=discardFixture({fill:{stage:'publish-submitted',publishClickedAt:when}}),before=structuredClone([h.sessions(),h.fills()]);
+ await h.run().catch(()=>{});assert.deepEqual(h.calls,[]);assert.deepEqual([h.sessions(),h.fills()],before);
+});
+test('S06 unreadable fill session evidence is not permission to discard local draft',async()=>{
+ const h=discardFixture({failRead:true}),before=structuredClone([h.sessions(),h.fills()]);
+ await h.run().catch(()=>{});assert.deepEqual(h.calls,[]);assert.deepEqual([h.sessions(),h.fills()],before);
+});
+test('S06 delayed publication notification must not reopen an emergency-cancelled renewal',async()=>{
+ const h=publishFixture({fill:{status:'error',stage:'manual-emergency-reset'},renewal:{status:'cancelled',stage:'emergency-reset-unverified',publishClickedAt:when}});
+ const before=structuredClone([h.fills(),h.sessions()]);await h.run(42).catch(()=>{});
+ assert.deepEqual(h.writes,[]);assert.deepEqual([h.fills(),h.sessions()],before);
+});
+function contentIdentityFixture({switchOnScan=false,found=true,profile='Owner'}={}){
+ let live=profile,clicks=0,reads=0;
+ const stop=new Error('fixture stops at first click; no remote action');
+ const button={textContent:'Löschen',tagName:'BUTTON',querySelector:()=>null,click(){clicks++;throw stop;}};
+ const listing={adId:'100',root:{getAttribute:()=> '100',querySelectorAll:()=>[button]}};
+ const ctx=vm.createContext({console,document:{},location:{href:'https://www.kleinanzeigen.de/m-meine-anzeigen.html?tab=PROJECTS'},KRDeps:{register(_n,api){ctx.Ops=api;}}});
+ vm.runInContext(read('src/content/inventory-delete-operations.js'),ctx);
+ const api=ctx.Ops.create({MAX_PHASE4_PAGES:2,sleep:async()=>{},normalize:s=>String(s||''),normalizeKey:s=>String(s||'').trim().toLowerCase(),diagnostic:()=>{},isMyAdsProjectsUrl:()=>true,scanListings:()=>found?[listing]:[],currentPageNumber:()=>1,pageFingerprint:()=> 'fixture-page',nextPageButton:()=>null,isDisabledControl:node=>!node,waitForPageChange:async()=>true,waitForListings:async()=>{reads++;if(switchOnScan)live='Other';return found?[listing]:[];},parseOnlineCount:()=>({online:found?1:0}),detectedProfileName:()=>live});
+ return {api,stop,clicks:()=>clicks,reads:()=>reads};
+}
+test('S06 actual content scanner finds exact ID; same-profile delete reaches only simulated first click',async()=>{
+ const h=contentIdentityFixture();const hit=await h.api.findOwnAdById('100',{}, {expectedProfileName:'Owner'});
+ assert.equal(hit.found,true);assert.equal(hit.adId,'100');
+ const absent=await h.api.findOwnAdById('999',{}, {expectedProfileName:'Owner'});assert.equal(absent.found,false);assert.equal(absent.adId,'999');
+ await assert.rejects(h.api.deleteOwnAdById('100',{}, {expectedProfileName:'Owner'}),e=>e===h.stop);assert.equal(h.clicks(),1);
+});
+test('S06 content-side account change during listing scan must not reach simulated delete click',async()=>{
+ const h=contentIdentityFixture({switchOnScan:true});await h.api.deleteOwnAdById('100',{}, {expectedProfileName:'Owner'}).catch(()=>{});
+ assert.equal(h.reads(),1);assert.equal(h.clicks(),0);
+});
+test('S06 content-side account change during absence scan cannot provide positive absence evidence',async()=>{
+ const h=contentIdentityFixture({switchOnScan:true,found:false});
+ const proof=await h.api.verifyOwnAdAbsentById('100',{}, {expectedProfileName:'Owner'}).catch(()=>null);
+ assert.notEqual(proof?.verified,true);assert.equal(h.reads(),1);
+});
