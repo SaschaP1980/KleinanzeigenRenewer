@@ -100,7 +100,7 @@ def fixture(version):
     old=iso(now-dt.timedelta(days=70))
     expires=iso(now+dt.timedelta(days=28))
     profiles=[{"profileId":"synthetic-A","displayName":"Synthetic A","normalizedName":"synthetic a","createdAt":recent,"lastSeenAt":recent,"futureOpaque":{"flag":True}},{"profileId":"synthetic-B","displayName":"Synthetic B","normalizedName":"synthetic b","createdAt":recent,"lastSeenAt":recent}]
-    storage={"profilesV1":profiles,"selectedInventoryProfileV1":{"profileId":"synthetic-A","selectedAt":recent,"source":"synthetic-fixture"},"renewalPhaseAttemptsV1":3,"globalListViewModeV1":"list","unknownSyntheticFutureV1":{"values":[0,None,{"nested":True}]}}
+    storage={"profilesV1":profiles,"selectedInventoryProfileV1":{"profileId":"synthetic-A","selectedAt":recent,"source":"synthetic-fixture"},"renewalPhaseAttemptsV1":3,"globalListViewModeV1":"compact","unknownSyntheticFutureV1":{"values":[0,None,{"nested":True}]}}
     rows=[]
     images=[]
     for n,(pid,kind) in enumerate([("synthetic-A","inventory"),("synthetic-A","trash"),("synthetic-B","inventory")],100):
