@@ -1,0 +1,28 @@
+name: KAR-222 focused B14 local recovery
+on:
+  push:
+    branches: [work/KAR-222]
+    paths: ['.github/workflows/kar222-b14-temp.yml','tests/kar222-b14-recovery.cjs','src/background/**']
+permissions:
+  contents: read
+jobs:
+  focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Source and test diff
+        run: |
+          git diff --name-status 65f955949bcd47099319e304cf94d52a20795b8c HEAD
+          node --check tests/kar222-b14-recovery.cjs
+      - name: B14 and preserved reset / DELETE controls
+        run: |
+          export NODE_OPTIONS='--require ./tests/v12222-vm-legacy-bridge.cjs'
+          node --test --test-reporter=tap tests/kar199-emergency-reset-candidate-recovery.cjs tests/kar222-b14-recovery.cjs tests/kar210-kar199-baseline-reset.cjs tests/kar222-delete-no-replay.cjs tests/kar199-phase4-no-transport-replay.cjs tests/kar210-kar199-baseline-phase4.cjs tests/kar210-cp36-phase4-product-witness.cjs
