@@ -110,6 +110,7 @@ function inspectSnapshot(snapshot,{nowMs=Date.now()}={}){
   if(own(local,'bulkInventoryRun')&&bulk!==null&&(!record(bulk)||bulk.retryAdId||!(bulk.status==='complete'&&bulk.stage==='finished'||bulk.status==='stopped'&&bulk.stage==='stopped-after-current')))flag('BULK_NOT_SETTLED');
   const fence=local.nativeUpdateWorkflowFenceV1;
   if(own(local,'nativeUpdateWorkflowFenceV1')&&fence!==null&&!(record(fence)&&fence.schema===1&&fence.state==='released'&&Object.keys(fence).length===10&&['transactionId','profileId','workerGeneration','token'].every(k=>id(fence[k]))&&time(fence.createdAtMs)&&integer(fence.expiresAtMs)&&fence.expiresAtMs>=fence.createdAtMs&&time(fence.cancelledAtMs)&&fence.cancelledAtMs>=fence.createdAtMs&&time(fence.releasedAtMs)&&fence.releasedAtMs>=fence.cancelledAtMs))flag('FENCE_NOT_RELEASED');
+  for(const key of ['globalListViewModeV1','inventoryListViewModeV1','trashListViewModeV1'])if(own(local,key)&&!['compact','detailed'].includes(local[key]))flag('VIEW_MODE_UNKNOWN');
   const retention=local.trashRetentionDaysV1,revision=local.trashRetentionRevisionV1;
   const validRetention=[10,30,60,90,180,360,'infinite'].includes(retention);
   if(own(local,'trashRetentionDaysV1')&&!validRetention||revision!=null&&(!validRetention||typeof revision!=='string'||!revision.trim()))flag('RETENTION_UNKNOWN');
