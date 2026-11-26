@@ -134,7 +134,7 @@ global.document = {
     visibleText: element => clean(element?.textContent), waitFor: async fn => fn(), updatePanel: noop
   });
   const manifest=require('../manifest.json');
-  const baseline=manifest.version==='2.0.0.0';
+  const baseline=require('./kar210-historical-contract-context.cjs').isRestored(require('node:path').resolve(__dirname,'..'));
   if(baseline) {
     const fs=require('node:fs'),crypto=require('node:crypto');
     const bytes=fs.readFileSync(require.resolve('../src/content/template-publish-flow.js'));
