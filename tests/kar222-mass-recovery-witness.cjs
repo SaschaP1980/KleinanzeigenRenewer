@@ -159,3 +159,60 @@ test('S06 startup rebinds positively correlated persisted session instead of rep
  await h.workflow.resumeMassRenewalBatch();await h.workflow.startNextMassRenewalItem('b');
  const row=await stored(h);assert.equal(row.renewalId,'r');assert.equal(row.newAdId,'200');assert.equal(h.starts,0);
 });
+
+
+test('A repeated missing-session retry preserves identity and never admits insertion, even after restart review',async()=>{
+ const h=harness({savedBatch:batch()});
+ for(let i=0;i<2;i++){await h.workflow.retryMassRenewalItem(retry).catch(()=>{});const r=await stored(h);assert.equal(r.status,'needs-review');assert.equal(r.newAdId,'200');assert.equal(r.renewalId,'r');}
+ assert.deepEqual(h.calls,[]);
+ const g=harness({savedBatch:batch({status:'running',stage:'starting',renewalId:null,renewalStatus:null,newAdId:null,operationId:null,completedAt:null},{status:'running',currentIndex:0,completedAt:null})});
+ await g.workflow.resumeMassRenewalBatch();await g.workflow.startNextMassRenewalItem('b');
+ await g.workflow.retryMassRenewalItem(retry).catch(()=>{});
+ assert.equal(g.starts,0);assert.equal((await stored(g)).status,'needs-review');
+});
+test('A conflicting profile, source, batch, index or missing known target must not dispatch any retry operation',async()=>{
+ for(const patch of [{profileId:'other'},{sourceAdId:'102'},{sourceInventoryId:'two'},{massBatchId:'other'},{massBatchItemIndex:1},{newAdId:null}]){
+  const h=harness({savedBatch:batch(),savedSessions:{r:session(patch)}});
+  await h.workflow.retryMassRenewalItem(retry).catch(()=>{});
+  assert.deepEqual(h.calls,[],JSON.stringify(patch));assert.equal((await stored(h)).newAdId,'200');assert.equal((await stored(h)).status,'needs-review');
+ }
+});
+test('A ambiguous or conflicting startup session cannot bind or erase existing identity',async()=>{
+ for(const sessions of [{r:session({newAdId:'999'})},{r:session({profileId:'wrong'})},{r:session(),other:session({renewalId:'other'})}]){
+  const hasId=Object.keys(sessions).length===1;
+  const h=harness({savedBatch:batch({status:'running',stage:'starting',renewalId:hasId?'r':null,newAdId:hasId?'200':null,completedAt:null},{status:'running',currentIndex:0,completedAt:null}),savedSessions:sessions});
+  await h.workflow.resumeMassRenewalBatch();await h.workflow.startNextMassRenewalItem('b');
+  assert.equal((await stored(h)).status,'needs-review');assert.equal((await stored(h)).newAdId,hasId?'200':null);assert.equal(h.starts,0);
+ }
+});
+const target={inventoryId:'200',adId:'200',profileId:'p1',recordKind:'inventory'};
+const oldTrash={inventoryId:'one',adId:'101',profileId:'p1',recordKind:'trash',trash:{reason:'renewal-replaced',context:{renewalId:'r',sourceAdId:'101',replacementAdId:'200'}}};
+function pendingBatch(){return batch({status:'running',stage:'replacement-ready',completedAt:null},{status:'running',currentIndex:0,completedAt:null});}
+test('B only exact target and existing matching atomic source trash context prove completed exchange',async()=>{
+ const h=harness({savedBatch:pendingBatch(),extraRecords:[target,oldTrash]});
+ await h.workflow.resumeMassRenewalBatch();
+ assert.equal((await stored(h)).status,'success');assert.equal((await stored(h)).newInventoryId,'200');assert.equal(h.starts,0);
+ for(const records of [[target],[target,{...oldTrash,trash:{...oldTrash.trash,reason:'manual'}}],[target,{...oldTrash,trash:{...oldTrash.trash,context:{...oldTrash.trash.context,renewalId:'other'}}}],[target,{...oldTrash,trash:{...oldTrash.trash,context:{...oldTrash.trash.context,replacementAdId:'999'}}}],[target,{...oldTrash,trash:{...oldTrash.trash,context:{...oldTrash.trash.context,sourceAdId:'102'}}}],[{...target,profileId:'wrong'},oldTrash],[{...target,adId:'999'},oldTrash],[target,{...oldTrash,profileId:'wrong'}],[{...target,recovery:{kind:'emergency-reset-candidate'}},oldTrash]]){
+  const g=harness({savedBatch:pendingBatch(),extraRecords:records});await g.workflow.resumeMassRenewalBatch();
+  assert.equal((await stored(g)).status,'needs-review',JSON.stringify(records));assert.equal(g.starts,0);
+ }
+});
+test('A mass explicit verification-only request cannot widen to fresh deletion or insertion',async()=>{
+ const h=harness({savedBatch:batch(),savedSessions:{r:session()}});
+ await h.workflow.retryMassRenewalItem({...retry,verificationOnly:true}).catch(()=>{});
+ assert.deepEqual(h.calls,[]);
+ const g=harness({savedBatch:batch(),savedSessions:{r:session({sourceDeleteVerificationPendingAt:when})}});
+ await g.workflow.retryMassRenewalItem({...retry,verificationOnly:true});
+ assert.deepEqual(g.calls,[['finish',{renewalId:'r',automatic:false,massBatchRetry:true,verificationOnly:true}]]);
+});
+test('A mass phase4 unknown projection and retry label match B16; missing session does not advertise reinsertion',async()=>{
+ const h=harness({savedBatch:pendingBatch(),savedSessions:{r:session({sourceDeleteVerificationPendingAt:when})}});
+ await h.workflow.reconcileMassRenewalBatchSession(session({sourceDeleteVerificationPendingAt:when}));
+ const b=await h.controller.readMassRenewalBatch(),row=h.controller.massRenewalPublicSnapshot(b).items[0];
+ assert.equal(row.sourceDeleteVerificationOnly,true);
+ const code=fs.readFileSync(path.join(root,'src/app/mass-renewal-ui-controller.js'),'utf8');
+ const fn=vm.runInNewContext('('+code.match(/^function massRenewalRetryActionLabel\(item\) \{\n[\s\S]*?^\}/m)[0]+')');
+ assert.equal(fn(row),'Löschung prüfen');
+ assert.notEqual(fn({...row,stage:'recovery-session-missing',sourceDeleteVerificationOnly:false}),'Neu inserieren erneut starten');
+ assert.match(code,/verificationOnly:\s*true/);
+});
