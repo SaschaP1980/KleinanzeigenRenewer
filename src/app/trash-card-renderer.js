@@ -6,6 +6,7 @@
       const formatting = options.formatting || {};
       const sharedUiHelpers = options.sharedUiHelpers || {};
       const recordCardView = options.recordCardView;
+      const InventoryView = options.InventoryView || globalThis.KRDeps?.optional?.('KRInventoryView') || (typeof require === 'function' ? require('./inventory-view.js') : null);
       if (!recordCardView) throw new Error('record-card-view.js must load before trash card rendering');
       const { trashList, inventoryHeaderCount, trashHeaderCount, trashCount } = options.elements || {};
       const formatDate = formatting.formatDate;
@@ -35,11 +36,13 @@
       let currentTrashRecords = [];
       let selectedProfileId = '';
       let globalListViewMode = 'detailed';
+      let trashViewState = { direction: 'desc' };
       function updateContext(context={}) {
         if (Array.isArray(context.records)) currentRecords=context.records;
         if (Array.isArray(context.trashRecords)) currentTrashRecords=context.trashRecords;
         if (Object.prototype.hasOwnProperty.call(context,'selectedProfileId')) selectedProfileId=String(context.selectedProfileId||'');
         if (Object.prototype.hasOwnProperty.call(context,'globalListViewMode')) globalListViewMode=String(context.globalListViewMode||'')==='compact'?'compact':'detailed';
+        if (context.trashViewState && typeof context.trashViewState === 'object') trashViewState = { direction: context.trashViewState.direction === 'asc' ? 'asc' : 'desc' };
       }
 
 function renderCompactTrashRow(record) {
@@ -134,7 +137,10 @@ function renderTrash(records = currentTrashRecords) {
     return;
   }
 
-  for (const record of currentTrashRecords) {
+  const visibleRecords = InventoryView?.deriveTrashView
+    ? InventoryView.deriveTrashView(currentTrashRecords, trashViewState)
+    : [...currentTrashRecords];
+  for (const record of visibleRecords) {
     if (globalListViewMode === 'compact') {
       trashList.append(renderCompactTrashRow(record));
       continue;
@@ -164,7 +170,7 @@ function renderTrash(records = currentTrashRecords) {
     facts.append(makeInfoLine('Preis', displayPriceWithType(record)));
     facts.append(makeInfoLine('ID', String(record.adId || 'unbekannt')));
     facts.append(makeInfoLine('Im Papierkorb', formatDate(record.trash?.trashedAt)));
-    const expiryRow = makeInfoLine('Aufbewahrung', trashRetentionPresentation(record));
+    const expiryRow = makeInfoLine('Aufbewahrung', trashRetentionPresentation(record), true);
     expiryRow.classList.add('trash-expiry');
     facts.append(expiryRow);
     facts.append(makeInfoLine('Grund', trashReasonLabel(record)));
