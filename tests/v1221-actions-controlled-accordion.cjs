@@ -26,6 +26,16 @@ if (restored) {
   assert.equal(target.historicalCommit,'f2225155e403d89d07a674c9e20f397a4f86694d');
   assert.equal(target.expected.length,122);
   for (const item of target.expected) {
+    const policy=require('./current-patch-policy.cjs');
+    const expected=policy.expectedRestoredBlob(manifest.version,item.path,item.sha);
+    if(expected===null){
+      assert.ok(policy.isS04Version(manifest.version));
+      const entry=policy.S04_SCOPE.removedRuntime.find(r=>r.path===item.path);
+      assert.ok(entry&&!fs.existsSync(path.join(root,item.path)));
+      const archive=fs.readFileSync(path.join(root,entry.archive));
+      assert.equal(crypto.createHash('sha1').update('blob '+archive.length+'\0').update(archive).digest('hex'),entry.before);
+      continue;
+    }
     const bytes=fs.readFileSync(path.join(root,item.path));
     const blob=crypto.createHash('sha1').update('blob '+bytes.length+'\0').update(bytes).digest('hex');
     assert.equal(blob,require('./current-patch-policy.cjs').expectedRestoredBlob(manifest.version,item.path,item.sha),'exact reviewed baseline/hotfix runtime: '+item.path);
