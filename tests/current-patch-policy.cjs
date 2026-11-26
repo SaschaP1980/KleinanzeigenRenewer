@@ -113,7 +113,20 @@ assert.equal(S09_SCOPE.archiveSha256,'e4ec9da3cb6604e807b640169dd2df849a9a444eb9
 assert.deepEqual(S09_SCOPE.runtimeChanges.map(r=>r.path).sort(),S09_ALLOWED);
 assert.deepEqual(S09_SCOPE.addedRuntime,[S09_ADDED]);
 const S09_METADATA=Object.freeze({"issue":214,"step":"S09","directBasis":"2.0.0.1","sourceCommit":"3457cc52fbd90515d47fa4a4c180fde6361b1f27","archiveSha256":"e4ec9da3cb6604e807b640169dd2df849a9a444eb95f268c627e835f8dfe1383"});
-function isS09Version(version) { return version === S09_VERSION; }
+const S03_VERSION = '2.0.2.0';
+const S03_SCOPE = require('../docs/maintenance/KAR213_SUCCESSOR_SCOPE.json');
+const S03_METADATA=Object.freeze({"issue":213,"step":"S03","directBasis":"2.0.1.0","sourceCommit":"61f917d384cdce0fc191188e5a99515907967dbe","archiveSha256":"15e58983d23a0706a301e161c76bf52c4e2885667fb7214b6f80b8f1209c798a"});
+const S03_ALLOWED=Object.freeze(["manifest.json","src/app/profile-backup-controller.js","src/app/profile-backup-storage-service.js","src/background/controllers/mass-renewal-controller.js","src/background/controllers/mass-renewal-workflow-controller.js","src/background/controllers/profile-management-controller.js","src/background/controllers/renewal-workflow-controller.js","src/background/controllers/template-fill-controller.js","src/background/repositories/profile-repository.js","src/background/repositories/renewal-state-repository.js","src/background/services/archive-insertion-recovery-service.js","src/background/services/archive-insertion-service.js","src/background/services/mass-renewal-watchdog-service.js","src/background/services/remote-delete-replacement-service.js","src/background/services/template-fill-service.js"]);
+assert.equal(S03_SCOPE.schemaVersion,1);
+assert.equal(S03_SCOPE.version,S03_VERSION);
+for(const [key,value] of Object.entries(S03_METADATA))assert.equal(S03_SCOPE[key],value);
+assert.equal(S03_SCOPE.sourceCheckpoint,'89d225a48c5c863687fecbabc910693b5e1a1fd1');
+assert.deepEqual(S03_SCOPE.runtimeChanges.map(r=>r.path).sort(),S03_ALLOWED);
+assert.deepEqual(S03_SCOPE.addedRuntime,[]);
+assert.deepEqual(S03_SCOPE.reactivatedTests,[]);
+// Exact S09 capability lineage, including only the reviewed S03 successor.
+function isS03Version(version) { return version === S03_VERSION; }
+function isS09Version(version) { return version === S09_VERSION || isS03Version(version); }
 function isReviewedRestoreVersion(version) { return version === '2.0.0.0' || version === '2.0.0.1' || isS09Version(version); }
 function expectedRestoredPackage(version,target) {
   if(!isS09Version(version)) return target.packaged;
@@ -128,6 +141,14 @@ function expectedRestoredAbsent(version,target) {
 }
 function expectedRestoredBlob(version, file, historicalBlob) {
   assert.ok(isReviewedRestoreVersion(version), 'unreviewed restored runtime');
+  if(isS03Version(version)) {
+    const before=expectedRestoredBlob(S09_VERSION,file,historicalBlob);
+    const entry=S03_SCOPE.runtimeChanges.find(row=>row.path===file);
+    if(!entry)return before;
+    assert.equal(entry.before,before,'S03 exact predecessor blob changed: '+file);
+    assert.match(entry.after,/^[a-f0-9]{40}$/);
+    return entry.after;
+  }
   if(isS09Version(version)) {
     const entry=S09_SCOPE.runtimeChanges.find(row=>row.path===file);
     if(entry) {
@@ -158,12 +179,14 @@ function assertRestoredBaselineVersion(root = require('node:path').resolve(__dir
   else assert.equal(spec.hotfix,undefined,'baseline must not carry active hotfix metadata');
   if(isS09Version(actual)) assert.deepEqual(spec.s09,S09_METADATA);
   else assert.equal(spec.s09,undefined,'baseline must not carry S09 successor metadata');
+  if(isS03Version(actual)) assert.deepEqual(spec.s03,S03_METADATA);
+  else assert.equal(spec.s03,undefined,'older baseline must not carry S03 successor metadata');
   assert.equal(manifest.version,actual);
   assert.equal(manifest.manifest_version,3);
   assert.equal(manifest.version_name,undefined);
-  assert.equal(pkg.version,isS09Version(actual)?'2.0.1':'2.0.0');
+  assert.equal(pkg.version,isS03Version(actual)?'2.0.2':isS09Version(actual)?'2.0.1':'2.0.0');
   assert.equal(pkg.displayVersion,actual);
-  assert.equal(spec.directBasis,isS09Version(actual)?'2.0.0.1':'1.23.48');
+  assert.equal(spec.directBasis,isS03Version(actual)?'2.0.1.0':isS09Version(actual)?'2.0.0.1':'1.23.48');
   assert.equal(spec.goldBaseline,'1.21.15');
   assert.equal(spec.performanceRunRequired,true);
   assert.deepEqual([...manifest.permissions].sort(),[...PERMISSIONS,'nativeMessaging'].sort());
@@ -178,4 +201,4 @@ function assertRestoredBaselineVersion(root = require('node:path').resolve(__dir
   return actual;
 }
 
-module.exports = { S09_SCOPE, isS09Version, expectedRestoredPackage, expectedRestoredAbsent, isReviewedRestoreVersion, expectedRestoredBlob, assertRestoredBaselineVersion, isCurrentPatchVersion, assertCompatibleCurrentPatch, includesActivePatch, includesSupportedRelease, expectedManifestPermissions };
+module.exports = { S03_SCOPE, isS03Version, S09_SCOPE, isS09Version, expectedRestoredPackage, expectedRestoredAbsent, isReviewedRestoreVersion, expectedRestoredBlob, assertRestoredBaselineVersion, isCurrentPatchVersion, assertCompatibleCurrentPatch, includesActivePatch, includesSupportedRelease, expectedManifestPermissions };

@@ -4,6 +4,12 @@ This is the canonical version-specific history for Kleinanzeigen Manager. Entrie
 
 All distinct historical section bodies from the former root README and CHANGELOG are preserved with source labels and line numbers. The [KAR-170 migration ledger](docs/maintenance/KAR170_CHANGELOG_MIGRATION.json) identifies their original Git blobs and body checksums. Overlapping versions retain distinct factual notes; older references to planned builds or native/CI acceptance are **historical**, not live status.
 
+## v2.0.2.0 — KAR-213 S03 persisted data compatibility (Work source, full gates pending)
+
+- Preserve opaque profile, inventory, trash and image fields in backup/restore; abort failed replacement transaction. Retain known unresolved legacy publication/deletion evidence and block unsafe continuation, without adding donor admission or journal architecture.
+- Offline preflight is a read-only operator precondition, not automatic activation authority. Real isolated Chromium cold upgrade/rollback from v1.23.48 and v1.25.36 passed on source overlay; exact sealed-package and full mandatory validation remain separate.
+- Chrome version 2.0.2.0, npm 2.0.2. Exact accepted direct basis 2.0.1.0; stable extension identity, no live-profile migration, merge or GitHub Release implied.
+
 ## v2.0.1.0 — KAR-214 S09 local trash quality (Work source, full gates pending)
 
 - Selective configurable local retention, verified policy hydration, exact reviewed destructive shortening, canonical finite/unlimited/unknown ordering and isolated countdown colors.

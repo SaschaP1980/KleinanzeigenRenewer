@@ -15,6 +15,7 @@ core_tests=(
   tests/kar214-retention-startup.cjs
   tests/kar213-cross-generation-characterization.cjs
   tests/kar213-offline-upgrade-preflight.cjs
+  tests/kar213-successor-contract.cjs
   tests/validate.mjs
   tests/identity.cjs
   tests/jpeg.cjs

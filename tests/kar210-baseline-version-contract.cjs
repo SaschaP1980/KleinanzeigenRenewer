@@ -6,7 +6,8 @@ const {assertPendingS02Release}=require('./kar210-historical-contract-context.cj
 const root=path.resolve(__dirname,'..');
 const metadata=['manifest.json','package.json','package-lock.json','release/release-spec.json'];
 const active=JSON.parse(fs.readFileSync(path.join(root,'manifest.json'),'utf8')).version;
-const s09=active==='2.0.1.0';
+const s03=active==='2.0.2.0';
+const s09=['2.0.1.0','2.0.2.0'].includes(active);
 assert.equal(assertRestoredBaselineVersion(root),active);
 for(const v of ['2.0.0.0','2.0.0.1','2.0.0','2.00.0.0']) {
   assert.equal(isCurrentPatchVersion(v),false);
@@ -25,7 +26,7 @@ try {
     ['manifest.json',m=>m.version='2.0.0'],
     ['package.json',p=>p.version='2.0.0.0'],
     ['package.json',p=>p.displayVersion='2.0.0'],
-    ['package-lock.json',l=>l.packages[''].version=s09?'2.0.2':'2.0.1'],
+    ['package-lock.json',l=>l.packages[''].version=s03?'2.0.3':s09?'2.0.2':'2.0.1'],
     ['release/release-spec.json',s=>s.packageVersion=s09?'2.0.1.1':'2.0.1.0'],
     ['manifest.json',m=>m.key='ZmFrZQ=='],
     ['manifest.json',m=>m.permissions.push('tabs')],
@@ -72,6 +73,11 @@ try {
   if(s09) {
     for(const f of metadata)fs.copyFileSync(path.join(root,f),path.join(fixture,f));
     const spec=read('release/release-spec.json');spec.s09.sourceCommit='0'.repeat(40);write('release/release-spec.json',spec);
+    assert.throws(()=>assertRestoredBaselineVersion(fixture));n++;
+  }
+  if(s03) {
+    for(const f of metadata)fs.copyFileSync(path.join(root,f),path.join(fixture,f));
+    const spec=read('release/release-spec.json');spec.s03.sourceCommit='0'.repeat(40);write('release/release-spec.json',spec);
     assert.throws(()=>assertRestoredBaselineVersion(fixture));n++;
   }
   if(active==='2.0.0.1') {
