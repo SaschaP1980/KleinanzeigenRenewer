@@ -12,10 +12,35 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          ref: 0319e3943097763befbf82c849c90d3b4859a392
+          ref: 8c83395f58e8bc941ec4653571432d5499eb5fbf
           persist-credentials: false
-      - run: test "$(git rev-parse HEAD)" = "0319e3943097763befbf82c849c90d3b4859a392"
+      - run: test "$(git rev-parse HEAD)" = "8c83395f58e8bc941ec4653571432d5499eb5fbf"
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
       - run: node --test tests/kar213-offline-upgrade-preflight.cjs
+  cold-upgrade:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 9
+    strategy:
+      fail-fast: false
+      matrix:
+        source: ['1.23.48', '1.25.36']
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: 8c83395f58e8bc941ec4653571432d5499eb5fbf
+          fetch-depth: 0
+          persist-credentials: false
+      - run: test "$(git rev-parse HEAD)" = "8c83395f58e8bc941ec4653571432d5499eb5fbf"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: python3 -m pip install --disable-pip-version-check -r tests/e2e/requirements.txt
+      - run: python3 -m playwright install --no-shell chromium
+      - name: Isolated Chromium cold recovery
+        run: |
+          set -euo pipefail
+          export KR_CHROME_BINARY="$(python3 -c 'from playwright.sync_api import sync_playwright; p=sync_playwright().start(); print(p.chromium.executable_path); p.stop()')"
+          test -x "$KR_CHROME_BINARY"
+          timeout --kill-after=15s 180s python3 tests/e2e/kar213-cold-upgrade-recovery.py --source "${{ matrix.source }}"
