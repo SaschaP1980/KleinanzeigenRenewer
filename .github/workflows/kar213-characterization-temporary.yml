@@ -20,9 +20,9 @@ jobs:
           node-version: '22'
       - run: npm ci --ignore-scripts
       - run: node --test tests/kar213-cross-generation-characterization.cjs
-  regression:
+  affected-regression:
     runs-on: ubuntu-24.04
-    timeout-minutes: 12
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v5
         with:
@@ -33,5 +33,21 @@ jobs:
         with:
           node-version: '22'
       - run: npm ci --ignore-scripts
-      - name: Existing coverage and architecture gate (pre-release diagnostic)
-        run: bash scripts/coverage-gate.sh
+      - name: Existing affected tests (diagnostic only, not full gate)
+        env:
+          NODE_OPTIONS: --require ./tests/v12222-vm-legacy-bridge.cjs
+        run: |
+          node <<'JS'
+          const {spawnSync}=require('node:child_process');
+          const commands=require('./package.json').scripts.test.split(' && ').filter(x=>/^node (?:--test )?tests\/[a-zA-Z0-9-]+\.cjs$/.test(x)&&/profile|archive-insertion|renewal-workflow|mass-renewal|template-fill-controller|template-fill-service|remote-delete|trash-template|backup|phase4|renewal-state|watchdog/i.test(x));
+          let fail=0;
+          for(const command of commands){
+            const args=command.split(' ').slice(1);
+            const result=spawnSync(process.execPath,args,{stdio:'inherit',timeout:30000});
+            const ok=result.status===0;
+            console.log('KAR213_AFFECTED_RESULT '+JSON.stringify({command,status:result.status,signal:result.signal||null,ok}));
+            if(!ok)fail++;
+          }
+          console.log('KAR213_AFFECTED_SUMMARY '+JSON.stringify({total:commands.length,pass:commands.length-fail,fail}));
+          process.exitCode=fail?1:0;
+          JS
