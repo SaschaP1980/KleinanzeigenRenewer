@@ -434,6 +434,7 @@
     };
     panelTemplateOnly = Boolean(session.templateOnly);
     panelArchiveInsertion = Boolean(session.archiveInsertionId);
+    if (!session.templateOnly && (session.renewalId || session.archiveInsertionId) && ['target', 'post-fill'].includes(kind)) armPublishDetection(session.fillId);
     try {
       if (kind === 'paid-insertion-checkout') {
         const detection = paidInsertionDetection();

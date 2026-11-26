@@ -20,24 +20,47 @@
   function armPublishDetection(fillId) {
     const key = `krRenewalPublishArmed_${fillId}`;
     if (globalThis[key]) return;
-    globalThis[key] = true;
-    let signalling = false;
+    const state = { clicked: false, submitted: false, signalled: false, autoPending: false, autoAttempted: false, button: null, form: null };
+    globalThis[key] = state;
+    const isPublish = button => Boolean(button && !button.disabled && visible(button)
+      && /^anzeige aufgeben$/i.test(clean(button instanceof HTMLInputElement ? button.value : button.textContent)));
+    const block = event => {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    };
+    const remember = button => {
+      state.button = button;
+      state.form = button.form || button.closest?.('form') || null;
+    };
     const signal = () => {
-      if (signalling) return;
-      signalling = true;
+      if (state.signalled) return;
+      state.signalled = true;
       updatePanel('Veröffentlichung wird übergeben', 'Kleinanzeigen verarbeitet die neue Anzeige. Anschließend wird die neue Anzeigen-ID ermittelt.', [], { safetyText: false });
-      void runtimeMessage({ type: 'RENEWAL_PUBLISH_CLICKED', fillId })
-        .catch(() => {})
-        .finally(() => { setTimeout(() => { signalling = false; }, 750); });
+      void runtimeMessage({ type: 'RENEWAL_PUBLISH_CLICKED', fillId }).catch(() => {});
     };
     document.addEventListener('click', event => {
-      const button = event.target instanceof Element ? event.target.closest('button') : null;
-      if (!button || clean(button.textContent) !== 'Anzeige aufgeben' || !visible(button)) return;
+      const button = event.target instanceof Element ? event.target.closest('button,input[type="submit"]') : null;
+      if (!isPublish(button)) return;
+      if (state.clicked || state.submitted) return block(event);
+      remember(button);
+      state.clicked = true;
       signal();
     }, true);
     document.addEventListener('submit', event => {
       const submitter = event.submitter;
-      if (!(submitter instanceof Element) || clean(submitter.textContent) !== 'Anzeige aufgeben') return;
+      if (submitter) {
+        if (!isPublish(submitter)) return;
+      } else {
+        const sameForm = state.form && event.target === state.form;
+        if (!sameForm && event.target !== state.button) {
+          const controls = [...(event.target?.querySelectorAll?.('button,input[type="submit"]') || [])].filter(isPublish);
+          if (controls.length !== 1) return;
+          remember(controls[0]);
+        }
+      }
+      if (state.submitted) return block(event);
+      if (submitter && !state.button) remember(submitter);
+      state.submitted = true;
       signal();
     }, true);
   }
@@ -155,21 +178,37 @@
 
     const button = candidates[0];
     armPublishDetection(fillId);
-    await runtimeMessage({
+    const publishState = globalThis[`krRenewalPublishArmed_${fillId}`];
+    if (publishState.clicked || publishState.submitted || publishState.autoAttempted || publishState.autoPending) {
+      return { awaitingPublishedId: true, publishTriggered: false };
+    }
+    publishState.autoPending = true;
+    try {
+    const acknowledgement = await runtimeMessage({
       type: 'UPDATE_TEMPLATE_FILL_SESSION',
       fillId,
       status: 'running',
       stage: 'auto-publish-ready',
       result: { complete: true, issues: [] }
     });
+    if (acknowledgement?.staleUpdateIgnored || acknowledgement?.terminalStateProtected
+        || acknowledgement?.status !== 'running' || acknowledgement?.stage !== 'auto-publish-ready') {
+      updatePanel('Veröffentlichung nicht freigegeben', 'Der aktuelle Vorgangsstatus erlaubt keine automatische Veröffentlichung. Bitte den Stand im Manager prüfen.', [], { safetyText: 'Keine automatische Wiederholung.' });
+      return { awaitingPublish: true, autoPublishBlocked: true };
+    }
     updatePanel('Vorlage vollständig übernommen', 'Alle kontrollierten Werte und Bilder stimmen. Die Anzeige wird jetzt automatisch veröffentlicht.', [], { safetyText: 'Automatische Veröffentlichung freigegeben – keine Abweichungen erkannt.' });
     try { button.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' }); } catch { /* Komfortschritt */ }
     await sleep(180);
+    if (publishState.clicked || publishState.submitted || publishState.autoAttempted) return { awaitingPublishedId: true, publishTriggered: false };
+    publishState.autoAttempted = true;
     void diagnostic(fillId, 'AUTO_PUBLISH_GATE_PASSED', { candidateCount: 1, path: location.pathname });
     button.click();
     void diagnostic(fillId, 'AUTO_PUBLISH_CLICKED', { path: location.pathname });
     updatePanel('Anzeige wird veröffentlicht', 'Kleinanzeigen verarbeitet die neue Anzeige. Anschließend wird die neue Anzeigen-ID automatisch ermittelt.', [], { safetyText: false });
     return { publishTriggered: true };
+    } finally {
+      publishState.autoPending = false;
+    }
   }
 
   function findPostFillContinueButtons() {

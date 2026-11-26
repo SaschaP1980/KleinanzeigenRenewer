@@ -1170,7 +1170,7 @@ async function discardRenewalDraft(message) {
   const renewals = await readRenewalSessions();
   const renewal = renewals[renewalId];
   if (!renewal) throw new Error('Renewal-Entwurf wurde nicht gefunden.');
-  if (renewal.newAdId || ['submitted', 'new-id-confirmed', 'reinventorizing', 'verifying', 'verified'].includes(String(renewal.status || '')) || String(renewal.stage || '') === 'publish-submitted') {
+  if (renewal.newAdId || RenewalStateRepository.renewalPublishBoundaryReached(renewal)) {
     throw new Error('Dieser Renewal-Vorgang wurde bereits veröffentlicht oder zur Veröffentlichung übergeben und kann nicht als lokaler Entwurf verworfen werden.');
   }
 
@@ -1181,7 +1181,11 @@ async function discardRenewalDraft(message) {
   const targetTabId = Number(renewal.targetTabId || 0) || null;
   const fillId = String(renewal.fillId || '');
 
-  const fills = await readFillSessions().catch(() => ({}));
+  const fills = await readFillSessions();
+  if (Object.entries(fills).some(([id, fill]) => (id === fillId || String(fill?.renewalId || '') === renewalId)
+      && (fill?.newAdId || RenewalStateRepository.renewalPublishBoundaryReached(fill)))) {
+    throw new Error('Die Vorlagen-Sitzung enthält Veröffentlichungsevidenz. Der lokale Entwurf bleibt zur Prüfung erhalten.');
+  }
   if (fillId && fills[fillId]) {
     delete fills[fillId];
     await writeFillSessions(fills);

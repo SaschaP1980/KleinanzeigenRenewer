@@ -62,6 +62,7 @@ function discardFixture({renewal={},fill={},failRead=false}={}){
  let fills={f:{fillId:'f',renewalId:'r',targetTabId:42,stage:'form-ready',...fill}};
  const calls=[];
  const fn=actualFunction('src/background/background.js','discardRenewalDraft',{
+  RenewalStateRepository:require('../src/background/repositories/renewal-state-repository.js'),
   readRenewalSessions:async()=>structuredClone(sessions),getBulkRunState:async()=>({status:'complete'}),
   readFillSessions:async()=>{if(failRead)throw Error('fixture storage read failed');return structuredClone(fills);},
   writeFillSessions:async x=>{fills=structuredClone(x);calls.push('fill-write');},writeRenewalSessions:async x=>{sessions=structuredClone(x);calls.push('renewal-write');},
@@ -132,4 +133,17 @@ test('S06 content-side account change during absence scan cannot provide positiv
  const h=contentIdentityFixture({switchOnScan:true,found:false});
  const proof=await h.api.verifyOwnAdAbsentById('100',{}, {expectedProfileName:'Owner'}).catch(()=>null);
  assert.notEqual(proof?.verified,true);assert.equal(h.reads(),1);
+});
+
+
+test('S06 D1 existing profile probe follows awaited diagnostic and refuses changed account without extra request',async()=>{
+ let profile='Owner';const calls=[];const closed=[];
+ const api=Remote.create({createManagedWorkerTab:async()=>({id:42}),waitForTabComplete:async()=>{},ensureContentConnection:async()=>{},closeManagedWorkerTab:async id=>closed.push(id),correlationContext:()=>({}),sessionCorrelationContext:()=>({}),normalizeProfileName:String,renewalMaxPhaseAttempts:()=>1,
+ logDiagnostic:async(_level,event)=>{if(event==='RENEWAL_PHASE4_ATOMIC_PREVERIFY_DELETE_STARTED')profile='Other';},
+ sendTabRequestWithBootstrap:async(_id,m)=>{calls.push(m.type);if(m.type==='MY_ADS_STATUS')return {isMyAdsPage:true,isProjectsTab:true,profileName:profile};throw Error('must not dispatch delete');}});
+ await assert.rejects(api.preverifyAndTriggerRenewalSourceDeleteAttempt({renewalId:'r',sourceAdId:'100',newAdId:'200'},'Owner',null,{attempt:1}),/Konto entspricht nicht/);
+ assert.deepEqual(calls,['MY_ADS_STATUS']);assert.deepEqual(closed,[42]);
+});
+test('S06 C direct repeated notification is idempotent and preserves timestamp',async()=>{
+ const h=publishFixture();await h.run(42);const before=structuredClone([h.fills(),h.sessions()]);await h.run(42);assert.deepEqual([h.fills(),h.sessions()],before);assert.deepEqual(h.writes,['fill','renewal']);
 });

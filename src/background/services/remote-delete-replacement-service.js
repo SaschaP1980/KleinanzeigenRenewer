@@ -444,6 +444,10 @@ async function verifyRenewalSourceAbsenceFresh(session, expectedProfile, windowI
       correlation: correlationContext(session)
     });
 
+    if (verification?.verified === true && String(verification.adId || '') !== String(session.sourceAdId)) {
+      throw new Error('Die Löschverifikation betrifft nicht die exakte ID der Quellanzeige.');
+    }
+
     await logDiagnostic(verification?.verified ? 'info' : 'warning', purpose === 'pre-delete' ? 'RENEWAL_PHASE4_PREDELETE_VERIFICATION' : 'RENEWAL_SOURCE_DELETE_VERIFICATION_ATTEMPT', {
       renewalId: session.renewalId,
       sourceAdId: session.sourceAdId,
@@ -495,14 +499,6 @@ async function preverifyAndTriggerRenewalSourceDeleteAttempt(session, expectedPr
     });
     await ensureContentConnection({ tabId: deleteTabId });
 
-    const status = await sendTabRequestWithBootstrap(deleteTabId, { type: 'MY_ADS_STATUS' });
-    const actualProfile = normalizeProfileName(status?.profileName || '');
-    if (!status?.isMyAdsPage || !status?.isProjectsTab) throw new Error('Phase 4 konnte die Ansicht „Meine Anzeigen“ / PROJECTS nicht eindeutig bestätigen.');
-    if (!actualProfile) throw new Error('Das aktuell angemeldete Kleinanzeigen-Konto konnte für Phase 4 nicht eindeutig erkannt werden.');
-    if (expectedProfile.toLocaleLowerCase('de-DE') !== actualProfile.toLocaleLowerCase('de-DE')) {
-      throw new Error('Das aktuell angemeldete Kleinanzeigen-Konto entspricht nicht dem Inventarprofil der Quellanzeige.');
-    }
-
     await logDiagnostic('info', 'RENEWAL_PHASE4_ATOMIC_PREVERIFY_DELETE_STARTED', {
       renewalId: session.renewalId,
       sourceAdId: session.sourceAdId,
@@ -516,6 +512,14 @@ async function preverifyAndTriggerRenewalSourceDeleteAttempt(session, expectedPr
       operation: 'renewal-phase-4',
       context: sessionCorrelationContext(session, { renewalId: session.renewalId, adId: session.sourceAdId, workerTabId: deleteTabId })
     }).catch(() => {});
+
+    const status = await sendTabRequestWithBootstrap(deleteTabId, { type: 'MY_ADS_STATUS' });
+    const actualProfile = normalizeProfileName(status?.profileName || '');
+    if (!status?.isMyAdsPage || !status?.isProjectsTab) throw new Error('Phase 4 konnte die Ansicht „Meine Anzeigen“ / PROJECTS nicht eindeutig bestätigen.');
+    if (!actualProfile) throw new Error('Das aktuell angemeldete Kleinanzeigen-Konto konnte für Phase 4 nicht eindeutig erkannt werden.');
+    if (expectedProfile.toLocaleLowerCase('de-DE') !== actualProfile.toLocaleLowerCase('de-DE')) {
+      throw new Error('Das aktuell angemeldete Kleinanzeigen-Konto entspricht nicht dem Inventarprofil der Quellanzeige.');
+    }
 
     try {
       assertResetGeneration(resetGeneration, 'renewal-phase4-before-delete');

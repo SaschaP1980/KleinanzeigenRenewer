@@ -337,6 +337,12 @@ async function markRenewalPublishClicked(message, sender) {
   const fill = fillSessions[message?.fillId];
   if (!fill || fill.targetTabId !== tabId || (!fill.renewalId && !fill.archiveInsertionId)) throw new Error('Automatischer Publish gehört nicht zu dieser Vorlagen-Sitzung.');
   if (legacyOutcomeBlocked(fill)) throw Object.assign(new Error('Die frühere Veröffentlichung ist ungeklärt.'), { code: 'KR_LEGACY_OUTCOME_UNRESOLVED' });
+  if (fill.publishClickedAt || fill.newAdId || fill.emergencyResetAt || ['complete', 'needs-review', 'error'].includes(String(fill.status || ''))
+      || ['publish-submitted', 'new-id-confirmed'].includes(String(fill.stage || ''))) return { accepted: false, staleUpdateIgnored: true };
+  const renewal = fill.renewalId ? (await readRenewalSessions())[fill.renewalId] : null;
+  if (fill.renewalId && (!renewal || renewal.publishClickedAt || renewal.newAdId || renewal.emergencyResetAt
+      || ['cancelled', 'submitted', 'new-id-confirmed', 'reinventorizing', 'verifying', 'verified', 'replaced'].includes(String(renewal.status || ''))
+      || ['publish-submitted', 'new-id-confirmed'].includes(String(renewal.stage || '')))) return { accepted: false, staleUpdateIgnored: true };
   fill.status = 'running';
   fill.stage = 'publish-submitted';
   fill.publishClickedAt = new Date().toISOString();
@@ -345,8 +351,6 @@ async function markRenewalPublishClicked(message, sender) {
   await writeFillSessions(fillSessions);
 
   if (fill.renewalId) {
-    const sessions = await readRenewalSessions();
-    const renewal = sessions[fill.renewalId];
     if (renewal) {
       renewal.status = 'submitted';
       renewal.stage = 'publish-submitted';
