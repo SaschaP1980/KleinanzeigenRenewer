@@ -148,19 +148,20 @@ test('KAR-214 a verified infinite trash move persists its unlimited marker',asyn
 test('KAR-214 stale finite legacy expiry inserted during unlimited-to-finite commit is not consented after restart',async()=>{
   const f=await indexedFixture();let policy='infinite',revision=null;
   const incoming={inventoryId:'unreviewed-finite',profileId:'profile-B',recordKind:'trash',trash:{trashedAt:new Date(now-100*day).toISOString(),expiresAt:new Date(now-70*day).toISOString()}};
-  const options={inventoryRepository:f.repository,getRetentionDays:async()=>policy,getRetentionRevision:async()=>revision,setRetentionDays:async(v,rev)=>{policy=v;revision=rev;await f.repository.putMany([incoming]);},getSelectedProfileId:async()=> 'profile-A',now:()=>now,tokenFactory:()=> 'restart-finite-consent'};
+  const options={inventoryRepository:f.repository,getRetentionDays:async()=>policy,getRetentionPolicy:async()=>({retentionDays:policy,revision}),setRetentionDays:async(v,rev)=>{policy=v;revision=rev;await f.repository.putMany([incoming]);},getSelectedProfileId:async()=> 'profile-A',now:()=>now,tokenFactory:()=> 'restart-finite-consent'};
   const service=factory.create(options);
   const preview=await service.previewRetentionChange(10,'profile-A');
   assert.equal(preview.affectedCount,1);
   await service.commitRetentionChange({token:preview.token,retentionDays:10,selectedProfileId:'profile-A',confirmed:true});
   assert.ok(await f.repository.get('unreviewed-finite'));
+  assert.equal(revision,'restart-finite-consent');
   await factory.create(options).purgeExpired();
   assert.ok(await f.repository.get('unreviewed-finite'),'a stale finite stored date under old unlimited policy is not fresh consent');
 });
 test('KAR-214 reviewed non-expired rows receive a finite deadline and eventually expire',async()=>{
   const f=await indexedFixture();let policy='infinite',revision=null,at=now;
   await f.repository.mutate('aged',r=>({...r,trash:{trashedAt:new Date(now-2*day).toISOString(),expiresAt:null,retentionIndefinite:true}}));
-  const options={inventoryRepository:f.repository,getRetentionDays:async()=>policy,getRetentionRevision:async()=>revision,setRetentionDays:async(v,rev)=>{policy=v;revision=rev;},getSelectedProfileId:async()=> 'profile-A',now:()=>at,tokenFactory:()=> 'reviewed-future'};
+  const options={inventoryRepository:f.repository,getRetentionDays:async()=>policy,getRetentionPolicy:async()=>({retentionDays:policy,revision}),setRetentionDays:async(v,rev)=>{policy=v;revision=rev;},getSelectedProfileId:async()=> 'profile-A',now:()=>at,tokenFactory:()=> 'reviewed-future'};
   const service=factory.create(options);
   const preview=await service.previewRetentionChange(10,'profile-A');
   assert.equal(preview.affectedCount,0);
@@ -168,6 +169,8 @@ test('KAR-214 reviewed non-expired rows receive a finite deadline and eventually
   const row=await f.repository.get('aged');
   assert.equal(row.trash.expiresAt,new Date(now+8*day).toISOString());
   assert.equal(row.trash.retentionIndefinite,false);
+  assert.equal(revision,'reviewed-future');
+  assert.equal(row.trash.retentionRevision,revision);
   at=now+8*day;
   assert.equal((await factory.create(options).purgeExpired()).purged,1);
   assert.equal((await f.repository.readAll()).length,1);

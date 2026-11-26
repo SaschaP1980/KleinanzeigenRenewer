@@ -196,6 +196,8 @@
                 || actualReset !== expected.retentionResetAt) return;
               if (Object.prototype.hasOwnProperty.call(expected, 'expiresAt') && (record.trash?.expiresAt == null ? undefined : String(record.trash.expiresAt)) !== expected.expiresAt) return;
               if (Object.prototype.hasOwnProperty.call(expected, 'retentionIndefinite') && (record.trash?.retentionIndefinite === true) !== expected.retentionIndefinite) return;
+              if (Object.prototype.hasOwnProperty.call(expected, 'retentionRevision') && (record.trash?.retentionRevision ?? null) !== expected.retentionRevision) return;
+              if (expected.currentRevision != null && record.trash?.retentionRevision !== expected.currentRevision) return;
               const trashed = parseStoredTimestamp(record.trash?.trashedAt);
               const reset = parseStoredTimestamp(actualReset);
               if (!Number.isFinite(trashed)) return;

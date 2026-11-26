@@ -115,6 +115,7 @@ const MASS_RENEWAL_WATCHDOG_STALE_MS = 5 * 60 * 1000;
 const MASS_RENEWAL_WATCHDOG_TICK_MS = 20 * 1000;
 const TRASH_RETENTION_MS = 30 * 24 * 60 * 60 * 1000; // Historical contract; active policy is persisted separately.
 const TRASH_RETENTION_KEY = 'trashRetentionDaysV1';
+const TRASH_RETENTION_REVISION_KEY = 'trashRetentionRevisionV1';
 const APP_NOTICE_KEY = "appNoticeV1";
 const PLATFORM_ACCESS_RESTRICTION_KEY = "platformAccessRestrictionV1";
 const PLATFORM_ACCESS_RESTRICTION_ERROR_CODE = "KR_PLATFORM_ACCESS_RESTRICTED";
@@ -705,8 +706,11 @@ function requireTrashService() {
   if (!TrashService?.create) throw new Error('trash-service.js must load before trash storage is used');
   trashService = TrashService.create({
     inventoryRepository: requireInventoryRepository(),
-    getRetentionDays: async () => (await chrome.storage.local.get(TRASH_RETENTION_KEY))[TRASH_RETENTION_KEY],
-    setRetentionDays: async days => chrome.storage.local.set({ [TRASH_RETENTION_KEY]: days }),
+    getRetentionPolicy: async () => {
+      const stored = await chrome.storage.local.get([TRASH_RETENTION_KEY, TRASH_RETENTION_REVISION_KEY]);
+      return { retentionDays: stored[TRASH_RETENTION_KEY], revision: stored[TRASH_RETENTION_REVISION_KEY] };
+    },
+    setRetentionDays: async (days, revision) => chrome.storage.local.set({ [TRASH_RETENTION_KEY]: days, [TRASH_RETENTION_REVISION_KEY]: revision }),
     getSelectedProfileId: async () => String((await chrome.storage.local.get(SELECTED_PROFILE_KEY))[SELECTED_PROFILE_KEY]?.profileId || '')
   });
   return trashService;

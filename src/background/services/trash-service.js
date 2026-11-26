@@ -38,7 +38,8 @@
   // A persisted deadline is the per-record lower bound on automatic deletion.
   // A global policy write cannot authorize earlier deletion of rows outside its
   // exact reviewed snapshot, even after an MV3 restart or interrupted commit.
-  const effectiveDeadline = (record, days) => {
+  const effectiveDeadline = (record, days, revision = null) => {
+    if (revision !== null && record?.trash?.retentionRevision !== revision) return null;
     const due = deadline(record, days);
     if (due === null || record?.trash?.retentionIndefinite === true) return null;
     const stored = parseStoredTimestamp(record?.trash?.expiresAt);
@@ -53,11 +54,14 @@
       }
       const getRetentionDays = typeof options.getRetentionDays === 'function' ? options.getRetentionDays : async () => undefined;
       const setRetentionDays = typeof options.setRetentionDays === 'function' ? options.setRetentionDays : async () => {};
+      const revisionAware = typeof options.getRetentionPolicy === 'function';
+      const readPolicy = revisionAware ? options.getRetentionPolicy : async () => ({ retentionDays: await getRetentionDays(), revision: null });
       const getSelectedProfileId = typeof options.getSelectedProfileId === 'function' ? options.getSelectedProfileId : async () => '';
       const clock = typeof options.now === 'function' ? options.now : () => Date.now();
       const tokenFactory = typeof options.tokenFactory === 'function' ? options.tokenFactory : () => globalThis.crypto.randomUUID();
       let currentDays = typeof options.getRetentionDays === 'function' ? null : 30;
       let currentLegacyDefault = true;
+      let currentRevision = null;
       // Serialize only local policy changes and expiry sweeps, not renewal or
       // unrelated workflows; no updater fence/lease/owner dependency.
       let policyMutationTail = Promise.resolve();
@@ -73,25 +77,39 @@
         return String(record?.recordKind || '') === 'trash' || Boolean(record?.trash?.trashedAt);
       }
 
-      async function getConfiguration() {
-        let raw;
-        try { raw = await getRetentionDays(); }
-        catch (error) {
+      async function readVerifiedPolicy() {
+        let raw, revision;
+        try {
+          const stored = await readPolicy();
+          if (!stored || typeof stored !== 'object') throw new Error('Papierkorb-Aufbewahrung nicht lesbar.');
+          raw = stored.retentionDays;
+          revision = stored.revision == null ? null : stored.revision;
+          if (revision !== null && (typeof revision !== 'string' || !revision.trim() || !RETENTION_STOPS.includes(raw))) {
+            throw new Error('Papierkorb-Aufbewahrung konnte nicht bestätigt werden.');
+          }
+        } catch (error) {
           currentDays = null;
+          currentRevision = null;
           invalidatePurgeSchedule();
           throw error;
         }
         const days = normalizeRetention(raw);
         const legacyDefault = !RETENTION_STOPS.includes(raw);
-        if (days !== currentDays || legacyDefault !== currentLegacyDefault) invalidatePurgeSchedule();
+        if (days !== currentDays || legacyDefault !== currentLegacyDefault || revision !== currentRevision) invalidatePurgeSchedule();
         currentDays = days;
         currentLegacyDefault = legacyDefault;
-        return { retentionDays: days };
+        currentRevision = revision;
+        return { retentionDays: days, revision, legacyDefault };
       }
 
-      function configuredDeadline(record, days = currentDays, legacyDefault = currentLegacyDefault) {
+      async function getConfiguration() {
+        const { retentionDays } = await readVerifiedPolicy();
+        return { retentionDays };
+      }
+
+      function configuredDeadline(record, days = currentDays, revision = currentRevision) {
         if (days === null) return null;
-        const value = effectiveDeadline(record, days);
+        const value = effectiveDeadline(record, days, revision);
         return value === null ? null : new Date(value).toISOString();
       }
 
@@ -105,6 +123,7 @@
             trashedAt,
             expiresAt: currentDays === 'infinite' || currentDays === null ? null : new Date(at.getTime() + currentDays * DAY_MS).toISOString(),
             retentionIndefinite: currentDays === 'infinite',
+            retentionRevision: currentRevision,
             reason: String(reason || 'manual'),
             originalRecordKind: String(record?.recordKind || 'inventory'),
             context: context && typeof context === 'object' ? context : {}
@@ -114,9 +133,9 @@
         return copy;
       }
 
-      function project(record, days = currentDays, legacyDefault = currentLegacyDefault) {
+      function project(record, days = currentDays, revision = currentRevision) {
         const indefinite = days === 'infinite' || (days !== null && record?.trash?.retentionIndefinite === true);
-        return { ...record, trash: { ...(record.trash || {}), expiresAt: indefinite ? null : configuredDeadline(record, days, legacyDefault), retentionIndefinite: indefinite } };
+        return { ...record, trash: { ...(record.trash || {}), expiresAt: indefinite ? null : configuredDeadline(record, days, revision), retentionIndefinite: indefinite } };
       }
 
       function shouldSkipPurge(nowMs = clock()) {
@@ -133,7 +152,7 @@
       }
 
       async function resetRetention(inventoryId) {
-        const { retentionDays: days } = await getConfiguration();
+        const { retentionDays: days, revision } = await readVerifiedPolicy();
         const id = String(inventoryId || '');
         if (!id) throw new Error('Papierkorb-ID fehlt.');
         const updated = await repository.mutate(id, record => {
@@ -145,6 +164,7 @@
               ...(record.trash || {}),
               expiresAt: days === 'infinite' ? null : new Date(Date.parse(at) + days * DAY_MS).toISOString(),
               retentionIndefinite: days === 'infinite',
+              retentionRevision: revision,
               retentionResetAt: at
             }
           };
@@ -166,11 +186,11 @@
       async function list(profileId) {
         // A failed policy read is not a confirmed default and must not hide
         // the stored records. Projection is read-only and explicitly unknown.
-        const config = await getConfiguration().catch(() => null);
+        const config = await readVerifiedPolicy().catch(() => null);
         const days = config ? config.retentionDays : null;
-        const legacyDefault = currentLegacyDefault;
+        const revision = config?.revision ?? null;
         const records = (await repository.readForProfile(profileId)).filter(isTrashRecord);
-        return records.map(record => project(record, days, legacyDefault)).sort((a, b) => String(b?.trash?.trashedAt || '').localeCompare(String(a?.trash?.trashedAt || '')));
+        return records.map(record => project(record, days, revision)).sort((a, b) => String(b?.trash?.trashedAt || '').localeCompare(String(a?.trash?.trashedAt || '')));
       }
 
       function snapshotOf(rows) {
@@ -180,36 +200,36 @@
           trashedAt: String(record.trash?.trashedAt || ''),
           retentionResetAt: record.trash?.retentionResetAt == null ? undefined : String(record.trash.retentionResetAt),
           expiresAt: record.trash?.expiresAt == null ? undefined : String(record.trash.expiresAt),
-          retentionIndefinite: record.trash?.retentionIndefinite === true
+          retentionIndefinite: record.trash?.retentionIndefinite === true,
+            retentionRevision: record.trash?.retentionRevision ?? null
         })).sort((a, b) => a.inventoryId.localeCompare(b.inventoryId));
       }
 
-      function candidates(rows, proposedDays, previousDays, nowMs, legacyDefault = false) {
+      function candidates(rows, proposedDays, previousDays, nowMs, revision = null) {
         if (proposedDays === 'infinite') return [];
         return rows.filter(record => {
           if (!isTrashRecord(record)) return false;
           const proposedDue = deadline(record, proposedDays);
           if (!Number.isFinite(proposedDue) || proposedDue > nowMs) return false;
           if (previousDays === 'infinite' || proposedDays < previousDays) return true;
-          const previousDue = effectiveDeadline(record, previousDays);
+          const previousDue = effectiveDeadline(record, previousDays, revision);
           return previousDue === null || previousDue > nowMs;
         });
       }
 
       async function previewRetentionChange(proposed, selectedProfileId = '') {
         const proposedDays = validateRetention(proposed);
-        const current = (await getConfiguration()).retentionDays;
+        const { retentionDays: current, revision, legacyDefault } = await readVerifiedPolicy();
         const profile = String(await getSelectedProfileId() || '');
         if (String(selectedProfileId || '') !== profile) throw new Error('Profil wurde geändert. Bitte erneut prüfen.');
         if (!repository.readAll) throw new Error('Papierkorb-Daten konnten nicht geprüft werden.');
         const rows = await repository.readAll();
-        const legacyDefault = currentLegacyDefault;
-        const affected = candidates(rows, proposedDays, current, clock(), legacyDefault);
+        const affected = candidates(rows, proposedDays, current, clock(), revision);
         const token = tokenFactory();
         if (typeof token !== 'string' || !token) throw new Error('Prüfung konnte nicht vorbereitet werden.');
         previews.clear(); // A new preview invalidates previously opened dialogs, including duplicate callbacks.
         previews.set(token, {
-          current, proposedDays, profile, legacyDefault,
+          current, proposedDays, profile, legacyDefault, revision,
           snapshot: JSON.stringify(snapshotOf(rows)),
           // Exact records the user saw in the warning, not just their count.
           affected: JSON.stringify(snapshotOf(affected)),
@@ -228,12 +248,12 @@
         if (!pending || pending.expires < clock() || pending.proposedDays !== retentionDays) throw new Error('Prüfung veraltet. Bitte die Einstellung erneut auswählen.');
         const profile = String(await getSelectedProfileId() || '');
         if (pending.profile !== profile || String(selectedProfileId || '') !== profile) throw new Error('Profil wurde geändert. Bitte erneut prüfen.');
-        const previous = (await getConfiguration()).retentionDays;
-        if (previous !== pending.current || currentLegacyDefault !== pending.legacyDefault) throw new Error('Aufbewahrung wurde zwischenzeitlich geändert. Bitte erneut prüfen.');
+        const { retentionDays: previous, revision: previousRevision, legacyDefault } = await readVerifiedPolicy();
+        if (previous !== pending.current || legacyDefault !== pending.legacyDefault || previousRevision !== pending.revision) throw new Error('Aufbewahrung wurde zwischenzeitlich geändert. Bitte erneut prüfen.');
         const rows = await repository.readAll();
         if (JSON.stringify(snapshotOf(rows)) !== pending.snapshot) throw new Error('Papierkorb wurde zwischenzeitlich verändert. Bitte erneut prüfen.');
         const evaluatedAt = clock();
-        const affected = candidates(rows, pending.proposedDays, previous, evaluatedAt, pending.legacyDefault);
+        const affected = candidates(rows, pending.proposedDays, previous, evaluatedAt, previousRevision);
         // The clock can cross an expiry boundary while the confirmation dialog
         // is open. That must require a fresh preview, even if the stored rows
         // and their timestamps have not changed.
@@ -248,11 +268,13 @@
           throw new Error('Papierkorb-Eintrag ohne sichere Inventar-ID. Bitte erneut prüfen.');
         }
         if (retentionDays === previous) return { retentionDays: previous, deletedCount: 0 };
-        // Save first. A service-worker interruption after this point resumes only the
-        // policy consented to by the user; deleting before the durable setting would not.
-        await setRetentionDays(retentionDays);
-        const saved = await getConfiguration();
-        if (saved.retentionDays !== retentionDays || currentLegacyDefault) throw new Error('Gespeicherte Aufbewahrung konnte nicht bestätigt werden.');
+        // A policy revision is stored with the setting in a single local storage
+        // write. Previously stored deadlines alone are not fresh authorization
+        // after an interrupted unlimited-to-finite change (KAR-214 RED).
+        const revision = revisionAware ? String(token) : null;
+        await setRetentionDays(retentionDays, revision);
+        const saved = await readVerifiedPolicy();
+        if (saved.retentionDays !== retentionDays || saved.legacyDefault || saved.revision !== revision) throw new Error('Gespeicherte Aufbewahrung konnte nicht bestätigt werden.');
         invalidatePurgeSchedule();
         // Only the exact candidates covered by this preview/confirmation may
         // be removed by this commit. A general purge would also delete old
@@ -265,7 +287,8 @@
             retentionResetAt: record.trash?.retentionResetAt == null
               ? undefined : String(record.trash.retentionResetAt),
             expiresAt: record.trash?.expiresAt == null ? undefined : String(record.trash.expiresAt),
-            retentionIndefinite: record.trash?.retentionIndefinite === true
+            retentionIndefinite: record.trash?.retentionIndefinite === true,
+            retentionRevision: record.trash?.retentionRevision ?? null
           };
           const deleted = await repository.deleteTrashIfEligible(
             String(record.inventoryId), expected, retentionDays, evaluatedAt
@@ -288,13 +311,13 @@
           if (retentionDays !== 'infinite' && (!Number.isFinite(due) || due <= evaluatedAt)) continue;
           const expiresAt = due === null ? null : new Date(due).toISOString();
           const retentionIndefinite = retentionDays === 'infinite';
-          if (record.trash?.expiresAt === expiresAt && (record.trash?.retentionIndefinite === true) === retentionIndefinite) continue;
+          if (record.trash?.expiresAt === expiresAt && (record.trash?.retentionIndefinite === true) === retentionIndefinite && (record.trash?.retentionRevision ?? null) === revision) continue;
           const expected = JSON.stringify(snapshotOf([record]));
           await repository.mutate(id, live => {
             if (!isTrashRecord(live) || JSON.stringify(snapshotOf([live])) !== expected) {
               throw new Error('Aufbewahrung gespeichert, aber ein Papierkorb-Eintrag wurde zwischenzeitlich verändert. Bitte erneut prüfen.');
             }
-            return { ...live, trash: { ...live.trash, expiresAt, retentionIndefinite } };
+            return { ...live, trash: { ...live.trash, expiresAt, retentionIndefinite, retentionRevision: revision } };
           });
         }
         return { retentionDays, deletedCount };
@@ -305,9 +328,9 @@
       }
 
       async function runExpirySweep() {
-        const config = await getConfiguration().catch(() => null);
+        const config = await readVerifiedPolicy().catch(() => null);
         if (!config) return { purged: 0, skipped: true, nextDueAt: null, expired: [] };
-        const days = config.retentionDays;
+        const { retentionDays: days, revision } = config;
         const nowMs = clock();
         if (shouldSkipPurge(nowMs)) return { purged: 0, skipped: true, nextDueAt: nextPurgeDueAt, expired: [] };
         const rows = await repository.readAll();
@@ -315,7 +338,7 @@
         const expired = [];
         for (const record of rows) {
           if (!isTrashRecord(record)) continue;
-          const dueAt = effectiveDeadline(record, days);
+          const dueAt = effectiveDeadline(record, days, revision);
           if (!Number.isFinite(dueAt)) continue; // Legacy record with unknown age is never guessed.
           if (dueAt > nowMs) {
             if (nextDueAt === null || dueAt < nextDueAt) nextDueAt = dueAt;
@@ -331,9 +354,10 @@
             trashedAt: String(record.trash?.trashedAt || ''),
             retentionResetAt: record.trash?.retentionResetAt == null ? undefined : String(record.trash.retentionResetAt),
             expiresAt: record.trash?.expiresAt == null ? undefined : String(record.trash.expiresAt),
-            retentionIndefinite: record.trash?.retentionIndefinite === true
+            retentionIndefinite: record.trash?.retentionIndefinite === true,
+            retentionRevision: record.trash?.retentionRevision ?? null
           };
-          if (await repository.deleteTrashIfEligible(String(record.inventoryId || ''), { ...expected, respectStoredDeadline: true }, days, nowMs)) expired.push(record);
+          if (await repository.deleteTrashIfEligible(String(record.inventoryId || ''), { ...expected, respectStoredDeadline: true, currentRevision: revision }, days, nowMs)) expired.push(record);
         }
         nextPurgeDueAt = nextDueAt === null ? Number.MAX_SAFE_INTEGER : nextDueAt;
         return { purged: expired.length, nextDueAt: nextPurgeDueAt, expired };
