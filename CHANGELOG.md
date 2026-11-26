@@ -4,6 +4,12 @@ This is the canonical version-specific history for Kleinanzeigen Manager. Entrie
 
 All distinct historical section bodies from the former root README and CHANGELOG are preserved with source labels and line numbers. The [KAR-170 migration ledger](docs/maintenance/KAR170_CHANGELOG_MIGRATION.json) identifies their original Git blobs and body checksums. Overlapping versions retain distinct factual notes; older references to planned builds or native/CI acceptance are **historical**, not live status.
 
+## v2.0.3.0 — KAR-217 S04 updater removal (Work source, full gates pending)
+
+- Remove Windows updater status/configuration UI, its native messaging permission, dedicated transport and online channel checks. Keep regular listing actions, extension identity and the S03/S09 product runtime behavior.
+- Preserve three exact historical updater module blobs outside active runtime and retire only the reviewed legacy updater-specific test invocations. Product safety, dynamic public API coverage, line/branch/architecture and exact ZIP/Chromium gates remain mandatory.
+- Chrome version 2.0.3.0, npm 2.0.3; exact accepted basis 2.0.2.0. Focused updater removal GREEN; full gates and separate owner smoke pending. No merge, release, actual Windows component removal or real-profile migration implied.
+
 ## v2.0.2.0 — KAR-213 S03 persisted data compatibility (Work source, full gates pending)
 
 - Preserve opaque profile, inventory, trash and image fields in backup/restore; abort failed replacement transaction. Retain known unresolved legacy publication/deletion evidence and block unsafe continuation, without adding donor admission or journal architecture.

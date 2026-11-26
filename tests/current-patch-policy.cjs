@@ -124,8 +124,23 @@ assert.equal(S03_SCOPE.sourceCheckpoint,'89d225a48c5c863687fecbabc910693b5e1a1fd
 assert.deepEqual(S03_SCOPE.runtimeChanges.map(r=>r.path).sort(),S03_ALLOWED);
 assert.deepEqual(S03_SCOPE.addedRuntime,[]);
 assert.deepEqual(S03_SCOPE.reactivatedTests,[]);
-// Exact S09 capability lineage, including only the reviewed S03 successor.
-function isS03Version(version) { return version === S03_VERSION; }
+// Explicit S04 successor, retaining S03 and S09 capability contracts.
+const S04_VERSION = '2.0.3.0';
+const S04_SCOPE = require('../docs/maintenance/KAR217_SUCCESSOR_SCOPE.json');
+const S04_METADATA=Object.freeze({"issue":217,"step":"S04","directBasis":"2.0.2.0","sourceCommit":"a88a3446560cb36c87a3ace599a0bbd0549c6f41","archiveSha256":"46cb5860015965fee5323dcedd290862672cc97e03e880180afc464ff3bf89ee"});
+const S04_CHANGED=Object.freeze(['manifest.json','src/app/app.css','src/app/app.html','src/background/background-message-router.js','src/background/background.js','src/shared/message-contract-registry.js']);
+const S04_REMOVED=Object.freeze(['src/app/native-update-check-ui.js','src/background/services/native-status-bridge.js','src/background/services/native-update-status-gateway.js']);
+assert.equal(S04_SCOPE.schemaVersion,1);
+assert.equal(S04_SCOPE.version,S04_VERSION);
+for(const [key,value] of Object.entries(S04_METADATA))assert.equal(S04_SCOPE[key],value);
+assert.equal(S04_SCOPE.sourceCheckpoint,'2a59e9c670845760e4df3ac71b01fde48ecb206f');
+assert.deepEqual(S04_SCOPE.runtimeChanges.map(r=>r.path).sort(),S04_CHANGED);
+assert.deepEqual(S04_SCOPE.removedRuntime.map(r=>r.path).sort(),S04_REMOVED);
+assert.deepEqual(S04_SCOPE.addedRuntime,[]);
+assert.deepEqual(S04_SCOPE.reactivatedTests,[]);
+function isS04Version(version) { return version === S04_VERSION; }
+// These predicates denote reviewed capability lineage, never arbitrary future versions.
+function isS03Version(version) { return version === S03_VERSION || isS04Version(version); }
 function isS09Version(version) { return version === S09_VERSION || isS03Version(version); }
 function isReviewedRestoreVersion(version) { return version === '2.0.0.0' || version === '2.0.0.1' || isS09Version(version); }
 function expectedRestoredPackage(version,target) {
@@ -134,13 +149,24 @@ function expectedRestoredPackage(version,target) {
   const paths=[...target.packaged], index=paths.indexOf('src/app/renewal-settings-controller.js');
   assert.ok(index>=0&&!paths.includes(S09_ADDED));
   paths.splice(index+1,0,S09_ADDED);
-  return paths;
+  return isS04Version(version)?paths.filter(p=>!S04_REMOVED.includes(p)):paths;
 }
 function expectedRestoredAbsent(version,target) {
-  return isS09Version(version)?target.absent.filter(p=>p!==S09_ADDED):target.absent;
+  const paths=isS09Version(version)?target.absent.filter(p=>p!==S09_ADDED):target.absent;
+  return isS04Version(version)?[...paths,...S04_REMOVED]:paths;
 }
 function expectedRestoredBlob(version, file, historicalBlob) {
   assert.ok(isReviewedRestoreVersion(version), 'unreviewed restored runtime');
+  if(isS04Version(version)) {
+    const before=expectedRestoredBlob(S03_VERSION,file,historicalBlob);
+    const removed=S04_SCOPE.removedRuntime.find(row=>row.path===file);
+    if(removed){assert.equal(removed.before,before,'S04 exact retired blob changed: '+file);return null;}
+    const entry=S04_SCOPE.runtimeChanges.find(row=>row.path===file);
+    if(!entry)return before;
+    assert.equal(entry.before,before,'S04 exact predecessor blob changed: '+file);
+    assert.match(entry.after,/^[a-f0-9]{40}$/);
+    return entry.after;
+  }
   if(isS03Version(version)) {
     const before=expectedRestoredBlob(S09_VERSION,file,historicalBlob);
     const entry=S03_SCOPE.runtimeChanges.find(row=>row.path===file);
@@ -181,15 +207,17 @@ function assertRestoredBaselineVersion(root = require('node:path').resolve(__dir
   else assert.equal(spec.s09,undefined,'baseline must not carry S09 successor metadata');
   if(isS03Version(actual)) assert.deepEqual(spec.s03,S03_METADATA);
   else assert.equal(spec.s03,undefined,'older baseline must not carry S03 successor metadata');
+  if(isS04Version(actual)) assert.deepEqual(spec.s04,S04_METADATA);
+  else assert.equal(spec.s04,undefined,'older baseline must not carry S04 successor metadata');
   assert.equal(manifest.version,actual);
   assert.equal(manifest.manifest_version,3);
   assert.equal(manifest.version_name,undefined);
-  assert.equal(pkg.version,isS03Version(actual)?'2.0.2':isS09Version(actual)?'2.0.1':'2.0.0');
+  assert.equal(pkg.version,isS04Version(actual)?'2.0.3':isS03Version(actual)?'2.0.2':isS09Version(actual)?'2.0.1':'2.0.0');
   assert.equal(pkg.displayVersion,actual);
-  assert.equal(spec.directBasis,isS03Version(actual)?'2.0.1.0':isS09Version(actual)?'2.0.0.1':'1.23.48');
+  assert.equal(spec.directBasis,isS04Version(actual)?'2.0.2.0':isS03Version(actual)?'2.0.1.0':isS09Version(actual)?'2.0.0.1':'1.23.48');
   assert.equal(spec.goldBaseline,'1.21.15');
   assert.equal(spec.performanceRunRequired,true);
-  assert.deepEqual([...manifest.permissions].sort(),[...PERMISSIONS,'nativeMessaging'].sort());
+  assert.deepEqual([...manifest.permissions].sort(),(isS04Version(actual)?[...PERMISSIONS]:[...PERMISSIONS,'nativeMessaging']).sort());
   assert.deepEqual([...manifest.host_permissions].sort(),[...HOST_PERMISSIONS].sort());
   assert.equal(createHash('sha256').update(Buffer.from(manifest.key||'','base64')).digest('hex'),MANIFEST_KEY_SHA256);
   assert.equal(spec.safety.runtimeSubmitCalls,0);
@@ -201,4 +229,4 @@ function assertRestoredBaselineVersion(root = require('node:path').resolve(__dir
   return actual;
 }
 
-module.exports = { S03_SCOPE, isS03Version, S09_SCOPE, isS09Version, expectedRestoredPackage, expectedRestoredAbsent, isReviewedRestoreVersion, expectedRestoredBlob, assertRestoredBaselineVersion, isCurrentPatchVersion, assertCompatibleCurrentPatch, includesActivePatch, includesSupportedRelease, expectedManifestPermissions };
+module.exports = { S04_SCOPE, isS04Version, S03_SCOPE, isS03Version, S09_SCOPE, isS09Version, expectedRestoredPackage, expectedRestoredAbsent, isReviewedRestoreVersion, expectedRestoredBlob, assertRestoredBaselineVersion, isCurrentPatchVersion, assertCompatibleCurrentPatch, includesActivePatch, includesSupportedRelease, expectedManifestPermissions };

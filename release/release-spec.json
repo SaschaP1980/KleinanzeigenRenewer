@@ -1,11 +1,11 @@
 {
-  "version": "2.0.2.0",
+  "version": "2.0.3.0",
   "project": "kleinanzeigen Manager / Kleinanzeigen Renewal",
-  "epic": "KAR-208 / KAR-213 S03 persisted data compatibility",
+  "epic": "KAR-208 / KAR-217 S04 updater removal",
   "goldBaseline": "1.21.15",
-  "directBasis": "2.0.1.0",
+  "directBasis": "2.0.2.0",
   "directBasisNativeGreen": true,
-  "directBasisObservation": "2.0.1.0: KAR-214 owner acceptance and exact Work CI GREEN; no native acceptance of this successor or live data migration implied.",
+  "directBasisObservation": "Accepted S03 2.0.2.0 exact Work CI 4/4 GREEN and owner-reported isolated synthetic smoke 8/8 PASS; no productive data migration or real-account acceptance implied.",
   "scope": [
     "Restore v1.23.48 historical runtime, retaining KAR-174 UI path layout and current development tooling.",
     "Version identity 2.0.0.0, npm 2.0.0; preserve extension key, historical releases and Git ancestry.",
@@ -13,7 +13,8 @@
     "All applicable dynamic public API, line/branch/architecture, packaging and Chromium gates remain mandatory. Current full suite reconciliation and actual execution are pending; no release or native PASS claimed.",
     "KAR-212: recognize the exact Chrome BFCache port-closure message in the existing Phase-4 transport classifier. No other product behavior or historical safeguards changed.",
     "KAR-214 S09: verified local retention, exact destructive consent, per-record revision/expiry, read-only canonical sort and countdown presentation. Preserve historical runtime outside the pinned successor scope; no updater C import.",
-    "KAR-213 S03: preserve opaque profile/record/image metadata, raw trash deadlines, atomic restore, fail closed on known unresolved legacy workflows. Offline preflight and isolated cold recovery; no imported C architecture."
+    "KAR-213 S03: preserve opaque profile/record/image metadata, raw trash deadlines, atomic restore, fail closed on known unresolved legacy workflows. Offline preflight and isolated cold recovery; no imported C architecture.",
+    "KAR-217 S04: remove inherited updater UI, native messaging permission, runtime modules, message route and online update channel read; preserve historical blobs and retire only reviewed updater-specific tests; retain S03/S09, all applicable quality and safety gates."
   ],
   "nextPlannedBuild": "TBD",
   "nextPlannedBuildGoal": "Determined by separately authorized open GitHub Issues.",
@@ -36,7 +37,7 @@
       "percent": null
     }
   },
-  "releaseSummary": "2.0.2.0 Work-only S03 data compatibility successor on exact accepted S09 2.0.1.0. Mandatory gates pending; no merge, release or live-profile installation.",
+  "releaseSummary": "2.0.3.0 Work-only S04 updater removal on exact accepted S03 2.0.2.0. Full gates pending; no merge, release or productive profile migration.",
   "architectureHighlights": [
     "Historical product safeguards and runtime behavior are primary; only explicit path/layout and version metadata changes in this restore slice.",
     "Current development gates and test files retained; reconcile later feature/updater-dependent assertions without weakening retained product behavior.",
@@ -49,7 +50,7 @@
     "S09: synthetic-only retention and IndexedDB fixtures until S03 data compatibility and S04 updater removal are accepted.",
     "S03: isolated migration and rollback using exact committed package; real migration requires S04 and separate owner authorization."
   ],
-  "packageVersion": "2.0.2.0",
+  "packageVersion": "2.0.3.0",
   "directBasisNativePending": false,
   "architectureFiles": [
     {
@@ -422,7 +423,7 @@
       }
     }
   },
-  "validationStatus": "S03_GATES_PENDING",
+  "validationStatus": "S04_GATES_PENDING",
   "s09": {
     "issue": 214,
     "step": "S09",
@@ -436,5 +437,12 @@
     "directBasis": "2.0.1.0",
     "sourceCommit": "61f917d384cdce0fc191188e5a99515907967dbe",
     "archiveSha256": "15e58983d23a0706a301e161c76bf52c4e2885667fb7214b6f80b8f1209c798a"
+  },
+  "s04": {
+    "issue": 217,
+    "step": "S04",
+    "directBasis": "2.0.2.0",
+    "sourceCommit": "a88a3446560cb36c87a3ace599a0bbd0549c6f41",
+    "archiveSha256": "46cb5860015965fee5323dcedd290862672cc97e03e880180afc464ff3bf89ee"
   }
 }
