@@ -5,6 +5,7 @@
   const VerificationFlow = KRDeps.require('KRRenewalVerificationFlow');
   const ReinventoryFlow = KRDeps.require('KRRenewalReinventoryFlow');
   const CheckoutRecoveryService = KRDeps.require('KRPaidCheckoutRecoveryService');
+  const legacyOutcomeBlocked = row => ['source-delete-outcome-unverified', 'source-delete-status-unverified', 'publish-intent-blocked'].includes(String(row?.stage || '')) || String(row?.status || '') === 'publish-blocked';
   const API = Object.freeze({
     create(options = {}) {
       const {
@@ -280,12 +281,13 @@ function scheduleAutomaticRenewalReplacement(renewalId, trigger = 'verification-
   void (async () => {
     const sessions = await readRenewalSessions().catch(() => ({}));
     const current = sessions[id] || { renewalId: id };
+    if (legacyOutcomeBlocked(current)) return;
     await logDiagnostic('info', 'RENEWAL_AUTO_REPLACEMENT_STARTED', { renewalId: id, trigger }, { module: 'background', operation: 'renewal-auto-phase-4', context: sessionCorrelationContext(current, { renewalId: id }) }).catch(() => {});
     await finishRenewalReplacement({ renewalId: id, automatic: true });
   })().catch(async error => {
     const sessions = await readRenewalSessions().catch(() => ({}));
     const latest = sessions[id];
-    if (latest) {
+    if (latest && !legacyOutcomeBlocked(latest)) {
       latest.status = 'verified';
       latest.stage = 'replacement-ready';
       latest.lastError = String(error.message || error).slice(0, 800);
@@ -305,6 +307,7 @@ async function retryRenewalVerification(message) {
   const sessions = await readRenewalSessions();
   const session = sessions[renewalId];
   if (!session) throw new Error('Renewal-Sitzung wurde nicht gefunden.');
+  if (legacyOutcomeBlocked(session)) throw Object.assign(new Error('Der frühere Vorgang ist ungeklärt. Bitte zunächst unabhängig prüfen.'), { code: 'KR_LEGACY_OUTCOME_UNRESOLVED' });
   const newAdId = String(session.newAdId || '');
   if (!/^\d+$/.test(newAdId)) throw new Error('Neue Anzeigen-ID wurde noch nicht bestätigt.');
   if (session.status === 'verified') return renewalPublicSnapshot(session);
@@ -332,6 +335,7 @@ async function markRenewalPublishClicked(message, sender) {
   const fillSessions = await readFillSessions();
   const fill = fillSessions[message?.fillId];
   if (!fill || fill.targetTabId !== tabId || (!fill.renewalId && !fill.archiveInsertionId)) throw new Error('Automatischer Publish gehört nicht zu dieser Vorlagen-Sitzung.');
+  if (legacyOutcomeBlocked(fill)) throw Object.assign(new Error('Die frühere Veröffentlichung ist ungeklärt.'), { code: 'KR_LEGACY_OUTCOME_UNRESOLVED' });
   fill.status = 'running';
   fill.stage = 'publish-submitted';
   fill.publishClickedAt = new Date().toISOString();
@@ -367,7 +371,7 @@ async function confirmPublishedRenewal(fill, detected) {
   if (!/^\d+$/.test(newAdId) || newAdId === String(fill.sourceAdId || '')) return null;
   const fillSessions = await readFillSessions();
   const currentFill = fillSessions[fill.fillId];
-  if (!currentFill || currentFill.stage === 'new-id-confirmed') return null;
+  if (!currentFill || legacyOutcomeBlocked(currentFill) || currentFill.stage === 'new-id-confirmed') return null;
   currentFill.status = 'complete';
   currentFill.stage = 'new-id-confirmed';
   currentFill.newAdId = newAdId;
@@ -401,6 +405,8 @@ async function resumePendingRenewals() {
   const renewals = await readRenewalSessions().catch(() => ({}));
   const fills = await readFillSessions().catch(() => ({}));
   for (const renewal of Object.values(renewals)) {
+    // Imported donor uncertainty is evidence, not authority to resume.
+    if (legacyOutcomeBlocked(renewal)) continue;
     try {
       const checkoutRecovery = await tryRecoverAbortedPaidCheckout(renewal, 'service-worker-resume');
       if (checkoutRecovery.recovered) continue;
