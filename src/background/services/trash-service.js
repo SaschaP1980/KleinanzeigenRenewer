@@ -35,12 +35,12 @@
     return base === null || days === 'infinite' ? null : base + days * DAY_MS;
   };
 
-  // A confirmed missing/malformed preference has the legacy 30-day default.
-  // Do not shorten a longer or unknown persisted deadline merely by upgrading.
-  const effectiveDeadline = (record, days, legacyDefault) => {
+  // A persisted deadline is the per-record lower bound on automatic deletion.
+  // A global policy write cannot authorize earlier deletion of rows outside its
+  // exact reviewed snapshot, even after an MV3 restart or interrupted commit.
+  const effectiveDeadline = (record, days) => {
     const due = deadline(record, days);
-    if (!legacyDefault || due === null) return due;
-    if (record?.trash?.retentionIndefinite === true) return null;
+    if (due === null || record?.trash?.retentionIndefinite === true) return null;
     const stored = parseStoredTimestamp(record?.trash?.expiresAt);
     return Number.isFinite(stored) ? Math.max(stored, due) : null;
   };
@@ -91,7 +91,7 @@
 
       function configuredDeadline(record, days = currentDays, legacyDefault = currentLegacyDefault) {
         if (days === null) return null;
-        const value = effectiveDeadline(record, days, legacyDefault);
+        const value = effectiveDeadline(record, days);
         return value === null ? null : new Date(value).toISOString();
       }
 
@@ -104,6 +104,7 @@
           trash: {
             trashedAt,
             expiresAt: currentDays === 'infinite' || currentDays === null ? null : new Date(at.getTime() + currentDays * DAY_MS).toISOString(),
+            retentionIndefinite: currentDays === 'infinite',
             reason: String(reason || 'manual'),
             originalRecordKind: String(record?.recordKind || 'inventory'),
             context: context && typeof context === 'object' ? context : {}
@@ -114,7 +115,7 @@
       }
 
       function project(record, days = currentDays, legacyDefault = currentLegacyDefault) {
-        const indefinite = days === 'infinite' || (days !== null && legacyDefault && record?.trash?.retentionIndefinite === true);
+        const indefinite = days === 'infinite' || (days !== null && record?.trash?.retentionIndefinite === true);
         return { ...record, trash: { ...(record.trash || {}), expiresAt: indefinite ? null : configuredDeadline(record, days, legacyDefault), retentionIndefinite: indefinite } };
       }
 
@@ -132,7 +133,7 @@
       }
 
       async function resetRetention(inventoryId) {
-        await getConfiguration();
+        const { retentionDays: days } = await getConfiguration();
         const id = String(inventoryId || '');
         if (!id) throw new Error('Papierkorb-ID fehlt.');
         const updated = await repository.mutate(id, record => {
@@ -142,7 +143,8 @@
             ...record,
             trash: {
               ...(record.trash || {}),
-              expiresAt: currentDays === 'infinite' ? null : new Date(clock() + currentDays * DAY_MS).toISOString(),
+              expiresAt: days === 'infinite' ? null : new Date(Date.parse(at) + days * DAY_MS).toISOString(),
+              retentionIndefinite: days === 'infinite',
               retentionResetAt: at
             }
           };
@@ -184,13 +186,12 @@
 
       function candidates(rows, proposedDays, previousDays, nowMs, legacyDefault = false) {
         if (proposedDays === 'infinite') return [];
-        if (!legacyDefault && previousDays !== 'infinite' && proposedDays >= previousDays) return [];
         return rows.filter(record => {
           if (!isTrashRecord(record)) return false;
           const proposedDue = deadline(record, proposedDays);
           if (!Number.isFinite(proposedDue) || proposedDue > nowMs) return false;
           if (previousDays === 'infinite' || proposedDays < previousDays) return true;
-          const previousDue = effectiveDeadline(record, previousDays, legacyDefault);
+          const previousDue = effectiveDeadline(record, previousDays);
           return previousDue === null || previousDue > nowMs;
         });
       }
@@ -276,6 +277,26 @@
           }
           deletedCount += 1;
         }
+        // Update only non-expired records included in the exact reviewed snapshot.
+        // An interruption leaves their old per-record deadline intact; no wider
+        // automatic deletion authority is created by the durable policy alone.
+        const affectedIds = new Set(affected.map(record => String(record.inventoryId)));
+        for (const record of rows.filter(isTrashRecord)) {
+          const id = String(record.inventoryId || '');
+          if (!id || affectedIds.has(id)) continue;
+          const due = deadline(record, retentionDays);
+          if (retentionDays !== 'infinite' && (!Number.isFinite(due) || due <= evaluatedAt)) continue;
+          const expiresAt = due === null ? null : new Date(due).toISOString();
+          const retentionIndefinite = retentionDays === 'infinite';
+          if (record.trash?.expiresAt === expiresAt && (record.trash?.retentionIndefinite === true) === retentionIndefinite) continue;
+          const expected = JSON.stringify(snapshotOf([record]));
+          await repository.mutate(id, live => {
+            if (!isTrashRecord(live) || JSON.stringify(snapshotOf([live])) !== expected) {
+              throw new Error('Aufbewahrung gespeichert, aber ein Papierkorb-Eintrag wurde zwischenzeitlich verändert. Bitte erneut prüfen.');
+            }
+            return { ...live, trash: { ...live.trash, expiresAt, retentionIndefinite } };
+          });
+        }
         return { retentionDays, deletedCount };
       }
 
@@ -287,7 +308,6 @@
         const config = await getConfiguration().catch(() => null);
         if (!config) return { purged: 0, skipped: true, nextDueAt: null, expired: [] };
         const days = config.retentionDays;
-        const legacyDefault = currentLegacyDefault;
         const nowMs = clock();
         if (shouldSkipPurge(nowMs)) return { purged: 0, skipped: true, nextDueAt: nextPurgeDueAt, expired: [] };
         const rows = await repository.readAll();
@@ -295,7 +315,7 @@
         const expired = [];
         for (const record of rows) {
           if (!isTrashRecord(record)) continue;
-          const dueAt = effectiveDeadline(record, days, legacyDefault);
+          const dueAt = effectiveDeadline(record, days);
           if (!Number.isFinite(dueAt)) continue; // Legacy record with unknown age is never guessed.
           if (dueAt > nowMs) {
             if (nextDueAt === null || dueAt < nextDueAt) nextDueAt = dueAt;
@@ -313,7 +333,7 @@
             expiresAt: record.trash?.expiresAt == null ? undefined : String(record.trash.expiresAt),
             retentionIndefinite: record.trash?.retentionIndefinite === true
           };
-          if (await repository.deleteTrashIfEligible(String(record.inventoryId || ''), { ...expected, legacyDefault }, days, nowMs)) expired.push(record);
+          if (await repository.deleteTrashIfEligible(String(record.inventoryId || ''), { ...expected, respectStoredDeadline: true }, days, nowMs)) expired.push(record);
         }
         nextPurgeDueAt = nextDueAt === null ? Number.MAX_SAFE_INTEGER : nextDueAt;
         return { purged: expired.length, nextDueAt: nextPurgeDueAt, expired };

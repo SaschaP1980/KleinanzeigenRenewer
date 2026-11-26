@@ -201,7 +201,7 @@
               if (!Number.isFinite(trashed)) return;
               const since = Number.isFinite(reset) && reset >= trashed ? reset : trashed;
               if (since + days * 24 * 60 * 60 * 1000 > nowMs) return;
-              if (expected.legacyDefault === true) {
+              if (expected.respectStoredDeadline === true) {
                 const stored = parseStoredTimestamp(record.trash?.expiresAt);
                 if (record.trash?.retentionIndefinite === true || !Number.isFinite(stored) || stored > nowMs) return;
               }
