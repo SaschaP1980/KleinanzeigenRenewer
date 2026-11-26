@@ -58,3 +58,19 @@ jobs:
               if rc: print('KAR214_RED',c,'RC='+str(rc),json.dumps(e,ensure_ascii=False),flush=True)
           print('KAR214_TOTAL',len(results),'PASS',sum(rc==0 for _,rc,_ in results),'RED',sum(rc!=0 for _,rc,_ in results),flush=True)
           PY
+  full_gate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci
+      - name: Exact remaining browser contract
+        run: NODE_OPTIONS='--require ./tests/v12222-vm-legacy-bridge.cjs' node tests/v1220-browser-e2e-contract.cjs
+        continue-on-error: true
+      - name: Mandatory coverage and architecture gate
+        run: bash scripts/coverage-gate.sh
