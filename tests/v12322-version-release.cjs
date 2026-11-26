@@ -11,6 +11,7 @@ const lock = j('package-lock.json');
 const spec = j('release/release-spec.json');
 const arch = j('docs/history/architecture/architecture-progress-v1.23.22.json');
 const isFeature24 = /^1\.(?:24|25)\.(?:0|[1-9]\d*)$/.test(manifest.version);
+const s04 = require('./current-patch-policy.cjs').isS04Version(manifest.version);
 const reviewedNative = /^1\.23\.(?:3\d|[4-9]\d|[1-9]\d{2,})$/.test(manifest.version) || isFeature24;
 const reviewedFence = fs.existsSync('src/background/services/update-workflow-fence.js') && fs.readFileSync('src/background/background.js','utf8').includes('"services/update-workflow-fence.js"');
 const reviewedPersistedObserver = fs.existsSync('src/background/services/persisted-owner-observer.js') && fs.readFileSync('src/background/background.js','utf8').includes('"services/persisted-owner-observer.js"');
@@ -36,7 +37,7 @@ if (restoredBaseline) {
 } else assert.equal(assertCompatibleCurrentPatch({ manifest, pkg, lock, spec }), manifest.version);
 assert.equal(manifest.version_name, undefined);
 
-assert.equal(spec.directBasis, restoredBaseline ? (manifest.version==='2.0.2.0'?'2.0.1.0':manifest.version==='2.0.1.0'?'2.0.0.1':'1.23.48') : '1.23.20_c1');
+assert.equal(spec.directBasis, restoredBaseline ? (s04?'2.0.2.0':manifest.version==='2.0.2.0'?'2.0.1.0':manifest.version==='2.0.1.0'?'2.0.0.1':'1.23.48') : '1.23.20_c1');
 assert.equal(spec.nextPlannedBuild, restoredBaseline || isFeature24 ? 'TBD' : '1.24.0');
 assert.equal(arch.packageVersion, '1.23.22');
 assert.equal(arch.fix.newRuntimeBoundary, false);
@@ -68,6 +69,7 @@ if (restoredBaseline) {
   } else assert.equal(sha('src/app/app.js'), '501a26974b107dd27e843dde75b68a2535429da5d86f0bd9f40cbd206a665e08');
 } else assert.equal(sha('src/app/app.js'), arch.runtime.appJsSha256);
 if(!reviewedNative && !restoredBaseline)assert.equal(sha('src/background/background.js'), arch.runtime.backgroundJsSha256);
+else if(s04) { assert.doesNotMatch(fs.readFileSync('src/background/background.js','utf8'),/NativeStatusBridge|sendNativeMessage/); }
 else {
   const worker=fs.readFileSync('src/background/background.js','utf8');
   assert.match(worker, /services\/native-update-status-gateway\.js/);
@@ -132,9 +134,13 @@ const kar175InventoryOwners = [
 ].filter(([file, provider]) => files.includes(file) &&
   fs.readFileSync('src/background/background.js','utf8').includes("KRDeps.require('"+provider+"')") &&
   fs.readFileSync('scripts/package.py','utf8').includes("'"+file+"'")).length;
-if(restoredBaseline) assert.equal(files.length,require('./current-patch-policy.cjs').isS09Version(manifest.version)?104:103);
+if(s04) assert.equal(files.length,101);
+else if(restoredBaseline) assert.equal(files.length,require('./current-patch-policy.cjs').isS09Version(manifest.version)?104:103);
 else assert.equal(files.length, (reviewedAutoPublishIntent ? 109 : reviewedAtomicArbiter ? 108 : reviewedAdditionalOwners ? 107 : reviewedPhase4Journal ? 106 : reviewedPersistedObserver ? 105 : reviewedFence ? 104 : reviewedNative ? 103 : 100) + (reviewedTrustedOwner ? 1 : 0) + kar134SchemaRuntime + kar175InventoryOwners + (isFeature24 ? 2 : 0) + (files.includes('src/app/inventory-loading-state.js') ? 1 : 0));
-if(reviewedNative || restoredBaseline) {
+if(s04) {
+  for(const name of require('./current-patch-policy.cjs').S04_SCOPE.removedRuntime)assert.ok(!files.includes(name.path),name.path);
+  assert.doesNotMatch(fs.readFileSync('src/app/app.html','utf8'),/native-update-check-ui\.js/);
+} else if(reviewedNative || restoredBaseline) {
   if(reviewedFence){ assert.ok(files.includes('src/background/services/update-workflow-fence.js')); assert.match(fs.readFileSync('src/background/background.js','utf8'), /KRDeps\.require\('KRUpdateWorkflowFence'\)/); }
   if(reviewedAdditionalOwners){ assert.ok(files.includes('src/background/services/additional-owner-observer.js')); assert.match(fs.readFileSync('src/background/background.js','utf8'), /KRDeps\.require\('KRAdditionalOwnerObserver'\)/); }
   if(reviewedAutoPublishIntent){ assert.ok(files.includes('src/background/services/auto-publish-intent-journal.js')); assert.match(fs.readFileSync('src/background/background.js','utf8'), /KRDeps\.require\('KRAutoPublishIntentJournal'\)/); }
