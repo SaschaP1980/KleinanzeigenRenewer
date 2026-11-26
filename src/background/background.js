@@ -113,7 +113,8 @@ const MASS_RENEWAL_MAX_ITEMS = 10;
 const MASS_RENEWAL_BATCH_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 const MASS_RENEWAL_WATCHDOG_STALE_MS = 5 * 60 * 1000;
 const MASS_RENEWAL_WATCHDOG_TICK_MS = 20 * 1000;
-const TRASH_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
+const TRASH_RETENTION_MS = 30 * 24 * 60 * 60 * 1000; // Historical contract; active policy is persisted separately.
+const TRASH_RETENTION_KEY = 'trashRetentionDaysV1';
 const APP_NOTICE_KEY = "appNoticeV1";
 const PLATFORM_ACCESS_RESTRICTION_KEY = "platformAccessRestrictionV1";
 const PLATFORM_ACCESS_RESTRICTION_ERROR_CODE = "KR_PLATFORM_ACCESS_RESTRICTED";
@@ -188,7 +189,7 @@ function requireRemoteDeleteReplacementService() {
   if (!remoteDeleteReplacementService) remoteDeleteReplacementService = RemoteDeleteReplacementService.create({
     readRenewalSessions, writeRenewalSessions, getBulkRunState, moveInventoryToTrash, readFillSessions, writeFillSessions,
     logDiagnostic, sessionCorrelationContext, broadcastInventoryChanged, TRASH_RETENTION_MS, openDatabase, INVENTORY_STORE, IMAGE_STORE,
-    isTrashRecord, normalizeRenewalMode, RENEWAL_MODE_FAST, trashRecordFrom, persistRenewalSession, tabRegistry, chromeApi: chrome,
+    isTrashRecord, normalizeRenewalMode, RENEWAL_MODE_FAST, trashRecordFrom, getTrashRetentionConfiguration, persistRenewalSession, tabRegistry, chromeApi: chrome,
     closeRegistryTab, TabRegistry, createManagedWorkerTab, correlationContext, MY_ADS_PROJECTS_URL, waitForTabComplete,
     TAB_LOAD_TIMEOUT_PHASE4_MS, ensureContentConnection, sendTabRequestWithBootstrap, normalizeProfileName, closeManagedWorkerTab,
     renewalMaxPhaseAttempts, isPhase4DeleteTransportInterruption, assertMassRenewalManualActionAllowed, getInventory, normalBrowserWindowId,
@@ -702,7 +703,12 @@ function requireInventoryImageStore() {
 function requireTrashService() {
   if (trashService) return trashService;
   if (!TrashService?.create) throw new Error('trash-service.js must load before trash storage is used');
-  trashService = TrashService.create({ inventoryRepository: requireInventoryRepository(), retentionMs: TRASH_RETENTION_MS });
+  trashService = TrashService.create({
+    inventoryRepository: requireInventoryRepository(),
+    getRetentionDays: async () => (await chrome.storage.local.get(TRASH_RETENTION_KEY))[TRASH_RETENTION_KEY],
+    setRetentionDays: async days => chrome.storage.local.set({ [TRASH_RETENTION_KEY]: days }),
+    getSelectedProfileId: async () => String((await chrome.storage.local.get(SELECTED_PROFILE_KEY))[SELECTED_PROFILE_KEY]?.profileId || '')
+  });
   return trashService;
 }
 
@@ -1023,6 +1029,18 @@ async function listInventories(profileId) { await purgeExpiredTrash(); const rec
 
 async function listTrashEntries(profileId) { await purgeExpiredTrash(); return requireTrashService().list(profileId); }
 
+async function getTrashRetentionConfiguration() { return requireTrashService().getConfiguration(); }
+async function previewTrashRetentionChange(message) { return requireTrashService().previewRetentionChange(message?.retentionDays, message?.selectedProfileId); }
+async function commitTrashRetentionChange(message) {
+  const result = await requireTrashService().commitRetentionChange({
+    token: message?.token, retentionDays: message?.retentionDays,
+    selectedProfileId: message?.selectedProfileId, confirmed: message?.confirmed === true
+  });
+  await logDiagnostic('info', 'TRASH_RETENTION_CONFIGURATION_CHANGED', { retentionDays: result.retentionDays, deletedCount: result.deletedCount }, { module: 'background', operation: 'trash-retention-config' }).catch(() => {});
+  broadcastInventoryChanged('trash-retention-configured', { retentionDays: result.retentionDays, deletedCount: result.deletedCount });
+  return result;
+}
+
 
 async function setAccountGateDiagnosticState(message = {}) { return requireAccountSessionController().setAccountGateDiagnosticState(message); }
 
@@ -1192,6 +1210,7 @@ async function clearInventories(profileId) {
   const renewals = await readRenewalSessions().catch(() => ({}));
   const records = (await readInventoryRecordsForProfile(profileId)).filter(record => !isTrashRecord(record));
   if (!records.length) return { cleared: true, movedToTrash: 0 };
+  const retentionDays = (await getTrashRetentionConfiguration()).retentionDays;
   const targetIds = new Set(records.map(record => String(record.inventoryId || '')));
   const protectedRenewal = Object.values(renewals).find(item => targetIds.has(String(item?.sourceInventoryId || '')) || targetIds.has(String(item?.skeletonInventoryId || '')));
   if (protectedRenewal) throw new Error('Dieses Profil kann nicht geleert werden, solange darin ein Renewal-Vorgang vorhanden ist. Bitte diesen zuerst abschließen oder verwerfen.');
@@ -1205,7 +1224,7 @@ async function clearInventories(profileId) {
       const store = tx.objectStore(INVENTORY_STORE);
       for (const record of records) store.put(trashRecordFrom(record, 'inventory-cleared', { source: 'clear-inventory' }, now));
     });
-    await logDiagnostic('info', 'INVENTORY_CLEARED_TO_TRASH', { count: records.length, profileId: profileId === UNASSIGNED_PROFILE_ID ? null : (profileId || null), unassigned: profileId === UNASSIGNED_PROFILE_ID, expiresAt: new Date(now.getTime() + TRASH_RETENTION_MS).toISOString() }).catch(() => {});
+    await logDiagnostic('info', 'INVENTORY_CLEARED_TO_TRASH', { count: records.length, profileId: profileId === UNASSIGNED_PROFILE_ID ? null : (profileId || null), unassigned: profileId === UNASSIGNED_PROFILE_ID, expiresAt: retentionDays === 'infinite' ? null : new Date(now.getTime() + retentionDays * 86400000).toISOString() }).catch(() => {});
     broadcastInventoryChanged('cleared-to-trash', { count: records.length });
     return { cleared: true, movedToTrash: records.length };
   } finally { db.close(); }
@@ -1237,7 +1256,7 @@ function requireBulkInventoryController() {
       inventoryScopeNewOnly: INVENTORY_SCOPE_NEW_ONLY, readInventoryRecordsForProfile, normalizeRenewalMode,
       registerShadowTab, writeBulkRunState, mutateBulkRunState, logDiagnostic, sessionCorrelationContext,
       closeRegistryTabs, closeRegistryTab, releaseBulkSourceOwnership, broadcastInventoryChanged,
-      readRenewalSessions, readFillSessions, readMassRenewalBatch, isTrashRecord, openDatabase, trashRecordFrom,
+      readRenewalSessions, readFillSessions, readMassRenewalBatch, isTrashRecord, openDatabase, trashRecordFrom, getTrashRetentionConfiguration,
       getRenewalConfiguration, normalBrowserWindowId, assertPlatformAccessAllowed, createAutomationTab, waitForTabComplete,
       ensureContentConnection, sendTabRequestWithBootstrap, correlationContext, getInventory, deriveListingDateFromEndDate,
       mergeListingMetadata, saveInventory, updateAutomationTab, delay, extractReadOnlyMetadata,
@@ -3199,6 +3218,9 @@ const backgroundMessageRouter = BackgroundMessageRouter.create({
   "GET_INSERTION_LOCK_STATE": (message, sender) => getInsertionLockState(),
   "DELETE_INVENTORY": (message, sender) => deleteInventory(message.inventoryId),
   "DELETE_TRASH_ENTRY": (message, sender) => deleteTrashEntry(message.inventoryId),
+  "GET_TRASH_RETENTION_CONFIGURATION": (message, sender) => getTrashRetentionConfiguration(),
+  "PREVIEW_TRASH_RETENTION_CHANGE": (message, sender) => previewTrashRetentionChange(message),
+  "COMMIT_TRASH_RETENTION_CHANGE": (message, sender) => commitTrashRetentionChange(message),
   "RESET_TRASH_RETENTION": (message, sender) => resetTrashRetention(message.inventoryId),
   "REMOVE_REPLACEMENT_READY_LOCAL": (message, sender) => removeReplacementReadyLocal(message),
   "FINISH_RENEWAL_REPLACEMENT": (message, sender) => finishRenewalReplacement(message),

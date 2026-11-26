@@ -5,7 +5,7 @@
       const {
         getBulkRunState, normalizeProfileName, writeBulkRunState, logDiagnostic, sessionCorrelationContext,
         releaseBulkSourceOwnership, readRenewalSessions, readFillSessions, readMassRenewalBatch, isTrashRecord,
-        readInventoryRecordsForProfile, openDatabase, trashRecordFrom, broadcastInventoryChanged, normalBrowserWindowId,
+        readInventoryRecordsForProfile, openDatabase, trashRecordFrom, getTrashRetentionConfiguration, broadcastInventoryChanged, normalBrowserWindowId,
         bulkRunOwnerExpectation, assertPlatformAccessAllowed, createAutomationTab, registerShadowTab, updateAutomationTab,
         waitForTabComplete, ensureContentConnection, sendTabRequestWithBootstrap, closeRegistryTab, scheduleBulkSourceTabClose
       } = options;
@@ -142,6 +142,7 @@ async function moveReconciliationCandidatesToTrash(state, remoteIds) {
   const records = await readInventoryRecordsForProfile(state.profileId);
   const candidates = InventoryReconciliation.selectAbsentCandidates(records, state.profileId, remoteIds, protectedIds);
   if (!candidates.length) return { moved: 0, inventoryIds: [], protectedCount: records.filter(record => !isTrashRecord(record) && String(record?.profileId || '') === String(state.profileId || '') && protectedIds.has(String(record.inventoryId || ''))).length };
+  if (typeof getTrashRetentionConfiguration === 'function') await getTrashRetentionConfiguration().catch(() => null);
   const now = new Date();
   const db = await openDatabase();
   try {

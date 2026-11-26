@@ -5,7 +5,7 @@
       const {
         readRenewalSessions, writeRenewalSessions, getBulkRunState, moveInventoryToTrash,
         readFillSessions, writeFillSessions, logDiagnostic, sessionCorrelationContext, broadcastInventoryChanged,
-        openDatabase, isTrashRecord, normalizeRenewalMode, trashRecordFrom, persistRenewalSession,
+        openDatabase, isTrashRecord, normalizeRenewalMode, trashRecordFrom, getTrashRetentionConfiguration, persistRenewalSession,
         closeRegistryTab, createManagedWorkerTab, correlationContext, waitForTabComplete, ensureContentConnection,
         sendTabRequestWithBootstrap, normalizeProfileName, closeManagedWorkerTab, renewalMaxPhaseAttempts,
         isPhase4DeleteTransportInterruption, assertMassRenewalManualActionAllowed, getInventory, normalBrowserWindowId,
@@ -63,7 +63,9 @@ async function promoteRenewalCandidateAtomic(session) {
   if (!sourceInventoryId || !candidateInventoryId || !/^\d+$/.test(newAdId)) throw new Error('Renewal-Daten für den Inventarwechsel sind unvollständig.');
   if (sourceInventoryId === newAdId) throw new Error('Quell- und Ziel-Inventar-ID dürfen beim Austausch nicht identisch sein.');
   const trashedAt = new Date();
-  const trashExpiresAt = new Date(trashedAt.getTime() + TRASH_RETENTION_MS).toISOString();
+  // Retention metadata must not block promotion after independently verified deletion.
+  if (typeof getTrashRetentionConfiguration === 'function') await getTrashRetentionConfiguration().catch(() => null);
+  let trashExpiresAt = null;
   const db = await openDatabase();
   try {
     return await new Promise((resolve, reject) => {
@@ -125,6 +127,7 @@ async function promoteRenewalCandidateAtomic(session) {
                     sourceAdId: session.sourceAdId || source.adId || null,
                     replacementAdId: newAdId
                   }, trashedAt);
+                  trashExpiresAt = trashedSource.trash?.expiresAt || null;
                   inventories.put(trashedSource);
                   if (candidateInventoryId !== newAdId) inventories.delete(candidateInventoryId);
                   inventories.put(promoted);
