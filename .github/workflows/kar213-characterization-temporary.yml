@@ -1,0 +1,25 @@
+name: KAR-213 exact source characterization (temporary)
+on:
+  push:
+    branches: [work/KAR-213]
+    paths: ['.github/workflows/kar213-characterization-temporary.yml']
+permissions:
+  contents: read
+jobs:
+  characterization:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: 5b33532b4c69131bfadc89b89d0a9fa93ff6bddf
+          persist-credentials: false
+      - name: Verify exact test-only source
+        run: test "$(git rev-parse HEAD)" = "5b33532b4c69131bfadc89b89d0a9fa93ff6bddf"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Run mixed data / uncertain state characterization
+        run: node --test tests/kar213-cross-generation-characterization.cjs
