@@ -26,3 +26,21 @@ jobs:
         run: |
           export NODE_OPTIONS='--require ./tests/v12222-vm-legacy-bridge.cjs'
           node --test --test-reporter=tap tests/kar199-phase4-ui-runtime.cjs tests/kar222-b16-recovery-ui.cjs tests/kar199-emergency-reset-candidate-recovery.cjs tests/kar222-b14-recovery.cjs tests/kar210-kar199-baseline-reset.cjs tests/kar222-delete-no-replay.cjs tests/kar199-phase4-no-transport-replay.cjs tests/kar210-kar199-baseline-phase4.cjs tests/kar210-cp36-phase4-product-witness.cjs
+      - name: Syntax of changed runtime and retained UI and workflow contracts
+        shell: bash
+        run: |
+          set +e
+          export NODE_OPTIONS='--require ./tests/v12222-vm-legacy-bridge.cjs'
+          failures=0
+          for p in $(git diff --name-only 8ac8ee6ad7c84a815897c6ef9b19e424d4b6b4f3 HEAD -- src); do
+            node --check "$p" || failures=$((failures+1))
+          done
+          for name in v1177-performance4-phase4 v1180-ui-workflow v1198-renewal-interaction-settling v12014-renewal-copy v12019-retry-ui v12019-phase3-edit-authority v1210-compact-views-message-history v12114-ui-copy-consistency v12214-emergency-reset-ui v12230-global-emergency-reset v1231-renewal-workflow-runtime v1231-renewal-workflow-modularization v12315-runtime v1233-mass-renewal-workflow-runtime v12312-renewal-policy-runtime v1239-controllers-runtime v1239-app-boot-reduced-motion-regression; do
+            echo "KAR222_BEGIN $name"
+            node "tests/$name.cjs"
+            rc=$?
+            echo "KAR222_END $name rc=$rc"
+            if [ "$rc" -ne 0 ]; then failures=$((failures+1)); fi
+          done
+          echo "KAR222_NONZERO_COMMANDS=$failures"
+          test "$failures" -eq 0
