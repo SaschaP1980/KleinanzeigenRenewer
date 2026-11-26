@@ -1,0 +1,40 @@
+name: KAR-213 sealed PR preflight (temporary)
+on:
+  push:
+    branches: [work/KAR-213]
+    paths: ['.github/workflows/kar213-w5-temporary.yml']
+permissions:
+  contents: read
+  issues: read
+jobs:
+  preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: 2ff7b69f05cfa011e584e9db92953f4d22c1f889
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify final sealed tree and canonical readback
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 30); do
+            H="$(git ls-remote origin refs/heads/work/KAR-213 | cut -f1)"
+            git fetch origin "$H" --no-tags
+            T="$(git rev-parse "$H^{tree}")"
+            if test "$T" = "952676ebe394cfcc6358cfb8f9bc1daa46318b2e"; then
+              git checkout --detach "$H"
+              if node scripts/kar-work-pr-preflight.cjs --issue 213 --head-sha "$H"; then
+                echo "KAR213_SEALED_HEAD=$H"
+                exit 0
+              fi
+            fi
+            sleep 3
+          done
+          exit 1
