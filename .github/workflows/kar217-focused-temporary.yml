@@ -45,3 +45,55 @@ jobs:
         with:
           node-version: '22'
       - run: node tests/kar217-successor-contract.cjs
+  full-diagnostic:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci
+      - run: bash scripts/coverage-gate.sh
+  independent-contract-diagnostics:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci
+      - name: Independent active contract diagnostics (not an acceptance gate)
+        run: |
+          python3 tests/kar210-baseline-restore.py
+          python3 tests/kar210-version-identity.py
+          node tests/kar210-test-disposition-contract.cjs
+          node tests/kar210-baseline-version-contract.cjs
+          node tests/validate.mjs
+      - name: Active suite failure inventory
+        if: always()
+        run: |
+          export NODE_OPTIONS='--require ./tests/v12222-vm-legacy-bridge.cjs'
+          mkdir -p coverage/raw
+          export NODE_V8_COVERAGE="$PWD/coverage/raw"
+          node scripts/runtime-api-inventory.cjs --json > coverage/public-api-manifest.json
+          python3 - <<'PY'
+          import json, subprocess
+          commands=json.load(open('package.json'))['scripts']['test'].split('; ',1)[1].split(' && ')
+          failed=[]
+          for command in commands:
+              if not command.startswith('node '):
+                  raise RuntimeError(command)
+              try:
+                  result=subprocess.run(command.split(),capture_output=True,text=True,timeout=60)
+                  print(f'RC={result.returncode} {command}',flush=True)
+                  if result.returncode:
+                      failed.append(command)
+                      print((result.stdout+result.stderr)[-2400:],flush=True)
+              except subprocess.TimeoutExpired:
+                  failed.append(command)
+                  print('TIMEOUT '+command,flush=True)
+          print('FAILED COMMANDS:',json.dumps(failed),flush=True)
+          raise SystemExit(bool(failed))
+          PY
