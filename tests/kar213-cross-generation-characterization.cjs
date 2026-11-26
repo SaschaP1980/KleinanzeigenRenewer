@@ -96,3 +96,45 @@ test('W3 positive control: ordinary verified replacement-ready session still ent
   assert.equal(calls.length,1);
   assert.equal(calls[0].automatic,true);
 });
+
+test('W2 actual profile controller finalization also retains opaque incoming metadata without weakening identity validation',async()=>{
+  const local=localStore({profilesV1:[]});
+  const kr=loadRegistry(['src/background/repositories/profile-repository.js','src/background/controllers/profile-management-controller.js']);
+  const api=kr.require('KRProfileManagementController').create({
+    ProfileRepository:kr.require('KRProfileRepository'),storageLocal:local,profilesKey:'profilesV1',activeProfileKey:'activeDetectedProfileV1',selectedProfileKey:'selectedInventoryProfileV1',unassignedProfileId:'__unassigned__',
+    normalizeProfileName:v=>String(v||'').trim(),randomUUID:()=> 'synthetic-new',purgeExpiredTrash:async()=>{},readAllInventoryRecords:async()=>[],getBulkRunState:async()=>null,isTrashRecord:r=>r.recordKind==='trash',readInventoryRecordsForProfile:async()=>[],readRenewalSessions:async()=>({}),readMassRenewalBatch:async()=>null,getInventoryRepository:()=>({}),logDiagnostic:async()=>{},broadcastInventoryChanged:()=>{},invalidateTrashPurgeSchedule:()=>{}
+  });
+  await assert.rejects(api.prepareProfileBackupImport({profile:{...profile,profileId:'__unassigned__'}}),/Profilidentität/);
+  const result=await api.finalizeProfileBackupImport({profile,counts:{}});
+  assert.equal(result.imported,true);
+  assert.equal(local.snapshot().selectedInventoryProfileV1.profileId,profile.profileId);
+  assert.deepEqual(local.snapshot().profilesV1[0].donorExtension,profile.donorExtension);
+});
+for(const [label,path,key,idField,stage,status,method,hours] of [
+  ['archive','../src/background/services/archive-insertion-service.js','archiveInsertionSessionsV1','archiveInsertionId','publish-intent-blocked','publish-blocked','readArchiveInsertionSessions',48],
+  ['fill','../src/background/services/template-fill-service.js','templateFillSessions','fillId','publish-intent-blocked','needs-review','readFillSessions',3],
+]){
+  test('W3 '+label+' unresolved donor state is not erased on read after historic TTL',async()=>{
+    const row={[idField]:'synthetic-uncertain',createdAt:new Date(Date.now()-hours*3600000).toISOString(),stage,status,sourceAdId:'100',opaqueEvidence:{marker:true}};
+    const local=localStore({[key]:{[row[idField]]:row}});
+    const svc=require(path).create({storageLocal:local});
+    const read=await svc[method]();
+    assert.deepEqual(read[row[idField]],row);
+    assert.deepEqual(local.snapshot()[key][row[idField]],row);
+    assert.equal(local.writes(),0);
+  });
+}
+test('W2 archived profile record and image restoration rejects cross-profile key collision without overwriting foreign records',async()=>{
+  const idb=new IDBFactory();
+  const api=loadRegistry(['src/background/repositories/inventory-repository.js']).require('KRInventoryRepository').create({indexedDB:idb,IDBKeyRange});
+  const db=await api.openDatabase();db.close();
+  const foreign={...active,profileId:'synthetic-other',profileName:'Other'};
+  const backup=BackupStorage.create({indexedDB:idb,IDBKeyRange});
+  await backup.replaceProfileIndexedData({targetProfileId:foreign.profileId,targetProfileName:foreign.profileName,activeInventory:[foreign],images:[imageRows[0]]});
+  const parsed=await roundtrip('1.25.36',[active,trash]);
+  await assert.rejects(backup.replaceProfileIndexedData({targetProfileId:profile.profileId,targetProfileName:profile.displayName,activeInventory:parsed.activeInventory,trashEntries:parsed.trashEntries,images:parsed.images}),/anderen lokalen Profil/);
+  assert.deepEqual((await backup.snapshotProfileIndexedData(foreign.profileId)).records,[foreign]);
+  assert.equal((await backup.snapshotProfileIndexedData(profile.profileId)).records.length,0);
+  const [img]=(await backup.snapshotProfileIndexedData(foreign.profileId)).images;
+  assert.deepEqual(new Uint8Array(await img.blob.arrayBuffer()),data[0]);
+});
