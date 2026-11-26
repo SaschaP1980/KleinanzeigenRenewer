@@ -54,6 +54,14 @@ jobs:
         with:
           node-version: '22'
       - run: npm ci
+      - name: Create local source-matching candidate for repository closure (diagnostic only)
+        run: |
+          set -euo pipefail
+          V="$(python3 scripts/product_version.py)"
+          test "$V" = 2.0.3.0
+          test ! -e "release/kleinanzeigen-renewal-chrome-v$V.zip"
+          python3 scripts/package.py "$RUNNER_TEMP/diagnostic-build"
+          cp "$RUNNER_TEMP/diagnostic-build/kleinanzeigen-renewal-chrome-v$V.zip" release/
       - run: bash scripts/coverage-gate.sh
   independent-contract-diagnostics:
     runs-on: ubuntu-24.04
@@ -97,3 +105,42 @@ jobs:
           print('FAILED COMMANDS:',json.dumps(failed),flush=True)
           raise SystemExit(bool(failed))
           PY
+  deterministic-candidate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Build twice, compare and emit exact candidate bytes (Work only)
+        run: |
+          set -euo pipefail
+          V="$(python3 scripts/product_version.py)"
+          test "$V" = 2.0.3.0
+          python3 scripts/package.py "$RUNNER_TEMP/build-a"
+          python3 scripts/package.py "$RUNNER_TEMP/build-b"
+          ZIP="kleinanzeigen-renewal-chrome-v$V.zip"
+          cmp "$RUNNER_TEMP/build-a/$ZIP" "$RUNNER_TEMP/build-b/$ZIP"
+          unzip -t "$RUNNER_TEMP/build-a/$ZIP" >/dev/null
+          python3 - "$RUNNER_TEMP/build-a/$ZIP" <<'PY'
+          import base64, hashlib, json, pathlib, sys, zipfile
+          p=pathlib.Path(sys.argv[1])
+          data=p.read_bytes()
+          with zipfile.ZipFile(p) as z:
+              assert len(z.namelist()) == len(set(z.namelist())) == 122
+              assert not any(n.startswith("docs/history/") or "native-update" in n or "native-status-bridge" in n for n in z.namelist())
+              manifest=json.loads(z.read("manifest.json"))
+              assert manifest["version"] == "2.0.3.0"
+              assert sorted(manifest["permissions"]) == ["activeTab","scripting","storage","unlimitedStorage"]
+              assert "icons/action-update.svg" in z.namelist()
+          print("KAR217_CANDIDATE_META "+json.dumps({"bytes":len(data),"sha256":hashlib.sha256(data).hexdigest(),"gitBlob":hashlib.sha1(b"blob "+str(len(data)).encode()+b"\x00"+data).hexdigest(),"entries":122}),flush=True)
+          encoded=base64.b64encode(data).decode()
+          chunks=[encoded[i:i+4096] for i in range(0,len(encoded),4096)]
+          for i,chunk in enumerate(chunks):
+              print(f"KAR217_CHUNK {i:04d} {len(chunks):04d} {chunk}",flush=True)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kar217-diagnostic-candidate
+          path: ${{ runner.temp }}/build-a/kleinanzeigen-renewal-chrome-v2.0.3.0.zip
+          if-no-files-found: error
