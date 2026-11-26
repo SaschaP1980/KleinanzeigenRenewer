@@ -933,3 +933,11 @@ select:not([multiple]) { appearance:none; -webkit-appearance:none; background-im
 .trash-sort-field > span { color:#879399; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; }
 .trash-sort-field > strong { display:flex; align-items:center; min-height:36px; color:#edf2f3; font-size:12px; font-weight:700; }
 @media (max-width: 900px) { .inventory-toolbar.trash-sort-toolbar { grid-template-columns:1fr; } }
+
+.trash-retention-range-scale { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); margin-top:0; gap:1px; }
+.trash-retention-range-scale > span { text-align:center; }
+.trash-retention-range-scale > span:first-child { text-align:left; }
+.trash-retention-range-scale > span:last-child { text-align:right; }
+.trash-retention-settings { min-width:0; }
+.trash-retention-settings .configuration-range:focus-visible { outline:2px solid #4de0b7; outline-offset:3px; }
+#trashRetentionRange[hidden] { display: none; }

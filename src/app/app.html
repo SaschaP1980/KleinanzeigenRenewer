@@ -93,6 +93,15 @@
               <input id="renewalRetryRange" class="configuration-range" type="range" min="1" max="5" step="1" value="3" aria-describedby="renewalRetryDescription">
               <div class="configuration-range-scale" aria-hidden="true"><span>1</span><span>5</span></div>
               <p id="renewalRetryDescription" class="configuration-description renewal-retry-description">Maximale Versuche je Phase · Standard: 3<br>Mehr Versuche erhöhen die Zuverlässigkeit, können den Ablauf aber verlängern.</p>
+              <section class="configuration-subsection trash-retention-settings" aria-labelledby="trashRetentionLabel">
+                <div class="configuration-row">
+                  <label class="configuration-label" id="trashRetentionLabel" for="trashRetentionRange">Papierkorb-Aufbewahrung</label>
+                  <output id="trashRetentionValue" class="configuration-value" for="trashRetentionRange" role="status" aria-live="polite">Wird ermittelt …</output>
+                </div>
+                <input id="trashRetentionRange" class="configuration-range" type="range" min="0" max="6" step="1" value="1" aria-describedby="trashRetentionDescription" disabled hidden>
+                <div class="configuration-range-scale trash-retention-range-scale" aria-hidden="true"><span>10</span><span>30</span><span>60</span><span>90</span><span>180</span><span>360</span><span>∞</span></div>
+                <p id="trashRetentionDescription" class="configuration-description">Die gespeicherte Aufbewahrungsdauer wird geprüft. Bis dahin kann sie nicht geändert werden.</p>
+              </section>
               <div class="configuration-subsection native-update-check" aria-label="Windows-Updater">
                 <div class="configuration-label">Windows-Updater</div>
                 <p id="nativeUpdateSummaryStatus" class="configuration-description" role="status" aria-live="polite">Update-Status derzeit nicht verfügbar.</p>
@@ -225,7 +234,7 @@
           <div class="section-actions">
           </div>
         </div>
-        <div class="trash-intro"><span class="trash-intro-full">Einträge im Papierkorb werden 30 Tage lokal aufbewahrt. Du kannst sie in dieser Zeit als Vorlage für eine neue Anzeige verwenden. Die Anzeige bei Kleinanzeigen bleibt unverändert. Eine neue Anzeige wird nur vorbereitet und niemals automatisch veröffentlicht. Einträge können nicht zurück ins Inventar verschoben werden.</span><span class="trash-intro-sticky">Papierkorb: Einträge werden 30 Tage lokal aufbewahrt.</span></div>
+        <div class="trash-intro"><span class="trash-intro-full">Die gespeicherte Papierkorb-Aufbewahrung wird ermittelt. Die Einträge bleiben sichtbar und können als Vorlage für eine neue Anzeige verwendet werden. Die Anzeige bei Kleinanzeigen bleibt unverändert. Eine neue Anzeige wird nur vorbereitet und niemals automatisch veröffentlicht. Einträge können nicht zurück ins Inventar verschoben werden.</span><span class="trash-intro-sticky">Papierkorb: Aufbewahrungsdauer wird ermittelt.</span></div>
 
         <div class="inventory-toolbar trash-sort-toolbar" role="group" aria-label="Papierkorb nach Aufbewahrungsfrist sortieren">
           <div class="trash-sort-field"><span>Sortieren nach</span><strong>Im Papierkorb bis</strong></div>
@@ -264,7 +273,7 @@
 
         <div id="renewalStartSafety" class="renewal-start-safety">
           <strong id="renewalStartSafetyTitle">Die bisherige Anzeige wird erst gelöscht, wenn die neue Anzeige vollständig geprüft wurde.</strong>
-          <p id="renewalStartSafetyText">Die bisherige Anzeige bleibt danach 30 Tage als Sicherheitskopie im Papierkorb und kann dort über <b>Als Vorlage neu inserieren</b> erneut als Vorlage verwendet werden.</p>
+          <p id="renewalStartSafetyText">Die bisherige Anzeige bleibt danach entsprechend der gespeicherten Aufbewahrungsdauer als Sicherheitskopie im Papierkorb und kann dort über <b>Als Vorlage neu inserieren</b> erneut als Vorlage verwendet werden.</p>
         </div>
 
         <ol id="renewalStartSteps" class="renewal-start-steps" aria-label="Automatischer Ablauf">
@@ -686,6 +695,7 @@
     <script src="control-accordion-controller.js"></script>
     <script src="diagnostics-controls-controller.js"></script>
     <script src="renewal-settings-controller.js"></script>
+    <script src="trash-retention-settings-controller.js"></script>
     <script src="app-layout-controller.js"></script>
     <script src="tab-page-inspection-controller.js"></script>
     <script src="shared-ui-helpers.js"></script>
