@@ -9,7 +9,8 @@ const inventory = JSON.parse(fs.readFileSync(abs('docs/maintenance/SCRIPT_WORKFL
 assert.equal(inventory.schema, 1);
 assert.equal(inventory.issue, 167);
 // KAR-210 adds one owned, shared version-policy script; retain all S1 entries.
-assert.equal(inventory.scripts.length, 25, 'S1 plus KAR-210 must inventory all 25 current script files');
+assert.equal(inventory.scripts.length, 26, 'Retain all 25 reviewed scripts plus the KAR-213 offline preflight');
+assert.equal(inventory.scripts.find(s => s.path === 'scripts/kar213-upgrade-preflight.cjs')?.status, 'support-standalone', 'S03 preflight must remain separately owned and outside the Chrome runtime');
 assert.equal(inventory.scripts.find(s => s.path === 'scripts/product_version.py')?.status, 'ci-active',
   'KAR-210 version policy must have an explicit active CI owner');
 assert.equal(inventory.workflows.length, 7, 'All 5 generic workflows and both KAR-178 historical publication workflows are registered');

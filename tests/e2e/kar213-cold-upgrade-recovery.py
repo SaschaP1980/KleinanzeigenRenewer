@@ -41,7 +41,22 @@ def extract(ref,version,expected_blob,ext,tmp):
     computed="".join(chr(97+int(c,16)) for c in hashlib.sha256(base64.b64decode(manifest["key"])).hexdigest()[:32])
     assert computed==EXTENSION_ID
 
-def candidate(ext,tmp):
+def candidate(ext,tmp,candidate_zip=None):
+    if candidate_zip is not None:
+        # Mandatory Work PR mode uses the exact already-verified committed archive.
+        version=json.loads((ROOT/'manifest.json').read_text())['version']
+        with zipfile.ZipFile(candidate_zip) as z:
+            assert all(not Path(n).is_absolute() and '..' not in Path(n).parts for n in z.namelist())
+            if ext.exists(): shutil.rmtree(ext)
+            ext.mkdir()
+            z.extractall(ext)
+        manifest=json.loads((ext/'manifest.json').read_text())
+        assert manifest==json.loads((ROOT/'manifest.json').read_text())
+        import base64
+        computed=''.join(chr(97+int(c,16)) for c in hashlib.sha256(base64.b64decode(manifest['key'])).hexdigest()[:32])
+        assert computed==EXTENSION_ID
+        print('KAR213_PACKAGED_CANDIDATE '+json.dumps({'version':version,'sha256':hashlib.sha256(candidate_zip.read_bytes()).hexdigest()}),flush=True)
+        return version
     # This is a source-overlay diagnostic, not a newly sealed release ZIP.
     extract(BASE,"2.0.1.0","4c2e8cb8a1d1967d0639ef8614f4881373d1fade",ext,tmp)
     paths=git("diff","--name-only",BASE,"HEAD","--","src").decode().splitlines()
@@ -50,6 +65,7 @@ def candidate(ext,tmp):
         assert (ROOT/name).is_file() and (ext/name).is_file(), name
         shutil.copyfile(ROOT/name,ext/name)
     print("KAR213_SOURCE_OVERLAY "+json.dumps({"changedRuntimeFiles":len(paths),"sourceHead":git("rev-parse","HEAD").decode().strip()}),flush=True)
+    return "2.0.1.0"
 
 def files(root):
     out={}
@@ -161,7 +177,7 @@ def check(worker,expected,version):
     assert actual["records"]==expected["records"],"Inventory/trash rows changed"
     assert actual["images"]==expected["images"],"Image metadata/bytes changed"
 
-def main(version):
+def main(version,candidate_zip=None):
     ref,blob=SOURCE[version]
     with tempfile.TemporaryDirectory(prefix="kar213-cold-") as directory:
         tmp=Path(directory)
@@ -187,11 +203,11 @@ def main(version):
             shutil.copytree(profile,backup)
             assert files(backup)==before,"Cold backup bytes differ"
             # Use same unpacked path / fixed ID, replace only after browser shutdown.
-            candidate(ext,tmp)
+            candidate_version=candidate(ext,tmp,candidate_zip)
             for cycle in range(2):
                 ctx,worker=launch(p,profile,ext)
                 try:
-                    check(worker,expected,"2.0.1.0")
+                    check(worker,expected,candidate_version)
                     if cycle==1:
                         # Simulated bad candidate write in disposable profile only;
                         # recovery must come from untouched raw backup, not the altered state.
@@ -199,7 +215,7 @@ def main(version):
                         changed["records"][0]["title"]="Synthetic deliberate corruption"
                         changed["storage"]["unknownSyntheticFutureV1"]={"changed":True}
                         worker.evaluate(SEED,changed)
-                        check(worker,changed,"2.0.1.0")
+                        check(worker,changed,candidate_version)
                 finally:
                     ctx.close()
                 print(f"KAR213_UPGRADE_CYCLE {version} {cycle+1} PASS",flush=True)
@@ -213,9 +229,11 @@ def main(version):
             finally:
                 ctx.close()
             assert files(backup)==before,"Rollback mutated backup"
-        print("KAR213_COLD_RECOVERY "+json.dumps({"sourceVersion":version,"candidateVersion":"2.0.1.0","records":len(expected["records"]),"images":len(expected["images"]),"storageKeys":len(expected["storage"]),"coldFiles":len(before),"upgradeCycles":2,"rollback":"PASS","status":"PASS"}),flush=True)
+        print("KAR213_COLD_RECOVERY "+json.dumps({"sourceVersion":version,"candidateVersion":candidate_version,"records":len(expected["records"]),"images":len(expected["images"]),"storageKeys":len(expected["storage"]),"coldFiles":len(before),"upgradeCycles":2,"rollback":"PASS","status":"PASS"}),flush=True)
 
 if __name__=="__main__":
     parser=argparse.ArgumentParser()
     parser.add_argument("--source",choices=SOURCE,required=True)
-    main(parser.parse_args().source)
+    parser.add_argument("--candidate-zip",type=Path,help="Exact committed candidate package; omit for source-overlay diagnostic")
+    args=parser.parse_args()
+    main(args.source,args.candidate_zip)

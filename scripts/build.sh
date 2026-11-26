@@ -13,6 +13,8 @@ core_tests=(
   tests/kar165-trash-retention-warning.cjs
   tests/kar186-retention-hydration.cjs
   tests/kar214-retention-startup.cjs
+  tests/kar213-cross-generation-characterization.cjs
+  tests/kar213-offline-upgrade-preflight.cjs
   tests/validate.mjs
   tests/identity.cjs
   tests/jpeg.cjs

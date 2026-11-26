@@ -55,6 +55,11 @@
       "evidence": "kar-atomic-patch.yml uses SHA/issue/comment preflight"
     },
     {
+      "path": "scripts/kar213-upgrade-preflight.cjs",
+      "status": "support-standalone",
+      "evidence": "KAR-213 offline operator precondition for settled historical workflow/receipt evidence; tests/kar213-offline-upgrade-preflight.cjs runs in mandatory npm/build, no extension runtime import or packaged payload"
+    },
+    {
       "path": "scripts/package-oneclick-setup.py",
       "status": "support-standalone",
       "evidence": "tests/kar94-setup-package.cjs invokes --check; Windows end-user setup needs reproducible kit"
