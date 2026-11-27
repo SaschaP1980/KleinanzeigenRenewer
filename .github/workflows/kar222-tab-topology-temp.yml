@@ -1,0 +1,21 @@
+name: KAR-222 W2 actual-source topology (temporary)
+on:
+  push:
+    branches: [work/KAR-222]
+    paths: ['tests/kar222-fast-tab-topology.cjs','.github/workflows/kar222-tab-topology-temp.yml']
+permissions:
+  contents: read
+jobs:
+  topology:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: |
+          node --check tests/kar222-fast-tab-topology.cjs
+          node tests/kar222-fast-tab-topology.cjs

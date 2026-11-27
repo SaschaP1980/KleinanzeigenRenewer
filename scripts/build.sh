@@ -34,6 +34,7 @@ core_tests=(
   tests/kar222-mass-recovery-witness.cjs
   tests/kar222-roster-scan-cost.cjs
   tests/kar222-tab-registry-cost.cjs
+  tests/kar222-fast-tab-topology.cjs
   tests/kar222-focused-gate.cjs
   tests/validate.mjs
   tests/identity.cjs
