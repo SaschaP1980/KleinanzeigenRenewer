@@ -39,6 +39,11 @@ class VersionIdentity(unittest.TestCase):
         verifier.check_identity({**s04, "version": "2.0.5.0"}, app_id)
         with self.assertRaises(ValueError):
             verifier.check_identity({**s04, "version": "2.0.5.0", "permissions": sorted(set(verifier.PERMISSIONS) | {"nativeMessaging"})}, app_id)
+        verifier.check_identity({**s04, "version": "2.0.5.1"}, app_id)
+        with self.assertRaises(ValueError):
+            verifier.check_identity({**s04, "version": "2.0.5.1", "permissions": sorted(set(verifier.PERMISSIONS) | {"nativeMessaging"})}, app_id)
+        with self.assertRaises(ValueError):
+            verifier.check_identity({**s04, "version": "2.0.5.2"}, app_id)
         with self.assertRaises(ValueError):
             verifier.check_identity({**s04, "version": "2.0.6.0"}, app_id)
         with self.assertRaises(ValueError):
