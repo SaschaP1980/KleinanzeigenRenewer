@@ -14,11 +14,15 @@ for(const item of policy.S06_SCOPE.partialTests){
  process.stdout.write(r.stdout||'');process.stderr.write(r.stderr||'');
  assert.equal(r.status,0,'Active S06 product tests failed: '+item.path);
  const number=name=>Number(r.stdout.match(new RegExp('^# '+name+' (\\d+)$','m'))?.[1]);
- assert.equal(number('tests'),item.total);assert.equal(number('pass'),item.total-item.deferred.length);
- assert.equal(number('fail'),0);assert.equal(number('skipped'),item.deferred.length);
- for(const d of item.deferred){
-   assert.ok(r.stdout.split('\n').some(l=>l.includes(d.name)&&l.includes('# SKIP')),'Exact deferred witness not reported: '+d.name);
-   console.log('DEFERRED (not PASS) '+d.step+' '+d.name+'; verified RED run '+d.redRun);
- }
+ // Node 22 skip-pattern omits matching cases entirely from TAP counts.
+ const sourceNames=[...bytes.toString().matchAll(/\btest\('([^']+)'/g)].map(m=>m[1]);
+ assert.equal(sourceNames.length,item.total,'Pinned witness count');
+ assert.equal(new Set(sourceNames).size,item.total,'Unique witness names');
+ const expected=sourceNames.filter(name=>!item.deferred.some(d=>d.name===name));
+ assert.equal(number('tests'),expected.length);assert.equal(number('pass'),expected.length);
+ assert.equal(number('fail'),0);assert.equal(number('skipped'),0);
+ const actual=r.stdout.split('\n').filter(l=>/^ok \d+ - /.test(l)).map(l=>l.replace(/^ok \d+ - /,''));
+ assert.deepEqual(actual,expected,'All and only active named witnesses must execute');
+ for(const d of item.deferred)console.log('DEFERRED (not PASS) '+d.step+' '+d.name+'; verified RED run '+d.redRun);
 }
 console.log('PASS S06 active partial witness gate; exactly four explicitly deferred cases, no PASS credit for them');
