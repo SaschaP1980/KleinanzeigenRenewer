@@ -6,7 +6,8 @@ const {assertPendingS02Release}=require('./kar210-historical-contract-context.cj
 const root=path.resolve(__dirname,'..');
 const metadata=['manifest.json','package.json','package-lock.json','release/release-spec.json'];
 const active=JSON.parse(fs.readFileSync(path.join(root,'manifest.json'),'utf8')).version;
-const s05=active==='2.0.4.0';
+const s06=active==='2.0.5.0';
+const s05=active==='2.0.4.0'||s06;
 const s04=active==='2.0.3.0'||s05;
 const s03=active==='2.0.2.0'||s04;
 const s09=['2.0.1.0','2.0.2.0'].includes(active)||s04;
@@ -28,7 +29,7 @@ try {
     ['manifest.json',m=>m.version='2.0.0'],
     ['package.json',p=>p.version='2.0.0.0'],
     ['package.json',p=>p.displayVersion='2.0.0'],
-    ['package-lock.json',l=>l.packages[''].version=s05?'2.0.5':s04?'2.0.4':s03?'2.0.3':s09?'2.0.2':'2.0.1'],
+    ['package-lock.json',l=>l.packages[''].version=s06?'2.0.6':s05?'2.0.5':s04?'2.0.4':s03?'2.0.3':s09?'2.0.2':'2.0.1'],
     ['release/release-spec.json',s=>s.packageVersion=s09?'2.0.1.1':'2.0.1.0'],
     ['manifest.json',m=>m.key='ZmFrZQ=='],
     ['manifest.json',m=>m.permissions.push('tabs')],
@@ -46,8 +47,8 @@ try {
   assertPendingS02Release(fixture);
   const releaseMutations=[
     s=>s.validationStatus='RELEASE_GREEN',
-    s=>s.directBasisNativeGreen=!s09,
-    s=>s.directBasisNativePending=s09,
+    s=>s.directBasisNativeGreen=!(s09&&!s06),
+    s=>s.directBasisNativePending=s09&&!s06,
     s=>s.nativeSmokeRequired=false,
     s=>s.nextPlannedBuild='2.0.0.1',
     s=>s.nextPlannedBuildGoal='Automatically start next step',
@@ -88,6 +89,11 @@ try {
     assert.throws(()=>assertRestoredBaselineVersion(fixture));n++;
     for(const f of metadata)fs.copyFileSync(path.join(root,f),path.join(fixture,f));
     const m=read('manifest.json');m.permissions.push('nativeMessaging');write('manifest.json',m);
+    assert.throws(()=>assertRestoredBaselineVersion(fixture));n++;
+  }
+  if(s06) {
+    for(const f of metadata)fs.copyFileSync(path.join(root,f),path.join(fixture,f));
+    const spec=read('release/release-spec.json');spec.s06.sourceCommit='0'.repeat(40);write('release/release-spec.json',spec);
     assert.throws(()=>assertRestoredBaselineVersion(fixture));n++;
   }
   if(active==='2.0.0.1') {

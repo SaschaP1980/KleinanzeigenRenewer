@@ -4,6 +4,12 @@ This is the canonical version-specific history for Kleinanzeigen Manager. Entrie
 
 All distinct historical section bodies from the former root README and CHANGELOG are preserved with source labels and line numbers. The [KAR-170 migration ledger](docs/maintenance/KAR170_CHANGELOG_MIGRATION.json) identifies their original Git blobs and body checksums. Overlapping versions retain distinct factual notes; older references to planned builds or native/CI acceptance are **historical**, not live status.
 
+## v2.0.5.0 — KAR-222 S06 renewal reliability and performance (Work source, full gates pending)
+
+- Preserve uncertain publication/deletion outcomes for explicit review or read-only recovery, reject mismatched returned listing IDs, preserve local publication evidence and prevent same-document duplicate publication.
+- Improve local recovery and mass-run presentation; eliminate redundant nonempty roster parsing; serialize existing local TabRegistry metadata transactions and preserve GONE tombstones. No persistent journal, new runtime module, Web Lock, additional account probe or updater.
+- D2 account changes during scanning, S07 archive recovery and managed tab reuse remain open. Chrome 2.0.5.0, npm 2.0.5, exact S05 direct basis 2.0.4.0. Focused evidence retained in KAR-222; full quality gates and native acceptance pending. No merge, release or productive migration.
+
 ## v2.0.4.0 — KAR-220 S05 attribute transfer (Work source, full gates pending)
 
 - Correct two reproduced field-level defects: recover substantive legacy display-only values through the actual associated control and final technical/visible readback; resolve linked options by unique exact technical ID or unique enabled label, otherwise report ambiguity. Preserve captured optional empty status.

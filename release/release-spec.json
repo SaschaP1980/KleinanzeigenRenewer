@@ -1,11 +1,11 @@
 {
-  "version": "2.0.4.0",
+  "version": "2.0.5.0",
   "project": "kleinanzeigen Manager / Kleinanzeigen Renewal",
-  "epic": "KAR-208 / KAR-220 S05 attribute transfer",
+  "epic": "KAR-208 / KAR-222 S06 renewal reliability and performance",
   "goldBaseline": "1.21.15",
-  "directBasis": "2.0.3.0",
-  "directBasisNativeGreen": true,
-  "directBasisObservation": "Accepted S04 2.0.3.0 exact Work CI 3/3 GREEN and owner-reported isolated synthetic smoke 8/8 PASS; no productive data migration or real-account acceptance implied. Current website compatibility and S05 native acceptance remain pending.",
+  "directBasis": "2.0.4.0",
+  "directBasisNativeGreen": false,
+  "directBasisObservation": "S05 exact Work CI 3/3 GREEN and owner acceptance with documented native limitations. Full native S06 and matching performance acceptance pending.",
   "scope": [
     "Restore v1.23.48 historical runtime, retaining KAR-174 UI path layout and current development tooling.",
     "Version identity 2.0.0.0, npm 2.0.0; preserve extension key, historical releases and Git ancestry.",
@@ -15,7 +15,8 @@
     "KAR-214 S09: verified local retention, exact destructive consent, per-record revision/expiry, read-only canonical sort and countdown presentation. Preserve historical runtime outside the pinned successor scope; no updater C import.",
     "KAR-213 S03: preserve opaque profile/record/image metadata, raw trash deadlines, atomic restore, fail closed on known unresolved legacy workflows. Offline preflight and isolated cold recovery; no imported C architecture.",
     "KAR-217 S04: remove inherited updater UI, native messaging permission, runtime modules, message route and online update channel read; preserve historical blobs and retire only reviewed updater-specific tests; retain S03/S09, all applicable quality and safety gates.",
-    "KAR-220 S05: retain existing category and form handling. Recover substantive display-only attributes only through unique associated actual controls and exact native readback; use uniquely exposed linked technical option IDs; preserve empty status and report real ambiguity. No schema monitoring/reference management or extra scans."
+    "KAR-220 S05: retain existing category and form handling. Recover substantive display-only attributes only through unique associated actual controls and exact native readback; use uniquely exposed linked technical option IDs; preserve empty status and report real ambiguity. No schema monitoring/reference management or extra scans.",
+    "KAR-222 S06: approved recovery and no-blind-replay corrections, same-document publication idempotence, exact returned IDs, local discard, reduced duplicate roster parsing and local TabRegistry metadata serialization. No updater, persistent journal, added remote calls or D2/S07 expansion."
   ],
   "nextPlannedBuild": "TBD",
   "nextPlannedBuildGoal": "Determined by separately authorized open GitHub Issues.",
@@ -38,7 +39,7 @@
       "percent": null
     }
   },
-  "releaseSummary": "2.0.4.0 Work-only S05 focused attribute transfer corrections on accepted S04 2.0.3.0. Full gates pending; no merge, release or productive profile migration.",
+  "releaseSummary": "2.0.5.0 Work source for S06; full gates, tab reuse evaluation, deferred D2/S07 evidence and native acceptance remain open. No merge or release.",
   "architectureHighlights": [
     "Historical product safeguards and runtime behavior are primary; only explicit path/layout and version metadata changes in this restore slice.",
     "Current development gates and test files retained; reconcile later feature/updater-dependent assertions without weakening retained product behavior.",
@@ -51,8 +52,8 @@
     "S09: synthetic-only retention and IndexedDB fixtures until S03 data compatibility and S04 updater removal are accepted.",
     "S03: isolated migration and rollback using exact committed package; real migration requires S04 and separate owner authorization."
   ],
-  "packageVersion": "2.0.4.0",
-  "directBasisNativePending": false,
+  "packageVersion": "2.0.5.0",
+  "directBasisNativePending": true,
   "architectureFiles": [
     {
       "key": "appElements",
@@ -424,7 +425,7 @@
       }
     }
   },
-  "validationStatus": "S05_GATES_PENDING",
+  "validationStatus": "S06_GATES_PENDING",
   "s09": {
     "issue": 214,
     "step": "S09",
@@ -452,5 +453,12 @@
     "directBasis": "2.0.3.0",
     "sourceCommit": "514c3dcdaae09b7e583326089316ada59c229e9f",
     "archiveSha256": "36041055ed9c9aec30edda9605bc229251f25bd1e47f796476ff59881460ee43"
+  },
+  "s06": {
+    "issue": 222,
+    "step": "S06",
+    "directBasis": "2.0.4.0",
+    "sourceCommit": "5d650e288ef2cea615f17717ebb1531b1cc4b4ae",
+    "archiveSha256": "b44c07e1dd19cef1ec5416ab86f621dc12822d22ac6dbd83d72821938c5350cd"
   }
 }

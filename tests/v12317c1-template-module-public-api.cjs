@@ -138,7 +138,7 @@ global.document = {
   if(baseline) {
     const fs=require('node:fs'),crypto=require('node:crypto');
     const bytes=fs.readFileSync(require.resolve('../src/content/template-publish-flow.js'));
-    assert.equal(crypto.createHash('sha1').update('blob '+bytes.length+'\0').update(bytes).digest('hex'),'b4cb626bc91ca9389f9d997f9f161ef88ebdd16d','Only the reviewed restored publish module has six methods');
+    assert.equal(crypto.createHash('sha1').update('blob '+bytes.length+'\0').update(bytes).digest('hex'),require('./current-patch-policy.cjs').expectedRestoredBlob(manifest.version,'src/content/template-publish-flow.js','b4cb626bc91ca9389f9d997f9f161ef88ebdd16d'),'Only the reviewed restored publish module has six methods');
     assert.deepEqual(Object.keys(publish).sort(), ['advanceAfterVerifiedFill','armPublishDetection','autoPublishVerifiedRenewal','paidInsertionDetection','scrollToPublishButton','stopForPaidInsertion'].sort());
   } else assert.deepEqual(Object.keys(publish).sort(), ['advanceAfterVerifiedFill','armPublishDetection','autoPublishVerifiedRenewal','offerManualStandaloneRelease','paidInsertionDetection','scrollToPublishButton','stopForPaidInsertion'].sort());
   publish.armPublishDetection('fill-contract');

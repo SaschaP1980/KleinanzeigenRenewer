@@ -24,10 +24,14 @@ S04_CHANGES = {row['path']: row for row in S04['runtimeChanges']}
 S04_REMOVED = {row['path']: row for row in S04['removedRuntime']}
 S05 = json.loads((ROOT / 'docs/maintenance/KAR220_SUCCESSOR_SCOPE.json').read_text(encoding='utf-8'))
 S05_CHANGES = {row['path']: row for row in S05['runtimeChanges']}
-HAS_S05 = VERSION == '2.0.4.0'
-HAS_S04 = VERSION in ('2.0.3.0', '2.0.4.0')
-HAS_S03 = VERSION in ('2.0.2.0', '2.0.3.0', '2.0.4.0')
-HAS_S09 = VERSION in ('2.0.1.0', '2.0.2.0', '2.0.3.0', '2.0.4.0')
+S06 = json.loads((ROOT / 'docs/maintenance/KAR222_SUCCESSOR_SCOPE.json').read_text(encoding='utf-8'))
+S06_CHANGES = {row['path']: row for row in S06['runtimeChanges']}
+S06_PATHS = ["manifest.json","src/app/app.js","src/app/inventory-card-renderer.js","src/app/inventory-formatting.js","src/app/mass-renewal-ui-controller.js","src/app/renewal-dialog-controller.js","src/background/background.js","src/background/controllers/mass-renewal-controller.js","src/background/controllers/mass-renewal-workflow-controller.js","src/background/controllers/renewal-workflow-controller.js","src/background/controllers/workflow-emergency-reset-controller.js","src/background/repositories/renewal-state-repository.js","src/background/services/remote-delete-replacement-service.js","src/background/services/renewal-verification-flow.js","src/background/services/tab-registry.js","src/content/inventory-delete-operations.js","src/content/template-filler.js","src/content/template-publish-flow.js"]
+HAS_S06 = VERSION == '2.0.5.0'
+HAS_S05 = VERSION in ('2.0.4.0', '2.0.5.0')
+HAS_S04 = VERSION in ('2.0.3.0', '2.0.4.0', '2.0.5.0')
+HAS_S03 = VERSION in ('2.0.2.0', '2.0.3.0', '2.0.4.0', '2.0.5.0')
+HAS_S09 = VERSION in ('2.0.1.0', '2.0.2.0', '2.0.3.0', '2.0.4.0', '2.0.5.0')
 S09_ADDED = 'src/app/trash-retention-settings-controller.js'
 S09_PATHS = ["manifest.json","src/app/app-elements.js","src/app/app.css","src/app/app.html","src/app/app.js","src/app/inventory-card-renderer.js","src/app/inventory-formatting.js","src/app/inventory-view.js","src/app/record-card-view.js","src/app/renewal-dialog-controller.js","src/app/trash-card-renderer.js","src/app/trash-retention-settings-controller.js","src/background/background-message-router.js","src/background/background.js","src/background/repositories/inventory-repository.js","src/background/services/bulk-reconciliation-service.js","src/background/services/remote-delete-replacement-service.js","src/background/services/trash-service.js","src/shared/message-contract-registry.js"]
 
@@ -42,7 +46,7 @@ class BaselineRestore(unittest.TestCase):
         for row in TARGET['expected']:
             with self.subTest(path=row['path']):
                 path = ROOT / row['path']
-                self.assertIn(VERSION, ('2.0.0.0', '2.0.0.1', '2.0.1.0', '2.0.2.0', '2.0.3.0', '2.0.4.0'))
+                self.assertIn(VERSION, ('2.0.0.0', '2.0.0.1', '2.0.1.0', '2.0.2.0', '2.0.3.0', '2.0.4.0', '2.0.5.0'))
                 expected = row['sha']
                 if VERSION == '2.0.0.1' and row['path'] in HOTFIX:
                     before, after = HOTFIX[row['path']]
@@ -68,6 +72,10 @@ class BaselineRestore(unittest.TestCase):
                     expected = entry['after']
                 if HAS_S05 and row['path'] in S05_CHANGES:
                     entry = S05_CHANGES[row['path']]
+                    self.assertEqual(entry['before'], expected)
+                    expected = entry['after']
+                if HAS_S06 and row['path'] in S06_CHANGES:
+                    entry = S06_CHANGES[row['path']]
                     self.assertEqual(entry['before'], expected)
                     expected = entry['after']
                 self.assertTrue(path.is_file())
@@ -114,6 +122,18 @@ class BaselineRestore(unittest.TestCase):
             self.assertEqual(S05['removedRuntime'], [])
             self.assertTrue(set(S05_CHANGES) <= {row['path'] for row in TARGET['expected']})
 
+        if HAS_S06:
+            self.assertEqual(S06['version'], '2.0.5.0')
+            self.assertEqual(S06['issue'], 222)
+            self.assertEqual(S06['step'], 'S06')
+            self.assertEqual(S06['directBasis'], '2.0.4.0')
+            self.assertEqual(S06['sourceCommit'], '5d650e288ef2cea615f17717ebb1531b1cc4b4ae')
+            self.assertEqual(S06['archiveSha256'], 'b44c07e1dd19cef1ec5416ab86f621dc12822d22ac6dbd83d72821938c5350cd')
+            self.assertEqual(sorted(S06_CHANGES), S06_PATHS)
+            self.assertEqual(S06['addedRuntime'], [])
+            self.assertEqual(S06['removedRuntime'], [])
+            self.assertTrue(set(S06_CHANGES) <= {row['path'] for row in TARGET['expected']})
+
     def test_exact_package_and_active_js_scope(self):
         tree = ast.parse((ROOT / 'scripts/package.py').read_text(encoding='utf-8'))
         runtime = next(node for node in tree.body if isinstance(node, ast.Assign)
@@ -143,7 +163,7 @@ class BaselineRestore(unittest.TestCase):
         import product_version
         documents = {p: json.loads((ROOT / p).read_text(encoding='utf-8')) for p in product_version.META}
         self.assertEqual(TARGET['version'], '2.0.0.0')
-        self.assertIn(VERSION, ('2.0.0.0', '2.0.0.1', '2.0.1.0', '2.0.2.0', '2.0.3.0', '2.0.4.0'))
+        self.assertIn(VERSION, ('2.0.0.0', '2.0.0.1', '2.0.1.0', '2.0.2.0', '2.0.3.0', '2.0.4.0', '2.0.5.0'))
         self.assertEqual(product_version.validate_metadata(documents), VERSION)
         if VERSION == '2.0.0.1':
             self.assertEqual(documents['release/release-spec.json']['hotfix'], {"issue":212,"directBasis":"2.0.0.0","sourceCommit":"f659c85d704d641f07cdd5b1cb89de685c5f0a5d","archiveSha256":"cc9ec37d0e9bf3c7688438ad04e9df0983a71d54b0802833906d8580d5902839","runtimeBlob":"f75e6e9dfb1bb2491c8a7d9bd5932c53baf99998","manifestBlob":"a7376f5782888fac78d51c567cd7699e82705a2c"})
@@ -151,7 +171,7 @@ class BaselineRestore(unittest.TestCase):
             self.assertNotIn('hotfix', documents['release/release-spec.json'])
         if HAS_S09:
             self.assertEqual(documents['release/release-spec.json']['s09'], {"issue":214,"step":"S09","directBasis":"2.0.0.1","sourceCommit":"3457cc52fbd90515d47fa4a4c180fde6361b1f27","archiveSha256":"e4ec9da3cb6604e807b640169dd2df849a9a444eb95f268c627e835f8dfe1383"})
-            self.assertEqual(documents['release/release-spec.json']['directBasis'], '2.0.3.0' if HAS_S05 else '2.0.2.0' if HAS_S04 else '2.0.1.0' if HAS_S03 else '2.0.0.1')
+            self.assertEqual(documents['release/release-spec.json']['directBasis'], '2.0.4.0' if HAS_S06 else '2.0.3.0' if HAS_S05 else '2.0.2.0' if HAS_S04 else '2.0.1.0' if HAS_S03 else '2.0.0.1')
             if HAS_S03:
                 self.assertEqual(documents['release/release-spec.json']['s03'], {k:S03[k] for k in ('issue','step','directBasis','sourceCommit','archiveSha256')})
             else:
@@ -167,6 +187,11 @@ class BaselineRestore(unittest.TestCase):
             self.assertEqual(documents['release/release-spec.json']['s05'], {k:S05[k] for k in ('issue','step','directBasis','sourceCommit','archiveSha256')})
         else:
             self.assertNotIn('s05', documents['release/release-spec.json'])
+
+        if HAS_S06:
+            self.assertEqual(documents['release/release-spec.json']['s06'], {k:S06[k] for k in ('issue','step','directBasis','sourceCommit','archiveSha256')})
+        else:
+            self.assertNotIn('s06', documents['release/release-spec.json'])
 
 
 if __name__ == '__main__':
