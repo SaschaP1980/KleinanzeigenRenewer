@@ -1339,7 +1339,7 @@ function validateDispositions(root) {
   const read = rel => fs.readFileSync(file(rel));
   const json = rel => JSON.parse(read(rel));
   const version = execFileSync('python3',[file('scripts/product_version.py'),'--root',root],{encoding:'utf8'}).trim();
-  const {assertRestoredBaselineVersion,expectedRestoredBlob,expectedRestoredPackage,isS09Version,S09_SCOPE,isS03Version,S03_SCOPE,isS04Version,S04_SCOPE,isS06Version,S06_SCOPE}=require('./current-patch-policy.cjs');
+  const {assertRestoredBaselineVersion,expectedRestoredBlob,expectedRestoredPackage,isS09Version,S09_SCOPE,isS03Version,S03_SCOPE,isS04Version,S04_SCOPE,isS06Version,S06_SCOPE,isS07Version}=require('./current-patch-policy.cjs');
   assert.equal(assertRestoredBaselineVersion(root),version,'Only reviewed restored baseline or exact hotfix');
   const ledger=json(LEDGER);
   assert.equal(ledger.schema,2);
@@ -1417,7 +1417,12 @@ function validateDispositions(root) {
       assert.equal(target.expected.find(r=>r.path===e.module)?.sha,proof.baselineBlob,'Missing exact historical feature source');
       assert.equal(gitBlob(read(e.module)),expectedRestoredBlob(version,e.module,proof.baselineBlob),'Baseline capability source changed; re-evaluate disposition');
       assert.ok(packaged.includes(e.module)&&!target.absent.includes(e.module));
-      assert.ok(!read(e.module).toString().includes(proof.marker),'Deferred capability already present');
+      if(isS07Version(version)&&e.test==='tests/kar201-manual-standalone.cjs') {
+        // S07 implements the behavior independently of the donor's token/schema contracts.
+        assert.ok(read(e.module).toString().includes(proof.marker));
+        assert.ok(commands.includes('node --test tests/kar224-s07.cjs'));
+        assert.ok(ownerRefs.get('scripts/build.sh').has('tests/kar224-s07.cjs'));
+      } else assert.ok(!read(e.module).toString().includes(proof.marker),'Deferred capability already present');
       assert.match(proof.donorBlob,/^[a-f0-9]{40}$/);
       assert.equal(proof.donorCommit,'4d7ae5130730776927748e2517fdf9aadaf098cd');
     } else {
@@ -1450,8 +1455,13 @@ function validateDispositions(root) {
   const block=original.match(/test\('KAR-195 duplicate passive[\s\S]*?(?=\ntest\('KAR-195 P8 timing)/)?.[0];
   assert.ok(block && read(WITNESS).toString().endsWith(block),'Exact independent product witness lost');
   assert.ok(!safety.apis.some(api=>api.tests.includes(WITNESS)),'Safety-critical witness cannot be inactive');
-  for(const [owner,refs] of ownerRefs) assert.ok(!refs.has(WITNESS),'Deferred witness is still active: '+owner);
-  inactive.set(WITNESS,witness);
+  if(isS07Version(version)) {
+    assert.ok(commands.includes('node --test '+WITNESS),'S07 original recovery witness required');
+    assert.ok(ownerRefs.get('scripts/build.sh').has(WITNESS));
+  } else {
+    for(const [owner,refs] of ownerRefs) assert.ok(!refs.has(WITNESS),'Deferred witness is still active: '+owner);
+    inactive.set(WITNESS,witness);
+  }
   assert.deepEqual(ledger.scopeResetDeferred,SCOPE_RESET_DEFERRED,'Unreviewed post-baseline disposition');
   for(const e of ledger.scopeResetDeferred) {
     assert.equal(gitBlob(read(e.test)),e.blob,'Deferred RED evidence changed: '+e.test);
@@ -1471,6 +1481,7 @@ if(require.main===module) {
   assert.equal(process.argv.length,2,'Scope validator does not run or skip product tests');
   const inactive=validateDispositions(path.resolve(__dirname,'..'));
   const retired=[...inactive.values()].filter(e=>e.status==='retired-updater-S04').length;
-  console.log('PASS KAR-210 inactive suite scope: '+(inactive.size-14-retired)+' reviewed historical suites, 1 earlier and 13 post-baseline deferred witnesses, '+retired+' S04 retired updater tests; no product execution credit');
+  const coalescingActive=!inactive.has(WITNESS);
+  console.log('PASS KAR-210 inactive suite scope: '+(inactive.size-(coalescingActive?13:14)-retired)+' reviewed historical suites, '+(coalescingActive?0:1)+' earlier and 13 post-baseline deferred witnesses, '+retired+' S04 retired updater tests; no product execution credit');
 }
 module.exports={validateDispositions};

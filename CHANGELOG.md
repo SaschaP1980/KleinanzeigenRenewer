@@ -4,6 +4,12 @@ This is the canonical version-specific history for Kleinanzeigen Manager. Entrie
 
 All distinct historical section bodies from the former root README and CHANGELOG are preserved with source labels and line numbers. The [KAR-170 migration ledger](docs/maintenance/KAR170_CHANGELOG_MIGRATION.json) identifies their original Git blobs and body checksums. Overlapping versions retain distinct factual notes; older references to planned builds or native/CI acceptance are **historical**, not live status.
 
+## v2.0.6.0 — KAR-224 S07 ZIP and trash template reinsertion (Work source, full gates pending)
+
+- Bind existing publication detection for uniquely correlated submitted archive recovery without replay. Retain the original source and existing complete-template paths.
+- Optional-attribute-only partial review with verified category, title and images permits explicit owner consent and a trusted manual standalone publication; no automatic publication or inventory-success claim. Truthful review and target-loss UI.
+- Coalesce passive trash recovery reads and briefly cache only a verified empty response; explicit recovery and transport failures remain independently queryable. Historical deferred witness now GREEN, alongside 12 new focused tests (run 45985802579). No new runtime module, permissions or IPC message type. Full gates and separate native acceptance pending.
+
 ## v2.0.5.1 — KAR-222 Phase-4 pre-confirmation timeout (Work hotfix, full gates pending)
 
 - Native 2.0.5.0 Fast/Safe singles succeeded; Fast-3 completed two of three items. The remaining source was still present after the delete confirmation dialog did not appear.

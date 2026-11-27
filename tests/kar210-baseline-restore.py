@@ -29,12 +29,15 @@ S06_CHANGES = {row['path']: row for row in S06['runtimeChanges']}
 S06_PATHS = ["manifest.json","src/app/app.js","src/app/inventory-card-renderer.js","src/app/inventory-formatting.js","src/app/mass-renewal-ui-controller.js","src/app/renewal-dialog-controller.js","src/background/background.js","src/background/controllers/mass-renewal-controller.js","src/background/controllers/mass-renewal-workflow-controller.js","src/background/controllers/renewal-workflow-controller.js","src/background/controllers/workflow-emergency-reset-controller.js","src/background/repositories/renewal-state-repository.js","src/background/services/remote-delete-replacement-service.js","src/background/services/renewal-verification-flow.js","src/background/services/tab-registry.js","src/content/inventory-delete-operations.js","src/content/template-filler.js","src/content/template-publish-flow.js"]
 S06_HOTFIX = {"issue":222,"directBasis":"2.0.5.0","sourceCommit":"90b0999d5f4a2b3caa2c09d7cb5c30bff0edbd12","archiveSha256":"5155f5e3863291994318c54b2f1ec3765c4278de741df9cfe3ebdfba2740024f","fixCommit":"c43502ab6582a3b9ec9229864d2552194f02b8d1","runtimeChanges":[{"path":"manifest.json","before":"348fefe57b548c79ccabe72e5079592aeb34a865","after":"3631798c04bdfa1cc2f0a829f7a41f95e4c1906f"},{"path":"src/background/services/remote-delete-replacement-service.js","before":"f41490351e833568fe11e93f1e53e9765681aea6","after":"042d4c111b7ae32b997727c61bc5aafc32f53e63"},{"path":"src/content/inventory-delete-operations.js","before":"81f94ef16b015193700ed7b2de5edbe67d13c108","after":"c2571309116f2a8c3be6f3dd1d42cc644a1c38d3"}]}
 S06_HOTFIX_CHANGES = {row['path']: row for row in S06_HOTFIX['runtimeChanges']}
-HAS_S06_HOTFIX = VERSION == '2.0.5.1'
-HAS_S06 = VERSION in ('2.0.5.0', '2.0.5.1')
-HAS_S05 = VERSION in ('2.0.4.0', '2.0.5.0', '2.0.5.1')
-HAS_S04 = VERSION in ('2.0.3.0', '2.0.4.0', '2.0.5.0', '2.0.5.1')
-HAS_S03 = VERSION in ('2.0.2.0', '2.0.3.0', '2.0.4.0', '2.0.5.0', '2.0.5.1')
-HAS_S09 = VERSION in ('2.0.1.0', '2.0.2.0', '2.0.3.0', '2.0.4.0', '2.0.5.0', '2.0.5.1')
+S07 = {"issue":224,"directBasis":"2.0.5.1","sourceCommit":"6b1e8442c88791b87b826101a66d44fc8053ae09","archiveSha256":"91cd8e6b9219daac26560c5d78ba260d62a34b062b52245a51e451ff81f05f10","fixCommit":"d513b1fe6085799850cd434219f7f5892181c470","runtimeChanges":[{"path":"manifest.json","before":"3631798c04bdfa1cc2f0a829f7a41f95e4c1906f","after":"913d19148f2012a412161e9873b1ff2addd78a95"},{"path":"src/app/archive-insertion-ui-controller.js","before":"08688155593fff5fadf7ea4add280909b7724bac","after":"3c40e94a7763ccc0b6aa74da4ca116df5692163f"},{"path":"src/app/trash-template-ui-controller.js","before":"d8a1858f647e893c02d2bddc94b8bc48fa164677","after":"74762e2da0069716883d084afb959518f6a808ad"},{"path":"src/background/controllers/template-fill-controller.js","before":"cea111834e279b8a3cd6b6e1bfbcc65975a2d97e","after":"c5df136f528117ee10e5a74501c1e3143a01b6ad"},{"path":"src/background/services/archive-insertion-recovery-service.js","before":"5b1e64993f0039465d05da8bdfae44844903ac30","after":"234dbffe0d0f1c4586b15b08f01ac81359399657"},{"path":"src/background/services/template-fill-service.js","before":"50425d9923131ff17ddfb5075c1cab87cb1c8e37","after":"df41d6cb7837fe8153c22043233430580611f894"},{"path":"src/content/template-filler.js","before":"0ff704a8f14a8b700a0de7d62ebe42327cc8ec50","after":"1281e2c514cc7a412bbd5f6fca45d0454cd2d445"},{"path":"src/content/template-publish-flow.js","before":"f4dd2a6b7b0965d8d5a2e28039a40350df9e958b","after":"4b0a100e546113624339c28f762f6d979e896825"}]}
+S07_CHANGES = {row['path']: row for row in S07['runtimeChanges']}
+HAS_S07 = VERSION == '2.0.6.0'
+HAS_S06_HOTFIX = VERSION in ('2.0.5.1', '2.0.6.0')
+HAS_S06 = VERSION in ('2.0.5.0', '2.0.5.1', '2.0.6.0')
+HAS_S05 = VERSION in ('2.0.4.0', '2.0.5.0', '2.0.5.1', '2.0.6.0')
+HAS_S04 = VERSION in ('2.0.3.0', '2.0.4.0', '2.0.5.0', '2.0.5.1', '2.0.6.0')
+HAS_S03 = VERSION in ('2.0.2.0', '2.0.3.0', '2.0.4.0', '2.0.5.0', '2.0.5.1', '2.0.6.0')
+HAS_S09 = VERSION in ('2.0.1.0', '2.0.2.0', '2.0.3.0', '2.0.4.0', '2.0.5.0', '2.0.5.1', '2.0.6.0')
 S09_ADDED = 'src/app/trash-retention-settings-controller.js'
 S09_PATHS = ["manifest.json","src/app/app-elements.js","src/app/app.css","src/app/app.html","src/app/app.js","src/app/inventory-card-renderer.js","src/app/inventory-formatting.js","src/app/inventory-view.js","src/app/record-card-view.js","src/app/renewal-dialog-controller.js","src/app/trash-card-renderer.js","src/app/trash-retention-settings-controller.js","src/background/background-message-router.js","src/background/background.js","src/background/repositories/inventory-repository.js","src/background/services/bulk-reconciliation-service.js","src/background/services/remote-delete-replacement-service.js","src/background/services/trash-service.js","src/shared/message-contract-registry.js"]
 
@@ -49,7 +52,7 @@ class BaselineRestore(unittest.TestCase):
         for row in TARGET['expected']:
             with self.subTest(path=row['path']):
                 path = ROOT / row['path']
-                self.assertIn(VERSION, ('2.0.0.0', '2.0.0.1', '2.0.1.0', '2.0.2.0', '2.0.3.0', '2.0.4.0', '2.0.5.0', '2.0.5.1'))
+                self.assertIn(VERSION, ('2.0.0.0', '2.0.0.1', '2.0.1.0', '2.0.2.0', '2.0.3.0', '2.0.4.0', '2.0.5.0', '2.0.5.1', '2.0.6.0'))
                 expected = row['sha']
                 if VERSION == '2.0.0.1' and row['path'] in HOTFIX:
                     before, after = HOTFIX[row['path']]
@@ -83,6 +86,10 @@ class BaselineRestore(unittest.TestCase):
                     expected = entry['after']
                 if HAS_S06_HOTFIX and row['path'] in S06_HOTFIX_CHANGES:
                     entry = S06_HOTFIX_CHANGES[row['path']]
+                    self.assertEqual(entry['before'], expected)
+                    expected = entry['after']
+                if HAS_S07 and row['path'] in S07_CHANGES:
+                    entry = S07_CHANGES[row['path']]
                     self.assertEqual(entry['before'], expected)
                     expected = entry['after']
                 self.assertTrue(path.is_file())
@@ -145,6 +152,10 @@ class BaselineRestore(unittest.TestCase):
             self.assertEqual(sorted(S06_HOTFIX_CHANGES), ['manifest.json','src/background/services/remote-delete-replacement-service.js','src/content/inventory-delete-operations.js'])
             self.assertTrue(set(S06_HOTFIX_CHANGES) <= set(S06_CHANGES))
 
+        if HAS_S07:
+            self.assertEqual(sorted(S07_CHANGES), ["manifest.json","src/app/archive-insertion-ui-controller.js","src/app/trash-template-ui-controller.js","src/background/controllers/template-fill-controller.js","src/background/services/archive-insertion-recovery-service.js","src/background/services/template-fill-service.js","src/content/template-filler.js","src/content/template-publish-flow.js"])
+            self.assertTrue(set(S07_CHANGES) <= {row['path'] for row in TARGET['expected']})
+
     def test_exact_package_and_active_js_scope(self):
         tree = ast.parse((ROOT / 'scripts/package.py').read_text(encoding='utf-8'))
         runtime = next(node for node in tree.body if isinstance(node, ast.Assign)
@@ -174,7 +185,7 @@ class BaselineRestore(unittest.TestCase):
         import product_version
         documents = {p: json.loads((ROOT / p).read_text(encoding='utf-8')) for p in product_version.META}
         self.assertEqual(TARGET['version'], '2.0.0.0')
-        self.assertIn(VERSION, ('2.0.0.0', '2.0.0.1', '2.0.1.0', '2.0.2.0', '2.0.3.0', '2.0.4.0', '2.0.5.0', '2.0.5.1'))
+        self.assertIn(VERSION, ('2.0.0.0', '2.0.0.1', '2.0.1.0', '2.0.2.0', '2.0.3.0', '2.0.4.0', '2.0.5.0', '2.0.5.1', '2.0.6.0'))
         self.assertEqual(product_version.validate_metadata(documents), VERSION)
         if VERSION == '2.0.0.1':
             self.assertEqual(documents['release/release-spec.json']['hotfix'], {"issue":212,"directBasis":"2.0.0.0","sourceCommit":"f659c85d704d641f07cdd5b1cb89de685c5f0a5d","archiveSha256":"cc9ec37d0e9bf3c7688438ad04e9df0983a71d54b0802833906d8580d5902839","runtimeBlob":"f75e6e9dfb1bb2491c8a7d9bd5932c53baf99998","manifestBlob":"a7376f5782888fac78d51c567cd7699e82705a2c"})
@@ -182,7 +193,7 @@ class BaselineRestore(unittest.TestCase):
             self.assertNotIn('hotfix', documents['release/release-spec.json'])
         if HAS_S09:
             self.assertEqual(documents['release/release-spec.json']['s09'], {"issue":214,"step":"S09","directBasis":"2.0.0.1","sourceCommit":"3457cc52fbd90515d47fa4a4c180fde6361b1f27","archiveSha256":"e4ec9da3cb6604e807b640169dd2df849a9a444eb95f268c627e835f8dfe1383"})
-            self.assertEqual(documents['release/release-spec.json']['directBasis'], '2.0.5.0' if HAS_S06_HOTFIX else '2.0.4.0' if HAS_S06 else '2.0.3.0' if HAS_S05 else '2.0.2.0' if HAS_S04 else '2.0.1.0' if HAS_S03 else '2.0.0.1')
+            self.assertEqual(documents['release/release-spec.json']['directBasis'], '2.0.5.1' if HAS_S07 else '2.0.5.0' if HAS_S06_HOTFIX else '2.0.4.0' if HAS_S06 else '2.0.3.0' if HAS_S05 else '2.0.2.0' if HAS_S04 else '2.0.1.0' if HAS_S03 else '2.0.0.1')
             if HAS_S03:
                 self.assertEqual(documents['release/release-spec.json']['s03'], {k:S03[k] for k in ('issue','step','directBasis','sourceCommit','archiveSha256')})
             else:
@@ -207,6 +218,10 @@ class BaselineRestore(unittest.TestCase):
             self.assertEqual(documents['release/release-spec.json']['s06Hotfix'], S06_HOTFIX)
         else:
             self.assertNotIn('s06Hotfix', documents['release/release-spec.json'])
+        if HAS_S07:
+            self.assertEqual(documents['release/release-spec.json']['s07'], S07)
+        else:
+            self.assertNotIn('s07', documents['release/release-spec.json'])
 
 
 if __name__ == '__main__':

@@ -1,11 +1,11 @@
 {
-  "version": "2.0.5.1",
+  "version": "2.0.6.0",
   "project": "kleinanzeigen Manager / Kleinanzeigen Renewal",
-  "epic": "KAR-208 / KAR-222 S06 renewal reliability and performance",
+  "epic": "KAR-208 / KAR-224 S07 ZIP and trash template reinsertion, manual review and inventory integration",
   "goldBaseline": "1.21.15",
-  "directBasis": "2.0.5.0",
-  "directBasisNativeGreen": false,
-  "directBasisObservation": "2.0.5.0 exact Work PR CI 3/3 GREEN, Chromium 9/9; owner native Fast/Safe singles passed, Fast-3 2/3 (source remains after missing final confirmation). Full native acceptance not achieved.",
+  "directBasis": "2.0.5.1",
+  "directBasisNativeGreen": true,
+  "directBasisObservation": "2.0.5.1 owner acceptance and exact Work PR CI 3/3 GREEN, Chromium 9/9; native Fast-3 3/3 in 66.271 s, 0 warnings/errors. Known D2/four-tab and unexercised timeout limitations retained; no S07 native acceptance or matched S12 acceptance implied.",
   "scope": [
     "Restore v1.23.48 historical runtime, retaining KAR-174 UI path layout and current development tooling.",
     "Version identity 2.0.0.0, npm 2.0.0; preserve extension key, historical releases and Git ancestry.",
@@ -17,7 +17,8 @@
     "KAR-217 S04: remove inherited updater UI, native messaging permission, runtime modules, message route and online update channel read; preserve historical blobs and retire only reviewed updater-specific tests; retain S03/S09, all applicable quality and safety gates.",
     "KAR-220 S05: retain existing category and form handling. Recover substantive display-only attributes only through unique associated actual controls and exact native readback; use uniquely exposed linked technical option IDs; preserve empty status and report real ambiguity. No schema monitoring/reference management or extra scans.",
     "KAR-222 S06: approved recovery and no-blind-replay corrections, same-document publication idempotence, exact returned IDs, local discard, reduced duplicate roster parsing and local TabRegistry metadata serialization. No updater, persistent journal, added remote calls or D2/S07 expansion.",
-    "KAR-222 hotfix: permit bounded fresh Phase-4 retry only for explicit same-request pre-confirmation timeout, exact source ID, negative outcome flags and retired worker; preserve no replay on uncertain transport and independent absence before promotion."
+    "KAR-222 hotfix: permit bounded fresh Phase-4 retry only for explicit same-request pre-confirmation timeout, exact source ID, negative outcome flags and retired worker; preserve no replay on uncertain transport and independent absence before promotion.",
+    "KAR-224 S07: retain complete ZIP/trash and existing attribute transfer; recover correlated already-submitted archives without publication replay; allow explicit owner-reviewed optional-attribute-only partial standalone publication without managed success or automatic inventory integration; coalesce passive trash recovery. No added runtime module, permissions or updater."
   ],
   "nextPlannedBuild": "TBD",
   "nextPlannedBuildGoal": "Determined by separately authorized open GitHub Issues.",
@@ -40,7 +41,7 @@
       "percent": null
     }
   },
-  "releaseSummary": "2.0.5.1 Work hotfix: exact pre-confirmation timeout retry boundary, full gates and native re-test pending; no merge or release.",
+  "releaseSummary": "2.0.6.0 Work source: submitted ZIP read-only recovery, explicit manual standalone release, passive trash recovery coalescing; full gates and native acceptance pending.",
   "architectureHighlights": [
     "Historical product safeguards and runtime behavior are primary; only explicit path/layout and version metadata changes in this restore slice.",
     "Current development gates and test files retained; reconcile later feature/updater-dependent assertions without weakening retained product behavior.",
@@ -53,8 +54,8 @@
     "S09: synthetic-only retention and IndexedDB fixtures until S03 data compatibility and S04 updater removal are accepted.",
     "S03: isolated migration and rollback using exact committed package; real migration requires S04 and separate owner authorization."
   ],
-  "packageVersion": "2.0.5.1",
-  "directBasisNativePending": true,
+  "packageVersion": "2.0.6.0",
+  "directBasisNativePending": false,
   "architectureFiles": [
     {
       "key": "appElements",
@@ -271,7 +272,7 @@
       "averageSeconds": 33.111
     }
   },
-  "directBasisNativeRed": true,
+  "directBasisNativeRed": false,
   "performanceGoldlines": [
     {
       "label": "bestehende Referenzmessung",
@@ -426,7 +427,7 @@
       }
     }
   },
-  "validationStatus": "S06_HOTFIX_GATES_PENDING",
+  "validationStatus": "S07_GATES_PENDING",
   "s09": {
     "issue": 214,
     "step": "S09",
@@ -483,6 +484,55 @@
         "path": "src/content/inventory-delete-operations.js",
         "before": "81f94ef16b015193700ed7b2de5edbe67d13c108",
         "after": "c2571309116f2a8c3be6f3dd1d42cc644a1c38d3"
+      }
+    ]
+  },
+  "s07": {
+    "issue": 224,
+    "directBasis": "2.0.5.1",
+    "sourceCommit": "6b1e8442c88791b87b826101a66d44fc8053ae09",
+    "archiveSha256": "91cd8e6b9219daac26560c5d78ba260d62a34b062b52245a51e451ff81f05f10",
+    "fixCommit": "d513b1fe6085799850cd434219f7f5892181c470",
+    "runtimeChanges": [
+      {
+        "path": "manifest.json",
+        "before": "3631798c04bdfa1cc2f0a829f7a41f95e4c1906f",
+        "after": "913d19148f2012a412161e9873b1ff2addd78a95"
+      },
+      {
+        "path": "src/app/archive-insertion-ui-controller.js",
+        "before": "08688155593fff5fadf7ea4add280909b7724bac",
+        "after": "3c40e94a7763ccc0b6aa74da4ca116df5692163f"
+      },
+      {
+        "path": "src/app/trash-template-ui-controller.js",
+        "before": "d8a1858f647e893c02d2bddc94b8bc48fa164677",
+        "after": "74762e2da0069716883d084afb959518f6a808ad"
+      },
+      {
+        "path": "src/background/controllers/template-fill-controller.js",
+        "before": "cea111834e279b8a3cd6b6e1bfbcc65975a2d97e",
+        "after": "c5df136f528117ee10e5a74501c1e3143a01b6ad"
+      },
+      {
+        "path": "src/background/services/archive-insertion-recovery-service.js",
+        "before": "5b1e64993f0039465d05da8bdfae44844903ac30",
+        "after": "234dbffe0d0f1c4586b15b08f01ac81359399657"
+      },
+      {
+        "path": "src/background/services/template-fill-service.js",
+        "before": "50425d9923131ff17ddfb5075c1cab87cb1c8e37",
+        "after": "df41d6cb7837fe8153c22043233430580611f894"
+      },
+      {
+        "path": "src/content/template-filler.js",
+        "before": "0ff704a8f14a8b700a0de7d62ebe42327cc8ec50",
+        "after": "1281e2c514cc7a412bbd5f6fca45d0454cd2d445"
+      },
+      {
+        "path": "src/content/template-publish-flow.js",
+        "before": "f4dd2a6b7b0965d8d5a2e28039a40350df9e958b",
+        "after": "4b0a100e546113624339c28f762f6d979e896825"
       }
     ]
   }
