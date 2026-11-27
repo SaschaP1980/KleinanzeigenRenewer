@@ -125,7 +125,7 @@ for(const [name,opts,mutation,expected] of [
       advanceAfterVerifiedFill:async s=>{advances.push(s);return {}}
     };
     if(source.includes('function manualReviewEvidence(')) {
-      const a=source.indexOf('  function manualReviewEvidence('), b=source.indexOf('  async function runFillSession(',a);
+      const a=source.indexOf('  function manualReviewEvidence('), b=source.indexOf('  async function runPostFillSession(',a);
       assert.ok(a>=0&&b>a);context.armPublishDetection=()=>true;
       Object.assign(context,vm.runInNewContext(source.slice(a,b)+'\n({manualReviewEvidence,offerManualReview});',context));
     }

@@ -32,7 +32,7 @@ test('actual fill runner transfers all 11 image records in order and never advan
     const ctx={document,updatePanel(){},diagnostic(){},runtimeMessage:async m=>{messages.push(clone(m));},waitFor:async f=>f(),ensureStableTitleValue:async()=>form,setCategory:async()=>({confirmed:true}),resolveActivePostingForm:()=>form,paidInsertionDetection:()=>({required:false}),chooseRadio:()=>true,fillDynamicAttributes:async()=>[],fillShipping:async()=>[],fillBuyNow:async()=>[],setTextField:(e,v)=>{e.value=v;},settleAfterInteraction:async()=>{},fillPriceType:async()=>[],fillLocation:async()=>[],uploadImages:async(_id,t)=>{uploads.push(t.images.map(x=>x.imageKey));return {complete:!opts.imageIncomplete,issues:opts.imageIncomplete?['Image incomplete']:[],states:[]};},verifyArchiveTemplate:verifier.verifyArchiveTemplate,verify:verifier.verify,advanceAfterVerifiedFill:async s=>{advances.push(clone(s));return {awaitingPublish:true};}};
     const source=fs.readFileSync(require.resolve('../src/content/template-filler.js'),'utf8');
     if(source.includes('function manualReviewEvidence(')) {
-      const a=source.indexOf('  function manualReviewEvidence('), b=source.indexOf('  async function runFillSession(',a);
+      const a=source.indexOf('  function manualReviewEvidence('), b=source.indexOf('  async function runPostFillSession(',a);
       assert.ok(a>=0&&b>a);ctx.armPublishDetection=()=>true;
       Object.assign(ctx,vm.runInNewContext(source.slice(a,b)+'\n({manualReviewEvidence,offerManualReview});',ctx));
     }
