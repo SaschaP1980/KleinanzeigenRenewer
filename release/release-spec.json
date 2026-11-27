@@ -5,7 +5,7 @@
   "goldBaseline": "1.21.15",
   "directBasis": "2.0.4.0",
   "directBasisNativeGreen": false,
-  "directBasisObservation": "S05 exact Work CI 3/3 GREEN and owner acceptance with documented native limitations. Full native S06 and matching performance acceptance pending.",
+  "directBasisObservation": "S05 2.0.4.0 exact Work CI 3/3 GREEN and owner acceptance with documented native limitations. Full native S06 and matching performance acceptance pending.",
   "scope": [
     "Restore v1.23.48 historical runtime, retaining KAR-174 UI path layout and current development tooling.",
     "Version identity 2.0.0.0, npm 2.0.0; preserve extension key, historical releases and Git ancestry.",
