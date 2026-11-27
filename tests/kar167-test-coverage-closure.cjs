@@ -121,7 +121,26 @@ for (const addition of additions) {
   const verifiedHistoricalHelper = Boolean(reviewedOwners && reviewedOwners.every(testPath =>
     [...referencedByOwner.values()].some(set => set.has(testPath)) &&
     read(testPath).includes("require('./"+path.basename(addition)+"')")));
-  assert.ok(directlyInvoked || verifiedPhase4Helper || verifiedHistoricalHelper || inactive.has(addition),
+  // KAR-222 S06: one exact mixed witness is invoked through the mandatory
+  // selected-case gate. Require its immutable reviewed source, both live owners
+  // and a fresh execution of the gate; never grant arbitrary indirect tests credit.
+  let verifiedS06MixedWitness = false;
+  const policy = require('./current-patch-policy.cjs');
+  if (addition === 'tests/kar222-publication-identity-witness.cjs' &&
+      policy.isS06Version(policy.assertRestoredBaselineVersion(root))) {
+    const wrapper = 'tests/kar222-focused-gate.cjs';
+    const entry = policy.S06_SCOPE.partialTests.find(e => e.path === addition);
+    assert.ok(entry && entry.total === 21 && entry.deferred.length === 2);
+    assert.equal(gitBlobSha(addition), entry.blob, 'S06 exact mixed witness source changed');
+    assert.ok(referencedByOwner.get('npm test / npm run test:e2e').has(wrapper));
+    assert.ok(referencedByOwner.get('scripts/build.sh core tests').has(wrapper));
+    const output = require('node:child_process').execFileSync(process.execPath, [full(wrapper)],
+      {cwd:root,encoding:'utf8',timeout:120000});
+    assert.ok(output.includes('PASS S06 active partial witness gate; exactly four explicitly deferred cases, no PASS credit for them'));
+    for (const d of entry.deferred) assert.ok(output.includes('DEFERRED (not PASS) '+d.step+' '+d.name+'; verified RED run '+d.redRun));
+    verifiedS06MixedWitness = true;
+  }
+  assert.ok(directlyInvoked || verifiedPhase4Helper || verifiedHistoricalHelper || verifiedS06MixedWitness || inactive.has(addition),
     'Unregistered new executable test/fixture with no top-level invocation: ' + addition);
 }
 for (const paths of referencedByOwner.values()) for (const p of paths) {

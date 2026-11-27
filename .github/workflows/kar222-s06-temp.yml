@@ -2,7 +2,7 @@ name: KAR-222 S06 source contract audit
 on:
   push:
     branches: [work/KAR-222]
-    paths: ['tests/kar222-focused-gate.cjs','.github/workflows/kar222-s06-temp.yml','tests/current-patch-policy.cjs','docs/maintenance/KAR222_SUCCESSOR_SCOPE.json','manifest.json']
+    paths: ['tests/kar167-test-coverage-closure.cjs','tests/kar222-focused-gate.cjs','.github/workflows/kar222-s06-temp.yml','tests/current-patch-policy.cjs','docs/maintenance/KAR222_SUCCESSOR_SCOPE.json','manifest.json']
 permissions:
   contents: read
 jobs:
