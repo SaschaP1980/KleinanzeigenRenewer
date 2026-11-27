@@ -33,7 +33,7 @@ test('KAR222 transport: read-only recovery retains its bootstrap retry',async()=
     assert.equal(f.bootstraps(),1);
   }
 });
-function fixture({prior={},outcome='normal',proofs=[true],max=3,preflightFailure=false,resetAfterProof=false}={}){
+function fixture({prior={},outcome='normal',proofs=[true],max=3,preflightFailure=false,resetAfterProof=false,closeFailure=false}={}){
   const row={renewalId:'r',sourceInventoryId:'old',skeletonInventoryId:'new',sourceAdId:'100',newAdId:'200',status:'verified',stage:'replacement-ready',renewalMode:'fast',...prior};
   const sent=[],workers=[],closed=[],persisted=[],logs=[];
   let attempts=0,deleteCount=0,proofCount=0,promotions=0,proven=false,failedPreflight=false;
@@ -53,7 +53,7 @@ function fixture({prior={},outcome='normal',proofs=[true],max=3,preflightFailure
     logRenewalPhaseAttemptFailed:async()=>{},isNonRetryableRenewalSafetyError:e=>e===resetError,
     logDiagnostic:async(...a)=>logs.push(a),sessionCorrelationContext:()=>({}),correlationContext:()=>({}),
     createManagedWorkerTab:async(_opts,kind)=>{const id=1000+workers.length;workers.push({id,kind});return{id};},
-    waitForTabComplete:async()=>{},ensureContentConnection:async()=>{},closeManagedWorkerTab:async id=>closed.push(id),
+    waitForTabComplete:async()=>{},ensureContentConnection:async()=>{},closeManagedWorkerTab:async id=>{closed.push(id);return closeFailure?null:{closed:true,alreadyGone:false};},
     isPhase4DeleteTransportInterruption:classify,
     sendTabRequestWithBootstrap:async(id,m)=>{
       const kind=workers.find(w=>w.id===id).kind;sent.push({id,type:m.type,adId:m.adId,kind});
@@ -63,6 +63,7 @@ function fixture({prior={},outcome='normal',proofs=[true],max=3,preflightFailure
       }
       if(m.type==='DELETE_OWN_AD_BY_ID'){
         assert.equal(kind,'renewal-phase4-delete');assert.equal(m.adId,'100');deleteCount++;
+        if(typeof outcome==='function')return outcome(deleteCount);
         if(outcome==='closed')throw Error(closedPort);
         if(outcome==='bfcache')throw Error(bfcache);
         if(outcome==='other')throw Error('HTTP 403');
@@ -147,4 +148,46 @@ test('KAR222 reset after proof rejects before promotion; proof may not survive f
   const f=fixture({resetAfterProof:true});await unresolved(f);
   assert.equal(f.stats().deleteCount,1);
   assert.equal(f.stats().proofCount,1);
+});
+
+const timeoutResult=(patch={})=>({adId:'100',deleted:false,actionTriggered:false,confirmed:false,outcome:'confirmation-not-triggered',reason:'dialog-timeout',page:1,pagesScanned:1,...patch});
+test('2.0.5.1 actual content: missing dialog returns exact no-confirmation outcome, one opener and zero final clicks',async()=>{
+ let clock=0,opens=0,finals=0;const logs=[];
+ const button={textContent:'Löschen',tagName:'BUTTON',querySelector:()=>null,click(){opens++;}};
+ const listing={adId:'100',root:{getAttribute:()=> '100',querySelectorAll:()=>[button]}};
+ const ctx=vm.createContext({console,Date:{now:()=>clock},document:{querySelectorAll:()=>[]},location:{href:'https://www.kleinanzeigen.de/m-meine-anzeigen.html?tab=PROJECTS'},KRDeps:{register(_n,api){ctx.Ops=api;}}});
+ vm.runInContext(fs.readFileSync('src/content/inventory-delete-operations.js','utf8'),ctx);
+ const api=ctx.Ops.create({MAX_PHASE4_PAGES:2,sleep:async ms=>{clock+=ms;},normalize:s=>String(s||''),normalizeKey:s=>String(s||'').trim().toLowerCase(),diagnostic:(...a)=>logs.push(a),isMyAdsProjectsUrl:()=>true,scanListings:()=>[listing],currentPageNumber:()=>1,pageFingerprint:()=> 'fixture-page',nextPageButton:()=>null,isDisabledControl:n=>!n,waitForPageChange:async()=>true,waitForListings:async()=>[listing],parseOnlineCount:()=>({online:1}),detectedProfileName:()=>'Owner'});
+ const result=await api.deleteOwnAdById('100');
+ assert.equal(result.outcome,'confirmation-not-triggered');assert.equal(result.reason,'dialog-timeout');assert.equal(result.adId,'100');assert.equal(result.confirmed,false);assert.equal(result.actionTriggered,false);assert.equal(result.deleted,false);
+ assert.equal(opens,1);assert.equal(finals,0);assert.ok(clock>=5000&&clock<5200);
+ assert.ok(logs.some(a=>a[0]==='RENEWAL_SOURCE_DELETE_DIALOG_TIMEOUT'));
+});
+test('2.0.5.1 missing dialog: fresh second DELETE then independent proof, no extra publish',async()=>{
+ const f=fixture({outcome:n=>n===1?timeoutResult():{actionTriggered:true},proofs:[true]});
+ await reachesPromotion(f);
+ assert.deepEqual(f.stats(),{attempts:2,deleteCount:2,proofCount:1,promotions:1});
+ assert.deepEqual(f.sent.map(m=>m.type),['MY_ADS_STATUS','DELETE_OWN_AD_BY_ID','MY_ADS_STATUS','DELETE_OWN_AD_BY_ID','MY_ADS_STATUS','VERIFY_OWN_AD_ABSENT_BY_ID']);
+ assert.equal(new Set(f.workers.map(w=>w.id)).size,3);
+ assert.ok(f.persisted[0].sourceDeleteVerificationPendingAt);
+});
+test('2.0.5.1 all three explicit dialog timeouts: bounded retries, no promotion, no uncertain delete marker at exhaustion',async()=>{
+ const f=fixture({outcome:()=>timeoutResult(),proofs:[false]});await unresolved(f);
+ assert.deepEqual(f.stats(),{attempts:3,deleteCount:3,proofCount:0,promotions:0});
+ assert.equal(f.row.stage,'replacement-ready');assert.equal(f.row.sourceDeleteVerificationPendingAt,undefined);
+ assert.ok(!f.row.sourceDeleteAction);assert.ok(!f.row.sourceDeleteTransportInterrupted);
+});
+test('2.0.5.1 wrong ID, contradictory flags, missing reason, legacy text errors or unclosed worker never authorize replay',async()=>{
+ for(const patch of [{adId:'999'},{confirmed:true},{actionTriggered:true},{deleted:true},{reason:undefined},{outcome:undefined}]){
+   const f=fixture({outcome:()=>timeoutResult(patch),proofs:[false]});await unresolved(f);
+   assert.equal(f.stats().deleteCount,1);assert.ok(f.row.sourceDeleteVerificationPendingAt);
+ }
+ const old=fixture({outcome:()=>{throw Error('Nach dem Löschklick erschien keine eindeutige Löschbestätigung; Abbruch aus Sicherheitsgründen.');},proofs:[false]});await unresolved(old);assert.equal(old.stats().deleteCount,1);
+ const close=fixture({outcome:()=>timeoutResult(),proofs:[false],closeFailure:true});await unresolved(close);assert.equal(close.stats().deleteCount,1);assert.ok(close.row.sourceDeleteVerificationPendingAt);
+});
+test('2.0.5.1 timeout then lost response: third attempt read-only; persisted prior ambiguity cannot become a fresh delete',async()=>{
+ const f=fixture({outcome:n=>{if(n===1)return timeoutResult();throw Error(closedPort);},proofs:[false]});await unresolved(f);
+ assert.deepEqual(f.stats(),{attempts:3,deleteCount:2,proofCount:2,promotions:0});assert.ok(f.row.sourceDeleteVerificationPendingAt);
+ const resumed=fixture({prior:{sourceDeleteVerificationPendingAt:'2026-11-27T06:28:08Z'},outcome:()=>timeoutResult(),proofs:[false]});
+ await unresolved(resumed);assert.equal(resumed.stats().deleteCount,0);
 });

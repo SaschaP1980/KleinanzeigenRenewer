@@ -1,0 +1,21 @@
+name: KAR-222 hotfix confirmation boundary (temporary)
+on:
+  push:
+    branches: [work/KAR-222]
+    paths: ['tests/kar222-delete-no-replay.cjs','src/content/inventory-delete-operations.js','src/background/services/remote-delete-replacement-service.js','.github/workflows/kar222-hotfix-temp.yml']
+permissions:
+  contents: read
+jobs:
+  focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: |
+          node --check tests/kar222-delete-no-replay.cjs
+          node tests/kar222-delete-no-replay.cjs
