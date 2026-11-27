@@ -1,0 +1,15 @@
+name: KAR-224 hotfix focused audit
+on:
+  push:
+    branches: [work/KAR-224]
+permissions:
+  contents: read
+jobs:
+  focused:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test tests/kar224-known-capture.cjs
