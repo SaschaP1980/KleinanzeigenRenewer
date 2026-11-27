@@ -124,6 +124,11 @@ for(const [name,opts,mutation,expected] of [
       verifyArchiveTemplate:f.verifier.verifyArchiveTemplate,verify:f.verifier.verify,
       advanceAfterVerifiedFill:async s=>{advances.push(s);return {}}
     };
+    if(source.includes('function manualReviewEvidence(')) {
+      const a=source.indexOf('  function manualReviewEvidence('), b=source.indexOf('  async function runFillSession(',a);
+      assert.ok(a>=0&&b>a);context.armPublishDetection=()=>true;
+      Object.assign(context,vm.runInNewContext(source.slice(a,b)+'\n({manualReviewEvidence,offerManualReview});',context));
+    }
     const run=vm.runInNewContext(source.slice(start,end)+'\nrunFillSession;',context);
     const result=await run({fillId:'fixture',renewalId:'renewal',archiveInsertionId:name==='archive insertion'?'archive':null,template:t});
     assert.equal(result.complete,expected);assert.equal(advances.length,expected?1:0);
