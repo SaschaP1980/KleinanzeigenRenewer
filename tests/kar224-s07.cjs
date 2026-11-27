@@ -66,3 +66,48 @@ test('manual standalone approval denies missing review, wrong tab/account, concu
  }
  const f=fixture();await assert.rejects(f.approve({ownerReviewed:false}));await assert.rejects(f.approve({}, {tab:{id:43},url:f.sender.url}));await assert.rejects(f.approve({}, {tab:{id:42},url:'https://example.test/'}));assert.deepEqual(f.calls,[]);
 });
+
+function partialFixture(options={}){
+ const template={title:'T',categoryId:'246',images:[{imageKey:'1'}],dynamicAttributes:[{key:'dekoration.color',label:'Farbe',required:options.required===true}]};
+ const session={fillId:'f',archiveInsertionId:options.trash?null:'a',templateOnly:!!options.trash,renewalId:options.renewal?'r':null,template};
+ const form={querySelector:s=>({value:s.includes('categoryId')?(options.wrongCategory?'405':'246'):options.wrongTitle?'X':'T'}),querySelectorAll:()=>Array.from({length:options.missingImage?0:1},()=>({}))};
+ const issues=options.otherIssue?['Beschreibung stimmt nicht mit der Vorlage überein.']:['Merkmal „Farbe“ stimmt nicht mit der Vorlage überein.'];
+ const messages=[],modes=[],panels=[];let consent=true;
+ const source=read('src/content/template-filler.js'),a=source.indexOf('  function manualReviewEvidence('),b=source.indexOf('  async function runPostFillSession(',a);assert.ok(a>=0&&b>a);
+ const ctx={pageKind:()=> 'target',resolveActivePostingForm:()=>form,paidInsertionDetection:()=>({required:!!options.paid}),armPublishDetection:(_id,mode)=>{modes.push(mode);return true},updatePanel:(...args)=>panels.push(args),window:{confirm:()=>consent},runtimeMessage:async msg=>{messages.push(msg);return {manualDetached:true,autoPublishAllowed:false}}};
+ const api=vm.runInNewContext(source.slice(a,b)+'\n({manualReviewEvidence,offerManualReview});',ctx);
+ return {template,session,form,issues,api,messages,modes,panels,deny:()=>{consent=false},evidence:()=>api.manualReviewEvidence(session,template,form,issues,!options.imageIncomplete)};
+}
+test('partial review offered only for optional attribute-only mismatches and confirmed category/title/images',()=>{
+ for(const trash of [false,true]){
+ const f=partialFixture({trash});const e=f.evidence();assert.equal(e.manualStandaloneReviewEligible,true);assert.equal(e.manualCategoryId,'246');assert.equal(e.manualImageCount,1);
+ }
+ for(const opts of [{required:true},{renewal:true},{wrongCategory:true},{wrongTitle:true},{missingImage:true},{imageIncomplete:true},{otherIssue:true}]){
+ assert.equal(partialFixture(opts).evidence(),null,JSON.stringify(opts));
+ }
+});
+test('manual review requires explicit human confirmation and current form; never calls publish',async()=>{
+ const f=partialFixture();const result={...f.evidence(),complete:false,issues:f.issues};
+ assert.equal(f.api.offerManualReview(f.session,result),true);f.deny();await f.panels.at(-1)[3].manualReviewAction();assert.deepEqual(f.messages,[]);assert.deepEqual(f.modes,['manual-review']);
+ const g=partialFixture();assert.equal(g.api.offerManualReview(g.session,{...g.evidence(),complete:false,issues:g.issues}),true);await g.panels.at(-1)[3].manualReviewAction();assert.equal(g.messages.length,1);assert.equal(g.messages[0].manualStandaloneApproval.ownerReviewed,true);assert.equal(g.messages[0].type,'UPDATE_TEMPLATE_FILL_SESSION');assert.deepEqual(g.modes,['manual-review','manual-standalone']);
+ const bad=partialFixture({paid:true});assert.equal(bad.api.offerManualReview(bad.session,{...bad.evidence(),complete:false,issues:bad.issues}),true);await bad.panels.at(-1)[3].manualReviewAction();assert.equal(bad.messages.length,0);
+});
+test('actual partial fill transition preserves review evidence; terminal stale update cannot auto-publish',async()=>{
+ const f=fixture();f.fill.status='running';f.fill.stage='images';f.archive.status='filling';f.archive.stage='images';
+ const r=await f.ctl.updateTemplateFillSession({fillId:'f',status:'needs-review',stage:'verified',result:{complete:false,issues:['Merkmal „Farbe“ stimmt nicht mit der Vorlage überein.'],manualStandaloneReviewEligible:true,manualCategoryId:'246',manualImageCount:1}},f.sender);
+ assert.equal(r.status,'needs-review');assert.equal(f.fill.result.manualStandaloneReviewEligible,true);assert.equal(f.archive.status,'needs-review');assert.equal(f.archive.stage,'manual-review');assert.equal(f.archive.newAdId,undefined);
+ const stale=await f.ctl.updateTemplateFillSession({fillId:'f',status:'running',stage:'auto-publish-ready',result:{complete:true,issues:[]}},f.sender);
+ assert.equal(stale.terminalStateProtected,true);assert.equal(f.fill.status,'needs-review');assert.equal(f.fill.result.complete,false);
+ await f.approve();assert.equal(f.fill.stage,'manual-standalone');assert.equal(f.fill.result.complete,false);
+});
+test('review state is returned read-only on reload; detached and ordinary terminal errors are not reactivated',async()=>{
+ const Service=require('../src/background/services/template-fill-service.js');
+ const f=fixture();f.fill.createdAt=new Date().toISOString();
+ const store={data:{templateFillSessions:{f:f.fill}},writes:0,async get(k){return {[k]:structuredClone(this.data[k]||{})}},async set(x){this.writes++;Object.assign(this.data,structuredClone(x))}};
+ const api=Service.create({storageLocal:store,getInventory:async()=>f.source});
+ const got=await api.getTemplateFillSession({tab:{id:42}});assert.equal(got.status,'needs-review');assert.equal(got.result.manualStandaloneReviewEligible,true);assert.equal(store.writes,0);
+ assert.equal(await api.getTemplateFillSession({tab:{id:99}}),null);
+ store.data.templateFillSessions.f.stage='manual-standalone';assert.equal(await api.getTemplateFillSession({tab:{id:42}}),null);
+ store.data.templateFillSessions.f.stage='verified';store.data.templateFillSessions.f.result.manualStandaloneReviewEligible=false;assert.equal(await api.getTemplateFillSession({tab:{id:42}}),null);
+ assert.equal(store.writes,0);
+});

@@ -19,3 +19,6 @@ jobs:
           node-version: '22'
       - name: Focused S07 behavioral witnesses
         run: node --test tests/kar224-s07.cjs
+      - name: Independent passive trash recovery witness
+        if: always()
+        run: node --test tests/kar210-trash-template-recovery-coalescing.cjs
