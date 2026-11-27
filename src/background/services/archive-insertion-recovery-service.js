@@ -2,9 +2,9 @@
   'use strict';
   const API = Object.freeze({
     create(options = {}) {
-      const {readArchiveInsertionSessions,readFillSessions,getInventory,isTrashRecord,persistArchiveInsertionSession,deleteImagesByInventoryId,logDiagnostic,setAppNotice,broadcastInventoryChanged,normalizeRenewalMode,cryptoApi,compareArchiveInsertionRecords,runArchiveInsertionPostPublish,confirmPublishedArchiveInsertion,withAutonomousAdmission}=options;
+      const {readArchiveInsertionSessions,readFillSessions,getInventory,isTrashRecord,persistArchiveInsertionSession,deleteImagesByInventoryId,logDiagnostic,setAppNotice,broadcastInventoryChanged,normalizeRenewalMode,cryptoApi,compareArchiveInsertionRecords,runArchiveInsertionPostPublish,confirmPublishedArchiveInsertion,detectPublishedAdForFill}=options;
       const crypto=cryptoApi;
-      const required={readArchiveInsertionSessions,readFillSessions,getInventory,isTrashRecord,persistArchiveInsertionSession,deleteImagesByInventoryId,logDiagnostic,setAppNotice,broadcastInventoryChanged,normalizeRenewalMode,compareArchiveInsertionRecords,runArchiveInsertionPostPublish,confirmPublishedArchiveInsertion,withAutonomousAdmission};
+      const required={readArchiveInsertionSessions,readFillSessions,getInventory,isTrashRecord,persistArchiveInsertionSession,deleteImagesByInventoryId,logDiagnostic,setAppNotice,broadcastInventoryChanged,normalizeRenewalMode,compareArchiveInsertionRecords,runArchiveInsertionPostPublish,confirmPublishedArchiveInsertion,detectPublishedAdForFill};
       for(const [name,value] of Object.entries(required)) if(typeof value!=='function') throw new Error(`archive recovery service dependency ${name} is required`);
       if(!crypto?.randomUUID) throw new Error('archive recovery service crypto API is required');
 async function completeRecoveredArchiveInsertionIfAlreadyInventoried(session) {
@@ -57,6 +57,7 @@ async function resumePendingArchiveInsertions() {
   const sessions = await readArchiveInsertionSessions().catch(() => ({}));
   const fills = await readFillSessions().catch(() => ({}));
   for (const session of Object.values(sessions)) {
+    if ((row => ['source-delete-outcome-unverified', 'source-delete-status-unverified', 'publish-intent-blocked'].includes(String(row?.stage || '')) || String(row?.status || '') === 'publish-blocked')(session)) continue;
     try {
       if (/^\d+$/.test(String(session?.newAdId || '')) && ['error', 'published', 'finding', 'checking', 'saving'].includes(String(session?.status || ''))) {
         const alreadyInventoried = await completeRecoveredArchiveInsertionIfAlreadyInventoried(session);
@@ -75,19 +76,30 @@ async function resumePendingArchiveInsertions() {
         await logDiagnostic('info', 'ARCHIVE_INSERT_LEGACY_PROFILE_GATE_RECOVERY_STARTED', {
           archiveInsertionId: session.archiveInsertionId, newAdId: session.newAdId
         }, { module: 'background', operation: 'archive-import-resume', context: { adId: session.newAdId } }).catch(() => {});
-        void withAutonomousAdmission('archive-postpublish-detached', () => runArchiveInsertionPostPublish(session.archiveInsertionId)).catch(() => {});
+        void runArchiveInsertionPostPublish(session.archiveInsertionId).catch(() => {});
         continue;
       }
-      // Publish-intent denial is an unresolved remote mutation boundary, not an idle/retryable draft.
-      if (['complete', 'needs-review', 'error', 'cancelled', 'publish-blocked'].includes(String(session?.status || ''))) continue;
-      if (session?.status === 'submitted' && session?.targetTabId && !session?.newAdId) {
-        const fill = Object.values(fills).find(item => item?.archiveInsertionId === session.archiveInsertionId && item?.targetTabId === session.targetTabId);
-        if (fill) {
+      if (['complete', 'needs-review', 'error', 'cancelled'].includes(String(session?.status || ''))) continue;
+      const legacySubmitted = session?.status === 'submitted';
+      const currentSubmitted = session?.status === 'filling' && session?.stage === 'publish-submitted';
+      if ((legacySubmitted || currentSubmitted) && Number.isSafeInteger(session?.targetTabId) && session.targetTabId > 0 && !session?.newAdId) {
+        const candidates = Object.values(fills).filter(item =>
+          item?.archiveInsertionId === session.archiveInsertionId && item?.targetTabId === session.targetTabId &&
+          (!session.fillId || item.fillId === session.fillId) &&
+          (item.sourceAdId == null || String(item.sourceAdId) === String(session.sourceAdId || '')) &&
+          (currentSubmitted
+            ? item.fillId === session.fillId && item.sourceAdId != null && item.status === 'running' && item.stage === 'publish-submitted'
+            : (!item.status || item.status === 'running') && (!item.stage || item.stage === 'publish-submitted')));
+        if (candidates.length === 1) {
           const detected = await detectPublishedAdForFill(session.targetTabId, session.sourceAdId);
-          if (detected?.adId) await confirmPublishedArchiveInsertion(fill, detected);
+          const detectedId = String(detected?.adId || '');
+          if (/^\d+$/.test(detectedId) && detectedId !== String(session.sourceAdId || '') &&
+              (detected.candidateCount == null || detected.candidateCount === 1)) {
+            await confirmPublishedArchiveInsertion(candidates[0], detected);
+          }
         }
       } else if (/^\d+$/.test(String(session?.newAdId || '')) && ['published', 'finding', 'checking', 'saving'].includes(String(session?.status || ''))) {
-        void withAutonomousAdmission('archive-postpublish-detached', () => runArchiveInsertionPostPublish(session.archiveInsertionId)).catch(() => {});
+        void runArchiveInsertionPostPublish(session.archiveInsertionId).catch(() => {});
       }
     } catch (error) {
       await logDiagnostic('warning', 'ARCHIVE_INSERT_RESUME_DEFERRED', {

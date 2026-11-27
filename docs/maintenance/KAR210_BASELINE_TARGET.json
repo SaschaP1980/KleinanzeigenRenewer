@@ -1,0 +1,655 @@
+{
+  "schema": 1,
+  "issue": 210,
+  "version": "2.0.0.0",
+  "purpose": "Exact W3 baseline snapshot contract; run explicitly on the baseline source checkpoint, not a freeze on later authorized product features.",
+  "historicalCommit": "f2225155e403d89d07a674c9e20f397a4f86694d",
+  "referenceWorkCommit": "d8318cd004681932a662ea234af268813888380e",
+  "packaged": [
+    "manifest.json",
+    "src/shared/runtime-deps.js",
+    "src/shared/message-contract-registry.js",
+    "src/shared/renewal-policy.js",
+    "src/background/background-message-router.js",
+    "src/background/services/native-update-status-gateway.js",
+    "src/background/services/native-status-bridge.js",
+    "src/background/repositories/profile-repository.js",
+    "src/background/repositories/inventory-repository.js",
+    "src/background/repositories/inventory-image-store.js",
+    "src/background/services/trash-service.js",
+    "src/background/services/diagnostics-service.js",
+    "src/background/services/tab-load-coordinator.js",
+    "src/background/services/tab-registry.js",
+    "src/background/services/managed-tab-worker-service.js",
+    "src/background/services/content-connection-manager.js",
+    "src/background/services/account-probe-service.js",
+    "src/background/controllers/profile-management-controller.js",
+    "src/background/controllers/account-session-controller.js",
+    "src/background/controllers/platform-safety-controller.js",
+    "src/background/controllers/tab-lifecycle-observer.js",
+    "src/background/controllers/workflow-emergency-reset-controller.js",
+    "src/background/lib/bulk-run-guard.js",
+    "src/background/controllers/single-inventory-controller.js",
+    "src/background/services/bulk-worker-service.js",
+    "src/background/services/bulk-reconciliation-service.js",
+    "src/background/controllers/bulk-inventory-controller.js",
+    "src/background/controllers/mass-renewal-controller.js",
+    "src/background/services/mass-renewal-watchdog-service.js",
+    "src/background/controllers/mass-renewal-workflow-controller.js",
+    "src/background/services/renewal-verification-service.js",
+    "src/background/repositories/renewal-state-repository.js",
+    "src/background/services/renewal-verification-flow.js",
+    "src/background/services/renewal-reinventory-flow.js",
+    "src/background/services/paid-checkout-recovery-service.js",
+    "src/background/controllers/renewal-workflow-controller.js",
+    "src/background/services/template-fill-service.js",
+    "src/background/services/insertion-lock-service.js",
+    "src/background/controllers/template-fill-controller.js",
+    "src/background/services/archive-insertion-service.js",
+    "src/background/services/archive-insertion-verification-service.js",
+    "src/background/services/archive-insertion-recovery-service.js",
+    "src/background/controllers/archive-insertion-controller.js",
+    "src/background/services/remote-delete-replacement-service.js",
+    "src/background/services/published-inventory-resolver.js",
+    "src/background/services/diagnostic-export-service.js",
+    "src/background/services/public-listing-evidence-service.js",
+    "src/shared/managed-navigation.js",
+    "src/background/lib/inventory-reconciliation.js",
+    "src/shared/my-ads-readiness.js",
+    "src/background/lib/inventory-scope.js",
+    "src/shared/platform-hardening.js",
+    "src/content/platform-guard-content.js",
+    "src/background/background.js",
+    "src/content/image-extractor.js",
+    "src/content/form-extractor.js",
+    "src/content/paid-insertion-guard.js",
+    "src/content/template-category-flow.js",
+    "src/content/template-form-fields.js",
+    "src/content/template-image-upload.js",
+    "src/content/template-verification.js",
+    "src/content/template-publish-flow.js",
+    "src/content/template-filler.js",
+    "src/content/inventory-roster-parser.js",
+    "src/content/inventory-readiness.js",
+    "src/content/inventory-status-overlay.js",
+    "src/content/inventory-delete-operations.js",
+    "src/content/inventory-run-loop.js",
+    "src/content/inventory-runner.js",
+    "src/content/content.js",
+    "src/popup/popup.html",
+    "src/popup/popup.css",
+    "src/popup/popup.js",
+    "src/app/app.html",
+    "src/app/app.css",
+    "src/app/diagnostic-zip.js",
+    "src/app/inventory-view.js",
+    "src/app/inventory-export.js",
+    "src/app/inventory-import.js",
+    "src/app/profile-backup.js",
+    "src/app/account-gate.js",
+    "src/app/app-elements.js",
+    "src/app/profile-account-ui-controller.js",
+    "src/app/app-activity-center.js",
+    "src/app/actions-diagnostics-controller.js",
+    "src/app/control-accordion-controller.js",
+    "src/app/diagnostics-controls-controller.js",
+    "src/app/renewal-settings-controller.js",
+    "src/app/app-layout-controller.js",
+    "src/app/tab-page-inspection-controller.js",
+    "src/app/shared-ui-helpers.js",
+    "src/app/profile-backup-storage-service.js",
+    "src/app/profile-backup-controller.js",
+    "src/app/inventory-formatting.js",
+    "src/app/record-card-view.js",
+    "src/app/inventory-card-renderer.js",
+    "src/app/trash-card-renderer.js",
+    "src/app/inventory-render-controller.js",
+    "src/app/renewal-dialog-controller.js",
+    "src/app/inventory-candidate-model.js",
+    "src/app/inventory-capture-view.js",
+    "src/app/inventory-capture-controller.js",
+    "src/app/mass-renewal-ui-controller.js",
+    "src/app/archive-insertion-ui-controller.js",
+    "src/app/trash-template-ui-controller.js",
+    "src/app/archive-trash-insertion-ui-controller.js",
+    "src/app/app.js",
+    "src/app/native-update-check-ui.js",
+    "README.md",
+    "APP_ID.txt",
+    "CHANGELOG.md",
+    "icons/taskbar-16.png",
+    "icons/taskbar-32.png",
+    "icons/taskbar-48.png",
+    "icons/app-icon-128.png",
+    "icons/favicon.ico",
+    "icons/action-new-listing.svg",
+    "icons/action-update.svg",
+    "icons/action-delete.svg",
+    "icons/action-retry.svg",
+    "icons/action-finish-renewal.svg",
+    "icons/action-zip-export.svg",
+    "icons/view-detailed.svg",
+    "icons/view-compact.svg"
+  ],
+  "expected": [
+    {
+      "path": "manifest.json",
+      "sha": "d0d3038800b5ebc01ed1e39ea4533beed6fc8089"
+    },
+    {
+      "path": "src/shared/runtime-deps.js",
+      "sha": "3f3305d64f5a969f006434d99d521e23114ce423"
+    },
+    {
+      "path": "src/shared/message-contract-registry.js",
+      "sha": "cc5a72fd6614034b73f2547550aa9b3cc93e1f88"
+    },
+    {
+      "path": "src/shared/renewal-policy.js",
+      "sha": "0795a3eaa498905c291ce7912842e9f09600fea1"
+    },
+    {
+      "path": "src/background/background-message-router.js",
+      "sha": "4e016a82054d8647b7a9fc5fd24d47c394d58b46"
+    },
+    {
+      "path": "src/background/services/native-update-status-gateway.js",
+      "sha": "e1a0ebbd7955afc37066fa1d63de8f47b0ee9c6b"
+    },
+    {
+      "path": "src/background/services/native-status-bridge.js",
+      "sha": "6f3137fbfdba6ddd080e8e10f37dfea3a67f6708"
+    },
+    {
+      "path": "src/background/repositories/profile-repository.js",
+      "sha": "38a9c60839530b82c49ac31117bd99183fecdf43"
+    },
+    {
+      "path": "src/background/repositories/inventory-repository.js",
+      "sha": "40a339ea5955c49bbc72c3b07f8e0cf0f1f8ed8b"
+    },
+    {
+      "path": "src/background/repositories/inventory-image-store.js",
+      "sha": "5884016b613489d321b1600a8e6e31d17b91e7a3"
+    },
+    {
+      "path": "src/background/services/trash-service.js",
+      "sha": "a5cb8f0b7fbca13b27b7eba6f3cd0303d56bedf9"
+    },
+    {
+      "path": "src/background/services/diagnostics-service.js",
+      "sha": "5c7f8f8d74a9fdbb47843a69a70a32fc1e7a7d94"
+    },
+    {
+      "path": "src/background/services/tab-load-coordinator.js",
+      "sha": "a7a0061782b8ba5e656775c451a1ef20b788fd05"
+    },
+    {
+      "path": "src/background/services/tab-registry.js",
+      "sha": "592d6ef6845e6bf3d540ad67a6810d145b7a3390"
+    },
+    {
+      "path": "src/background/services/managed-tab-worker-service.js",
+      "sha": "128a7b48ac95c9c1212c7d4bbf905fdb840fc31d"
+    },
+    {
+      "path": "src/background/services/content-connection-manager.js",
+      "sha": "5c54343d64903a43701e03a01f938ad4b48c7280"
+    },
+    {
+      "path": "src/background/services/account-probe-service.js",
+      "sha": "df71371bf5f1659c18a288721f708664d5d8af6d"
+    },
+    {
+      "path": "src/background/controllers/profile-management-controller.js",
+      "sha": "b708d8e2eca3ee19455d5bd0dd5b4fdfc99d8236"
+    },
+    {
+      "path": "src/background/controllers/account-session-controller.js",
+      "sha": "53b6b7c5ca40bbbee57b85194d16276cf66b28a1"
+    },
+    {
+      "path": "src/background/controllers/platform-safety-controller.js",
+      "sha": "14daa11048835d36081eb6745338a7eb9b979f67"
+    },
+    {
+      "path": "src/background/controllers/tab-lifecycle-observer.js",
+      "sha": "465bf655c22067bf7fac942bacdfd15475a15a03"
+    },
+    {
+      "path": "src/background/controllers/workflow-emergency-reset-controller.js",
+      "sha": "6277947021b85fa6f1c99b5ee5d98b4736471547"
+    },
+    {
+      "path": "src/background/lib/bulk-run-guard.js",
+      "sha": "6799d4af302ceee5771722abf41d87f16dafb3e5"
+    },
+    {
+      "path": "src/background/controllers/single-inventory-controller.js",
+      "sha": "b3411cfff78fc2294c744e20be1965587dc04cd3"
+    },
+    {
+      "path": "src/background/services/bulk-worker-service.js",
+      "sha": "c9db19d30a2f3b396bfe1d026b5a5251eb7d7c10"
+    },
+    {
+      "path": "src/background/services/bulk-reconciliation-service.js",
+      "sha": "27383d7760cfbcaded42790534c288a5864d1397"
+    },
+    {
+      "path": "src/background/controllers/bulk-inventory-controller.js",
+      "sha": "71e76db0be0b11a2d99d5a493a7d433b4fb9c8cc"
+    },
+    {
+      "path": "src/background/controllers/mass-renewal-controller.js",
+      "sha": "f6f5bfd1a52d21a079dc15980a9425f439338dbd"
+    },
+    {
+      "path": "src/background/services/mass-renewal-watchdog-service.js",
+      "sha": "78b5d6289af78ef365c3f3da65b88abe992e288f"
+    },
+    {
+      "path": "src/background/controllers/mass-renewal-workflow-controller.js",
+      "sha": "8705bde46aa2953f457289feb4d31857b48c8ac0"
+    },
+    {
+      "path": "src/background/services/renewal-verification-service.js",
+      "sha": "562f25364f72d78a8582fad19f2839ae9215bf0a"
+    },
+    {
+      "path": "src/background/repositories/renewal-state-repository.js",
+      "sha": "855c5f7f5b299987ef35d93928cf537f86a1d99f"
+    },
+    {
+      "path": "src/background/services/renewal-verification-flow.js",
+      "sha": "5907413ac0598c32aa2e23610a9da272c125f562"
+    },
+    {
+      "path": "src/background/services/renewal-reinventory-flow.js",
+      "sha": "e86870f3a224fb74ac5efefccd872b49da4694be"
+    },
+    {
+      "path": "src/background/services/paid-checkout-recovery-service.js",
+      "sha": "2ad0a1667c7f2437d48d66442ea84181ef934bb7"
+    },
+    {
+      "path": "src/background/controllers/renewal-workflow-controller.js",
+      "sha": "739a1977e53eadaa34fd980e709b35dc82d50138"
+    },
+    {
+      "path": "src/background/services/template-fill-service.js",
+      "sha": "b89f740985c4a3e2dc4dddb290b5172b78763f53"
+    },
+    {
+      "path": "src/background/services/insertion-lock-service.js",
+      "sha": "484a844e6174507feac39190e96596f397463d0c"
+    },
+    {
+      "path": "src/background/controllers/template-fill-controller.js",
+      "sha": "c01b419766420bf1ed9b0e8cccb5d4a91e867cdd"
+    },
+    {
+      "path": "src/background/services/archive-insertion-service.js",
+      "sha": "18213280900016321f83e1e3557d2dc6082c92d5"
+    },
+    {
+      "path": "src/background/services/archive-insertion-verification-service.js",
+      "sha": "a275b1dcf2dd55079524d6458854432f6031d733"
+    },
+    {
+      "path": "src/background/services/archive-insertion-recovery-service.js",
+      "sha": "78ea5071c275dd81d732a3c830a37c21e34498e1"
+    },
+    {
+      "path": "src/background/controllers/archive-insertion-controller.js",
+      "sha": "7ad8ca1995f8a8ed9ebc1a4c3e4aca8e53000b0b"
+    },
+    {
+      "path": "src/background/services/remote-delete-replacement-service.js",
+      "sha": "0d89fea2632e2135f72deca3fbc03514630762c5"
+    },
+    {
+      "path": "src/background/services/published-inventory-resolver.js",
+      "sha": "3303b36b09be46f1d34a432916486c86640d3ffd"
+    },
+    {
+      "path": "src/background/services/diagnostic-export-service.js",
+      "sha": "9895c405bbc2e466cd07b9e07986be47056df24b"
+    },
+    {
+      "path": "src/background/services/public-listing-evidence-service.js",
+      "sha": "40fedc8c2c5b6787cbe144fccc4faec772ab3d2f"
+    },
+    {
+      "path": "src/shared/managed-navigation.js",
+      "sha": "76eaa5a2f34068e32d5e10e0262cc82b66993fcf"
+    },
+    {
+      "path": "src/background/lib/inventory-reconciliation.js",
+      "sha": "cb52cb425d943b3383e1043126edb66f20b3f027"
+    },
+    {
+      "path": "src/shared/my-ads-readiness.js",
+      "sha": "71117b2646bfab61453eaad2599fe40e44c40ffa"
+    },
+    {
+      "path": "src/background/lib/inventory-scope.js",
+      "sha": "91c14345f2f96319fb56964a03ac034b558a6783"
+    },
+    {
+      "path": "src/shared/platform-hardening.js",
+      "sha": "1205667cbff11740a210dce3dd8b6b72079635bf"
+    },
+    {
+      "path": "src/content/platform-guard-content.js",
+      "sha": "fcbe1f7bb83526ae6fb3a21f14ea07cd2bd2d06c"
+    },
+    {
+      "path": "src/background/background.js",
+      "sha": "bbdeee5b2c6125545b22de209c4d52fd1bdeb9ad"
+    },
+    {
+      "path": "src/content/image-extractor.js",
+      "sha": "babe3c0d6068a21027439ad3a9ade2d7bd62f5a3"
+    },
+    {
+      "path": "src/content/form-extractor.js",
+      "sha": "97e9a880b9f3a3e61038f89206c740fdee3eb0fe"
+    },
+    {
+      "path": "src/content/paid-insertion-guard.js",
+      "sha": "a0954cdc31d29ebc421af5cd5609a41c5e6a9e11"
+    },
+    {
+      "path": "src/content/template-category-flow.js",
+      "sha": "241708472828576096c2d936061116c1dfc6c056"
+    },
+    {
+      "path": "src/content/template-form-fields.js",
+      "sha": "4ca1cc83328096d7498f0480d3174be5054bf42c"
+    },
+    {
+      "path": "src/content/template-image-upload.js",
+      "sha": "c0a0a6cb2fda79d4a2e3bd6b161424bba6d556e1"
+    },
+    {
+      "path": "src/content/template-verification.js",
+      "sha": "645ec67da2344c2ffdb195c0403584ed46f6c816"
+    },
+    {
+      "path": "src/content/template-publish-flow.js",
+      "sha": "b4cb626bc91ca9389f9d997f9f161ef88ebdd16d"
+    },
+    {
+      "path": "src/content/template-filler.js",
+      "sha": "902706f9afbb7407a5fcf9968bd0e0c431ad1660"
+    },
+    {
+      "path": "src/content/inventory-roster-parser.js",
+      "sha": "614ccf5d2c553c1fc17ea40f8d6ff21188432ec8"
+    },
+    {
+      "path": "src/content/inventory-readiness.js",
+      "sha": "2edb08c42cb9d07aca84eda05610f66c7c76ac57"
+    },
+    {
+      "path": "src/content/inventory-status-overlay.js",
+      "sha": "62f31dfc05ce56d59e18b9bceb94c7e7647b8c88"
+    },
+    {
+      "path": "src/content/inventory-delete-operations.js",
+      "sha": "d1cefbd94c34818085e84bcb350493b855f30adb"
+    },
+    {
+      "path": "src/content/inventory-run-loop.js",
+      "sha": "10e34eb6d092873decb948d913bf9a32eade295e"
+    },
+    {
+      "path": "src/content/inventory-runner.js",
+      "sha": "5096d1bbe55c7f460476a7cb038aed17709fa8ca"
+    },
+    {
+      "path": "src/content/content.js",
+      "sha": "9f33ecf4e5b9329c19aadfc6b15b6b85dd63a258"
+    },
+    {
+      "path": "src/popup/popup.html",
+      "sha": "45ef57f8c38d3bda12db01862440bcf2e2b790c9"
+    },
+    {
+      "path": "src/popup/popup.css",
+      "sha": "fd0fae20cbf7d47fa616ad0e00e4905729b910fb"
+    },
+    {
+      "path": "src/popup/popup.js",
+      "sha": "acd6160cfaf808897b9ba929fd29362c5218d38b"
+    },
+    {
+      "path": "src/app/app.html",
+      "sha": "ea61937e56291905fa6bfc6827e948d700f21877"
+    },
+    {
+      "path": "src/app/app.css",
+      "sha": "4d69502577fd25ad94ac7a6dd80c9cc3a45afbe0"
+    },
+    {
+      "path": "src/app/diagnostic-zip.js",
+      "sha": "5e037faf402a1eff9a4c6381e088dbd4306784b2"
+    },
+    {
+      "path": "src/app/inventory-view.js",
+      "sha": "da0c66d512f939c1acf5285995ca6f6057154826"
+    },
+    {
+      "path": "src/app/inventory-export.js",
+      "sha": "73fe0cc9dcbc90d4563c88b4fbba7cad22a80b05"
+    },
+    {
+      "path": "src/app/inventory-import.js",
+      "sha": "97dba22dc31b5f2c02605ad236808965643120b1"
+    },
+    {
+      "path": "src/app/profile-backup.js",
+      "sha": "31469c4d280b49f30567534b2d2fde3d1a090479"
+    },
+    {
+      "path": "src/app/account-gate.js",
+      "sha": "445e2199531c949ab76c9c3d94293826984eedfc"
+    },
+    {
+      "path": "src/app/app-elements.js",
+      "sha": "63a3e08c954ab7815c9a7d45b837cc8ca91b3566"
+    },
+    {
+      "path": "src/app/profile-account-ui-controller.js",
+      "sha": "df960fbd2daa7ed17dbd4433059750ce869ef4e7"
+    },
+    {
+      "path": "src/app/app-activity-center.js",
+      "sha": "4150186c38925e0546c7761861a6411e21d4f20b"
+    },
+    {
+      "path": "src/app/actions-diagnostics-controller.js",
+      "sha": "17c8702ed828e21bbe29dd73acb7f15986788515"
+    },
+    {
+      "path": "src/app/control-accordion-controller.js",
+      "sha": "0989d8f856402cae3824efd08f09a5f6d8296107"
+    },
+    {
+      "path": "src/app/diagnostics-controls-controller.js",
+      "sha": "c1bc81088780eb534d57cb939f6a211e8b52ee68"
+    },
+    {
+      "path": "src/app/renewal-settings-controller.js",
+      "sha": "eb22d0a76ccf34a18344ffc8a1dfe94df5883fc3"
+    },
+    {
+      "path": "src/app/app-layout-controller.js",
+      "sha": "d92a3cdcbce91c71b546266d65f20551e8e04d97"
+    },
+    {
+      "path": "src/app/tab-page-inspection-controller.js",
+      "sha": "cceecb75c47c9bd61cfb9a8376a1184fcef1bdb4"
+    },
+    {
+      "path": "src/app/shared-ui-helpers.js",
+      "sha": "f70f0db392c3b2e485c19693b97dc8fc7d8745b5"
+    },
+    {
+      "path": "src/app/profile-backup-storage-service.js",
+      "sha": "a59f152d31fa15ff2620b54d902e1d873a124cb8"
+    },
+    {
+      "path": "src/app/profile-backup-controller.js",
+      "sha": "9857e2e7f6cea12774ae3a3579e8dab6ab4caaee"
+    },
+    {
+      "path": "src/app/inventory-formatting.js",
+      "sha": "45bd6f6aa9d10ade0079719d3976f976f06d05f1"
+    },
+    {
+      "path": "src/app/record-card-view.js",
+      "sha": "6e9974cedd71c092df0a09b3b49f6502073e18a5"
+    },
+    {
+      "path": "src/app/inventory-card-renderer.js",
+      "sha": "f3cc492f85469cc62a33f812fe5a5b2dcd2db726"
+    },
+    {
+      "path": "src/app/trash-card-renderer.js",
+      "sha": "19f53e01867e48af39e5db5f00fc6cf34ccf68e8"
+    },
+    {
+      "path": "src/app/inventory-render-controller.js",
+      "sha": "e336b2900d8982393ae5f0d8b276dd486bb3ef95"
+    },
+    {
+      "path": "src/app/renewal-dialog-controller.js",
+      "sha": "fefb589bf390c443d7205e24c553ebf27676654e"
+    },
+    {
+      "path": "src/app/inventory-candidate-model.js",
+      "sha": "ec74eb6c159b5000b92308f7573f19a7b33c9512"
+    },
+    {
+      "path": "src/app/inventory-capture-view.js",
+      "sha": "e315c6b991459d7dc678fe5cf10407764ea6cca2"
+    },
+    {
+      "path": "src/app/inventory-capture-controller.js",
+      "sha": "f901a3234ce5e7f8a539d06d3ff0a4de2562ab36"
+    },
+    {
+      "path": "src/app/mass-renewal-ui-controller.js",
+      "sha": "813aedc109538d3afb387f6f47648bdfe12fe303"
+    },
+    {
+      "path": "src/app/archive-insertion-ui-controller.js",
+      "sha": "08688155593fff5fadf7ea4add280909b7724bac"
+    },
+    {
+      "path": "src/app/trash-template-ui-controller.js",
+      "sha": "d8a1858f647e893c02d2bddc94b8bc48fa164677"
+    },
+    {
+      "path": "src/app/archive-trash-insertion-ui-controller.js",
+      "sha": "773b14d8f4340f1332c9a11b630fa79c1ae1236c"
+    },
+    {
+      "path": "src/app/app.js",
+      "sha": "35e1209dc3c38863b4479afdbb1311aae6b185ae"
+    },
+    {
+      "path": "src/app/native-update-check-ui.js",
+      "sha": "ac9721adc25af5d335f6d767c269101e666f986c"
+    },
+    {
+      "path": "APP_ID.txt",
+      "sha": "fcc3d14876c584326ddb87fa78cfeea5ba4585d8"
+    },
+    {
+      "path": "icons/taskbar-16.png",
+      "sha": "c5929874ace262956c4083c2b60c5a6cdfebabde"
+    },
+    {
+      "path": "icons/taskbar-32.png",
+      "sha": "6dda83b1d48a523c7e1becbf642d606892ba09b2"
+    },
+    {
+      "path": "icons/taskbar-48.png",
+      "sha": "128c0c861723df0d5afef522914696e1f79b2cc3"
+    },
+    {
+      "path": "icons/app-icon-128.png",
+      "sha": "c37f1e15279c548b85a77f70034f62bdee92e72d"
+    },
+    {
+      "path": "icons/favicon.ico",
+      "sha": "bd4706b8d830b24b86373552ff42f567b3fafabe"
+    },
+    {
+      "path": "icons/action-new-listing.svg",
+      "sha": "de06aec524526263c5ea23c542c410631cafda78"
+    },
+    {
+      "path": "icons/action-update.svg",
+      "sha": "45fb65fbb7924d8ed2d8ffd319618f777072ae8c"
+    },
+    {
+      "path": "icons/action-delete.svg",
+      "sha": "62278488e23c91c9c1528170cf234c912da0f2b7"
+    },
+    {
+      "path": "icons/action-retry.svg",
+      "sha": "784397eb5a8f81ec8dadfdfb8d55d6f77fed9aa6"
+    },
+    {
+      "path": "icons/action-finish-renewal.svg",
+      "sha": "8c2500d1fffa24ec03a79b9fd628c6af70df667b"
+    },
+    {
+      "path": "icons/action-zip-export.svg",
+      "sha": "158877da0b6aa527bed5b8ebb29539173d452e5c"
+    },
+    {
+      "path": "icons/view-detailed.svg",
+      "sha": "0311d8aeadb29dff60079e14444a825e1201e2c1"
+    },
+    {
+      "path": "icons/view-compact.svg",
+      "sha": "2ed840e03c7a7a99d5bef30a06a54bdb7c103518"
+    }
+  ],
+  "absent": [
+    "src/background/services/cross-worker-atomic-admission.js",
+    "src/background/services/update-workflow-fence.js",
+    "lib/update-idle-policy.js",
+    "src/background/services/trusted-owner-authority.js",
+    "src/background/services/persisted-owner-observer.js",
+    "src/background/services/additional-owner-observer.js",
+    "src/background/services/phase4-uncertainty-journal.js",
+    "src/background/services/auto-publish-intent-journal.js",
+    "src/background/services/publish-intent-authorization-service.js",
+    "src/background/services/inventory-capture-service.js",
+    "src/background/services/inventory-refresh-service.js",
+    "src/background/controllers/trash-management-controller.js",
+    "src/background/services/diagnostic-correlation-service.js",
+    "src/background/services/listing-url-evidence-service.js",
+    "src/background/controllers/manual-listing-navigation-controller.js",
+    "src/background/services/renewal-phase1-retry-service.js",
+    "src/background/services/trash-template-publish-detection-service.js",
+    "src/background/services/renewal-public-evidence-coordinator.js",
+    "src/app/trash-retention-settings-controller.js",
+    "src/app/inventory-loading-state.js",
+    "src/shared/template-schema-core.js",
+    "src/content/template-schema-preflight.js"
+  ],
+  "mechanical": {
+    "manifest.json": "d0d3038800b5ebc01ed1e39ea4533beed6fc8089",
+    "src/app/app.html": "ea61937e56291905fa6bfc6827e948d700f21877",
+    "src/app/app.css": "4d69502577fd25ad94ac7a6dd80c9cc3a45afbe0",
+    "src/popup/popup.html": "45ef57f8c38d3bda12db01862440bcf2e2b790c9",
+    "src/background/background.js": "bbdeee5b2c6125545b22de209c4d52fd1bdeb9ad"
+  }
+}

@@ -8,6 +8,38 @@ find "$project_dir" -type f \( -name '*.js' -o -name '*.mjs' -o -name '*.cjs' \)
   xargs -0 -P "${KR_BUILD_JOBS:-8}" -n 1 node --check
 
 core_tests=(
+  tests/kar161-trash-retention.cjs
+  tests/kar164-trash-sort.cjs
+  tests/kar165-trash-retention-warning.cjs
+  tests/kar186-retention-hydration.cjs
+  tests/kar214-retention-startup.cjs
+  tests/kar213-cross-generation-characterization.cjs
+  tests/kar213-offline-upgrade-preflight.cjs
+  tests/kar213-successor-contract.cjs
+  tests/kar217-updater-removal.cjs
+  tests/kar217-updater-test-disposition.cjs
+  tests/kar217-successor-contract.cjs
+  tests/kar220-successor-contract.cjs
+  tests/kar220-field-transfer.cjs
+  tests/kar222-successor-contract.cjs
+  tests/kar224-successor-contract.cjs
+  tests/kar224-s07.cjs
+  tests/kar224-known-capture.cjs
+  tests/kar210-trash-template-recovery-coalescing.cjs
+  tests/kar199-emergency-reset-candidate-recovery.cjs
+  tests/kar199-phase4-no-transport-replay.cjs
+  tests/kar199-phase4-ui-runtime.cjs
+  tests/kar210-cp36-phase4-unknown-witness.cjs
+  tests/kar210-kar150-uncertain-start-witness.cjs
+  tests/kar210-p9-independent-tab-lifecycle.cjs
+  tests/kar222-b14-recovery.cjs
+  tests/kar222-b16-recovery-ui.cjs
+  tests/kar222-delete-no-replay.cjs
+  tests/kar222-mass-recovery-witness.cjs
+  tests/kar222-roster-scan-cost.cjs
+  tests/kar222-tab-registry-cost.cjs
+  tests/kar222-fast-tab-topology.cjs
+  tests/kar222-focused-gate.cjs
   tests/validate.mjs
   tests/identity.cjs
   tests/jpeg.cjs

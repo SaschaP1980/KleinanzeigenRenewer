@@ -1,5 +1,6 @@
 (() => {
   'use strict';
+  const legacyOutcomeBlocked = row => ['source-delete-outcome-unverified', 'source-delete-status-unverified', 'publish-intent-blocked'].includes(String(row?.stage || '')) || String(row?.status || '') === 'publish-blocked';
   const API = Object.freeze({
     create(options = {}) {
       const storageLocal = options.storageLocal;
@@ -24,6 +25,7 @@
         const cutoff = Date.now() - maxAgeMs;
         let changed = false;
         for (const [fillId, session] of Object.entries(sessions)) {
+          if (legacyOutcomeBlocked(session) || session?.remoteVerificationRequired === true) continue;
           if (!session?.createdAt || Date.parse(session.createdAt) < cutoff) {
             delete sessions[fillId]; changed = true;
           }
@@ -64,7 +66,7 @@
         return withTemplateFillMutation(async () => {
           const sessions = await readFillSessions();
           const session = sessions[String(fillId || '')];
-          if (!session || terminalStatuses.has(String(session.status || ''))) return false;
+          if (!session || legacyOutcomeBlocked(session) || terminalStatuses.has(String(session.status || ''))) return false;
           session.status = 'error';
           session.stage = 'progress-watchdog-timeout';
           session.result = { complete: false, issues: [String(issue || 'Der Vorgang hat keinen Fortschritt mehr gemeldet.').slice(0, 300)] };
@@ -79,8 +81,7 @@
         return {
           inventoryId: record.inventoryId, sourceAdId: record.adId, title: record.title || '', description: record.description || '',
           categoryId: record.category?.id ?? record.categoryIdFromUrl ?? null, categoryPath: record.category?.path || record.categoryPath || [],
-          templateSchema: record.templateSchema || null,
-          dynamicAttributes: (record.dynamicAttributes || []).map(attribute => ({ key: attribute.key, label: attribute.label, technicalValue: attribute.technicalValue, displayValue: attribute.displayValue, controlType: attribute.controlType, controlId: attribute.controlId, required: Boolean(attribute.required) })),
+          dynamicAttributes: (record.dynamicAttributes || []).map(attribute => ({ key: attribute.key, label: attribute.label, technicalValue: attribute.technicalValue, displayValue: attribute.displayValue, controlType: attribute.controlType, controlId: attribute.controlId, required: Boolean(attribute.required), status: attribute.status })),
           adType: record.adType ? { value: record.adType.value, displayValue: record.adType.displayValue } : null,
           shipping: record.shipping ? { value: record.shipping.value, displayValue: record.shipping.displayValue, methods: (record.shipping.methods || []).map(method => ({ id: method.id, label: method.label || '' })) } : null,
           price: record.price ? { value: record.price.value, type: record.price.type, typeDisplay: record.price.typeDisplay, currency: record.price.currency || 'EUR' } : null,
@@ -107,10 +108,12 @@
       function templateFillHoldsInsertionLock(session) { return Boolean(session?.templateOnly) && ['waiting', 'running'].includes(String(session.status || '')); }
 
       function isRecoverableTrashTemplateSession(session) {
-        if (!session?.templateOnly || session.schemaTestScenario) return false;
+        if (!session?.templateOnly) return false;
         const status = String(session.status || '');
         const stage = String(session.stage || '');
         if (['waiting', 'running'].includes(status)) return true;
+        if (status === 'needs-review' && stage === 'verified' && session.result?.manualStandaloneReviewEligible === true &&
+            !session.newAdId && !session.emergencyResetAt) return true;
         return status === 'complete' && ['template-only-complete', 'template-only-published'].includes(stage);
       }
 
@@ -119,6 +122,7 @@
         const status = String(session.status || '');
         const stage = String(session.stage || '');
         if (status === 'complete' && stage === 'template-only-complete') return false;
+        if (status === 'needs-review') return false;
         if (isRecoverableTrashTemplateSession(session)) return true;
         if (['complete', 'needs-review', 'error', 'cancelled'].includes(status)) return false;
         return true;
@@ -128,24 +132,28 @@
         const tabId = sender?.tab?.id;
         if (!tabId) return null;
         const sessions = await readFillSessions();
-        const session = Object.values(sessions).find(item => item?.targetTabId === tabId && ['waiting', 'running'].includes(item.status));
-        if (!session) return null;
-        // A persisted session from a retired development probe must never resume.
-        if (session.schemaTestScenario) throw new Error('Veralteter Schema-Testvorgang kann nicht fortgesetzt werden.');
+        const active = Object.values(sessions).find(item => item?.targetTabId === tabId && ['waiting', 'running'].includes(item.status));
+        const manualReview = !active && Object.values(sessions).find(item => item?.targetTabId === tabId &&
+          !item.renewalId && (item.archiveInsertionId || item.templateOnly) && item.status === 'needs-review' &&
+          item.stage === 'verified' && item.result?.manualStandaloneReviewEligible === true);
+        const session = active || manualReview;
+        if (!session || legacyOutcomeBlocked(session)) return null;
         const record = session.archiveInsertionId && session.archiveTemplate ? session.archiveTemplate : await getInventory(session.inventoryId);
         if (!record) throw new Error('Vorlageninventar wurde nach dem Öffnen des Tabs nicht gefunden.');
-        session.status = 'running';
-        session.stage = session.stage === 'tab-opened' ? 'content-connected' : session.stage;
-        session.updatedAt = new Date().toISOString();
-        sessions[session.fillId] = session;
-        await writeFillSessions(sessions);
+        if (active) {
+          session.status = 'running';
+          session.stage = session.stage === 'tab-opened' ? 'content-connected' : session.stage;
+          session.updatedAt = new Date().toISOString();
+          sessions[session.fillId] = session;
+          await writeFillSessions(sessions);
+        }
         return {
           operationId: session.operationId || null, parentOperationId: session.parentOperationId || null, fillId: session.fillId,
           renewalId: session.renewalId || null, archiveInsertionId: session.archiveInsertionId || null, templateOnly: Boolean(session.templateOnly),
           autoReplacementAllowed: Boolean(session.autoReplacementAllowed), trashInventoryId: session.trashInventoryId || null,
           status: session.status || null, stage: session.stage || null,
           result: session.result ? { complete: Boolean(session.result.complete), issues: Array.isArray(session.result.issues) ? session.result.issues.slice(0, 50) : [],
-            schemaPreflight: session.result.schemaPreflight ? { ...session.result.schemaPreflight } : null } : null,
+            ...(manualReview ? { manualStandaloneReviewEligible: true, manualCategoryId: session.result.manualCategoryId, manualImageCount: session.result.manualImageCount } : {}) } : null,
           template: templatePayload(record)
         };
       }

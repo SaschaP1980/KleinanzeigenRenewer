@@ -3,7 +3,8 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const { isCurrentPatchVersion, assertCompatibleCurrentPatch, includesActivePatch, includesSupportedRelease, expectedManifestPermissions } = require('./current-patch-policy.cjs');
 const read = file => JSON.parse(fs.readFileSync(file, 'utf8'));
-const canonical = {
+const {isRestored,legacyPatchMetadata}=require('./kar210-historical-contract-context.cjs');
+const canonical = isRestored(require('node:path').resolve(__dirname,'..')) ? legacyPatchMetadata(require('node:path').resolve(__dirname,'..')) : {
   manifest: read('manifest.json'),
   pkg: read('package.json'),
   lock: read('package-lock.json'),

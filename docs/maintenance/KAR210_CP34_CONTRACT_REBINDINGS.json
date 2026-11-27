@@ -1,0 +1,290 @@
+{
+  "schemaVersion": 1,
+  "issue": 210,
+  "checkpoint": 34,
+  "sourceCommit": "dda0c3d4e0eb01be1da06c374eb70e7ff2f35e75",
+  "originalsRetainedInGit": true,
+  "policy": "Historical mixed-contract review, original product negatives retained; no runtime or D gate changes. Final focused and independent coverage/architecture GREEN; mandatory gate RED, not product acceptance.",
+  "review": [
+    {
+      "path": "tests/v150-connection.cjs",
+      "originalCommit": "dda0c3d4e0eb01be1da06c374eb70e7ff2f35e75",
+      "originalBlob": "6dde78165e46ec4b1a242047757de45f26cb629e",
+      "changes": [
+        "Exact S02 version predicate; original bootstrap, ready handshake, idempotency, single-flight and terminal logging assertions unchanged."
+      ]
+    },
+    {
+      "path": "tests/kar68-native-status-gateway.cjs",
+      "originalCommit": "dda0c3d4e0eb01be1da06c374eb70e7ff2f35e75",
+      "originalBlob": "1461897a18bce3c0a4753d8c3242f6edbf87b9e2",
+      "changes": [
+        "Historical gateway admits health/check only and explicitly rejects later inspection capability and four-component installed version. No native compatibility claim; S04 removal remains mandatory. All original transport, mutating operation, replay, malformed response, timeout and concurrency negatives retained."
+      ]
+    },
+    {
+      "path": "tests/kar69-native-check.cjs",
+      "originalCommit": "dda0c3d4e0eb01be1da06c374eb70e7ff2f35e75",
+      "originalBlob": "95fa9a4cd13b9640d6b14657910408bc77afa611",
+      "changes": [
+        "S02 exact pending metadata rather than false reviewed ZIP assertion. Actual synthetic sender/window/tab, operation denial, UI read-only evidence and permissions preserved."
+      ]
+    },
+    {
+      "path": "tests/kar-release-repo-archive-contract.cjs",
+      "originalCommit": "dda0c3d4e0eb01be1da06c374eb70e7ff2f35e75",
+      "originalBlob": "f7a203ca43e902bc4c29887d1c610e18bb283664",
+      "changes": [
+        "Exact four-component Chrome/npm mapping only; actual publication ordering, provenance, digest, tag/branch, archive exclusion and explicit runtime allowlist unchanged."
+      ]
+    },
+    {
+      "path": "tests/storage.cjs",
+      "originalCommit": "dda0c3d4e0eb01be1da06c374eb70e7ff2f35e75",
+      "originalBlob": "1a1d995842898e8b7176081e00a122713149d4f2",
+      "changes": [
+        "Use exact historical in-process saveInventory owner and existing test-only downloader override; do not register absent later capture/schema provider on S02. All original IndexedDB atomicity, JPEG, empty extraction, failure and overlap assertions kept."
+      ]
+    },
+    {
+      "path": "tests/images.cjs",
+      "originalCommit": "dda0c3d4e0eb01be1da06c374eb70e7ff2f35e75",
+      "originalBlob": "41514e4ba776c54b898f2bc4dffb9999211600a4",
+      "changes": [
+        "Exact historical hash-checked image download/MIME function region executed with same isolated fetch stub; no fabricated owner/export, original extracted-service branch and all DOM/signature assertions preserved."
+      ]
+    }
+  ],
+  "focusedValidation": {
+    "sourceCommit": "c09d3d7dee6ea9003485415f9dcc9e6ec1a9ecf2",
+    "runId": 45614510286,
+    "jobId": 139206314216,
+    "result": "success",
+    "commands": 13,
+    "passed": 13,
+    "connectionGroups": 6,
+    "nativeGatewayAssertions": 35,
+    "nativeBridgeAssertions": 37,
+    "archiveGovernance": "PASS",
+    "optionalChildren": {
+      "storage": 10,
+      "images": 11,
+      "popup": 1,
+      "description": 7,
+      "edit": 10
+    },
+    "optionalSuite": "PASS, all five executed",
+    "baselineRestoreTests": 3
+  },
+  "firstDiagnostic": {
+    "runId": 45614227511,
+    "jobId": 139205358699,
+    "counts": {
+      "PASS": 467,
+      "FAIL": 45,
+      "TIMEOUT": 0
+    },
+    "qualification": "Temporary raw log reader used 67.log instead of 067.log, so independent non-regression command did not execute. Corrected workflow only; identical source rerun."
+  },
+  "closureValidation": {
+    "runId": 45614510286,
+    "jobId": 139206314940,
+    "coverageNoRegression": "PASS",
+    "measurement": {
+      "summary": {
+        "schemaVersion": 1,
+        "engine": "Node/V8 precise coverage + Acorn source mapping",
+        "lineDefinition": "source lines containing meaningful JavaScript tokens; covered when V8 precise coverage reports execution for at least one token on the line",
+        "branchDefinition": "AST if/conditional/logical/switch arms mapped to V8 precise block counts",
+        "runtimeModules": 103,
+        "loadedRuntimeModules": 98,
+        "publicFunctions": {
+          "covered": 811,
+          "total": 811,
+          "percent": 100
+        },
+        "lines": {
+          "covered": 11508,
+          "total": 25508,
+          "percent": 45.12
+        },
+        "branches": {
+          "covered": 6318,
+          "total": 24782,
+          "percent": 25.49
+        },
+        "areas": {
+          "app": {
+            "lines": {
+              "covered": 4330,
+              "total": 9321,
+              "percent": 46.45
+            },
+            "branches": {
+              "covered": 2397,
+              "total": 9394,
+              "percent": 25.52
+            },
+            "public": {
+              "covered": 328,
+              "total": 328,
+              "percent": 100
+            }
+          },
+          "background": {
+            "lines": {
+              "covered": 4905,
+              "total": 11125,
+              "percent": 44.09
+            },
+            "branches": {
+              "covered": 2811,
+              "total": 11014,
+              "percent": 25.52
+            },
+            "public": {
+              "covered": 383,
+              "total": 383,
+              "percent": 100
+            }
+          },
+          "content": {
+            "lines": {
+              "covered": 1845,
+              "total": 4576,
+              "percent": 40.32
+            },
+            "branches": {
+              "covered": 897,
+              "total": 4008,
+              "percent": 22.38
+            },
+            "public": {
+              "covered": 76,
+              "total": 76,
+              "percent": 100
+            }
+          },
+          "popup": {
+            "lines": {
+              "covered": 0,
+              "total": 20,
+              "percent": 0
+            },
+            "branches": {
+              "covered": 0,
+              "total": 10,
+              "percent": 0
+            },
+            "public": {
+              "covered": 0,
+              "total": 0,
+              "percent": 100
+            }
+          },
+          "shared": {
+            "lines": {
+              "covered": 428,
+              "total": 466,
+              "percent": 91.85
+            },
+            "branches": {
+              "covered": 213,
+              "total": 356,
+              "percent": 59.83
+            },
+            "public": {
+              "covered": 24,
+              "total": 24,
+              "percent": 100
+            }
+          }
+        }
+      },
+      "audit": {
+        "schemaVersion": 1,
+        "runtimeModules": 103,
+        "providers": 96,
+        "roots": [
+          "src/app/account-gate.js",
+          "src/app/actions-diagnostics-controller.js",
+          "src/app/app-activity-center.js",
+          "src/app/app-elements.js",
+          "src/app/app-layout-controller.js",
+          "src/app/app.js",
+          "src/app/archive-insertion-ui-controller.js",
+          "src/app/archive-trash-insertion-ui-controller.js",
+          "src/app/control-accordion-controller.js",
+          "src/app/diagnostic-zip.js",
+          "src/app/diagnostics-controls-controller.js",
+          "src/app/inventory-candidate-model.js",
+          "src/app/inventory-capture-controller.js",
+          "src/app/inventory-capture-view.js",
+          "src/app/inventory-card-renderer.js",
+          "src/app/inventory-export.js",
+          "src/app/inventory-formatting.js",
+          "src/app/inventory-import.js",
+          "src/app/inventory-render-controller.js",
+          "src/app/inventory-view.js",
+          "src/app/mass-renewal-ui-controller.js",
+          "src/app/native-update-check-ui.js",
+          "src/app/profile-account-ui-controller.js",
+          "src/app/profile-backup-controller.js",
+          "src/app/profile-backup-storage-service.js",
+          "src/app/profile-backup.js",
+          "src/app/record-card-view.js",
+          "src/app/renewal-dialog-controller.js",
+          "src/app/renewal-settings-controller.js",
+          "src/app/shared-ui-helpers.js",
+          "src/app/tab-page-inspection-controller.js",
+          "src/app/trash-card-renderer.js",
+          "src/app/trash-template-ui-controller.js",
+          "src/background/background.js",
+          "src/content/content.js",
+          "src/content/form-extractor.js",
+          "src/content/image-extractor.js",
+          "src/content/inventory-delete-operations.js",
+          "src/content/inventory-readiness.js",
+          "src/content/inventory-roster-parser.js",
+          "src/content/inventory-run-loop.js",
+          "src/content/inventory-runner.js",
+          "src/content/inventory-status-overlay.js",
+          "src/content/paid-insertion-guard.js",
+          "src/content/platform-guard-content.js",
+          "src/content/template-category-flow.js",
+          "src/content/template-filler.js",
+          "src/content/template-form-fields.js",
+          "src/content/template-image-upload.js",
+          "src/content/template-publish-flow.js",
+          "src/content/template-verification.js",
+          "src/popup/popup.js",
+          "src/shared/managed-navigation.js",
+          "src/shared/message-contract-registry.js",
+          "src/shared/my-ads-readiness.js",
+          "src/shared/platform-hardening.js",
+          "src/shared/renewal-policy.js",
+          "src/shared/runtime-deps.js"
+        ],
+        "reachable": 103,
+        "unreachable": [],
+        "missingDependencies": [],
+        "cycles": []
+      }
+    },
+    "qualification": "Independent full diagnostic, not overall mandatory gate or release acceptance."
+  },
+  "builderGuards": [
+    {
+      "runId": 45614227510,
+      "jobId": 139205358090,
+      "result": "failure",
+      "reason": "No explicit authorized marker; no build executed."
+    },
+    {
+      "runId": 45614510373,
+      "jobId": 139206314700,
+      "result": "failure",
+      "reason": "No explicit authorized marker; no build executed."
+    }
+  ]
+}

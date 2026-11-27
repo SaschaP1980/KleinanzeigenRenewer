@@ -5,7 +5,8 @@ const targets=['src/app/app-elements.js','src/app/profile-account-ui-controller.
 ok(targets.every(p=>fs.existsSync(path.join(root,p))), 'all four v1.23.12 owner modules exist');
 const app=read('src/app/app.js'), bg=read('src/background/background.js'), html=read('src/app/app.html'), layout=read('scripts/source-layout.json');
 ok(!/^const\s+[A-Za-z_$][\w$]*\s*=\s*document\.querySelector\(/m.test(app) && /KRAppElements/.test(app), 'app.js delegates top-level DOM binding ownership to KRAppElements');
-ok(!/message\?\.type\s*===/.test(bg) && /KRBackgroundMessageRouter/.test(bg), 'background.js delegates message type routing to KRBackgroundMessageRouter');
+let incomingBackground=bg;if(require('./current-patch-policy.cjs').isS06Version(require('../manifest.json').version)){const guard="if (message?.type === 'DELETE_OWN_AD_BY_ID') throw error;";ok(bg.split(guard).length===2,'exact S06 outgoing destructive retry guard');incomingBackground=bg.replace(guard,'');}
+ok(!/message\?\.type\s*===/.test(incomingBackground) && /KRBackgroundMessageRouter/.test(bg), 'background.js delegates message type routing to KRBackgroundMessageRouter');
 ok(!/let\s+currentProfile\s*=/.test(app) && !/liveAccountState|liveAccountAmbiguousNames/.test(app) && /KRProfileAccountUiController/.test(app), 'account/profile compatibility mirrors are removed behind profile account UI owner');
 ok(/app-elements\.js/.test(html) && /profile-account-ui-controller\.js/.test(html) && /background-message-router\.js/.test(bg) && /renewal-policy\.js/.test(bg) && /app-elements\.js/.test(layout) && /renewal-policy\.js/.test(layout), 'script/import and packaging ownership includes all new modules');
 console.log(`${pass}/5 PASS v1.23.12 composition/routing ownership`);

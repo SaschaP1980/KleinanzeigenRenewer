@@ -50,17 +50,22 @@
         );
       }
 
+      function legacyDeleteOutcomeUnresolved(record) {
+        return ['source-delete-status-unverified', 'source-delete-outcome-unverified'].includes(String(record?.renewal?.stage || ''));
+      }
+
       function renewalIsReplacementReady(record) {
         const renewal = record?.renewal;
-        if (!renewal?.renewalId || !/^\d+$/.test(String(record?.adId || renewal?.newAdId || ''))) return false;
+        if (!renewal?.renewalId || legacyDeleteOutcomeUnresolved(record) || !/^\d+$/.test(String(record?.adId || renewal?.newAdId || ''))) return false;
         const status = String(renewal.status || '');
         const stage = String(renewal.stage || '');
-        return !['source-delete-status-unverified','source-delete-outcome-unverified'].includes(stage) && (status === 'verified' || stage === 'replacement-ready');
+        return status === 'verified' || stage === 'replacement-ready';
       }
 
       function renewalAutoCompletionPending(record) {
         const renewal = record?.renewal;
-        if (!renewal?.autoReplacementAllowed || renewal?.autoReplacementFailedAt || ['source-delete-status-unverified','source-delete-outcome-unverified'].includes(String(renewal?.stage || ''))) return false;
+        if (!renewal?.autoReplacementAllowed || renewal?.autoReplacementFailedAt || renewal?.phase4AttemptsExhaustedAt
+            || renewal?.sourceDeleteVerificationOnly || legacyDeleteOutcomeUnresolved(record)) return false;
         const stage = String(renewal.stage || '');
         return stage === 'replacement-ready' || stage.startsWith('source-delete');
       }
@@ -69,7 +74,7 @@
         const status = String(record?.renewal?.status || '');
         const stage = String(record?.renewal?.stage || '');
         if (!record?.renewal?.renewalId) return '';
-        if (['source-delete-status-unverified','source-delete-outcome-unverified'].includes(stage)) return 'AUSTAUSCH UNGEKLÄRT';
+        if (legacyDeleteOutcomeUnresolved(record) || record.renewal.sourceDeleteVerificationOnly === true) return 'AUSTAUSCH UNGEKLÄRT';
         if (renewalAutoCompletionPending(record)) return stage.startsWith('source-delete') ? 'AUSTAUSCH LÄUFT' : 'AUSTAUSCH STARTET';
         if (renewalIsReplacementReady(record)) return 'AUSTAUSCH BEREIT';
         if (status === 'waiting-for-online') return 'VERÖFFENTLICHUNG NOCH NICHT BESTÄTIGT';
@@ -96,7 +101,7 @@
 
       function canDiscardRenewalDraft(record) {
         const renewal = record?.renewal;
-        if (!renewal?.renewalId) return false;
+        if (!renewal?.renewalId || legacyDeleteOutcomeUnresolved(record)) return false;
         if (record?.adId || renewal?.newAdId) return false;
         const status = String(renewal.status || 'draft');
         const stage = String(renewal.stage || '');

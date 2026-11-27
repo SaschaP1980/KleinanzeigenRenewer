@@ -141,6 +141,7 @@
         const displayName = normalizeProfileName(profile?.displayName || '');
         if (!profileId || profileId === unassignedProfileId || !displayName) throw new Error('Die Profilsicherung enthält keine gültige Profilidentität.');
         return {
+          ...profile,
           profileId,
           displayName,
           normalizedName: normalizeProfileName(profile?.normalizedName || displayName) || displayName,

@@ -2,6 +2,8 @@ const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
 const root = path.resolve(__dirname, '..');
+const restored = require('./kar210-historical-contract-context.cjs').isRestored(root);
+const s09 = require('./current-patch-policy.cjs').isS09Version(require('../manifest.json').version);
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 const app = require('./v12210-source-surface.cjs') + '\n' + read('shared-ui-helpers.js');
 const actionsDiagnostics = read('actions-diagnostics-controller.js');
@@ -38,8 +40,12 @@ ok('trash compact row shows retention deadline instead of listing end date', () 
   const end = app.indexOf('\nfunction setCompactButtonsBusy', start);
   const fn = app.slice(start, end);
   // KAR-165: presentation remains trash-specific while its countdown is styled as an isolated span.
-  assert.match(fn, /if \(trash\) appendTrashRetentionCountdown\(end, trashRetentionPresentation\(record\)\)/);
-  assert.match(fn, /else end\.textContent = `Endet am \$\{endDateWithRelativeLabel\(record\)\}`/);
+  if (restored && !s09) {
+    assert.match(fn, /end\.textContent = trash \? trashRetentionPresentation\(record\) : `Endet am \$\{endDateWithRelativeLabel\(record\)\}`/);
+  } else {
+    assert.match(fn, /if \(trash\) appendTrashRetentionCountdown\(end, trashRetentionPresentation\(record\)\)/);
+    assert.match(fn, /else end\.textContent = `Endet am \$\{endDateWithRelativeLabel\(record\)\}`/);
+  }
   assert.match(app, /function trashRetentionPresentation\(record\)/);
   assert.match(app, /Im Papierkorb bis/);
 });

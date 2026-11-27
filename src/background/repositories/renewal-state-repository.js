@@ -141,6 +141,8 @@
         const cutoff = Date.now() - maxAgeMs;
         let changed = false;
         for (const [renewalId, session] of Object.entries(sessions)) {
+          // Unresolved remote outcome evidence must not expire on read.
+          if ((row => ['source-delete-outcome-unverified', 'source-delete-status-unverified', 'publish-intent-blocked'].includes(String(row?.stage || '')) || String(row?.status || '') === 'publish-blocked')(session) || session?.remoteVerificationRequired === true) continue;
           if (!session?.createdAt || Date.parse(session.createdAt) < cutoff) {
             delete sessions[renewalId];
             changed = true;
@@ -195,6 +197,10 @@
           remoteVerificationRequired: session.remoteVerificationRequired === true,
           autoReplacementFailedAt: session.autoReplacementFailedAt || null,
           phase4AttemptsExhaustedAt: session.phase4AttemptsExhaustedAt || null,
+          // Presentation of the existing Phase-4 no-replay boundary; no new persisted session state.
+          sourceDeleteVerificationOnly: session.stage === 'replacement-ready'
+            && Boolean(session.sourceDeleteTransportInterrupted || session.sourceDeleteAction
+              || session.sourceDeleteVerificationPendingAt || session.sourceDeletedAt),
           massBatchId: session.massBatchId || null,
           massBatchItemIndex: session.massBatchItemIndex ?? null,
           massBatchTerminal: session.massBatchTerminal === true

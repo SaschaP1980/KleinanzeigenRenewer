@@ -6,6 +6,8 @@ const path = require('node:path');
 const vm = require('node:vm');
 const bridge = require('../src/background/services/native-status-bridge.js');
 const root = path.join(__dirname,'..');
+const {isRestored,assertPendingS02Release}=require('./kar210-historical-contract-context.cjs');
+const restored=isRestored(root);
 const runtimeVersion = JSON.parse(fs.readFileSync(path.join(root,'manifest.json'),'utf8')).version;
 const extensionId = 'hafahjhhgiipdegfkgacchmnacgblnah';
 const appUrl = 'chrome-extension://' + extensionId + '/src/app/app.html';
@@ -73,7 +75,7 @@ async function run() {
  check(calls===1,'untrusted messages never trigger native transport');
  const manifest=JSON.parse(fs.readFileSync(path.join(root,'manifest.json'),'utf8'));
  const v=/^1\.23\.(0|[1-9]\d*)$/.exec(manifest.version);
- check((Boolean(v)&&Number(v[1])>=30) || /^1\.(?:24|25)\.(?:0|[1-9]\d*)$/.test(manifest.version),'reviewed Chrome ZIP 1.23.30+ or approved 1.24.x feature series');
+ if(restored){assertPendingS02Release(root);check(require('./current-patch-policy.cjs').isReviewedRestoreVersion(manifest.version),'exact reviewed restore/hotfix source; no native ZIP reviewed');}else check((Boolean(v)&&Number(v[1])>=30) || /^1\.(?:24|25)\.(?:0|[1-9]\d*)$/.test(manifest.version),'reviewed Chrome ZIP 1.23.30+ or approved 1.24.x feature series');
  check(manifest.permissions.includes('nativeMessaging') && manifest.permissions.length===5,'reviewed nativeMessaging permission only');
  check(manifest.host_permissions.length===3,'existing host permissions unchanged');
  const router=fs.readFileSync(path.join(root,'src/background/background-message-router.js'),'utf8');

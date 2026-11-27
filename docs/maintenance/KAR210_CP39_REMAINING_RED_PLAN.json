@@ -1,0 +1,383 @@
+{
+  "schema": 1,
+  "issue": 210,
+  "checkpoint": 39,
+  "classificationBasis": "6435b06f9e43d0936c17b63837c973e75d7e74eb",
+  "main": "4d7ae5130730776927748e2517fdf9aadaf098cd",
+  "sourceEvidence": {
+    "path": "docs/maintenance/KAR210_BASELINE_CHARACTERIZATION_CP38.json",
+    "blob": "d7d1eb7e96e2cbb55fbcaee1307639f58c5de37b",
+    "run": 45647053668,
+    "counts": {
+      "PASS": 471,
+      "FAIL": 22,
+      "TIMEOUT": 0
+    },
+    "mandatoryJob": 139320735716,
+    "mandatoryJobQualification": "GitHub job step directly reports SHA precondition failure, not completed mandatory DELETE test. Independent diagnostic row 6 establishes DELETE replay RED; CP38 ledger's mandatoryGate text is not proof that the hosted actual-gate reached that command."
+  },
+  "policy": "All 22 commands remain active. Classification is a review plan, not a skip/defer authorization or proof of a fix. Later owning steps do not receive acceptance credit. No runtime or C expansion. Separate owner approval for additional safeguards and any actual change of active-suite disposition.",
+  "rows": [
+    {
+      "index": 6,
+      "command": "node --test tests/kar199-phase4-no-transport-replay.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.089,
+      "evidence": [
+        "not ok 1 - KAR-199 a closed DELETE response port remains unknown, not replayed",
+        "name: 'AssertionError'"
+      ],
+      "category": "remote-safety",
+      "owningSteps": "S06",
+      "priority": "P0",
+      "proposedDisposition": "Keep RED. Closed DELETE response is unknown, never repeat; inspect existing message helper, minimal mutation-specific no-transport-replay versus read-only recovery. Owner approves any strengthened runtime safeguard; positive status recovery must survive.",
+      "activeGate": "RETAINED"
+    },
+    {
+      "index": 7,
+      "command": "node --test tests/kar199-phase4-bounded-runtime.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 1.882,
+      "evidence": [
+        "not ok 1 - KAR-199 first MY_ADS_STATUS never answers: bounded recovery, no phase-4 intent or DELETE",
+        "Error: TEST_UNBOUNDED_AWAIT",
+        "name: 'AssertionError'"
+      ],
+      "category": "mixed-product-C",
+      "owningSteps": "S06",
+      "priority": "P0",
+      "proposedDisposition": "Keep RED. Bound actual pre-delete read and post-dispatch response; split excluded durable-journal receipts/second-status assertions from independent timeout/no-repeat product checks. Do not port P8/journal.",
+      "activeGate": "RETAINED"
+    },
+    {
+      "index": 8,
+      "command": "node --test tests/kar199-phase4-unverified-state-runtime.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 1.282,
+      "evidence": [
+        "not ok 1 - KAR-199 pre-intent status timeout creates recoverable user notice, no automatic retry",
+        "Error: TEST_UNBOUNDED_PHASE4_RECOVERY",
+        "name: 'AssertionError'"
+      ],
+      "category": "mixed-product-C",
+      "owningSteps": "S06",
+      "priority": "P0",
+      "proposedDisposition": "Keep RED. Preserve truthful bounded status/unknown outcome and review UX; separate journal-only intent/receipt cases. Existing historical service and persisted state first.",
+      "activeGate": "RETAINED"
+    },
+    {
+      "index": 11,
+      "command": "node --test tests/kar210-cp36-phase4-unknown-witness.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.088,
+      "evidence": [
+        "not ok 1 - KAR-128 product: account changes during awaited pre-delete diagnostic; no destructive dispatch under changed account",
+        "name: 'AssertionError'",
+        "not ok 2 - KAR-117/124 product: persisted unknown DELETE after worker restart must not automatically replay without independent proof"
+      ],
+      "category": "remote-safety",
+      "owningSteps": "S06",
+      "priority": "P0",
+      "proposedDisposition": "Keep both direct REDs. Late account switch before dispatch and restart with persisted uncertain DELETE; evaluate minimal existing identity/transport state checks and read-only resolution, no later journal.",
+      "activeGate": "RETAINED"
+    },
+    {
+      "index": 14,
+      "command": "node --test tests/kar210-cp38-publish-uncertainty-witness.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.107,
+      "evidence": [
+        "not ok 1 - managed publication: first click/native submit may pass, second explicit submit must not replay",
+        "name: 'AssertionError'",
+        "not ok 2 - managed publication: second implicit submit with null submitter must not replay"
+      ],
+      "category": "remote-safety",
+      "owningSteps": "S06/S07",
+      "priority": "P0",
+      "proposedDisposition": "Keep all six RED subtests and passing controls. Separate duplicate submit/capture, exact ID/account verification, submitted archive detection; S06 publication/renewal and S07 archive, with owner approval for extra guards.",
+      "activeGate": "RETAINED"
+    },
+    {
+      "index": 19,
+      "command": "node --test tests/kar210-diagnostic-reset-unknown.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.236,
+      "evidence": [
+        "not ok 1 - KAR-193 a response without an authenticated reset boundary is never reported as success",
+        "name: 'AssertionError'",
+        "not ok 2 - KAR-193 a hung reset request times out without repeating an uncertain side effect"
+      ],
+      "category": "approved-later-product",
+      "owningSteps": "S10",
+      "priority": "P1",
+      "proposedDisposition": "Keep RED until explicit disposition. Truthful reset acknowledgement and timeout/no-repeat are real local diagnostic outcomes; no updater admission/receipt port.",
+      "activeGate": "RETAINED"
+    },
+    {
+      "index": 20,
+      "command": "node --test tests/kar210-startup-isolation-witness.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.091,
+      "evidence": [
+        "not ok 2 - KAR-185 independent product witness: failed optional configuration must not prevent local inventory read",
+        "name: 'AssertionError'",
+        "not ok 3 - KAR-185 independent product witness: inspection failure must not be reported as inventory failure"
+      ],
+      "category": "approved-later-product",
+      "owningSteps": "S08",
+      "priority": "P1",
+      "proposedDisposition": "Keep RED. Independent inventory startup and truthful notice; reconstructible local cache, no speculative new locking.",
+      "activeGate": "RETAINED"
+    },
+    {
+      "index": 28,
+      "command": "node --test tests/kar210-kar134-legacy-session-witness.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.084,
+      "evidence": [
+        "not ok 2 - KAR-134 independent persisted retired schema-test session must be refused before form payload",
+        "name: 'AssertionError'"
+      ],
+      "category": "data-and-form-safety",
+      "owningSteps": "S03/S05",
+      "priority": "P1",
+      "proposedDisposition": "Keep RED. Retired schema-test session must not supply saved form payload. Establish actual persisted compatibility and whether retired scenario can exist; refuse unsupported session without transplanting test machinery.",
+      "activeGate": "RETAINED"
+    },
+    {
+      "index": 31,
+      "command": "node --test tests/kar210-p13-lock-read-uncertainty.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.091,
+      "evidence": [
+        "not ok 1 - unknown renewal owner read must not authorize competing insertion",
+        "name: 'AssertionError'",
+        "not ok 2 - unknown archive owner read must not authorize competing insertion"
+      ],
+      "category": "remote-safety",
+      "owningSteps": "S06",
+      "priority": "P0",
+      "proposedDisposition": "Keep RED. Existing insertion owner read uncertainty must not allow competing start; assess fail-closed existing lock read with no owner census.",
+      "activeGate": "RETAINED"
+    },
+    {
+      "index": 35,
+      "command": "node --test tests/kar210-kar150-uncertain-start-witness.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.085,
+      "evidence": [
+        "not ok 1 - uncertain restart without persisted renewal session must not re-admit the starting item",
+        "name: 'AssertionError'"
+      ],
+      "category": "remote-safety",
+      "owningSteps": "S06/S08",
+      "priority": "P0",
+      "proposedDisposition": "Keep RED. Unknown starting mass item cannot re-admit a possible mutation. Distinguish existing session recovery from later stop-on-error UX; no new owner layer.",
+      "activeGate": "RETAINED"
+    },
+    {
+      "index": 39,
+      "command": "node tests/kar99-p9-tab-gone-monotonic.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.033,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: delayed onUpdated observation cannot revive GONE with inherited goneReason"
+      ],
+      "category": "lifecycle-safety",
+      "owningSteps": "S06",
+      "priority": "P1",
+      "proposedDisposition": "Keep RED. Gone tab must not revive; assess product consequence and minimal monotonic lifecycle in existing tab registry, without P9/updater authority.",
+      "activeGate": "RETAINED"
+    },
+    {
+      "index": 40,
+      "command": "node --test tests/kar210-p9-independent-tab-lifecycle.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.087,
+      "evidence": [
+        "not ok 1 - independent original P9 delayed onUpdated cannot revive GONE",
+        "name: 'AssertionError'",
+        "not ok 2 - independent original P9 late registration cannot resurrect GONE"
+      ],
+      "category": "lifecycle-safety",
+      "owningSteps": "S06",
+      "priority": "P1",
+      "proposedDisposition": "Keep RED. Independent late event/registration and concurrent registry witnesses. Link same defect family as row 39; no duplicate implementation.",
+      "activeGate": "RETAINED"
+    },
+    {
+      "index": 42,
+      "command": "node tests/kar132-modern-category-modal.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.103,
+      "evidence": [
+        "Error: Kategorie „Mode & Beauty“ ist nicht eindeutig (0 Treffer)."
+      ],
+      "category": "approved-later-product",
+      "owningSteps": "S05",
+      "priority": "P1",
+      "proposedDisposition": "Keep RED. Current category modal hydration/ancestry/unique exact numeric verification; separate unsupported legacy positive cases from relevant negative safety.",
+      "activeGate": "RETAINED"
+    },
+    {
+      "index": 43,
+      "command": "node tests/kar210-kar132-independent-modal.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.221,
+      "evidence": [
+        "KAR-132 independent: 40 PASS / 5 FAIL / 45 executed",
+        "FAIL late-root-159: Kategorie „Mode & Beauty“ ist nicht eindeutig (0 Treffer).",
+        "FAIL late-root-22: Kategorie „Familie, Kind & Baby“ ist nicht eindeutig (0 Treffer)."
+      ],
+      "category": "approved-later-product",
+      "owningSteps": "S05",
+      "priority": "P1",
+      "proposedDisposition": "Keep RED. Independent 40/45 positive/negative characterization, same category family as 42; no guessed mapping.",
+      "activeGate": "RETAINED"
+    },
+    {
+      "index": 227,
+      "command": "node tests/v1203-hot-path-runtime.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.07,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: S02 safety witness: a record whose expiry was reset after selection must not be deleted"
+      ],
+      "category": "local-data-safety",
+      "owningSteps": "S03/S09",
+      "priority": "P0",
+      "proposedDisposition": "Keep RED. Expiry reset after selection must not cause permanent local deletion; re-evaluate expiry at delete boundary using existing transaction ownership. No destructive retention change or speculative locking.",
+      "activeGate": "RETAINED"
+    },
+    {
+      "index": 254,
+      "command": "node tests/v12018-activity-history-bootstrap.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.031,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:"
+      ],
+      "category": "mixed-historical-product",
+      "owningSteps": "S08/S10",
+      "priority": "P2",
+      "proposedDisposition": "Keep RED. Static startup ordering is not standalone behavioral proof. Review message-history persisted read before display plus truthful inventory bootstrap and retained activity count, bind actual historical owner where appropriate.",
+      "activeGate": "RETAINED"
+    },
+    {
+      "index": 274,
+      "command": "node tests/v12111-global-view-sidebar-bottom-diagnostics.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.065,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: The input did not match the regular expression /Inventar\\s*<span id=\"inventoryHeaderCount\">…<\\/span>/. Input:"
+      ],
+      "category": "mixed-historical-product",
+      "owningSteps": "S08/S10/S11",
+      "priority": "P2",
+      "proposedDisposition": "Keep RED. Split loading-count UI and sticky geometry/diagnostic assertions; preserve behavior and exact four-view geometry. Do not change UI just for a source regex.",
+      "activeGate": "RETAINED"
+    },
+    {
+      "index": 275,
+      "command": "node tests/v12112-sidebar-refresh-capture-polish.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.064,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: The input was expected to not match the regular expression /UI_SIDEBAR_BOTTOM_REACHED|UI_SIDEBAR_GEOMETRY_CHANGED|UI_SIDEBAR_SCROLL_SAMPLE/. Input:"
+      ],
+      "category": "mixed-historical-product",
+      "owningSteps": "S10/S11",
+      "priority": "P2",
+      "proposedDisposition": "Keep RED. Later diagnostic-retirement requirement conflicts with historical routine events; distinguish retained UI geometry/candidate controls from low-overhead diagnostic outcome.",
+      "activeGate": "RETAINED"
+    },
+    {
+      "index": 280,
+      "command": "node tests/v1220-browser-e2e-contract.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.187,
+      "evidence": [
+        "Error: Command failed: python3 /home/runner/work/KleinanzeigenRenewer/KleinanzeigenRenewer/scripts/verify_committed_chrome_zip.py --self-test"
+      ],
+      "category": "mandatory-D-artifact",
+      "owningSteps": "S02",
+      "priority": "P0",
+      "proposedDisposition": "Correct test-only verifier fixture separation. Unbuilt 2.0.0.0 lacks archive; explicit synthetic self-test only for pending S02, actual committed ZIP/rebuild/negative gates stay strict. No build or archive fabricated.",
+      "activeGate": "RETAINED"
+    },
+    {
+      "index": 289,
+      "command": "node tests/v1226-diagnostics-actions-runtime.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.055,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: routine state snapshots must not be persisted"
+      ],
+      "category": "approved-later-product",
+      "owningSteps": "S10",
+      "priority": "P1",
+      "proposedDisposition": "Keep RED. Actual routine state snapshots are persisted; measure low-overhead diagnostic retirement and preserve anomaly evidence. No updater dependencies.",
+      "activeGate": "RETAINED"
+    },
+    {
+      "index": 290,
+      "command": "node tests/v1227-pre-refactor-characterization.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.031,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: The input was expected to not match the regular expression /UI_SIDEBAR_SCROLL_SAMPLE/. Input:"
+      ],
+      "category": "mixed-historical-product",
+      "owningSteps": "S10/S11",
+      "priority": "P2",
+      "proposedDisposition": "Keep RED. Sticky diagnostic retirement assertion versus baseline, retain real geometry/tab lifecycle and UI behavior; split scope before changing source.",
+      "activeGate": "RETAINED"
+    },
+    {
+      "index": 292,
+      "command": "node tests/v1227-modularization.cjs",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.066,
+      "evidence": [
+        "AssertionError [ERR_ASSERTION]: The input was expected to not match the regular expression /UI_SIDEBAR_SCROLL_SAMPLE/. Input:"
+      ],
+      "category": "mixed-historical-product",
+      "owningSteps": "S10/S11",
+      "priority": "P2",
+      "proposedDisposition": "Keep RED. Same sidebar retirement mismatch as 275/290, retain module ownership, thin facades and sticky geometry. Avoid duplicate correction.",
+      "activeGate": "RETAINED"
+    }
+  ],
+  "implementation": {
+    "scope": "D test-only explicit synthetic fixture for pending S02; no product runtime, version, archive, actual verification mode or workflow gate weakening.",
+    "expectedRed": "CP38 row 280 failed ZIP self-test; exact branch tree has no 2.0.0.0 archive, and default missing archive is deliberately rejected. Existing independent negative covers normal main() refusal.",
+    "validation": "Run focused existing E2E contract, independent missing archive/collision and new fixture-mode negatives. Full suite and actual ZIP proof remain pending."
+  },
+  "priorities": [
+    "S02 D fixture separation and exact hosted checkout proof; keep actual gate RED until genuinely run.",
+    "Review P0 product safety by existing ownership boundaries: no DELETE replay, account/ID and publish, uncertain insertion/mass state, local expiry. Existing negative and positive controls remain; proposed runtime corrections need explicit owner decision when they strengthen historical safeguards.",
+    "Plan later A/B fixes within S03/S05/S06/S07/S08/S09/S10/S11; do not silently remove failing commands; obtain explicit disposition before changing active suite."
+  ]
+}

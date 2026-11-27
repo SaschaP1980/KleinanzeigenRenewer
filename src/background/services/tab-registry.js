@@ -95,14 +95,18 @@
 
   function create({ storageSession, now = () => Date.now(), tombstoneMs = DEFAULT_TOMBSTONE_MS } = {}) {
     if (!storageSession?.get || !storageSession?.set) throw new Error('TabRegistry benötigt chrome.storage.session.');
-    // tabRegistryV1 is one shared storage value. Concurrent Chrome onUpdated,
-    // onRemoved and workflow callbacks must never read the same old snapshot
-    // and overwrite each other's independently newer lifecycle entries.
-    let registryMutationTail = Promise.resolve();
-    function serializeRegistryMutation(action) {
-      const result = registryMutationTail.then(action, action);
-      registryMutationTail = result.then(() => undefined, () => undefined);
+
+    // The single service-worker registry owns this shared storage map. Serialize
+    // metadata transactions only; never hold the queue across Chrome tab I/O.
+    let registryQueue = Promise.resolve();
+    function withRegistryMutation(task) {
+      const result = registryQueue.then(task);
+      registryQueue = result.then(() => undefined, () => undefined);
       return result;
+    }
+
+    async function read() {
+      return withRegistryMutation(readRaw);
     }
 
     async function readRaw() {
@@ -142,7 +146,6 @@
     }
 
     async function prune(registry = null) {
-      return serializeRegistryMutation(async () => {
       const entries = registry || await readRaw();
       const threshold = Number(tombstoneMs) || DEFAULT_TOMBSTONE_MS;
       const current = Number(now());
@@ -162,19 +165,14 @@
       }
       if (changed) await writeRaw(entries);
       return entries;
-      });
     }
 
-    async function upsert(tabId, patch = {}) {
-      return serializeRegistryMutation(async () => {
+    async function upsert(tabId, patch = {}, existingRegistry = null) {
       const id = Number(tabId || 0);
       if (!id) return null;
-      const registry = await readRaw();
+      const registry = existingRegistry || await readRaw();
       const key = String(id);
       const previous = registry[key] || {};
-      // Terminal tab IDs cannot be reopened by an event that was already
-      // queued before tabs.onRemoved, nor by a late managed registration.
-      // Chrome does not recycle tab IDs during this browser session.
       if (previous.lifecycleState === STATES.GONE) return previous;
       const timestamp = iso(now);
       const nextOwner = { ...(previous.owner || {}), ...ownerFrom(patch.owner || patch) };
@@ -199,14 +197,15 @@
       registry[key] = next;
       await writeRaw(registry);
       return next;
-      });
     }
 
     async function register(tabId, { role, kind = null, managed = false, owner = {}, url = null, windowId = null } = {}) {
-      return upsert(tabId, {
-        role: role || roleForUrl(url), kind, managed, owner, url, windowId,
-        lifecycleState: STATES.ACTIVE, lastSeenAt: iso(now), discardedAt: null, closedAt: null,
-        closeIntentReason: null, closeIntentAt: null
+      return withRegistryMutation(async () => {
+        return upsert(tabId, {
+          role: role || roleForUrl(url), kind, managed, owner, url, windowId,
+          lifecycleState: STATES.ACTIVE, lastSeenAt: iso(now), discardedAt: null, closedAt: null,
+          closeIntentReason: null, closeIntentAt: null
+        });
       });
     }
 
@@ -215,141 +214,149 @@
     }
 
     async function observeTab(tab, { role = null, kind = null, managed = null, owner = {} } = {}) {
-      const id = Number(tab?.id || 0);
-      if (!id) return null;
-      const registry = await readRaw();
-      const previous = registry[String(id)] || null;
-      const discarded = Boolean(tab?.discarded);
-      return upsert(id, {
-        role: role || previous?.role || roleForUrl(tab?.url),
-        kind: kind || previous?.kind || null,
-        managed: managed === null ? Boolean(previous?.managed) : Boolean(managed),
-        owner,
-        url: tab?.url || previous?.url || null,
-        windowId: tab?.windowId ?? previous?.windowId ?? null,
-        lifecycleState: discarded ? STATES.DISCARDED : STATES.ACTIVE,
-        lastSeenAt: iso(now),
-        discardedAt: discarded ? (previous?.discardedAt || iso(now)) : null,
-        closedAt: null
+      return withRegistryMutation(async () => {
+        const id = Number(tab?.id || 0);
+        if (!id) return null;
+        const registry = await readRaw();
+        const previous = registry[String(id)] || null;
+        const discarded = Boolean(tab?.discarded);
+        return upsert(id, {
+          role: role || previous?.role || roleForUrl(tab?.url),
+          kind: kind || previous?.kind || null,
+          managed: managed === null ? Boolean(previous?.managed) : Boolean(managed),
+          owner,
+          url: tab?.url || previous?.url || null,
+          windowId: tab?.windowId ?? previous?.windowId ?? null,
+          lifecycleState: discarded ? STATES.DISCARDED : STATES.ACTIVE,
+          lastSeenAt: iso(now),
+          discardedAt: discarded ? (previous?.discardedAt || iso(now)) : null,
+          closedAt: null
+        }, registry);
       });
     }
 
     async function markDiscarded(tabId, discarded = true) {
-      const id = Number(tabId || 0);
-      if (!id) return null;
-      const registry = await readRaw();
-      const previous = registry[String(id)] || null;
-      if (!previous) return null;
-      return upsert(id, {
-        lifecycleState: discarded ? STATES.DISCARDED : STATES.ACTIVE,
-        lastSeenAt: iso(now),
-        discardedAt: discarded ? (previous.discardedAt || iso(now)) : null,
-        closedAt: null
+      return withRegistryMutation(async () => {
+        const id = Number(tabId || 0);
+        if (!id) return null;
+        const registry = await readRaw();
+        const previous = registry[String(id)] || null;
+        if (!previous) return null;
+        return upsert(id, {
+          lifecycleState: discarded ? STATES.DISCARDED : STATES.ACTIVE,
+          lastSeenAt: iso(now),
+          discardedAt: discarded ? (previous.discardedAt || iso(now)) : null,
+          closedAt: null
+        }, registry);
       });
     }
 
     async function markClosing(tabId, reason = 'workflow-close') {
-      return serializeRegistryMutation(async () => {
-      const id = Number(tabId || 0);
-      if (!id) return null;
-      const registry = await readRaw();
-      const key = String(id);
-      const previous = registry[key];
-      if (!previous) return null;
-      if (previous.lifecycleState === STATES.GONE) return previous;
-      const timestamp = iso(now);
-      registry[key] = {
-        ...previous,
-        updatedAt: timestamp,
-        closeIntentReason: text(reason, 120) || 'workflow-close',
-        closeIntentAt: timestamp
-      };
-      await writeRaw(registry);
-      return registry[key];
+      return withRegistryMutation(async () => {
+        const id = Number(tabId || 0);
+        if (!id) return null;
+        const registry = await readRaw();
+        const key = String(id);
+        const previous = registry[key];
+        if (!previous) return null;
+        if (previous.lifecycleState === STATES.GONE) return previous;
+        const timestamp = iso(now);
+        registry[key] = {
+          ...previous,
+          updatedAt: timestamp,
+          closeIntentReason: text(reason, 120) || 'workflow-close',
+          closeIntentAt: timestamp
+        };
+        await writeRaw(registry);
+        return registry[key];
       });
     }
 
     async function clearClosing(tabId) {
-      return serializeRegistryMutation(async () => {
-      const id = Number(tabId || 0);
-      if (!id) return null;
-      const registry = await readRaw();
-      const key = String(id);
-      const previous = registry[key];
-      if (!previous || previous.lifecycleState === STATES.GONE) return previous || null;
-      const timestamp = iso(now);
-      registry[key] = { ...previous, updatedAt: timestamp, closeIntentReason: null, closeIntentAt: null };
-      await writeRaw(registry);
-      return registry[key];
+      return withRegistryMutation(async () => {
+        const id = Number(tabId || 0);
+        if (!id) return null;
+        const registry = await readRaw();
+        const key = String(id);
+        const previous = registry[key];
+        if (!previous || previous.lifecycleState === STATES.GONE) return previous || null;
+        const timestamp = iso(now);
+        registry[key] = { ...previous, updatedAt: timestamp, closeIntentReason: null, closeIntentAt: null };
+        await writeRaw(registry);
+        return registry[key];
       });
     }
 
     async function markGone(tabId, reason = 'removed') {
-      return serializeRegistryMutation(async () => {
-      const id = Number(tabId || 0);
-      if (!id) return null;
-      const registry = await readRaw();
-      const key = String(id);
-      const previous = registry[key];
-      if (!previous) return null;
-      const closedAt = previous.closedAt || iso(now);
-      const incomingReason = text(reason, 120) || 'removed';
-      const genericGoneReason = /^(?:removed|tabs\.onRemoved|get-failed)$/i.test(incomingReason);
-      const resolvedReason = text(previous.closeIntentReason, 120)
-        || (previous.lifecycleState === STATES.GONE && previous.goneReason && genericGoneReason ? text(previous.goneReason, 120) : '')
-        || incomingReason;
-      registry[key] = {
-        ...previous,
-        lifecycleState: STATES.GONE,
-        updatedAt: iso(now),
-        closedAt,
-        goneReason: resolvedReason,
-        closeIntentReason: null,
-        closeIntentAt: null
-      };
-      await writeRaw(registry);
-      return registry[key];
+      return withRegistryMutation(async () => {
+        const id = Number(tabId || 0);
+        if (!id) return null;
+        const registry = await readRaw();
+        const key = String(id);
+        const previous = registry[key];
+        if (!previous) return null;
+        const closedAt = previous.closedAt || iso(now);
+        const incomingReason = text(reason, 120) || 'removed';
+        const genericGoneReason = /^(?:removed|tabs\.onRemoved|get-failed)$/i.test(incomingReason);
+        const resolvedReason = text(previous.closeIntentReason, 120)
+          || (previous.lifecycleState === STATES.GONE && previous.goneReason && genericGoneReason ? text(previous.goneReason, 120) : '')
+          || incomingReason;
+        registry[key] = {
+          ...previous,
+          lifecycleState: STATES.GONE,
+          updatedAt: iso(now),
+          closedAt,
+          goneReason: resolvedReason,
+          closeIntentReason: null,
+          closeIntentAt: null
+        };
+        await writeRaw(registry);
+        return registry[key];
       });
     }
 
     async function releaseOwnership(tabId, expectedOwner = {}, { role = null, url = null, managed = null } = {}) {
-      return serializeRegistryMutation(async () => {
-      const id = Number(tabId || 0);
-      if (!id) return { released: false, reason: 'invalid-tab-id', entry: null };
-      const registry = await readRaw();
-      const key = String(id);
-      const previous = registry[key] || null;
-      if (!previous) return { released: false, reason: 'missing', entry: null };
-      if (previous.lifecycleState === STATES.GONE) {
-        return { released: false, reason: 'gone-tombstone', entry: previous };
-      }
-      if (!ownerMatches(previous.owner || {}, expectedOwner)) {
-        return { released: false, reason: 'owner-mismatch', entry: previous };
-      }
-      const timestamp = iso(now);
-      const resolvedUrl = text(url, 2000) || previous.url || null;
-      const next = {
-        ...previous,
-        role: text(role, 80) || roleForUrl(resolvedUrl),
-        managed: managed === null ? Boolean(previous.managed) : Boolean(managed),
-        updatedAt: timestamp,
-        url: resolvedUrl,
-        owner: {}
-      };
-      registry[key] = next;
-      await writeRaw(registry);
-      return { released: true, reason: 'released', entry: next };
+      return withRegistryMutation(async () => {
+        const id = Number(tabId || 0);
+        if (!id) return { released: false, reason: 'invalid-tab-id', entry: null };
+        const registry = await readRaw();
+        const key = String(id);
+        const previous = registry[key] || null;
+        if (!previous) return { released: false, reason: 'missing', entry: null };
+        if (previous.lifecycleState === STATES.GONE) {
+          return { released: false, reason: 'gone-tombstone', entry: previous };
+        }
+        if (!ownerMatches(previous.owner || {}, expectedOwner)) {
+          return { released: false, reason: 'owner-mismatch', entry: previous };
+        }
+        const timestamp = iso(now);
+        const resolvedUrl = text(url, 2000) || previous.url || null;
+        const next = {
+          ...previous,
+          role: text(role, 80) || roleForUrl(resolvedUrl),
+          managed: managed === null ? Boolean(previous.managed) : Boolean(managed),
+          updatedAt: timestamp,
+          url: resolvedUrl,
+          owner: {}
+        };
+        registry[key] = next;
+        await writeRaw(registry);
+        return { released: true, reason: 'released', entry: next };
       });
     }
 
     async function get(tabId) {
-      const registry = await prune();
-      return registry[String(Number(tabId || 0))] || null;
+      return withRegistryMutation(async () => {
+        const registry = await prune();
+        return registry[String(Number(tabId || 0))] || null;
+      });
     }
 
     async function snapshot() {
-      const registry = await prune();
-      return Object.values(registry).sort((a, b) => Number(a.tabId) - Number(b.tabId));
+      return withRegistryMutation(async () => {
+        const registry = await prune();
+        return Object.values(registry).sort((a, b) => Number(a.tabId) - Number(b.tabId));
+      });
     }
 
     async function managedTabIds() {
@@ -420,7 +427,7 @@
 
     return Object.freeze({
       ROLES, STATES,
-      read: readRaw, snapshot, get, register, registerManagedWorker, observeTab,
+      read, snapshot, get, register, registerManagedWorker, observeTab,
       markGone, releaseOwnership, managedTabIds, getTabOrThrow,
       closeTab, reloadTabOrThrow
     });

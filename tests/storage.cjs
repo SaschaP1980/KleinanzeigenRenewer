@@ -3,6 +3,8 @@ const vm = require('node:vm');
 const fs = require('node:fs');
 const assert = require('node:assert/strict');
 const path = require('node:path');
+const {isRestored,captureOwner}=require('./kar210-historical-contract-context.cjs');
+const root=path.resolve(__dirname,'..');const restored=isRestored(root);
 const __session={};
 const context = vm.createContext({indexedDB, IDBKeyRange, crypto:require('node:crypto').webcrypto, Blob, URL, AbortSignal,
  chrome:{storage:{local:{get:async()=>({}),set:async()=>{}},session:{get:async()=>({...__session}),set:async patch=>Object.assign(__session,patch)}}, runtime:{onMessage:{addListener(){}}}}, importScripts(){}});
@@ -13,7 +15,8 @@ vm.runInContext(fs.readFileSync(path.join(__dirname,'../inventory-repository.js'
 // This test intentionally injects a fake downloader to isolate IndexedDB
 // transaction rollback. Keep production service source unchanged on disk;
 // only this test VM redirects the one download seam to its existing stub.
-const captureSource=fs.readFileSync(path.join(__dirname,'../src/background/services/inventory-capture-service.js'),'utf8');
+if(!restored){
+const captureSource=fs.readFileSync(path.join(root,captureOwner(root)),'utf8');
 const downloadCall='await downloadInventoryImage(extracted.images[index],';
 assert.equal(captureSource.split(downloadCall).length,2,'one inventory capture download call');
 vm.runInContext(captureSource.replace(downloadCall,
@@ -23,7 +26,10 @@ vm.runInContext(captureSource.replace(downloadCall,
 context.KRDeps.register('KRTemplateSchemaCore',{
   buildSchema:()=>({}), fingerprint:async()=> 'fixture-only'
 });
-vm.runInContext(fs.readFileSync(path.join(__dirname,'../background.js'),'utf8'),context);
+}
+const bgSource=restored?fs.readFileSync(path.join(root,captureOwner(root)),'utf8'):fs.readFileSync(path.join(__dirname,'../background.js'),'utf8');
+if(restored){assert.match(bgSource,/async function saveInventory\(/);assert.match(bgSource,/await downloadInventoryImage\(extracted.images\[index\],/);}
+vm.runInContext(bgSource,context);
 const ad = images => ({adId:'123',title:'New',description:'Absatz 1.\n\n- Farbe: grau\n\nAbsatz 3.',images:images.map(url=>({url})),warnings:[]});
 context.downloadInventoryImage=async source=>{const url=typeof source==='string'?source:source.url;return {blob:new Blob([url],{type:'image/jpeg'}),size:url.length,mimeType:'image/jpeg',sourceUrl:url,fetchedUrl:url}};
 async function snapshot(){

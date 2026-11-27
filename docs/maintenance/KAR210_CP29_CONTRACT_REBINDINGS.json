@@ -1,0 +1,144 @@
+{
+  "schemaVersion": 1,
+  "issue": 210,
+  "checkpoint": 29,
+  "sourceCommit": "ceefa89afbc39de9a93614dcfdf06f585ce06baa",
+  "originalsRetainedInGit": true,
+  "policy": "Historical minimal baseline first; fixed retention presentation only, later configurable requirements retained outside S02; startup and diagnostic REDs remain; no production or command changes. Validation pending.",
+  "review": [
+    {
+      "path": "tests/v1210-compact-views-message-history.cjs",
+      "originalBlob": "b85ce1061c3ec4609cbf7cb6dbe114976990fc0f",
+      "originalCommit": "ceefa89afbc39de9a93614dcfdf06f585ce06baa",
+      "changes": [
+        "Exact S02 identity where applicable; original behavior assertions retained except individually described fixed-retention historical branches.",
+        "Historical fixed 30-day reset label, not configurable policy (S03/S09)."
+      ]
+    },
+    {
+      "path": "tests/v1211-message-gold-line.cjs",
+      "originalBlob": "b55b517b5cd41fa490ac9b5b1d9dba9d0467c307",
+      "originalCommit": "ceefa89afbc39de9a93614dcfdf06f585ce06baa",
+      "changes": [
+        "Exact S02 identity where applicable; original behavior assertions retained except individually described fixed-retention historical branches.",
+        "Inspect actual historical renderBulkState, not synthetic surface placeholder."
+      ]
+    },
+    {
+      "path": "tests/v1212-compact-layout-icons.cjs",
+      "originalBlob": "54cabe0ec95163f0b85aab47c9a101688baaef4b",
+      "originalCommit": "ceefa89afbc39de9a93614dcfdf06f585ce06baa",
+      "changes": [
+        "Exact S02 identity where applicable; original behavior assertions retained except individually described fixed-retention historical branches."
+      ]
+    },
+    {
+      "path": "tests/v1213-sticky-retention-interaction.cjs",
+      "originalBlob": "d62214a71c282726adc985f3c6fbf9a075370a06",
+      "originalCommit": "ceefa89afbc39de9a93614dcfdf06f585ce06baa",
+      "changes": [
+        "Exact S02 identity where applicable; original behavior assertions retained except individually described fixed-retention historical branches.",
+        "Keep trash-specific fixed expiry text vs listing end date; later styled countdown span remains S09 with independent baseline render test."
+      ]
+    },
+    {
+      "path": "tests/v1214-sticky-goldline.cjs",
+      "originalBlob": "22c9f0db4998f4b698aecc93d8ee42608e0fe154",
+      "originalCommit": "ceefa89afbc39de9a93614dcfdf06f585ce06baa",
+      "changes": [
+        "Exact S02 identity where applicable; original behavior assertions retained except individually described fixed-retention historical branches.",
+        "Fixed historical retention intro; original neutral hydration wording outside S02, S03/S09. Sticky geometry assertions unchanged."
+      ]
+    },
+    {
+      "path": "tests/v1217-sticky-target-geometry.cjs",
+      "originalBlob": "b03ea5eb790b8904715ba13baca0ca5fe590a8eb",
+      "originalCommit": "ceefa89afbc39de9a93614dcfdf06f585ce06baa",
+      "changes": [
+        "Exact S02 identity where applicable; original behavior assertions retained except individually described fixed-retention historical branches."
+      ]
+    },
+    {
+      "path": "tests/v1219-ui-consolidation.cjs",
+      "originalBlob": "281ba7bea9b109d8e06944743a8378b3be924c67",
+      "originalCommit": "ceefa89afbc39de9a93614dcfdf06f585ce06baa",
+      "changes": [
+        "Exact S02 identity where applicable; original behavior assertions retained except individually described fixed-retention historical branches."
+      ]
+    },
+    {
+      "path": "tests/v12110-ui-polish.cjs",
+      "originalBlob": "1e4f09619f1e8b9d1a624dd91e1f73f28cf38b72",
+      "originalCommit": "ceefa89afbc39de9a93614dcfdf06f585ce06baa",
+      "changes": [
+        "Exact S02 identity where applicable; original behavior assertions retained except individually described fixed-retention historical branches."
+      ]
+    },
+    {
+      "path": "tests/v12111-global-view-sidebar-bottom-diagnostics.cjs",
+      "originalBlob": "3549f48e9d2d483d3e4f6797ccc579008e6c61a7",
+      "originalCommit": "ceefa89afbc39de9a93614dcfdf06f585ce06baa",
+      "changes": [
+        "Exact S02 identity where applicable; original behavior assertions retained except individually described fixed-retention historical branches.",
+        "Do not weaken startup unknown-count or routine sidebar diagnostic requirements. Historical startup and diagnostic behavior are known mismatches; retain genuine RED for review."
+      ]
+    },
+    {
+      "path": "tests/v12112-sidebar-refresh-capture-polish.cjs",
+      "originalBlob": "d9d4fe6710b37e2bf279f5b0d091c5c6d8e63f99",
+      "originalCommit": "ceefa89afbc39de9a93614dcfdf06f585ce06baa",
+      "changes": [
+        "Exact S02 identity where applicable; original behavior assertions retained except individually described fixed-retention historical branches.",
+        "Do not weaken startup unknown-count or routine sidebar diagnostic requirements. Historical startup and diagnostic behavior are known mismatches; retain genuine RED for review."
+      ]
+    },
+    {
+      "path": "tests/v12113-compact-trash-actions.cjs",
+      "originalBlob": "39cebc2bcdc4c54f1b42ea214491b2fe6f0c848b",
+      "originalCommit": "ceefa89afbc39de9a93614dcfdf06f585ce06baa",
+      "changes": [
+        "Exact S02 identity where applicable; original behavior assertions retained except individually described fixed-retention historical branches.",
+        "Fixed 30-day reset label only; action identity/order/diagnostics retained."
+      ]
+    },
+    {
+      "path": "tests/v12114-ui-copy-consistency.cjs",
+      "originalBlob": "f9559038ba37339580510601e6f5bcf9fe6b8f25",
+      "originalCommit": "ceefa89afbc39de9a93614dcfdf06f585ce06baa",
+      "changes": [
+        "Exact S02 identity where applicable; original behavior assertions retained except individually described fixed-retention historical branches.",
+        "Historical fixed retention wording, explicit local-only effect; later hydration wording outside S02."
+      ]
+    },
+    {
+      "path": "tests/v12115-actions-accordion-recovery.cjs",
+      "originalBlob": "3d5caee80e43ac7bf78a9012fbd0665103e13d9b",
+      "originalCommit": "ceefa89afbc39de9a93614dcfdf06f585ce06baa",
+      "changes": [
+        "Exact S02 identity where applicable; original behavior assertions retained except individually described fixed-retention historical branches."
+      ]
+    }
+  ],
+  "focusedValidation": {
+    "runId": 45604031024,
+    "jobId": 139170081489,
+    "head": "df723a269970acfcb4f0a8c2d7f91326697575e6",
+    "passed": 16,
+    "failed": 2,
+    "completeHistoricalContracts": 11,
+    "explicitPassingGroupLines": 55,
+    "partialHistoricalGroups": 10,
+    "retainedRuntimeCommandsPassed": 2,
+    "negativeFixtures": 59,
+    "red": [
+      "v12111: historical startup shows literal zero before verified profile-bound read; original later unknown-count and oscillation-only runtime assertions retained, latter not reached",
+      "v12112: historical routine sidebar logging remains; performance/diagnostic RED retained"
+    ]
+  },
+  "builderGuard": {
+    "runId": 45604031161,
+    "jobId": 139170083814,
+    "result": "failure",
+    "reason": "No explicit authorized marker; no build executed."
+  }
+}

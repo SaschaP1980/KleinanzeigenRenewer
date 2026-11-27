@@ -19,6 +19,9 @@ import sys
 import tempfile
 import zipfile
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from product_version import active_version, archive_version, parse
+
 ROOT = Path(__file__).resolve().parent.parent
 KEY_SHA256 = "70507977688f3465a60227cd0261bd07d92fad620625cd7ebff8f0856d9c5ed3"
 EXTENSION_ID = "hafahjhhgiipdegfkgacchmnacgblnah"
@@ -43,9 +46,16 @@ def check_identity(manifest: dict, app_id: str):
     require(isinstance(manifest, dict), "manifest must be a JSON object")
     require(manifest.get("manifest_version") == 3, "MV3 manifest required")
     version = manifest.get("version")
-    require(isinstance(version, str) and re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", version) is not None,
-            "manifest version invalid")
-    expected_permissions = PERMISSIONS | ({"nativeMessaging"} if tuple(map(int, version.split("."))) >= (1, 23, 30) else set())
+    try:
+        parts = parse(active_version(version))
+    except ValueError:
+        require(False, "manifest version invalid")
+    if parts[0] >= 2:
+        # S02 retains the historical permission contract until S04 explicitly
+        # removes nativeMessaging; never infer permission changes from a bump.
+        expected_permissions = PERMISSIONS if version in ("2.0.3.0", "2.0.4.0", "2.0.5.0", "2.0.5.1", "2.0.6.0", "2.0.6.1") else PERMISSIONS | {"nativeMessaging"}
+    else:
+        expected_permissions = PERMISSIONS | ({"nativeMessaging"} if parts >= (1, 23, 30, 0) else set())
     require(set(manifest.get("permissions") or []) == expected_permissions
             and len(manifest.get("permissions") or []) == len(expected_permissions),
             "manifest permissions changed without explicit authorization")
@@ -113,20 +123,28 @@ def reject_base_collision(root: Path, relative: str, committed: bytes, base_sha:
     return "unchanged-existing-path"
 
 
-def run_self_test(root: Path):
+def checked_archive_version(manifest: dict):
+    try:
+        return archive_version(manifest)
+    except ValueError as exc:
+        raise ValueError("KAR48_ZIP_PARITY_FAILED: unsafe/unsupported package version") from exc
+
+
+def run_self_test(root: Path, *, synthetic_fixture: bool = False):
     source_manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
     app_id = (root / "APP_ID.txt").read_text(encoding="utf-8")
-    version = source_manifest.get("version_name") or source_manifest["version"]
+    version = checked_archive_version(source_manifest)
     archive_path = root / "release" / f"kleinanzeigen-renewal-chrome-v{version}.zip"
     if archive_path.is_file():
+        require(not synthetic_fixture, "synthetic self-test cannot replace an existing archive")
         current = archive_path.read_bytes()
     else:
         # KAR-46's isolated 1.23.25 future-PATCH fixture deliberately does
         # not publish/commit a new ZIP. Execute the negative verifier on a
         # real ephemeral package built from that fixture, without making a
         # false claim that release/ already contains a distributable.
-        require(os.environ.get("KAR46_SYNTHETIC_PATCH") == "1",
-                "current archive missing outside the nonpublishing synthetic PATCH fixture")
+        require(synthetic_fixture or os.environ.get("KAR46_SYNTHETIC_PATCH") == "1",
+                "current archive missing outside the nonpublishing synthetic fixture")
         # This is only the negative-verifier self-test: use a small valid ZIP
         # in memory. The actual byte-for-byte clean rebuild stays mandatory
         # in Work PR and main CI against the committed release archive.
@@ -173,22 +191,28 @@ def run_self_test(root: Path):
         pass
     else:
         raise AssertionError("KAR-48 missing manifest accepted")
-    print(f"PASS KAR-48 ZIP verifier self-test: authentic archive + {len(negatives)+3} fail-closed mutations")
+    # The explicit S02 fixture must never be described as a real archive.
+    # Retain the historical KAR-46 output contract for its legacy caller.
+    label = "synthetic fixture (not committed ZIP proof)" if synthetic_fixture else "authentic archive"
+    print(f"PASS KAR-48 ZIP verifier self-test: {label} + {len(negatives)+3} fail-closed mutations")
 
 
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--self-test", action="store_true")
+    p.add_argument("--synthetic-fixture", action="store_true",
+                   help="Explicit in-memory negative-verifier fixture only; never archive parity proof")
     p.add_argument("--base-sha", help="Exact pre-merge base commit for duplicate-path protection")
     p.add_argument("--report", type=Path)
     opts = p.parse_args()
+    if opts.synthetic_fixture:
+        require(opts.self_test and not opts.base_sha and not opts.report,
+                "synthetic fixture requires self-test only, without base SHA or report")
     if opts.self_test:
-        run_self_test(ROOT)
+        run_self_test(ROOT, synthetic_fixture=opts.synthetic_fixture)
         return
     manifest = json.loads((ROOT / "manifest.json").read_text(encoding="utf-8"))
-    version = manifest.get("version_name") or manifest["version"]
-    require(re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+(?:_c[0-9]+)?", version) is not None,
-            "unsafe/unsupported package version")
+    version = checked_archive_version(manifest)
     relative = f"release/kleinanzeigen-renewal-chrome-v{version}.zip"
     archive = ROOT / relative
     require(archive.is_file(), "versioned Chrome ZIP missing from committed release/")

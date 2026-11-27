@@ -8,157 +8,12 @@
       const runtimeMessage = typeof options.runtimeMessage === 'function' ? options.runtimeMessage : async () => ({});
       const logEvent = typeof options.logEvent === 'function' ? options.logEvent : async () => {};
       const DiagnosticZip = options.DiagnosticZip;
-      const objectUrlApi = options.objectUrlApi || URL;
       const profileTransferLocked = typeof options.profileTransferLocked === 'function' ? options.profileTransferLocked : () => false;
       const insertionLockActive = typeof options.insertionLockActive === 'function' ? options.insertionLockActive : () => false;
       const getInsertionLock = typeof options.getInsertionLock === 'function' ? options.getInsertionLock : () => ({ locked: false });
       const getBulkState = typeof options.getBulkState === 'function' ? options.getBulkState : () => ({ startInFlight: false, state: null });
       const singleInventoryBusy = typeof options.singleInventoryBusy === 'function' ? options.singleInventoryBusy : () => false;
       const onEmergencyReset = typeof options.onEmergencyReset === 'function' ? options.onEmergencyReset : async () => {};
-      const occupancy = elements.occupancy || doc?.getElementById?.('diagnosticOccupancy');
-      const occupancyFill = elements.occupancyFill || doc?.getElementById?.('diagnosticOccupancyFill');
-      const occupancyText = elements.occupancyText || doc?.getElementById?.('diagnosticOccupancyText');
-      const occupancyRetry = elements.occupancyRetry || doc?.getElementById?.('diagnosticOccupancyRetry');
-      const occupancyStatus = elements.occupancyStatus || doc?.getElementById?.('diagnosticOccupancyStatus');
-      const accordion = elements.accordion || doc?.getElementById?.('diagnosticsAccordion');
-      let occupancyMaximum = null;
-      let occupancyRevision = 0;
-      const occupancyTimeoutMs = Number.isSafeInteger(options.occupancyTimeoutMs) && options.occupancyTimeoutMs > 0
-        ? options.occupancyTimeoutMs : 12000;
-      const exportTimeoutMs = Number.isSafeInteger(options.exportTimeoutMs) && options.exportTimeoutMs > 0
-        ? options.exportTimeoutMs : 45000;
-      const exportRetryDelayMs = Number.isSafeInteger(options.exportRetryDelayMs) && options.exportRetryDelayMs > 0
-        ? options.exportRetryDelayMs : 300;
-      const resetTimeoutMs = Number.isSafeInteger(options.resetTimeoutMs) && options.resetTimeoutMs > 0
-        ? options.resetTimeoutMs : 45000;
-      const resetRetryDelayMs = Number.isSafeInteger(options.resetRetryDelayMs) && options.resetRetryDelayMs > 0
-        ? options.resetRetryDelayMs : 400;
-      const resetRetryAttempts = Number.isSafeInteger(options.resetRetryAttempts)
-        && options.resetRetryAttempts >= 1 && options.resetRetryAttempts <= 6
-        ? options.resetRetryAttempts : 4;
-
-      // Never depend on the diagnostics writer to explain a diagnostics failure:
-      // logging itself may be rejected by the same safety fence.
-      function reportDiagnosticEvent(...args) {
-        try { Promise.resolve(logEvent(...args)).catch(() => {}); } catch {}
-      }
-
-      function diagnosticFailure(error) {
-        const code = String(error?.code || error?.message || '');
-        if (code.includes('KR_DIAGNOSTIC_RESET_OUTCOME_UNVERIFIED'))
-          return 'Reset-Ergebnis unbestätigt (KR_DIAGNOSTIC_RESET_OUTCOME_UNVERIFIED)';
-        if (code.includes('KR_UPDATE_FENCE_ATOMIC_BUSY'))
-          return 'Vorübergehend durch die Sicherheitsprüfung blockiert (KR_UPDATE_FENCE_ATOMIC_BUSY)';
-        if (code.includes('KR_UPDATE_FENCE_HELD') || code.includes('KR_UPDATE_FENCE_BUSY'))
-          return 'Eine Aktualisierung oder ein anderer Vorgang hält die Sicherheitssperre';
-        if (code.includes('KR_DIAGNOSTIC_REQUEST_TIMEOUT'))
-          return 'Zeitüberschreitung (KR_DIAGNOSTIC_REQUEST_TIMEOUT)';
-        if (/Extension context invalidated|Receiving end does not exist|Could not establish connection/i.test(code))
-          return 'Verbindung zum Erweiterungsdienst unterbrochen';
-        const safeCode = code.match(/\bKR_[A-Z0-9_]{3,64}\b/)?.[0];
-        return safeCode ? `Fehlercode: ${safeCode}` : 'Diagnosedienst nicht erreichbar oder Antwort ungültig';
-      }
-
-      function boundedRequest(message, timeoutMs) {
-        let timer;
-        const deadline = new Promise((_, reject) => {
-          timer = setTimeout(() => reject(Object.assign(new Error('KR_DIAGNOSTIC_REQUEST_TIMEOUT'),
-            { code: 'KR_DIAGNOSTIC_REQUEST_TIMEOUT' })), timeoutMs);
-        });
-        return Promise.race([Promise.resolve().then(() => runtimeMessage(message)), deadline])
-          .finally(() => clearTimeout(timer));
-      }
-
-      // Export retains its durable P8 owner admission. Retry only transient
-      // Web Locks contention, never a held update lease or corrupt journal.
-      async function requestDiagnosticExport() {
-        for (let attempt = 0; attempt < 3; attempt += 1) {
-          try {
-            return await boundedRequest({ type: 'GET_DIAGNOSTIC_EXPORT' }, exportTimeoutMs);
-          } catch (error) {
-            if (error?.code !== 'KR_UPDATE_FENCE_ATOMIC_BUSY' || attempt === 2) throw error;
-            if (elements.status) elements.status.textContent =
-              `Diagnoseexport: Sicherheitsprüfung beschäftigt, erneuter Versuch ${attempt + 2} von 3 …`;
-            await new Promise(resolve => setTimeout(resolve, exportRetryDelayMs * (attempt + 1)));
-          }
-        }
-        throw new Error('KR_DIAGNOSTIC_EXPORT_UNAVAILABLE');
-      }
-
-      // A denied pre-admission reset may be retried: the P8 router guarantees
-      // atomic BUSY reaches this UI only if the reset handler never began.
-      // A timeout or uncertain completion must NEVER be replayed.
-      async function requestDiagnosticReset() {
-        for (let attempt = 0; attempt < resetRetryAttempts; attempt += 1) {
-          try {
-            return await boundedRequest({ type: 'RESET_DIAGNOSTICS' }, resetTimeoutMs);
-          } catch (error) {
-            if (error?.code !== 'KR_UPDATE_FENCE_ATOMIC_BUSY'
-              || attempt === resetRetryAttempts - 1) throw error;
-            if (elements.status) elements.status.textContent =
-              `Diagnose-Reset: Sicherheitsprüfung beschäftigt, erneuter Versuch ${attempt + 2} von ${resetRetryAttempts} …`;
-            await new Promise(resolve => setTimeout(resolve, resetRetryDelayMs * (attempt + 1)));
-          }
-        }
-        throw Object.assign(new Error('KR_UPDATE_FENCE_ATOMIC_BUSY'),
-          { code: 'KR_UPDATE_FENCE_ATOMIC_BUSY' });
-      }
-
-      function displayOccupancy(current, maximum) {
-        const valid = Number.isSafeInteger(current) && Number.isSafeInteger(maximum) && maximum > 0 && current >= 0;
-        occupancyMaximum = valid ? maximum : null;
-        const used = valid ? Math.min(current, maximum) : null;
-        if (occupancyText) occupancyText.textContent = valid
-          ? `${used.toLocaleString('de-DE')} / ${maximum.toLocaleString('de-DE')} Einträge`
-          : '— / — Einträge';
-        if (occupancyFill) occupancyFill.style.width = valid ? `${(used / maximum) * 100}%` : '0%';
-        if (occupancyRetry) occupancyRetry.hidden = valid;
-        if (occupancyStatus && valid) occupancyStatus.textContent = '';
-        if (occupancy) {
-          if (valid) {
-            occupancy.setAttribute('aria-valuenow', String(used));
-            occupancy.setAttribute('aria-valuemax', String(maximum));
-            occupancy.setAttribute('aria-valuetext', `${used} von ${maximum} Diagnoseeinträgen belegt`);
-          } else {
-            occupancy.removeAttribute('aria-valuenow');
-            occupancy.removeAttribute('aria-valuemax');
-            occupancy.setAttribute('aria-valuetext', 'Diagnosespeicher nicht verfügbar');
-          }
-        }
-      }
-
-      async function refreshOccupancy() {
-        if (!occupancy) return;
-        const revision = ++occupancyRevision;
-        occupancy.setAttribute('aria-busy', 'true');
-        try {
-          const result = await boundedRequest({ type: 'GET_DIAGNOSTIC_OCCUPANCY' }, occupancyTimeoutMs);
-          if (!Number.isSafeInteger(result?.current) || !Number.isSafeInteger(result?.maximum)
-            || result.current < 0 || result.maximum <= 0)
-            throw new Error('KR_DIAGNOSTIC_INVALID_OCCUPANCY');
-          if (revision === occupancyRevision) displayOccupancy(result.current, result.maximum);
-        } catch (error) {
-          if (revision === occupancyRevision) {
-            displayOccupancy(null, null);
-            if (occupancyStatus) occupancyStatus.textContent =
-              `Diagnosebelegung konnte nicht geladen werden: ${diagnosticFailure(error)}. Erneut prüfen.`;
-          }
-        } finally {
-          if (revision === occupancyRevision) occupancy.setAttribute('aria-busy', 'false');
-        }
-      }
-
-      function onDiagnosticStorageChanged(changes) {
-        if (!Object.prototype.hasOwnProperty.call(changes || {}, 'diagnosticsV2')) return;
-        const next = changes.diagnosticsV2?.newValue;
-        if (!Array.isArray(next) || !Number.isSafeInteger(occupancyMaximum)) {
-          void refreshOccupancy();
-          return;
-        }
-        occupancyRevision += 1;
-        displayOccupancy(next.length, occupancyMaximum);
-      }
-
       let resetInFlight = false;
       let emergencyConfirmUntil = 0;
       let emergencyConfirmationRevision = 0;
@@ -222,28 +77,25 @@
         if (!elements.zipButton) return;
         elements.zipButton.disabled = true;
         if (elements.status) elements.status.textContent = 'Diagnosedaten werden erstellt …';
+        void logEvent('USER_DIAGNOSTIC_ZIP_CLICK', {});
         try {
-          const exported = await requestDiagnosticExport();
-          // Recording the click before the request raced for the same Web Lock.
-          reportDiagnosticEvent('USER_DIAGNOSTIC_ZIP_CLICK', {});
-          if (!Array.isArray(exported?.files)) throw new Error('KR_DIAGNOSTIC_INVALID_EXPORT');
-          const entries = exported.files.map(file => ({ name: file.name, data: file.text }));
+          const exported = await runtimeMessage({ type: 'GET_DIAGNOSTIC_EXPORT' });
+          const entries = (exported.files || []).map(file => ({ name: file.name, data: file.text }));
           if (!entries.length) throw new Error('Diagnoseexport enthält keine Dateien.');
           const blob = await DiagnosticZip.createZip(entries);
-          const url = objectUrlApi.createObjectURL(blob);
+          const url = URL.createObjectURL(blob);
           const link = doc.createElement('a');
           link.href = url;
           link.download = exported.filename || `kleinanzeigen-renewal-diagnose-${new Date().toISOString().replace(/[:.]/g, '-')}.zip`;
           doc.body.append(link);
           link.click();
           link.remove();
-          setTimeout(() => objectUrlApi.revokeObjectURL(url), 5000);
+          setTimeout(() => URL.revokeObjectURL(url), 5000);
           if (elements.status) elements.status.textContent = `${entries.length} Diagnosedateien als ZIP erstellt.`;
-          reportDiagnosticEvent('USER_DIAGNOSTIC_ZIP_SUCCEEDED', { fileCount: entries.length, bytes: blob.size });
+          void logEvent('USER_DIAGNOSTIC_ZIP_SUCCEEDED', { fileCount: entries.length, bytes: blob.size });
         } catch (error) {
-          if (elements.status) elements.status.textContent =
-            `Diagnose-ZIP fehlgeschlagen: ${diagnosticFailure(error)}. Erneut versuchen; die Diagnose wurde nicht zurückgesetzt.`;
-          reportDiagnosticEvent('USER_DIAGNOSTIC_ZIP_FAILED', { code: String(error?.code || 'UNKNOWN').slice(0, 80) }, 'error');
+          if (elements.status) elements.status.textContent = 'Diagnosedaten konnten nicht erstellt werden. Bitte versuche es erneut.';
+          void logEvent('USER_DIAGNOSTIC_ZIP_FAILED', { message: error?.message || String(error) }, 'error');
         } finally {
           elements.zipButton.disabled = false;
         }
@@ -256,27 +108,12 @@
         if (elements.zipButton) elements.zipButton.disabled = true;
         if (elements.status) elements.status.textContent = 'Diagnose wird zurückgesetzt …';
         try {
-          const result = await requestDiagnosticReset();
-          if (result?.reset !== true || typeof result.diagnosticBoundaryId !== 'string'
-            || !result.diagnosticBoundaryId.trim())
-            throw Object.assign(new Error('KR_DIAGNOSTIC_RESET_OUTCOME_UNVERIFIED'),
-              { code: 'KR_DIAGNOSTIC_RESET_OUTCOME_UNVERIFIED' });
+          await runtimeMessage({ type: 'RESET_DIAGNOSTICS' });
           if (elements.status) elements.status.textContent = 'Diagnose zurückgesetzt. Der nächste Export enthält nur Daten ab jetzt.';
-          // A failed diagnostics writer must not obscure an already-verified reset.
-          reportDiagnosticEvent('USER_DIAGNOSTIC_RESET_SUCCEEDED', {});
-          await refreshOccupancy();
+          void logEvent('USER_DIAGNOSTIC_RESET_SUCCEEDED', {});
         } catch (error) {
-          const code = String(error?.code || error?.message || '');
-          const uncertain = code.includes('KR_DIAGNOSTIC_RESET_OUTCOME_UNVERIFIED')
-            || code.includes('KR_DIAGNOSTIC_REQUEST_TIMEOUT')
-            || /Extension context invalidated|Receiving end does not exist|Could not establish connection/i.test(code);
-          if (elements.status) elements.status.textContent = uncertain
-            ? `Diagnose-Reset nicht bestätigt: ${diagnosticFailure(error)}. Bitte erst die Belegung oder ein Diagnose-ZIP prüfen, bevor du erneut zurücksetzt.`
-            : `Diagnose nicht zurückgesetzt: ${diagnosticFailure(error)}. Später erneut versuchen.`;
-          // Exactly one best-effort failure event per user action; no retry/log loop.
-          reportDiagnosticEvent('USER_DIAGNOSTIC_RESET_FAILED', {
-            code: String(error?.code || 'UNKNOWN').slice(0, 80)
-          }, 'error');
+          if (elements.status) elements.status.textContent = String(error?.message || 'Diagnose konnte nicht zurückgesetzt werden.');
+          void logEvent('USER_DIAGNOSTIC_RESET_FAILED', { message: error?.message || String(error) }, 'error');
         } finally {
           resetInFlight = false;
           if (elements.zipButton) elements.zipButton.disabled = false;
@@ -318,19 +155,12 @@
         }
       }
 
-      accordion?.addEventListener('toggle', () => { if (accordion.open) void refreshOccupancy(); });
-      occupancyRetry?.addEventListener('click', () => { void refreshOccupancy(); });
-      const storageOnChanged = options.storageOnChanged || globalThis.chrome?.storage?.onChanged;
-      storageOnChanged?.addListener?.((changes, areaName) => {
-        if (areaName === 'local') onDiagnosticStorageChanged(changes);
-      });
-      if (accordion?.open) void refreshOccupancy();
       elements.zipButton?.addEventListener('click', () => { void exportZip(); });
       elements.resetButton?.addEventListener('click', () => { void resetDiagnostics(); });
       elements.emergencyButton?.addEventListener('click', () => { void emergencyReset(); });
       syncEmergencyUi();
       syncResetUi();
-      return Object.freeze({ resetBlockReason, syncResetUi, resetDiagnostics, refreshOccupancy, onDiagnosticStorageChanged });
+      return Object.freeze({ resetBlockReason, syncResetUi, resetDiagnostics });
     }
   });
 

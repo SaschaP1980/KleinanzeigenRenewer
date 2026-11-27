@@ -93,7 +93,7 @@
               page: presence?.page ?? null,
               pagesScanned: presence?.pagesScanned ?? null
             }, { module: 'background', operation: 'renewal-fast-verify', context: sessionCorrelationContext(session, { renewalId, adId: newAdId, workerTabId }) }).catch(() => {});
-            if (!presence?.found) throw new Error(`Neue Anzeige ${newAdId} wurde im erwarteten Profil unter „Meine Anzeigen“ nicht gefunden.`);
+            if (presence?.found !== true || String(presence.adId || '') !== newAdId) throw new Error(`Neue Anzeige ${newAdId} wurde im erwarteten Profil unter „Meine Anzeigen“ nicht mit exakter ID bestätigt.`);
       
             const candidate = await getInventory(session.skeletonInventoryId);
             if (!candidate) throw new Error('Fast-Mode-Renewal-Kandidat wurde lokal nicht gefunden.');

@@ -47,11 +47,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          VERSION="$(node -p "require('./manifest.json').version")"
-          PACKAGE_VERSION="$(node -p "require('./package.json').version")"
-          test "$VERSION" = "$PACKAGE_VERSION"
-          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
-          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          VERSION="$(python3 scripts/product_version.py)"
 
           if gh release view "v$VERSION" >/dev/null 2>&1; then
             echo "Release v$VERSION already exists." >&2
@@ -59,23 +55,8 @@ jobs:
           fi
 
           git fetch --tags --force
-          PREVIOUS="$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' --sort=-version:refname | head -n1 | sed 's/^v//' || true)"
-          if [ -n "$PREVIOUS" ]; then
-            python3 - "$PREVIOUS" "$VERSION" "$MODE" <<'PY'
-          import sys
-          old=tuple(map(int,sys.argv[1].split('.')))
-          new=tuple(map(int,sys.argv[2].split('.')))
-          mode=sys.argv[3]
-          if not new > old:
-              raise SystemExit(f"version must advance: {old} -> {new}")
-          if mode == "fast":
-              if new[:2] != old[:2]:
-                  raise SystemExit("fast path is Patch/Hotfix only; major/minor must not change")
-          else:
-              if new[0] == old[0] and new[1] == old[1]:
-                  raise SystemExit("work path is for Feature/Minor/Major; expected major/minor advance")
-          PY
-          fi
+          VERSION="$(git tag -l 'v[0-9]*' | python3 scripts/product_version.py --release-mode "$MODE")"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
 
           if [ "$MODE" = work ]; then
             gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls" > /tmp/prs.json

@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "issue": 210,
+  "checkpoint": 32,
+  "sourceCommit": "6dcd82b9504ba86352b8999470dd5ecaf68c22cd",
+  "originalsRetainedInGit": true,
+  "policy": "Exact S02 historical contracts. Legacy assertions retained; actual runtime safety and D gates unchanged. No new coverage/native/release acceptance. Focused GREEN and full characterization recorded; mandatory gate RED, not product acceptance.",
+  "review": [
+    {
+      "path": "tests/v12312c1-version-release.cjs",
+      "originalBlob": "f50665e6729f45e585e3f11c8f450c9248d4a098",
+      "originalCommit": "6dcd82b9504ba86352b8999470dd5ecaf68c22cd",
+      "changes": [
+        "Exact four-component S02 version and non-native-accepted basis; legacy correction naming and package path/finalizer assertions retained."
+      ]
+    },
+    {
+      "path": "tests/v12313-version-architecture.cjs",
+      "originalBlob": "6336f2191f254201abdf8dec9cffe61c3ad9bbb0",
+      "originalCommit": "6dcd82b9504ba86352b8999470dd5ecaf68c22cd",
+      "changes": [
+        "Current S02 identity/performance metadata replaces legacy active-release-only condition; historical view/model ownership, extraction constraints and build wiring unchanged."
+      ]
+    },
+    {
+      "path": "tests/v12313c1-version-release.cjs",
+      "originalBlob": "cfae1f7b3ed71e908e5360a068365a681f00aa66",
+      "originalCommit": "6dcd82b9504ba86352b8999470dd5ecaf68c22cd",
+      "changes": [
+        "Current S02 identity/performance metadata; historical correction, changelog, recovery/heartbeat and full build wiring retained."
+      ]
+    },
+    {
+      "path": "tests/v12313c2-version-release.cjs",
+      "originalBlob": "fb02c78d42ee1fdcb4d114201a56c77a6773f19c",
+      "originalCommit": "6dcd82b9504ba86352b8999470dd5ecaf68c22cd",
+      "changes": [
+        "Current S02 identity/performance metadata; historical correction, changelog, recovery/heartbeat and full build wiring retained."
+      ]
+    },
+    {
+      "path": "tests/v12314-version-architecture.cjs",
+      "originalBlob": "a3e3388fe3b6f1e40c71a41fe2c9587a721ff02f",
+      "originalCommit": "6dcd82b9504ba86352b8999470dd5ecaf68c22cd",
+      "changes": [
+        "Exact historical c2 basis and native history checked independently; S02 pending plan replaces legacy release sequence only; runtime load order/build/recovery unchanged."
+      ]
+    },
+    {
+      "path": "tests/v12315-version-architecture.cjs",
+      "originalBlob": "8bf2df43cd5737ddc50cfe02bd6e8072778f98a8",
+      "originalCommit": "6dcd82b9504ba86352b8999470dd5ecaf68c22cd",
+      "changes": [
+        "Historical owner identity and checkpoint policy retained; current native evidence must remain pending and explicitly not a live acceptance; real renewal owner load order, packaging and build wiring unchanged."
+      ]
+    },
+    {
+      "path": "tests/v12316-version-architecture.cjs",
+      "originalBlob": "cc217514c3189b314ef1998fdfb951c3d62a1b79",
+      "originalCommit": "6dcd82b9504ba86352b8999470dd5ecaf68c22cd",
+      "changes": [
+        "Historical lifecycle ownership, module import/package/build closure and public contract test strategy retained; current S02 performance acceptance remains pending."
+      ]
+    },
+    {
+      "path": "tests/v12316c1-wiring-version.cjs",
+      "originalBlob": "b8e19e540d4cf775d6fd8dfe8ab977b402562532",
+      "originalCommit": "6dcd82b9504ba86352b8999470dd5ecaf68c22cd",
+      "changes": [
+        "Historical c1 correction metadata/native limitation preserved; actual target-loss recovery, supersede wiring, no new message/no bypass and regression wiring unchanged."
+      ]
+    },
+    {
+      "path": "tests/v12316c2-wiring-version.cjs",
+      "originalBlob": "32876fa3259c4fab8e022f12a012b0cec7116726",
+      "originalCommit": "6dcd82b9504ba86352b8999470dd5ecaf68c22cd",
+      "changes": [
+        "Historical c2 identity retained; actual target loss, lazy listener, supersede safety, no new IPC/polling/submit and build wiring unchanged."
+      ]
+    },
+    {
+      "path": "tests/kar210-historical-contract-context.cjs",
+      "originalBlob": "5c1ba8ecb34ce7e81316598a082b1c269f81be45",
+      "originalCommit": "6dcd82b9504ba86352b8999470dd5ecaf68c22cd",
+      "changes": [
+        "Test-only S02 pending release policy with exact version, native prerequisites, distinct Gold lines and pending coverage. No legacy version predicates altered."
+      ]
+    },
+    {
+      "path": "tests/kar210-baseline-version-contract.cjs",
+      "originalBlob": "33d6a6ff70b91ccb626c0a97c3d47da537dbbd6b",
+      "originalCommit": "6dcd82b9504ba86352b8999470dd5ecaf68c22cd",
+      "changes": [
+        "Original 17 version negatives unchanged; add 17 independent pending-release policy tamper cases, positive readback."
+      ]
+    }
+  ],
+  "focusedValidation": {
+    "sourceCommit": "ced1f170b376da92f4fd1d4a138d22ec54719a1b",
+    "runId": 45612267833,
+    "jobId": 139198564897,
+    "result": "success",
+    "commands": 13,
+    "passed": 13,
+    "failed": 0,
+    "completeHistoricalContracts": 9,
+    "completeContractGroups": 52,
+    "baselineRestoreTests": 3,
+    "retainedArchiveSafetyTests": 3,
+    "legacyPatchNegatives": 27,
+    "exactBaselineVersionNegatives": 17,
+    "pendingReleasePolicyNegatives": 17,
+    "scopeNegatives": 15
+  },
+  "builderGuard": {
+    "runId": 45612268275,
+    "jobId": 139198565765,
+    "result": "failure",
+    "reason": "No explicit authorized marker; no build executed."
+  }
+}
