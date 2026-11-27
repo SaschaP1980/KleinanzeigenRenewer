@@ -161,5 +161,25 @@
     "chars": 196573,
     "bytes": 196701,
     "lines": 3320
+  },
+  "tabReuseDisposition": {
+    "status": "PROVISIONAL_EXCEPTION_OWNER_NATIVE_REVIEW_PENDING",
+    "reason": "Existing registry correlation and URL readiness do not prove exact attempt/fresh document handoff. Preserve distinct post-delete absence worker; no new persistent journal, lock or handoff guard.",
+    "evidence": {
+      "run": 45949939959,
+      "job": 140343205410,
+      "head": "43d4813c72dce3780da9d415a9d805372b684065",
+      "tests": 2,
+      "pass": 2,
+      "created": 4,
+      "closed": 4,
+      "workerNavigations": 3,
+      "workflowRequests": 6,
+      "profileRequests": 3,
+      "deleteRequests": 1,
+      "independentProofRequests": 1,
+      "native": false
+    },
+    "targetTwoTabsAchieved": false
   }
 }
