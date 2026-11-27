@@ -167,7 +167,10 @@ assert.deepEqual(S06_SCOPE.removedRuntime,[]);
   assert.deepEqual(S06_SCOPE.backgroundBudget,{chars:196573,bytes:196701,lines:3320});
 assert.deepEqual(S06_SCOPE.reactivatedTests,["tests/kar199-emergency-reset-candidate-recovery.cjs","tests/kar199-phase4-no-transport-replay.cjs","tests/kar199-phase4-ui-runtime.cjs","tests/kar210-cp36-phase4-unknown-witness.cjs","tests/kar210-kar150-uncertain-start-witness.cjs","tests/kar210-p9-independent-tab-lifecycle.cjs"]);
 assert.deepEqual(S06_SCOPE.partialTests,[{"path":"tests/kar210-cp38-publish-uncertainty-witness.cjs","blob":"40c5fec6b7f45fc2367118d9669be3dad65f4d3a","total":7,"deferred":[{"name":"Fast presence must not authorize replacement if live account changes during roster read","step":"D2","redRun":45908677324},{"name":"historical submitted archive recovery detects existing publication without republishing","step":"S07","redRun":45908677324}]},{"path":"tests/kar222-publication-identity-witness.cjs","blob":"9ebbcf7a7e0282fc62b94ccea72bd815a1531fba","total":21,"deferred":[{"name":"S06 content-side account change during listing scan must not reach simulated delete click","step":"D2","redRun":45908677324},{"name":"S06 content-side account change during absence scan cannot provide positive absence evidence","step":"D2","redRun":45908677324}]}]);
-function isS06Version(version) { return version === S06_VERSION; }
+const S06_HOTFIX_VERSION = '2.0.5.1';
+const S06_HOTFIX = Object.freeze({"issue":222,"directBasis":"2.0.5.0","sourceCommit":"90b0999d5f4a2b3caa2c09d7cb5c30bff0edbd12","archiveSha256":"5155f5e3863291994318c54b2f1ec3765c4278de741df9cfe3ebdfba2740024f","fixCommit":"c43502ab6582a3b9ec9229864d2552194f02b8d1","runtimeChanges":[{"path":"manifest.json","before":"348fefe57b548c79ccabe72e5079592aeb34a865","after":"3631798c04bdfa1cc2f0a829f7a41f95e4c1906f"},{"path":"src/background/services/remote-delete-replacement-service.js","before":"f41490351e833568fe11e93f1e53e9765681aea6","after":"042d4c111b7ae32b997727c61bc5aafc32f53e63"},{"path":"src/content/inventory-delete-operations.js","before":"81f94ef16b015193700ed7b2de5edbe67d13c108","after":"c2571309116f2a8c3be6f3dd1d42cc644a1c38d3"}]});
+function isS06HotfixVersion(version) { return version === S06_HOTFIX_VERSION; }
+function isS06Version(version) { return version === S06_VERSION || isS06HotfixVersion(version); }
 function isS05Version(version) { return version === S05_VERSION || isS06Version(version); }
 function isS04Version(version) { return version === S04_VERSION || isS05Version(version); }
 // These predicates denote reviewed capability lineage, never arbitrary future versions.
@@ -188,6 +191,13 @@ function expectedRestoredAbsent(version,target) {
 }
 function expectedRestoredBlob(version, file, historicalBlob) {
   assert.ok(isReviewedRestoreVersion(version), 'unreviewed restored runtime');
+  if(isS06HotfixVersion(version)) {
+    const before=expectedRestoredBlob(S06_VERSION,file,historicalBlob);
+    const entry=S06_HOTFIX.runtimeChanges.find(row=>row.path===file);
+    if(!entry)return before;
+    assert.equal(entry.before,before,'S06 hotfix exact predecessor blob changed: '+file);
+    return entry.after;
+  }
   if(isS06Version(version)) {
     const before=expectedRestoredBlob(S05_VERSION,file,historicalBlob);
     const entry=S06_SCOPE.runtimeChanges.find(row=>row.path===file);
@@ -260,12 +270,14 @@ function assertRestoredBaselineVersion(root = require('node:path').resolve(__dir
   else assert.equal(spec.s05,undefined,'older baseline must not carry S05 successor metadata');
   if(isS06Version(actual)) assert.deepEqual(spec.s06,S06_METADATA);
   else assert.equal(spec.s06,undefined,'older baseline must not carry S06 successor metadata');
+  if(isS06HotfixVersion(actual)) assert.deepEqual(spec.s06Hotfix,S06_HOTFIX);
+  else assert.equal(spec.s06Hotfix,undefined,'earlier source must not carry S06 hotfix metadata');
   assert.equal(manifest.version,actual);
   assert.equal(manifest.manifest_version,3);
   assert.equal(manifest.version_name,undefined);
   assert.equal(pkg.version,isS06Version(actual)?'2.0.5':isS05Version(actual)?'2.0.4':isS04Version(actual)?'2.0.3':isS03Version(actual)?'2.0.2':isS09Version(actual)?'2.0.1':'2.0.0');
   assert.equal(pkg.displayVersion,actual);
-  assert.equal(spec.directBasis,isS06Version(actual)?'2.0.4.0':isS05Version(actual)?'2.0.3.0':isS04Version(actual)?'2.0.2.0':isS03Version(actual)?'2.0.1.0':isS09Version(actual)?'2.0.0.1':'1.23.48');
+  assert.equal(spec.directBasis,isS06HotfixVersion(actual)?'2.0.5.0':isS06Version(actual)?'2.0.4.0':isS05Version(actual)?'2.0.3.0':isS04Version(actual)?'2.0.2.0':isS03Version(actual)?'2.0.1.0':isS09Version(actual)?'2.0.0.1':'1.23.48');
   assert.equal(spec.goldBaseline,'1.21.15');
   assert.equal(spec.performanceRunRequired,true);
   assert.deepEqual([...manifest.permissions].sort(),(isS04Version(actual)?[...PERMISSIONS]:[...PERMISSIONS,'nativeMessaging']).sort());
@@ -280,4 +292,4 @@ function assertRestoredBaselineVersion(root = require('node:path').resolve(__dir
   return actual;
 }
 
-module.exports = { S06_SCOPE, isS06Version, S05_SCOPE, isS05Version, S04_SCOPE, isS04Version, S03_SCOPE, isS03Version, S09_SCOPE, isS09Version, expectedRestoredPackage, expectedRestoredAbsent, isReviewedRestoreVersion, expectedRestoredBlob, assertRestoredBaselineVersion, isCurrentPatchVersion, assertCompatibleCurrentPatch, includesActivePatch, includesSupportedRelease, expectedManifestPermissions };
+module.exports = { S06_HOTFIX, isS06HotfixVersion, S06_SCOPE, isS06Version, S05_SCOPE, isS05Version, S04_SCOPE, isS04Version, S03_SCOPE, isS03Version, S09_SCOPE, isS09Version, expectedRestoredPackage, expectedRestoredAbsent, isReviewedRestoreVersion, expectedRestoredBlob, assertRestoredBaselineVersion, isCurrentPatchVersion, assertCompatibleCurrentPatch, includesActivePatch, includesSupportedRelease, expectedManifestPermissions };

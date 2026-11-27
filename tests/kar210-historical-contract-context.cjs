@@ -2,7 +2,7 @@
 // Narrow, test-only S02 context. Never change legacy version predicates or alias
 // an absent module globally. Existing non-S02 tests execute their original path.
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict'),crypto=require('node:crypto');
-const {assertRestoredBaselineVersion,isReviewedRestoreVersion,expectedRestoredBlob,isS09Version,isS03Version,isS04Version,isS05Version,isS06Version}=require('./current-patch-policy.cjs');
+const {assertRestoredBaselineVersion,isReviewedRestoreVersion,expectedRestoredBlob,isS09Version,isS03Version,isS04Version,isS05Version,isS06Version,isS06HotfixVersion}=require('./current-patch-policy.cjs');
 function isRestored(root) {
   const manifest=JSON.parse(fs.readFileSync(path.join(root,'manifest.json'),'utf8'));
   if(!isReviewedRestoreVersion(manifest.version)) return false;
@@ -55,9 +55,9 @@ function assertPendingS02Release(root) {
   assert.equal(isRestored(root),true,'only the exact restored S02 baseline qualifies');
   const spec=JSON.parse(fs.readFileSync(path.join(root,'release/release-spec.json'),'utf8'));
   const version=assertRestoredBaselineVersion(root);
-  assert.equal(spec.validationStatus,isS06Version(version)?'S06_GATES_PENDING':isS05Version(version)?'S05_GATES_PENDING':isS04Version(version)?'S04_GATES_PENDING':isS03Version(version)?'S03_GATES_PENDING':isS09Version(version)?'S09_GATES_PENDING':version==='2.0.0.1'?'HOTFIX_GATES_PENDING':'SOURCE_RESTORED_GATES_PENDING');
+  assert.equal(spec.validationStatus,isS06HotfixVersion(version)?'S06_HOTFIX_GATES_PENDING':isS06Version(version)?'S06_GATES_PENDING':isS05Version(version)?'S05_GATES_PENDING':isS04Version(version)?'S04_GATES_PENDING':isS03Version(version)?'S03_GATES_PENDING':isS09Version(version)?'S09_GATES_PENDING':version==='2.0.0.1'?'HOTFIX_GATES_PENDING':'SOURCE_RESTORED_GATES_PENDING');
   assert.equal(spec.version,version);assert.equal(spec.packageVersion,version);
-  assert.equal(spec.directBasis,isS06Version(version)?'2.0.4.0':isS05Version(version)?'2.0.3.0':isS04Version(version)?'2.0.2.0':isS03Version(version)?'2.0.1.0':isS09Version(version)?'2.0.0.1':'1.23.48');assert.equal(spec.directBasisNativeGreen,isS09Version(version)&&!isS06Version(version));
+  assert.equal(spec.directBasis,isS06HotfixVersion(version)?'2.0.5.0':isS06Version(version)?'2.0.4.0':isS05Version(version)?'2.0.3.0':isS04Version(version)?'2.0.2.0':isS03Version(version)?'2.0.1.0':isS09Version(version)?'2.0.0.1':'1.23.48');assert.equal(spec.directBasisNativeGreen,isS09Version(version)&&!isS06Version(version));
   assert.equal(spec.directBasisNativePending,!isS09Version(version)||isS06Version(version));
   assert.equal(spec.nativeSmokeRequired,true);
   assert.equal(spec.nextPlannedBuild,'TBD');

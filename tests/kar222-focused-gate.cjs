@@ -3,7 +3,7 @@
 // The exact complete files remain executable without this filter for RED evidence.
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto'),{spawnSync}=require('node:child_process');
 const root=path.resolve(__dirname,'..'),policy=require('./current-patch-policy.cjs');
-assert.equal(policy.assertRestoredBaselineVersion(root),'2.0.5.0');
+assert.ok(policy.isS06Version(policy.assertRestoredBaselineVersion(root)));
 const escape=s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
 for(const item of policy.S06_SCOPE.partialTests){
  const bytes=fs.readFileSync(path.join(root,item.path));

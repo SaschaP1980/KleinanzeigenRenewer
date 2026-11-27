@@ -1,21 +1,47 @@
-name: KAR-222 hotfix confirmation boundary (temporary)
+name: KAR-222 hotfix successor audit (temporary)
 on:
   push:
     branches: [work/KAR-222]
-    paths: ['tests/kar222-delete-no-replay.cjs','src/content/inventory-delete-operations.js','src/background/services/remote-delete-replacement-service.js','.github/workflows/kar222-hotfix-temp.yml']
 permissions:
   contents: read
 jobs:
-  focused:
+  audit:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
         with:
+          fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: |
-          node --check tests/kar222-delete-no-replay.cjs
+      - name: Inventory remaining exact-version references
+        run: |
+          git grep -n -F '2.0.5.0' -- scripts tests .github/workflows | cut -c1-400 || true
+      - name: Audit prospective clean source and build
+        run: |
+          set -euo pipefail
+          test "$(python3 scripts/product_version.py)" = 2.0.5.1
+          npm ci
+          rm .github/workflows/kar222-hotfix-temp.yml
+          python3 tests/kar210-baseline-restore.py
+          node tests/kar222-successor-contract.cjs
+          node tests/kar210-baseline-version-contract.cjs
           node tests/kar222-delete-no-replay.cjs
+          python3 scripts/package.py "$RUNNER_TEMP/kar-hotfix-a"
+          python3 scripts/package.py "$RUNNER_TEMP/kar-hotfix-b"
+          ZIP=kleinanzeigen-renewal-chrome-v2.0.5.1.zip
+          cmp "$RUNNER_TEMP/kar-hotfix-a/$ZIP" "$RUNNER_TEMP/kar-hotfix-b/$ZIP"
+          test ! -e "release/$ZIP"
+          cp "$RUNNER_TEMP/kar-hotfix-a/$ZIP" "release/$ZIP"
+          sha256sum "release/$ZIP"
+          time bash scripts/coverage-gate.sh
+          time bash scripts/build.sh
+      - name: Preserve prospective candidate bytes
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kar222-hotfix-prospective
+          path: release/kleinanzeigen-renewal-chrome-v2.0.5.1.zip
+          if-no-files-found: error

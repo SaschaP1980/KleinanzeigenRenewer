@@ -4,6 +4,12 @@ This is the canonical version-specific history for Kleinanzeigen Manager. Entrie
 
 All distinct historical section bodies from the former root README and CHANGELOG are preserved with source labels and line numbers. The [KAR-170 migration ledger](docs/maintenance/KAR170_CHANGELOG_MIGRATION.json) identifies their original Git blobs and body checksums. Overlapping versions retain distinct factual notes; older references to planned builds or native/CI acceptance are **historical**, not live status.
 
+## v2.0.5.1 — KAR-222 Phase-4 pre-confirmation timeout (Work hotfix, full gates pending)
+
+- Native 2.0.5.0 Fast/Safe singles succeeded; Fast-3 completed two of three items. The remaining source was still present after the delete confirmation dialog did not appear.
+- Permit a bounded fresh Phase-4 attempt only after the actual content operation returns an explicit same-request pre-confirmation timeout with exact source Ad ID, false outcome flags and confirmed retirement of the old worker. Retain the durable pending marker until terminal persistence; a lost, malformed, contradictory or post-confirmation reply, or prior persisted ambiguity, remains verification-only. Independent post-delete absence proof still precedes local promotion.
+- Add structural dialog-timeout diagnostics without arbitrary DOM text, longer waiting periods, new remote probes, journals or locks. Focused test-first run 45953381627 was RED (13/17); run 45953462244 was GREEN (17/17). Exact hotfix ZIP, full Work PR CI and separately authorized native acceptance are pending. Chrome 2.0.5.1, npm 2.0.5; 2.0.5.0 remains immutable. No merge or GitHub Release implied.
+
 ## v2.0.5.0 — KAR-222 S06 renewal reliability and performance (Work source, full gates pending)
 
 - Preserve uncertain publication/deletion outcomes for explicit review or read-only recovery, reject mismatched returned listing IDs, preserve local publication evidence and prevent same-document duplicate publication.

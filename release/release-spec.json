@@ -1,11 +1,11 @@
 {
-  "version": "2.0.5.0",
+  "version": "2.0.5.1",
   "project": "kleinanzeigen Manager / Kleinanzeigen Renewal",
   "epic": "KAR-208 / KAR-222 S06 renewal reliability and performance",
   "goldBaseline": "1.21.15",
-  "directBasis": "2.0.4.0",
+  "directBasis": "2.0.5.0",
   "directBasisNativeGreen": false,
-  "directBasisObservation": "S05 2.0.4.0 exact Work CI 3/3 GREEN and owner acceptance with documented native limitations. Full native S06 and matching performance acceptance pending.",
+  "directBasisObservation": "2.0.5.0 exact Work PR CI 3/3 GREEN, Chromium 9/9; owner native Fast/Safe singles passed, Fast-3 2/3 (source remains after missing final confirmation). Full native acceptance not achieved.",
   "scope": [
     "Restore v1.23.48 historical runtime, retaining KAR-174 UI path layout and current development tooling.",
     "Version identity 2.0.0.0, npm 2.0.0; preserve extension key, historical releases and Git ancestry.",
@@ -16,7 +16,8 @@
     "KAR-213 S03: preserve opaque profile/record/image metadata, raw trash deadlines, atomic restore, fail closed on known unresolved legacy workflows. Offline preflight and isolated cold recovery; no imported C architecture.",
     "KAR-217 S04: remove inherited updater UI, native messaging permission, runtime modules, message route and online update channel read; preserve historical blobs and retire only reviewed updater-specific tests; retain S03/S09, all applicable quality and safety gates.",
     "KAR-220 S05: retain existing category and form handling. Recover substantive display-only attributes only through unique associated actual controls and exact native readback; use uniquely exposed linked technical option IDs; preserve empty status and report real ambiguity. No schema monitoring/reference management or extra scans.",
-    "KAR-222 S06: approved recovery and no-blind-replay corrections, same-document publication idempotence, exact returned IDs, local discard, reduced duplicate roster parsing and local TabRegistry metadata serialization. No updater, persistent journal, added remote calls or D2/S07 expansion."
+    "KAR-222 S06: approved recovery and no-blind-replay corrections, same-document publication idempotence, exact returned IDs, local discard, reduced duplicate roster parsing and local TabRegistry metadata serialization. No updater, persistent journal, added remote calls or D2/S07 expansion.",
+    "KAR-222 hotfix: permit bounded fresh Phase-4 retry only for explicit same-request pre-confirmation timeout, exact source ID, negative outcome flags and retired worker; preserve no replay on uncertain transport and independent absence before promotion."
   ],
   "nextPlannedBuild": "TBD",
   "nextPlannedBuildGoal": "Determined by separately authorized open GitHub Issues.",
@@ -39,7 +40,7 @@
       "percent": null
     }
   },
-  "releaseSummary": "2.0.5.0 Work source for S06; full gates, tab reuse evaluation, deferred D2/S07 evidence and native acceptance remain open. No merge or release.",
+  "releaseSummary": "2.0.5.1 Work hotfix: exact pre-confirmation timeout retry boundary, full gates and native re-test pending; no merge or release.",
   "architectureHighlights": [
     "Historical product safeguards and runtime behavior are primary; only explicit path/layout and version metadata changes in this restore slice.",
     "Current development gates and test files retained; reconcile later feature/updater-dependent assertions without weakening retained product behavior.",
@@ -52,7 +53,7 @@
     "S09: synthetic-only retention and IndexedDB fixtures until S03 data compatibility and S04 updater removal are accepted.",
     "S03: isolated migration and rollback using exact committed package; real migration requires S04 and separate owner authorization."
   ],
-  "packageVersion": "2.0.5.0",
+  "packageVersion": "2.0.5.1",
   "directBasisNativePending": true,
   "architectureFiles": [
     {
@@ -270,7 +271,7 @@
       "averageSeconds": 33.111
     }
   },
-  "directBasisNativeRed": false,
+  "directBasisNativeRed": true,
   "performanceGoldlines": [
     {
       "label": "bestehende Referenzmessung",
@@ -425,7 +426,7 @@
       }
     }
   },
-  "validationStatus": "S06_GATES_PENDING",
+  "validationStatus": "S06_HOTFIX_GATES_PENDING",
   "s09": {
     "issue": 214,
     "step": "S09",
@@ -460,5 +461,29 @@
     "directBasis": "2.0.4.0",
     "sourceCommit": "5d650e288ef2cea615f17717ebb1531b1cc4b4ae",
     "archiveSha256": "b44c07e1dd19cef1ec5416ab86f621dc12822d22ac6dbd83d72821938c5350cd"
+  },
+  "s06Hotfix": {
+    "issue": 222,
+    "directBasis": "2.0.5.0",
+    "sourceCommit": "90b0999d5f4a2b3caa2c09d7cb5c30bff0edbd12",
+    "archiveSha256": "5155f5e3863291994318c54b2f1ec3765c4278de741df9cfe3ebdfba2740024f",
+    "fixCommit": "c43502ab6582a3b9ec9229864d2552194f02b8d1",
+    "runtimeChanges": [
+      {
+        "path": "manifest.json",
+        "before": "348fefe57b548c79ccabe72e5079592aeb34a865",
+        "after": "3631798c04bdfa1cc2f0a829f7a41f95e4c1906f"
+      },
+      {
+        "path": "src/background/services/remote-delete-replacement-service.js",
+        "before": "f41490351e833568fe11e93f1e53e9765681aea6",
+        "after": "042d4c111b7ae32b997727c61bc5aafc32f53e63"
+      },
+      {
+        "path": "src/content/inventory-delete-operations.js",
+        "before": "81f94ef16b015193700ed7b2de5edbe67d13c108",
+        "after": "c2571309116f2a8c3be6f3dd1d42cc644a1c38d3"
+      }
+    ]
   }
 }
