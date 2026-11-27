@@ -1,6 +1,13 @@
 (() => {
   'use strict';
   const legacyOutcomeBlocked = row => ['source-delete-outcome-unverified', 'source-delete-status-unverified', 'publish-intent-blocked'].includes(String(row?.stage || '')) || String(row?.status || '') === 'publish-blocked';
+  // Accept only the explicit same-request pre-confirmation result. Missing
+  // responses, legacy text errors and contradictory flags are not evidence.
+  const confirmationNotTriggered = (reply, sourceAdId) =>
+    reply?.outcome === 'confirmation-not-triggered' && reply.reason === 'dialog-timeout'
+    && reply.adId === String(sourceAdId) && reply.deleted === false
+    && reply.actionTriggered === false && reply.confirmed === false
+    && !reply.alreadyAbsentCandidate;
   const API = Object.freeze({
     create(options = {}) {
       const {
@@ -548,6 +555,16 @@ async function preverifyAndTriggerRenewalSourceDeleteAttempt(session, expectedPr
       }).catch(() => {});
     }
 
+    if (!transportInterrupted && confirmationNotTriggered(deletion, session.sourceAdId)) {
+      // Retire this worker before admitting a fresh attempt. No additional
+      // close or remote request on the normal successful path.
+      const close = await closeManagedWorkerTab(deleteTabId);
+      deleteTabId = null;
+      if (close?.closed !== true && close?.alreadyGone !== true) {
+        throw new Error('Lösch-Worker konnte nach fehlender Bestätigung nicht eindeutig geschlossen werden.');
+      }
+      return { deletion, transportInterrupted, confirmationNotTriggered: true };
+    }
     return { deletion, transportInterrupted };
   } finally {
     if (deleteTabId) await closeManagedWorkerTab(deleteTabId).catch(() => {});
@@ -635,6 +652,17 @@ async function finishRenewalReplacement(message) {
           readOnlyResolutionRequired = true;
         });
         assertResetGeneration(resetGeneration, 'renewal-phase4-after-delete');
+        if (result.confirmationNotTriggered === true) {
+          // A complete reply from this attempt and retired worker prove no
+          // final click. Keep the durable pending marker until terminal
+          // persistence: a restart during retry remains verification-only.
+          readOnlyResolutionRequired = false;
+          await logDiagnostic('warning', 'RENEWAL_SOURCE_DELETE_CONFIRMATION_NOT_TRIGGERED', {
+            renewalId, sourceAdId: session.sourceAdId, attempt: attemptState.attempt,
+            attemptId: attemptState.attemptId, reason: 'dialog-timeout'
+          }, { module: 'background', operation: 'renewal-phase-4', context: sessionCorrelationContext(session, { renewalId, adId: session.sourceAdId }) }).catch(() => {});
+          throw new Error('Nach dem Löschklick erschien keine eindeutige Löschbestätigung. Keine finale Löschaktion ausgelöst.');
+        }
         deletion = result.deletion || deletion || null;
         deleteTransportInterrupted = deleteTransportInterrupted || Boolean(result.transportInterrupted);
 
@@ -703,7 +731,7 @@ async function finishRenewalReplacement(message) {
     session.sourceDeleteVerificationFailedAt = new Date().toISOString();
     session.phase4AttemptsExhaustedAt = new Date().toISOString();
     session.sourceDeleteTransportInterrupted = deleteTransportInterrupted;
-    // A live attempt that failed strictly before dispatch has no uncertain mutation.
+    // A proven pre-dispatch failure or explicit pre-confirmation timeout has no uncertain mutation.
     if (!readOnlyResolutionRequired) delete session.sourceDeleteVerificationPendingAt;
     await persistRenewalSession(session).catch(() => {});
     await logDiagnostic('error', 'RENEWAL_REPLACEMENT_FAILED', {

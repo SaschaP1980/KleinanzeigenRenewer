@@ -153,9 +153,13 @@
   }
 
   async function confirmDeleteDialog(adId, correlation = {}) {
-    const deadline = Date.now() + 5000;
+    const started = Date.now();
+    const deadline = started + 5000;
+    let lastDialogCount = 0;
     while (Date.now() < deadline) {
-      const dialogs = [...document.querySelectorAll('[role="dialog"], dialog, [aria-modal="true"]')].filter(dialog => {
+      const candidates = [...document.querySelectorAll('[role="dialog"], dialog, [aria-modal="true"]')];
+      lastDialogCount = candidates.length;
+      const dialogs = candidates.filter(dialog => {
         const text = normalizeKey(dialog.textContent);
         return text.includes('lösch');
       });
@@ -175,6 +179,9 @@
       }
       await sleep(150);
     }
+    diagnostic('RENEWAL_SOURCE_DELETE_DIALOG_TIMEOUT', {
+      adId, waitedMs: Date.now() - started, lastDialogCount, finalConfirmationTriggered: false
+    }, 'warning', correlation);
     return false;
   }
 
@@ -280,7 +287,14 @@
     diagnostic('RENEWAL_SOURCE_DELETE_CLICKED', { adId: wanted, page: scan.page, pagesScanned: scan.pagesScanned, deleteCandidateEvidence: candidateEvidence[0] || null }, 'info', correlation);
     deleteControls[0].click();
     const confirmed = await confirmDeleteDialog(wanted, correlation);
-    if (!confirmed) throw new Error('Nach dem Löschklick erschien keine eindeutige Löschbestätigung; Abbruch aus Sicherheitsgründen.');
+    // Only the normal timeout return from confirmDeleteDialog proves that
+    // this invocation never reached the final confirmation click. Exceptions
+    // (including a click throwing after dispatch) remain ambiguous.
+    if (!confirmed) return {
+      deleted: false, actionTriggered: false, confirmed: false, adId: wanted,
+      outcome: 'confirmation-not-triggered', reason: 'dialog-timeout',
+      page: scan.page, pagesScanned: scan.pagesScanned
+    };
     const postAction = await waitForDeletePostAction(wanted, listing.root, 5000, correlation);
     diagnostic('RENEWAL_SOURCE_DELETE_LOCAL_OUTCOME', {
       adId: wanted,
