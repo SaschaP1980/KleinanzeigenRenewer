@@ -24,6 +24,7 @@ core_tests=(
   tests/kar222-successor-contract.cjs
   tests/kar224-successor-contract.cjs
   tests/kar224-s07.cjs
+  tests/kar224-known-capture.cjs
   tests/kar210-trash-template-recovery-coalescing.cjs
   tests/kar199-emergency-reset-candidate-recovery.cjs
   tests/kar199-phase4-no-transport-replay.cjs

@@ -11,7 +11,7 @@ pass('v1.23.20_c1 release evidence remains explicit under later correction build
   assert.equal(arch.packageVersion,'1.23.20_c1');
   if (require('./current-patch-policy.cjs').isReviewedRestoreVersion(manifest.version)) {
     assertRestoredBaselineVersion();
-    assert.equal(spec.directBasis,manifest.version==='2.0.6.0'?'2.0.5.1':manifest.version==='2.0.5.1'?'2.0.5.0':manifest.version==='2.0.5.0'?'2.0.4.0':manifest.version==='2.0.4.0'?'2.0.3.0':manifest.version==='2.0.3.0'?'2.0.2.0':manifest.version==='2.0.2.0'?'2.0.1.0':manifest.version==='2.0.1.0'?'2.0.0.1':'1.23.48');
+    assert.equal(spec.directBasis,manifest.version==='2.0.6.1'?'2.0.6.0':manifest.version==='2.0.6.0'?'2.0.5.1':manifest.version==='2.0.5.1'?'2.0.5.0':manifest.version==='2.0.5.0'?'2.0.4.0':manifest.version==='2.0.4.0'?'2.0.3.0':manifest.version==='2.0.3.0'?'2.0.2.0':manifest.version==='2.0.2.0'?'2.0.1.0':manifest.version==='2.0.1.0'?'2.0.0.1':'1.23.48');
   } else if (manifest.version === '1.23.20') {
     assert.equal(manifest.version_name,'1.23.20_c1');
     assert.equal(pkg.version,'1.23.20');
