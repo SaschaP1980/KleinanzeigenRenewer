@@ -21,6 +21,20 @@ core_tests=(
   tests/kar217-successor-contract.cjs
   tests/kar220-successor-contract.cjs
   tests/kar220-field-transfer.cjs
+  tests/kar222-successor-contract.cjs
+  tests/kar199-emergency-reset-candidate-recovery.cjs
+  tests/kar199-phase4-no-transport-replay.cjs
+  tests/kar199-phase4-ui-runtime.cjs
+  tests/kar210-cp36-phase4-unknown-witness.cjs
+  tests/kar210-kar150-uncertain-start-witness.cjs
+  tests/kar210-p9-independent-tab-lifecycle.cjs
+  tests/kar222-b14-recovery.cjs
+  tests/kar222-b16-recovery-ui.cjs
+  tests/kar222-delete-no-replay.cjs
+  tests/kar222-mass-recovery-witness.cjs
+  tests/kar222-roster-scan-cost.cjs
+  tests/kar222-tab-registry-cost.cjs
+  tests/kar222-focused-gate.cjs
   tests/validate.mjs
   tests/identity.cjs
   tests/jpeg.cjs

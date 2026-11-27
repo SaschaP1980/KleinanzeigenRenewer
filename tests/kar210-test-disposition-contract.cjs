@@ -8,7 +8,8 @@ const { spawnSync } = require('node:child_process');
 const root=path.resolve(__dirname,'..');
 const {validateDispositions}=require('./kar210-test-disposition.cjs');
 const LEDGER='docs/maintenance/KAR210_ACTIVE_TEST_DISPOSITIONS.json';
-const {isS09Version,S09_SCOPE,isS04Version}=require('./current-patch-policy.cjs');
+const {isS09Version,S09_SCOPE,isS04Version,isS06Version,S06_SCOPE}=require('./current-patch-policy.cjs');
+const s06=isS06Version(JSON.parse(fs.readFileSync(path.join(root,'manifest.json'),'utf8')).version);
 const s04=isS04Version(JSON.parse(fs.readFileSync(path.join(root,'manifest.json'),'utf8')).version);
 const S04_LEDGER='docs/maintenance/KAR217_UPDATER_TEST_DISPOSITIONS.json';
 const s09=isS09Version(JSON.parse(fs.readFileSync(path.join(root,'manifest.json'),'utf8')).version);
@@ -20,7 +21,8 @@ for(const owner of OWNERS) for(const test of ["tests/kar148-article-type.cjs","t
 for(const owner of OWNERS) for(const test of ["tests/kar201-legacy-options.cjs","tests/kar201-session-evidence.cjs","tests/kar201-native-display-only.cjs","tests/kar201-partial-archive-prefill.cjs","tests/kar201-manual-standalone.cjs"]) assert.ok(!fs.readFileSync(path.join(root,owner),'utf8').includes(test),'KAR-201 later feature still active: '+test+' in '+owner);
 const data=JSON.parse(fs.readFileSync(path.join(root,LEDGER),'utf8'));
 const inactive=validateDispositions(root);
-assert.equal(inactive.size,(s09?87:91)+(s04?12:0));
+assert.equal(inactive.size,(s09?87:91)+(s04?12:0)-(s06?S06_SCOPE.reactivatedTests.length:0));
+if(s06)for(const test of S06_SCOPE.reactivatedTests)assert.ok(!inactive.has(test));
 if(s09) for(const test of S09_SCOPE.reactivatedTests) assert.ok(!inactive.has(test));
 const read=p=>fs.readFileSync(path.join(root,p));
 for(const owner of OWNERS) for(const test of inactive.keys())
@@ -59,7 +61,7 @@ const put=(p,v)=>{const dst=path.join(fixture,p);fs.mkdirSync(path.dirname(dst),
 let negatives=0;
 const deny=()=>{assert.throws(()=>validateDispositions(fixture));negatives++;};
 try {
-  for(const p of new Set([...OWNERS,'manifest.json','package-lock.json','release/release-spec.json','scripts/product_version.py','scripts/package.py','coverage/safety-critical-public-apis.json','docs/maintenance/KAR210_BASELINE_RESTORE_LEDGER.json','docs/maintenance/KAR210_BASELINE_TARGET.json',LEDGER,...(s04?[S04_LEDGER]:[]),...inactive.keys(),...data.entries.map(e=>e.test),...data.entries.flatMap(e=>e.retained),...data.entries.filter(e=>e.featureAbsence||(s09&&S09_SCOPE.reactivatedTests.includes(e.test))).map(e=>e.module)])) copy(p);
+  for(const p of new Set([...OWNERS,'manifest.json','package-lock.json','release/release-spec.json','scripts/product_version.py','scripts/package.py','coverage/safety-critical-public-apis.json','docs/maintenance/KAR210_BASELINE_RESTORE_LEDGER.json','docs/maintenance/KAR210_BASELINE_TARGET.json',LEDGER,...(s04?[S04_LEDGER]:[]),...(s06?['docs/maintenance/KAR222_SUCCESSOR_SCOPE.json',...S06_SCOPE.reactivatedTests,...S06_SCOPE.partialTests.map(e=>e.path)]:[]),...inactive.keys(),...data.entries.map(e=>e.test),...data.entries.flatMap(e=>e.retained),...data.entries.filter(e=>e.featureAbsence||(s09&&S09_SCOPE.reactivatedTests.includes(e.test))).map(e=>e.module)])) copy(p);
   assert.equal(validateDispositions(fixture).size,inactive.size);
   if(s04){const l=JSON.parse(read(S04_LEDGER));l.entries.pop();put(S04_LEDGER,l);deny();copy(S04_LEDGER);}
   const entry=data.entries[0];
@@ -92,6 +94,14 @@ try {
     put('package.json',pkg);deny();copy('package.json');
     const restored=data.entries.find(e=>e.test===active);
     put(restored.module,'// altered exact successor module');deny();copy(restored.module);
+  }
+  if(s06){
+    const active=S06_SCOPE.reactivatedTests[0],pkg=JSON.parse(read('package.json'));
+    pkg.scripts.test=pkg.scripts.test.replace('node '+active+' && ','');
+    put('package.json',pkg);deny();copy('package.json');
+    const scopePath='docs/maintenance/KAR222_SUCCESSOR_SCOPE.json',wrong=JSON.parse(read(scopePath));
+    wrong.partialTests[0].deferred.pop();put(scopePath,wrong);deny();copy(scopePath);
+    put(S06_SCOPE.partialTests[1].path,'// lost deferred evidence');deny();copy(S06_SCOPE.partialTests[1].path);
   }
   assert.equal(validateDispositions(fixture).size,inactive.size);
 } finally {fs.rmSync(fixture,{recursive:true,force:true});}

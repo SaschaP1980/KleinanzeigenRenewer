@@ -1339,7 +1339,7 @@ function validateDispositions(root) {
   const read = rel => fs.readFileSync(file(rel));
   const json = rel => JSON.parse(read(rel));
   const version = execFileSync('python3',[file('scripts/product_version.py'),'--root',root],{encoding:'utf8'}).trim();
-  const {assertRestoredBaselineVersion,expectedRestoredBlob,expectedRestoredPackage,isS09Version,S09_SCOPE,isS03Version,S03_SCOPE,isS04Version,S04_SCOPE}=require('./current-patch-policy.cjs');
+  const {assertRestoredBaselineVersion,expectedRestoredBlob,expectedRestoredPackage,isS09Version,S09_SCOPE,isS03Version,S03_SCOPE,isS04Version,S04_SCOPE,isS06Version,S06_SCOPE}=require('./current-patch-policy.cjs');
   assert.equal(assertRestoredBaselineVersion(root),version,'Only reviewed restored baseline or exact hotfix');
   const ledger=json(LEDGER);
   assert.equal(ledger.schema,2);
@@ -1360,6 +1360,17 @@ function validateDispositions(root) {
   const packaged=[...allowlist.matchAll(/'([^']+)'/g)].map(m=>m[1]);
   assert.deepEqual(packaged,expectedRestoredPackage(version,target),'Reviewed package scope drift');
   const reactivated = new Set(isS09Version(version) ? S09_SCOPE.reactivatedTests : []);
+  const s06Active = new Set(isS06Version(version)?S06_SCOPE.reactivatedTests:[]);
+  if(isS06Version(version)){
+    assert.deepEqual(json('docs/maintenance/KAR222_SUCCESSOR_SCOPE.json'),S06_SCOPE,'S06 exact source and disposition ledger changed');
+    assert.ok(commands.includes('node tests/kar222-focused-gate.cjs'),'S06 partial witness gate required');
+    assert.ok(ownerRefs.get('scripts/build.sh').has('tests/kar222-focused-gate.cjs'));
+    for(const entry of S06_SCOPE.partialTests)assert.equal(gitBlob(read(entry.path)),entry.blob,'S06 exact partial witness source changed');
+    for(const test of s06Active){
+      assert.ok(commands.includes('node '+test),'S06 reactivated test must run in mandatory npm test: '+test);
+      assert.ok(ownerRefs.get('scripts/build.sh').has(test),'S06 reactivated test must run in build: '+test);
+    }
+  }
   if(isS03Version(version)) {
     const changed = new Set(S03_SCOPE.runtimeChanges.map(r=>r.path));
     const affected=ledger.entries.filter(e=>changed.has(e.module)&&e.featureAbsence).map(e=>({test:e.test,module:e.module,marker:e.featureAbsence.marker})).sort((a,b)=>a.test.localeCompare(b.test));
@@ -1383,6 +1394,13 @@ function validateDispositions(root) {
     assert.match(e.blob,/^[a-f0-9]{40}$/);
     assert.equal(gitBlob(read(e.test)),e.blob,'Historical test source changed');
     assert.deepEqual(e.featureAbsence,expected.featureAbsence,'Unreviewed feature absence evidence');
+    if(s06Active.has(e.test)){
+      assert.ok(e.featureAbsence&&packaged.includes(e.module),'S06 reactivated capability must be packaged');
+      assert.equal(gitBlob(read(e.module)),expectedRestoredBlob(version,e.module,e.featureAbsence.baselineBlob),'S06 exact reactivated capability source changed');
+      assert.ok(read(e.module).toString().includes(e.featureAbsence.marker),'S06 reactivated capability absent');
+      for(const retained of e.retained)assert.ok(commands.includes('node '+retained)||commands.includes('node --test '+retained),'Retained baseline test not invoked: '+retained);
+      continue;
+    }
     if (reactivated.has(e.test)) {
       assert.ok(packaged.includes(e.module),'Reactivated S09 module must be packaged');
       const historical = target.expected.find(r=>r.path===e.module)?.sha;
@@ -1437,6 +1455,7 @@ function validateDispositions(root) {
   assert.deepEqual(ledger.scopeResetDeferred,SCOPE_RESET_DEFERRED,'Unreviewed post-baseline disposition');
   for(const e of ledger.scopeResetDeferred) {
     assert.equal(gitBlob(read(e.test)),e.blob,'Deferred RED evidence changed: '+e.test);
+    if(s06Active.has(e.test))continue;
     assert.ok(!inactive.has(e.test),'Duplicate disposition: '+e.test);
     assert.ok(!safety.apis.some(api=>api.tests.includes(e.test)),'Historical safety-critical negative cannot be deferred');
     for(const [owner,refs] of ownerRefs) assert.ok(!refs.has(e.test),'Deferred witness still active: '+owner+' '+e.test);

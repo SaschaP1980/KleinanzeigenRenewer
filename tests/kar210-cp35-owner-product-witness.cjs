@@ -22,7 +22,12 @@ confirm(worker.includes('observeTabLifecycleUpdate(tab)'), 'tabs listener direct
   ok(worker.includes('await confirmPublishedRenewal(fill, detected)'),'publish detection updates renewal state');
   ok(worker.includes('async function maybeDetectTrashTemplatePublishedAd'),'independent trash-template publish detection exists');
 
+ if(require('./current-patch-policy.cjs').isS06Version(require('../manifest.json').version)){
+   confirm((mass.match(/queueMicrotaskFn\(\(\) => \{ void startNextMassRenewalItem\(/g)||[]).length===6,'six S06 continuations; uncertain restart no blind requeue');
+   confirm(!mass.includes("item.stage = 'recovery-starting-requeued'"),'uncertain starting path not silently requeued');
+ }else{
  confirm((mass.match(/queueMicrotaskFn\(\(\) => \{ void startNextMassRenewalItem\(/g)||[]).length===7,'seven mass continuations at actual historical owner');
+ }
  confirm((fill.match(/queueMicrotaskFn\(\(\) => \{ void restartRenewalPhase1Attempt\(/g)||[]).length===2,'both phase-one retry continuations at actual historical owner');
  confirm(/massRenewalWatchdogTimer\s*=\s*setTimeoutFn\(async\s*\(\)\s*=>/.test(watchdog),'actual watchdog timer');
  confirm(watchdog.includes('queueMicrotaskFn(() => { void startNextMassRenewalItem(batch.batchId)'), 'actual watchdog continuation');

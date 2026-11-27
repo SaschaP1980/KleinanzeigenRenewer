@@ -32,27 +32,16 @@ jobs:
             if [ "$rc" -ne 0 ]; then failed=$((failed+1)); fi
           done
           test "$failed" -eq 0
-      - name: Retained npm commands audit
+      - name: S06 reactivated and exact partial witnesses
         if: always()
         run: |
-          node scripts/runtime-api-inventory.cjs --json > coverage/public-api-manifest.json
-          python3 - <<'PY'
-          import json,subprocess,os,time
-          commands=json.load(open('package.json'))['scripts']['test'].split(' && ')
-          env=os.environ.copy()
-          env['NODE_OPTIONS']='--require ./tests/v12222-vm-legacy-bridge.cjs'
-          env['NODE_V8_COVERAGE']=os.path.abspath('coverage/raw')
-          failed=[]
-          for i,command in enumerate(commands):
-              start=time.monotonic()
-              try:
-                  r=subprocess.run(command,shell=True,env=env,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,timeout=60)
-                  code=r.returncode
-                  if code: print(r.stdout[-5000:],flush=True)
-              except subprocess.TimeoutExpired:
-                  code=124
-              print(f'KAR222_NPM {i+1} {code} {time.monotonic()-start:.3f}s {command}',flush=True)
-              if code: failed.append((i+1,command,code))
-          print('KAR222_NPM_SUMMARY '+json.dumps({'total':len(commands),'failed':failed}),flush=True)
-          raise SystemExit(bool(failed))
-          PY
+          set +e
+          export NODE_OPTIONS='--require ./tests/v12222-vm-legacy-bridge.cjs'
+          failed=0
+          for f in tests/kar222-successor-contract.cjs tests/kar199-emergency-reset-candidate-recovery.cjs tests/kar199-phase4-no-transport-replay.cjs tests/kar199-phase4-ui-runtime.cjs tests/kar210-cp36-phase4-unknown-witness.cjs tests/kar210-kar150-uncertain-start-witness.cjs tests/kar210-p9-independent-tab-lifecycle.cjs tests/kar222-b14-recovery.cjs tests/kar222-b16-recovery-ui.cjs tests/kar222-delete-no-replay.cjs tests/kar222-mass-recovery-witness.cjs tests/kar222-roster-scan-cost.cjs tests/kar222-tab-registry-cost.cjs tests/kar222-focused-gate.cjs tests/kar210-cp35-owner-product-witness.cjs tests/kar210-cp37-outcome-product-witness.cjs; do
+            node "$f"
+            rc=$?
+            echo "KAR222_RETAINED $f rc=$rc"
+            if [ "$rc" -ne 0 ]; then failed=$((failed+1)); fi
+          done
+          test "$failed" -eq 0

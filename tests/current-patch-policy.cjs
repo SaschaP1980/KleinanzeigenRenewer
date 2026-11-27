@@ -164,7 +164,8 @@ assert.equal(S06_SCOPE.sourceCheckpoint,'7301f1a914a30659362b33ffa03b817326c3f0f
 assert.deepEqual(S06_SCOPE.runtimeChanges.map(r=>r.path).sort(),S06_CHANGED);
 assert.deepEqual(S06_SCOPE.addedRuntime,[]);
 assert.deepEqual(S06_SCOPE.removedRuntime,[]);
-assert.deepEqual(S06_SCOPE.reactivatedTests,[]);
+assert.deepEqual(S06_SCOPE.reactivatedTests,["tests/kar199-emergency-reset-candidate-recovery.cjs","tests/kar199-phase4-no-transport-replay.cjs","tests/kar199-phase4-ui-runtime.cjs","tests/kar210-cp36-phase4-unknown-witness.cjs","tests/kar210-kar150-uncertain-start-witness.cjs","tests/kar210-p9-independent-tab-lifecycle.cjs"]);
+assert.deepEqual(S06_SCOPE.partialTests,[{"path":"tests/kar210-cp38-publish-uncertainty-witness.cjs","blob":"40c5fec6b7f45fc2367118d9669be3dad65f4d3a","total":7,"deferred":[{"name":"Fast presence must not authorize replacement if live account changes during roster read","step":"D2","redRun":45908677324},{"name":"historical submitted archive recovery detects existing publication without republishing","step":"S07","redRun":45908677324}]},{"path":"tests/kar222-publication-identity-witness.cjs","blob":"9ebbcf7a7e0282fc62b94ccea72bd815a1531fba","total":21,"deferred":[{"name":"S06 content-side account change during listing scan must not reach simulated delete click","step":"D2","redRun":45908677324},{"name":"S06 content-side account change during absence scan cannot provide positive absence evidence","step":"D2","redRun":45908677324}]}]);
 function isS06Version(version) { return version === S06_VERSION; }
 function isS05Version(version) { return version === S05_VERSION || isS06Version(version); }
 function isS04Version(version) { return version === S04_VERSION || isS05Version(version); }

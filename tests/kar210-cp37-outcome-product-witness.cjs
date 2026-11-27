@@ -37,7 +37,7 @@ function fixture({source=true,candidate=true,candidateId='200',profile='Owner',v
   sendTabRequestWithBootstrap:async(id,m)=>{sent.push({id,type:m.type,adId:m.adId});
    if(m.type==='MY_ADS_STATUS')return {isMyAdsPage:true,isProjectsTab:true,profileName:id===73?'Owner':verifyProfile};
    if(m.type==='DELETE_OWN_AD_BY_ID')return {actionTriggered:true};
-   if(m.type==='VERIFY_OWN_AD_ABSENT_BY_ID'){if(verify==='unavailable')throw Error('fixture readback unavailable');return {verified:verify==='absent',foundPage:verify==='present'?2:null,evidence:verify==='absent'?'not-in-my-ads-full-pagination-scan':null,pagesScanned:3};}
+   if(m.type==='VERIFY_OWN_AD_ABSENT_BY_ID'){if(verify==='unavailable')throw Error('fixture readback unavailable');return {verified:verify==='absent',adId:m.adId,foundPage:verify==='present'?2:null,evidence:verify==='absent'?'not-in-my-ads-full-pagination-scan':null,pagesScanned:3};}
    throw Error('unexpected fixture request '+m.type);
   }
  });return {row,sent,closed,persisted,opened,promotions,notices,finish:()=>api.finishRenewalReplacement({renewalId:'r',automatic:true})};
