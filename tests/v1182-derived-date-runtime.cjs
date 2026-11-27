@@ -76,12 +76,23 @@ console.log(`${passes} v1.18.2 derived-date runtime groups passed`);
 // expiration date, while the account-bound exact-ID own-ads card supplies it.
 // These are read-only fixtures: no live account, deletion or publication.
 const background = fs.readFileSync('background.js', 'utf8');
-const inventoryRefresh = fs.readFileSync('src/background/services/inventory-refresh-service.js', 'utf8');
-assert.match(background, /InventoryRefreshService\.create\(/,
-  'background must compose the identity-bound inventory refresh owner');
-assert.match(inventoryRefresh,
-  /requirePublicListingEvidenceService\(\)\.readInventoryRefreshOwnAdsEndDate\(/,
-  'inventory refresh owner must delegate to exact-ID account-bound listing evidence service');
+const root = require('node:path').resolve(__dirname, '..');
+const historical = require('./kar210-historical-contract-context.cjs');
+const restored = historical.isRestored(root);
+const inventoryRefresh = fs.readFileSync(require('node:path').join(root,historical.historicalBackgroundOwner(root,'src/background/services/inventory-refresh-service.js')), 'utf8');
+if (restored) {
+  const refresh = inventoryRefresh.match(/async function refreshInventoryRecord\(message\) \{[\s\S]*?\n\}/)?.[0];
+  assert.ok(refresh, 'historical refresh owner must exist');
+  assert.match(refresh, /assertSelectedProfileMatchesLiveAccount\(\{ expectedProfileId: existing\.profileId/);
+  assert.match(refresh, /readInventoryRefreshOwnAdsEndDate\(adId, existing\.profileName \|\| '', windowId\)/);
+  assert.match(refresh, /endDateDisplay: ownerCardEndDate\?\.endDateDisplay/);
+} else {
+  assert.match(background, /InventoryRefreshService\.create\(/,
+    'background must compose the identity-bound inventory refresh owner');
+  assert.match(inventoryRefresh,
+    /requirePublicListingEvidenceService\(\)\.readInventoryRefreshOwnAdsEndDate\(/,
+    'inventory refresh owner must delegate to exact-ID account-bound listing evidence service');
+}
 
 function expiryFixture({
   profile = 'Account One', expectedProfile = 'Account One', afterProfile = profile,
@@ -113,6 +124,13 @@ function expiryFixture({
     closeRegistryTabs: async ids => { calls.push(['close', ...ids]); },
     logDiagnostic: async (level, event, details) => { events.push({ level, event, details }); }
   };
+  if (restored) {
+    const method = inventoryRefresh.match(/async function readInventoryRefreshOwnAdsEndDate\(adId, expectedProfileName, windowId = null\) \{[\s\S]*?\n\}/)?.[0];
+    assert.ok(method, 'actual historical exact-ID expiry reader required');
+    const ctx = vm.createContext({...dependencies});
+    vm.runInContext(method, ctx);
+    return {run: () => ctx.readInventoryRefreshOwnAdsEndDate('3566991742', expectedProfile, 6), calls, events};
+  }
   let registered = null;
   const ctx = vm.createContext({ KRDeps: {
     register(name, api) {

@@ -4,6 +4,54 @@ This is the canonical version-specific history for Kleinanzeigen Manager. Entrie
 
 All distinct historical section bodies from the former root README and CHANGELOG are preserved with source labels and line numbers. The [KAR-170 migration ledger](docs/maintenance/KAR170_CHANGELOG_MIGRATION.json) identifies their original Git blobs and body checksums. Overlapping versions retain distinct factual notes; older references to planned builds or native/CI acceptance are **historical**, not live status.
 
+## v2.0.5.1 — KAR-222 Phase-4 pre-confirmation timeout (Work hotfix, full gates pending)
+
+- Native 2.0.5.0 Fast/Safe singles succeeded; Fast-3 completed two of three items. The remaining source was still present after the delete confirmation dialog did not appear.
+- Permit a bounded fresh Phase-4 attempt only after the actual content operation returns an explicit same-request pre-confirmation timeout with exact source Ad ID, false outcome flags and confirmed retirement of the old worker. Retain the durable pending marker until terminal persistence; a lost, malformed, contradictory or post-confirmation reply, or prior persisted ambiguity, remains verification-only. Independent post-delete absence proof still precedes local promotion.
+- Add structural dialog-timeout diagnostics without arbitrary DOM text, longer waiting periods, new remote probes, journals or locks. Focused test-first run 45953381627 was RED (13/17); run 45953462244 was GREEN (17/17). Exact hotfix ZIP, full Work PR CI and separately authorized native acceptance are pending. Chrome 2.0.5.1, npm 2.0.5; 2.0.5.0 remains immutable. No merge or GitHub Release implied.
+
+## v2.0.5.0 — KAR-222 S06 renewal reliability and performance (Work source, full gates pending)
+
+- Preserve uncertain publication/deletion outcomes for explicit review or read-only recovery, reject mismatched returned listing IDs, preserve local publication evidence and prevent same-document duplicate publication.
+- Improve local recovery and mass-run presentation; eliminate redundant nonempty roster parsing; serialize existing local TabRegistry metadata transactions and preserve GONE tombstones. No persistent journal, new runtime module, Web Lock, additional account probe or updater.
+- D2 account changes during scanning, S07 archive recovery and managed tab reuse remain open. Chrome 2.0.5.0, npm 2.0.5, exact S05 direct basis 2.0.4.0. Focused evidence retained in KAR-222; full quality gates and native acceptance pending. No merge, release or productive migration.
+
+## v2.0.4.0 — KAR-220 S05 attribute transfer (Work source, full gates pending)
+
+- Correct two reproduced field-level defects: recover substantive legacy display-only values through the actual associated control and final technical/visible readback; resolve linked options by unique exact technical ID or unique enabled label, otherwise report ambiguity. Preserve captured optional empty status.
+- Keep existing category handling, account/paid insertion safeguards, image transfer and verified publication/deletion. No form-version detection, F1/F2/F3 fingerprints, persistent schema references, adoption dialogs or additional schema scans. No new runtime module or storage layer.
+- Chrome 2.0.4.0, npm 2.0.4, direct basis accepted 2.0.3.0. Focused 19/19 and retained 56/56 PASS; full gates and separate native current-form smoke remain pending. No merge, release or live migration implied.
+
+## v2.0.3.0 — KAR-217 S04 updater removal (Work source, full gates pending)
+
+- Remove Windows updater status/configuration UI, its native messaging permission, dedicated transport and online channel checks. Keep regular listing actions, extension identity and the S03/S09 product runtime behavior.
+- Preserve three exact historical updater module blobs outside active runtime and retire only the reviewed legacy updater-specific test invocations. Product safety, dynamic public API coverage, line/branch/architecture and exact ZIP/Chromium gates remain mandatory.
+- Chrome version 2.0.3.0, npm 2.0.3; exact accepted basis 2.0.2.0. Focused updater removal GREEN; full gates and separate owner smoke pending. No merge, release, actual Windows component removal or real-profile migration implied.
+
+## v2.0.2.0 — KAR-213 S03 persisted data compatibility (Work source, full gates pending)
+
+- Preserve opaque profile, inventory, trash and image fields in backup/restore; abort failed replacement transaction. Retain known unresolved legacy publication/deletion evidence and block unsafe continuation, without adding donor admission or journal architecture.
+- Offline preflight is a read-only operator precondition, not automatic activation authority. Real isolated Chromium cold upgrade/rollback from v1.23.48 and v1.25.36 passed on source overlay; exact sealed-package and full mandatory validation remain separate.
+- Chrome version 2.0.2.0, npm 2.0.2. Exact accepted direct basis 2.0.1.0; stable extension identity, no live-profile migration, merge or GitHub Release implied.
+
+## v2.0.1.0 — KAR-214 S09 local trash quality (Work source, full gates pending)
+
+- Selective configurable local retention, verified policy hydration, exact reviewed destructive shortening, canonical finite/unlimited/unknown ordering and isolated countdown colors.
+- Preserve local records and images across failed policy reads and interrupted policy changes; persist local retention revision with the setting and reviewed record metadata. No C updater/owner/journal imports, remote mutation changes or live data migration.
+- Chrome version 2.0.1.0, npm 2.0.1. Exact direct basis 2.0.0.1; focused synthetic tests GREEN. Full regression, coverage, package and native acceptance remain separate. No GitHub Release implied.
+
+## v2.0.0.1 — KAR-212 Phase-4 BFCache transport classification (Work hotfix)
+
+- Recognize the exact Chrome back/forward cache port-closure error in the existing Phase-4 classifier so the historical independent read-only absence verification can run in the same attempt. No new safeguards, deletion, publish, or verification changes.
+- Direct hotfix basis: archived 2.0.0.0 (historical semantic runtime v1.23.48). Chrome version 2.0.0.1, npm 2.0.0; unchanged extension identity and historical archives. Focused RED/GREEN verified; full hosted package validation and native Fast-3 acceptance pending. No published release implied.
+
+## v2.0.0.0 — KAR-210 performance-first technical baseline (Work source, validation pending)
+
+- Restore the product runtime of the owner-validated v1.23.48 source as a forward change from current Git ancestry, retaining the current UI asset layout and applicable development infrastructure. No later updater admission, owner census, persistent publish/delete journals or unrelated donor features are imported.
+- Establish four-component Chrome product versioning (MAJOR.MINOR.PATCH.HOTFIX) with valid derived npm SemVer, consistent package/archive names, explicit version-class transitions and unchanged extension identity. Historical three-component versions and correction archives retain their own identities.
+- Retain historical source, archives, tests and immutable Gold evidence. Reconcile the active test and CI contracts against the restored runtime; distinguish excluded architecture from retained product safety and later owner-approved migration outcomes.
+- This is an isolated technical source baseline, not a released or installable build. Static runtime identity was verified; full runtime, coverage, architecture, packaged Chromium and source-matching ZIP validation remain pending. No live account action or new native performance result is implied. S03 data compatibility and S04 updater removal are prerequisites for use with the owner's live profile.
+
 ## v1.25.12 — KAR-201 explicit owner-approved standalone manual posting (Work candidate, not yet released)
 
 - Following the owner's native v1.25.11 confirmation that eleven archive images and the recoverable fields were transferred and all remaining category attributes were manually entered, add an **explicit, human-only final route**. This is not automatic publication, not automatic ZIP completion and never a replacement/source-deletion workflow.

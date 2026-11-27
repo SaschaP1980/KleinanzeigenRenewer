@@ -6,7 +6,7 @@ const content=fs.readFileSync(path.join(root,'content.js'),'utf8');
 const bg=fs.readFileSync(path.join(root,'background.js'),'utf8');
 // After KAR-175 the protected image downloader is an in-process service;
 // keep the original large-JPEG gate and source-URL assertions on its owner.
-const imageCapture=fs.readFileSync(path.join(root,'src/background/services/inventory-capture-service.js'),'utf8');
+const imageCapture=fs.readFileSync(path.join(root,require('./kar210-historical-contract-context.cjs').captureOwner(root)),'utf8');
 let n=0;const pass=x=>{n++;console.log('PASS '+x)};
 assert.match(form,/attributeMap\\\[\(\[\^\\\]\]\+\)\\\]/);assert.match(form,/dynamicAttributes/);assert.match(form,/technicalName/);assert.match(form,/technicalValue/);assert.match(form,/displayValue/);pass('generic attributeMap model keeps technical and visible representations');
 for(const key of ['priceType','addressVisibility','locationId','buyNowEligible','posterType'])assert.ok(form.includes(key),key);pass('previously unmapped reconstruction fields explicitly classified');

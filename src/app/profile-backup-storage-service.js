@@ -15,10 +15,10 @@
               });
             }
 
-            async function readProfileInventoryRows(db, profileId) {
+            async function readProfileInventoryRows(db, profileId, transaction = null) {
               const requested = String(profileId || '');
               return new Promise((resolve, reject) => {
-                const store = db.transaction('inventories').objectStore('inventories');
+                const store = (transaction || db.transaction('inventories')).objectStore('inventories');
                 if (!requested || !store.indexNames.contains('profileId')) {
                   const request = store.getAll();
                   request.onsuccess = () => resolve((request.result || []).filter(record => !requested || String(record?.profileId || '') === requested));
@@ -31,11 +31,11 @@
               });
             }
 
-            async function readImagesForInventoryIds(db, inventoryIds) {
+            async function readImagesForInventoryIds(db, inventoryIds, transaction = null) {
               const ids = [...new Set((inventoryIds || []).map(value => String(value || '')).filter(Boolean))];
               if (!ids.length) return [];
               return new Promise((resolve, reject) => {
-                const store = db.transaction('images').objectStore('images');
+                const store = (transaction || db.transaction('images')).objectStore('images');
                 if (!store.indexNames.contains('inventoryId')) {
                   const wanted = new Set(ids);
                   const request = store.getAll();
@@ -67,9 +67,22 @@
             async function snapshotProfileIndexedData(profileId) {
               const db = await openProfileBackupDatabase();
               try {
-                const records = await readProfileInventoryRows(db, profileId);
-                const images = await readImagesForInventoryIds(db, records.map(record => record?.inventoryId));
-                return { records, images };
+                const tx = db.transaction(['inventories', 'images'], 'readonly');
+                const completed = new Promise((resolve, reject) => {
+                  tx.oncomplete = resolve;
+                  tx.onabort = () => reject(tx.error || new Error('Profilsicherung wurde abgebrochen.'));
+                });
+                // Attach a rejection handler immediately, including request failure paths.
+                void completed.catch(() => {});
+                try {
+                  const records = await readProfileInventoryRows(db, profileId, tx);
+                  const images = await readImagesForInventoryIds(db, records.map(record => record?.inventoryId), tx);
+                  await completed;
+                  return { records, images };
+                } catch (error) {
+                  await completed.catch(() => {});
+                  throw error;
+                }
               } finally { db.close(); }
             }
 
@@ -130,15 +143,22 @@
 
                 await new Promise((resolve, reject) => {
                   const tx = db.transaction(['inventories', 'images'], 'readwrite');
-                  tx.onabort = () => reject(tx.error || new Error('Die Profilsicherung konnte nicht vollständig wiederhergestellt werden.'));
+                  let queueError;
+                  tx.onabort = () => reject(queueError || tx.error || new Error('Die Profilsicherung konnte nicht vollständig wiederhergestellt werden.'));
                   tx.onerror = () => {};
                   tx.oncomplete = resolve;
                   const inventoryStore = tx.objectStore('inventories');
                   const imageStore = tx.objectStore('images');
-                  for (const inventoryId of targetOldIds) inventoryStore.delete(inventoryId);
-                  for (const imageKey of oldImageKeys) imageStore.delete(imageKey);
-                  for (const record of records) inventoryStore.put(record);
-                  for (const image of images) imageStore.put({ ...image, blob: image.blob });
+                  try {
+                    for (const inventoryId of targetOldIds) inventoryStore.delete(inventoryId);
+                    for (const imageKey of oldImageKeys) imageStore.delete(imageKey);
+                    for (const record of records) inventoryStore.put(record);
+                    for (const image of images) imageStore.put({ ...image, blob: image.blob });
+                  } catch (error) {
+                    // A synchronous put/clone failure does not itself abort IndexedDB.
+                    queueError = error;
+                    try { tx.abort(); } catch { reject(error); }
+                  }
                 });
                 return { records, images, previousInventoryIds: [...targetOldIds] };
               } finally { db.close(); }

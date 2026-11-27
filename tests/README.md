@@ -4,7 +4,7 @@ Tests are source-level regression evidence; many preserve the historical version
 
 - **Automated entrypoints:** `npm test` in [package.json](../package.json); [build.sh](../scripts/build.sh); mandatory [coverage-gate.sh](../scripts/coverage-gate.sh); hosted [Work PR](../.github/workflows/kar-work-pr.yml), [main CI](../.github/workflows/kar-ci.yml) and [Release](../.github/workflows/kar-release.yml).
 - **Browser/MV3 E2E:** [e2e/README.md](e2e/README.md), the isolated supervisor/child and the permanent [v1.21.15 Gold reference](e2e/gold-v1.21.15.json).
-- **Windows fixtures:** `windows-updater-phase1.ps1`, `windows-native-host-wave1.ps1`, `windows-oneclick-shortcut.ps1`; current GitHub Windows Work job executes these in disposable test mode.
+- **Historical Windows updater fixtures:** retained for provenance; not active Generation 2 product acceptance tests after S04. See `docs/maintenance/KAR217_UPDATER_TEST_DISPOSITIONS.json` for exact retired test and owner pairs.
 - **Indirect source-surface/test-only helpers:** `*-source-surface.cjs`, `current-patch-policy.cjs`, `kar50-next-patch.cjs` and synthetic RED/negative test fixtures. These are dependencies, not ordinary standalone runnable suites.
 - **Safety-critical negative evidence:** see the [living critical API map](../coverage/safety-critical-public-apis.json) and permanent [coverage floor](../coverage/coverage-baseline-v1.23.19.json).
 

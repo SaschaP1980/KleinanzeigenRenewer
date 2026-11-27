@@ -1,0 +1,352 @@
+{
+  "schema": 1,
+  "issue": 210,
+  "parent": 208,
+  "status": "partial reviewed gate triage; not an executable allowlist; no invocation change authorized by this document alone",
+  "referenceSource": "ca2de17e01dab7e9b296a279635d3cb1a983ad85",
+  "reviewHead": "1334a308eece2fa4e99a039884f3832e4d3566e9",
+  "baseMain": "4d7ae5130730776927748e2517fdf9aadaf098cd",
+  "referenceLedger": "docs/maintenance/KAR210_BASELINE_RESTORE_LEDGER.json",
+  "sourceMatrixIssue": 209,
+  "hostedDiagnostic": {
+    "run": 45490618943,
+    "source": "ca2de17e01dab7e9b296a279635d3cb1a983ad85",
+    "overall": "failure",
+    "focusedPassed": 8,
+    "focusedFailed": 2
+  },
+  "npm": {
+    "testReferences": 533,
+    "explicitCommands": 532,
+    "includesPreload": "tests/v12222-vm-legacy-bridge.cjs",
+    "historicalRefs": 453,
+    "historicalSameBlob": 261,
+    "historicalChangedBlob": 192,
+    "laterRefs": 80,
+    "policy": "Preserve files and all current invocation text until explicit assertion-level dispositions and equivalent baseline safety evidence. No blanket disable, no PASS for excluded checks."
+  },
+  "reviewedLaterFeatureCandidates": [
+    {
+      "path": "tests/kar134-l15-automatic-schema.cjs",
+      "blob": "f0e6d1216379598f2aea4e77a3a727442af38654",
+      "owner": "package.json",
+      "matrix": "A03",
+      "owningStep": "S05",
+      "status": "mixed-mechanism-review",
+      "evidence": "Requires automatic F1/category F2 monitoring and extracted inventory-capture service; accepted drift-review outcome only, not every repeated scan. Retain no separate synthetic posting session/development action negatives."
+    },
+    {
+      "path": "tests/kar134-runtime-cleanup.cjs",
+      "blob": "0b7d6ce19a8e4377c490bbb258b1910de5da5637",
+      "owner": "package.json",
+      "matrix": "A03",
+      "owningStep": "S05",
+      "status": "mixed-mechanism-review",
+      "evidence": "Forbids development-only UI labels and runtime helpers, then requires later schemaTestScenario rejection and reviewLivePostingSchema. Preserve no-development-route negative on baseline; port later implementation assertions only with S05."
+    },
+    {
+      "path": "tests/kar134-schema-core.cjs",
+      "blob": "f52e8a47755362551b4f2166eb04ee0a2ab45df9",
+      "owner": "package.json",
+      "matrix": "A03",
+      "owningStep": "S05",
+      "status": "deferred-feature-review",
+      "evidence": "Schema field canonicalization, exact deterministic SHA-256 and privacy negatives depend on the absent schema-core module; re-evaluate necessary behavior at S05."
+    },
+    {
+      "path": "tests/kar134-schema-preflight.cjs",
+      "blob": "9f3471a9eaa5649251d39973882e792c82cf653e",
+      "owner": "package.json",
+      "matrix": "A03",
+      "owningStep": "S05",
+      "status": "mixed-mechanism-review",
+      "evidence": "Schema preflight fixtures require absent schema-core/preflight and prove normal template payload and sender/session denial; preserve exact field/sender safety in baseline tests independently of schema mechanism."
+    },
+    {
+      "path": "tests/kar147-diagnostic-occupancy.cjs",
+      "blob": "c7ef6e1d13bf127a22d68aa435d8adfc78909645",
+      "owner": "package.json",
+      "matrix": "B10",
+      "owningStep": "S10",
+      "status": "deferred-feature-review",
+      "evidence": "Occupancy zero/max, pending-entry commit and bounded rollover/reset marker assert later occupancy API and UI. Preserve existing buffer bounds independently; port occupancy outcome S10."
+    },
+    {
+      "path": "tests/kar148-article-type.cjs",
+      "blob": "944fc42545df535395354e6370a02c10818539d3",
+      "owner": "package.json",
+      "matrix": "B01",
+      "owningStep": "S08",
+      "status": "deferred-feature-review",
+      "evidence": "Category-aware Art/Typ extraction, not positional attribute guessing; S08 later product UI."
+    },
+    {
+      "path": "tests/kar150-stop-on-error.cjs",
+      "blob": "b92f5f024dce5ff0664f8ea7ee6aca5467ab2a31",
+      "owner": "package.json",
+      "matrix": "B04",
+      "owningStep": "S08",
+      "status": "deferred-feature-review",
+      "evidence": "Default stopOnError, batch stop/cancel status and freeze preference; not baseline functionality. S08 owns behavior and batch order."
+    },
+    {
+      "path": "tests/kar150-ui-preference.cjs",
+      "blob": "bfddff42d2171eb5b22a227b7484e16679e78771",
+      "owner": "package.json",
+      "matrix": "B04",
+      "owningStep": "S08",
+      "status": "deferred-feature-review",
+      "evidence": "Checkbox/default preference and tooltip, persistence behavior; S08."
+    },
+    {
+      "path": "tests/kar151-mass-title-search.cjs",
+      "blob": "e68cc83e385e1198a868a367fcdf438694db57e0",
+      "owner": "package.json",
+      "matrix": "B03",
+      "owningStep": "S08",
+      "status": "deferred-feature-review",
+      "evidence": "Search filter/clear and retained selection over eligible list; S08."
+    },
+    {
+      "path": "tests/kar158-compact-category.cjs",
+      "blob": "f33119d51c3f1fe9a9266aace26e4438a4509620",
+      "owner": "package.json",
+      "matrix": "B02",
+      "owningStep": "S08",
+      "status": "deferred-feature-review",
+      "evidence": "New category/title/metadata hierarchy and compact category line; S08. Keep original card/action hit-test behavior independently."
+    },
+    {
+      "path": "tests/kar161-trash-retention.cjs",
+      "blob": "395eb82be82115aded1d42267d71e27a2f153d7b",
+      "owner": "package.json",
+      "matrix": "B05",
+      "owningStep": "S09",
+      "status": "mixed-mechanism-review",
+      "evidence": "Later 0..6 seven-position retention UI and new setting, but also historical database wrapper and diagnostics lifecycle assertions; preserve baseline fixed-retention and data safety, port confirmation with S09."
+    },
+    {
+      "path": "tests/kar164-trash-sort.cjs",
+      "blob": "ad8aa711a3d5e18941185c4a45f880b9bd27df14",
+      "owner": "package.json",
+      "matrix": "B07",
+      "owningStep": "S09",
+      "status": "deferred-feature-review",
+      "evidence": "Pure deriveTrashView finite/deadline ordering including empty list; new retention sort S09."
+    },
+    {
+      "path": "tests/kar185-startup-inventory-regression.cjs",
+      "blob": "c30d621217d8545e3e91f9e10aaa9f380fc77159",
+      "owner": "package.json",
+      "matrix": "B08",
+      "owningStep": "S08",
+      "status": "mixed-mechanism-review",
+      "evidence": "Imports absent inventory-loading-state; independent profile-scoped LIST_INVENTORIES/LIST_TRASH and verified count remain baseline-relevant negatives."
+    },
+    {
+      "path": "tests/kar186-retention-hydration.cjs",
+      "blob": "648d5b29205827935236ffe9cdd5ccdc1900c424",
+      "owner": "package.json",
+      "matrix": "B09",
+      "owningStep": "S09",
+      "status": "mixed-mechanism-review",
+      "evidence": "Absent retention controller loading/unknown and storage truthfulness; separate updater lock retry mechanisms from local settings outcome S09."
+    },
+    {
+      "path": "tests/kar188-loading-state.cjs",
+      "blob": "74e44faa0e2870d4149fd0245e6e50f5e8144565",
+      "owner": "package.json",
+      "matrix": "B08",
+      "owningStep": "S08",
+      "status": "deferred-feature-review",
+      "evidence": "Absent independent loading-state module, null initial verified counts and request currentness; S08 new truthful UX, retain profile stale-response protection."
+    },
+    {
+      "path": "tests/kar191-diagnostic-recovery.cjs",
+      "blob": "cd19069c7e4032da88a22e6f8f8ef04e141c34b6",
+      "owner": "package.json",
+      "matrix": "B11",
+      "owningStep": "S10",
+      "status": "mixed-C-product-review",
+      "evidence": "Read-only occupancy vs durable P8 export admission assertions. Retain platform access and truthful occupancy/export outcome, not updater receipt/fence requirements."
+    },
+    {
+      "path": "tests/kar191-diagnostic-zip-integrity.cjs",
+      "blob": "35677b40163187c1a92c17a4622d218cedb2bbd4",
+      "owner": "package.json",
+      "matrix": "B11",
+      "owningStep": "S10",
+      "status": "mixed-product-review",
+      "evidence": "Exact decoded ZIP length/CRC, distinct member names and directory records are product-relevant independent of later admission/UX; split and retain applicable baseline export integrity checks."
+    },
+    {
+      "path": "tests/kar193-diagnostic-reset.cjs",
+      "blob": "c29810e921638dc0e4c4cb5d76d363f2f05b9e5b",
+      "owner": "package.json",
+      "matrix": "B11",
+      "owningStep": "S10",
+      "status": "mixed-C-product-review",
+      "evidence": "Admission BUSY retry plus no duplicated reset, verified occupancy and truthful completion. Preserve actual single-reset/unknown-outcome negatives; do not migrate P8 retry."
+    },
+    {
+      "path": "tests/kar201-legacy-options.cjs",
+      "blob": "ebef4a52b68053cc93eaa81e29aac780a006a91c",
+      "owner": "package.json",
+      "matrix": "A04",
+      "owningStep": "S05/S07",
+      "status": "deferred-feature-review",
+      "evidence": "Legacy-unversioned 11-image and technical-value evidence require absent schema preflight; later exact/ambiguous option handling S05."
+    },
+    {
+      "path": "tests/kar201-manual-standalone.cjs",
+      "blob": "397beb2084e52af272290d4d6c53b29313571e3a",
+      "owner": "package.json",
+      "matrix": "B12",
+      "owningStep": "S05/S07",
+      "status": "mixed-product-review",
+      "evidence": "Owner-only detached manual publish consent and trusted event checks are new standalone route; baseline guarded publish and no automatic completion remain active."
+    },
+    {
+      "path": "tests/kar201-native-display-only.cjs",
+      "blob": "19df1c2512710c33aaedd63245d529026c9de841",
+      "owner": "package.json",
+      "matrix": "A04",
+      "owningStep": "S05/S07",
+      "status": "mixed-product-review",
+      "evidence": "Exact displayed option and React hidden-value recovery; no guessed selection IDs remains baseline safety, later preflight/ARIA mechanism belongs S05."
+    },
+    {
+      "path": "tests/kar201-partial-archive-prefill.cjs",
+      "blob": "9c86d3fc5db3e21e1b64dfdd2c8c8b03d2285007",
+      "owner": "package.json",
+      "matrix": "B12",
+      "owningStep": "S05/S07",
+      "status": "mixed-product-review",
+      "evidence": "Optional unsafe keys allow partial prefill with manual review, 11 images preserved, complete:false; retain no auto-publish on unverified fields, new partial flow S07."
+    },
+    {
+      "path": "tests/kar201-session-evidence.cjs",
+      "blob": "1c43084985261e74410f9d253caf191b3a738b38",
+      "owner": "package.json",
+      "matrix": "A04/B12",
+      "owningStep": "S05/S07",
+      "status": "mixed-product-review",
+      "evidence": "Persisted schema preflight needs-review and verified gate evidence; preserve truthful unknown/unverified state separately from later schema format."
+    }
+  ],
+  "reviewedDirectOrMixed": [
+    {
+      "path": "tests/kar97-update-idle-policy.cjs",
+      "blob": "8410d1fdcbbd65ef7eb3f4f19d9846aa675ce46f",
+      "owner": "package.json",
+      "matrix": "C02",
+      "status": "historical-C-only-review",
+      "evidence": "Actual test imports absent lib/update-idle-policy.js and exclusively evaluates complete 15-owner candidate-idle snapshot, fail-closed owner/generation/profile evidence and no apply API. Preserve source/historical evidence; baseline retains its separate account/profile/insertion-lock guards."
+    },
+    {
+      "path": "tests/kar195-startup-atomic-fairness.cjs",
+      "blob": "0544bbcebf2efbb6b7135c2b9b6f723808da6a17",
+      "owner": "scripts/coverage-gate.sh",
+      "matrix": "C03/C05",
+      "status": "mixed-split-required",
+      "evidence": "Nine node:test cases: eight P8-specific fairness/timing/receipt/reserve/aggregator cases; one independent passive trash-template recovery read coalescing case. Baseline recoverTrashTemplateSession directly calls GET_RECOVERABLE_TRASH_TEMPLATE_FILL; do not import C to satisfy test. Split and characterize independent dedup outcome under S06/S07 before any invocation change."
+    },
+    {
+      "path": "tests/kar165-trash-retention-warning.cjs",
+      "blob": "739dcb32f197dcdd7945fde5368620e18952abf9",
+      "owner": "scripts/coverage-gate.sh",
+      "matrix": "B06",
+      "status": "deferred-feature-review",
+      "evidence": "Countdown warning/urgent CSS isolated suffix, no urgency for unknown/infinite, timezone/new-year and refreshed row fixture depend on later retention UI. S09 owns new feature; retain original baseline expiry semantics separately."
+    },
+    {
+      "path": "tests/kar141-m2-package-runtime.cjs",
+      "blob": "45bb2ab0c71b6eb80678d68582c7f4f1dc7ffe58",
+      "owner": "package.json",
+      "matrix": "D02",
+      "status": "active-adapted-hosted-pass",
+      "evidence": "Exact v2 package scope, metadata, C absence, all 17 historical test files, four product invocations retained. Full targeted source test PASS 45490618943."
+    },
+    {
+      "path": "tests/kar167-script-closure.cjs",
+      "blob": "ba087c00a5c8bd1c34d251aa619deea1d4ca8103",
+      "owner": "scripts/coverage-gate.sh",
+      "matrix": "D02/D06",
+      "status": "active-adapted-hosted-pass",
+      "evidence": "25 script records and exact closure, 7 workflows; full focused PASS."
+    },
+    {
+      "path": "tests/kar167-file-layout.cjs",
+      "blob": "982c2447862c9e11d0615524deb663fab1c1c3fe",
+      "owner": "scripts/coverage-gate.sh",
+      "matrix": "D06",
+      "status": "active-red-link-fixed-retest-pending",
+      "evidence": "Actual historical local-link RED; eight destinations pinned to verified pre-restore Git objects. All other layout/immutable historical checks remain."
+    },
+    {
+      "path": "tests/kar167-icons-closure.cjs",
+      "blob": "53c909d8b2e2cfe9e0ea4d682630ea1908fd5229",
+      "owner": "scripts/coverage-gate.sh",
+      "matrix": "D06",
+      "status": "active-hosted-pass",
+      "evidence": "Full 22 original assets, 13 packaged icons, exact hashes and dimensions PASS."
+    },
+    {
+      "path": "tests/kar167-test-coverage-closure.cjs",
+      "blob": "89284ac2e431446330d4a58d469b64ca60d5d8d3",
+      "owner": "scripts/coverage-gate.sh",
+      "matrix": "D03",
+      "status": "active-hosted-pass-current-invocations",
+      "evidence": "Current textual entrypoint registry and immutable floors PASS; must extend with explicit disposition validation before changing active owners. 100% dynamic coverage NOT tested."
+    },
+    {
+      "path": "tests/kar167-final-repository-closure.cjs",
+      "blob": "fee5002f31d5a75e4199d2f9c3d283dd87560c8a",
+      "owner": "scripts/coverage-gate.sh",
+      "matrix": "D02/D06",
+      "status": "active-blocked-unsealed-zip",
+      "evidence": "Historical retirement exception only for exact approved lib policy; canonical metadata; full focused test reached missing current committed ZIP prerequisite and failed. Do not waive."
+    },
+    {
+      "path": "tests/kar170-documentation-contract.cjs",
+      "blob": "9e8fc239ee0804ada1e92cf7594b89bdccd7f05c",
+      "owner": "scripts/coverage-gate.sh",
+      "matrix": "D07/D08",
+      "status": "active-adapted-hosted-pass",
+      "evidence": "Four-component version heading and one truthful changelog insertion; all 428 historical sections PASS."
+    },
+    {
+      "path": "tests/kar174-ui-asset-relocation.cjs",
+      "blob": "df5d40642094c423c551d15f3ce1c5b969fa18ba",
+      "owner": "scripts/coverage-gate.sh",
+      "matrix": "D06",
+      "status": "active-hosted-pass",
+      "evidence": "Full path/asset closure 63 resources PASS."
+    },
+    {
+      "path": "tests/v12322-version-release.cjs",
+      "blob": "447527f818816d137802f00c9eb4f8da53f29dcd",
+      "owner": "package.json; scripts/build.sh",
+      "matrix": "D08/A02",
+      "status": "mixed-version-reconcile",
+      "evidence": "Old regular 1.x current-patch predicate, directBasis 1.23.20_c1, 1.x app/runtime hashes and later native/C/retention assumptions; keep historical title/category/identity evidence and use baseline-specific metadata contract. No broad supported-version alias."
+    },
+    {
+      "path": "tests/current-patch-next-release-regression.cjs",
+      "blob": "39404b38daea28a94c335789146024122aaaaa72",
+      "owner": "standalone historical",
+      "matrix": "D08",
+      "status": "historical-consumer-reconcile",
+      "evidence": "Synthetic next PATCH currently assigns identical four metadata versions and uses kar50-next-patch helper; needs shared Chrome/npm mapping and explicit fixture-only archive waiver discipline. Not currently invoked by top-level owners."
+    },
+    {
+      "path": "tests/kar210-baseline-restore.py",
+      "blob": "2c73d2838edca75efff6b00545cf44ad272e8a3c",
+      "owner": "package.json:test:baseline-restore",
+      "matrix": "D02/D03",
+      "status": "active-explicit-hosted-pass",
+      "evidence": "Actual exact restored blob, package/JS closure and metadata snapshot 3/3; source checkpoint only, not future product freeze."
+    }
+  ],
+  "remaining": "Complete assertion-level classification of later C and extracted D files plus 192 changed historical references; map each actual npm/build/CI owner and retain independent baseline safety negatives. Implement explicit version-scoped invocation ledger/dispatcher with fail-closed coverage-closure checks, then run non-fail-fast diagnostic on exact baseline source before mandatory full gate and isolated ZIP. No final execution/coverage or native performance claim."
+}

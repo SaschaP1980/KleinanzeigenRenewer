@@ -38,6 +38,7 @@ async function readMassRenewalBatch() {
   const stored = await chrome.storage.local.get(MASS_RENEWAL_BATCH_KEY);
   const batch = stored?.[MASS_RENEWAL_BATCH_KEY];
   if (!batch || typeof batch !== 'object') return null;
+  if ((Array.isArray(batch.items) ? batch.items : []).some(row => ['source-delete-outcome-unverified', 'source-delete-status-unverified', 'publish-intent-blocked'].includes(String(row?.stage || '')) || String(row?.status || '') === 'publish-blocked') || (row => ['source-delete-outcome-unverified', 'source-delete-status-unverified', 'publish-intent-blocked'].includes(String(row?.stage || '')) || String(row?.status || '') === 'publish-blocked')(batch)) return batch;
   if (batch.createdAt && Date.now() - Date.parse(batch.createdAt) > MASS_RENEWAL_BATCH_MAX_AGE_MS) {
     await chrome.storage.local.remove(MASS_RENEWAL_BATCH_KEY);
     return null;
@@ -86,10 +87,6 @@ function massRenewalPublicSnapshot(batch) {
     startedAt: batch.startedAt || null,
     completedAt: batch.completedAt || null,
     stopAfterCurrentRequested: batch.stopAfterCurrentRequested === true,
-    stopOnError: batch.stopOnError === true ? true : batch.stopOnError === false ? false : null,
-    stopOnErrorTriggered: batch.stopOnErrorTriggered === true,
-    stopOnErrorFailureIndex: Number.isInteger(batch.stopOnErrorFailureIndex) ? batch.stopOnErrorFailureIndex : null,
-    stopOnErrorReason: batch.stopOnErrorReason || null,
     stopRequestedAt: batch.stopRequestedAt || null,
     stoppedAt: batch.stoppedAt || null,
     counts: massRenewalBatchCounts(batch),
@@ -108,6 +105,7 @@ function massRenewalPublicSnapshot(batch) {
       renewalStatus: item.renewalStatus || null,
       newAdId: item.newAdId || null,
       newInventoryId: item.newInventoryId || null,
+      sourceDeleteVerificationOnly: item.sourceDeleteVerificationOnly === true,
       publicAvailabilityPending: item.publicAvailabilityPending === true,
       lastError: item.lastError || null,
       startedAt: item.startedAt || null,
@@ -130,6 +128,10 @@ function cloneMassRenewalProgressSession(session) {
     status: session?.status || null,
     stage: session?.stage || null,
     newAdId: session?.newAdId || null,
+    sourceDeleteTransportInterrupted: session?.sourceDeleteTransportInterrupted === true,
+    sourceDeleteAction: Boolean(session?.sourceDeleteAction),
+    sourceDeleteVerificationPendingAt: session?.sourceDeleteVerificationPendingAt || null,
+    sourceDeletedAt: session?.sourceDeletedAt || null,
     publicAvailabilityPending: session?.publicAvailabilityPending === true,
     lastError: session?.lastError || null,
     operationId: session?.operationId || null,
@@ -212,9 +214,7 @@ function touchMassRenewalItemProgress(item, now = new Date().toISOString()) {
 }
 
 function applyMassRenewalStopState(batch) {
-  if (!batch || !(batch.stopAfterCurrentRequested || batch.stopOnErrorTriggered || batch.retryOnlyIndex != null || typeof batch.stopOnError !== 'boolean')) {
-    return { stopped: false, cancelled: 0, counts: massRenewalBatchCounts(batch) };
-  }
+  if (!batch?.stopAfterCurrentRequested) return { stopped: false, cancelled: 0, counts: massRenewalBatchCounts(batch) };
   if ((batch.items || []).some(item => ['running', 'retrying'].includes(String(item.status || '')))) {
     return { stopped: false, cancelled: 0, counts: massRenewalBatchCounts(batch) };
   }
@@ -238,7 +238,7 @@ function applyMassRenewalStopState(batch) {
 }
 
 function applyMassRenewalFinalState(batch) {
-  if (batch?.stopAfterCurrentRequested || batch?.stopOnErrorTriggered || batch?.retryOnlyIndex != null || (batch && typeof batch.stopOnError !== 'boolean')) return applyMassRenewalStopState(batch);
+  if (batch?.stopAfterCurrentRequested) return applyMassRenewalStopState(batch);
   const counts = massRenewalBatchCounts(batch);
   if (counts.queued || counts.running) return { completed: false, counts };
   batch.currentIndex = null;
@@ -268,7 +268,6 @@ async function finalizeMassRenewalBatchIfDone(batchId) {
   const batch = await readMassRenewalBatch();
   if (batch && String(batch.batchId || '') === id) {
     if (batch.stopAfterCurrentRequested) return stopMassRenewalBatchBeforeNext(id);
-    if (batch.stopOnErrorTriggered || batch.retryOnlyIndex != null || typeof batch.stopOnError !== 'boolean') return stopMassRenewalBatchBeforeNext(id);
   }
   let result = null;
   const mutation = await mutateMassRenewalBatch(id, batch => {

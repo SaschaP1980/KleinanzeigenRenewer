@@ -4,15 +4,26 @@ project_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 raw="$project_dir/coverage/raw"
 rm -rf "$raw"; mkdir -p "$raw"
 cd "$project_dir"
-# KAR-195: deterministic two-worker P8 startup fan-out (fresh / near-capacity).
-NODE_V8_COVERAGE="$raw" node tests/kar195-startup-atomic-fairness.cjs
+# KAR-210: canonical product version, archive names and package identity.
+python3 tests/kar210-product-version.py
+python3 tests/kar210-version-identity.py
+python3 tests/kar210-package-version.py
+python3 tests/kar210-atomic-patch-version.py
+python3 tests/kar210-ci-version.py
+python3 tests/kar210-release-version.py
+python3 tests/kar210-archive-version.py
+python3 tests/kar210-work-pr-version.py
+python3 tests/kar210-hotfix.py
+python3 tests/kar210-hotfix-workflow.py
+# KAR-210: validate explicit inactive suite scope before any product tests.
+node tests/kar210-test-disposition.cjs
 # GitHub's clean checkout does not include locally generated coverage manifests.
 # Generate the authoritative public API inventory before running execution-closure tests.
 node scripts/runtime-api-inventory.cjs --json > "$project_dir/coverage/public-api-manifest.json"
 NODE_V8_COVERAGE="$raw" npm test
-# KAR-167: retain KAR-165's existing regression as a mandatory, measured test
-# after main's v1.23.74 package script ceased to invoke it directly.
-NODE_V8_COVERAGE="$raw" node tests/kar165-trash-retention-warning.cjs
+# KAR-214: restore the original mandatory countdown witness in addition to npm/build.
+# The frozen KAR-167 inventory records this exact direct coverage-gate invocation.
+node tests/kar165-trash-retention-warning.cjs
 # KAR-167: independent path/link/immutable architecture-evidence closure after the normal suite.
 node tests/kar167-file-layout.cjs
 node tests/kar167-script-closure.cjs

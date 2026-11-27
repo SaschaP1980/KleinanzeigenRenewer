@@ -1,6 +1,7 @@
 const assert = require('assert');
 const Backup = require('../profile-backup-controller.js');
 const Formatting = require('../inventory-formatting.js');
+const s03 = require('./current-patch-policy.cjs').isS03Version(require('../manifest.json').version);
 
 let pass = 0;
 const check = async (name, fn) => { await fn(); pass += 1; console.log(`PASS ${name}`); };
@@ -18,6 +19,7 @@ function fakeElement(extra = {}) { return { classList: fakeClassList(), disabled
     const controller = Backup.create({
       document: { querySelector: () => fakeElement() },
       crypto: { randomUUID: () => `op-${++seq}` },
+      ...(s03 ? { profileBackupStorage: { snapshotProfileIndexedData: async id => { assert.equal(id,'profile-a'); return {records:[],images:[]}; } } } : {}),
       elements: {},
       runtimeMessage: async message => {
         if (message.type === 'LIST_INVENTORIES' || message.type === 'LIST_TRASH') return [];
@@ -59,9 +61,13 @@ function fakeElement(extra = {}) { return { classList: fakeClassList(), disabled
     const messages = [];
     const statuses = [];
     const downloads = [];
+    const snapshots=[];
+    const active={inventoryId:'i1',profileId:'p1',futureOpaque:{flag:true}};
+    const trashed={inventoryId:'t1',profileId:'p1',recordKind:'trash',trash:{expiresAt:'2027-01-01T00:00:00.000Z'}};
     const controller = Backup.create({
       document: { querySelector: () => fakeElement() },
       crypto: { randomUUID: () => 'export-op' },
+      ...(s03 ? { profileBackupStorage: { snapshotProfileIndexedData: async id => { snapshots.push(id); return {records:[active,trashed],images:[]}; } } } : {}),
       unassignedProfileId: '__unassigned__',
       elements: {},
       runtimeMessage: async message => {
@@ -77,7 +83,12 @@ function fakeElement(extra = {}) { return { classList: fakeClassList(), disabled
       extensionVersion: () => '1.22.10'
     });
     const result = await controller.exportProfileBackup({ profileId: 'p1', displayName: 'P1' });
-    assert.deepEqual(messages.map(item => item.type), ['LIST_INVENTORIES', 'LIST_TRASH']);
+    if(s03){
+      assert.deepEqual(snapshots,['p1']);
+      assert.deepEqual(messages,[],'raw backup must not use cleanup-triggering list routes');
+      assert.deepEqual(result.payload.activeInventory,[active]);
+      assert.deepEqual(result.payload.trashEntries,[trashed]);
+    } else assert.deepEqual(messages.map(item => item.type), ['LIST_INVENTORIES', 'LIST_TRASH']);
     assert.equal(result.filename, 'backup.zip');
     assert.equal(downloads[0].filename, 'backup.zip');
     assert.equal(controller.locked(), false);

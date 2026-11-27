@@ -1,0 +1,201 @@
+{
+  "schemaVersion": 1,
+  "issue": 210,
+  "checkpoint": 20,
+  "sourceCommit": "d997b9d363d14edccca7d7b34d5ca30d1be7caff",
+  "originalsRetainedInGit": true,
+  "policy": "Exact S02 context only; all fifteen test commands remain active, no runtime changes or globally broadened predicates. Any later owner/feature mismatch must be individually reconciled, genuine RED retained. Validation pending.",
+  "review": [
+    {
+      "path": "tests/v180-renewal.cjs",
+      "originalBlob": "95ce4677a437ec4cb667cff4943624788e369474",
+      "originalCommit": "d997b9d363d14edccca7d7b34d5ca30d1be7caff",
+      "changes": [
+        "Exact S02 metadata gate; historical predicates unchanged, npm SemVer explicit where compared, historical permissions explicit where compared, applicable historical feature-era branches selected. Product assertion bodies unchanged."
+      ],
+      "modifiedMetadataLines": 2
+    },
+    {
+      "path": "tests/v181-contract.cjs",
+      "originalBlob": "c04923e9674d50fa42ae6a43d153102a6476a5f3",
+      "originalCommit": "d997b9d363d14edccca7d7b34d5ca30d1be7caff",
+      "changes": [
+        "Exact S02 metadata gate; historical predicates unchanged, npm SemVer explicit where compared, historical permissions explicit where compared, applicable historical feature-era branches selected. Product assertion bodies unchanged."
+      ],
+      "modifiedMetadataLines": 3
+    },
+    {
+      "path": "tests/v182-contract.cjs",
+      "originalBlob": "fca592e50be0152d99ab788012738abe17ffee66",
+      "originalCommit": "d997b9d363d14edccca7d7b34d5ca30d1be7caff",
+      "changes": [
+        "Exact S02 metadata gate; historical predicates unchanged, npm SemVer explicit where compared, historical permissions explicit where compared, applicable historical feature-era branches selected. Product assertion bodies unchanged."
+      ],
+      "modifiedMetadataLines": 3
+    },
+    {
+      "path": "tests/v183-contract.cjs",
+      "originalBlob": "3afd1ba6050825fb29d960d0048c98ff7e5b0840",
+      "originalCommit": "d997b9d363d14edccca7d7b34d5ca30d1be7caff",
+      "changes": [
+        "Exact S02 metadata gate; historical predicates unchanged, npm SemVer explicit where compared, historical permissions explicit where compared, applicable historical feature-era branches selected. Product assertion bodies unchanged."
+      ],
+      "modifiedMetadataLines": 3
+    },
+    {
+      "path": "tests/v184-contract.cjs",
+      "originalBlob": "d0c17e96831b41b9d93ca5036354a94fb7ec64e5",
+      "originalCommit": "d997b9d363d14edccca7d7b34d5ca30d1be7caff",
+      "changes": [
+        "Exact S02 metadata gate; historical predicates unchanged, npm SemVer explicit where compared, historical permissions explicit where compared, applicable historical feature-era branches selected. Product assertion bodies unchanged."
+      ],
+      "modifiedMetadataLines": 2
+    },
+    {
+      "path": "tests/v185-contract.cjs",
+      "originalBlob": "d5fc4cbd61cacff7815a7d27007b9693cf7b4486",
+      "originalCommit": "d997b9d363d14edccca7d7b34d5ca30d1be7caff",
+      "changes": [
+        "Exact S02 metadata gate; historical predicates unchanged, npm SemVer explicit where compared, historical permissions explicit where compared, applicable historical feature-era branches selected. Product assertion bodies unchanged."
+      ],
+      "modifiedMetadataLines": 2
+    },
+    {
+      "path": "tests/v186-contract.cjs",
+      "originalBlob": "33b4fdddb422bae15d60aa3869c398280bc6caf1",
+      "originalCommit": "d997b9d363d14edccca7d7b34d5ca30d1be7caff",
+      "changes": [
+        "Exact S02 metadata gate; historical predicates unchanged, npm SemVer explicit where compared, historical permissions explicit where compared, applicable historical feature-era branches selected. Product assertion bodies unchanged."
+      ],
+      "modifiedMetadataLines": 2
+    },
+    {
+      "path": "tests/v187-contract.cjs",
+      "originalBlob": "ac428635bf3bc7f4d5196d2317ef27e21a024909",
+      "originalCommit": "d997b9d363d14edccca7d7b34d5ca30d1be7caff",
+      "changes": [
+        "Exact S02 metadata gate; historical predicates unchanged, npm SemVer explicit where compared, historical permissions explicit where compared, applicable historical feature-era branches selected. Product assertion bodies unchanged."
+      ],
+      "modifiedMetadataLines": 2
+    },
+    {
+      "path": "tests/v188-contract.cjs",
+      "originalBlob": "32e5079431cd1babeaf837738c266b10c416e4d9",
+      "originalCommit": "d997b9d363d14edccca7d7b34d5ca30d1be7caff",
+      "changes": [
+        "Exact S02 metadata gate; historical predicates unchanged, npm SemVer explicit where compared, historical permissions explicit where compared, applicable historical feature-era branches selected. Product assertion bodies unchanged."
+      ],
+      "modifiedMetadataLines": 2
+    },
+    {
+      "path": "tests/v189-contract.cjs",
+      "originalBlob": "350cf9825d11d80ca8311370edb98144ca44c9b5",
+      "originalCommit": "d997b9d363d14edccca7d7b34d5ca30d1be7caff",
+      "changes": [
+        "Exact S02 metadata gate; historical predicates unchanged, npm SemVer explicit where compared, historical permissions explicit where compared, applicable historical feature-era branches selected. Product assertion bodies unchanged."
+      ],
+      "modifiedMetadataLines": 2
+    },
+    {
+      "path": "tests/v1810-contract.cjs",
+      "originalBlob": "0709ea611e81ffbe5d90f51fc95bb40466c5e10c",
+      "originalCommit": "d997b9d363d14edccca7d7b34d5ca30d1be7caff",
+      "changes": [
+        "Exact S02 metadata gate; historical predicates unchanged, npm SemVer explicit where compared, historical permissions explicit where compared, applicable historical feature-era branches selected. Product assertion bodies unchanged."
+      ],
+      "modifiedMetadataLines": 3
+    },
+    {
+      "path": "tests/v1811-contract.cjs",
+      "originalBlob": "6e0b568fc0e42c3de9150cd737dc887b0dc21b09",
+      "originalCommit": "d997b9d363d14edccca7d7b34d5ca30d1be7caff",
+      "changes": [
+        "Exact S02 metadata gate; historical predicates unchanged, npm SemVer explicit where compared, historical permissions explicit where compared, applicable historical feature-era branches selected. Product assertion bodies unchanged."
+      ],
+      "modifiedMetadataLines": 2
+    },
+    {
+      "path": "tests/v1812-contract.cjs",
+      "originalBlob": "62063645198260c2655a5f1f1f652a4ee0845567",
+      "originalCommit": "d997b9d363d14edccca7d7b34d5ca30d1be7caff",
+      "changes": [
+        "Exact S02 metadata gate; historical predicates unchanged, npm SemVer explicit where compared, historical permissions explicit where compared, applicable historical feature-era branches selected. Product assertion bodies unchanged."
+      ],
+      "modifiedMetadataLines": 2
+    },
+    {
+      "path": "tests/v1813-contract.cjs",
+      "originalBlob": "3c391c6f87e6fcef14c0e3394edd9f97a8702acb",
+      "originalCommit": "d997b9d363d14edccca7d7b34d5ca30d1be7caff",
+      "changes": [
+        "Exact S02 metadata gate; historical predicates unchanged, npm SemVer explicit where compared, historical permissions explicit where compared, applicable historical feature-era branches selected. Product assertion bodies unchanged."
+      ],
+      "modifiedMetadataLines": 2
+    },
+    {
+      "path": "tests/v1814-contract.cjs",
+      "originalBlob": "ee94a4e62ca6d28452445fe22cc6cc8aff462e90",
+      "originalCommit": "d997b9d363d14edccca7d7b34d5ca30d1be7caff",
+      "changes": [
+        "Exact S02 metadata gate; historical predicates unchanged, npm SemVer explicit where compared, historical permissions explicit where compared, applicable historical feature-era branches selected. Product assertion bodies unchanged."
+      ],
+      "modifiedMetadataLines": 5
+    }
+  ],
+  "firstFocusedValidation": {
+    "runId": 45573719614,
+    "jobId": 139066353021,
+    "head": "2c02ff7d28b2a8eb2ec06017f59c5e0d766cefe7",
+    "passed": 13,
+    "failed": 5,
+    "failedTests": [
+      "v1810",
+      "v1811",
+      "v1812",
+      "v1813",
+      "v1814"
+    ],
+    "qualification": "All ten v180–v189 contracts and three independent controls PASS; five later owner/feature/Phase-4 mismatches exposed."
+  },
+  "followup": [
+    {
+      "test": "v1810",
+      "change": "Exact historical background owner, preserve resolver and profile-scoped My Ads assertions; later extraction assertion remains outside S02."
+    },
+    {
+      "test": "v1812",
+      "change": "Historical fixed policy actual service/expiry/trash-only guard; configurable-policy assertions retained outside S02, S03/S09 required."
+    },
+    {
+      "test": "v1813",
+      "change": "Historical fixed retention copy and template-only/local safety; later copy assertion retained outside S02."
+    },
+    {
+      "test": "v1814",
+      "change": "Exact historical background navigation owner; explicit exact-ID/URL binding, later delegation assertion retained outside S02."
+    },
+    {
+      "test": "v1811",
+      "change": "Keep actual RED unchanged after metadata rebinding; later journal assertions and bounded/no replay risks not dispositioned or claimed fixed."
+    }
+  ],
+  "secondFocusedValidation": {
+    "runId": 45573892567,
+    "jobId": 139066937455,
+    "head": "88242ad51ba2c37edd255f4813439d33ce33d65e",
+    "passed": 19,
+    "failed": 1,
+    "completeRenewalContracts": 14,
+    "completeContractGroups": 125,
+    "additionalPassedGroupsBeforeFailure": 5,
+    "runtimeCases": 5,
+    "negativeFixtures": 59,
+    "remainingRed": "tests/v1811-contract.cjs: historical loop differs from later journal-based loop; original assertions retained, no claim of bounded or replay-safe remote mutation"
+  },
+  "builderGuard": {
+    "runId": 45573719511,
+    "jobId": 139066352761,
+    "result": "failure",
+    "reason": "No explicit authorized marker; no build executed."
+  }
+}

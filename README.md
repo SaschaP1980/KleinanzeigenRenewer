@@ -21,7 +21,6 @@ Inventory, profiles, controlled replacement, local trash, backup and recovery wo
 - **Choose verification depth:** `Vollprüfung` (Safe Mode, recommended) and `Schnellprüfung` (Fast Mode). Both retain identity, account, publication and other safety gates. Safe Mode includes independent verification before retiring the source listing.
 - **Recover retained templates:** use eligible locally retained records, configurable local trash retention (10/30/60/90/180/360 days or indefinite, default 30 days) and supported profile/ZIP backup and import/export options. Retention cannot recreate data that was never successfully captured.
 - **Export diagnostics:** `Diagnosedaten herunterladen` produces a ZIP of relevant, privacy-filtered technical evidence for troubleshooting.
-- **Windows update assistance:** optional read-only Native Messaging status/check support and a separately initiated Windows OneClick updater. **Automatic in-app installation is not yet accepted or generally enabled**; see [Windows updater guidance](docs/windows/WINDOWS_ONECLICK_UPDATER.md).
 
 Features that are only planned—notably direct in-manager editing of live ads—are tracked in [GitHub Issues](https://github.com/SaschaP1980/KleinanzeigenRenewer/issues), not presented here as shipped.
 
@@ -40,7 +39,7 @@ For manual unpacked installation:
 
 **Do not uninstall an existing extension as a routine update step.** Uninstalling or resetting its Chrome profile can delete local images, templates and settings. Back up important content, preserve the existing installation identity and apply only a verified update procedure. The stable unpacked extension ID is `hafahjhhgiipdegfkgacchmnacgblnah`.
 
-On Windows, updater and NativeHost setup are optional, per-user where supported, and subject to system/company policy. A missing or blocked NativeHost does not make an in-browser automatic update safe. See [Windows setup instructions](docs/user-manuals/windows-updater-einrichten.md), [OneClick updater](docs/windows/WINDOWS_ONECLICK_UPDATER.md) and the [release policy](docs/RELEASE_PROCESS.md).
+Generation 2 uses separately authorized, verified manual Chrome ZIP delivery. The extension does not perform update checks or native installation; legacy Windows updater and NativeHost material is retained as historical evidence only. Preserve the existing extension identity and follow the reviewed backup and migration procedure before changing versions.
 
 ## Quick start
 

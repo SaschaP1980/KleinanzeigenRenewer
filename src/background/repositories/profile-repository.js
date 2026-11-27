@@ -63,6 +63,7 @@
         const now = nowIso();
         const replacement = {
           ...(existingProfile || {}),
+          ...(incoming || {}),
           profileId: String(targetProfileId || ''),
           displayName: String(incoming?.displayName || ''),
           normalizedName: String(incoming?.normalizedName || incoming?.displayName || ''),

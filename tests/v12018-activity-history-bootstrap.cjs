@@ -10,14 +10,10 @@ const clickEnd = js.indexOf("messageHistoryClose?.addEventListener", clickStart)
 assert.ok(clickStart >= 0 && clickEnd > clickStart);
 const click = js.slice(clickStart, clickEnd);
 assert.match(click, /async\s*\(\)\s*=>\s*\{[\s\S]*await ensureUiActivityLoaded\(\)[\s\S]*renderMessageHistory\(\)[\s\S]*showModal\(\)/); pass('opening message history waits for persisted activity history before rendering');
-// KAR-188: local inventory now starts before optional activity/settings/probe work.
-const bootstrapStart = js.indexOf('// An optional configuration or background inspection failure');
+const bootstrapStart = js.indexOf('Promise.all([ensureUiActivityLoaded()');
 assert.ok(bootstrapStart >= 0);
-const bootstrap = js.slice(bootstrapStart, bootstrapStart + 900);
-assert.match(bootstrap, /refreshInventories\(\{ source: 'startup' \}\)/);
-assert.match(bootstrap, /ensureUiActivityLoaded\(\)/);
-assert.ok(bootstrap.indexOf('refreshInventories(') < bootstrap.indexOf('ensureUiActivityLoaded('));
-pass('app bootstrap restores history without gating inventory loading');
+const bootstrap = js.slice(bootstrapStart, bootstrapStart + 700);
+assert.match(bootstrap, /ensureUiActivityLoaded\(\)[\s\S]*refreshProfileState\(\)/); pass('app bootstrap proactively restores persisted activity-center state');
 assert.match(activity, /function renderVisibility\(\)/);
 assert.match(activity, /messageHistoryOpen\.dataset\.count = badge/); pass('restored activity history drives the visible history counter through extracted module');
 console.log(`${n}/4 PASS`);

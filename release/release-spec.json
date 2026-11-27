@@ -1,23 +1,29 @@
 {
-  "version": "1.25.12",
+  "version": "2.0.5.1",
   "project": "kleinanzeigen Manager / Kleinanzeigen Renewal",
-  "epic": "KAR-197-publish-intent-web-lock-and-zip-blocked-recovery",
+  "epic": "KAR-208 / KAR-222 S06 renewal reliability and performance",
   "goldBaseline": "1.21.15",
-  "directBasis": "1.23.20_c1",
-  "directBasisNativeGreen": true,
-  "directBasisObservation": "v1.23.20_c1 ist RELEASE_GREEN und besitzt reale Fast-3er-Goldlinien. Zwei spätere reale Massenläufe vom 10.10.2026 zeigten jedoch einen flüchtigen Titel-Fill-/DOM-State-Fehler: Diagnose 11-22-33 (SHA-256 0ac5642d4fb6b69575c88d6e116fa2152ad0cd84c512f38198afddfa3c72a4df) mit 3/7 temporären Titel-Mismatches und Diagnose 12-03-51 (SHA-256 161cabb74e8a8eb454c91e3c35dc8158a7a782b9d0354fb4e003d12e487db641) mit 5/10. Unveränderte Titel konnten in späteren Versuchen erfolgreich sein; daher wird v1.23.22 als enger Correction-Build vor EPIC-REF-003 erstellt.",
+  "directBasis": "2.0.5.0",
+  "directBasisNativeGreen": false,
+  "directBasisObservation": "2.0.5.0 exact Work PR CI 3/3 GREEN, Chromium 9/9; owner native Fast/Safe singles passed, Fast-3 2/3 (source remains after missing final confirmation). Full native acceptance not achieved.",
   "scope": [
-    "KAR-197: bound retry of transient shared P8/publish-intent journal Web Lock contention only before entering a journal critical section, retaining durable intent and exact P8 pre-click admission.",
-    "On automatic or manual publish authorization denial, persist recoverable fail-closed blocked state in template fill and archive session, with truthful ZIP Manager progress and no implicit re-insertion.",
-    "Preserve unresolved remote-outcome protection across MV3 and Manager restarts; keep ZIP staging, original records, identity checks and all existing paid-insertion gates.",
-    "Synthetic RED confirmed on v1.25.4 baseline GitHub CI; GREEN, source-identical Chromium, versioned ZIP parity and native owner acceptance pending independently.",
-    "Dynamic Public Function Coverage remains 100 % and Architecture-No-Regression must remain PASS on the exact packaged source; line/branch, Windows and packaged Chromium E2E are mandatory. No hosted CI Kleinanzeigen mutation."
+    "Restore v1.23.48 historical runtime, retaining KAR-174 UI path layout and current development tooling.",
+    "Version identity 2.0.0.0, npm 2.0.0; preserve extension key, historical releases and Git ancestry.",
+    "Exclude later updater/admission/journal modules from the baseline source/package. Legacy native status hooks remain isolated; S04 final removal and S03 data compatibility required before any live profile use.",
+    "All applicable dynamic public API, line/branch/architecture, packaging and Chromium gates remain mandatory. Current full suite reconciliation and actual execution are pending; no release or native PASS claimed.",
+    "KAR-212: recognize the exact Chrome BFCache port-closure message in the existing Phase-4 transport classifier. No other product behavior or historical safeguards changed.",
+    "KAR-214 S09: verified local retention, exact destructive consent, per-record revision/expiry, read-only canonical sort and countdown presentation. Preserve historical runtime outside the pinned successor scope; no updater C import.",
+    "KAR-213 S03: preserve opaque profile/record/image metadata, raw trash deadlines, atomic restore, fail closed on known unresolved legacy workflows. Offline preflight and isolated cold recovery; no imported C architecture.",
+    "KAR-217 S04: remove inherited updater UI, native messaging permission, runtime modules, message route and online update channel read; preserve historical blobs and retire only reviewed updater-specific tests; retain S03/S09, all applicable quality and safety gates.",
+    "KAR-220 S05: retain existing category and form handling. Recover substantive display-only attributes only through unique associated actual controls and exact native readback; use uniquely exposed linked technical option IDs; preserve empty status and report real ambiguity. No schema monitoring/reference management or extra scans.",
+    "KAR-222 S06: approved recovery and no-blind-replay corrections, same-document publication idempotence, exact returned IDs, local discard, reduced duplicate roster parsing and local TabRegistry metadata serialization. No updater, persistent journal, added remote calls or D2/S07 expansion.",
+    "KAR-222 hotfix: permit bounded fresh Phase-4 retry only for explicit same-request pre-confirmation timeout, exact source ID, negative outcome flags and retired worker; preserve no replay on uncertain transport and independent absence before promotion."
   ],
   "nextPlannedBuild": "TBD",
   "nextPlannedBuildGoal": "Determined by separately authorized open GitHub Issues.",
   "nativeSmokeRequired": true,
-  "performanceRunRequired": false,
-  "performanceRule": "No new mass-renewal performance run is required for local-only KAR-161 trash retention. Historical v1.23.20 Gold-line matrix remains the reference, without claiming a new measurement.",
+  "performanceRunRequired": true,
+  "performanceRule": "Owner-approved S12 Fast-mode mean budgets: 25 s/ad faster hardware (Fast-3 <=75 s), 45 s/ad slower hardware (Fast-3 <=135 s). Comparable fixtures and separately authorized native operations only after S03/S04/S05. Historical Goldlines retained as historical evidence; no new measurement.",
   "safety": {
     "runtimeSubmitCalls": 0,
     "runtimeRequestSubmitCalls": 0,
@@ -27,132 +33,28 @@
   },
   "coverage": {
     "schemaVersion": 1,
-    "engine": "Node/V8 precise coverage + Acorn source mapping",
-    "lineDefinition": "source lines containing meaningful JavaScript tokens; covered when V8 precise coverage reports execution for at least one token on the line",
-    "branchDefinition": "AST if/conditional/logical/switch arms mapped to V8 precise block counts",
-    "runtimeModules": 100,
-    "loadedRuntimeModules": 95,
+    "status": "pending",
     "publicFunctions": {
-      "covered": 805,
-      "total": 805,
-      "percent": 100
-    },
-    "lines": {
-      "covered": 10241,
-      "total": 24601,
-      "percent": 41.63
-    },
-    "branches": {
-      "covered": 5294,
-      "total": 23736,
-      "percent": 22.3
-    },
-    "areas": {
-      "app": {
-        "lines": {
-          "covered": 3864,
-          "total": 9095,
-          "percent": 42.48
-        },
-        "branches": {
-          "covered": 2066,
-          "total": 9128,
-          "percent": 22.63
-        },
-        "public": {
-          "covered": 328,
-          "total": 328,
-          "percent": 100
-        }
-      },
-      "background": {
-        "lines": {
-          "covered": 4544,
-          "total": 10761,
-          "percent": 42.23
-        },
-        "branches": {
-          "covered": 2431,
-          "total": 10588,
-          "percent": 22.96
-        },
-        "public": {
-          "covered": 377,
-          "total": 377,
-          "percent": 100
-        }
-      },
-      "content": {
-        "lines": {
-          "covered": 1406,
-          "total": 4260,
-          "percent": 33
-        },
-        "branches": {
-          "covered": 585,
-          "total": 3654,
-          "percent": 16.01
-        },
-        "public": {
-          "covered": 76,
-          "total": 76,
-          "percent": 100
-        }
-      },
-      "popup": {
-        "lines": {
-          "covered": 0,
-          "total": 20,
-          "percent": 0
-        },
-        "branches": {
-          "covered": 0,
-          "total": 10,
-          "percent": 0
-        },
-        "public": {
-          "covered": 0,
-          "total": 0,
-          "percent": 100
-        }
-      },
-      "shared": {
-        "lines": {
-          "covered": 427,
-          "total": 465,
-          "percent": 91.83
-        },
-        "branches": {
-          "covered": 212,
-          "total": 356,
-          "percent": 59.55
-        },
-        "public": {
-          "covered": 24,
-          "total": 24,
-          "percent": 100
-        }
-      }
+      "covered": null,
+      "total": null,
+      "percent": null
     }
   },
-  "releaseSummary": "KAR-191/KAR-193 diagnosis and reset safety forward-merged onto v1.25.1 (KAR-188/164). v1.25.2 Work patch candidate; no GitHub Release implied.",
+  "releaseSummary": "2.0.5.1 Work hotfix: exact pre-confirmation timeout retry boundary, full gates and native re-test pending; no merge or release.",
   "architectureHighlights": [
-    "Keine neue Runtime-/IPC-Grenze; die Korrektur bleibt in den bestehenden Template-Fill-/Verification-Ownern.",
-    "Title Readback/Rewrite ist bounded und repariert nur den exakt erwarteten Template-Titel; nach drei fehlgeschlagenen Versuchen bleibt der Ablauf needs-review/fail-closed.",
-    "Finale Feldverifikation kann an das konkret aufgelöste aktive Inserierformular gebunden werden statt erneut einen globalen, potenziell stalen Knoten zu lesen.",
-    "Bestehende Template-Filler-Public-API bleibt unverändert; keine neuen Public Runtime Functions wurden eingeführt.",
-    "EPIC-REF-003 Lifecycle-Refactoring bleibt separat und beginnt erst mit v1.24.0."
+    "Historical product safeguards and runtime behavior are primary; only explicit path/layout and version metadata changes in this restore slice.",
+    "Current development gates and test files retained; reconcile later feature/updater-dependent assertions without weakening retained product behavior.",
+    "No new runtime/IPC boundary or later cross-worker admission architecture introduced."
   ],
   "nativeSmokeChecks": [
-    "Open Konfiguration and verify all seven retention stops, keyboard and focus behaviour.",
-    "Check persisted selection across Chrome restart, legacy 30-day default and infinity semantics.",
-    "Verify warning/cancel/confirm with representative local-only trash fixtures and no remote mutations.",
-    "Verify the Papierkorb deadline and restart-period wording in compact and detailed views.",
-    "Validate canonical all-profile affected-count preview and fail-closed cancellation when the active profile or trash snapshot changes.",
-    "Verify local-only atomic record-and-image deletion under exact inventory IDs, retention-reset boundaries and MV3 interruption; assert no remote Kleinanzeigen mutation."
+    "Do not install this intermediate checkpoint on live data. S03 compatibility and S04 updater removal are prerequisites.",
+    "After separately authorized native acceptance, verify Chrome identity, boot, profile/locks, actual current form compatibility and matched Fast-3 budgets.",
+    "KAR-212: repeat native Fast-3 after explicit authorization; no Phase-4 failed attempt due to exact BFCache error, independent absence evidence still required.",
+    "S09: synthetic-only retention and IndexedDB fixtures until S03 data compatibility and S04 updater removal are accepted.",
+    "S03: isolated migration and rollback using exact committed package; real migration requires S04 and separate owner authorization."
   ],
-  "packageVersion": "1.25.12",
-  "directBasisNativePending": false,
+  "packageVersion": "2.0.5.1",
+  "directBasisNativePending": true,
   "architectureFiles": [
     {
       "key": "appElements",
@@ -369,7 +271,7 @@
       "averageSeconds": 33.111
     }
   },
-  "directBasisNativeRed": false,
+  "directBasisNativeRed": true,
   "performanceGoldlines": [
     {
       "label": "bestehende Referenzmessung",
@@ -398,5 +300,190 @@
       ],
       "result": "3/3 erfolgreich, 0 Warnungen, 0 Fehler"
     }
-  ]
+  ],
+  "performanceBudget": {
+    "mode": "fast",
+    "fastHardwareMeanSeconds": 25,
+    "slowHardwareMeanSeconds": 45,
+    "fastThreeSeconds": 75,
+    "slowThreeSeconds": 135,
+    "acceptanceStep": "S12",
+    "status": "pending"
+  },
+  "priorCoverageReference": {
+    "sourceVersion": "1.25.12",
+    "sourceCommit": "4d7ae5130730776927748e2517fdf9aadaf098cd",
+    "sourcePath": "release/release-spec.json",
+    "note": "Historical values retained as prior metadata only, not measurements of 2.0.0.0.",
+    "coverage": {
+      "schemaVersion": 1,
+      "engine": "Node/V8 precise coverage + Acorn source mapping",
+      "lineDefinition": "source lines containing meaningful JavaScript tokens; covered when V8 precise coverage reports execution for at least one token on the line",
+      "branchDefinition": "AST if/conditional/logical/switch arms mapped to V8 precise block counts",
+      "runtimeModules": 100,
+      "loadedRuntimeModules": 95,
+      "publicFunctions": {
+        "covered": 805,
+        "total": 805,
+        "percent": 100
+      },
+      "lines": {
+        "covered": 10241,
+        "total": 24601,
+        "percent": 41.63
+      },
+      "branches": {
+        "covered": 5294,
+        "total": 23736,
+        "percent": 22.3
+      },
+      "areas": {
+        "app": {
+          "lines": {
+            "covered": 3864,
+            "total": 9095,
+            "percent": 42.48
+          },
+          "branches": {
+            "covered": 2066,
+            "total": 9128,
+            "percent": 22.63
+          },
+          "public": {
+            "covered": 328,
+            "total": 328,
+            "percent": 100
+          }
+        },
+        "background": {
+          "lines": {
+            "covered": 4544,
+            "total": 10761,
+            "percent": 42.23
+          },
+          "branches": {
+            "covered": 2431,
+            "total": 10588,
+            "percent": 22.96
+          },
+          "public": {
+            "covered": 377,
+            "total": 377,
+            "percent": 100
+          }
+        },
+        "content": {
+          "lines": {
+            "covered": 1406,
+            "total": 4260,
+            "percent": 33
+          },
+          "branches": {
+            "covered": 585,
+            "total": 3654,
+            "percent": 16.01
+          },
+          "public": {
+            "covered": 76,
+            "total": 76,
+            "percent": 100
+          }
+        },
+        "popup": {
+          "lines": {
+            "covered": 0,
+            "total": 20,
+            "percent": 0
+          },
+          "branches": {
+            "covered": 0,
+            "total": 10,
+            "percent": 0
+          },
+          "public": {
+            "covered": 0,
+            "total": 0,
+            "percent": 100
+          }
+        },
+        "shared": {
+          "lines": {
+            "covered": 427,
+            "total": 465,
+            "percent": 91.83
+          },
+          "branches": {
+            "covered": 212,
+            "total": 356,
+            "percent": 59.55
+          },
+          "public": {
+            "covered": 24,
+            "total": 24,
+            "percent": 100
+          }
+        }
+      }
+    }
+  },
+  "validationStatus": "S06_HOTFIX_GATES_PENDING",
+  "s09": {
+    "issue": 214,
+    "step": "S09",
+    "directBasis": "2.0.0.1",
+    "sourceCommit": "3457cc52fbd90515d47fa4a4c180fde6361b1f27",
+    "archiveSha256": "e4ec9da3cb6604e807b640169dd2df849a9a444eb95f268c627e835f8dfe1383"
+  },
+  "s03": {
+    "issue": 213,
+    "step": "S03",
+    "directBasis": "2.0.1.0",
+    "sourceCommit": "61f917d384cdce0fc191188e5a99515907967dbe",
+    "archiveSha256": "15e58983d23a0706a301e161c76bf52c4e2885667fb7214b6f80b8f1209c798a"
+  },
+  "s04": {
+    "issue": 217,
+    "step": "S04",
+    "directBasis": "2.0.2.0",
+    "sourceCommit": "a88a3446560cb36c87a3ace599a0bbd0549c6f41",
+    "archiveSha256": "46cb5860015965fee5323dcedd290862672cc97e03e880180afc464ff3bf89ee"
+  },
+  "s05": {
+    "issue": 220,
+    "step": "S05",
+    "directBasis": "2.0.3.0",
+    "sourceCommit": "514c3dcdaae09b7e583326089316ada59c229e9f",
+    "archiveSha256": "36041055ed9c9aec30edda9605bc229251f25bd1e47f796476ff59881460ee43"
+  },
+  "s06": {
+    "issue": 222,
+    "step": "S06",
+    "directBasis": "2.0.4.0",
+    "sourceCommit": "5d650e288ef2cea615f17717ebb1531b1cc4b4ae",
+    "archiveSha256": "b44c07e1dd19cef1ec5416ab86f621dc12822d22ac6dbd83d72821938c5350cd"
+  },
+  "s06Hotfix": {
+    "issue": 222,
+    "directBasis": "2.0.5.0",
+    "sourceCommit": "90b0999d5f4a2b3caa2c09d7cb5c30bff0edbd12",
+    "archiveSha256": "5155f5e3863291994318c54b2f1ec3765c4278de741df9cfe3ebdfba2740024f",
+    "fixCommit": "c43502ab6582a3b9ec9229864d2552194f02b8d1",
+    "runtimeChanges": [
+      {
+        "path": "manifest.json",
+        "before": "348fefe57b548c79ccabe72e5079592aeb34a865",
+        "after": "3631798c04bdfa1cc2f0a829f7a41f95e4c1906f"
+      },
+      {
+        "path": "src/background/services/remote-delete-replacement-service.js",
+        "before": "f41490351e833568fe11e93f1e53e9765681aea6",
+        "after": "042d4c111b7ae32b997727c61bc5aafc32f53e63"
+      },
+      {
+        "path": "src/content/inventory-delete-operations.js",
+        "before": "81f94ef16b015193700ed7b2de5edbe67d13c108",
+        "after": "c2571309116f2a8c3be6f3dd1d42cc644a1c38d3"
+      }
+    ]
+  }
 }

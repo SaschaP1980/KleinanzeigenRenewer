@@ -82,36 +82,7 @@ async function resetActiveWorkflows() {
     renewals[renewalId] = { ...emergencyResetRenewalState(renewal, { now, issue }), emergencyResetGeneration: resetGeneration };
     renewalsChanged = true; affected += 1;
   }
-  // Never detach a candidate if the cancellation tombstone failed to commit.
-  let cancellationCommitted=!renewalsChanged;
-  if (renewalsChanged) {
-    try {await writeRenewalSessions(renewals);cancellationCommitted=true;}
-    catch (error) {
-      await logDiagnostic('warning','RENEWAL_EMERGENCY_RESET_STATE_WRITE_FAILED',{
-        reason:String(error?.message || error).slice(0,200)
-      },{module:'background',operation:'workflow-emergency-reset'}).catch(()=>{});
-    }
-  }
-
-  // The reset is local-only. A previously confirmed published target must not
-  // retain an active renewal-candidate snapshot after the session was cancelled.
-  // The atomic recovery copies FAST-mode source images, keeps both ads, and
-  // never touches any remote DELETE or immutable Phase-4 journal receipt.
-  for (const renewal of cancellationCommitted ? Object.values(renewals || {}) : []) {
-    if (String(renewal?.status || '') !== 'cancelled'
-        || String(renewal?.stage || '') !== 'emergency-reset-unverified'
-        || !/^\d+$/.test(String(renewal?.newAdId || ''))
-        || renewal?.comparison?.ownAdsPresence !== true) continue;
-    try {
-      if (typeof recoverEmergencyResetCandidateAtomic !== 'function') throw new Error('KAR199_RECOVERY_UNAVAILABLE');
-      await recoverEmergencyResetCandidateAtomic(renewal);
-    } catch (error) {
-      await logDiagnostic('warning','RENEWAL_EMERGENCY_CANDIDATE_RECOVERY_DEFERRED',{
-        renewalId:renewal.renewalId || null,sourceAdId:renewal.sourceAdId || null,
-        newAdId:renewal.newAdId || null,reason:String(error?.message || error).slice(0,200)
-      },{module:'background',operation:'workflow-emergency-reset'}).catch(()=>{});
-    }
-  }
+  if (renewalsChanged) await writeRenewalSessions(renewals).catch(() => {});
 
   const archives = await readArchiveInsertionSessions().catch(() => ({})); let archivesChanged = false;
   for (const archive of Object.values(archives || {})) {
@@ -142,6 +113,26 @@ async function resetActiveWorkflows() {
   const registry = await getTabRegistrySnapshot().catch(() => []);
   const managedTabs = (registry || []).filter(entry => entry?.lifecycleState !== TAB_STATES.GONE && entry?.managed === true).map(entry => Number(entry.tabId || 0)).filter(Boolean);
   await closeRegistryTabs(managedTabs, 'manual-emergency-reset', 'Kleinanzeigen-Worker').catch(() => {});
+
+  // B14 is a local recovery of a previously verified candidate, not a remote action.
+  // Read back durable cancellation rather than acting on the in-memory reset proposal.
+  if (typeof recoverEmergencyResetCandidateAtomic === 'function'
+      && Object.values(renewals).some(row => row?.status === 'cancelled'
+        && row?.stage === 'emergency-reset-unverified' && /^\d+$/.test(String(row?.newAdId || '')))) {
+    const persistedRenewals = await readRenewalSessions().catch(() => ({}));
+    for (const renewal of Object.values(persistedRenewals)) {
+      if (renewal?.status !== 'cancelled' || renewal?.stage !== 'emergency-reset-unverified'
+          || !/^\d+$/.test(String(renewal?.newAdId || ''))) continue;
+      try {
+        await recoverEmergencyResetCandidateAtomic(renewal);
+      } catch (error) {
+        await logDiagnostic('warning', 'RENEWAL_EMERGENCY_CANDIDATE_RECOVERY_DEFERRED', {
+          renewalId: renewal.renewalId || null, sourceAdId: renewal.sourceAdId || null,
+          newAdId: renewal.newAdId || null, reason: String(error?.message || error).slice(0, 200)
+        }, { module: 'background', operation: 'workflow-emergency-reset' }).catch(() => {});
+      }
+    }
+  }
 
   await logDiagnostic('warning', 'ACTIVE_WORKFLOWS_EMERGENCY_RESET', {
     affected, bulkRunId: bulk?.runId || null, managedTabsClosed: managedTabs.length,
