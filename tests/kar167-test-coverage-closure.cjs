@@ -136,8 +136,15 @@ for (const addition of additions) {
     assert.ok(referencedByOwner.get('scripts/build.sh core tests').has(wrapper));
     const output = require('node:child_process').execFileSync(process.execPath, [full(wrapper)],
       {cwd:root,encoding:'utf8',timeout:120000});
-    assert.ok(output.includes('PASS S06 active partial witness gate; exactly four explicitly deferred cases, no PASS credit for them'));
-    for (const d of entry.deferred) assert.ok(output.includes('DEFERRED (not PASS) '+d.step+' '+d.name+'; verified RED run '+d.redRun));
+    const s07 = policy.isS07Version(policy.assertRestoredBaselineVersion(root));
+    assert.ok(output.includes('PASS S06/S07 active partial witness gate; '+(s07?3:4)+' explicitly deferred cases, no PASS credit for them'));
+    for (const d of entry.deferred) {
+      const evidence = 'DEFERRED (not PASS) '+d.step+' '+d.name+'; verified RED run '+d.redRun;
+      if (s07 && d.step === 'S07') {
+        assert.ok(!output.includes(evidence), 'S07 witness must no longer be deferred');
+        assert.ok(output.split('\n').some(line => /^ok \d+ - /.test(line) && line.endsWith(' - '+d.name)), 'Reactivated S07 witness must actually pass');
+      } else assert.ok(output.includes(evidence));
+    }
     verifiedS06MixedWitness = true;
   }
   assert.ok(directlyInvoked || verifiedPhase4Helper || verifiedHistoricalHelper || verifiedS06MixedWitness || inactive.has(addition),
