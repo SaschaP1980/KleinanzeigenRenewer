@@ -75,32 +75,3 @@ jobs:
               print('KAR224_ZIP_CHUNK_%04d %s' % (i,chunk))
           PY
 
-  diagnostic:
-    runs-on: ubuntu-latest
-    timeout-minutes: 8
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - run: npm ci
-      - name: Identify every independent test failure (diagnostic, not coverage proof)
-        run: |
-          rm .github/workflows/kar224-audit.yml
-          python3 scripts/package.py "$RUNNER_TEMP/diag-build"
-          cp "$RUNNER_TEMP/diag-build/kleinanzeigen-renewal-chrome-v2.0.6.0.zip" release/
-          python3 - <<'PY'
-          import json,os,subprocess
-          commands=json.load(open('package.json'))['scripts']['test'].split(' && ')
-          prefix,commands[0]=commands[0].split('; ',1)
-          failures=[]
-          for i,cmd in enumerate(commands,1):
-              p=subprocess.run(prefix+'; '+cmd,shell=True,executable='/bin/bash',text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,timeout=120)
-              if p.returncode:
-                  failures.append(cmd)
-                  print('DIAG_FAIL',i,cmd,flush=True)
-                  print(p.stdout[-9000:],flush=True)
-          print('DIAG_TOTAL',len(commands),'FAIL',len(failures),json.dumps(failures),flush=True)
-          PY
