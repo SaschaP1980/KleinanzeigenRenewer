@@ -1,0 +1,21 @@
+name: KAR-224 focused characterization
+on:
+  push:
+    branches: [work/KAR-224]
+    paths:
+      - 'tests/kar224-s07.cjs'
+      - 'src/**'
+      - '.github/workflows/kar224-audit.yml'
+      - 'package.json'
+permissions:
+  contents: read
+jobs:
+  focused:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Focused S07 behavioral witnesses
+        run: node --test tests/kar224-s07.cjs
