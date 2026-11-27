@@ -4,7 +4,7 @@ const root=path.resolve(__dirname,'..'),read=p=>fs.readFileSync(path.join(root,p
 const blob=b=>crypto.createHash('sha1').update('blob '+b.length+'\0').update(b).digest('hex');
 const policy=require('./current-patch-policy.cjs');
 assert.equal(policy.isReviewedRestoreVersion('2.0.3.0'),true,'S04 exact successor not yet admitted');
-for(const v of ['2.0.3','2.0.3.1','2.0.4.1','2.0.6.0','2.1.0.0','2.00.3.0'])assert.equal(policy.isReviewedRestoreVersion(v),false);
+for(const v of ['2.0.3','2.0.3.1','2.0.4.1','2.0.6.1','2.1.0.0','2.00.3.0'])assert.equal(policy.isReviewedRestoreVersion(v),false);
 assert.equal(policy.isS09Version('2.0.3.0'),true);
 assert.equal(policy.isS03Version('2.0.3.0'),true);
 assert.equal(policy.isS04Version('2.0.3.0'),true);

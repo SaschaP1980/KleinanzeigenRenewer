@@ -38,7 +38,7 @@ pass('post-delete observation distinguishes modal, toast and no-feedback without
 
 const deleteFlow = runner.match(/async function deleteOwnAdById\(adId(?:, correlation = \{\})?\) \{[\s\S]*?\n  \}\n\n  async function verifyOwnAdAbsentById/)?.[0] || '';
 assert.match(deleteFlow, /const confirmed = await confirmDeleteDialog\(wanted(?:, correlation)?\)/);
-if (manifest.version === '2.0.5.1') {
+if (require('./current-patch-policy.cjs').isS06HotfixVersion(manifest.version)) {
   assert.ok(require('./current-patch-policy.cjs').isS06HotfixVersion(manifest.version));
   const timeoutReturn = deleteFlow.match(/if \(!confirmed\) return \{[\s\S]*?\n    \};/)?.[0] || '';
   assert.match(timeoutReturn, /deleted: false, actionTriggered: false, confirmed: false, adId: wanted/);

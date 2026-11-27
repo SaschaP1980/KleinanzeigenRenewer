@@ -38,7 +38,7 @@ if (restoredBaseline) {
 } else assert.equal(assertCompatibleCurrentPatch({ manifest, pkg, lock, spec }), manifest.version);
 assert.equal(manifest.version_name, undefined);
 
-assert.equal(spec.directBasis, restoredBaseline ? (require('./current-patch-policy.cjs').isS06HotfixVersion(manifest.version)?'2.0.5.0':require('./current-patch-policy.cjs').isS06Version(manifest.version)?'2.0.4.0':s05?'2.0.3.0':s04?'2.0.2.0':manifest.version==='2.0.2.0'?'2.0.1.0':manifest.version==='2.0.1.0'?'2.0.0.1':'1.23.48') : '1.23.20_c1');
+assert.equal(spec.directBasis, restoredBaseline ? (require('./current-patch-policy.cjs').isS07Version(manifest.version)?'2.0.5.1':require('./current-patch-policy.cjs').isS06HotfixVersion(manifest.version)?'2.0.5.0':require('./current-patch-policy.cjs').isS06Version(manifest.version)?'2.0.4.0':s05?'2.0.3.0':s04?'2.0.2.0':manifest.version==='2.0.2.0'?'2.0.1.0':manifest.version==='2.0.1.0'?'2.0.0.1':'1.23.48') : '1.23.20_c1');
 assert.equal(spec.nextPlannedBuild, restoredBaseline || isFeature24 ? 'TBD' : '1.24.0');
 assert.equal(arch.packageVersion, '1.23.22');
 assert.equal(arch.fix.newRuntimeBoundary, false);
