@@ -1,11 +1,11 @@
 {
-  "version": "2.0.6.0",
+  "version": "2.0.6.1",
   "project": "kleinanzeigen Manager / Kleinanzeigen Renewal",
   "epic": "KAR-208 / KAR-224 S07 ZIP and trash template reinsertion, manual review and inventory integration",
   "goldBaseline": "1.21.15",
-  "directBasis": "2.0.5.1",
-  "directBasisNativeGreen": true,
-  "directBasisObservation": "2.0.5.1 owner acceptance and exact Work PR CI 3/3 GREEN, Chromium 9/9; native Fast-3 3/3 in 66.271 s, 0 warnings/errors. Known D2/four-tab and unexercised timeout limitations retained; no S07 native acceptance or matched S12 acceptance implied.",
+  "directBasis": "2.0.6.0",
+  "directBasisNativeGreen": false,
+  "directBasisObservation": "2.0.6.0 exact Work PR CI 3/3 GREEN, Chromium 9/9; native ZIP insertion and trash preparation/manual publication passed, three known single-capture handoffs failed with ReferenceError. Full native acceptance not achieved; partial-template native case unverified.",
   "scope": [
     "Restore v1.23.48 historical runtime, retaining KAR-174 UI path layout and current development tooling.",
     "Version identity 2.0.0.0, npm 2.0.0; preserve extension key, historical releases and Git ancestry.",
@@ -18,7 +18,8 @@
     "KAR-220 S05: retain existing category and form handling. Recover substantive display-only attributes only through unique associated actual controls and exact native readback; use uniquely exposed linked technical option IDs; preserve empty status and report real ambiguity. No schema monitoring/reference management or extra scans.",
     "KAR-222 S06: approved recovery and no-blind-replay corrections, same-document publication idempotence, exact returned IDs, local discard, reduced duplicate roster parsing and local TabRegistry metadata serialization. No updater, persistent journal, added remote calls or D2/S07 expansion.",
     "KAR-222 hotfix: permit bounded fresh Phase-4 retry only for explicit same-request pre-confirmation timeout, exact source ID, negative outcome flags and retired worker; preserve no replay on uncertain transport and independent absence before promotion.",
-    "KAR-224 S07: retain complete ZIP/trash and existing attribute transfer; recover correlated already-submitted archives without publication replay; allow explicit owner-reviewed optional-attribute-only partial standalone publication without managed success or automatic inventory integration; coalesce passive trash recovery. No added runtime module, permissions or updater."
+    "KAR-224 S07: retain complete ZIP/trash and existing attribute transfer; recover correlated already-submitted archives without publication replay; allow explicit owner-reviewed optional-attribute-only partial standalone publication without managed success or automatic inventory integration; coalesce passive trash recovery. No added runtime module, permissions or updater.",
+    "KAR-224 hotfix: single runtime-line correction after published trash template; no republish, permission, API or remote call change."
   ],
   "nextPlannedBuild": "TBD",
   "nextPlannedBuildGoal": "Determined by separately authorized open GitHub Issues.",
@@ -41,7 +42,7 @@
       "percent": null
     }
   },
-  "releaseSummary": "2.0.6.0 Work source: submitted ZIP read-only recovery, explicit manual standalone release, passive trash recovery coalescing; full gates and native acceptance pending.",
+  "releaseSummary": "2.0.6.1 Work hotfix: correct known published trash inventory handoff to existing public controller; exact native RED, test-first GREEN; final gates and native retest pending.",
   "architectureHighlights": [
     "Historical product safeguards and runtime behavior are primary; only explicit path/layout and version metadata changes in this restore slice.",
     "Current development gates and test files retained; reconcile later feature/updater-dependent assertions without weakening retained product behavior.",
@@ -54,8 +55,8 @@
     "S09: synthetic-only retention and IndexedDB fixtures until S03 data compatibility and S04 updater removal are accepted.",
     "S03: isolated migration and rollback using exact committed package; real migration requires S04 and separate owner authorization."
   ],
-  "packageVersion": "2.0.6.0",
-  "directBasisNativePending": false,
+  "packageVersion": "2.0.6.1",
+  "directBasisNativePending": true,
   "architectureFiles": [
     {
       "key": "appElements",
@@ -272,7 +273,7 @@
       "averageSeconds": 33.111
     }
   },
-  "directBasisNativeRed": false,
+  "directBasisNativeRed": true,
   "performanceGoldlines": [
     {
       "label": "bestehende Referenzmessung",
@@ -427,7 +428,7 @@
       }
     }
   },
-  "validationStatus": "S07_GATES_PENDING",
+  "validationStatus": "S07_HOTFIX_GATES_PENDING",
   "s09": {
     "issue": 214,
     "step": "S09",
@@ -533,6 +534,25 @@
         "path": "src/content/template-publish-flow.js",
         "before": "f4dd2a6b7b0965d8d5a2e28039a40350df9e958b",
         "after": "4b0a100e546113624339c28f762f6d979e896825"
+      }
+    ]
+  },
+  "s07Hotfix": {
+    "issue": 224,
+    "directBasis": "2.0.6.0",
+    "sourceCommit": "9a5b658a42b204268e92011bf3a43ceb6701db71",
+    "archiveSha256": "9ba8b73976143c1e86f899583eece95a6b4fd6db1025c832a13e03d1ebb58609",
+    "fixCommit": "a459a30f9dead03c9cd49904ea78a6063506eb8a",
+    "runtimeChanges": [
+      {
+        "path": "manifest.json",
+        "before": "913d19148f2012a412161e9873b1ff2addd78a95",
+        "after": "09e20881e2f71e63efd5c29b9d9c39ae7429e635"
+      },
+      {
+        "path": "src/app/app.js",
+        "before": "8b6a58eecabff1a014b2f2d345d50b64372dc90e",
+        "after": "92da0a01864818e5bd8f898ca9feb7f929da4b17"
       }
     ]
   }

@@ -4,6 +4,11 @@ This is the canonical version-specific history for Kleinanzeigen Manager. Entrie
 
 All distinct historical section bodies from the former root README and CHANGELOG are preserved with source labels and line numbers. The [KAR-170 migration ledger](docs/maintenance/KAR170_CHANGELOG_MIGRATION.json) identifies their original Git blobs and body checksums. Overlapping versions retain distinct factual notes; older references to planned builds or native/CI acceptance are **historical**, not live status.
 
+## v2.0.6.1 — KAR-224 native trash inventory handoff hotfix (Work)
+
+- Correct the app-to-inventory-controller handoff after a published trash template. Native 2.0.6.0 reached the known edit context three times, then raised a ReferenceError. Existing capture, identity and account checks remain unchanged; no republish.
+- Behavioral RED 46056717598 (1/3) and GREEN 46056790543 (3/3); full gates and native retest pending.
+
 ## v2.0.6.0 — KAR-224 S07 ZIP and trash template reinsertion (Work source, full gates pending)
 
 - Bind existing publication detection for uniquely correlated submitted archive recovery without replay. Retain the original source and existing complete-template paths.

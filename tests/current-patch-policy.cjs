@@ -171,7 +171,9 @@ const S06_HOTFIX_VERSION = '2.0.5.1';
 const S06_HOTFIX = Object.freeze({"issue":222,"directBasis":"2.0.5.0","sourceCommit":"90b0999d5f4a2b3caa2c09d7cb5c30bff0edbd12","archiveSha256":"5155f5e3863291994318c54b2f1ec3765c4278de741df9cfe3ebdfba2740024f","fixCommit":"c43502ab6582a3b9ec9229864d2552194f02b8d1","runtimeChanges":[{"path":"manifest.json","before":"348fefe57b548c79ccabe72e5079592aeb34a865","after":"3631798c04bdfa1cc2f0a829f7a41f95e4c1906f"},{"path":"src/background/services/remote-delete-replacement-service.js","before":"f41490351e833568fe11e93f1e53e9765681aea6","after":"042d4c111b7ae32b997727c61bc5aafc32f53e63"},{"path":"src/content/inventory-delete-operations.js","before":"81f94ef16b015193700ed7b2de5edbe67d13c108","after":"c2571309116f2a8c3be6f3dd1d42cc644a1c38d3"}]});
 const S07_VERSION='2.0.6.0';
 const S07_SCOPE=Object.freeze({"issue":224,"directBasis":"2.0.5.1","sourceCommit":"6b1e8442c88791b87b826101a66d44fc8053ae09","archiveSha256":"91cd8e6b9219daac26560c5d78ba260d62a34b062b52245a51e451ff81f05f10","fixCommit":"d513b1fe6085799850cd434219f7f5892181c470","runtimeChanges":[{"path":"manifest.json","before":"3631798c04bdfa1cc2f0a829f7a41f95e4c1906f","after":"913d19148f2012a412161e9873b1ff2addd78a95"},{"path":"src/app/archive-insertion-ui-controller.js","before":"08688155593fff5fadf7ea4add280909b7724bac","after":"3c40e94a7763ccc0b6aa74da4ca116df5692163f"},{"path":"src/app/trash-template-ui-controller.js","before":"d8a1858f647e893c02d2bddc94b8bc48fa164677","after":"74762e2da0069716883d084afb959518f6a808ad"},{"path":"src/background/controllers/template-fill-controller.js","before":"cea111834e279b8a3cd6b6e1bfbcc65975a2d97e","after":"c5df136f528117ee10e5a74501c1e3143a01b6ad"},{"path":"src/background/services/archive-insertion-recovery-service.js","before":"5b1e64993f0039465d05da8bdfae44844903ac30","after":"234dbffe0d0f1c4586b15b08f01ac81359399657"},{"path":"src/background/services/template-fill-service.js","before":"50425d9923131ff17ddfb5075c1cab87cb1c8e37","after":"df41d6cb7837fe8153c22043233430580611f894"},{"path":"src/content/template-filler.js","before":"0ff704a8f14a8b700a0de7d62ebe42327cc8ec50","after":"1281e2c514cc7a412bbd5f6fca45d0454cd2d445"},{"path":"src/content/template-publish-flow.js","before":"f4dd2a6b7b0965d8d5a2e28039a40350df9e958b","after":"4b0a100e546113624339c28f762f6d979e896825"}]});
-function isS07Version(version) { return version === S07_VERSION; }
+const S07_HOTFIX=Object.freeze({"issue":224,"directBasis":"2.0.6.0","sourceCommit":"9a5b658a42b204268e92011bf3a43ceb6701db71","archiveSha256":"9ba8b73976143c1e86f899583eece95a6b4fd6db1025c832a13e03d1ebb58609","fixCommit":"a459a30f9dead03c9cd49904ea78a6063506eb8a","runtimeChanges":[{"path":"manifest.json","before":"913d19148f2012a412161e9873b1ff2addd78a95","after":"09e20881e2f71e63efd5c29b9d9c39ae7429e635"},{"path":"src/app/app.js","before":"8b6a58eecabff1a014b2f2d345d50b64372dc90e","after":"92da0a01864818e5bd8f898ca9feb7f929da4b17"}]});
+function isS07HotfixVersion(version) { return version === '2.0.6.1'; }
+function isS07Version(version) { return version === S07_VERSION || isS07HotfixVersion(version); }
 function isS06HotfixVersion(version) { return version === S06_HOTFIX_VERSION || isS07Version(version); }
 function isS06Version(version) { return version === S06_VERSION || isS06HotfixVersion(version); }
 function isS05Version(version) { return version === S05_VERSION || isS06Version(version); }
@@ -194,6 +196,13 @@ function expectedRestoredAbsent(version,target) {
 }
 function expectedRestoredBlob(version, file, historicalBlob) {
   assert.ok(isReviewedRestoreVersion(version), 'unreviewed restored runtime');
+  if(isS07HotfixVersion(version)) {
+    const before=expectedRestoredBlob(S07_VERSION,file,historicalBlob);
+    const entry=S07_HOTFIX.runtimeChanges.find(row=>row.path===file);
+    if(!entry)return before;
+    assert.equal(entry.before,before,'S07 hotfix exact predecessor blob changed: '+file);
+    return entry.after;
+  }
   if(isS07Version(version)) {
     const before=expectedRestoredBlob(S06_HOTFIX_VERSION,file,historicalBlob);
     const entry=S07_SCOPE.runtimeChanges.find(row=>row.path===file);
@@ -285,12 +294,14 @@ function assertRestoredBaselineVersion(root = require('node:path').resolve(__dir
   else assert.equal(spec.s06Hotfix,undefined,'earlier source must not carry S06 hotfix metadata');
   if(isS07Version(actual)) assert.deepEqual(spec.s07,S07_SCOPE);
   else assert.equal(spec.s07,undefined,'earlier source must not carry S07 metadata');
+  if(isS07HotfixVersion(actual)) assert.deepEqual(spec.s07Hotfix,S07_HOTFIX);
+  else assert.equal(spec.s07Hotfix,undefined,'earlier source must not carry S07 hotfix metadata');
   assert.equal(manifest.version,actual);
   assert.equal(manifest.manifest_version,3);
   assert.equal(manifest.version_name,undefined);
   assert.equal(pkg.version,isS07Version(actual)?'2.0.6':isS06Version(actual)?'2.0.5':isS05Version(actual)?'2.0.4':isS04Version(actual)?'2.0.3':isS03Version(actual)?'2.0.2':isS09Version(actual)?'2.0.1':'2.0.0');
   assert.equal(pkg.displayVersion,actual);
-  assert.equal(spec.directBasis,isS07Version(actual)?'2.0.5.1':isS06HotfixVersion(actual)?'2.0.5.0':isS06Version(actual)?'2.0.4.0':isS05Version(actual)?'2.0.3.0':isS04Version(actual)?'2.0.2.0':isS03Version(actual)?'2.0.1.0':isS09Version(actual)?'2.0.0.1':'1.23.48');
+  assert.equal(spec.directBasis,isS07HotfixVersion(actual)?'2.0.6.0':isS07Version(actual)?'2.0.5.1':isS06HotfixVersion(actual)?'2.0.5.0':isS06Version(actual)?'2.0.4.0':isS05Version(actual)?'2.0.3.0':isS04Version(actual)?'2.0.2.0':isS03Version(actual)?'2.0.1.0':isS09Version(actual)?'2.0.0.1':'1.23.48');
   assert.equal(spec.goldBaseline,'1.21.15');
   assert.equal(spec.performanceRunRequired,true);
   assert.deepEqual([...manifest.permissions].sort(),(isS04Version(actual)?[...PERMISSIONS]:[...PERMISSIONS,'nativeMessaging']).sort());
@@ -305,4 +316,4 @@ function assertRestoredBaselineVersion(root = require('node:path').resolve(__dir
   return actual;
 }
 
-module.exports = { S07_SCOPE, isS07Version, S06_HOTFIX, isS06HotfixVersion, S06_SCOPE, isS06Version, S05_SCOPE, isS05Version, S04_SCOPE, isS04Version, S03_SCOPE, isS03Version, S09_SCOPE, isS09Version, expectedRestoredPackage, expectedRestoredAbsent, isReviewedRestoreVersion, expectedRestoredBlob, assertRestoredBaselineVersion, isCurrentPatchVersion, assertCompatibleCurrentPatch, includesActivePatch, includesSupportedRelease, expectedManifestPermissions };
+module.exports = { S07_HOTFIX, isS07HotfixVersion, S07_SCOPE, isS07Version, S06_HOTFIX, isS06HotfixVersion, S06_SCOPE, isS06Version, S05_SCOPE, isS05Version, S04_SCOPE, isS04Version, S03_SCOPE, isS03Version, S09_SCOPE, isS09Version, expectedRestoredPackage, expectedRestoredAbsent, isReviewedRestoreVersion, expectedRestoredBlob, assertRestoredBaselineVersion, isCurrentPatchVersion, assertCompatibleCurrentPatch, includesActivePatch, includesSupportedRelease, expectedManifestPermissions };

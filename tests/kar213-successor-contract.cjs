@@ -7,7 +7,7 @@ const json=p=>JSON.parse(read(p));
 const blob=b=>crypto.createHash('sha1').update('blob '+b.length+'\0').update(b).digest('hex');
 const {isReviewedRestoreVersion,expectedRestoredBlob,isS09Version,assertRestoredBaselineVersion}=require('./current-patch-policy.cjs');
 assert.equal(isReviewedRestoreVersion('2.0.2.0'),true,'S03 exact successor not yet admitted');
-for(const invalid of ['2.0.2','2.0.2.1','2.0.6.1','2.1.0.0','2.00.2.0'])assert.equal(isReviewedRestoreVersion(invalid),false);
+for(const invalid of ['2.0.2','2.0.2.1','2.0.6.2','2.1.0.0','2.00.2.0'])assert.equal(isReviewedRestoreVersion(invalid),false);
 assert.equal(isS09Version('2.0.2.0'),true,'S09 retention capability must remain active');
 const manifest=json('manifest.json');
 if(manifest.version==='2.0.2.0'){
@@ -25,6 +25,6 @@ if(manifest.version==='2.0.2.0'){
  }
  assert.equal(assertRestoredBaselineVersion(root),'2.0.2.0');
  for(const entry of s09.runtimeChanges.filter(x=>!s03.runtimeChanges.some(r=>r.path===x.path)))assert.equal(blob(read(entry.path)),entry.after);
- assert.throws(()=>expectedRestoredBlob('2.0.6.1','manifest.json',target.expected.find(x=>x.path==='manifest.json').sha));
+ assert.throws(()=>expectedRestoredBlob('2.0.6.2','manifest.json',target.expected.find(x=>x.path==='manifest.json').sha));
 }
 console.log('PASS KAR-213 exact successor lineage; no generic future-version admission');

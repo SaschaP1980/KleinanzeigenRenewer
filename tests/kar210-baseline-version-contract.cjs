@@ -6,7 +6,8 @@ const {assertPendingS02Release}=require('./kar210-historical-contract-context.cj
 const root=path.resolve(__dirname,'..');
 const metadata=['manifest.json','package.json','package-lock.json','release/release-spec.json'];
 const active=JSON.parse(fs.readFileSync(path.join(root,'manifest.json'),'utf8')).version;
-const s07=active==='2.0.6.0';
+const s07Hotfix=active==='2.0.6.1';
+const s07=active==='2.0.6.0'||s07Hotfix;
 const s06Hotfix=active==='2.0.5.1'||s07;
 const s06=active==='2.0.5.0'||s06Hotfix;
 const s05=active==='2.0.4.0'||s06;
@@ -49,8 +50,8 @@ try {
   assertPendingS02Release(fixture);
   const releaseMutations=[
     s=>s.validationStatus='RELEASE_GREEN',
-    s=>s.directBasisNativeGreen=!(s07||(s09&&!s06)),
-    s=>s.directBasisNativePending=s07||(s09&&!s06),
+    s=>s.directBasisNativeGreen=!((s07&&!s07Hotfix)||(s09&&!s06)),
+    s=>s.directBasisNativePending=(s07&&!s07Hotfix)||(s09&&!s06),
     s=>s.nativeSmokeRequired=false,
     s=>s.nextPlannedBuild='2.0.0.1',
     s=>s.nextPlannedBuildGoal='Automatically start next step',
@@ -109,6 +110,11 @@ try {
   if(s07) {
     for(const f of metadata)fs.copyFileSync(path.join(root,f),path.join(fixture,f));
     const spec=read('release/release-spec.json');spec.s07.runtimeChanges[1].after='0'.repeat(40);write('release/release-spec.json',spec);
+    assert.throws(()=>assertRestoredBaselineVersion(fixture));n++;
+  }
+  if(s07Hotfix) {
+    for(const f of metadata)fs.copyFileSync(path.join(root,f),path.join(fixture,f));
+    const spec=read('release/release-spec.json');spec.s07Hotfix.runtimeChanges[1].after='0'.repeat(40);write('release/release-spec.json',spec);
     assert.throws(()=>assertRestoredBaselineVersion(fixture));n++;
   }
   if(active==='2.0.0.1') {
