@@ -2,17 +2,17 @@
 const assert=require('node:assert/strict'),test=require('node:test'),fs=require('node:fs'),vm=require('node:vm');
 const read=p=>fs.readFileSync(p,'utf8');
 const noop=()=>{},asyncNoop=async()=>{};
-function recovery({detected={adId:'200'},status='submitted',fillTab=42}={}){
+function recovery({detected={adId:'200'},status='submitted',fillTab=42,current=false,fillStage='publish-submitted',fillSource='100'}={}){
  const API=require('../src/background/services/archive-insertion-recovery-service.js');
- const row={archiveInsertionId:'a',status,targetTabId:42,sourceAdId:'100'},fill={archiveInsertionId:'a',targetTabId:fillTab,fillId:'f'},calls=[],logs=[];
+ const row={archiveInsertionId:'a',status:current?'filling':status,...(current?{stage:'publish-submitted',fillId:'f'}:{}),targetTabId:42,sourceAdId:'100'},fill={archiveInsertionId:'a',targetTabId:fillTab,fillId:'f',...(current?{status:'running',stage:fillStage,sourceAdId:fillSource}:{})},calls=[],logs=[];
  const service=API.create({readArchiveInsertionSessions:async()=>({a:row}),readFillSessions:async()=>({f:fill}),getInventory:async()=>null,isTrashRecord:()=>false,persistArchiveInsertionSession:asyncNoop,deleteImagesByInventoryId:asyncNoop,logDiagnostic:async(...a)=>logs.push(a),setAppNotice:asyncNoop,broadcastInventoryChanged:noop,normalizeRenewalMode:()=> 'safe',compareArchiveInsertionRecords:async()=>({status:'mismatch'}),runArchiveInsertionPostPublish:async()=>assert.fail('must not run before identity confirmation'),detectPublishedAdForFill:async(id,source)=>{calls.push(['detect',id,source]);return detected;},confirmPublishedArchiveInsertion:async(f,d)=>calls.push(['confirm',f.fillId,d.adId]),cryptoApi:{randomUUID:()=> 'fixture'}});
  return {run:()=>service.resumePendingArchiveInsertions(),calls,logs,row};
 }
 test('submitted archive resumes exact ID detection without republishing',async()=>{
- const f=recovery();await f.run();assert.deepEqual(f.calls,[['detect',42,'100'],['confirm','f','200']]);assert.equal(f.logs.length,0);
+ for(const current of [false,true]){const f=recovery({current});await f.run();assert.deepEqual(f.calls,[['detect',42,'100'],['confirm','f','200']]);assert.equal(f.logs.length,0);}
 });
 test('archive recovery remains inert for detached, unmatched and unknown outcomes',async()=>{
- for(const options of [{status:'needs-review'},{fillTab:77},{detected:null},{detected:{adId:'100'}},{detected:{adId:'invalid'}}]){
+ for(const options of [{status:'needs-review'},{fillTab:77},{detected:null},{detected:{adId:'100'}},{detected:{adId:'invalid'}},{detected:{adId:'200',candidateCount:2}},{current:true,fillStage:'verified'},{current:true,fillSource:'wrong'}]){
  const f=recovery(options);await f.run();assert.ok(!f.calls.some(c=>c[0]==='confirm'));assert.equal(f.row.newAdId,undefined);
  }
 });

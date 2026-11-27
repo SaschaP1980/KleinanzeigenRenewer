@@ -126,7 +126,7 @@ async function getTrashTemplateFillStatus(message = {}) {
     targetTabId: session.targetTabId || null,
     status: session.status || null,
     stage: session.stage || null,
-    result: session.result ? { complete: Boolean(session.result.complete), issues: Array.isArray(session.result.issues) ? session.result.issues.slice(0, 50) : [] } : null,
+    result: session.result ? { complete: Boolean(session.result.complete), issues: Array.isArray(session.result.issues) ? session.result.issues.slice(0, 50) : [], manualStandaloneReviewEligible: session.result.manualStandaloneReviewEligible === true } : null,
     newAdId: session.newAdId || null,
     publishedUrl: session.publishedUrl || null,
     publishedAt: session.publishedAt || null,
@@ -483,6 +483,58 @@ async function startTemplateFill(inventoryId, options = {}) {
   });
 }
 
+async function approveManualStandaloneRelease(message, session, sessions, sender) {
+  // Manual detachment only: the managed operation remains terminal and never
+  // obtains a publication or inventory-success state from this action.
+  const deny = () => { throw new Error('Die manuelle Freigabe ist für diese Vorlage nicht eindeutig bestätigt.'); };
+  if (message?.manualStandaloneApproval?.ownerReviewed !== true || session.renewalId ||
+      (!session.archiveInsertionId && !session.templateOnly) || session.status !== 'needs-review' ||
+      session.stage !== 'verified' || session.result?.complete !== false ||
+      session.result?.manualStandaloneReviewEligible !== true || session.publishClickedAt ||
+      session.newAdId || session.emergencyResetAt) deny();
+  let page, target;
+  try { page = new URL(String(sender?.url || sender?.tab?.url || '')); target = new URL(TEMPLATE_TARGET_URL); }
+  catch { deny(); }
+  if (page.origin !== target.origin || page.pathname !== target.pathname) deny();
+  const archive = session.archiveInsertionId ? (await readArchiveInsertionSessions())[session.archiveInsertionId] : null;
+  const source = session.archiveInsertionId ? archive?.sourceRecord : await getInventory(session.trashInventoryId || session.inventoryId);
+  if (!source || String(source.adId || '') !== String(session.sourceAdId || '') ||
+      !source.title || (!session.archiveInsertionId && !isTrashRecord(source))) deny();
+  if (session.archiveInsertionId && (!archive || archive.fillId !== session.fillId ||
+      archive.targetTabId !== session.targetTabId || archive.targetProfileId !== session.targetProfileId ||
+      String(archive.sourceAdId || '') !== String(session.sourceAdId || '') ||
+      archive.status !== 'needs-review' || !['manual-review', 'manual-standalone'].includes(archive.stage) ||
+      archive.newAdId || archive.publishClickedAt || archive.emergencyResetAt)) deny();
+  const categoryId = String(source.category?.id ?? source.categoryIdFromUrl ?? '');
+  const imageCount = Array.isArray(source.images) ? source.images.length : -1;
+  if (!/^\d+$/.test(categoryId) || categoryId !== session.result.manualCategoryId ||
+      imageCount < 0 || imageCount !== session.result.manualImageCount) deny();
+  const expectedProfileId = String(archive?.targetProfileId || source.profileId || '');
+  if (!expectedProfileId || (await getInsertionLockState())?.locked !== false) deny();
+  const profile = await assertSelectedProfileMatchesLiveAccount({
+    expectedProfileId, expectedProfileName: String(archive?.targetProfileName || source.profileName || ''),
+    purpose: 'manual-standalone-template'
+  });
+  if (String(profile?.profileId || '') !== expectedProfileId) deny();
+  const now = new Date().toISOString();
+  if (archive) {
+    archive.status = 'needs-review';
+    archive.stage = 'manual-standalone';
+    archive.manualPublishDetachedAt = now;
+    archive.lastError = null;
+    archive.failurePhase = null;
+    await persistArchiveInsertionSession(archive);
+  }
+  session.stage = 'manual-standalone';
+  session.manualPublishDetachedAt = now;
+  session.updatedAt = now;
+  sessions[session.fillId] = session;
+  await writeFillSessions(sessions);
+  if (session.templateOnly) broadcastInventoryChanged('trash-template-updated', { fillId: session.fillId, status: session.status, stage: session.stage, targetTabId: session.targetTabId });
+  await logDiagnostic('info', 'MANUAL_STANDALONE_TEMPLATE_RELEASED', { fillId: session.fillId, archiveInsertionId: session.archiveInsertionId || null, autoPublishAllowed: false }, { module: 'background', operation: 'template-fill' }).catch(() => {});
+  return { manualDetached: true, autoPublishAllowed: false };
+}
+
 async function updateTemplateFillSession(message, sender) {
   return withTemplateFillMutation(async () => {
   const tabId = sender?.tab?.id;
@@ -490,6 +542,7 @@ async function updateTemplateFillSession(message, sender) {
   const session = sessions[message.fillId];
   if (!session || session.targetTabId !== tabId) throw new Error("Vorlagen-Sitzung gehört nicht zu diesem Tab.");
   if ((row => ['source-delete-outcome-unverified', 'source-delete-status-unverified', 'publish-intent-blocked'].includes(String(row?.stage || '')) || String(row?.status || '') === 'publish-blocked')(session)) throw Object.assign(new Error('Die frühere Veröffentlichung ist ungeklärt.'), { code: 'KR_LEGACY_OUTCOME_UNRESOLVED' });
+  if (message?.manualStandaloneApproval) return approveManualStandaloneRelease(message, session, sessions, sender);
   const previousStatus = session.status;
   const previousStage = session.stage;
   const requestedStage = typeof message.stage === 'string' ? message.stage.slice(0, 80) : '';
@@ -524,6 +577,16 @@ async function updateTemplateFillSession(message, sender) {
       complete: Boolean(message.result.complete),
       issues: Array.isArray(message.result.issues) ? message.result.issues.slice(0, 50).map(value => String(value).slice(0, 300)) : []
     };
+    if (!session.renewalId && (session.archiveInsertionId || session.templateOnly) &&
+        session.status === 'needs-review' && session.stage === 'verified' && !session.result.complete &&
+        !session.publishClickedAt && !session.newAdId && !session.emergencyResetAt &&
+        message.result.manualStandaloneReviewEligible === true &&
+        /^\d+$/.test(String(message.result.manualCategoryId || '')) &&
+        Number.isSafeInteger(message.result.manualImageCount) && message.result.manualImageCount >= 0) {
+      session.result.manualStandaloneReviewEligible = true;
+      session.result.manualCategoryId = String(message.result.manualCategoryId);
+      session.result.manualImageCount = message.result.manualImageCount;
+    }
   }
   if (session.stage === 'paid-insertion-required' && message.paidInsertion && typeof message.paidInsertion === 'object') {
     session.paidInsertion = {
@@ -581,8 +644,9 @@ async function updateTemplateFillSession(message, sender) {
     const archive = archiveSessions[session.archiveInsertionId];
     if (archive && !['complete', 'needs-review', 'error'].includes(String(archive.status || ''))) {
       if (session.status === 'needs-review' || session.status === 'error') {
-        archive.status = 'error';
-        archive.stage = 'error-phase-1';
+        const manualReview = session.status === 'needs-review' && session.result?.manualStandaloneReviewEligible === true;
+        archive.status = manualReview ? 'needs-review' : 'error';
+        archive.stage = manualReview ? 'manual-review' : 'error-phase-1';
         archive.failurePhase = 1;
         archive.lastError = session.result?.issues?.[0] || 'Die ZIP-Vorlage konnte nicht vollständig übernommen werden.';
       } else if (!archive.newAdId) {

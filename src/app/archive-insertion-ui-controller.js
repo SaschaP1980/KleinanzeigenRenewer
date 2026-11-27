@@ -166,7 +166,11 @@ function archiveProgressModel(session) {
     states[1] = 'success'; states[2] = 'success'; states[3] = fast ? 'skipped' : 'success'; states[4] = 'success';
   }
   if (status === 'needs-review') {
-    states[1] = 'success'; states[2] = 'success'; states[3] = fast ? 'skipped' : 'error'; states[4] = 'success';
+    if (hasNewId) {
+      states[1] = 'success'; states[2] = 'success'; states[3] = fast ? 'skipped' : 'error'; states[4] = 'success';
+    } else {
+      states[1] = 'error'; states[2] = 'pending'; states[3] = fast ? 'skipped' : 'pending'; states[4] = 'pending';
+    }
   }
   if (status === 'error') {
     const failed = Math.max(1, Math.min(4, Number(session?.failurePhase || (hasNewId ? (session?.foundAt ? (fast ? 4 : 3) : 2) : 1))));
@@ -208,9 +212,16 @@ function showArchiveInsertionProgress(session, { forceOpen = false } = {}) {
     archiveProgressView?.classList.toggle('hidden', !canOpen);
     archiveProgressEdit?.classList.toggle('hidden', !canOpen);
   } else if (session.status === 'needs-review') {
-    if (archiveInsertTitle) archiveInsertTitle.textContent = 'Anzeige inseriert – Prüfung erforderlich';
-    setArchiveProgressMessage('error', 'Angaben prüfen', 'Die neue Anzeige stimmt nicht vollständig mit den Daten aus dem ZIP überein.');
     const canOpen = /^\d+$/.test(String(session.newAdId || ''));
+    if (canOpen) {
+      if (archiveInsertTitle) archiveInsertTitle.textContent = 'Anzeige inseriert – Prüfung erforderlich';
+      setArchiveProgressMessage('error', 'Angaben prüfen', 'Die neue Anzeige stimmt nicht vollständig mit den Daten aus dem ZIP überein.');
+    } else {
+      if (archiveInsertTitle) archiveInsertTitle.textContent = 'Vorlage teilweise übernommen';
+      setArchiveProgressMessage('error', 'Manuell fortsetzen', session.stage === 'manual-standalone'
+        ? 'Die manuelle Veröffentlichung wurde freigegeben. Veröffentliche selbst und erfasse die Anzeige anschließend im Inventar.'
+        : 'Prüfe die Angaben im geöffneten Kleinanzeigen-Tab und gib die manuelle Veröffentlichung dort frei. Noch keine bestätigte Veröffentlichung.');
+    }
     archiveProgressView?.classList.toggle('hidden', !canOpen);
     archiveProgressEdit?.classList.toggle('hidden', !canOpen);
   } else if (session.status === 'error') {

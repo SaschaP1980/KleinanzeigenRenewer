@@ -234,6 +234,69 @@
       safety.style.cssText = 'margin-top:8px;color:#77e8ca;font-weight:700';
       panel.append(safety);
     }
+    if (typeof options.manualReviewAction === 'function') {
+      const review = document.createElement('button');
+      review.type = 'button';
+      review.textContent = 'Manuelle Veröffentlichung freigeben';
+      review.style.cssText = 'display:block;margin-top:12px;padding:8px 12px;border:1px solid #77e8ca;border-radius:6px;color:#f3f5f5;background:#243b37;cursor:pointer;font:inherit';
+      review.addEventListener('click', async event => {
+        if (event.isTrusted !== true || review.disabled) return;
+        review.disabled = true;
+        try { await options.manualReviewAction(); }
+        finally { review.disabled = false; }
+      });
+      panel.append(review);
+    }
+  }
+
+  function manualReviewEvidence(session, template, form, issues, imagesComplete) {
+    if (session.renewalId || (!session.archiveInsertionId && !session.templateOnly) ||
+        !imagesComplete || !issues.length || !/^\d+$/.test(String(template.categoryId || '')) ||
+        String(form?.querySelector('input[name="categoryId"]')?.value || '') !== String(template.categoryId) ||
+        !template.title || String(form?.querySelector('input[name="title"]')?.value || '') !== String(template.title)) return null;
+    const attributes = template.dynamicAttributes || [];
+    const onlyOptionalAttributes = issues.every(issue => {
+      const match = /^Merkmal „([^“]+)“(?:[: ]|$)/.exec(issue);
+      if (!match) return false;
+      const candidates = attributes.filter(attribute => String(attribute.label || attribute.key) === match[1]);
+      return candidates.length === 1 && candidates[0].required !== true;
+    });
+    const imageCount = template.images?.length || 0;
+    if (!onlyOptionalAttributes || form.querySelectorAll('input[type="hidden"][name^="adImages["][name$=".url"]').length !== imageCount) return null;
+    return { manualStandaloneReviewEligible: true, manualCategoryId: String(template.categoryId), manualImageCount: imageCount };
+  }
+
+  function offerManualReview(session, result) {
+    const { fillId, template } = session;
+    if (result?.manualStandaloneReviewEligible !== true || !armPublishDetection(fillId, 'manual-review')) return false;
+    const checkForm = () => {
+      const form = resolveActivePostingForm(null);
+      if (pageKind() !== 'target' || paidInsertionDetection().required ||
+          !manualReviewEvidence(session, template, form, result.issues, true) ||
+          result.manualCategoryId !== String(template.categoryId) || result.manualImageCount !== (template.images?.length || 0)) {
+        throw new Error('Formular, Kategorie, Titel oder Bilder konnten nicht eindeutig bestätigt werden.');
+      }
+    };
+    const show = error => updatePanel('Vorlage teilweise übernommen',
+      'Prüfe und korrigiere alle Angaben im Kleinanzeigen-Formular. Der automatische Ablauf ist beendet.',
+      [...result.issues, ...(error ? [error] : [])], { showTemplateOnlySafety: true,
+        safetyText: 'Nicht veröffentlicht. Die ursprüngliche Vorlage bleibt unverändert.',
+        manualReviewAction: async () => {
+          try {
+            checkForm();
+            if (!window.confirm('Hast du alle Angaben und Bilder selbst geprüft? Nach der Freigabe musst du die Anzeige selbst über „Anzeige aufgeben“ veröffentlichen und die neue Anzeige anschließend über „Geöffnete Anzeige erfassen“ ins Inventar übernehmen.')) return;
+            checkForm();
+            const approved = await runtimeMessage({ type: 'UPDATE_TEMPLATE_FILL_SESSION', fillId, manualStandaloneApproval: { ownerReviewed: true } });
+            if (approved?.manualDetached !== true || approved?.autoPublishAllowed !== false || !armPublishDetection(fillId, 'manual-standalone')) {
+              throw new Error('Die manuelle Freigabe konnte nicht bestätigt werden.');
+            }
+            updatePanel('Manuelle Veröffentlichung freigegeben', 'Veröffentliche die Anzeige selbst über „Anzeige aufgeben“. Erfasse die neue Anzeige anschließend im Manager.', [], {
+              showTemplateOnlySafety: true, safetyText: 'Keine automatische Veröffentlichung oder Inventarübernahme.'
+            });
+          } catch (error) { show(String(error.message || error)); }
+        } });
+    show();
+    return true;
   }
 
   async function runPostFillSession(session) {
@@ -400,13 +463,18 @@
       uniqueIssues
     );
     void diagnostic(fillId, 'TEMPLATE_FILL_VERIFIED', { complete, issueCount: uniqueIssues.length, imagesComplete, imageStates: imageOutcome.states?.map(state => ({ index: state.index, status: state.status })) || [] }, complete ? 'info' : 'warning');
-    await runtimeMessage({
+    const review = !complete ? manualReviewEvidence(session, template, verificationForm, uniqueIssues, imagesComplete) : null;
+    const result = { complete, issues: uniqueIssues.slice(0, 50), ...(review || {}) };
+    if (review) armPublishDetection(fillId, 'manual-review');
+    const acknowledgement = await runtimeMessage({
       type: 'UPDATE_TEMPLATE_FILL_SESSION',
       fillId,
       status: complete ? 'running' : 'needs-review',
       stage: complete ? 'form-verified' : 'verified',
-      result: { complete, issues: uniqueIssues.slice(0, 50) }
+      result
     });
+    if (review && acknowledgement?.status === 'needs-review' && acknowledgement?.stage === 'verified' &&
+        !acknowledgement?.terminalStateProtected && !acknowledgement?.staleUpdateIgnored) offerManualReview(session, result);
     if (complete) {
       const continuation = await advanceAfterVerifiedFill({ fillId, renewalId: session.renewalId || null, templateOnly: Boolean(session.templateOnly), archiveInsertionId: session.archiveInsertionId || null, trashInventoryId: session.trashInventoryId || null, stage: 'form-verified', result: { complete: true, issues: [] } });
       return { complete, issues: uniqueIssues, ...continuation };
@@ -434,6 +502,13 @@
     };
     panelTemplateOnly = Boolean(session.templateOnly);
     panelArchiveInsertion = Boolean(session.archiveInsertionId);
+    if (session.status === 'needs-review' && session.stage === 'verified' && session.result?.manualStandaloneReviewEligible === true) {
+      if (kind === 'target' || kind === 'post-fill') {
+        armPublishDetection(session.fillId, 'manual-review');
+        if (kind === 'target') offerManualReview(session, session.result);
+      }
+      return { complete: false, issues: session.result.issues, manualReview: true };
+    }
     if (!session.templateOnly && (session.renewalId || session.archiveInsertionId) && ['target', 'post-fill'].includes(kind)) armPublishDetection(session.fillId);
     try {
       if (kind === 'paid-insertion-checkout') {

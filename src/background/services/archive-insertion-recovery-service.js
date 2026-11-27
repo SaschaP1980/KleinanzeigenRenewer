@@ -2,9 +2,9 @@
   'use strict';
   const API = Object.freeze({
     create(options = {}) {
-      const {readArchiveInsertionSessions,readFillSessions,getInventory,isTrashRecord,persistArchiveInsertionSession,deleteImagesByInventoryId,logDiagnostic,setAppNotice,broadcastInventoryChanged,normalizeRenewalMode,cryptoApi,compareArchiveInsertionRecords,runArchiveInsertionPostPublish,confirmPublishedArchiveInsertion}=options;
+      const {readArchiveInsertionSessions,readFillSessions,getInventory,isTrashRecord,persistArchiveInsertionSession,deleteImagesByInventoryId,logDiagnostic,setAppNotice,broadcastInventoryChanged,normalizeRenewalMode,cryptoApi,compareArchiveInsertionRecords,runArchiveInsertionPostPublish,confirmPublishedArchiveInsertion,detectPublishedAdForFill}=options;
       const crypto=cryptoApi;
-      const required={readArchiveInsertionSessions,readFillSessions,getInventory,isTrashRecord,persistArchiveInsertionSession,deleteImagesByInventoryId,logDiagnostic,setAppNotice,broadcastInventoryChanged,normalizeRenewalMode,compareArchiveInsertionRecords,runArchiveInsertionPostPublish,confirmPublishedArchiveInsertion};
+      const required={readArchiveInsertionSessions,readFillSessions,getInventory,isTrashRecord,persistArchiveInsertionSession,deleteImagesByInventoryId,logDiagnostic,setAppNotice,broadcastInventoryChanged,normalizeRenewalMode,compareArchiveInsertionRecords,runArchiveInsertionPostPublish,confirmPublishedArchiveInsertion,detectPublishedAdForFill};
       for(const [name,value] of Object.entries(required)) if(typeof value!=='function') throw new Error(`archive recovery service dependency ${name} is required`);
       if(!crypto?.randomUUID) throw new Error('archive recovery service crypto API is required');
 async function completeRecoveredArchiveInsertionIfAlreadyInventoried(session) {
@@ -80,11 +80,23 @@ async function resumePendingArchiveInsertions() {
         continue;
       }
       if (['complete', 'needs-review', 'error', 'cancelled'].includes(String(session?.status || ''))) continue;
-      if (session?.status === 'submitted' && session?.targetTabId && !session?.newAdId) {
-        const fill = Object.values(fills).find(item => item?.archiveInsertionId === session.archiveInsertionId && item?.targetTabId === session.targetTabId);
-        if (fill) {
+      const legacySubmitted = session?.status === 'submitted';
+      const currentSubmitted = session?.status === 'filling' && session?.stage === 'publish-submitted';
+      if ((legacySubmitted || currentSubmitted) && Number.isSafeInteger(session?.targetTabId) && session.targetTabId > 0 && !session?.newAdId) {
+        const candidates = Object.values(fills).filter(item =>
+          item?.archiveInsertionId === session.archiveInsertionId && item?.targetTabId === session.targetTabId &&
+          (!session.fillId || item.fillId === session.fillId) &&
+          (item.sourceAdId == null || String(item.sourceAdId) === String(session.sourceAdId || '')) &&
+          (currentSubmitted
+            ? item.fillId === session.fillId && item.sourceAdId != null && item.status === 'running' && item.stage === 'publish-submitted'
+            : (!item.status || item.status === 'running') && (!item.stage || item.stage === 'publish-submitted')));
+        if (candidates.length === 1) {
           const detected = await detectPublishedAdForFill(session.targetTabId, session.sourceAdId);
-          if (detected?.adId) await confirmPublishedArchiveInsertion(fill, detected);
+          const detectedId = String(detected?.adId || '');
+          if (/^\d+$/.test(detectedId) && detectedId !== String(session.sourceAdId || '') &&
+              (detected.candidateCount == null || detected.candidateCount === 1)) {
+            await confirmPublishedArchiveInsertion(candidates[0], detected);
+          }
         }
       } else if (/^\d+$/.test(String(session?.newAdId || '')) && ['published', 'finding', 'checking', 'saving'].includes(String(session?.status || ''))) {
         void runArchiveInsertionPostPublish(session.archiveInsertionId).catch(() => {});

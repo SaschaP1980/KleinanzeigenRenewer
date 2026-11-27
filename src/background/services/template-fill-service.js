@@ -129,21 +129,28 @@
         const tabId = sender?.tab?.id;
         if (!tabId) return null;
         const sessions = await readFillSessions();
-        const session = Object.values(sessions).find(item => item?.targetTabId === tabId && ['waiting', 'running'].includes(item.status));
+        const active = Object.values(sessions).find(item => item?.targetTabId === tabId && ['waiting', 'running'].includes(item.status));
+        const manualReview = !active && Object.values(sessions).find(item => item?.targetTabId === tabId &&
+          !item.renewalId && (item.archiveInsertionId || item.templateOnly) && item.status === 'needs-review' &&
+          item.stage === 'verified' && item.result?.manualStandaloneReviewEligible === true);
+        const session = active || manualReview;
         if (!session || legacyOutcomeBlocked(session)) return null;
         const record = session.archiveInsertionId && session.archiveTemplate ? session.archiveTemplate : await getInventory(session.inventoryId);
         if (!record) throw new Error('Vorlageninventar wurde nach dem Öffnen des Tabs nicht gefunden.');
-        session.status = 'running';
-        session.stage = session.stage === 'tab-opened' ? 'content-connected' : session.stage;
-        session.updatedAt = new Date().toISOString();
-        sessions[session.fillId] = session;
-        await writeFillSessions(sessions);
+        if (active) {
+          session.status = 'running';
+          session.stage = session.stage === 'tab-opened' ? 'content-connected' : session.stage;
+          session.updatedAt = new Date().toISOString();
+          sessions[session.fillId] = session;
+          await writeFillSessions(sessions);
+        }
         return {
           operationId: session.operationId || null, parentOperationId: session.parentOperationId || null, fillId: session.fillId,
           renewalId: session.renewalId || null, archiveInsertionId: session.archiveInsertionId || null, templateOnly: Boolean(session.templateOnly),
           autoReplacementAllowed: Boolean(session.autoReplacementAllowed), trashInventoryId: session.trashInventoryId || null,
           status: session.status || null, stage: session.stage || null,
-          result: session.result ? { complete: Boolean(session.result.complete), issues: Array.isArray(session.result.issues) ? session.result.issues.slice(0, 50) : [] } : null,
+          result: session.result ? { complete: Boolean(session.result.complete), issues: Array.isArray(session.result.issues) ? session.result.issues.slice(0, 50) : [],
+            ...(manualReview ? { manualStandaloneReviewEligible: true, manualCategoryId: session.result.manualCategoryId, manualImageCount: session.result.manualImageCount } : {}) } : null,
           template: templatePayload(record)
         };
       }

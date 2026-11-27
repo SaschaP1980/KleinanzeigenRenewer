@@ -314,6 +314,18 @@ function renderTrashTemplateFillStatus(session) {
   setTrashTemplateRestartVisible(false);
   setTrashTemplateTargetVisible(false);
 
+  if (status === 'needs-review' && (session.result?.manualStandaloneReviewEligible === true || stage === 'manual-standalone')) {
+    trashTemplateDialogMode = 'awaiting-publish';
+    if (trashTemplateTitle) trashTemplateTitle.textContent = 'Vorlage teilweise übernommen';
+    if (trashTemplateIntro) trashTemplateIntro.classList.add('hidden');
+    setTrashTemplateStepStates({ step: 2, errorStep: 2 });
+    setTrashTemplateProgressMessage('waiting', 'Manuell fortsetzen', stage === 'manual-standalone'
+      ? 'Veröffentliche selbst und erfasse die neue Anzeige anschließend im Inventar.'
+      : 'Prüfe und korrigiere die Angaben im Kleinanzeigen-Tab und gib die manuelle Veröffentlichung dort frei.');
+    setTrashTemplateTargetVisible(true);
+    syncTrashTemplateInventoryButton();
+    return;
+  }
   if (status === 'error' || status === 'needs-review') {
     trashTemplateDialogMode = 'error';
     if (trashTemplateTitle) trashTemplateTitle.textContent = 'Vorlage konnte nicht vorbereitet werden';

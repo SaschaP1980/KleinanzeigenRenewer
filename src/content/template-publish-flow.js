@@ -17,10 +17,21 @@
       updatePanel
     } = options;
 
-  function armPublishDetection(fillId) {
+  function armPublishDetection(fillId, mode = '') {
     const key = `krRenewalPublishArmed_${fillId}`;
-    if (globalThis[key]) return;
-    const state = { clicked: false, submitted: false, signalled: false, autoPending: false, autoAttempted: false, button: null, form: null };
+    const existing = globalThis[key];
+    const applyManualMode = state => {
+      if (!mode) return true;
+      if (state.clicked || state.submitted || state.autoPending || state.autoAttempted ||
+          !['manual-review', 'manual-standalone'].includes(mode)) return false;
+      if (state.manualMode === 'manual-standalone') return mode === 'manual-standalone';
+      if (mode === 'manual-standalone' && state.manualMode !== 'manual-review') return false;
+      state.manualMode = mode;
+      return true;
+    };
+    if (existing) return applyManualMode(existing);
+    const state = { clicked: false, submitted: false, signalled: false, autoPending: false, autoAttempted: false, button: null, form: null, manualMode: '' };
+    if (!applyManualMode(state)) return false;
     globalThis[key] = state;
     const isPublish = button => Boolean(button
       && /^anzeige aufgeben$/i.test(clean(button instanceof HTMLInputElement ? button.value : button.textContent))
@@ -42,6 +53,14 @@
     document.addEventListener('click', event => {
       const button = event.target instanceof Element ? event.target.closest('button,input[type="submit"]') : null;
       if (!isPublish(button)) return;
+      if (state.manualMode) {
+        if (state.manualMode !== 'manual-standalone' || event.isTrusted !== true ||
+            state.clicked || state.submitted || paidInsertionDetection().required) return block(event);
+        remember(button);
+        state.clicked = true;
+        void diagnostic(fillId, 'MANUAL_STANDALONE_PUBLISH_CLICKED', { path: location.pathname });
+        return;
+      }
       if (state.clicked || state.submitted) return block(event);
       remember(button);
       state.clicked = true;
@@ -59,11 +78,19 @@
           remember(controls[0]);
         }
       }
+      if (state.manualMode) {
+        if (state.manualMode !== 'manual-standalone' || event.isTrusted !== true || !state.clicked ||
+            state.submitted || (submitter && submitter !== state.button) ||
+            event.target !== state.form || paidInsertionDetection().required) return block(event);
+        state.submitted = true;
+        return;
+      }
       if (state.submitted) return block(event);
       if (submitter && !state.button) remember(submitter);
       state.submitted = true;
       signal();
     }, true);
+    return true;
   }
 
   function scrollToPublishButton() {
@@ -180,7 +207,7 @@
     const button = candidates[0];
     armPublishDetection(fillId);
     const publishState = globalThis[`krRenewalPublishArmed_${fillId}`];
-    if (publishState.clicked || publishState.submitted || publishState.autoAttempted || publishState.autoPending) {
+    if (publishState.manualMode || publishState.clicked || publishState.submitted || publishState.autoAttempted || publishState.autoPending) {
       return { awaitingPublishedId: true, publishTriggered: false };
     }
     publishState.autoPending = true;
@@ -200,7 +227,7 @@
     updatePanel('Vorlage vollständig übernommen', 'Alle kontrollierten Werte und Bilder stimmen. Die Anzeige wird jetzt automatisch veröffentlicht.', [], { safetyText: 'Automatische Veröffentlichung freigegeben – keine Abweichungen erkannt.' });
     try { button.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' }); } catch { /* Komfortschritt */ }
     await sleep(180);
-    if (publishState.clicked || publishState.submitted || publishState.autoAttempted) return { awaitingPublishedId: true, publishTriggered: false };
+    if (publishState.manualMode || publishState.clicked || publishState.submitted || publishState.autoAttempted) return { awaitingPublishedId: true, publishTriggered: false };
     publishState.autoAttempted = true;
     void diagnostic(fillId, 'AUTO_PUBLISH_GATE_PASSED', { candidateCount: 1, path: location.pathname });
     button.click();
