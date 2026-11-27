@@ -111,3 +111,29 @@ test('review state is returned read-only on reload; detached and ordinary termin
  store.data.templateFillSessions.f.stage='verified';store.data.templateFillSessions.f.result.manualStandaloneReviewEligible=false;assert.equal(await api.getTemplateFillSession({tab:{id:42}}),null);
  assert.equal(store.writes,0);
 });
+
+test('passive empty cache never hides transport failure or explicit recovery',async()=>{
+ const Trash=require('../src/app/trash-template-ui-controller.js');let calls=0;
+ const ctl=Trash.create({runtimeMessage:async msg=>{assert.equal(msg.type,'GET_RECOVERABLE_TRASH_TEMPLATE_FILL');calls++;if(calls===1)throw Error('transport');return null;}});
+ ctl.syncFromLock();await new Promise(r=>setImmediate(r));assert.equal(calls,1);
+ ctl.syncFromLock();await new Promise(r=>setImmediate(r));assert.equal(calls,2);
+ ctl.syncFromLock();assert.equal(calls,2);
+ await ctl.recoverTrashTemplateSession({allowTakeover:true});assert.equal(calls,3);
+ ctl.updateContext({selectedProfileId:'other'});ctl.syncFromLock();await new Promise(r=>setImmediate(r));assert.equal(calls,4);
+});
+test('partial trash review is recoverable read-only, but detached state stays terminal',()=>{
+ const Service=require('../src/background/services/template-fill-service.js');const api=Service.create({storageLocal:{get:async()=>({}),set:async()=>{}}});
+ const f=fixture({trash:true});assert.equal(api.isRecoverableTrashTemplateSession(f.fill),true);assert.equal(api.isEmergencyResettableSession(f.fill),false);
+ f.fill.stage='manual-standalone';assert.equal(api.isRecoverableTrashTemplateSession(f.fill),false);assert.equal(api.isEmergencyResettableSession(f.fill),false);
+});
+test('partial trash target loss never offers automatic re-preparation or claims publication',async()=>{
+ const Trash=require('../src/app/trash-template-ui-controller.js');
+ const el=()=>({classList:{add(){},remove(){},toggle(_n,hidden){this.hidden=hidden}},disabled:false,textContent:''});
+ const elements={trashTemplateTitle:el(),trashTemplateProgressTitle:el(),trashTemplateProgressText:el(),trashTemplateRestart:el(),trashTemplateTarget:el()};
+ const row={fillId:'f',targetTabId:42,trashInventoryId:'trash',status:'needs-review',stage:'verified',result:{manualStandaloneReviewEligible:true,issues:['Merkmal']}};
+ const ctl=Trash.create({elements,runtimeMessage:async m=>m.type==='GET_RECOVERABLE_TRASH_TEMPLATE_FILL'?row:null});
+ ctl.updateContext({trashRecords:[{inventoryId:'trash',title:'T'}]});await ctl.recoverTrashTemplateSession();
+ assert.equal(ctl.status().trashTemplateDialogMode,'partial-review');assert.equal(elements.trashTemplateRestart.classList.hidden,true);
+ assert.equal(ctl.handleTrashTemplateTargetTabRemoved(42),true);assert.equal(ctl.status().trashTemplateDialogMode,'error');
+ assert.equal(elements.trashTemplateRestart.classList.hidden,true);assert.match(elements.trashTemplateProgressTitle.textContent,/nicht bestätigt/);
+});

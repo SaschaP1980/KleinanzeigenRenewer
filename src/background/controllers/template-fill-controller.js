@@ -530,7 +530,7 @@ async function approveManualStandaloneRelease(message, session, sessions, sender
   session.updatedAt = now;
   sessions[session.fillId] = session;
   await writeFillSessions(sessions);
-  if (session.templateOnly) broadcastInventoryChanged('trash-template-updated', { fillId: session.fillId, status: session.status, stage: session.stage, targetTabId: session.targetTabId });
+  if (session.templateOnly) broadcastInventoryChanged('trash-template-updated', { fillId: session.fillId, inventoryId: session.inventoryId || null, status: session.status, stage: session.stage, targetTabId: session.targetTabId });
   await logDiagnostic('info', 'MANUAL_STANDALONE_TEMPLATE_RELEASED', { fillId: session.fillId, archiveInsertionId: session.archiveInsertionId || null, autoPublishAllowed: false }, { module: 'background', operation: 'template-fill' }).catch(() => {});
   return { manualDetached: true, autoPublishAllowed: false };
 }

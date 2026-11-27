@@ -112,6 +112,8 @@
         const status = String(session.status || '');
         const stage = String(session.stage || '');
         if (['waiting', 'running'].includes(status)) return true;
+        if (status === 'needs-review' && stage === 'verified' && session.result?.manualStandaloneReviewEligible === true &&
+            !session.newAdId && !session.emergencyResetAt) return true;
         return status === 'complete' && ['template-only-complete', 'template-only-published'].includes(stage);
       }
 
@@ -120,6 +122,7 @@
         const status = String(session.status || '');
         const stage = String(session.stage || '');
         if (status === 'complete' && stage === 'template-only-complete') return false;
+        if (status === 'needs-review') return false;
         if (isRecoverableTrashTemplateSession(session)) return true;
         if (['complete', 'needs-review', 'error', 'cancelled'].includes(status)) return false;
         return true;

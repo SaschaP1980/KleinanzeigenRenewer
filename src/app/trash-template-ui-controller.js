@@ -12,6 +12,7 @@
       const runtimeMessage=options.runtimeMessage||(async()=>null); const logAppEvent=options.logAppEvent||(async()=>{}); const displayPriceWithType=options.displayPriceWithType||(()=> ''); const loadLocalPreview=options.loadLocalPreview||(async()=>{}); const friendlyErrorMessage=options.friendlyErrorMessage||(error=>String(error?.message||error||''));
       const confirmAction=options.confirmAction||(async()=>false); const onStartTrashTemplate=options.onStartTrashTemplate||(async()=>null); const onStartKnownSingleInventoryCapture=options.onStartKnownSingleInventoryCapture||(async()=>null); const refreshInventories=options.refreshInventories||(async()=>null); const publishTrashTemplateRecoveryActivity=options.publishTrashTemplateRecoveryActivity||(()=>{}); const archiveTrashTemplateRecoveryActivity=options.archiveTrashTemplateRecoveryActivity||(()=>{}); const clearTrashTemplateRecoveryActivity=options.clearTrashTemplateRecoveryActivity||(()=>{}); const focusTrashTemplateTargetTab=options.focusTrashTemplateTargetTab||(async()=>false); const checkTrashTemplateTargetTab=options.checkTrashTemplateTargetTab||focusTrashTemplateTargetTab;
       let currentInsertionLock={locked:false}; let selectedProfileId=''; let currentTrashRecords=[]; let trashTemplateDialogMode='closed'; let trackedTrashTemplateFillId=''; let trackedTrashTemplateTabId=null; let trackedTrashTemplateNewAdId=''; let trackedTrashTemplateRecord=null; let trashTemplateDialogRevision=0; let trashTemplateDialogOwner=Object.freeze({kind:'none',inventoryId:'',fillId:''}); let installed=false;
+      let passiveRecoveryInFlight=null; let passiveRecoveryEmpty=null;
 
 function setTrashTemplateStepStates({ step = 1, errorStep = 0, waitingStep = 0, published = false } = {}) {
   for (const item of trashTemplateSteps?.querySelectorAll('[data-template-step]') || []) {
@@ -169,9 +170,22 @@ function renderTrashTemplateTargetUnavailable(session, outcome = {}) {
   return session;
 }
 
+function renderPartialTargetUnavailable() {
+  trashTemplateDialogMode = 'error';
+  if (trashTemplateTitle) trashTemplateTitle.textContent = 'Kleinanzeigen-Tab nicht verfügbar';
+  setTrashTemplateProgressMessage('waiting', 'Veröffentlichung nicht bestätigt', 'Der ursprüngliche Tab ist nicht verfügbar. Prüfe selbst, ob die Anzeige bereits veröffentlicht wurde; der Manager startet keine Wiederholung.');
+  setTrashTemplateRestartVisible(false);
+  setTrashTemplateTargetVisible(false);
+  syncTrashTemplateInventoryButton();
+}
+
 function handleTrashTemplateTargetTabRemoved(tabId) {
   const id = Number(tabId || 0);
   if (!id || id !== Number(trackedTrashTemplateTabId || 0)) return false;
+  if (trackedTrashTemplateFillId && trashTemplateDialogMode === 'partial-review') {
+    renderPartialTargetUnavailable();
+    return true;
+  }
   if (!trackedTrashTemplateFillId || trashTemplateDialogMode !== 'awaiting-publish') return false;
   const session = {
     fillId: trackedTrashTemplateFillId,
@@ -217,6 +231,7 @@ function syncTrashTemplateRecoveryActivity(session = null) {
 }
 
 function handleEmergencyWorkflowReset() {
+  passiveRecoveryEmpty = null;
   archiveTrashTemplateRecoveryActivity();
   syncTrashTemplateRecoveryActivity(null);
   if (!trashTemplateDialogOwnedByNewDraft()) {
@@ -245,10 +260,18 @@ async function restoreTrashTemplateRecord(inventoryId) {
   return trackedTrashTemplateRecord;
 }
 
-async function recoverTrashTemplateSession({ forceOpen = false, allowTakeover = false } = {}) {
+async function recoverTrashTemplateSession({ forceOpen = false, allowTakeover = false, passive = false } = {}) {
   const requestRevision = trashTemplateDialogRevision;
-  const session = await runtimeMessage({ type: 'GET_RECOVERABLE_TRASH_TEMPLATE_FILL' }).catch(() => null);
-  if (!session?.fillId) { syncTrashTemplateRecoveryActivity(null); return null; }
+  const requestProfile = selectedProfileId;
+  let session;
+  try { session = await runtimeMessage({ type: 'GET_RECOVERABLE_TRASH_TEMPLATE_FILL' }); }
+  catch { if (!passive) syncTrashTemplateRecoveryActivity(null); return null; }
+  if (!session?.fillId) {
+    if (passive && session === null && requestRevision === trashTemplateDialogRevision && requestProfile === selectedProfileId)
+      passiveRecoveryEmpty = { revision: requestRevision, profileId: requestProfile, until: Date.now() + 1000 };
+    if (requestRevision === trashTemplateDialogRevision && requestProfile === selectedProfileId) syncTrashTemplateRecoveryActivity(null);
+    return null;
+  }
   if (!canAdoptTrashTemplateSession(session, { allowTakeover, requestRevision })) { syncTrashTemplateRecoveryActivity(session); return session; }
   const inventoryId = String(session.trashInventoryId || session.inventoryId || '');
   setTrashTemplateDialogOwner('session', { inventoryId, fillId: session.fillId });
@@ -261,6 +284,15 @@ async function recoverTrashTemplateSession({ forceOpen = false, allowTakeover = 
   renderTrashTemplateFillStatus(session);
   if (forceOpen && trashTemplateDialog && !trashTemplateDialog.open) trashTemplateDialog.showModal();
   return session;
+}
+
+function recoverPassiveTrashTemplateSession() {
+  if (passiveRecoveryInFlight) return passiveRecoveryInFlight;
+  if (passiveRecoveryEmpty?.revision === trashTemplateDialogRevision &&
+      passiveRecoveryEmpty.profileId === selectedProfileId && Date.now() < passiveRecoveryEmpty.until) return Promise.resolve(null);
+  passiveRecoveryInFlight = recoverTrashTemplateSession({ forceOpen: false, allowTakeover: false, passive: true })
+    .finally(() => { passiveRecoveryInFlight = null; });
+  return passiveRecoveryInFlight;
 }
 
 async function reopenTrashTemplateSession() {
@@ -286,15 +318,18 @@ async function reopenTrashTemplateSession() {
 }
 
 async function openTrashTemplateTarget() {
-  if (trashTemplateDialogMode !== 'awaiting-publish' || !trackedTrashTemplateFillId) return false;
+  const partial = trashTemplateDialogMode === 'partial-review';
+  if ((!partial && trashTemplateDialogMode !== 'awaiting-publish') || !trackedTrashTemplateFillId) return false;
   const tabId = Number(trackedTrashTemplateTabId || 0);
   if (!tabId) {
+    if (partial) { renderPartialTargetUnavailable(); return false; }
     renderTrashTemplateTargetUnavailable({ fillId: trackedTrashTemplateFillId, targetTabId: null, trashInventoryId: trackedTrashTemplateRecord?.inventoryId || null }, { ok: false, reason: 'missing-id', tabId: null });
     return false;
   }
   await logAppEvent('USER_TRASH_TEMPLATE_TARGET_OPEN_REQUESTED', { fillId: trackedTrashTemplateFillId, inventoryId: trackedTrashTemplateRecord?.inventoryId || null, tabId }, 'info').catch(() => {});
   const outcome = await focusTrashTemplateTargetTab(tabId).catch(error => ({ ok: false, reason: 'focus-failed', tabId, message: String(error?.message || error || '').slice(0, 300) }));
   if (outcome === true || outcome?.ok === true) return true;
+  if (partial) { renderPartialTargetUnavailable(); return false; }
   const session = { fillId: trackedTrashTemplateFillId, targetTabId: tabId, trashInventoryId: trackedTrashTemplateRecord?.inventoryId || null, inventoryId: trackedTrashTemplateRecord?.inventoryId || null, sourceAdId: trackedTrashTemplateRecord?.adId || null, status: 'complete', stage: 'template-only-complete', newAdId: trackedTrashTemplateNewAdId || null };
   renderTrashTemplateTargetUnavailable(session, outcome && typeof outcome === 'object' ? outcome : { ok: false, reason: 'focus-failed', tabId });
   await logAppEvent('USER_TRASH_TEMPLATE_TARGET_UNAVAILABLE', { fillId: trackedTrashTemplateFillId, inventoryId: trackedTrashTemplateRecord?.inventoryId || null, tabId, reason: String(outcome?.reason || 'focus-failed') }, 'info').catch(() => {});
@@ -315,7 +350,7 @@ function renderTrashTemplateFillStatus(session) {
   setTrashTemplateTargetVisible(false);
 
   if (status === 'needs-review' && (session.result?.manualStandaloneReviewEligible === true || stage === 'manual-standalone')) {
-    trashTemplateDialogMode = 'awaiting-publish';
+    trashTemplateDialogMode = 'partial-review';
     if (trashTemplateTitle) trashTemplateTitle.textContent = 'Vorlage teilweise übernommen';
     if (trashTemplateIntro) trashTemplateIntro.classList.add('hidden');
     setTrashTemplateStepStates({ step: 2, errorStep: 2 });
@@ -418,13 +453,13 @@ async function restartTrashTemplateAfterTargetLoss() {
   }
 }
 
-      function updateContext(context={}) { if(context.insertionLock) currentInsertionLock=context.insertionLock; if(Object.prototype.hasOwnProperty.call(context,'selectedProfileId')) selectedProfileId=String(context.selectedProfileId||''); if(Array.isArray(context.trashRecords)) currentTrashRecords=context.trashRecords; }
+      function updateContext(context={}) { if(context.insertionLock){if(Boolean(context.insertionLock.locked)!==Boolean(currentInsertionLock.locked)||String(context.insertionLock.ownerId||'')!==String(currentInsertionLock.ownerId||''))passiveRecoveryEmpty=null;currentInsertionLock=context.insertionLock;} if(Object.prototype.hasOwnProperty.call(context,'selectedProfileId')){const next=String(context.selectedProfileId||'');if(next!==selectedProfileId)passiveRecoveryEmpty=null;selectedProfileId=next;} if(Array.isArray(context.trashRecords)) currentTrashRecords=context.trashRecords; }
       function status() { return Object.freeze({trashTemplateDialogMode,trackedTrashTemplateFillId,trackedTrashTemplateTabId,trackedTrashTemplateNewAdId,trackedTrashTemplateRecord,trashTemplateDialogRevision,trashTemplateDialogOwner}); }
       function syncFromLock() {
         const locked=insertionLockActive(); const trashOwned=locked&&String(currentInsertionLock?.kind||'')==='trash-template';
-        if(trashOwned&&currentInsertionLock?.ownerId){const lockFillId=String(currentInsertionLock.ownerId);const lockInventoryId=String(currentInsertionLock.inventoryId||'');if(trashTemplateDialogOwnedByNewDraft()&&trashTemplateDialogOwner.inventoryId!==lockInventoryId){void runtimeMessage({type:'GET_TRASH_TEMPLATE_FILL_STATUS',fillId:lockFillId}).then(session=>{if(session)syncTrashTemplateRecoveryActivity(session);}).catch(()=>null);}else if(!trackedTrashTemplateFillId||trackedTrashTemplateFillId===lockFillId){setTrashTemplateDialogOwner('session',{inventoryId:lockInventoryId,fillId:lockFillId});trackedTrashTemplateFillId=lockFillId;restoreTrashTemplateRecord(lockInventoryId);void refreshTrashTemplateDialogStatus({forceOpen:false});}} else if(!trackedTrashTemplateFillId){void recoverTrashTemplateSession({forceOpen:false,allowTakeover:false});} syncTrashTemplateInventoryButton();
+        if(trashOwned&&currentInsertionLock?.ownerId){const lockFillId=String(currentInsertionLock.ownerId);const lockInventoryId=String(currentInsertionLock.inventoryId||'');if(trashTemplateDialogOwnedByNewDraft()&&trashTemplateDialogOwner.inventoryId!==lockInventoryId){void runtimeMessage({type:'GET_TRASH_TEMPLATE_FILL_STATUS',fillId:lockFillId}).then(session=>{if(session)syncTrashTemplateRecoveryActivity(session);}).catch(()=>null);}else if(!trackedTrashTemplateFillId||trackedTrashTemplateFillId===lockFillId){setTrashTemplateDialogOwner('session',{inventoryId:lockInventoryId,fillId:lockFillId});trackedTrashTemplateFillId=lockFillId;restoreTrashTemplateRecord(lockInventoryId);void refreshTrashTemplateDialogStatus({forceOpen:false});}} else if(!trackedTrashTemplateFillId){void recoverPassiveTrashTemplateSession().catch(()=>null);} syncTrashTemplateInventoryButton();
       }
-      function handleTrashTemplateDataChanged(details={}) { if(!details?.fillId)return false;const incomingFillId=String(details.fillId),incomingInventoryId=String(details.inventoryId||'');if(trashTemplateDialogOwnedByNewDraft()&&incomingInventoryId!==trashTemplateDialogOwner.inventoryId)return false;if(!trackedTrashTemplateFillId||incomingFillId===String(trackedTrashTemplateFillId)){setTrashTemplateDialogOwner('session',{inventoryId:incomingInventoryId||trashTemplateDialogOwner.inventoryId,fillId:incomingFillId});trackedTrashTemplateFillId=incomingFillId;if(details.targetTabId)trackedTrashTemplateTabId=Number(details.targetTabId)||trackedTrashTemplateTabId;if(details.newAdId)trackedTrashTemplateNewAdId=String(details.newAdId);restoreTrashTemplateRecord(incomingInventoryId);void refreshTrashTemplateDialogStatus({forceOpen:trashTemplateDialog?.open===true});return true;}return false; }
+      function handleTrashTemplateDataChanged(details={}) { if(!details?.fillId)return false;passiveRecoveryEmpty=null;const incomingFillId=String(details.fillId),incomingInventoryId=String(details.inventoryId||'');if(trashTemplateDialogOwnedByNewDraft()&&incomingInventoryId!==trashTemplateDialogOwner.inventoryId)return false;if(!trackedTrashTemplateFillId||incomingFillId===String(trackedTrashTemplateFillId)){setTrashTemplateDialogOwner('session',{inventoryId:incomingInventoryId||trashTemplateDialogOwner.inventoryId,fillId:incomingFillId});trackedTrashTemplateFillId=incomingFillId;if(details.targetTabId)trackedTrashTemplateTabId=Number(details.targetTabId)||trackedTrashTemplateTabId;if(details.newAdId)trackedTrashTemplateNewAdId=String(details.newAdId);restoreTrashTemplateRecord(incomingInventoryId);void refreshTrashTemplateDialogStatus({forceOpen:trashTemplateDialog?.open===true});return true;}return false; }
       function closeTrashTemplateDialog() {if(trashTemplateDialog?.open)trashTemplateDialog.close('closed');if(trashTemplateDialogOwner.kind==='new-draft')setTrashTemplateDialogOwner('none');}
       function install() {
         if(installed)return;installed=true;
