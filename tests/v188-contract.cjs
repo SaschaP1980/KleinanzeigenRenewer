@@ -38,7 +38,15 @@ pass('post-delete observation distinguishes modal, toast and no-feedback without
 
 const deleteFlow = runner.match(/async function deleteOwnAdById\(adId(?:, correlation = \{\})?\) \{[\s\S]*?\n  \}\n\n  async function verifyOwnAdAbsentById/)?.[0] || '';
 assert.match(deleteFlow, /const confirmed = await confirmDeleteDialog\(wanted(?:, correlation)?\)/);
-assert.match(deleteFlow, /if \(!confirmed\) throw new Error/);
+if (manifest.version === '2.0.5.1') {
+  assert.ok(require('./current-patch-policy.cjs').isS06HotfixVersion(manifest.version));
+  const timeoutReturn = deleteFlow.match(/if \(!confirmed\) return \{[\s\S]*?\n    \};/)?.[0] || '';
+  assert.match(timeoutReturn, /deleted: false, actionTriggered: false, confirmed: false, adId: wanted/);
+  assert.match(timeoutReturn, /outcome: 'confirmation-not-triggered', reason: 'dialog-timeout'/);
+  assert.ok(deleteFlow.indexOf(timeoutReturn) < deleteFlow.indexOf('const postAction = await waitForDeletePostAction'));
+} else {
+  assert.match(deleteFlow, /if \(!confirmed\) throw new Error/);
+}
 assert.match(deleteFlow, /const postAction = await waitForDeletePostAction\(wanted, listing\.root(?:, 5000, correlation)?\)/);
 assert.doesNotMatch(deleteFlow, /Quellanzeige blieb auf der aktuellen Seite sichtbar/);
 assert.doesNotMatch(deleteFlow, /if \(!outcome\.verified\)/);
