@@ -692,7 +692,7 @@ async function startKnownSingleInventoryCapture({ fillId, tabId, adId }) {
   requireInventoryCaptureController().setKnownSingleCandidate(preview, sourceTabId, expectedAdId);
   if (trashTemplateDialog?.open) trashTemplateDialog.close('inventory-started');
   requireInventoryCaptureController().showDialog();
-  return startSingleInventoryCapture();
+  return requireInventoryCaptureController().startSingle();
 }
 
 function friendlyErrorMessage(error, fallback = 'Der Vorgang konnte nicht abgeschlossen werden. Bitte versuche es erneut.') {
