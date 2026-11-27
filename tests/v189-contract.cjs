@@ -40,7 +40,7 @@ assert.match(app, /label === 'PRÜFUNG ERFORDERLICH'\) return 'Erneut prüfen'/)
 assert.match(css, /renewal-waiting-for-online/);
 pass('UI exposes a distinct online-wait state and active retry wording');
 
-const buttonBlock = app.match(/const retryableRenewal = \['waiting-for-online', 'verification-failed'\][\s\S]*?actions\.append\(renewalButton\);/)?.[0] || '';
+const buttonBlock = (require('./current-patch-policy.cjs').isS06Version(manifest.version) ? app.match(/const retryableRenewal = !\['source-delete-status-unverified', 'source-delete-outcome-unverified'\]\.includes\(String\(record\.renewal\.stage \|\| ''\)\) && \['waiting-for-online', 'verification-failed'\][\s\S]*?actions\.append\(renewalButton\);/) : app.match(/const retryableRenewal = \['waiting-for-online', 'verification-failed'\][\s\S]*?actions\.append\(renewalButton\);/))?.[0] || '';
 assert.ok(buttonBlock, 'retryable renewal action block must exist');
 assert.match(buttonBlock, /renewalButton\.disabled = !retryableRenewal/);
 assert.match(buttonBlock, /RETRY_RENEWAL_VERIFICATION/);

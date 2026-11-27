@@ -33,7 +33,7 @@ assert.match(template, /autoPublishVerifiedRenewal\(session\)/);
 pass('verified fill result survives navigation so the final publish page can re-evaluate the hard gate');
 
 assert.match(background, /async function discardRenewalDraft\(message\)/);
-assert.match(background, /renewal\.newAdId \|\| \['submitted', 'new-id-confirmed', 'reinventorizing', 'verifying', 'verified'\]/);
+if(require('./current-patch-policy.cjs').isS06Version(manifest.version)) { assert.match(background, /renewal\.newAdId \|\| RenewalStateRepository\.renewalPublishBoundaryReached\(renewal\)/); assert.match(background, /RenewalStateRepository\.renewalPublishBoundaryReached\(fill\)/); }else assert.match(background, /renewal\.newAdId \|\| \['submitted', 'new-id-confirmed', 'reinventorizing', 'verifying', 'verified'\]/);
 assert.match(background, /delete renewals\[renewalId\]/);
 assert.match(background, /deleteInventoryStorageRecord\(skeletonInventoryId\)/);
 assert.match(background, /RENEWAL_DRAFT_DISCARDED/);

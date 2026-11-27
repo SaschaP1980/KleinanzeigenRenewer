@@ -70,8 +70,8 @@ test('actual publish API never clicks for incomplete, ambiguous, template-only, 
       let clicks=0;const button=()=>({textContent:'Anzeige aufgeben',disabled:false,click(){clicks++;},scrollIntoView(){}});
       const buttons=type==='ambiguous'?[button(),button()]:[button()];
       global.document={querySelectorAll:()=>buttons,querySelector:()=>null,addEventListener(){},documentElement:{scrollHeight:100}};
-      const pub=Publish.create({PaidInsertionGuard:{detect:()=>({required:type==='paid',phase:'checkout'})},clean:x=>String(x||'').trim(),visible:()=>true,visibleText:x=>x.textContent,sleep:async()=>{},runtimeMessage:async()=>({}),diagnostic(){},updatePanel(){}});
-      const session={fillId:'synthetic',archiveInsertionId:type==='missing-owner'?null:'archive',templateOnly:type==='template-only',stage:type==='submitted'?'publish-submitted':'form-verified',result:{complete:type!=='incomplete',issues:type==='issues'?['mismatch']:[]}};
+      const pub=Publish.create({PaidInsertionGuard:{detect:()=>({required:type==='paid',phase:'checkout'})},clean:x=>String(x||'').trim(),visible:()=>true,visibleText:x=>x.textContent,sleep:async()=>{},runtimeMessage:async m=>m.stage==='auto-publish-ready'?{status:'running',stage:'auto-publish-ready'}:{},diagnostic(){},updatePanel(){}});
+      const session={fillId:'synthetic-'+type,archiveInsertionId:type==='missing-owner'?null:'archive',templateOnly:type==='template-only',stage:type==='submitted'?'publish-submitted':'form-verified',result:{complete:type!=='incomplete',issues:type==='issues'?['mismatch']:[]}};
       await pub.autoPublishVerifiedRenewal(session);
       assert.equal(clicks,type==='valid'?1:0,type);
     }

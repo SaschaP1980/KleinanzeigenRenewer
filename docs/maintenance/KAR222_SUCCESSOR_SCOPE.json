@@ -156,5 +156,10 @@
         }
       ]
     }
-  ]
+  ],
+  "backgroundBudget": {
+    "chars": 196573,
+    "bytes": 196701,
+    "lines": 3320
+  }
 }

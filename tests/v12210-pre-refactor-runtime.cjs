@@ -12,6 +12,7 @@ function sourceOf(name){
   throw new Error(`unterminated ${name}`);
 }
 const names=['displayPrice','categoryLabel','compactCategoryLabel','renewalIsReplacementReady','renewalAutoCompletionPending','renewalStatusLabel','canDiscardRenewalDraft','trashReasonLabel'];
+if(require('./current-patch-policy.cjs').isS06Version(require('../manifest.json').version))names.unshift('legacyDeleteOutcomeUnresolved');
 const api=vm.runInNewContext(`${names.map(sourceOf).join('\n')}\n({${names.join(',')}})`);
 let n=0;const check=(m,f)=>{f();n++;console.log('PASS '+m)};
 check('price formatting preserves currency normalization',()=>{assert.equal(api.displayPrice({price:{value:'19'}}),'19 €');assert.equal(api.displayPrice({price:{displayed:'19 €',value:'19'}}),'19 €');assert.equal(api.displayPrice({price:{}}),'–')});

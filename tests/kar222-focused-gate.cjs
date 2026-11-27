@@ -9,8 +9,8 @@ for(const item of policy.S06_SCOPE.partialTests){
  const bytes=fs.readFileSync(path.join(root,item.path));
  assert.equal(crypto.createHash('sha1').update('blob '+bytes.length+'\0').update(bytes).digest('hex'),item.blob);
  for(const d of item.deferred)assert.ok(bytes.toString().includes("test('"+d.name+"'"),'Deferred test name not found');
- const pattern='^(?!(?:'+item.deferred.map(d=>escape(d.name)).join('|')+')$).*';
- const r=spawnSync(process.execPath,['--test','--test-reporter=tap','--test-name-pattern='+pattern,item.path],{cwd:root,encoding:'utf8',timeout:120000});
+ const pattern='^(?:'+item.deferred.map(d=>escape(d.name)).join('|')+')$';
+ const r=spawnSync(process.execPath,['--test','--test-reporter=tap','--test-skip-pattern='+pattern,item.path],{cwd:root,encoding:'utf8',timeout:120000});
  process.stdout.write(r.stdout||'');process.stderr.write(r.stderr||'');
  assert.equal(r.status,0,'Active S06 product tests failed: '+item.path);
  const number=name=>Number(r.stdout.match(new RegExp('^# '+name+' (\\d+)$','m'))?.[1]);

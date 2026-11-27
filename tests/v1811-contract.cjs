@@ -51,7 +51,7 @@ if (restored) {
   assert.match(phase4, /if \(isNonRetryableRenewalSafetyError\(error\) \|\| !renewalPhaseAttemptAvailable\(session, 4\)\) break/);
   const pending = phase4.indexOf("session.stage = 'source-delete-verification-pending'");
   const persist = phase4.indexOf('await persistRenewalSession(session)', pending);
-  const verify = phase4.indexOf('verification = await verifyRenewalSourceAbsenceFresh(session', persist);
+  const verify = phase4.indexOf(require('./current-patch-policy.cjs').isS06Version(manifest.version)?'const proof = await verifyRenewalSourceAbsenceFresh(session':'verification = await verifyRenewalSourceAbsenceFresh(session', persist);
   const reject = phase4.indexOf('if (!verification?.verified)', verify);
   const success = phase4.indexOf("session.stage = 'source-delete-verified'", reject);
   assert.ok(pending >= 0 && persist > pending && verify > persist && reject > verify && success > reject);

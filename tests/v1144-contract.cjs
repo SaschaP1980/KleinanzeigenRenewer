@@ -22,8 +22,8 @@ assert.match(bg, /MASS_RENEWAL_BATCH_MUTATION_FAILED/);
 assert.match(bg, /revision/);
 
 assert.match(bg, /findMassRenewalSessionForItem/);
-assert.match(bg, /recovery-starting-requeued/);
-assert.match(bg, /MASS_RENEWAL_RECOVERY_STARTING_REQUEUED/);
+if(require('./current-patch-policy.cjs').isS06Version(manifest.version)) { assert.doesNotMatch(bg,/recovery-starting-requeued|MASS_RENEWAL_RECOVERY_STARTING_REQUEUED/); assert.match(bg,/recovery-session-missing/); assert.match(bg,/Kein erneutes Neu-Inserieren ohne eindeutige Zuordnung/); } else assert.match(bg, /recovery-starting-requeued/);
+if(!require('./current-patch-policy.cjs').isS06Version(manifest.version)) assert.match(bg, /MASS_RENEWAL_RECOVERY_STARTING_REQUEUED/);
 assert.match(bg, /MASS_RENEWAL_RECOVERY_RENEWAL_REBOUND/);
 
 assert.match(bg, /TERMINAL_TEMPLATE_FILL_STATUSES/);
